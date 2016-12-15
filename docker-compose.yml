@@ -1,0 +1,23 @@
+version: '2'
+
+services:
+  wurst:
+    image: woost/wurst
+    ports:
+      - "80:8080"
+    environment:
+      - NEO4J_URL=http://neo4j:7474
+      - NEO4J_USER=neo4j
+      - NEO4J_PASS=passt
+    links:
+      - neo4j
+    mem_limit: 262144000
+  neo4j:
+    image: neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/passt
+    mem_limit: 781189120
+    volumes:
+      - data:/data/
+volumes:
+  data: {}
