@@ -1,4 +1,5 @@
-package example
+package frontend
+
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSExport
 import scala.concurrent.Future
@@ -18,7 +19,7 @@ import DiodeEvent._
 
 @JSExport
 object Main extends js.JSApp {
-  WebsocketClient
+  Client // websocket connection
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { m =>
@@ -26,7 +27,7 @@ object Main extends js.JSApp {
         m.value.counter,
         <.br(),
         <.button(^.onClick --> Callback.future {
-          WebsocketClient[Api].change(1).call().map { newValue =>
+          Client[Api].change(1).call().map { newValue =>
             m.dispatchCB(SetCounter(newValue))
           }
         }, "inc websocket")

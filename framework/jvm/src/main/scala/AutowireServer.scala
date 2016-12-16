@@ -1,4 +1,4 @@
-package example
+package framework
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

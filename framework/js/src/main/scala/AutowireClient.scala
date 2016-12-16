@@ -1,8 +1,7 @@
-package example
+package framework
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import diode._
 import boopickle.Default._
 
 import scalajs.js
@@ -18,13 +17,9 @@ import org.scalajs.dom.raw.{Blob, FileReader, MessageEvent, ProgressEvent}
 
 import api._
 
-object DiodeEvent {
-  import diode.ActionType
-  implicit object EventAction extends ActionType[EventType]
-}
-import DiodeEvent._
+trait WebsocketClient extends autowire.Client[ByteBuffer, Pickler, Pickler] {
+  def receive(event: EventType)
 
-object WebsocketClient extends autowire.Client[ByteBuffer, Pickler, Pickler] {
   override def doCall(req: Request): Future[ByteBuffer] = {
     val seqId = nextSeqId()
     val call = Pickle.intoBytes(Call(seqId, req.path, req.args))
@@ -76,7 +71,7 @@ object WebsocketClient extends autowire.Client[ByteBuffer, Pickler, Pickler] {
               openRequests -= seqId
             case event: EventType =>
               console.log("got event", event.asInstanceOf[js.Any])
-              AppCircuit.dispatch(event)
+              receive(event)
             case m => println(m)
           }
         }

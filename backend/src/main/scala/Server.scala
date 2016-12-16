@@ -1,9 +1,10 @@
-package example
+package backend
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import api._
 import boopickle.Default._
+import framework._
 
 object ApiImpl extends Api with WebsocketServer with App {
   val router = AutowireWebsocketServer.route[Api](this)
