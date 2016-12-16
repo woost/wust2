@@ -32,28 +32,14 @@ class WebsocketClient(location: String)(receive: ByteBuffer => Unit) {
   }
 
   def send(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
+    import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+
     val seqId = nextSeqId()
     val call = Pickle.intoBytes(CallRequest(seqId, path, args))
     val result = Promise[ByteBuffer]()
     openRequests += (seqId -> result)
-    for (ws <- wsFuture) ws.send(call.toArrayBuffer)
+    for (ws <- wsFuture) ws.send(call)
     result.future
-  }
-
-  implicit class ByteBufferOpt(data: ByteBuffer) {
-    def toArrayBuffer: ArrayBuffer = {
-      if (data.hasTypedArray()) {
-        // get relevant part of the underlying typed array
-        data.typedArray().subarray(data.position, data.limit).buffer
-      } else {
-        // fall back to copying the data
-        val tempBuffer = ByteBuffer.allocateDirect(data.remaining)
-        val origPosition = data.position
-        tempBuffer.put(data)
-        data.position(origPosition)
-        tempBuffer.typedArray().buffer
-      }
-    }
   }
 
   wsRaw.onerror = { (e: ErrorEvent) =>
