@@ -3,7 +3,8 @@ package framework
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import akka.actor._
-import akka.http.scaladsl.Http
+import akka.http.scaladsl._
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.model._
@@ -31,6 +32,11 @@ trait WebsocketServer {
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
 
+  private val indexFile = {
+    val is = getClass.getResourceAsStream("/index-dev.html")
+    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
+  }
+
   val messageHandler =
     Flow[Message]
       .mapAsync(4) { // TODO why 4?
@@ -45,20 +51,13 @@ trait WebsocketServer {
       }
 
   //TODO: serve index html
-  val requestHandler: HttpRequest => HttpResponse = {
-    //TODO: simpler upgrade router implementation
-    //http://doc.akka.io/docs/akka-http/current/scala/http/websocket-support.html
-    case req @ HttpRequest(GET, Uri.Path("/"), _, _, _) =>
-      req.header[UpgradeToWebSocket] match {
-        case Some(upgrade) => upgrade.handleMessages(messageHandler)
-        case None => HttpResponse(400, entity = "Not a valid websocket request!")
-      }
-    case r: HttpRequest =>
-      r.discardEntityBytes() // important to drain incoming HTTP Entity stream
-      HttpResponse(404, entity = "Unknown resource!")
+  val route = (pathSingleSlash & get) {
+    complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, indexFile))
+  } ~ (path("ws") & get) {
+    handleWebSocketMessages(messageHandler)
   }
 
-  val bindingFuture = Http().bindAndHandleSync(requestHandler, interface = "localhost", port = 8080)
+  val bindingFuture = Http().bindAndHandle(route, interface = "localhost", port = 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
   StdIn.readLine()
