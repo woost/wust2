@@ -7,11 +7,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.model._
-import akka.io.IO
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.{Source, Flow}
+import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import scala.io.StdIn
 
@@ -19,7 +17,7 @@ import autowire.Core.Request
 import boopickle.Default._
 import java.nio.ByteBuffer
 
-import api._
+import framework.message._
 
 object AutowireWebsocketServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
@@ -38,10 +36,10 @@ trait WebsocketServer {
       .mapAsync(4) { // TODO why 4?
         case bm: BinaryMessage if bm.isStrict => //TODO: extract serializer out of here
           val buffer = bm.getStrictData.asByteBuffer
-          val call = Unpickle[api.Call].fromBytes(buffer)
-          // println(call)
+          val call = Unpickle[CallRequest].fromBytes(buffer)
           router(Request(call.path, call.args)).map { result =>
-            val encoded = Pickle.intoBytes(Response(call.seqId, result): ApiMessage)
+            val response = Response(call.seqId, result)
+            val encoded = Pickle.intoBytes(response : ServerMessage)
             BinaryMessage(ByteString(encoded))
           }
       }

@@ -15,7 +15,6 @@ import org.scalajs.dom._
 import boopickle.Default._
 
 import api._
-import DiodeEvent._
 
 @JSExport
 object Main extends js.JSApp {

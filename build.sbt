@@ -38,7 +38,6 @@ lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
 lazy val framework = crossProject
-  .dependsOn(api) // TOOD: don't depend on api
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= (
