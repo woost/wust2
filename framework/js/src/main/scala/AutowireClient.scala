@@ -17,9 +17,16 @@ import org.scalajs.dom.raw.{Blob, FileReader, MessageEvent, ProgressEvent}
 
 import framework.message._
 
-class WebsocketClient(location: String)(receive: ByteBuffer => Unit) {
+class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[ByteBuffer]) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
+  override def doCall(req: Request): Future[ByteBuffer] = send(req.path, req.args)
+  def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
+  def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
+}
+
+trait WebsocketClient[EV] {
+  implicit val pickler: Pickler[EV]
+
   type SequenceId = Int
-  private val wsRaw = new WebSocket(location)
   private val wsPromise = Promise[WebSocket]()
   private val wsFuture = wsPromise.future
 
@@ -31,6 +38,14 @@ class WebsocketClient(location: String)(receive: ByteBuffer => Unit) {
     r
   }
 
+  def onEvent(msg: ByteBuffer) {
+    val event = Unpickle[EV].fromBytes(msg)
+    console.log("got event", event.asInstanceOf[js.Any])
+    receive(event)
+  }
+
+  def receive(event: EV): Unit
+
   def send(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
     import scala.scalajs.js.typedarray.TypedArrayBufferOps._
 
@@ -38,52 +53,41 @@ class WebsocketClient(location: String)(receive: ByteBuffer => Unit) {
     val call = Pickle.intoBytes(CallRequest(seqId, path, args))
     val result = Promise[ByteBuffer]()
     openRequests += (seqId -> result)
-    for (ws <- wsFuture) ws.send(call)
+    for (ws <- wsFuture) ws.send(call.arrayBuffer())
     result.future
   }
 
-  wsRaw.onerror = { (e: ErrorEvent) =>
-    console.log("error", e)
-  }
+  def run(location: String) {
+    val wsRaw = new WebSocket(location)
+    wsRaw.onerror = { (e: ErrorEvent) =>
+      console.log("error", e)
+    }
 
-  wsRaw.onopen = { (e: Event) =>
-    wsPromise.success(wsRaw)
-  }
+    wsRaw.onopen = { (e: Event) =>
+      wsPromise.success(wsRaw)
+    }
 
-  wsRaw.onmessage = { (e: MessageEvent) =>
-    e.data match {
-      case blob: Blob =>
-        // console.log(blob)
-        val reader = new FileReader()
-        def onLoadEnd(ev: ProgressEvent): Any = {
-          val buff = reader.result
-          val msg = TypedArrayBuffer.wrap(buff.asInstanceOf[ArrayBuffer])
-          val wsMsg = Unpickle[ServerMessage].fromBytes(msg)
-          console.log(wsMsg.asInstanceOf[js.Any])
-          wsMsg match {
-            case Response(seqId, result) =>
-              val promise = openRequests(seqId)
-              promise.success(result)
-              openRequests -= seqId
-            case Notification(msg) => receive(msg)
+    wsRaw.onmessage = { (e: MessageEvent) =>
+      e.data match {
+        case blob: Blob =>
+          // console.log(blob)
+          val reader = new FileReader()
+          def onLoadEnd(ev: ProgressEvent): Any = {
+            val buff = reader.result
+            val msg = TypedArrayBuffer.wrap(buff.asInstanceOf[ArrayBuffer])
+            val wsMsg = Unpickle[ServerMessage].fromBytes(msg)
+            console.log(wsMsg.asInstanceOf[js.Any])
+            wsMsg match {
+              case Response(seqId, result) =>
+                val promise = openRequests(seqId)
+                promise.success(result)
+                openRequests -= seqId
+              case Notification(msg) => onEvent(msg)
+            }
           }
-        }
-        reader.onloadend = onLoadEnd _
-        reader.readAsArrayBuffer(blob)
+          reader.onloadend = onLoadEnd _
+          reader.readAsArrayBuffer(blob)
+      }
     }
   }
-}
-
-abstract class AutowireWebsocketClient[EV : Pickler](location: String) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
-  private val client = new WebsocketClient(location)({ msg =>
-    val event = Unpickle[EV].fromBytes(msg)
-    console.log("got event", event.asInstanceOf[js.Any])
-    receive(event)
-  })
-
-  def receive(event: EV): Unit
-
-  override def doCall(req: Request): Future[ByteBuffer] = client.send(req.path, req.args)
-  def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
-  def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }

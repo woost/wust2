@@ -14,11 +14,10 @@ import diode.react._
 import org.scalajs.dom._
 import boopickle.Default._
 
-import api._
-
 @JSExport
 object Main extends js.JSApp {
-  Client // websocket connection
+  // s"ws://${window.location.host}"
+  Client.run("ws://localhost:8080/ws")
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { m =>
@@ -26,7 +25,7 @@ object Main extends js.JSApp {
         m.value.counter,
         <.br(),
         <.button(^.onClick --> Callback.future {
-          Client[Api].change(1).call().map { newValue =>
+          Client.api.change(1).call().map { newValue =>
             m.dispatchCB(SetCounter(newValue))
           }
         }, "inc websocket")

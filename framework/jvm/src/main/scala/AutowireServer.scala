@@ -1,9 +1,12 @@
 package framework
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 import akka.actor._
 import akka.http.scaladsl._
+import akka.http.scaladsl.Http.ServerBinding
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws._
@@ -12,7 +15,6 @@ import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
-import scala.io.StdIn
 
 import autowire.Core.Request
 import boopickle.Default._
@@ -20,22 +22,28 @@ import java.nio.ByteBuffer
 
 import framework.message._
 
-object AutowireWebsocketServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
+object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-trait WebsocketServer {
+trait WebsocketServer[EV] {
   //TODO: broadcast
-  def router: AutowireWebsocketServer.Router
+  implicit val pickler: Pickler[EV]
+  def router: AutowireServer.Router
+
+  def sendBytes(msg: ByteBuffer) {
+    println(msg)
+  }
+
+  def send(event: EV) {
+    val bytes = Pickle.intoBytes(event)
+    val notification = Pickle.intoBytes(Notification(bytes) : ServerMessage)
+    sendBytes(notification)
+  }
 
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
-
-  private val indexFile = {
-    val is = getClass.getResourceAsStream("/index-dev.html")
-    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
-  }
 
   val messageHandler =
     Flow[Message]
@@ -50,15 +58,12 @@ trait WebsocketServer {
           }
       }
 
-  //TODO: serve index html
-  val route = (pathSingleSlash & get) {
-    complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, indexFile))
-  } ~ (path("ws") & get) {
+  val route: Route
+  val commonRoute = (path("ws") & get) {
     handleWebSocketMessages(messageHandler)
   }
 
-  val bindingFuture = Http().bindAndHandle(route, interface = "localhost", port = 8080)
-
-  println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-  StdIn.readLine()
+  def run(interface: String, port: Int): Future[ServerBinding] = {
+    Http().bindAndHandle(commonRoute ~ route, interface = interface, port = port)
+  }
 }

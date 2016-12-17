@@ -8,13 +8,14 @@ import api._
 
 case class SetCounter(value: Int) extends Action
 
-// s"ws://${window.location.host}"
-object Client extends AutowireWebsocketClient[ApiEvent](s"ws://localhost:8080/ws")(implicitly[Pickler[ApiEvent]]) {
+object Client extends WebsocketClient[ApiEvent] {
+  val pickler = implicitly[Pickler[ApiEvent]]
+  val api = new AutowireClient(send).apply[Api]
+
   val map: PartialFunction[ApiEvent, Action] = {
     case NewCounterValue(value) => SetCounter(value)
   }
 
   val dispatch: ApiEvent => Unit = map.andThen(a => AppCircuit.dispatch(a)) orElse { case e => println(s"unknown event: $e") }
-
   def receive(event: ApiEvent) = dispatch(event)
 }
