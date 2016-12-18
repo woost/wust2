@@ -14,14 +14,13 @@ lazy val commonSettings = Seq(
     Nil
 )
 
-lazy val root = project.in(file(".")).
-  aggregate(backend, frontend).
-  settings(
+lazy val root = project.in(file("."))
+  .settings(
     publish := {},
     publishLocal := {},
-    addCommandAlias("dev", "~; backend/re-start; frontend/fastOptJS"),
-    // also watch managed library dependencies
-    watchSources <++= (managedClasspath in Compile) map { cp => cp.files }
+    addCommandAlias("dev", "~backend/re-start")
+  // also watch managed library dependencies
+  // watchSources <++= (managedClasspath in Compile) map { cp => cp.files }
   )
 
 val reactVersion = "15.4.1"
@@ -63,8 +62,7 @@ lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
 lazy val frontend = project
-  .enablePlugins(ScalaJSPlugin, WorkbenchPlugin)
-  .disablePlugins(RevolverPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSWeb, WorkbenchPlugin)
   .dependsOn(frameworkJS, apiJS)
   .settings(commonSettings: _*)
   .settings(
@@ -100,27 +98,16 @@ lazy val frontend = project
   )
 
 lazy val backend = project
-  .enablePlugins(sbtdocker.DockerPlugin)
+  .enablePlugins(SbtWeb, sbtdocker.DockerPlugin)
   .settings(dockerizeBackend: _*)
   .settings(commonSettings: _*)
   .dependsOn(frameworkJVM, apiJVM)
-  .settings( // declare frontend compiled artifacts as backend resources
-  // and therefore depend on frontend compilation
-  // (resources in Compile) ++= (
-  //   {
-  //     (fastOptJS in (frontend, Compile)).value
-  //     (artifactPath in (frontend, Compile, fastOptJS)).value
-  //   } ::
-  //   {
-  //     (fastOptJS in (frontend, Compile)).value
-  //     (artifactPath in (frontend, Compile, packageScalaJSLauncher)).value
-  //   } ::
-  //   {
-  //     (packageJSDependencies in (frontend, Compile)).value
-  //     (artifactPath in (frontend, Compile, packageJSDependencies)).value
-  //   } ::
-  //   Nil
-  // )
+  .settings(
+    scalaJSProjects := Seq(frontend),
+    pipelineStages in Assets := Seq(scalaJSPipeline),
+    compile in Compile <<= (compile in Compile) dependsOn scalaJSPipeline,
+    WebKeys.packagePrefix in Assets := "public/",
+    managedClasspath in Runtime += (packageBin in Assets).value
   )
 
 val dockerOrganization = "woost"
@@ -148,3 +135,6 @@ lazy val dockerizeBackend = Seq(
     dockerImageName(dockerBackendName, s"v${version.value}")
   )
 )
+
+// loads the server project at sbt startup
+onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
