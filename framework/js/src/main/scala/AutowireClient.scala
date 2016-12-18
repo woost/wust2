@@ -24,15 +24,12 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
 }
 
 trait WebsocketClient[CHANNEL, EVENT] {
-  implicit val channelPickler: Pickler[CHANNEL]
-  implicit val eventPickler: Pickler[EVENT]
-
+  implicit def channelPickler: Pickler[CHANNEL]
+  implicit def eventPickler: Pickler[EVENT]
   implicit def clientMessagePickler = ClientMessage.pickler[CHANNEL]
-  implicit def serverMessagePickler = ServerMessage.pickler[CHANNEL, EVENT]
+  implicit def serverMessagePickler = ServerMessage.pickler[EVENT]
 
-  def receive(channel: CHANNEL, event: EVENT): Unit
-
-  val wire = new AutowireClient(callRequest)
+  def receive(event: EVENT): Unit
 
   private val wsPromise = Promise[WebSocket]()
   private val wsFuture = wsPromise.future
@@ -61,6 +58,8 @@ trait WebsocketClient[CHANNEL, EVENT] {
     result.future
   }
 
+  val wire = new AutowireClient(callRequest)
+
   def subscribe(channel: CHANNEL) = send(Subscribe(channel))
 
   def run(location: String) {
@@ -87,7 +86,7 @@ trait WebsocketClient[CHANNEL, EVENT] {
                 val promise = openRequests(seqId)
                 promise.success(result)
                 openRequests -= seqId
-              case Notification(channel: CHANNEL, event: EVENT) => receive(channel, event)
+              case Notification(event: EVENT) => receive(event)
             }
           }
           reader.onloadend = onLoadEnd _

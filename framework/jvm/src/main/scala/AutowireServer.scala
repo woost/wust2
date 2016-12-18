@@ -9,7 +9,6 @@ import akka.http.scaladsl._
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.model._
 import akka.pattern.pipe
@@ -46,21 +45,22 @@ class DispatcherImpl[CHANNEL,EVENT] extends Dispatcher[CHANNEL,EVENT] with Typed
   }
 
   def notify(channel: CHANNEL, event: EVENT) {
-    val notification = Notification(channel, event)
-    connectedClients(channel).foreach(_ ! notification)
+    connectedClients(channel).foreach(_ ! Notification(event))
   }
 
   def onReceive(message: Any, sender: ActorRef): Unit = message match {
-    case Terminated(actor) => connectedClients.values.foreach(_ -= actor)
+    case Terminated(actor) =>
+      //TODO terminated is faster when watching the connected client actor
+      //instead of the source of the ws flow directly.
+      println(s"terminated: $sender")
+      connectedClients.values.foreach(_ -= actor)
     case _ =>
   }
 }
 
 class ConnectedClient[CHANNEL](registrar: Registrar[CHANNEL], router: AutowireServer.Router) extends Actor {
   private def connected(outgoing: ActorRef): Receive = {
-    case CallRequest(seqId, path, args) =>
-      val response = router(Request(path, args)).map(Response(seqId, _))
-      response.foreach(outgoing ! _)
+    case CallRequest(seqId, path, args) => router(Request(path, args)).map(Response(seqId, _)).pipeTo(outgoing)
     case Subscribe(channel: CHANNEL) => registrar.subscribe(channel, outgoing)
   }
 
@@ -76,26 +76,26 @@ trait WebsocketServer[CHANNEL,EVENT] {
   implicit def channelPickler: Pickler[CHANNEL]
   implicit def eventPickler: Pickler[EVENT]
   implicit def clientMessagePickler = ClientMessage.pickler[CHANNEL]
-  implicit def serverMessagePickler = ServerMessage.pickler[CHANNEL, EVENT]
+  implicit def serverMessagePickler = ServerMessage.pickler[EVENT]
 
   def route: Route
   def router: AutowireServer.Router
 
-  val wire = AutowireServer
-
-  implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
+  private implicit val system = ActorSystem()
+  private implicit val materializer = ActorMaterializer()
 
   private val dispatcher: Dispatcher[CHANNEL,EVENT] = TypedActor(system).typedActorOf(TypedProps[DispatcherImpl[CHANNEL,EVENT]])
 
-  def newConnectedClient: Flow[Message, Message, NotUsed] = {
+  private def newConnectedClient: Flow[Message, Message, NotUsed] = {
     val connectedClientActor = system.actorOf(Props(new ConnectedClient(dispatcher, router)))
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message].map {
         case bm: BinaryMessage if bm.isStrict =>
           val buffer = bm.getStrictData.asByteBuffer
-          Unpickle[ClientMessage].fromBytes(buffer)
+          val inMsg = Unpickle[ClientMessage].fromBytes(buffer)
+          println(s"<-- $inMsg")
+          inMsg
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, PoisonPill))
 
     val outgoingMessages: Source[Message, NotUsed] =
@@ -104,6 +104,7 @@ trait WebsocketServer[CHANNEL,EVENT] {
           connectedClientActor ! ConnectedClient.Connected(outActor)
           NotUsed
         }.map { outMsg =>
+          println(s"--> $outMsg")
           val bytes = Pickle.intoBytes(outMsg)
           BinaryMessage(ByteString(bytes))
         }
@@ -111,13 +112,13 @@ trait WebsocketServer[CHANNEL,EVENT] {
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
 
-  private val commonRoute = (path("ws") & get) { // TODO on root or configurable?
+  private val commonRoute = (pathSingleSlash & get) {
     handleWebSocketMessages(newConnectedClient)
   }
 
-  def emit(channel: CHANNEL, event: EVENT) {
-    dispatcher.notify(channel, event)
-  }
+  val wire = AutowireServer
+
+  def emit(channel: CHANNEL, event: EVENT) = dispatcher.notify(channel, event)
 
   def run(interface: String, port: Int): Future[ServerBinding] = {
     Http().bindAndHandle(commonRoute ~ route, interface = interface, port = port)

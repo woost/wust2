@@ -11,12 +11,12 @@ import akka.http.scaladsl.model._
 
 import framework._
 
-class ApiImpl(emit: (Channel, ApiEvent) => Unit) extends Api {
+class ApiImpl(emit: ApiEvent => Unit) extends Api {
   private var counter = 0
 
   def change(delta: Int) = {
     counter += delta
-    emit(Channel.Counter, NewCounterValue(counter))
+    emit(NewCounterValue(counter))
     counter
   }
 }
@@ -26,7 +26,9 @@ object Server extends WebsocketServer[Channel, ApiEvent] with App {
   val eventPickler = implicitly[Pickler[ApiEvent]]
   val router = (wire.route[Api](_))(new ApiImpl(emit))
 
-  val route = pathSingleSlash{
+  def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
+
+  val route = pathSingleSlash {
     getFromResource("index-dev.html")
   } ~ pathPrefix("assets") {
     //TODO from resource

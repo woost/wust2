@@ -11,7 +11,7 @@ case class CallRequest(seqId: Int, path: Seq[String], args: Map[String, ByteBuff
 
 sealed trait ServerMessage
 case class Response(seqId: Int, result: ByteBuffer) extends ServerMessage
-case class Notification[CHANNEL,EVENT](channel: CHANNEL, event: EVENT) extends ServerMessage
+case class Notification[EVENT](event: EVENT) extends ServerMessage
 
 object ClientMessage {
   def pickler[CHANNEL : Pickler] = compositePickler[ClientMessage]
@@ -20,7 +20,7 @@ object ClientMessage {
 }
 
 object ServerMessage {
-  def pickler[CHANNEL : Pickler, EVENT : Pickler] = compositePickler[ServerMessage]
+  def pickler[EVENT : Pickler] = compositePickler[ServerMessage]
     .addConcreteType[Response]
-    .addConcreteType[Notification[CHANNEL,EVENT]]
+    .addConcreteType[Notification[EVENT]]
 }

@@ -9,9 +9,11 @@ trait Api {
 sealed trait Channel
 object Channel {
   case object Counter extends Channel
-}
 
-//TODO: which events belong to which channel in type system?
+  def fromEvent(event: ApiEvent) = event match {
+    case NewCounterValue(_) => Counter
+  }
+}
 
 sealed trait ApiEvent
 case class NewCounterValue(newValue: Int) extends ApiEvent

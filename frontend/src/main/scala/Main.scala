@@ -17,7 +17,7 @@ import boopickle.Default._
 @JSExport
 object Main extends js.JSApp {
   // s"ws://${window.location.host}"
-  Client.run("ws://localhost:8080/ws")
+  Client.run("ws://localhost:8080")
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { m =>
