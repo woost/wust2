@@ -23,8 +23,7 @@ class ApiImpl(send: ApiEvent => Unit) extends Api {
 
 object Server extends WebsocketServer[ApiEvent] with App {
   val pickler = implicitly[Pickler[ApiEvent]]
-  val apiImpl = new ApiImpl(send)
-  val router = AutowireServer.route[Api](apiImpl)
+  val router = (wire.route[Api](_))(new ApiImpl(send))
 
   private val indexFile = {
     val is = getClass.getResourceAsStream("/index-dev.html")
@@ -36,8 +35,9 @@ object Server extends WebsocketServer[ApiEvent] with App {
   }
 
   run("localhost", 8080) foreach { binding =>
-    println(s"Server online at ${binding.localAddress}\nPress RETURN to stop...")
+    println(s"Server online at ${binding.localAddress}")
   }
 
+  println("Press RETURN to stop...")
   io.StdIn.readLine()
 }

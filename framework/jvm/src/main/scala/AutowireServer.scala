@@ -28,12 +28,39 @@ object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
 }
 
 trait WebsocketServer[EV] {
-  //TODO: broadcast
   implicit val pickler: Pickler[EV]
-  def router: AutowireServer.Router
+  val router: AutowireServer.Router
 
-  def sendBytes(msg: ByteBuffer) {
+  val wire = AutowireServer
+
+  implicit val system = ActorSystem()
+  implicit val materializer = ActorMaterializer()
+
+  private def sendBytes(msg: ByteBuffer) {
     println(msg)
+  }
+
+  private val messageHandler =
+    Flow[Message]
+      .mapAsync(parallelism = 4) {
+        case bm: BinaryMessage if bm.isStrict =>
+          val buffer = bm.getStrictData.asByteBuffer
+          val wsMsg = Unpickle[ClientMessage].fromBytes(buffer)
+          wsMsg match {
+            case CallRequest(seqId, path, args) =>
+              router(Request(path, args)).map { result =>
+                val response = Response(seqId, result)
+                val encoded = Pickle.intoBytes(response : ServerMessage)
+                BinaryMessage(ByteString(encoded))
+              }
+            case NotifyRequest(event) =>
+              println(event)
+              Future { TextMessage("OK") } // TODO no response
+          }
+      }
+
+  private val commonRoute = (path("ws") & get) { // TODO on root or configurable?
+    handleWebSocketMessages(messageHandler)
   }
 
   def send(event: EV) {
@@ -42,26 +69,7 @@ trait WebsocketServer[EV] {
     sendBytes(notification)
   }
 
-  implicit val system = ActorSystem()
-  implicit val materializer = ActorMaterializer()
-
-  val messageHandler =
-    Flow[Message]
-      .mapAsync(4) { // TODO why 4?
-        case bm: BinaryMessage if bm.isStrict => //TODO: extract serializer out of here
-          val buffer = bm.getStrictData.asByteBuffer
-          val call = Unpickle[CallRequest].fromBytes(buffer)
-          router(Request(call.path, call.args)).map { result =>
-            val response = Response(call.seqId, result)
-            val encoded = Pickle.intoBytes(response : ServerMessage)
-            BinaryMessage(ByteString(encoded))
-          }
-      }
-
   val route: Route
-  val commonRoute = (path("ws") & get) {
-    handleWebSocketMessages(messageHandler)
-  }
 
   def run(interface: String, port: Int): Future[ServerBinding] = {
     Http().bindAndHandle(commonRoute ~ route, interface = interface, port = port)

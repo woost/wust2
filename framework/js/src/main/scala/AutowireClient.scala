@@ -25,11 +25,14 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
 
 trait WebsocketClient[EV] {
   implicit val pickler: Pickler[EV]
+  def receive(event: EV): Unit
 
-  type SequenceId = Int
+  val wire = new AutowireClient(callRequest)
+
   private val wsPromise = Promise[WebSocket]()
   private val wsFuture = wsPromise.future
 
+  type SequenceId = Int
   private val openRequests = mutable.HashMap.empty[SequenceId, Promise[ByteBuffer]]
   private var seqId = 0
   private def nextSeqId() = {
@@ -38,23 +41,28 @@ trait WebsocketClient[EV] {
     r
   }
 
-  def onEvent(msg: ByteBuffer) {
+  private def onEvent(msg: ByteBuffer) {
     val event = Unpickle[EV].fromBytes(msg)
     console.log("got event", event.asInstanceOf[js.Any])
     receive(event)
   }
 
-  def receive(event: EV): Unit
-
-  def send(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
+  private def send(msg: ByteBuffer) {
     import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+    for (ws <- wsFuture) ws.send(msg.arrayBuffer())
+  }
 
+  private def callRequest(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
     val seqId = nextSeqId()
-    val call = Pickle.intoBytes(CallRequest(seqId, path, args))
+    val call = CallRequest(seqId, path, args)
     val result = Promise[ByteBuffer]()
     openRequests += (seqId -> result)
-    for (ws <- wsFuture) ws.send(call.arrayBuffer())
+    send(Pickle.intoBytes(call : ClientMessage))
     result.future
+  }
+
+  def notifyRequest(str: String) {
+    send(Pickle.intoBytes(NotifyRequest(str) : ClientMessage))
   }
 
   def run(location: String) {
@@ -76,7 +84,6 @@ trait WebsocketClient[EV] {
             val buff = reader.result
             val msg = TypedArrayBuffer.wrap(buff.asInstanceOf[ArrayBuffer])
             val wsMsg = Unpickle[ServerMessage].fromBytes(msg)
-            console.log(wsMsg.asInstanceOf[js.Any])
             wsMsg match {
               case Response(seqId, result) =>
                 val promise = openRequests(seqId)

@@ -10,7 +10,7 @@ case class SetCounter(value: Int) extends Action
 
 object Client extends WebsocketClient[ApiEvent] {
   val pickler = implicitly[Pickler[ApiEvent]]
-  val api = new AutowireClient(send).apply[Api]
+  val api = wire[Api]
 
   val map: PartialFunction[ApiEvent, Action] = {
     case NewCounterValue(value) => SetCounter(value)
@@ -18,4 +18,6 @@ object Client extends WebsocketClient[ApiEvent] {
 
   val dispatch: ApiEvent => Unit = map.andThen(a => AppCircuit.dispatch(a)) orElse { case e => println(s"unknown event: $e") }
   def receive(event: ApiEvent) = dispatch(event)
+
+  notifyRequest(NewCounterValue.toString)
 }
