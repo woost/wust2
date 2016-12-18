@@ -23,9 +23,14 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-trait WebsocketClient[EV] {
-  implicit val pickler: Pickler[EV]
-  def receive(event: EV): Unit
+trait WebsocketClient[CHANNEL, EVENT] {
+  implicit val channelPickler: Pickler[CHANNEL]
+  implicit val eventPickler: Pickler[EVENT]
+
+  implicit val clientMessagePickler = ClientMessage.pickler
+  implicit val serverMessagePickler = ServerMessage.pickler
+
+  def receive(channel: CHANNEL, event: EVENT): Unit
 
   val wire = new AutowireClient(callRequest)
 
@@ -41,15 +46,16 @@ trait WebsocketClient[EV] {
     r
   }
 
-  private def onEvent(msg: ByteBuffer) {
-    val event = Unpickle[EV].fromBytes(msg)
-    console.log("got event", event.asInstanceOf[js.Any])
-    receive(event)
+  private def onEvent(cBytes: ByteBuffer, bytes: ByteBuffer) {
+    val channel = Unpickle[CHANNEL].fromBytes(cBytes)
+    val event = Unpickle[EVENT].fromBytes(bytes)
+    receive(channel, event)
   }
 
-  private def send(msg: ByteBuffer) {
+  private def send(msg: ClientMessage) {
     import scala.scalajs.js.typedarray.TypedArrayBufferOps._
-    for (ws <- wsFuture) ws.send(msg.arrayBuffer())
+    val bytes = Pickle.intoBytes(msg)
+    for (ws <- wsFuture) ws.send(bytes.arrayBuffer())
   }
 
   private def callRequest(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
@@ -57,12 +63,13 @@ trait WebsocketClient[EV] {
     val call = CallRequest(seqId, path, args)
     val result = Promise[ByteBuffer]()
     openRequests += (seqId -> result)
-    send(Pickle.intoBytes(call : ClientMessage))
+    send(call)
     result.future
   }
 
-  def notifyRequest(str: String) {
-    send(Pickle.intoBytes(NotifyRequest(str) : ClientMessage))
+  def subscribe(channel: CHANNEL) {
+    val bytes = Pickle.intoBytes(channel)
+    send(Subscribe(bytes))
   }
 
   def run(location: String) {
@@ -89,7 +96,7 @@ trait WebsocketClient[EV] {
                 val promise = openRequests(seqId)
                 promise.success(result)
                 openRequests -= seqId
-              case Notification(msg) => onEvent(msg)
+              case Notification(channel, event) => onEvent(channel, event)
             }
           }
           reader.onloadend = onLoadEnd _

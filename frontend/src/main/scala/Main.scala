@@ -25,7 +25,7 @@ object Main extends js.JSApp {
         m.value.counter,
         <.br(),
         <.button(^.onClick --> Callback.future {
-          Client.api.change(1).call().map { newValue =>
+          Client.wireApi.change(1).call().map { newValue =>
             m.dispatchCB(SetCounter(newValue))
           }
         }, "inc websocket")
