@@ -44,18 +44,12 @@ trait WebsocketServer[CHANNEL,EVENT] {
     val connectedClients = mutable.Map.empty[CHANNEL, mutable.Set[ActorRef]].withDefaultValue(mutable.Set.empty)
 
     def receive = {
-      case Subscribe(bytes) =>
-        //TODO: message should not have bytebuffer, be generic (see messages.scala)
-        val channel = Unpickle[CHANNEL].fromBytes(bytes)
-        bytes.flip()
+      case Subscribe(channel: CHANNEL) =>
         connectedClients(channel) += sender()
         context.watch(sender()) // emits terminated when sender disconnects
       case Terminated(sender) =>
         connectedClients.values.foreach(_ -= sender)
-      case n@Notification(bytes, _) =>
-        //TODO: message should not have bytebuffer, be generic (see messages.scala)
-        val channel = Unpickle[CHANNEL].fromBytes(bytes)
-        bytes.flip()
+      case n@Notification(channel: CHANNEL, _) =>
         connectedClients(channel).foreach(_ ! n)
     }
   }
@@ -73,8 +67,8 @@ trait WebsocketServer[CHANNEL,EVENT] {
           }
           response.foreach(outgoing ! _) // TODO better something like mapasync in flow?
 
-        case n: Subscribe => dispatchActor ! n
-        case n: Notification => outgoing ! n
+        case n: Subscribe[_] => dispatchActor ! n
+        case n: Notification[_,_] => outgoing ! n
       }
     }
 
@@ -84,8 +78,8 @@ trait WebsocketServer[CHANNEL,EVENT] {
   }
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    implicit val clientMessagePickler = ClientMessage.pickler
-    implicit val serverMessagePickler = ServerMessage.pickler
+    implicit def clientMessagePickler = ClientMessage.pickler[CHANNEL]
+    implicit def serverMessagePickler = ServerMessage.pickler[CHANNEL, EVENT]
 
     val connectedClientActor = system.actorOf(Props(new ConnectedClient))
 
@@ -102,6 +96,7 @@ trait WebsocketServer[CHANNEL,EVENT] {
           connectedClientActor ! Connected(outActor)
           NotUsed
         }.map { (outMsg: ServerMessage) =>
+          println(outMsg)
           val bytes = Pickle.intoBytes(outMsg)
           BinaryMessage(ByteString(bytes))
         }
@@ -114,9 +109,7 @@ trait WebsocketServer[CHANNEL,EVENT] {
   }
 
   def emit(channel: CHANNEL, event: EVENT) {
-    val eventBytes = Pickle.intoBytes(event)
-    val channelBytes = Pickle.intoBytes(channel)
-    dispatchActor ! Notification(channelBytes, eventBytes)
+    dispatchActor ! Notification(channel, event) // TODO: typed actors?
   }
 
   val route: Route

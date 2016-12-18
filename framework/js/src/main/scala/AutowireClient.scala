@@ -27,8 +27,8 @@ trait WebsocketClient[CHANNEL, EVENT] {
   implicit val channelPickler: Pickler[CHANNEL]
   implicit val eventPickler: Pickler[EVENT]
 
-  implicit val clientMessagePickler = ClientMessage.pickler
-  implicit val serverMessagePickler = ServerMessage.pickler
+  implicit def clientMessagePickler = ClientMessage.pickler[CHANNEL]
+  implicit def serverMessagePickler = ServerMessage.pickler[CHANNEL, EVENT]
 
   def receive(channel: CHANNEL, event: EVENT): Unit
 
@@ -46,12 +46,6 @@ trait WebsocketClient[CHANNEL, EVENT] {
     r
   }
 
-  private def onEvent(cBytes: ByteBuffer, bytes: ByteBuffer) {
-    val channel = Unpickle[CHANNEL].fromBytes(cBytes)
-    val event = Unpickle[EVENT].fromBytes(bytes)
-    receive(channel, event)
-  }
-
   private def send(msg: ClientMessage) {
     import scala.scalajs.js.typedarray.TypedArrayBufferOps._
     val bytes = Pickle.intoBytes(msg)
@@ -67,10 +61,7 @@ trait WebsocketClient[CHANNEL, EVENT] {
     result.future
   }
 
-  def subscribe(channel: CHANNEL) {
-    val bytes = Pickle.intoBytes(channel)
-    send(Subscribe(bytes))
-  }
+  def subscribe(channel: CHANNEL) = send(Subscribe(channel))
 
   def run(location: String) {
     val wsRaw = new WebSocket(location)
@@ -96,7 +87,7 @@ trait WebsocketClient[CHANNEL, EVENT] {
                 val promise = openRequests(seqId)
                 promise.success(result)
                 openRequests -= seqId
-              case Notification(channel, event) => onEvent(channel, event)
+              case Notification(channel: CHANNEL, event: EVENT) => receive(channel, event)
             }
           }
           reader.onloadend = onLoadEnd _
