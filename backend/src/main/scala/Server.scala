@@ -26,19 +26,14 @@ object Server extends WebsocketServer[Channel, ApiEvent] with App {
   val eventPickler = implicitly[Pickler[ApiEvent]]
   val router = (wire.route[Api](_))(new ApiImpl(emit))
 
-  private val indexFile = {
-    val is = getClass.getResourceAsStream("/index-dev.html")
-    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
-  }
-
-  val route = (pathSingleSlash & get) {
-    complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, indexFile))
+  val route = pathSingleSlash{
+    getFromResource("index-dev.html")
+  } ~ pathPrefix("assets") {
+    //TODO from resource
+    getFromDirectory("../frontend/target/scala-2.11/")
   }
 
   run("localhost", 8080) foreach { binding =>
     println(s"Server online at ${binding.localAddress}")
   }
-
-  println("Press RETURN to stop...")
-  io.StdIn.readLine()
 }
