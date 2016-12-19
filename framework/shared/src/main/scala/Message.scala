@@ -4,23 +4,23 @@ import boopickle.Default._
 import java.nio.ByteBuffer
 
 //TODO: fix double serialization of messages through autowire
+trait Messages[CHANNEL,EVENT] {
+  type SequenceId = Int
 
-sealed trait ClientMessage
-case class Subscribe[CHANNEL](channel: CHANNEL) extends ClientMessage
-case class CallRequest(seqId: Int, path: Seq[String], args: Map[String, ByteBuffer]) extends ClientMessage
+  sealed trait ClientMessage
+  case class CallRequest(seqId: SequenceId, path: Seq[String], args: Map[String, ByteBuffer]) extends ClientMessage
+  case class Subscription(channel: CHANNEL) extends ClientMessage
 
-sealed trait ServerMessage
-case class Response(seqId: Int, result: ByteBuffer) extends ServerMessage
-case class Notification[EVENT](event: EVENT) extends ServerMessage
+  sealed trait ServerMessage
+  case class Response(seqId: SequenceId, result: ByteBuffer) extends ServerMessage
+  case class Notification(event: EVENT) extends ServerMessage
 
-object ClientMessage {
-  def pickler[CHANNEL : Pickler] = compositePickler[ClientMessage]
-    .addConcreteType[Subscribe[CHANNEL]]
+  implicit def channelPickler: Pickler[CHANNEL]
+  implicit def eventPickler: Pickler[EVENT]
+  implicit def clientMessagePickler = compositePickler[ClientMessage]
     .addConcreteType[CallRequest]
-}
-
-object ServerMessage {
-  def pickler[EVENT : Pickler] = compositePickler[ServerMessage]
+    .addConcreteType[Subscription]
+  implicit def ServerMessagePickler = compositePickler[ServerMessage]
     .addConcreteType[Response]
-    .addConcreteType[Notification[EVENT]]
+    .addConcreteType[Notification]
 }

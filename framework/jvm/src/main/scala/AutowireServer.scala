@@ -4,6 +4,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 import akka.NotUsed
+import akka.event.{LookupClassification, EventBus}
 import akka.actor._
 import akka.http.scaladsl._
 import akka.http.scaladsl.Http.ServerBinding
@@ -27,86 +28,78 @@ object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-trait Registrar[CHANNEL] {
-  def subscribe(channel: CHANNEL, sender: ActorRef): Unit
-}
-
-trait Dispatcher[CHANNEL,EVENT] extends Registrar[CHANNEL] {
-  def notify(channel: CHANNEL, event: EVENT): Unit
-}
-
-class DispatcherImpl[CHANNEL,EVENT] extends Dispatcher[CHANNEL,EVENT] with TypedActor.Receiver {
-  import scala.collection.mutable
-  private val connectedClients = mutable.Map.empty[CHANNEL, mutable.Set[ActorRef]].withDefaultValue(mutable.Set.empty)
-
-  def subscribe(channel: CHANNEL, sender: ActorRef) {
-    connectedClients(channel) += sender
-    TypedActor.context.watch(sender) // emits terminated when sender disconnects
+object Serializer {
+  def serialize[T : Pickler](msg: T): Message = {
+    println(s"--> $msg")
+    val bytes = Pickle.intoBytes(msg)
+    BinaryMessage(ByteString(bytes))
   }
 
-  def notify(channel: CHANNEL, event: EVENT) {
-    connectedClients(channel).foreach(_ ! Notification(event))
-  }
-
-  def onReceive(message: Any, sender: ActorRef): Unit = message match {
-    case Terminated(actor) =>
-      //TODO terminated is faster when watching the connected client actor
-      //instead of the source of the ws flow directly.
-      println(s"terminated: $sender")
-      connectedClients.values.foreach(_ -= actor)
-    case _ =>
+  def deserialize[T : Pickler](bm: BinaryMessage.Strict): T = {
+    val bytes = bm.getStrictData.asByteBuffer
+    val msg = Unpickle[T].fromBytes(bytes)
+    println(s"<-- $msg")
+    msg
   }
 }
 
-class ConnectedClient[CHANNEL](registrar: Registrar[CHANNEL], router: AutowireServer.Router) extends Actor {
+object Dispatcher {
+  case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
+}
+class Dispatcher[CHANNEL,PAYLOAD] extends EventBus with LookupClassification {
+  import Dispatcher._
+
+  type Event = ChannelEvent[CHANNEL,PAYLOAD]
+  type Classifier = CHANNEL
+  type Subscriber = ActorRef
+
+  protected def classify(event: Event): Classifier = event.channel
+  protected def publish(event: Event, subscriber: Subscriber): Unit = subscriber ! event.payload
+  protected def compareSubscribers(a: Subscriber, b: Subscriber): Int = a.compareTo(b)
+  protected def mapSize: Int = 128 // expected size of classifiers
+}
+
+object ConnectedClient {
+  case class Connected(actor: ActorRef)
+}
+class ConnectedClient[CHANNEL,EVENT](messages: Messages[CHANNEL,EVENT], dispatcher: Dispatcher[CHANNEL,_], router: AutowireServer.Router) extends Actor {
+  import messages._
+
   private def connected(outgoing: ActorRef): Receive = {
-    case CallRequest(seqId, path, args) => router(Request(path, args)).map(Response(seqId, _)).pipeTo(outgoing)
-    case Subscribe(channel: CHANNEL) => registrar.subscribe(channel, outgoing)
+    case CallRequest(seqId, path, args) => router(Request(path, args)).map { result =>
+      Serializer.serialize[ServerMessage](Response(seqId, result))
+    }.pipeTo(outgoing)
+    case Subscription(channel) => dispatcher.subscribe(outgoing, channel)
   }
 
   def receive = {
     case ConnectedClient.Connected(outgoing) => context.become(connected(outgoing))
   }
 }
-object ConnectedClient {
-  case class Connected(actor: ActorRef)
-}
 
-trait WebsocketServer[CHANNEL,EVENT] {
-  implicit def channelPickler: Pickler[CHANNEL]
-  implicit def eventPickler: Pickler[EVENT]
-  implicit def clientMessagePickler = ClientMessage.pickler[CHANNEL]
-  implicit def serverMessagePickler = ServerMessage.pickler[EVENT]
-
+trait WebsocketServer[CHANNEL,EVENT] extends Messages[CHANNEL,EVENT] {
   def route: Route
   def router: AutowireServer.Router
 
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
-  private val dispatcher: Dispatcher[CHANNEL,EVENT] = TypedActor(system).typedActorOf(TypedProps[DispatcherImpl[CHANNEL,EVENT]])
+  private val dispatcher = new Dispatcher[CHANNEL,Message]
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(dispatcher, router)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(this, dispatcher, router)))
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message].map {
-        case bm: BinaryMessage if bm.isStrict =>
-          val buffer = bm.getStrictData.asByteBuffer
-          val inMsg = Unpickle[ClientMessage].fromBytes(buffer)
-          println(s"<-- $inMsg")
-          inMsg
+        case bm: BinaryMessage.Strict => Serializer.deserialize[ClientMessage](bm)
+        //TODO: streamed?
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, PoisonPill))
 
     val outgoingMessages: Source[Message, NotUsed] =
-      Source.actorRef[ServerMessage](10, OverflowStrategy.fail) //TODO why 10?
+      Source.actorRef[Message](10, OverflowStrategy.fail) //TODO why 10?
         .mapMaterializedValue { outActor =>
           connectedClientActor ! ConnectedClient.Connected(outActor)
           NotUsed
-        }.map { outMsg =>
-          println(s"--> $outMsg")
-          val bytes = Pickle.intoBytes(outMsg)
-          BinaryMessage(ByteString(bytes))
         }
 
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
@@ -118,7 +111,10 @@ trait WebsocketServer[CHANNEL,EVENT] {
 
   val wire = AutowireServer
 
-  def emit(channel: CHANNEL, event: EVENT) = dispatcher.notify(channel, event)
+  def emit(channel: CHANNEL, event: EVENT) = {
+    val payload = Serializer.serialize[ServerMessage](Notification(event))
+    dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
+  }
 
   def run(interface: String, port: Int): Future[ServerBinding] = {
     Http().bindAndHandle(commonRoute ~ route, interface = interface, port = port)

@@ -23,18 +23,12 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-trait WebsocketClient[CHANNEL, EVENT] {
-  implicit def channelPickler: Pickler[CHANNEL]
-  implicit def eventPickler: Pickler[EVENT]
-  implicit def clientMessagePickler = ClientMessage.pickler[CHANNEL]
-  implicit def serverMessagePickler = ServerMessage.pickler[EVENT]
-
+trait WebsocketClient[CHANNEL, EVENT] extends Messages[CHANNEL, EVENT] {
   def receive(event: EVENT): Unit
 
   private val wsPromise = Promise[WebSocket]()
   private val wsFuture = wsPromise.future
 
-  type SequenceId = Int
   private val openRequests = mutable.HashMap.empty[SequenceId, Promise[ByteBuffer]]
   private var seqId = 0
   private def nextSeqId() = {
@@ -60,7 +54,7 @@ trait WebsocketClient[CHANNEL, EVENT] {
 
   val wire = new AutowireClient(callRequest)
 
-  def subscribe(channel: CHANNEL) = send(Subscribe(channel))
+  def subscribe(channel: CHANNEL) = send(Subscription(channel))
 
   def run(location: String) {
     val wsRaw = new WebSocket(location)
@@ -77,7 +71,7 @@ trait WebsocketClient[CHANNEL, EVENT] {
         case blob: Blob =>
           // console.log(blob)
           val reader = new FileReader()
-          def onLoadEnd(ev: ProgressEvent): Any = {
+          reader.onloadend = (ev : ProgressEvent) => {
             val buff = reader.result
             val msg = TypedArrayBuffer.wrap(buff.asInstanceOf[ArrayBuffer])
             val wsMsg = Unpickle[ServerMessage].fromBytes(msg)
@@ -86,10 +80,9 @@ trait WebsocketClient[CHANNEL, EVENT] {
                 val promise = openRequests(seqId)
                 promise.success(result)
                 openRequests -= seqId
-              case Notification(event: EVENT) => receive(event)
+              case Notification(event) => receive(event)
             }
           }
-          reader.onloadend = onLoadEnd _
           reader.readAsArrayBuffer(blob)
       }
     }
