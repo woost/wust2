@@ -105,7 +105,11 @@ lazy val backend = project
   .settings(
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),
-    compile in Compile <<= (compile in Compile) dependsOn scalaJSPipeline,
+    compile in Compile <<= ((compile in Compile) dependsOn scalaJSPipeline),
+    // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
+    // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
+    packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
+    fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
     WebKeys.packagePrefix in Assets := "public/",
     managedClasspath in Runtime += (packageBin in Assets).value
   )
