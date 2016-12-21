@@ -14,16 +14,15 @@ case class AddConnects(edge: Edge[Id], connects: Connects) extends Action
 object TypePicklers {
   implicit val channelPickler = implicitly[Pickler[Channel]]
   implicit val eventPickler = implicitly[Pickler[ApiEvent]]
+  implicit val authPickler = implicitly[Pickler[Authorize]]
 }
 import TypePicklers._
 
-object Client extends WebsocketClient[Channel, ApiEvent] {
-  val channelPickler = implicitly[Pickler[Channel]]
-  val eventPickler = implicitly[Pickler[ApiEvent]]
+object Client extends WebsocketClient[Channel, ApiEvent, Authorize] {
   val wireApi = wire[Api]
 
   val map: PartialFunction[ApiEvent, Action] = {
-    case NewCounterValue(value) => SetCounter(value)
+    case NewCounterValue(_, value) => SetCounter(value)
     case NewPost(id, value) => AddPost(id, value)
     case NewConnects(edge, value) => AddConnects(edge, value)
   }

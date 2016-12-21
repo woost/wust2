@@ -28,6 +28,9 @@ object Channel {
 }
 
 sealed trait ApiEvent
-case class NewCounterValue(newValue: Int) extends ApiEvent
+case class NewCounterValue(fromUser: String, newValue: Int) extends ApiEvent
 case class NewPost(id: Id, post: Post) extends ApiEvent
 case class NewConnects(edge: Edge[Id], connects: Connects) extends ApiEvent
+
+sealed trait Authorize
+case class PasswordAuth(name: String, password: String) extends Authorize

@@ -21,6 +21,7 @@ import pharg._
 object Main extends js.JSApp {
   // s"ws://${window.location.host}"
   Client.run("ws://localhost:8080")
+  Client.login(api.PasswordAuth("hans", "***"))
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { proxy =>
@@ -41,6 +42,7 @@ object Main extends js.JSApp {
           val target = (graph.vertices - source).toIndexedSeq(nextInt(n - 1))
           Client.wireApi.connect(source, target).call()
         }),
+        <.button(^.onClick --> Callback { Client.logout() }, "logout"),
         <.br(),
         proxy.value.counter,
         GraphView(proxy.value.graph)

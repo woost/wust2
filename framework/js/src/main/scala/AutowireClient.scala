@@ -27,10 +27,10 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
 case class BadRequestException(error: String) extends Exception(error)
 case object TimeoutException extends Exception
 
-abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler] {
+abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] {
   def receive(event: EVENT): Unit
 
-  private val messages = new Messages[CHANNEL,EVENT]
+  private val messages = new Messages[CHANNEL,EVENT,AUTH]
   import messages._
 
   private val wsPromise = Promise[WebSocket]()
@@ -48,6 +48,15 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler] {
   private def send(msg: ClientMessage) {
     val bytes = Pickle.intoBytes(msg)
     for (ws <- wsFuture) ws.send(bytes.arrayBuffer())
+  }
+
+  def login(auth: AUTH) {
+    //TODO login responses must be modeled as events
+    send(Login(auth))
+  }
+
+  def logout() {
+    send(Logout())
   }
 
   private def request(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
@@ -95,6 +104,7 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler] {
               case BadRequest(seqId, error) =>
                 openRequests.get(seqId).foreach(_ tryFailure new BadRequestException(error))
               case Notification(event) => receive(event)
+              case other => println(other)
             }
           }
           reader.readAsArrayBuffer(blob)

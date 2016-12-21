@@ -3,6 +3,7 @@ package framework
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
+import scala.util.{Success,Failure}
 
 import akka.NotUsed
 import akka.event.{LookupClassification, EventBus}
@@ -44,15 +45,31 @@ object Dispatcher {
   case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
-class ConnectedClient[CHANNEL,EVENT,PAYLOAD](
-  messages: Messages[CHANNEL,EVENT],
+class ConnectedClient[CHANNEL,EVENT,AUTH,USER,PAYLOAD](
+  messages: Messages[CHANNEL,EVENT,AUTH],
   subscribe: (ActorRef, CHANNEL) => Unit,
-  request: (SequenceId, Seq[String], Map[String, ByteBuffer]) => Future[PAYLOAD]) extends Actor {
+  request: (Option[USER], SequenceId, Seq[String], Map[String, ByteBuffer]) => Future[PAYLOAD],
+  authorize: AUTH => Future[USER]) extends Actor {
   import messages._
 
+  var user: Option[USER] = None
+
   def connected(outgoing: ActorRef): Receive = {
-    case CallRequest(seqId, path, args) => request(seqId, path, args).pipeTo(outgoing)
+    case CallRequest(seqId, path, args) => 
+      request(user, seqId, path, args).pipeTo(outgoing)
     case Subscription(channel) => subscribe(outgoing, channel)
+    case Login(auth) => authorize(auth).onComplete {
+      case Success(u) =>
+        user = Some(u)
+        outgoing ! Serializer.serialize[ServerMessage](LoggedIn())
+      case Failure(e) =>
+        user = None
+        outgoing ! Serializer.serialize[ServerMessage](LoginFailure("authentication failed"))
+    } //TODO what about concurrent logout? should persist over future login
+    case Logout() =>
+      user = None
+      outgoing ! Serializer.serialize[ServerMessage](LoggedOut())
+
   }
 
   def receive = {
@@ -80,11 +97,12 @@ object Serializer {
 
 case class UserViewableException(msg: String) extends Exception(msg)
 
-abstract class WebsocketServer[CHANNEL: Pickler,EVENT: Pickler] {
+abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler, USER] {
   def route: Route
-  def router: AutowireServer.Router
+  def router: Option[USER] => AutowireServer.Router
+  def authorize(auth: AUTH): Future[USER]
 
-  private val messages = new Messages[CHANNEL,EVENT]
+  private lazy val messages = new Messages[CHANNEL,EVENT,AUTH]
   import messages._
 
   private implicit val system = ActorSystem()
@@ -92,19 +110,18 @@ abstract class WebsocketServer[CHANNEL: Pickler,EVENT: Pickler] {
 
   private val dispatcher = new Dispatcher[CHANNEL,Message]
 
-  private def onRequest(seqId: SequenceId, path: Seq[String], args: Map[String,ByteBuffer]): Future[Message] = {
-    router.lift(Request(path, args))
+  private def onRequest(user: Option[USER], seqId: SequenceId, path: Seq[String], args: Map[String,ByteBuffer]): Future[Message] = {
+    router(user).lift(Request(path, args))
       .map(_.map(Response(seqId, _)))
       .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
       .recover {
         case UserViewableException(msg) => BadRequest(seqId, s"error: $msg")
         case NonFatal(_) => BadRequest(seqId, "internal server error")
-      }
-      .map(Serializer.serialize[ServerMessage](_))
+      }.map(Serializer.serialize[ServerMessage](_))
   }
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, onRequest)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, onRequest, authorize)))
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message].map {

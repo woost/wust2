@@ -1,6 +1,7 @@
 package backend
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 import api._, graph._
 import boopickle.Default._
@@ -13,8 +14,18 @@ import pharg._
 
 import framework._
 
+case class User(name: String)
+
+object UnauthorizedException extends UserViewableException("unauthorized")
+object WrongCredentials extends UserViewableException("wrong credentials")
+
 object Model {
+  val users = User("hans") ::
+              User("admin") ::
+              Nil
+
   var counter = 0
+
   var graph = DirectedGraphData[Id, Post, Connects](Set.empty, Set.empty, Map.empty, Map.empty)
   private var currentId: Id = 0
   def nextId() = {
@@ -22,15 +33,20 @@ object Model {
     currentId += 1
     r
   }
-
 }
 
-class ApiImpl(emit: ApiEvent => Unit) extends Api {
+class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   import Model._
 
-  def change(delta: Int) = {
+  def withUser[T](f: User => T) = userOpt.map(f).getOrElse {
+    throw UnauthorizedException
+  }
+
+  def whoami() = withUser(_.name)
+
+  def change(delta: Int) = withUser { user =>
     counter += delta
-    emit(NewCounterValue(counter))
+    emit(NewCounterValue(user.name, counter))
     counter
   }
 
@@ -65,11 +81,20 @@ class ApiImpl(emit: ApiEvent => Unit) extends Api {
 object TypePicklers {
   implicit val channelPickler = implicitly[Pickler[Channel]]
   implicit val eventPickler = implicitly[Pickler[ApiEvent]]
+  implicit val authPickler = implicitly[Pickler[Authorize]]
 }
 import TypePicklers._
 
-object Server extends WebsocketServer[Channel, ApiEvent] with App {
-  val router = wire.route[Api](new ApiImpl(emit))
+object Server extends WebsocketServer[Channel, ApiEvent, Authorize, User] with App {
+  // val router = wire.route[Api](user => new ApiImpl(user, emit))
+  def router = user => wire.route[Api](new ApiImpl(user, emit))
+
+  def authorize(auth: Authorize): Future[User] = auth match {
+    case PasswordAuth(name, pw) =>
+      Model.users.find(u => u.name == name)
+        .map(Future.successful)
+        .getOrElse(Future.failed(WrongCredentials))
+  }
 
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
 
