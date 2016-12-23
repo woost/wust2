@@ -30,6 +30,7 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= (
+      "com.github.fdietze" %%% "pharg" % "0.1.0-SNAPSHOT" ::
       Nil
     )
   )
