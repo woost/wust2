@@ -62,9 +62,13 @@ class ApiImpl(emit: ApiEvent => Unit) extends Api {
   }
 }
 
+object TypePicklers {
+  implicit val channelPickler = implicitly[Pickler[Channel]]
+  implicit val eventPickler = implicitly[Pickler[ApiEvent]]
+}
+import TypePicklers._
+
 object Server extends WebsocketServer[Channel, ApiEvent] with App {
-  val channelPickler = implicitly[Pickler[Channel]]
-  val eventPickler = implicitly[Pickler[ApiEvent]]
   val router = wire.route[Api](new ApiImpl(emit))
 
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)

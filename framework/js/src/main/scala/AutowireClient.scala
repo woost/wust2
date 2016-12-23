@@ -27,12 +27,10 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
 case class BadRequestException(error: String) extends Exception(error)
 case object TimeoutException extends Exception
 
-trait WebsocketClient[CHANNEL, EVENT] {
+abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler] {
   def receive(event: EVENT): Unit
 
-  implicit def channelPickler: Pickler[CHANNEL]
-  implicit def eventPickler: Pickler[EVENT]
-  private lazy val messages = new Messages[CHANNEL,EVENT]
+  private val messages = new Messages[CHANNEL,EVENT]
   import messages._
 
   private val wsPromise = Promise[WebSocket]()

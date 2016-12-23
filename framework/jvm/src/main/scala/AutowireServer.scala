@@ -80,13 +80,11 @@ object Serializer {
 
 case class UserViewableException(msg: String) extends Exception(msg)
 
-trait WebsocketServer[CHANNEL,EVENT] {
+abstract class WebsocketServer[CHANNEL: Pickler,EVENT: Pickler] {
   def route: Route
   def router: AutowireServer.Router
 
-  implicit def channelPickler: Pickler[CHANNEL]
-  implicit def eventPickler: Pickler[EVENT]
-  private lazy val messages = new Messages[CHANNEL,EVENT]
+  private val messages = new Messages[CHANNEL,EVENT]
   import messages._
 
   private implicit val system = ActorSystem()
