@@ -18,7 +18,7 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.util.ByteString
 
-import autowire.Core.Request
+import autowire.Core.{Request,Router}
 import boopickle.Default._
 import java.nio.ByteBuffer
 
@@ -45,29 +45,42 @@ object Dispatcher {
   case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
-class ConnectedClient[CHANNEL,EVENT,AUTH,USER,PAYLOAD](
+case class UserViewableException(msg: String) extends Exception(msg)
+
+class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
   messages: Messages[CHANNEL,EVENT,AUTH],
   subscribe: (ActorRef, CHANNEL) => Unit,
-  request: (Option[USER], SequenceId, Seq[String], Map[String, ByteBuffer]) => Future[PAYLOAD],
+  router: Option[USER] => Router[ByteBuffer],
   authorize: AUTH => Future[USER]) extends Actor {
   import messages._
 
-  var user: Option[USER] = None
+  object NotAuthenticated extends Exception("not authenticated")
+  private var userFuture: Future[USER] = Future.failed(NotAuthenticated)
+  private def user: Option[USER] = userFuture.value.flatMap(_.toOption)
 
+  //TODO different Receive for loggedin and loggedout? context.become...
   def connected(outgoing: ActorRef): Receive = {
-    case CallRequest(seqId, path, args) => 
-      request(user, seqId, path, args).pipeTo(outgoing)
+    case CallRequest(seqId, path, args) =>
+      router(user).lift(Request(path, args))
+        .map(_.map(Response(seqId, _)))
+        .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
+        .recover {
+          case UserViewableException(msg) => BadRequest(seqId, s"error: $msg")
+          case NonFatal(_) => BadRequest(seqId, "internal server error")
+        }.map(Serializer.serialize[ServerMessage](_))
+        .pipeTo(outgoing)
     case Subscription(channel) => subscribe(outgoing, channel)
-    case Login(auth) => authorize(auth).onComplete {
-      case Success(u) =>
-        user = Some(u)
-        outgoing ! Serializer.serialize[ServerMessage](LoggedIn())
-      case Failure(e) =>
-        user = None
-        outgoing ! Serializer.serialize[ServerMessage](LoginFailure("authentication failed"))
-    } //TODO what about concurrent logout? should persist over future login
+    case Login(auth) =>
+      userFuture = authorize(auth)
+      userFuture
+        .map(_ => LoggedIn())
+        .recover { case e => LoginFailed(e.getMessage) }
+        .map(Serializer.serialize[ServerMessage](_))
+        .pipeTo(outgoing)
+    //TODO a future login will respond with LoggedIn even if there was a logout in between
+    // client sends: Login, Logout. sees: LoggedOut, LoggedIn. actor state: LoggedOut
     case Logout() =>
-      user = None
+      userFuture = Future.failed(NotAuthenticated)
       outgoing ! Serializer.serialize[ServerMessage](LoggedOut())
 
   }
@@ -95,8 +108,6 @@ object Serializer {
   }
 }
 
-case class UserViewableException(msg: String) extends Exception(msg)
-
 abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler, USER] {
   def route: Route
   def router: Option[USER] => AutowireServer.Router
@@ -110,18 +121,8 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler, 
 
   private val dispatcher = new Dispatcher[CHANNEL,Message]
 
-  private def onRequest(user: Option[USER], seqId: SequenceId, path: Seq[String], args: Map[String,ByteBuffer]): Future[Message] = {
-    router(user).lift(Request(path, args))
-      .map(_.map(Response(seqId, _)))
-      .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
-      .recover {
-        case UserViewableException(msg) => BadRequest(seqId, s"error: $msg")
-        case NonFatal(_) => BadRequest(seqId, "internal server error")
-      }.map(Serializer.serialize[ServerMessage](_))
-  }
-
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, onRequest, authorize)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, router, authorize)))
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message].map {

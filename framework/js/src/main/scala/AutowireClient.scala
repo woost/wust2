@@ -25,7 +25,9 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
 }
 
 case class BadRequestException(error: String) extends Exception(error)
+case class LoginFailureException(error: String) extends Exception(error)
 case object TimeoutException extends Exception
+case object SupersededAuthentication extends Exception
 
 abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] {
   def receive(event: EVENT): Unit
@@ -36,6 +38,8 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] 
   private val wsPromise = Promise[WebSocket]()
   private val wsFuture = wsPromise.future
 
+  //TODO: sequence numbers for auth requests
+  private var authenticateRequest: Promise[Boolean] = Promise()
   private val openRequests = mutable.HashMap.empty[SequenceId, Promise[ByteBuffer]]
   private val requestTimeoutMillis = 10000
   private var seqId = 0
@@ -50,30 +54,40 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] 
     for (ws <- wsFuture) ws.send(bytes.arrayBuffer())
   }
 
-  def login(auth: AUTH) {
-    //TODO login responses must be modeled as events
-    send(Login(auth))
-  }
-
-  def logout() {
-    send(Logout())
-  }
-
-  private def request(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
-    val seqId = nextSeqId()
-    val call = CallRequest(seqId, path, args)
-    val promise = Promise[ByteBuffer]()
-    val future = promise.future
-    openRequests += (seqId -> promise)
-    future onComplete (_ => openRequests -= seqId)
-
+  private def timeoutPromise(promise: Promise[_]) {
     val timer = new Timer
     timer.schedule(new TimerTask {
       def run = promise tryFailure TimeoutException
     }, requestTimeoutMillis)
+  }
 
-    send(call)
+  private def request(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
+    val seqId = nextSeqId()
+    val promise = Promise[ByteBuffer]()
+    val future = promise.future
+    openRequests += (seqId -> promise)
+    future onComplete (_ => openRequests -= seqId)
+    timeoutPromise(promise)
+    send(CallRequest(seqId, path, args))
     future
+  }
+
+  def login(auth: AUTH): Future[Boolean] = {
+    val promise = Promise[Boolean]()
+    authenticateRequest tryFailure SupersededAuthentication
+    authenticateRequest = promise
+    timeoutPromise(promise)
+    send(Login(auth))
+    promise.future
+  }
+
+  def logout(): Future[Boolean] = {
+    val promise = Promise[Boolean]()
+    authenticateRequest tryFailure SupersededAuthentication
+    authenticateRequest = promise
+    timeoutPromise(promise)
+    send(Logout())
+    promise.future
   }
 
   val wire = new AutowireClient(request)
@@ -102,9 +116,12 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] 
               case Response(seqId, result) =>
                 openRequests.get(seqId).foreach(_ trySuccess result)
               case BadRequest(seqId, error) =>
-                openRequests.get(seqId).foreach(_ tryFailure new BadRequestException(error))
+                openRequests.get(seqId).foreach(_ tryFailure BadRequestException(error))
               case Notification(event) => receive(event)
-              case other => println(other)
+              case LoggedIn() => authenticateRequest trySuccess true
+              case LoggedOut() => authenticateRequest trySuccess true
+              case LoginFailed(error) =>
+                authenticateRequest tryFailure LoginFailureException(error)
             }
           }
           reader.readAsArrayBuffer(blob)
