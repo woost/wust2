@@ -24,24 +24,26 @@ object Main extends js.JSApp {
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { proxy =>
+      val graph = proxy.value.graph
       <.div(
-        proxy.value.counter,
-        <.br(),
-        <.button(^.onClick --> Callback.future {
+        <.button("inc websocket", ^.onClick --> Callback.future {
           Client.wireApi.change(1).call().map { newValue =>
             proxy.dispatchCB(SetCounter(newValue))
           }
-        }, "inc websocket"),
-        proxy.value.graph.toString,
-        <.button(^.onClick --> Callback {
+        }),
+        <.button("add post", ^.onClick --> Callback {
           Client.wireApi.addPost("Posti").call()
-        }, "add post"),
-        <.button(^.onClick --> Callback {
-          val ids = proxy.value.graph.vertices.toSeq.sortBy(-_).take(2)
-          if( ids.size == 2) {
-            Client.wireApi.connect(ids(1), ids(0)).call()
-          }
-        }, "connect something")
+        }),
+        <.button("connect something", ^.onClick --> Callback {
+          import scala.util.Random.nextInt
+          val n = graph.vertices.size
+          val source = graph.vertices.toIndexedSeq(nextInt(n))
+          val target = (graph.vertices - source).toIndexedSeq(nextInt(n - 1))
+          Client.wireApi.connect(source, target).call()
+        }),
+        <.br(),
+        proxy.value.counter,
+        GraphView(proxy.value.graph)
       )
     }
     .build
