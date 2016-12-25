@@ -20,8 +20,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
   class Backend($: Scope) extends CustomBackend($) {
     lazy val svg = d3.select(component).append("svg")
-    lazy val vertices = svg.append("g")
-    lazy val edges = svg.append("g")
+    lazy val postElements = d3.select(component).append("div")
+    lazy val respondsToElements = svg.append("g")
 
     val simulation = d3.forceSimulation()
       .force("center", d3.forceCenter())
@@ -41,13 +41,19 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     override def init(p: Props) = Callback {
       // init lazy vals
       svg
-      edges
-      vertices
+      respondsToElements
+      postElements
 
       svg
         .attr("width", width)
         .attr("height", height)
+        .style("position", "absolute")
         .style("border", "1x solid #DDDDDD")
+
+      postElements
+        .style("position", "absolute")
+        .style("width", s"${width}px")
+        .style("height", s"${height}px")
 
       simulation.force("center").x(width / 2).y(height / 2)
       simulation.force("gravityx").x(width / 2)
@@ -57,50 +63,53 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
       import p.posts
 
-      val vertexData: js.Array[Post] = p.posts.values.toJSArray
-      val circle = vertices.selectAll("circle")
-        .data(vertexData)
+      val postData: js.Array[Post] = p.posts.values.toJSArray
+      val post = postElements.selectAll("div")
+        .data(postData)
 
-      val edgeData: js.Array[RespondsTo] = p.respondsTos.values.map { e =>
+      val respondsToData: js.Array[RespondsTo] = p.respondsTos.values.map { e =>
         //TODO: have these as lazy vals / defs in graph?
         e.source = posts(e.in)
         e.target = posts(e.out)
         e
       }.toJSArray
-      val edge = edges.selectAll("line")
-        .data(edgeData)
+      val respondsTo = respondsToElements.selectAll("line")
+        .data(respondsToData)
 
-      circle.enter()
-        .append("circle")
-        .attr("r", 5)
-        .attr("fill", "#48D7FF")
+      post.enter()
+        .append("div")
+        .style("background-color", "#EEEEEE")
+        .style("border", "1px solid #DDDDDD")
+        .style("max-width", "100px")
+        .style("position", "absolute")
+        .text((post: Post) => post.title)
 
-      circle.exit()
+      post.exit()
         .remove()
 
-      edge.enter()
+      respondsTo.enter()
         .append("line")
         .attr("stroke", "#8F8F8F")
 
-      edge.exit()
+      respondsTo.exit()
         .remove()
 
-      simulation.nodes(vertexData)
-      simulation.force("link").links(edgeData)
+      simulation.nodes(postData)
+      simulation.force("link").links(respondsToData)
       simulation.alpha(1).restart()
     }
 
     def draw(p: Props) {
       import p.posts
 
-      val vertex = vertices.selectAll("circle")
-      val edge = edges.selectAll("line")
+      val post = postElements.selectAll("div")
+      val respondsTo = respondsToElements.selectAll("line")
 
-      vertex
-        .attr("cx", (d: Post) => d.x)
-        .attr("cy", (d: Post) => d.y)
+      post
+        .style("left", (d: Post) => s"${d.x}px")
+        .style("top", (d: Post) => s"${d.y}px")
 
-      edge
+      respondsTo
         .attr("x1", (d: RespondsTo) => d.source.x)
         .attr("y1", (d: RespondsTo) => d.source.y)
         .attr("x2", (d: RespondsTo) => d.target.x)
