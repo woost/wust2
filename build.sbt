@@ -1,5 +1,7 @@
 name := "wust"
 
+//TODO: report bug that this project does not compile with 2.12.1
+// scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
 scalaVersion in ThisBuild := "2.11.8"
 
 lazy val commonSettings = Seq(
@@ -103,9 +105,9 @@ lazy val frontend = project
       "org.webjars.npm" % "d3-quadtree" % "1.0.2" / "d3-quadtree.js" minified "d3-quadtree.min.js",
       "org.webjars.npm" % "d3-timer" % "1.0.2" / "d3-timer.js" minified "d3-timer.min.js",
       "org.webjars.npm" % "d3-force" % "1.0.4" / "d3-force.js" minified "d3-force.min.js",
-      "org.webjars.npm" % "d3-zoom" % "1.1.0" / "d3-zoom.js" minified "d3-zoom.min.js",
+      "org.webjars.npm" % "d3-zoom" % "1.1.1" / "d3-zoom.js" minified "d3-zoom.min.js",
       "org.webjars.npm" % "d3-transition" % "1.0.3" / "d3-transition.js" minified "d3-transition.min.js",
-      "org.webjars.npm" % "d3-drag" % "1.0.1" / "d3-drag.js" minified "d3-drag.min.js"
+      "org.webjars.npm" % "d3-drag" % "1.0.2" / "d3-drag.js" minified "d3-drag.min.js"
     )
   )
 
