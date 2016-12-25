@@ -5,11 +5,11 @@ import boopickle.Default._
 import diode.Action, Action._
 import framework._
 import api._, graph._
-import pharg._
 
 case class SetCounter(value: Int) extends Action
-case class AddPost(id: Id, post: Post) extends Action
-case class AddConnects(edge: Edge[Id], connects: Connects) extends Action
+case class SetGraph(graph: Graph) extends Action
+case class AddPost(post: Post) extends Action
+case class AddRespondsTo(respondsTo: RespondsTo) extends Action
 
 object TypePicklers {
   implicit val channelPickler = implicitly[Pickler[Channel]]
@@ -23,8 +23,8 @@ object Client extends WebsocketClient[Channel, ApiEvent, Authorize] {
 
   val map: PartialFunction[ApiEvent, Action] = {
     case NewCounterValue(_, value) => SetCounter(value)
-    case NewPost(id, value) => AddPost(id, value)
-    case NewConnects(edge, value) => AddConnects(edge, value)
+    case NewPost(atom) => AddPost(atom)
+    case NewRespondsTo(atom) => AddRespondsTo(atom)
   }
 
   val dispatch: ApiEvent => Unit = map.andThen(a => AppCircuit.dispatch(a)) orElse { case e => println(s"unknown event: $e") }

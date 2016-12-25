@@ -1,13 +1,26 @@
 package api
 
-import pharg._
+import scalajs.js
+import scala.scalajs.js.annotation._
 
 package object graph {
-  type Id = Long
-  type Graph = DirectedGraphData[Long, Post, Connects]
+  //TODO: different types of ids to restrict RespondsTo in/out
+  type AtomId = Long
 
-  case class Post(title: String)
-  case class Connects(classification: String)
+  case class Graph(
+    posts: Map[AtomId, Post],
+    respondsTos: Map[AtomId, RespondsTo]
+  )
+  object Graph {
+    def empty = Graph(Map.empty, Map.empty)
+  }
 
-  // DirectedGraphData[Long, Post, Connects](Set(1,2), Set(Edge(1,2)), Map(1 -> Post("bala")), Map(Edge(1,2) -> Connects(...)))
+  case class Post(id: AtomId, title: String) /*{
+    @JSExport var x: js.UndefOr[Double] = js.undefined
+    @JSExport var y: js.UndefOr[Double] = js.undefined
+  }*/
+  case class RespondsTo(id: AtomId, in: AtomId, out: AtomId) {
+    @JSExport def source = in
+    @JSExport def target = out
+  }
 }

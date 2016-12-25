@@ -9,7 +9,7 @@ import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
 
 import api.graph._
-import pharg._
+import collection.breakOut
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
   import js.Dynamic.global
@@ -35,8 +35,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       draw($.props.runNow())
     })
 
-    def nodes = simulation.nodes().asInstanceOf[js.Array[Id]]
-    def links = simulation.force("link").links().asInstanceOf[js.Array[Edge[Id]]]
+    def nodes = simulation.nodes().asInstanceOf[js.Array[Post]]
+    def links = simulation.force("link").links().asInstanceOf[js.Array[RespondsTo]]
 
     override def init(p: Props) = Callback {
       // init lazy vals
@@ -54,27 +54,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force("gravityy").y(height / 2)
     }
 
-    @ScalaJSDefined
-    class D3Vertex(
-      var x: js.UndefOr[Double],
-      var y: js.UndefOr[Double]
-    ) extends js.Object
-
-    @ScalaJSDefined
-    class D3Edge(
-      val source: D3Vertex,
-      val target: D3Vertex
-    ) extends js.Object
-
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
-      val vertexSeq = p.vertices.toIndexedSeq
-      val vertexData = vertexSeq.map(v => new D3Vertex(js.undefined, js.undefined)).toJSArray
+      val vertexData: js.Array[Post] = p.posts.values.toJSArray
       val circle = vertices.selectAll("circle")
         .data(vertexData)
 
-      val edgeData = p.edges.map(e => new D3Edge(vertexData(vertexSeq.indexOf(e.in)), vertexData(vertexSeq.indexOf(e.out)))).toJSArray
+      val edgeData: js.Array[RespondsTo] = p.respondsTos.values.toJSArray
       val edge = edges.selectAll("line")
         .data(edgeData)
+      println(edgeData)
 
       circle.enter()
         .append("circle")
@@ -97,18 +85,24 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def draw(p: Props) {
+      import p.posts
+
       val vertex = vertices.selectAll("circle")
       val edge = edges.selectAll("line")
 
+      //TODO: use Post instead of js.Dynamic
+      //The problem is that Post is cross-compiled and cannot have
+      //js.UndefOr[Double] fields
+      //see api/Graph.scala
       vertex
-        .attr("cx", (d: D3Vertex) => d.x)
-        .attr("cy", (d: D3Vertex) => d.y)
+        .attr("cx", (d: js.Dynamic) => d.x)
+        .attr("cy", (d: js.Dynamic) => d.y)
 
       edge
-        .attr("x1", (d: D3Edge) => d.source.x)
-        .attr("y1", (d: D3Edge) => d.source.y)
-        .attr("x2", (d: D3Edge) => d.target.x)
-        .attr("y2", (d: D3Edge) => d.target.y)
+        .attr("x1", (d: RespondsTo) => posts(d.source).asInstanceOf[js.Dynamic].x)
+        .attr("y1", (d: RespondsTo) => posts(d.source).asInstanceOf[js.Dynamic].y)
+        .attr("x2", (d: RespondsTo) => posts(d.target).asInstanceOf[js.Dynamic].x)
+        .attr("y2", (d: RespondsTo) => posts(d.target).asInstanceOf[js.Dynamic].y)
     }
   }
 

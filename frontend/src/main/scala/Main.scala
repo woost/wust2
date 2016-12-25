@@ -15,13 +15,17 @@ import org.scalajs.dom._
 import boopickle.Default._
 
 import api.graph._
-import pharg._
+import collection.breakOut
 
 @JSExport
 object Main extends js.JSApp {
   // s"ws://${window.location.host}"
   Client.run("ws://localhost:8080")
   Client.login(api.PasswordAuth("hans", "***"))
+
+  Client.wireApi.getGraph().call().foreach { graph =>
+    AppCircuit.dispatch(SetGraph(graph))
+  }
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { proxy =>
@@ -37,15 +41,16 @@ object Main extends js.JSApp {
         }),
         <.button("connect something", ^.onClick --> Callback {
           import scala.util.Random.nextInt
-          val n = graph.vertices.size
-          val source = graph.vertices.toIndexedSeq(nextInt(n))
-          val target = (graph.vertices - source).toIndexedSeq(nextInt(n - 1))
-          Client.wireApi.connect(source, target).call()
+          val posts: IndexedSeq[Post] = graph.posts.values.toIndexedSeq
+          val n = posts.size
+          val source = posts(nextInt(n))
+          val target = (posts diff List(source))(nextInt(n - 1))
+          Client.wireApi.connect(source.id, target.id).call()
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
         <.br(),
         proxy.value.counter,
-        GraphView(proxy.value.graph)
+        GraphView(graph)
       )
     }
     .build
@@ -57,7 +62,7 @@ object Main extends js.JSApp {
   }
 }
 
-case class RootModel(counter: Int = 0, graph: Graph = DirectedGraphData[Id, Post, Connects](Set.empty, Set.empty, Map.empty, Map.empty))
+case class RootModel(counter: Int = 0, graph: Graph = Graph.empty)
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   def initialModel = RootModel()
@@ -70,15 +75,14 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
 
   val graphHandler = new ActionHandler(zoomRW(_.graph)((m, v) => m.copy(graph = v))) {
     override def handle = {
-      case AddPost(id, post) =>
+      case SetGraph(graph) => updated(graph)
+      case AddPost(post) =>
         updated(value.copy(
-          vertices = value.vertices + id,
-          vertexData = value.vertexData + (id -> post)
+          posts = value.posts + (post.id -> post)
         ))
-      case AddConnects(edge, connects) =>
+      case AddRespondsTo(respondsTo) =>
         updated(value.copy(
-          edges = value.edges + edge,
-          edgeData = value.edgeData + (edge -> connects)
+          respondsTos = value.respondsTos + (respondsTo.id -> respondsTo)
         ))
     }
   }

@@ -10,8 +10,6 @@ import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.model._
 
-import pharg._
-
 import framework._
 
 case class User(name: String)
@@ -21,13 +19,15 @@ object WrongCredentials extends UserViewableException("wrong credentials")
 
 object Model {
   val users = User("hans") ::
-              User("admin") ::
-              Nil
+    User("admin") ::
+    Nil
 
   var counter = 0
 
-  var graph = DirectedGraphData[Id, Post, Connects](Set.empty, Set.empty, Map.empty, Map.empty)
-  private var currentId: Id = 0
+  var graph = Graph.empty
+
+  // TODO: the next id will come from the database
+  private var currentId: AtomId = 0
   def nextId() = {
     val r = currentId
     currentId += 1
@@ -50,32 +50,29 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     counter
   }
 
-  def getPost(id: Id): Post = graph.vertexData(id)
+  def getPost(id: AtomId): Post = graph.posts(id)
   def getGraph(): Graph = graph
-  def addPost(msg: String): (Id, Post) = {
+  def addPost(msg: String): Post = {
     //uns fehlt die id im client
-    val id = nextId()
-    val post = new Post(msg)
+    val post = new Post(nextId(), msg)
     graph = graph.copy(
-      vertices = graph.vertices + id,
-      vertexData = graph.vertexData + (id -> post)
+      posts = graph.posts + (post.id -> post)
     )
-    emit(NewPost(id, post))
-    (id, post)
+    emit(NewPost(post))
+    post
   }
-  def connect(from: Id, to: Id): (Edge[Id], Connects) = {
-    val connects = Connects("responds")
-    val edge = Edge(from, to)
+  def connect(fromId: AtomId, toId: AtomId): RespondsTo = {
+    val existing = graph.respondsTos.values.find(r => r.in == fromId && r.out == toId)
+    val edge = existing.getOrElse(RespondsTo(nextId(), fromId, toId))
     graph = graph.copy(
-      edges = graph.edges + edge,
-      edgeData = graph.edgeData + (edge -> connects)
+      respondsTos = graph.respondsTos + (edge.id -> edge)
     )
-    emit(NewConnects(edge, connects))
-    (edge, connects)
+    emit(NewRespondsTo(edge))
+    edge
   }
-  def getComponent(id: Id): Graph = {
-    graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
-  }
+  // def getComponent(id: Id): Graph = {
+  //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
+  // }
 }
 
 object TypePicklers {
