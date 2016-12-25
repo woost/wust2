@@ -31,11 +31,6 @@ object Main extends js.JSApp {
     .render_P { proxy =>
       val graph = proxy.value.graph
       <.div(
-        <.button("inc websocket", ^.onClick --> Callback.future {
-          Client.wireApi.change(1).call().map { newValue =>
-            proxy.dispatchCB(SetCounter(newValue))
-          }
-        }),
         <.button("add post", ^.onClick --> Callback {
           Client.wireApi.addPost("Posti").call()
         }),
@@ -48,8 +43,6 @@ object Main extends js.JSApp {
           Client.wireApi.connect(source.id, target.id).call()
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
-        <.br(),
-        proxy.value.counter,
         GraphView(graph)
       )
     }
@@ -62,16 +55,10 @@ object Main extends js.JSApp {
   }
 }
 
-case class RootModel(counter: Int = 0, graph: Graph = Graph.empty)
+case class RootModel(graph: Graph = Graph.empty)
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   def initialModel = RootModel()
-
-  val counterHandler = new ActionHandler(zoomRW(_.counter)((m, v) => m.copy(counter = v))) {
-    override def handle = {
-      case SetCounter(newValue) => updated(newValue)
-    }
-  }
 
   val graphHandler = new ActionHandler(zoomRW(_.graph)((m, v) => m.copy(graph = v))) {
     override def handle = {
@@ -86,5 +73,5 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
         ))
     }
   }
-  override val actionHandler = composeHandlers(counterHandler, graphHandler)
+  override val actionHandler = composeHandlers(graphHandler)
 }

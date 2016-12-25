@@ -22,8 +22,6 @@ object Model {
     User("admin") ::
     Nil
 
-  var counter = 0
-
   var graph = Graph.empty
 
   // TODO: the next id will come from the database
@@ -43,12 +41,6 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   }
 
   def whoami() = withUser(_.name)
-
-  def change(delta: Int) = withUser { user =>
-    counter += delta
-    emit(NewCounterValue(user.name, counter))
-    counter
-  }
 
   def getPost(id: AtomId): Post = graph.posts(id)
   def getGraph(): Graph = graph
