@@ -22,8 +22,6 @@ object Model {
     User("admin") ::
     Nil
 
-  var graph = Graph.empty
-
   // TODO: the next id will come from the database
   private var currentId: AtomId = 0
   def nextId() = {
@@ -31,6 +29,12 @@ object Model {
     currentId += 1
     r
   }
+  val post1 = Post(nextId(), "Hallo")
+  val post2 = Post(nextId(), "Ballo")
+  val responds1 = RespondsTo(nextId(), post2.id, post1.id)
+  val post3 = Post(nextId(), "Penos")
+  val responds2 = RespondsTo(nextId(), post3.id, responds1.id)
+  var graph = Graph(Map(post1.id -> post1, post2.id -> post2, post3.id -> post3), Map(responds1.id -> responds1, responds2.id -> responds2))
 }
 
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
