@@ -14,7 +14,7 @@ import diode.react._
 import org.scalajs.dom._
 import boopickle.Default._
 
-import api.graph._
+import graph._
 import collection.breakOut
 
 @JSExport

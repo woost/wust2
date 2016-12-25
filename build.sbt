@@ -29,15 +29,35 @@ val reactVersion = "15.4.1"
 val akkaVersion = "2.4.14"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
+  .dependsOn(graph)
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= (
-      "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided" ::
       Nil
     )
   )
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
+
+lazy val graph = crossProject
+  .settings(commonSettings: _*)
+  .settings(
+    libraryDependencies ++= (
+      Nil
+    )
+  )
+  .jvmSettings(
+    libraryDependencies ++= (
+      Nil
+    )
+  )
+  .jsSettings(
+    libraryDependencies ++= (
+      Nil
+    )
+  )
+lazy val graphJS = graph.js
+lazy val graphJVM = graph.jvm
 
 lazy val framework = crossProject
   .settings(commonSettings: _*)

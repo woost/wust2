@@ -8,7 +8,7 @@ import org.scalajs.dom._
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
 
-import api.graph._
+import graph._
 import collection.breakOut
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
@@ -55,14 +55,20 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
+      import p.posts
+
       val vertexData: js.Array[Post] = p.posts.values.toJSArray
       val circle = vertices.selectAll("circle")
         .data(vertexData)
 
-      val edgeData: js.Array[RespondsTo] = p.respondsTos.values.toJSArray
+      val edgeData: js.Array[RespondsTo] = p.respondsTos.values.map { e =>
+        //TODO: have these as lazy vals / defs in graph?
+        e.source = posts(e.in)
+        e.target = posts(e.out)
+        e
+      }.toJSArray
       val edge = edges.selectAll("line")
         .data(edgeData)
-      println(edgeData)
 
       circle.enter()
         .append("circle")
@@ -90,19 +96,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       val vertex = vertices.selectAll("circle")
       val edge = edges.selectAll("line")
 
-      //TODO: use Post instead of js.Dynamic
-      //The problem is that Post is cross-compiled and cannot have
-      //js.UndefOr[Double] fields
-      //see api/Graph.scala
       vertex
-        .attr("cx", (d: js.Dynamic) => d.x)
-        .attr("cy", (d: js.Dynamic) => d.y)
+        .attr("cx", (d: Post) => d.x)
+        .attr("cy", (d: Post) => d.y)
 
       edge
-        .attr("x1", (d: RespondsTo) => posts(d.source).asInstanceOf[js.Dynamic].x)
-        .attr("y1", (d: RespondsTo) => posts(d.source).asInstanceOf[js.Dynamic].y)
-        .attr("x2", (d: RespondsTo) => posts(d.target).asInstanceOf[js.Dynamic].x)
-        .attr("y2", (d: RespondsTo) => posts(d.target).asInstanceOf[js.Dynamic].y)
+        .attr("x1", (d: RespondsTo) => d.source.x)
+        .attr("y1", (d: RespondsTo) => d.source.y)
+        .attr("x2", (d: RespondsTo) => d.target.x)
+        .attr("y2", (d: RespondsTo) => d.target.y)
     }
   }
 
