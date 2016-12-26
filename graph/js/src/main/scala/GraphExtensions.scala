@@ -3,8 +3,8 @@ package graph
 import scalajs.js
 import scala.scalajs.js.annotation._
 
-trait D3Coordinates {
-  // reserve field names for d3
+trait D3SimulationNode {
+  @JSExport var index: js.UndefOr[Int] = js.undefined
   @JSExport var x: js.UndefOr[Double] = js.undefined
   @JSExport var y: js.UndefOr[Double] = js.undefined
   @JSExport var vx: js.UndefOr[Double] = js.undefined
@@ -13,9 +13,13 @@ trait D3Coordinates {
   @JSExport var fy: js.UndefOr[Double] = js.undefined
 }
 
-trait PostPlatformSpecificExtensions extends D3Coordinates
-trait RespondsToPlatformSpecificExtensions extends D3Coordinates {
-  // reserve field names for d3
-  @JSExport var source: Post = null
-  @JSExport var target: D3Coordinates = null
+trait D3SimulationLink {
+  @JSExport var index: js.UndefOr[Int] = js.undefined
+  @JSExport var source: D3SimulationNode = null
+  @JSExport var target: D3SimulationNode = null
+}
+
+trait PostPlatformSpecificExtensions extends D3SimulationNode
+trait RespondsToPlatformSpecificExtensions extends D3SimulationLink {
+  //TODO: @JSExport override var source: Post = null
 }
