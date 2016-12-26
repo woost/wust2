@@ -36,8 +36,8 @@ object Model {
   val responds2 = RespondsTo(nextId(), post3.id, responds1.id)
   val post4 = Post(nextId(), "Wost")
   val responds3 = RespondsTo(nextId(), post4.id, responds2.id)
-  // var graph = Graph(Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4), Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3))
-  var graph = Graph(Map(post1.id -> post1, post2.id -> post2), Map(responds1.id -> responds1))
+  var graph = Graph(Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4), Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3))
+  // var graph = Graph(Map(post1.id -> post1, post2.id -> post2), Map(responds1.id -> responds1))
 }
 
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
