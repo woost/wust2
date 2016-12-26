@@ -84,6 +84,7 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
+//TODO: source maps
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSWeb, WorkbenchPlugin)
   .dependsOn(frameworkJS, apiJS)
