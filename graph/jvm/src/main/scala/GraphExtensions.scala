@@ -1,6 +1,5 @@
 package graph
 
-trait PostPlatformSpecificExtensions {
-}
-trait RespondsToPlatformSpecificExtensions {
-}
+trait PostPlatformSpecificExtensions
+trait RespondsToPlatformSpecificExtensions
+trait ContainsPlatformSpecificExtensions

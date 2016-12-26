@@ -68,3 +68,5 @@ trait RespondsToPlatformSpecificExtensions extends D3SimulationLink with D3Simul
     target.vy = target.vy.get + diff / 2
   }
 }
+
+trait ContainsPlatformSpecificExtensions extends D3SimulationLink

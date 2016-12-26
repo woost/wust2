@@ -36,8 +36,14 @@ object Model {
   val responds2 = RespondsTo(nextId(), post3.id, responds1.id)
   val post4 = Post(nextId(), "Wost")
   val responds3 = RespondsTo(nextId(), post4.id, responds2.id)
-  var graph = Graph(Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4), Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3))
-  // var graph = Graph(Map(post1.id -> post1, post2.id -> post2), Map(responds1.id -> responds1))
+  val container = Post(nextId(), "Container")
+  val contains1 = Contains(nextId(), container.id, post1.id)
+  val contains2 = Contains(nextId(), container.id, post4.id)
+  var graph = Graph(
+    Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4, container.id -> container),
+    Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3),
+    Map(contains1.id -> contains1, contains2.id -> contains2)
+  )
 }
 
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {

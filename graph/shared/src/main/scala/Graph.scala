@@ -7,19 +7,19 @@ package object graph {
   // atoms(id)
   // posts(atomid, title)
   // respondsto(atomid)
-  // contains(atomid)
+  // containment(atomid)
   // incidences(atomid, in, out)
   //    costraints:
   //      keine atomids für posts
   //      wenn respondsto: in = post, out = post or respondsto
-  //      wenn contains: in = post, out = post
+  //      wenn containment: in = post, out = post
   case class Graph(
     posts: Map[AtomId, Post] = Map.empty,
-    respondsTos: Map[AtomId, RespondsTo] = Map.empty,
-    contains: Map[AtomId, Contains] = Map.empty
+    respondsTos: Map[AtomId, RespondsTo] = Map.empty, //TODO: rename: responding, responses?
+    containment: Map[AtomId, Contains] = Map.empty
   ) {
     def respondsToDegree(post: Post) = respondsTos.values.count(r => r.in == post.id || r.out == post.id)
-    def containsDegree(post: Post) = contains.values.count(r => r.parent == post.id || r.child == post.id)
+    def containsDegree(post: Post) = containment.values.count(r => r.parent == post.id || r.child == post.id)
     def fullDegree(post: Post) = respondsToDegree(post) + containsDegree(post)
   }
   object Graph {
@@ -28,5 +28,5 @@ package object graph {
 
   case class Post(id: AtomId, title: String) extends PostPlatformSpecificExtensions
   case class RespondsTo(id: AtomId, in: AtomId, out: AtomId) extends RespondsToPlatformSpecificExtensions
-  case class Contains(id: AtomId, parent: AtomId, child: AtomId)
+  case class Contains(id: AtomId, parent: AtomId, child: AtomId) extends ContainsPlatformSpecificExtensions
 }

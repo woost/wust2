@@ -150,9 +150,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val svg = d3.select(component).append("svg")
     lazy val postElements = d3.select(component).append("div")
     lazy val respondsToElements = svg.append("g")
+    lazy val containmentElements = svg.append("g")
 
     var postData: js.Array[Post] = js.Array()
     var respondsToData: js.Array[RespondsTo] = js.Array()
+    var containmentData: js.Array[Contains] = js.Array()
 
     // val customLinkForce = new CustomLinkForce
     val simulation = d3.forceSimulation()
@@ -160,8 +162,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       .force("gravityx", d3.forceX())
       .force("gravityy", d3.forceY())
       .force("repel", d3.forceManyBody())
-      // .force("link", customLinkForce())
-      .force("link", d3.forceLink())
+      // .force("respondsTo", customLinkForce())
+      .force("respondsTo", d3.forceLink())
+      .force("containment", d3.forceLink())
     // .force("collision", d3.forceCollide())
 
     simulation.on("tick", (e: Event) => {
@@ -189,7 +192,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force("gravityx").x(width / 2)
       simulation.force("gravityy").y(height / 2)
 
-      simulation.force("link").distance(100)
+      simulation.force("respondsTo").distance(100)
       simulation.force("repel").strength(-1000)
 
       simulation.force("gravityx").strength(0.1)
@@ -199,6 +202,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
       import p.posts
       import p.respondsTos
+      import p.containment
 
       postData = p.posts.values.toJSArray
       val post = postElements.selectAll("div")
@@ -211,6 +215,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }.toJSArray
       val respondsTo = respondsToElements.selectAll("line")
         .data(respondsToData)
+
+      containmentData = p.containment.values.map { e =>
+        e.source = posts(e.parent)
+        e.target = posts(e.child)
+        e
+      }.toJSArray
+      val contains = containmentElements.selectAll("line")
+        .data(containmentData)
 
       post.enter()
         .append("div")
@@ -230,7 +242,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       respondsTo.exit()
         .remove()
 
-      simulation.force("link").strength { (e: RespondsTo) =>
+      contains.enter()
+        .append("line")
+        .attr("stroke", "blue")
+
+      contains.exit()
+        .remove()
+
+      simulation.force("respondsTo").strength { (e: RespondsTo) =>
         import p.{fullDegree => degree}
         val sourceDeg = degree(e.source.asInstanceOf[Post])
         val targetDeg = e.target match {
@@ -241,7 +260,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
 
       simulation.nodes(postData)
-      simulation.force("link").links(respondsToData)
+      simulation.force("respondsTo").links(respondsToData)
+      simulation.force("containment").links(containmentData)
       // customLinkForce.links = respondsToData
       simulation.alpha(1).restart()
     }
@@ -256,6 +276,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y1", (d: RespondsTo) => d.source.y)
         .attr("x2", (d: RespondsTo) => d.target.x)
         .attr("y2", (d: RespondsTo) => d.target.y)
+
+      containmentElements.selectAll("line")
+        .attr("x1", (d: Contains) => d.source.x)
+        .attr("y1", (d: Contains) => d.source.y)
+        .attr("x2", (d: Contains) => d.target.x)
+        .attr("y2", (d: Contains) => d.target.y)
     }
   }
 
