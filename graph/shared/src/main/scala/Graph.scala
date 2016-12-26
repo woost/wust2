@@ -14,13 +14,19 @@ package object graph {
   //      wenn respondsto: in = post, out = post or respondsto
   //      wenn contains: in = post, out = post
   case class Graph(
-    posts: Map[AtomId, Post],
-    respondsTos: Map[AtomId, RespondsTo]
-  )
+    posts: Map[AtomId, Post] = Map.empty,
+    respondsTos: Map[AtomId, RespondsTo] = Map.empty,
+    contains: Map[AtomId, Contains] = Map.empty
+  ) {
+    def respondsToDegree(post: Post) = respondsTos.values.count(r => r.in == post.id || r.out == post.id)
+    def containsDegree(post: Post) = contains.values.count(r => r.parent == post.id || r.child == post.id)
+    def fullDegree(post: Post) = respondsToDegree(post) + containsDegree(post)
+  }
   object Graph {
-    def empty = Graph(Map.empty, Map.empty)
+    def empty = Graph()
   }
 
   case class Post(id: AtomId, title: String) extends PostPlatformSpecificExtensions
   case class RespondsTo(id: AtomId, in: AtomId, out: AtomId) extends RespondsToPlatformSpecificExtensions
+  case class Contains(id: AtomId, parent: AtomId, child: AtomId)
 }

@@ -190,8 +190,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force("gravityy").y(height / 2)
 
       simulation.force("link").distance(100)
-      simulation.force("link").strength(1)
-
       simulation.force("repel").strength(-1000)
 
       simulation.force("gravityx").strength(0.1)
@@ -231,6 +229,16 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       respondsTo.exit()
         .remove()
+
+      simulation.force("link").strength { (e: RespondsTo) =>
+        import p.{fullDegree => degree}
+        val sourceDeg = degree(e.source.asInstanceOf[Post])
+        val targetDeg = e.target match {
+          case p: Post => degree(p)
+          case r: RespondsTo => 2
+        }
+        1.0 / min(sourceDeg, targetDeg)
+      }
 
       simulation.nodes(postData)
       simulation.force("link").links(respondsToData)
