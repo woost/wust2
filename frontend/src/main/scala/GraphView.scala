@@ -151,10 +151,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val postElements = d3.select(component).append("div")
     lazy val respondsToElements = svg.append("g")
     lazy val containmentElements = svg.append("g")
+    lazy val containmentHulls = svg.append("g")
 
     var postData: js.Array[Post] = js.Array()
     var respondsToData: js.Array[RespondsTo] = js.Array()
     var containmentData: js.Array[Contains] = js.Array()
+    var containmentClusters: js.Array[js.Array[Post]] = js.Array()
 
     // val customLinkForce = new CustomLinkForce
     val simulation = d3.forceSimulation()
@@ -175,6 +177,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       // init lazy vals
       svg
       respondsToElements
+      containmentElements
+      containmentHulls
       postElements
 
       svg
@@ -200,9 +204,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
-      import p.posts
-      import p.respondsTos
-      import p.containment
+      val graph = p
+      import graph.posts
+      import graph.respondsTos
+      import graph.containment
 
       postData = p.posts.values.toJSArray
       val post = postElements.selectAll("div")
@@ -223,6 +228,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }.toJSArray
       val contains = containmentElements.selectAll("line")
         .data(containmentData)
+
+      containmentClusters = {
+        val parents: Seq[Post] = containment.values.map(c => posts(c.parent)).toSeq.distinct
+        parents.map(p => js.Array((graph.children(p) + p).toSeq: _*)).toJSArray
+      }
 
       post.enter()
         .append("div")
@@ -282,6 +292,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y1", (d: Contains) => d.source.y)
         .attr("x2", (d: Contains) => d.target.x)
         .attr("y2", (d: Contains) => d.target.y)
+
+      //TODO: generate and render convex hull of containments
     }
   }
 

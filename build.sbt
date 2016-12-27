@@ -43,16 +43,7 @@ lazy val graph = crossProject
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= (
-      Nil
-    )
-  )
-  .jvmSettings(
-    libraryDependencies ++= (
-      Nil
-    )
-  )
-  .jsSettings(
-    libraryDependencies ++= (
+      "com.github.fdietze" %%% "vectory" % "0.1.0-SNAPSHOT" ::
       Nil
     )
   )
@@ -98,7 +89,7 @@ lazy val frontend = project
       "me.chrons" %%% "diode-react" % "1.1.0" ::
       "com.github.japgolly.scalajs-react" %%% "core" % "0.11.3" ::
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
-
+      "com.github.fdietze" %%% "vectory" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
 

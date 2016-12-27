@@ -2,6 +2,7 @@ package graph
 
 import scalajs.js
 import scala.scalajs.js.annotation._
+import vectory._
 
 trait D3SimulationNode {
   @JSExport var index: js.UndefOr[Int] = js.undefined
@@ -15,6 +16,13 @@ trait D3SimulationNode {
   @JSExport def vy_=(newVX: Double)
   @JSExport var fx: js.UndefOr[Double] = js.undefined
   @JSExport var fy: js.UndefOr[Double] = js.undefined
+
+  def pos = Vec2(x.get, y.get)
+  def pos_(newPos: Vec2) { x = newPos.x; y = newPos.y }
+  def vel = Vec2(x.get, y.get)
+  def vel_(newVel: Vec2) { x = newVel.x; y = newVel.y }
+  def fix = Vec2(fx.get, fy.get)
+  def fix_(newFix: Vec2) { x = newFix.x; y = newFix.y }
 }
 
 trait D3SimulationLink {
