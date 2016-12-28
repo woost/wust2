@@ -8,6 +8,8 @@ import org.scalajs.dom._
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
 
+import vectory._
+
 import graph._
 import collection.breakOut
 import math._
@@ -139,7 +141,7 @@ import math._
 //   }
 // }
 
-case class ContainmentCluster(parent:Post, children: IndexedSeq[Post]) {
+case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions = (children :+ parent).map(_.pos)
   def convexHull = ChainHull2D(positions)
 }
@@ -216,7 +218,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       postData = p.posts.values.toJSArray
       val post = postElements.selectAll("div")
-        .data(postData, (p:Post) => p.id)
+        .data(postData, (p: Post) => p.id)
 
       respondsToData = p.respondsTos.values.map { e =>
         e.source = posts(e.in)
@@ -224,7 +226,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         e
       }.toJSArray
       val respondsTo = respondsToElements.selectAll("line")
-        .data(respondsToData, (r:RespondsTo) => r.id)
+        .data(respondsToData, (r: RespondsTo) => r.id)
 
       containmentData = p.containment.values.map { e =>
         e.source = posts(e.parent)
@@ -232,14 +234,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         e
       }.toJSArray
       val contains = containmentElements.selectAll("line")
-        .data(containmentData, (r:Contains) => r.id)
+        .data(containmentData, (r: Contains) => r.id)
 
       containmentClusters = {
         val parents: Seq[Post] = containment.values.map(c => posts(c.parent)).toSeq.distinct
         parents.map(p => new ContainmentCluster(p, graph.children(p).toIndexedSeq)).toJSArray
       }
       val containmentHull = containmentHulls.selectAll("path")
-        .data(containmentClusters, (c:ContainmentCluster) => c.parent.id)
+        .data(containmentClusters, (c: ContainmentCluster) => c.parent.id)
 
       post.enter().append("div")
         .style("background-color", "#EEEEEE")
@@ -247,7 +249,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("max-width", "100px")
         .style("position", "absolute")
         .text((post: Post) => post.title)
+
       post.exit().remove()
+
+      postElements.selectAll("div").each({ (node: raw.HTMLElement, p: Post) =>
+        val rect = node.getBoundingClientRect
+        p.size = Vec2(rect.width, rect.height)
+        p.centerOffset = p.size / -2
+      }: js.ThisFunction)
 
       respondsTo.enter().append("line")
         .style("stroke", "#8F8F8F")
@@ -280,8 +289,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     def draw(p: Props) {
       postElements.selectAll("div")
-        .style("left", (d: Post) => s"${d.x}px")
-        .style("top", (d: Post) => s"${d.y}px")
+        .style("left", (d: Post) => s"${d.x.get + d.centerOffset.x}px")
+        .style("top", (d: Post) => s"${d.y.get + d.centerOffset.y}px")
 
       respondsToElements.selectAll("line")
         .attr("x1", (d: RespondsTo) => d.source.x)
@@ -296,7 +305,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y2", (d: Contains) => d.target.y)
 
       containmentHulls.selectAll("path")
-        .attr("d", (cluster:ContainmentCluster) => cluster.convexHull.map(v => s"${v.x} ${v.y}").mkString("M", "L", "Z"))
+        .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(v => s"${v.x} ${v.y}").mkString("M", "L", "Z"))
     }
   }
 

@@ -23,6 +23,9 @@ trait D3SimulationNode {
   def vel_(newVel: Vec2) { x = newVel.x; y = newVel.y }
   def fix = Vec2(fx.get, fy.get)
   def fix_(newFix: Vec2) { x = newFix.x; y = newFix.y }
+
+  var size: Vec2 = Vec2(1, 1)
+  var centerOffset: Vec2 = Vec2(0, 0)
 }
 
 trait D3SimulationLink {
