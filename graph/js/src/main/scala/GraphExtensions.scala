@@ -28,10 +28,10 @@ trait D3SimulationNode {
   var centerOffset: Vec2 = Vec2(0, 0)
 }
 
-trait D3SimulationLink {
+trait D3SimulationLink[S <: D3SimulationNode, T <: D3SimulationNode] {
   // @JSExport var index: js.UndefOr[Int] = js.undefined
-  @JSExport var source: D3SimulationNode = null
-  @JSExport var target: D3SimulationNode = null
+  @JSExport var source: S = _
+  @JSExport var target: T = _
 }
 
 trait PostPlatformSpecificExtensions extends D3SimulationNode {
@@ -49,10 +49,7 @@ trait PostPlatformSpecificExtensions extends D3SimulationNode {
   def vy_=(newVY: Double) { _vy = newVY }
 }
 
-trait RespondsToPlatformSpecificExtensions extends D3SimulationLink with D3SimulationNode {
-  //TODO: narrower type for source:
-  // @JSExport override var source: Post = null
-
+trait RespondsToPlatformSpecificExtensions extends D3SimulationLink[Post, D3SimulationNode] with D3SimulationNode {
   // propagate d3 gets/sets to incident posts
   def x = (source.x.get + target.x.get) / 2
   def x_=(newX: Double) {
@@ -80,4 +77,4 @@ trait RespondsToPlatformSpecificExtensions extends D3SimulationLink with D3Simul
   }
 }
 
-trait ContainsPlatformSpecificExtensions extends D3SimulationLink
+trait ContainsPlatformSpecificExtensions extends D3SimulationLink[Post, Post]

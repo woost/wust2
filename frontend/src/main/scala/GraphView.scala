@@ -273,7 +273,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       simulation.force("respondsTo").strength { (e: RespondsTo) =>
         import p.{fullDegree => degree}
-        val sourceDeg = degree(e.source.asInstanceOf[Post])
+        val sourceDeg = degree(e.source)
         val targetDeg = e.target match {
           case p: Post => degree(p)
           case r: RespondsTo => 2
