@@ -53,27 +53,27 @@ trait RespondsToPlatformSpecificExtensions extends D3SimulationLink with D3Simul
   // propagate d3 gets/sets to incident posts
   def x = (source.x.get + target.x.get) / 2
   def x_=(newX: Double) {
-    val diff = newX - x.get
-    source.x = source.x.get + diff / 2
-    target.x = target.x.get + diff / 2
+    val diff = (newX - x.get) / 2
+    source.x = source.x.get + diff
+    target.x = target.x.get + diff
   }
   def y = (source.y.get + target.y.get) / 2
   def y_=(newY: Double) {
-    val diff = newY - y.get
-    source.y = source.y.get + diff / 2
-    target.y = target.y.get + diff / 2
+    val diff = (newY - y.get) / 2
+    source.y = source.y.get + diff
+    target.y = target.y.get + diff
   }
   def vx = (source.vx.get + target.vx.get) / 2
   def vx_=(newVX: Double) {
-    val diff = newVX - vx.get
-    source.vx = source.vx.get + diff / 2
-    target.vx = target.vx.get + diff / 2
+    val diff = (newVX - vx.get) / 2
+    source.vx = source.vx.get + diff
+    target.vx = target.vx.get + diff
   }
   def vy = (source.vy.get + target.vy.get) / 2
   def vy_=(newVY: Double) {
-    val diff = newVY - vy.get
-    source.vy = source.vy.get + diff / 2
-    target.vy = target.vy.get + diff / 2
+    val diff = (newVY - vy.get) / 2
+    source.vy = source.vy.get + diff
+    target.vy = target.vy.get + diff
   }
 }
 
