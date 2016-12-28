@@ -103,7 +103,6 @@ object Server extends WebsocketServer[Channel, ApiEvent, Authorize, User] with A
   val route = pathSingleSlash {
     getFromResource("index-dev.html")
   } ~ pathPrefix("assets") {
-    //TODO from resource
     getFromResourceDirectory("public")
   }
 
