@@ -4,6 +4,7 @@ import scalajs.js
 import js.JSConverters._
 import scala.scalajs.js.annotation._
 import org.scalajs.dom._
+import raw.HTMLElement
 
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -211,7 +212,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
 
-      svg.call(d3.zoom().on("zoom", () => zoomed($.props.runNow())))
+      svg.call(d3.zoom().on("zoom", zoomed _))
 
       simulation.force("center").x(width / 2).y(height / 2)
       simulation.force("gravityx").x(width / 2)
@@ -224,7 +225,24 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force("gravityy").strength(0.1)
     }
 
-    def zoomed(p: Props) {
+    def postDragStarted(node: HTMLElement, p: Post) {
+      p.fx = d3.event.x.asInstanceOf[Double]
+      p.fy = d3.event.y.asInstanceOf[Double]
+      d3.select(node).style("cursor", "move")
+      simulation.alphaTarget(0.3).restart()
+    }
+
+    def postDragged(node: HTMLElement, p: Post) {
+      p.fx = d3.event.x.asInstanceOf[Double]
+      p.fy = d3.event.y.asInstanceOf[Double]
+    }
+
+    def postDragEnded(node: HTMLElement, p: Post) {
+      d3.select(node).style("cursor", "default")
+      simulation.alphaTarget(0)
+    }
+
+    def zoomed() {
       val transform = d3.event.transform
       svg.selectAll("g").attr("transform", transform);
       html.style("transform", "translate(" + transform.x + "px," + transform.y + "px) scale(" + transform.k + ")");
@@ -264,12 +282,17 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .data(containmentClusters, (c: ContainmentCluster) => c.parent.id)
 
       post.enter().append("div")
+        .text((post: Post) => post.title)
         .style("background-color", "#EEEEEE")
         .style("border", "1px solid #DDDDDD")
         .style("max-width", "100px")
         .style("position", "absolute")
-        .text((post: Post) => post.title)
-
+        .style("cursor", "default")
+        .style("pointer-events", "auto") // reenable
+        .call(d3.drag()
+          .on("start", postDragStarted _: js.ThisFunction)
+          .on("drag", postDragged _: js.ThisFunction)
+          .on("end", postDragEnded _: js.ThisFunction))
       post.exit().remove()
 
       respondsTo.enter().append("line")
@@ -287,7 +310,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       // write rendered dimensions into posts
       // helps for centering
-      postElements.selectAll("div").each({ (node: raw.HTMLElement, p: Post) =>
+      postElements.selectAll("div").each({ (node: HTMLElement, p: Post) =>
         val rect = node.getBoundingClientRect
         p.size = Vec2(rect.width, rect.height)
         p.centerOffset = p.size / -2
