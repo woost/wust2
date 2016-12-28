@@ -104,10 +104,10 @@ object Server extends WebsocketServer[Channel, ApiEvent, Authorize, User] with A
     getFromResource("index-dev.html")
   } ~ pathPrefix("assets") {
     //TODO from resource
-    getFromDirectory("../frontend/target/scala-2.11/")
+    getFromResourceDirectory("public")
   }
 
-  run("localhost", 8080) foreach { binding =>
+  run("0.0.0.0", 8080) foreach { binding =>
     println(s"Server online at ${binding.localAddress}")
   }
 }

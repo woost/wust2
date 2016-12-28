@@ -124,8 +124,7 @@ lazy val frontend = project
   )
 
 lazy val backend = project
-  .enablePlugins(SbtWeb, sbtdocker.DockerPlugin)
-  .settings(dockerizeBackend: _*)
+  .enablePlugins(SbtWeb)
   .settings(commonSettings: _*)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
@@ -139,32 +138,6 @@ lazy val backend = project
     WebKeys.packagePrefix in Assets := "public/",
     managedClasspath in Runtime += (packageBin in Assets).value
   )
-
-val dockerOrganization = "woost"
-val dockerBackendName = "wust2"
-def dockerImageName(name: String, version: String) = ImageName(
-  namespace = Some(dockerOrganization),
-  repository = name,
-  tag = Some(version)
-)
-
-lazy val dockerizeBackend = Seq(
-  dockerfile in docker := {
-    // The assembly task generates a fat JAR file
-    val artifact: File = assembly.value
-    val artifactTargetPath = s"/app/${artifact.name}"
-
-    new Dockerfile {
-      from("anapsix/alpine-java")
-      add(artifact, artifactTargetPath)
-      entryPoint("java", "-jar", artifactTargetPath)
-    }
-  },
-  imageNames in docker := Seq(
-    dockerImageName(dockerBackendName, "latest"),
-    dockerImageName(dockerBackendName, s"v${version.value}")
-  )
-)
 
 // loads the server project at sbt startup
 onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value

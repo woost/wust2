@@ -19,8 +19,7 @@ import collection.breakOut
 
 @JSExport
 object Main extends js.JSApp {
-  // s"ws://${window.location.host}"
-  Client.run("ws://localhost:8080")
+  Client.run(s"ws://${window.location.host}")
   Client.login(api.PasswordAuth("hans", "***"))
 
   Client.wireApi.getGraph().call().foreach { graph =>
