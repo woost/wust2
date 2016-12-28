@@ -1,5 +1,7 @@
 package frontend
 
+//TODO: move to pharg and take tests from downearth
+
 //===================================================================
 // chainHull_2D(): Andrew's monotone chain 2D convex hull algorithm
 //     Input:  P[] = an array of 2D points
@@ -13,7 +15,9 @@ import collection.mutable.Stack
 
 object ChainHull2D {
   @inline def isLeft(p0: Vec2, p1: Vec2, p2: Vec2) = (p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)
+
   val compare = (v1: Vec2, v2: Vec2) => if (v1.x == v2.x) (v1.y < v2.y) else (v1.x < v2.x)
+
   def apply(in: IndexedSeq[Vec2]): Seq[Vec2] = {
     val verts = in sortWith compare
     val n = verts.size

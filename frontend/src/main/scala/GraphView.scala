@@ -139,6 +139,11 @@ import math._
 //   }
 // }
 
+case class ContainmentCluster(parent:Post, children: IndexedSeq[Post]) {
+  def positions = (children :+ parent).map(_.pos)
+  def convexHull = ChainHull2D(positions)
+}
+
 object GraphView extends CustomComponent[Graph]("GraphView") {
   import js.Dynamic.global
   val d3 = global.d3
@@ -156,7 +161,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     var postData: js.Array[Post] = js.Array()
     var respondsToData: js.Array[RespondsTo] = js.Array()
     var containmentData: js.Array[Contains] = js.Array()
-    var containmentClusters: js.Array[js.Array[Post]] = js.Array()
+    var containmentClusters: js.Array[ContainmentCluster] = js.Array()
 
     // val customLinkForce = new CustomLinkForce
     val simulation = d3.forceSimulation()
@@ -174,11 +179,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     })
 
     override def init(p: Props) = Callback {
-      // init lazy vals
+      // init lazy vals to set drawing order
       svg
-      respondsToElements
-      containmentElements
       containmentHulls
+      containmentElements
+      respondsToElements
       postElements
 
       svg
@@ -211,7 +216,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       postData = p.posts.values.toJSArray
       val post = postElements.selectAll("div")
-        .data(postData)
+        .data(postData, (p:Post) => p.id)
 
       respondsToData = p.respondsTos.values.map { e =>
         e.source = posts(e.in)
@@ -219,7 +224,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         e
       }.toJSArray
       val respondsTo = respondsToElements.selectAll("line")
-        .data(respondsToData)
+        .data(respondsToData, (r:RespondsTo) => r.id)
 
       containmentData = p.containment.values.map { e =>
         e.source = posts(e.parent)
@@ -227,37 +232,35 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         e
       }.toJSArray
       val contains = containmentElements.selectAll("line")
-        .data(containmentData)
+        .data(containmentData, (r:Contains) => r.id)
 
       containmentClusters = {
         val parents: Seq[Post] = containment.values.map(c => posts(c.parent)).toSeq.distinct
-        parents.map(p => js.Array((graph.children(p) + p).toSeq: _*)).toJSArray
+        parents.map(p => new ContainmentCluster(p, graph.children(p).toIndexedSeq)).toJSArray
       }
+      val containmentHull = containmentHulls.selectAll("path")
+        .data(containmentClusters, (c:ContainmentCluster) => c.parent.id)
 
-      post.enter()
-        .append("div")
+      post.enter().append("div")
         .style("background-color", "#EEEEEE")
         .style("border", "1px solid #DDDDDD")
         .style("max-width", "100px")
         .style("position", "absolute")
         .text((post: Post) => post.title)
+      post.exit().remove()
 
-      post.exit()
-        .remove()
+      respondsTo.enter().append("line")
+        .style("stroke", "#8F8F8F")
+      respondsTo.exit().remove()
 
-      respondsTo.enter()
-        .append("line")
-        .attr("stroke", "#8F8F8F")
+      contains.enter().append("line")
+        .style("stroke", "blue")
+      contains.exit().remove()
 
-      respondsTo.exit()
-        .remove()
-
-      contains.enter()
-        .append("line")
-        .attr("stroke", "blue")
-
-      contains.exit()
-        .remove()
+      containmentHull.enter().append("path")
+        .style("stroke", "#0075B8")
+        .style("fill", "#00C1FF")
+      containmentHull.exit().remove()
 
       simulation.force("respondsTo").strength { (e: RespondsTo) =>
         import p.{fullDegree => degree}
@@ -272,7 +275,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.nodes(postData)
       simulation.force("respondsTo").links(respondsToData)
       simulation.force("containment").links(containmentData)
-      // customLinkForce.links = respondsToData
       simulation.alpha(1).restart()
     }
 
@@ -293,7 +295,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("x2", (d: Contains) => d.target.x)
         .attr("y2", (d: Contains) => d.target.y)
 
-      //TODO: generate and render convex hull of containments
+      containmentHulls.selectAll("path")
+        .attr("d", (cluster:ContainmentCluster) => cluster.convexHull.map(v => s"${v.x} ${v.y}").mkString("M", "L", "Z"))
     }
   }
 
