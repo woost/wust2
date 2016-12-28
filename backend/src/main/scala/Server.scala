@@ -49,15 +49,15 @@ object Model {
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   import Model._
 
-  def withUser[T](f: User => T) = userOpt.map(f).getOrElse {
+  def withUser[T](f: User => T): T = userOpt.map(f).getOrElse {
     throw UnauthorizedException
   }
 
-  def whoami() = withUser(_.name)
+  def withUser[T](f: => T): T = withUser(_ => f)
 
   def getPost(id: AtomId): Post = graph.posts(id)
   def getGraph(): Graph = graph
-  def addPost(msg: String): Post = {
+  def addPost(msg: String): Post = withUser {
     //uns fehlt die id im client
     val post = new Post(nextId(), msg)
     graph = graph.copy(
@@ -66,7 +66,7 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     emit(NewPost(post))
     post
   }
-  def connect(fromId: AtomId, toId: AtomId): RespondsTo = {
+  def connect(fromId: AtomId, toId: AtomId): RespondsTo = withUser {
     val existing = graph.respondsTos.values.find(r => r.in == fromId && r.out == toId)
     val edge = existing.getOrElse(RespondsTo(nextId(), fromId, toId))
     graph = graph.copy(

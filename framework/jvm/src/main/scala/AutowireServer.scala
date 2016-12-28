@@ -47,6 +47,7 @@ object Dispatcher {
 
 case class UserViewableException(msg: String) extends Exception(msg)
 
+//TODO channel dependency, then subscribe, signal => action!
 class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
   messages: Messages[CHANNEL,EVENT,AUTH],
   subscribe: (ActorRef, CHANNEL) => Unit,
@@ -55,13 +56,13 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
   import messages._
 
   object NotAuthenticated extends Exception("not authenticated")
-  private var userFuture: Future[USER] = Future.failed(NotAuthenticated)
-  private def user: Option[USER] = userFuture.value.flatMap(_.toOption)
+  val unauthorized = Future.failed(NotAuthenticated)
 
   //TODO different Receive for loggedin and loggedout? context.become...
-  def connected(outgoing: ActorRef): Receive = {
+  def connected(outgoing: ActorRef, user: Future[USER]): Receive = {
     case CallRequest(seqId, path, args) =>
-      router(user).lift(Request(path, args))
+      router(user.value.flatMap(_.toOption))
+        .lift(Request(path, args))
         .map(_.map(Response(seqId, _)))
         .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
         .recover {
@@ -71,22 +72,22 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
         .pipeTo(outgoing)
     case Subscription(channel) => subscribe(outgoing, channel)
     case Login(auth) =>
-      userFuture = authorize(auth)
-      userFuture
+      val nextUser = authorize(auth)
+      nextUser
         .map(_ => LoggedIn())
         .recover { case e => LoginFailed(e.getMessage) }
         .map(Serializer.serialize[ServerMessage](_))
         .pipeTo(outgoing)
+      context.become(connected(outgoing, nextUser))
     //TODO a future login will respond with LoggedIn even if there was a logout in between
     // client sends: Login, Logout. sees: LoggedOut, LoggedIn. actor state: LoggedOut
     case Logout() =>
-      userFuture = Future.failed(NotAuthenticated)
       outgoing ! Serializer.serialize[ServerMessage](LoggedOut())
-
+      context.become(connected(outgoing, unauthorized))
   }
 
   def receive = {
-    case ConnectedClient.Connected(outgoing) => context.become(connected(outgoing))
+    case ConnectedClient.Connected(outgoing) => context.become(connected(outgoing, unauthorized))
   }
 }
 object ConnectedClient {
