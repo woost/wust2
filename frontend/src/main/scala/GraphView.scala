@@ -252,12 +252,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       post.exit().remove()
 
-      postElements.selectAll("div").each({ (node: raw.HTMLElement, p: Post) =>
-        val rect = node.getBoundingClientRect
-        p.size = Vec2(rect.width, rect.height)
-        p.centerOffset = p.size / -2
-      }: js.ThisFunction)
-
       respondsTo.enter().append("line")
         .style("stroke", "#8F8F8F")
       respondsTo.exit().remove()
@@ -271,14 +265,26 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("fill", "#00C1FF")
       containmentHull.exit().remove()
 
+      // write rendered dimensions into posts
+      // helps for centering
+      postElements.selectAll("div").each({ (node: raw.HTMLElement, p: Post) =>
+        val rect = node.getBoundingClientRect
+        p.size = Vec2(rect.width, rect.height)
+        p.centerOffset = p.size / -2
+      }: js.ThisFunction)
+
       simulation.force("respondsTo").strength { (e: RespondsTo) =>
-        import p.{fullDegree => degree}
-        val sourceDeg = degree(e.source)
+        import p.fullDegree
         val targetDeg = e.target match {
-          case p: Post => degree(p)
-          case r: RespondsTo => 2
+          case p: Post => fullDegree(p)
+          case _: RespondsTo => 2
         }
-        1.0 / min(sourceDeg, targetDeg)
+        1.0 / min(fullDegree(e.source), targetDeg)
+      }
+
+      simulation.force("containment").strength { (e: Contains) =>
+        import p.fullDegree
+        1.0 / min(fullDegree(e.source), fullDegree(e.target))
       }
 
       simulation.nodes(postData)

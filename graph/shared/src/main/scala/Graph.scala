@@ -22,6 +22,7 @@ package object graph {
     def respondsToDegree(post: Post) = respondsTos.values.count(r => r.in == post.id || r.out == post.id)
     def containsDegree(post: Post) = containment.values.count(c => c.parent == post.id || c.child == post.id)
     def fullDegree(post: Post) = respondsToDegree(post) + containsDegree(post)
+    def fullDegree(respondsTo: RespondsTo) = 2
 
     def children(post: Post): Set[Post] = containment.values.collect { case c if c.parent == post.id => posts(c.child) }.toSet //TODO: breakout with generic on requested collection type
   }
