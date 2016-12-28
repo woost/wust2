@@ -143,7 +143,7 @@ import math._
 
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions = (children :+ parent).map(_.pos)
-  def convexHull = ChainHull2D(positions)
+  def convexHull = Algorithms.convexHull(positions)
 }
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
