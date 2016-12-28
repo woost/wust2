@@ -154,8 +154,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val height = 480
 
   class Backend($: Scope) extends CustomBackend($) {
-    lazy val svg = d3.select(component).append("svg")
-    lazy val postElements = d3.select(component).append("div")
+    lazy val container = d3.select(component)
+    lazy val svg = container.append("svg")
+    lazy val html = container.append("div")
+    lazy val postElements = html.append("div")
     lazy val respondsToElements = svg.append("g")
     lazy val containmentElements = svg.append("g")
     lazy val containmentHulls = svg.append("g")
@@ -182,22 +184,34 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     override def init(p: Props) = Callback {
       // init lazy vals to set drawing order
+      container
       svg
       containmentHulls
       containmentElements
       respondsToElements
+      html
       postElements
+
+      container
+        .style("position", "relative")
+        .style("width", s"${width}px")
+        .style("height", s"${height}px")
+        .style("border", "1px solid #DDDDDD")
+        .style("overflow", "hidden")
 
       svg
+        .style("position", "absolute")
         .attr("width", width)
         .attr("height", height)
-        .style("position", "absolute")
-        .style("border", "1px solid #DDDDDD")
 
-      postElements
+      html
         .style("position", "absolute")
         .style("width", s"${width}px")
         .style("height", s"${height}px")
+        .style("pointer-events", "none") // pass through to svg (e.g. zoom)
+        .style("transform-origin", "top left") // same as svg default
+
+      svg.call(d3.zoom().on("zoom", () => zoomed($.props.runNow())))
 
       simulation.force("center").x(width / 2).y(height / 2)
       simulation.force("gravityx").x(width / 2)
@@ -208,6 +222,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       simulation.force("gravityx").strength(0.1)
       simulation.force("gravityy").strength(0.1)
+    }
+
+    def zoomed(p: Props) {
+      val transform = d3.event.transform
+      svg.selectAll("g").attr("transform", transform);
+      html.style("transform", "translate(" + transform.x + "px," + transform.y + "px) scale(" + transform.k + ")");
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
