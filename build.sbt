@@ -77,7 +77,7 @@ lazy val frameworkJVM = framework.jvm
 
 //TODO: source maps
 lazy val frontend = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSWeb, WorkbenchPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSWeb /*, WorkbenchPlugin*/ )
   .dependsOn(frameworkJS, apiJS)
   .settings(commonSettings: _*)
   .settings(
@@ -134,8 +134,8 @@ lazy val backend = project
     compile in Compile <<= ((compile in Compile) dependsOn scalaJSPipeline),
     // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
     // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
-    packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
-    fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
+    // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
+    // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
     WebKeys.packagePrefix in Assets := "public/",
     managedClasspath in Runtime += (packageBin in Assets).value
   )
