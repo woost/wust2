@@ -15,133 +15,6 @@ import graph._
 import collection.breakOut
 import math._
 
-// trait D3Force[N <: graph.D3SimulationNode, L <: graph.D3SimulationLink] {
-//   def force(alpha: Double)
-//   def initialize(newNodes: js.Array[N])
-
-//   type F = js.Function1[Double, Unit]
-//   def apply(): F = {
-//     val f: (F) = force _
-//     f.asInstanceOf[js.Dynamic].initialize = initialize _
-//     f
-//   }
-// }
-
-// class CustomLinkForce extends D3Force[Post, RespondsTo] {
-//   // ported from
-//   // https://github.com/d3/d3-force/blob/master/src/link.js
-//   type N = Post
-//   type L = RespondsTo
-
-//   implicit def undefOrToRaw[T](undefOr: js.UndefOr[T]): T = undefOr.get
-
-//   private var _links: js.Array[L] = js.Array[L]()
-//   def links = _links
-//   def links_=(newLinks: js.Array[L]) { _links = newLinks; initialize(nodes) }
-
-//   def strength(link: L, i: Int, links: js.Array[L]) = defaultStrength(link)
-//   def distance(link: L, i: Int, links: js.Array[L]) = 100
-
-//   private var strengths: js.Array[Double] = js.Array[Double]()
-//   private var distances: js.Array[Double] = js.Array[Double]()
-//   private var nodes: js.Array[N] = js.Array[N]()
-//   private var degree: js.Array[Int] = js.Array[Int]()
-//   private var bias: js.Array[Double] = js.Array[Double]()
-//   var iterations = 1
-
-//   def defaultStrength(link: L) = {
-//     1.0 // / min(degree(link.source.index), degree(link.target.index));
-//   }
-
-//   def force(alpha: Double) {
-//     // println(s"force: nodes(${nodes.size}), links(${links.size})")
-//     var k = 0
-//     var i = 0
-//     val n = links.size
-//     while (k < iterations) {
-//       i = 0
-//       while (i < n) {
-//         val link = links(i)
-//         val source = link.source
-//         val target = link.target
-
-//         def jiggle() = scala.util.Random.nextDouble //TODO: what is the original implementation of D3?
-//         var x: Double = (target.x + target.vx - source.x - source.vx).asInstanceOf[js.UndefOr[Double]].getOrElse(jiggle())
-//         var y: Double = (target.y + target.vy - source.y - source.vy).asInstanceOf[js.UndefOr[Double]].getOrElse(jiggle())
-
-//         var l = sqrt(x * x + y * y)
-//         l = (l - distances(i)) / l * alpha * strengths(i)
-//         x *= l
-//         y *= l
-
-//         var b = bias(i)
-//         target.vx -= x * b
-//         target.vy -= y * b
-//         b = 1 - b
-//         source.vx += x * b
-//         source.vy += y * b
-//         i += 1
-//       }
-//       k += 1
-//     }
-//   }
-
-//   def initialize(newNodes: js.Array[N]) {
-//     nodes = newNodes
-//     // println(s"initialize:  nodes(${nodes.size}), links(${links.size})")
-//     if (nodes.isEmpty) return ;
-
-//     var i = 0
-//     val n = nodes.size
-//     val m = links.size
-
-//     i = 0
-//     degree = Array.fill(n)(0).toJSArray
-//     while (i < m) {
-//       val link = links(i)
-//       link.index = i;
-//       degree(link.source.index) += 1
-//       degree(link.target.index) += 1
-//       i += 1
-//     }
-
-//     i = 0
-//     bias = new js.Array[Double](m)
-//     while (i < m) {
-//       val link = links(i)
-//       bias(i) = degree(link.source.index).toDouble / (degree(link.source.index) + degree(link.target.index))
-//       i += 1
-//     }
-
-//     strengths = new js.Array[Double](m)
-//     initializeStrength()
-//     distances = new js.Array[Double](m)
-//     initializeDistance()
-//   }
-
-//   def initializeStrength() {
-//     if (nodes.isEmpty) return ;
-
-//     var i = 0
-//     val n = links.size
-//     while (i < n) {
-//       strengths(i) = strength(links(i), i, links)
-//       i += 1
-//     }
-//   }
-
-//   def initializeDistance() {
-//     if (nodes.isEmpty) return ;
-
-//     var i = 0
-//     val n = links.size
-//     while (i < n) {
-//       distances(i) = distance(links(i), i, links);
-//       i += 1
-//     }
-//   }
-// }
-
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions = (children :+ parent).map(_.pos)
   def convexHull = Algorithms.convexHull(positions)
@@ -149,13 +22,13 @@ case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
   import js.Dynamic.global
-  val d3 = global.d3
+  val d3js = global.d3
 
   val width = 640
   val height = 480
 
   class Backend($: Scope) extends CustomBackend($) {
-    lazy val container = d3.select(component)
+    lazy val container = d3js.select(component)
     lazy val svg = container.append("svg")
     lazy val html = container.append("div")
     lazy val postElements = html.append("div")
@@ -169,19 +42,20 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
 
     // val customLinkForce = new CustomLinkForce
-    val simulation = d3.forceSimulation()
-      .force("center", d3.forceCenter())
-      .force("gravityx", d3.forceX())
-      .force("gravityy", d3.forceY())
-      .force("repel", d3.forceManyBody())
-      // .force("respondsTo", customLinkForce())
-      .force("respondsTo", d3.forceLink())
-      .force("containment", d3.forceLink())
-    // .force("collision", d3.forceCollide())
+    val simulation = d3js.forceSimulation()
+      .force("center", d3js.forceCenter())
+      .force("gravityx", d3js.forceX())
+      .force("gravityy", d3js.forceY())
+      .force("repel", d3js.forceManyBody())
+      .force("respondsTo", d3js.forceLink())
+      .force("containment", d3js.forceLink())
+    // .force("collision", d3js.forceCollide())
 
     simulation.on("tick", (e: Event) => {
       draw($.props.runNow())
     })
+
+    var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
     override def init(p: Props) = Callback {
       // init lazy vals to set drawing order
@@ -212,7 +86,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
 
-      svg.call(d3.zoom().on("zoom", zoomed _))
+      svg.call(d3js.zoom().on("zoom", zoomed _))
 
       simulation.force("center").x(width / 2).y(height / 2)
       simulation.force("gravityx").x(width / 2)
@@ -225,27 +99,29 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force("gravityy").strength(0.1)
     }
 
+    def zoomed() {
+      transform = d3.event.transform
+      svg.selectAll("g").attr("transform", transform)
+      html.style("transform", "translate(" + transform.x + "px," + transform.y + "px) scale(" + transform.k + ")")
+    }
+
     def postDragStarted(node: HTMLElement, p: Post) {
-      p.fx = d3.event.x.asInstanceOf[Double]
-      p.fy = d3.event.y.asInstanceOf[Double]
-      d3.select(node).style("cursor", "move")
-      simulation.alphaTarget(0.3).restart()
+      val eventPos = Vec2(d3.event.x, d3.event.y)
+      p.dragStart = eventPos
+      p.fixedPos = eventPos
+
+      d3js.select(node).style("cursor", "move")
+      simulation.alphaTarget(0.7).restart()
     }
 
     def postDragged(node: HTMLElement, p: Post) {
-      p.fx = d3.event.x.asInstanceOf[Double]
-      p.fy = d3.event.y.asInstanceOf[Double]
+      val eventPos = Vec2(d3.event.x, d3.event.y)
+      p.fixedPos = p.dragStart + (eventPos - p.dragStart) / transform.k
     }
 
     def postDragEnded(node: HTMLElement, p: Post) {
-      d3.select(node).style("cursor", "default")
+      d3js.select(node).style("cursor", "default")
       simulation.alphaTarget(0)
-    }
-
-    def zoomed() {
-      val transform = d3.event.transform
-      svg.selectAll("g").attr("transform", transform);
-      html.style("transform", "translate(" + transform.x + "px," + transform.y + "px) scale(" + transform.k + ")");
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) = Callback {
@@ -289,7 +165,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("position", "absolute")
         .style("cursor", "default")
         .style("pointer-events", "auto") // reenable
-        .call(d3.drag()
+        .call(d3js.drag()
           .on("start", postDragStarted _: js.ThisFunction)
           .on("drag", postDragged _: js.ThisFunction)
           .on("end", postDragEnded _: js.ThisFunction))
