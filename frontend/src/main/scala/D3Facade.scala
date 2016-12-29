@@ -7,6 +7,7 @@ import scalajs.js
 @js.native
 object d3 extends js.Object {
   def zoomIdentity: Transform = js.native
+  def polygonHull(points: js.Array[js.Array[Double]]): js.Array[js.Array[Double]] = js.native
 
   @js.native
   object event extends js.Object {

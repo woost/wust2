@@ -123,7 +123,8 @@ lazy val frontend = project
       "org.webjars.npm" % "d3-force" % "1.0.4" / "d3-force.js" minified "d3-force.min.js",
       "org.webjars.npm" % "d3-zoom" % "1.1.1" / "d3-zoom.js" minified "d3-zoom.min.js",
       "org.webjars.npm" % "d3-transition" % "1.0.3" / "d3-transition.js" minified "d3-transition.min.js",
-      "org.webjars.npm" % "d3-drag" % "1.0.2" / "d3-drag.js" minified "d3-drag.min.js"
+      "org.webjars.npm" % "d3-drag" % "1.0.2" / "d3-drag.js" minified "d3-drag.min.js",
+      "org.webjars.npm" % "d3-polygon" % "1.0.1" / "d3-polygon.js" minified "d3-polygon.min.js"
     )
   )
 

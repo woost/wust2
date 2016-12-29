@@ -16,8 +16,8 @@ import collection.breakOut
 import math._
 
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
-  def positions = (children :+ parent).map(_.pos)
-  def convexHull = Algorithms.convexHull(positions)
+  def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
+  def convexHull = d3.polygonHull(positions)
 }
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
@@ -230,7 +230,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y2", (d: Contains) => d.target.y)
 
       containmentHulls.selectAll("path")
-        .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(v => s"${v.x} ${v.y}").mkString("M", "L", "Z"))
+        .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(p => s"${p(0)} ${p(1)}").mkString("M", "L", "Z"))
     }
   }
 
