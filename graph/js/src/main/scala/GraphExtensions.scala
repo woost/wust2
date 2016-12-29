@@ -25,7 +25,9 @@ trait D3SimulationNode {
   def fixedPos_=(newFix: Vec2) { fx = newFix.x; fy = newFix.y }
 
   var size: Vec2 = Vec2(0, 0)
+  def rect: AARect = AARect(pos, size)
   var centerOffset: Vec2 = Vec2(0, 0)
+  var radius: Double = 0
 
   var dragStart = Vec2(0, 0)
 }

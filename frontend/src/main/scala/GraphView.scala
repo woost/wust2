@@ -41,15 +41,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     var containmentData: js.Array[Contains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
 
-    // val customLinkForce = new CustomLinkForce
     val simulation = d3js.forceSimulation()
       .force("center", d3js.forceCenter())
       .force("gravityx", d3js.forceX())
       .force("gravityy", d3js.forceY())
       .force("repel", d3js.forceManyBody())
+      .force("collision", d3js.forceCollide())
       .force("respondsTo", d3js.forceLink())
       .force("containment", d3js.forceLink())
-    // .force("collision", d3js.forceCollide())
 
     simulation.on("tick", (e: Event) => {
       draw($.props.runNow())
@@ -92,8 +91,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force("gravityx").x(width / 2)
       simulation.force("gravityy").y(height / 2)
 
-      simulation.force("respondsTo").distance(100)
       simulation.force("repel").strength(-1000)
+      simulation.force("collision").radius((p: Post) => p.radius)
+
+      simulation.force("respondsTo").distance(100)
+      simulation.force("containment").distance(100)
 
       simulation.force("gravityx").strength(0.1)
       simulation.force("gravityy").strength(0.1)
@@ -184,12 +186,13 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("fill", "#00C1FF")
       containmentHull.exit().remove()
 
-      // write rendered dimensions into posts
-      // helps for centering
+      // write rendering data into posts
+      // helps for centering and collision
       postElements.selectAll("div").each({ (node: HTMLElement, p: Post) =>
         val rect = node.getBoundingClientRect
         p.size = Vec2(rect.width, rect.height)
         p.centerOffset = p.size / -2
+        p.radius = p.size.length / 2
       }: js.ThisFunction)
 
       simulation.force("respondsTo").strength { (e: RespondsTo) =>
