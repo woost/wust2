@@ -5,6 +5,10 @@ name := "wust"
 scalaVersion in ThisBuild := "2.11.8"
 
 lazy val commonSettings = Seq(
+  resolvers ++= (
+    ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
+    Nil
+  ),
   scalacOptions ++=
     "-encoding" :: "UTF-8" ::
     "-unchecked" ::
