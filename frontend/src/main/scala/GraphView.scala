@@ -21,11 +21,22 @@ case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
 }
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
-  import js.Dynamic.global
-  val d3js = global.d3
+  val d3js = js.Dynamic.global.d3 //TODO: write more facade types instead of using dynamic
 
   val width = 640
   val height = 480
+
+  val menuOuterRadius = 100
+  val menuInnerRadius = 50
+  val menuRadius = (menuOuterRadius + menuInnerRadius) / 2
+  val menuThickness = menuOuterRadius - menuInnerRadius
+
+  val menuActions = (
+    ("R", { (p: Post) => println(s"respond to $p") }) ::
+    ("C", { (p: Post) => println(s"respond to $p") }) ::
+    ("N", { (p: Post) => println(s"respond to $p") }) ::
+    Nil
+  )
 
   class Backend($: Scope) extends CustomBackend($) {
     lazy val container = d3js.select(component)
@@ -35,36 +46,44 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val respondsToElements = svg.append("g")
     lazy val containmentElements = svg.append("g")
     lazy val containmentHulls = svg.append("g")
+    lazy val menuSvg = container.append("svg")
+    lazy val menuLayer = menuSvg.append("g")
+    lazy val ringMenu = menuLayer.append("g")
 
     var postData: js.Array[Post] = js.Array()
     var respondsToData: js.Array[RespondsTo] = js.Array()
     var containmentData: js.Array[Contains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
+    var menuTarget: Option[Post] = None
 
-    val simulation = d3js.forceSimulation()
-      .force("center", d3js.forceCenter())
-      .force("gravityx", d3js.forceX())
-      .force("gravityy", d3js.forceY())
-      .force("repel", d3js.forceManyBody())
-      .force("collision", d3js.forceCollide())
-      .force("respondsTo", d3js.forceLink())
-      .force("containment", d3js.forceLink())
+    val simulation = d3.forceSimulation[Post]()
+      .force("center", d3.forceCenter())
+      .force("gravityx", d3.forceX())
+      .force("gravityy", d3.forceY())
+      .force("repel", d3.forceManyBody())
+      .force("collision", d3.forceCollide())
+      .force("respondsTo", d3.forceLink())
+      .force("containment", d3.forceLink())
 
-    simulation.on("tick", (e: Event) => {
-      draw()
-    })
+    simulation.on("tick", draw _)
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
     override def init() {
       // init lazy vals to set drawing order
       container
+
       svg
       containmentHulls
       containmentElements
       respondsToElements
+
       html
       postElements
+
+      menuSvg
+      menuLayer
+      ringMenu
 
       container
         .style("position", "relative")
@@ -85,26 +104,56 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
 
+      menuSvg
+        .style("position", "absolute")
+        .attr("width", width)
+        .attr("height", height)
+        .style("pointer-events", "none")
+
+      ringMenu
+        .style("visibility", "hidden")
+
+      ringMenu
+        .append("circle")
+        .attr("r", menuRadius)
+        .attr("stroke-width", menuThickness)
+        .attr("fill", "none")
+        .attr("stroke", "rgba(0,0,0,0.7)")
+
+      for (((symbol, action), i) <- menuActions.zipWithIndex) {
+        val angle = i * 2 * Math.PI / menuActions.size
+        ringMenu
+          .append("text")
+          .text(symbol)
+          .attr("fill", "white")
+          .attr("x", cos(angle) * menuRadius)
+          .attr("y", sin(angle) * menuRadius)
+          .style("pointer-events", "all")
+          .on("click", { () => menuTarget foreach action })
+      }
+
+      //TODO: fix double click zoom
       svg.call(d3js.zoom().on("zoom", zoomed _))
 
-      simulation.force("center").x(width / 2).y(height / 2)
-      simulation.force("gravityx").x(width / 2)
-      simulation.force("gravityy").y(height / 2)
+      simulation.force[Centering]("center").x(width / 2).y(height / 2)
+      simulation.force[PositioningX[Post]]("gravityx").x(width / 2)
+      simulation.force[PositioningY[Post]]("gravityy").y(height / 2)
 
-      simulation.force("repel").strength(-1000)
-      simulation.force("collision").radius((p: Post) => p.radius)
+      simulation.force[ManyBody[Post]]("repel").strength(-1000)
+      simulation.force[Collision[Post]]("collision").radius((p: Post) => p.radius)
 
-      simulation.force("respondsTo").distance(100)
-      simulation.force("containment").distance(100)
+      simulation.force[Link[RespondsTo]]("respondsTo").distance(100)
+      simulation.force[Link[Contains]]("containment").distance(100)
 
-      simulation.force("gravityx").strength(0.1)
-      simulation.force("gravityy").strength(0.1)
+      simulation.force[PositioningX[Post]]("gravityx").strength(0.1)
+      simulation.force[PositioningY[Post]]("gravityy").strength(0.1)
     }
 
     def zoomed() {
       transform = d3.event.transform
       svg.selectAll("g").attr("transform", transform)
-      html.style("transform", "translate(" + transform.x + "px," + transform.y + "px) scale(" + transform.k + ")")
+      html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
+      menuLayer.attr("transform", transform)
     }
 
     def postDragStarted(node: HTMLElement, p: Post) {
@@ -171,6 +220,16 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           .on("start", postDragStarted _: js.ThisFunction)
           .on("drag", postDragged _: js.ThisFunction)
           .on("end", postDragEnded _: js.ThisFunction))
+        .on("click", { (p: Post) =>
+          if (menuTarget.isEmpty || menuTarget.get != p) {
+            menuTarget = Some(p)
+            ringMenu.style("visibility", "visible")
+          } else {
+            menuTarget = None
+            ringMenu.style("visibility", "hidden")
+          }
+          draw()
+        })
       post.exit().remove()
 
       respondsTo.enter().append("line")
@@ -195,7 +254,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.radius = p.size.length / 2
       }: js.ThisFunction)
 
-      simulation.force("respondsTo").strength { (e: RespondsTo) =>
+      simulation.force[Link[RespondsTo]]("respondsTo").strength { (e: RespondsTo) =>
         import p.fullDegree
         val targetDeg = e.target match {
           case p: Post => fullDegree(p)
@@ -204,14 +263,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source), targetDeg)
       }
 
-      simulation.force("containment").strength { (e: Contains) =>
+      simulation.force[Link[Contains]]("containment").strength { (e: Contains) =>
         import p.fullDegree
         1.0 / min(fullDegree(e.source), fullDegree(e.target))
       }
 
       simulation.nodes(postData)
-      simulation.force("respondsTo").links(respondsToData)
-      simulation.force("containment").links(containmentData)
+      simulation.force[Link[RespondsTo]]("respondsTo").links(respondsToData)
+      simulation.force[Link[Contains]]("containment").links(containmentData)
       simulation.alpha(1).restart()
     }
 
@@ -234,6 +293,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       containmentHulls.selectAll("path")
         .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(p => s"${p(0)} ${p(1)}").mkString("M", "L", "Z"))
+
+      menuTarget.foreach { post =>
+        ringMenu.attr("transform", s"translate(${post.x}, ${post.y})")
+      }
     }
   }
 
