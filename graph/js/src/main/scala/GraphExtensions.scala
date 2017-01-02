@@ -4,6 +4,7 @@ import scalajs.js
 import scala.scalajs.js.annotation._
 import vectory._
 
+//TODO: move to d3 facade
 trait D3SimulationNode {
   @JSExport var index: js.UndefOr[Int] = js.undefined
   @JSExport def x: js.UndefOr[Double]
