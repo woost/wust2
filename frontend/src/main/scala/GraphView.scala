@@ -51,12 +51,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       .force("containment", d3js.forceLink())
 
     simulation.on("tick", (e: Event) => {
-      draw($.props.runNow())
+      draw()
     })
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
-    override def init(p: Props) = Callback {
+    override def init() {
       // init lazy vals to set drawing order
       container
       svg
@@ -126,7 +126,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.alphaTarget(0)
     }
 
-    override def update(p: Props, oldProps: Option[Props] = None) = Callback {
+    override def update(p: Props, oldProps: Option[Props] = None) {
       val graph = p
       import graph.posts
       import graph.respondsTos
@@ -215,7 +215,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.alpha(1).restart()
     }
 
-    def draw(p: Props) {
+    def draw() {
       postElements.selectAll("div")
         .style("left", (d: Post) => s"${d.x.get + d.centerOffset.x}px")
         .style("top", (d: Post) => s"${d.y.get + d.centerOffset.y}px")
