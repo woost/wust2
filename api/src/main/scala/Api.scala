@@ -9,6 +9,7 @@ trait Api {
   def getGraph(): Graph
   def addPost(msg: String): Post
   def connect(from: AtomId, to: AtomId): RespondsTo
+  def respond(to: AtomId, msg: String): (Post, RespondsTo)
   // def getComponent(id: Id): Graph
 }
 

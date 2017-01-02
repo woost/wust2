@@ -78,6 +78,17 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
+  def respond(to: AtomId, msg: String): (Post, RespondsTo) = withUser {
+    val post = new Post(nextId(), msg)
+    val edge = RespondsTo(nextId(), post.id, to)
+    graph = graph.copy(
+      posts = graph.posts + (post.id -> post),
+      respondsTos = graph.respondsTos + (edge.id -> edge)
+    )
+    emit(NewPost(post))
+    emit(NewRespondsTo(edge))
+    (post, edge)
+  }
 }
 
 object TypePicklers {

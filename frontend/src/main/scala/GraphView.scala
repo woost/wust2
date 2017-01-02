@@ -5,6 +5,7 @@ import js.JSConverters._
 import scala.scalajs.js.annotation._
 import org.scalajs.dom._
 import raw.HTMLElement
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -31,12 +32,16 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val menuRadius = (menuOuterRadius + menuInnerRadius) / 2
   val menuThickness = menuOuterRadius - menuInnerRadius
 
-  val menuActions = (
-    ("R", { (p: Post) => println(s"respond to $p") }) ::
-    ("C", { (p: Post) => println(s"respond to $p") }) ::
-    ("N", { (p: Post) => println(s"respond to $p") }) ::
-    Nil
-  )
+  val menuActions = {
+    import autowire._
+    import boopickle.Default._
+    (
+      ("R", { (p: Post) => Client.wireApi.respond(p.id, "from menu").call() }) ::
+      ("C", { (p: Post) => println(s"respond to $p") }) ::
+      ("N", { (p: Post) => println(s"respond to $p") }) ::
+      Nil
+    )
+  }
 
   class Backend($: Scope) extends CustomBackend($) {
     lazy val container = d3js.select(component)
