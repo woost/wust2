@@ -132,7 +132,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           .on("click", { () => menuTarget foreach action })
       }
 
-      //TODO: fix double click zoom
       svg.call(d3js.zoom().on("zoom", zoomed _))
 
       simulation.force[Centering]("center").x(width / 2).y(height / 2)
