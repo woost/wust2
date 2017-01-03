@@ -5,10 +5,24 @@ import diode.react._
 
 import graph._
 
-case class RootModel(graph: Graph = Graph.empty)
+case class RootModel(
+  graph: Graph = Graph.empty,
+  respondingTo: Option[AtomId] = None
+)
+
+case class SetGraph(graph: Graph) extends Action
+case class AddPost(post: Post) extends Action
+case class AddRespondsTo(respondsTo: RespondsTo) extends Action
+case class SetRespondingTo(target: Option[AtomId]) extends Action
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   def initialModel = RootModel()
+
+  val globalHandler = new ActionHandler(zoomRW(m => m)((m, v) => v)) {
+    override def handle = {
+      case SetRespondingTo(targetOpt) => updated(value.copy(respondingTo = targetOpt))
+    }
+  }
 
   val graphHandler = new ActionHandler(zoomRW(_.graph)((m, v) => m.copy(graph = v))) {
     override def handle = {
@@ -23,5 +37,5 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
         ))
     }
   }
-  override val actionHandler = composeHandlers(graphHandler)
+  override val actionHandler = composeHandlers(globalHandler, graphHandler)
 }

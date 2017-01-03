@@ -6,10 +6,6 @@ import diode.Action, Action._
 import framework._
 import api._, graph._
 
-case class SetGraph(graph: Graph) extends Action
-case class AddPost(post: Post) extends Action
-case class AddRespondsTo(respondsTo: RespondsTo) extends Action
-
 object TypePicklers {
   implicit val channelPickler = implicitly[Pickler[Channel]]
   implicit val eventPickler = implicitly[Pickler[ApiEvent]]

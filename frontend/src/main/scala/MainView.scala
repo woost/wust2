@@ -15,9 +15,9 @@ package object frontend {
 
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { proxy =>
-      val graph = proxy.value.graph
+      val model = proxy.value
+      val graph = model.graph
       <.div(
-        // RespondModal(graph),
         <.button("add post", ^.onClick --> Callback {
           Client.wireApi.addPost("Posti").call()
         }),
@@ -30,7 +30,17 @@ package object frontend {
           Client.wireApi.connect(source.id, target.id).call()
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
-        GraphView(graph)
+        GraphView(graph),
+        model.respondingTo.map { targetId =>
+          <.div(
+            ^.position := "fixed",
+            ^.width := "100%",
+            ^.bottom := "0",
+            ^.background := "#FFF",
+            ^.borderTop := "1px solid #DDD",
+            RespondForm(graph, targetId)
+          )
+        }
       )
     }
     .build

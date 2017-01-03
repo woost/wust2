@@ -32,17 +32,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val menuRadius = (menuOuterRadius + menuInnerRadius) / 2
   val menuThickness = menuOuterRadius - menuInnerRadius
 
-  val menuActions = {
-    import autowire._
-    import boopickle.Default._
-    (
-      ("R", { (p: Post) => Client.wireApi.respond(p.id, "from menu").call() }) ::
-      ("C", { (p: Post) => println(s"respond to $p") }) ::
-      ("N", { (p: Post) => println(s"respond to $p") }) ::
-      Nil
-    )
-  }
-
   class Backend($: Scope) extends CustomBackend($) {
     lazy val container = d3js.select(component)
     lazy val svg = container.append("svg")
@@ -73,6 +62,19 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     simulation.on("tick", draw _)
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
+
+    val menuActions = {
+      import autowire._
+      import boopickle.Default._
+      (
+        ("A", { (p: Post) => println(s"A: $p") }) ::
+        ("B", { (p: Post) => println(s"B: $p") }) ::
+        ("C", { (p: Post) => println(s"C: $p") }) ::
+        ("D", { (p: Post) => println(s"D: $p") }) ::
+        ("E", { (p: Post) => println(s"E: $p") }) ::
+        Nil
+      )
+    }
 
     override def init() {
       // init lazy vals to set drawing order
@@ -228,9 +230,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           if (menuTarget.isEmpty || menuTarget.get != p) {
             menuTarget = Some(p)
             ringMenu.style("visibility", "visible")
+            AppCircuit.dispatch(SetRespondingTo(Some(p.id)))
           } else {
             menuTarget = None
             ringMenu.style("visibility", "hidden")
+            AppCircuit.dispatch(SetRespondingTo(None))
           }
           draw()
         })
