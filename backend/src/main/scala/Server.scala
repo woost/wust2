@@ -56,6 +56,11 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   def withUser[T](f: => T): T = withUser(_ => f)
 
   def getPost(id: AtomId): Post = graph.posts(id)
+  def deletePost(id: AtomId): Unit = {
+    graph = graph.remove(id)
+    emit(DeletePost(id))
+  }
+
   def getGraph(): Graph = graph
   def addPost(msg: String): Post = withUser {
     //uns fehlt die id im client

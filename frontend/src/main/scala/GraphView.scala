@@ -70,7 +70,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         ("A", { (p: Post) => println(s"A: $p") }) ::
         ("B", { (p: Post) => println(s"B: $p") }) ::
         ("C", { (p: Post) => println(s"C: $p") }) ::
-        ("D", { (p: Post) => println(s"D: $p") }) ::
+        ("Del", { (p: Post) => Client.wireApi.deletePost(p.id).call() }) ::
         ("Unfix", { (p: Post) => p.fixedPos = js.undefined; simulation.restart() }) ::
         Nil
       )

@@ -31,15 +31,16 @@ package object frontend {
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
         GraphView(graph),
-        model.respondingTo.map { targetId =>
-          <.div(
-            ^.position := "fixed",
-            ^.width := "100%",
-            ^.bottom := "0",
-            ^.background := "#FFF",
-            ^.borderTop := "1px solid #DDD",
-            RespondForm(graph, targetId)
-          )
+        model.respondingTo.collect {
+          case targetId if graph.posts.isDefinedAt(targetId) =>
+            <.div(
+              ^.position := "fixed",
+              ^.width := "100%",
+              ^.bottom := "0",
+              ^.background := "#FFF",
+              ^.borderTop := "1px solid #DDD",
+              RespondForm(graph, targetId)
+            )
         }
       )
     }

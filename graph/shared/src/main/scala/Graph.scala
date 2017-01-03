@@ -24,6 +24,14 @@ package object graph {
     def fullDegree(post: Post) = respondsToDegree(post) + containsDegree(post)
     def fullDegree(respondsTo: RespondsTo) = 2
 
+    def incidentRespondsTos(post: AtomId) = respondsTos.values.collect { case r if r.in == post || r.out == post => r.id }
+    def incidentContains(post: AtomId) = containment.values.collect { case c if c.parent == post || c.child == post => c.id }
+    def remove(post: AtomId) = copy(
+      posts = posts - post,
+      respondsTos = respondsTos -- incidentRespondsTos(post),
+      containment = containment -- incidentContains(post)
+    )
+
     def children(post: Post): Set[Post] = containment.values.collect { case c if c.parent == post.id => posts(c.child) }.toSet //TODO: breakout with generic on requested collection type
   }
   object Graph {

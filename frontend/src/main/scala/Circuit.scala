@@ -12,6 +12,7 @@ case class RootModel(
 
 case class SetGraph(graph: Graph) extends Action
 case class AddPost(post: Post) extends Action
+case class RemovePost(id: AtomId) extends Action
 case class AddRespondsTo(respondsTo: RespondsTo) extends Action
 case class SetRespondingTo(target: Option[AtomId]) extends Action
 
@@ -31,6 +32,8 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
         updated(value.copy(
           posts = value.posts + (post.id -> post)
         ))
+      case RemovePost(id) =>
+        updated(value.remove(id))
       case AddRespondsTo(respondsTo) =>
         updated(value.copy(
           respondsTos = value.respondsTos + (respondsTo.id -> respondsTo)
