@@ -71,7 +71,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         ("B", { (p: Post) => println(s"B: $p") }) ::
         ("C", { (p: Post) => println(s"C: $p") }) ::
         ("D", { (p: Post) => println(s"D: $p") }) ::
-        ("E", { (p: Post) => println(s"E: $p") }) ::
+        ("Unfix", { (p: Post) => p.fixedPos = js.undefined; simulation.restart() }) ::
         Nil
       )
     }
@@ -136,6 +136,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           .attr("x", cos(angle) * menuRadius)
           .attr("y", sin(angle) * menuRadius)
           .style("pointer-events", "all")
+          .style("cursor", "pointer")
           .on("click", { () => menuTarget foreach action })
       }
 
