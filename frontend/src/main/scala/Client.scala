@@ -24,6 +24,4 @@ object Client extends WebsocketClient[Channel, ApiEvent, Authorize] {
 
   val dispatch: ApiEvent => Unit = map.andThen(a => AppCircuit.dispatch(a)) orElse { case e => println(s"unknown event: $e") }
   def receive(event: ApiEvent) = dispatch(event)
-
-  subscribe(Channel.Graph)
 }

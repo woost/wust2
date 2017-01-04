@@ -14,6 +14,7 @@ import diode.react._
 import org.scalajs.dom._
 import boopickle.Default._
 
+import api._
 import graph._
 import collection.breakOut
 
@@ -22,7 +23,8 @@ object Main extends js.JSApp {
   @JSExport
   def main(): Unit = {
     Client.run(s"ws://${window.location.host}")
-    Client.login(api.PasswordAuth("hans", "***"))
+    Client.login(PasswordAuth("hans", "***"))
+    Client.subscribe(Channel.Graph)
 
     Client.wireApi.getGraph().call().foreach { graph =>
       AppCircuit.dispatch(SetGraph(graph))
