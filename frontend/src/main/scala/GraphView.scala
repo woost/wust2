@@ -16,6 +16,9 @@ import graph._
 import collection.breakOut
 import math._
 
+import d3v4._
+import d3v4.force._
+
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
   def convexHull = d3.polygonHull(positions)
@@ -149,8 +152,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force[ManyBody[Post]]("repel").strength(-1000)
       simulation.force[Collision[Post]]("collision").radius((p: Post) => p.radius)
 
-      simulation.force[Link[RespondsTo]]("respondsTo").distance(100)
-      simulation.force[Link[Contains]]("containment").distance(100)
+      simulation.force[force.Link[RespondsTo]]("respondsTo").distance(100)
+      simulation.force[force.Link[Contains]]("containment").distance(100)
 
       simulation.force[PositioningX[Post]]("gravityx").strength(0.1)
       simulation.force[PositioningY[Post]]("gravityy").strength(0.1)
@@ -263,7 +266,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.radius = p.size.length / 2
       }: js.ThisFunction)
 
-      simulation.force[Link[RespondsTo]]("respondsTo").strength { (e: RespondsTo) =>
+      simulation.force[force.Link[RespondsTo]]("respondsTo").strength { (e: RespondsTo) =>
         import p.fullDegree
         val targetDeg = e.target match {
           case p: Post => fullDegree(p)
@@ -272,14 +275,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source), targetDeg)
       }
 
-      simulation.force[Link[Contains]]("containment").strength { (e: Contains) =>
+      simulation.force[force.Link[Contains]]("containment").strength { (e: Contains) =>
         import p.fullDegree
         1.0 / min(fullDegree(e.source), fullDegree(e.target))
       }
 
       simulation.nodes(postData)
-      simulation.force[Link[RespondsTo]]("respondsTo").links(respondsToData)
-      simulation.force[Link[Contains]]("containment").links(containmentData)
+      simulation.force[force.Link[RespondsTo]]("respondsTo").links(respondsToData)
+      simulation.force[force.Link[Contains]]("containment").links(containmentData)
       simulation.alpha(1).restart()
     }
 

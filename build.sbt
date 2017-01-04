@@ -52,7 +52,11 @@ lazy val graph = crossProject
     )
   )
 lazy val graphJS = graph.js
+  .dependsOn(`scalajs-d3v4`)
 lazy val graphJVM = graph.jvm
+
+lazy val `scalajs-d3v4` = project
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val framework = crossProject
   .settings(commonSettings: _*)
@@ -135,4 +139,4 @@ lazy val backend = project
   )
 
 // loads the server project at sbt startup
-// onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
+onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value

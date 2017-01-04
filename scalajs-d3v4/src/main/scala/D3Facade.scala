@@ -1,95 +1,124 @@
-package frontend
+package d3v4
 
 import scalajs.js
-import org.scalajs.dom._
+import scalajs.js.{native, Object, undefined}
+import scala.scalajs.js.annotation._
 
-//TODO: external library
+@native
+object d3 extends Object {
+  def zoomIdentity: Transform = native
+  def polygonHull(points: js.Array[js.Array[Double]]): js.Array[js.Array[Double]] = native
 
-@js.native
-object d3 extends js.Object {
-  def zoomIdentity: Transform = js.native
-  def polygonHull(points: js.Array[js.Array[Double]]): js.Array[js.Array[Double]] = js.native
-
-  @js.native
-  object event extends js.Object {
-    def transform: Transform = js.native
-    def x: Double = js.native
-    def y: Double = js.native
+  @native
+  object event extends Object {
+    def transform: Transform = native
+    def x: Double = native
+    def y: Double = native
   }
 
-  def forceSimulation[N](nodes: js.Array[N] = js.Array[N]()): ForceSimulation[N] = js.native
-  def forceCenter(x: Double = 0, y: Double = 0): Centering = js.native
-  def forceX[N](x: Double = 0): PositioningX[N] = js.native
-  def forceY[N](y: Double = 0): PositioningY[N] = js.native
-  def forceManyBody[N](): ManyBody[N] = js.native
-  def forceCollide[N](radius: Double = 1): Collision[N] = js.native
-  def forceLink[L](links: js.Array[L] = js.Array[L]()): Link[L] = js.native
+  import force._
+  def forceSimulation[N](nodes: js.Array[N] = js.Array[N]()): Simulation[N] = native
+  def forceCenter(x: Double = 0, y: Double = 0): Centering = native
+  def forceX[N](x: Double = 0): PositioningX[N] = native
+  def forceY[N](y: Double = 0): PositioningY[N] = native
+  def forceManyBody[N](): ManyBody[N] = native
+  def forceCollide[N](radius: Double = 1): Collision[N] = native
+  def forceLink[L](links: js.Array[L] = js.Array[L]()): force.Link[L] = native
 }
 
-@js.native
-trait ForceSimulation[N] extends js.Object {
-  def force(name: String, force: Force): this.type = js.native
-  def force[F <: Force](name: String): F = js.native
-  def nodes(nodes: js.Array[N]): this.type = js.native
-  def on(typenames: String, listener: js.Function0[Unit]): this.type = js.native
-  def on(typenames: String): this.type = js.native
-  def find(x: Double, y: Double, radius: Double = Double.PositiveInfinity): js.UndefOr[N] = js.native
-  def alpha(alpha: Double): this.type = js.native
-  def alphaTarget(target: Double): this.type = js.native
-  def alphaTarget(): Double = js.native
-  def restart(): this.type = js.native
+package object force {
+  @native
+  trait Simulation[N] extends Object {
+    def force(name: String, force: Force): this.type = native
+    def force[F <: Force](name: String): F = native
+    def nodes(nodes: js.Array[N]): this.type = native
+    def on(typenames: String, listener: js.Function0[Unit]): this.type = native
+    def on(typenames: String): this.type = native
+    def find(x: Double, y: Double, radius: Double = Double.PositiveInfinity): js.UndefOr[N] = native
+    def alpha(alpha: Double): this.type = native
+    def alphaTarget(target: Double): this.type = native
+    def alphaTarget(): Double = native
+    def restart(): this.type = native
+  }
+
+  @native
+  trait Force extends Object {}
+
+  @native
+  trait Centering extends Object with Force {
+    def x(x: Double): this.type = native
+    def y(y: Double): this.type = native
+    def x(): Double = native
+    def y(): Double = native
+  }
+
+  @native
+  trait PositioningX[N] extends Object with Force {
+    def x(x: Double): this.type = native
+    def strength(strength: Double): this.type = native
+  }
+
+  @native
+  trait PositioningY[N] extends Object with Force {
+    def y(y: Double): this.type = native
+    def strength(strength: Double): this.type = native
+  }
+
+  @native
+  trait ManyBody[N] extends Object with Force {
+    def strength(strength: Double): this.type = native
+  }
+
+  @native
+  trait Collision[N] extends Object with Force {
+    def radius(radius: js.Function1[N, Double]): this.type = native
+  }
+
+  @native
+  trait Link[L] extends Object with Force {
+    def distance(distance: Double): this.type = native
+    def strength(strength: js.Function1[L, Double]): this.type = native
+    def links(links: js.Array[L]): this.type = native
+  }
 }
 
-@js.native
-trait Force extends js.Object {}
-
-@js.native
-trait Centering extends js.Object with Force {
-  def x(x: Double): this.type = js.native
-  def y(y: Double): this.type = js.native
-  def x(): Double = js.native
-  def y(): Double = js.native
+@JSExportAll
+trait Node {
+  def index: js.UndefOr[Int]
+  def index_=(newIndex: js.UndefOr[Int])
+  def x: js.UndefOr[Double]
+  def x_=(newX: js.UndefOr[Double])
+  def y: js.UndefOr[Double]
+  def y_=(newY: js.UndefOr[Double])
+  def vx: js.UndefOr[Double]
+  def vx_=(newVX: js.UndefOr[Double])
+  def vy: js.UndefOr[Double]
+  def vy_=(newVX: js.UndefOr[Double])
+  def fx: js.UndefOr[Double]
+  def fx_=(newFX: js.UndefOr[Double])
+  def fy: js.UndefOr[Double]
+  def fy_=(newFX: js.UndefOr[Double])
 }
 
-@js.native
-trait PositioningX[N] extends js.Object with Force {
-  def x(x: Double): this.type = js.native
-  def strength(strength: Double): this.type = js.native
+@JSExportAll
+trait Link[S <: Node, T <: Node] {
+  def index: js.UndefOr[Int]
+  def index_=(newIndex: js.UndefOr[Int])
+
+  var source: S = _
+  var target: T = _
 }
 
-@js.native
-trait PositioningY[N] extends js.Object with Force {
-  def y(y: Double): this.type = js.native
-  def strength(strength: Double): this.type = js.native
-}
-
-@js.native
-trait ManyBody[N] extends js.Object with Force {
-  def strength(strength: Double): this.type = js.native
-}
-
-@js.native
-trait Collision[N] extends js.Object with Force {
-  def radius(radius: js.Function1[N, Double]): this.type = js.native
-}
-
-@js.native
-trait Link[L] extends js.Object with Force {
-  def distance(distance: Double): this.type = js.native
-  def strength(strength: js.Function1[L, Double]): this.type = js.native
-  def links(links: js.Array[L]): this.type = js.native
-}
-
-@js.native
-trait Transform extends js.Object {
-  override def toString: String = js.native
-  def applyX(x: Double): Double = js.native
-  def applyY(x: Double): Double = js.native
-  def invertX(x: Double): Double = js.native
-  def invertY(x: Double): Double = js.native
-  def x: Double = js.native
-  def y: Double = js.native
-  def k: Double = js.native
+@native
+trait Transform extends Object {
+  override def toString: String = native
+  def applyX(x: Double): Double = native
+  def applyY(x: Double): Double = native
+  def invertX(x: Double): Double = native
+  def invertY(x: Double): Double = native
+  def x: Double = native
+  def y: Double = native
+  def k: Double = native
   def translate(x: Double, y: Double): Transform
   def scale(k: Double): Transform
 }
