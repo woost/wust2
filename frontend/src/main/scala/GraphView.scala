@@ -18,6 +18,9 @@ import math._
 
 import d3v4._
 import d3v4.force._
+import d3v4.polygon._
+import d3v4.zoom._
+import d3v4.selection._
 
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)

@@ -57,6 +57,7 @@ lazy val graphJVM = graph.jvm
 
 lazy val `scalajs-d3v4` = project
   .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings: _*)
 
 lazy val framework = crossProject
   .settings(commonSettings: _*)

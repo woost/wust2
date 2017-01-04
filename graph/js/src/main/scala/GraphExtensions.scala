@@ -4,7 +4,9 @@ import scalajs.js
 import scala.scalajs.js.annotation._
 import vectory._
 
-trait D3SimulationNode extends d3v4.Node {
+import d3v4.force.{SimulationNode => D3Node, SimulationLink => D3Link}
+
+trait ExtendedD3Node extends D3Node {
   def pos = for (x <- x; y <- y) yield Vec2(x, y)
   def pos_=(newPos: js.UndefOr[Vec2]) {
     if (newPos.isDefined) {
@@ -44,7 +46,7 @@ trait D3SimulationNode extends d3v4.Node {
   var dragStart = Vec2(0, 0)
 }
 
-trait PostPlatformSpecificExtensions extends D3SimulationNode {
+trait PostPlatformSpecificExtensions extends ExtendedD3Node {
   var index: js.UndefOr[Int] = js.undefined
 
   var x: js.UndefOr[Double] = js.undefined
@@ -55,7 +57,7 @@ trait PostPlatformSpecificExtensions extends D3SimulationNode {
   var fy: js.UndefOr[Double] = js.undefined
 }
 
-trait RespondsToPlatformSpecificExtensions extends d3v4.Link[Post, D3SimulationNode] with D3SimulationNode {
+trait RespondsToPlatformSpecificExtensions extends D3Link[Post, ExtendedD3Node] with ExtendedD3Node {
   var index: js.UndefOr[Int] = js.undefined
 
   // propagate d3 gets/sets to incident posts
@@ -89,6 +91,6 @@ trait RespondsToPlatformSpecificExtensions extends d3v4.Link[Post, D3SimulationN
   def fy_=(newFX: js.UndefOr[Double]) = ???
 }
 
-trait ContainsPlatformSpecificExtensions extends d3v4.Link[Post, Post] {
+trait ContainsPlatformSpecificExtensions extends D3Link[Post, Post] {
   var index: js.UndefOr[Int] = js.undefined
 }
