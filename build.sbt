@@ -47,7 +47,7 @@ lazy val graph = crossProject
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= (
-      "com.github.fdietze" %%% "vectory" % "0.1.0-SNAPSHOT" ::
+      "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       Nil
     )
   )
@@ -93,7 +93,7 @@ lazy val frontend = project
       "me.chrons" %%% "diode-react" % "1.1.0" ::
       "com.github.japgolly.scalajs-react" %%% "core" % "0.11.3" ::
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
-      "com.github.fdietze" %%% "vectory" % "0.1.0-SNAPSHOT" ::
+      "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       Nil
     ),
 
@@ -106,10 +106,10 @@ lazy val frontend = project
       "org.webjars.npm" % "d3-collection" % "1.0.2" / "d3-collection.js" minified "d3-collection.min.js",
       "org.webjars.npm" % "d3-dispatch" % "1.0.2" / "d3-dispatch.js" minified "d3-dispatch.min.js",
       "org.webjars.npm" % "d3-quadtree" % "1.0.2" / "d3-quadtree.js" minified "d3-quadtree.min.js",
-      "org.webjars.npm" % "d3-timer" % "1.0.2" / "d3-timer.js" minified "d3-timer.min.js",
+      "org.webjars.npm" % "d3-timer" % "1.0.3" / "d3-timer.js" minified "d3-timer.min.js",
       "org.webjars.npm" % "d3-force" % "1.0.4" / "d3-force.js" minified "d3-force.min.js",
-      "org.webjars.npm" % "d3-interpolate" % "1.1.1" / "d3-interpolate.js" minified "d3-interpolate.min.js",
-      "org.webjars.npm" % "d3-ease" % "1.0.1" / "d3-ease.js" minified "d3-ease.min.js",
+      "org.webjars.npm" % "d3-interpolate" % "1.1.2" / "d3-interpolate.js" minified "d3-interpolate.min.js",
+      "org.webjars.npm" % "d3-ease" % "1.0.2" / "d3-ease.js" minified "d3-ease.min.js",
       "org.webjars.npm" % "d3-transition" % "1.0.3" / "d3-transition.js" minified "d3-transition.min.js",
       "org.webjars.npm" % "d3-zoom" % "1.1.1" / "d3-zoom.js" minified "d3-zoom.min.js"
         dependsOn "d3-ease.js",
@@ -135,4 +135,4 @@ lazy val backend = project
   )
 
 // loads the server project at sbt startup
-onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
+// onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
