@@ -24,7 +24,12 @@ import d3v4.selection._
 
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
-  def convexHull = d3.polygonHull(positions)
+  def convexHull: Option[js.Array[js.Array[Double]]] = {
+    val hull = d3.polygonHull(positions)
+    //TODO: how to correctly handle scalajs union type?
+    if (hull == null) None
+    else Some(hull.asInstanceOf[js.Array[js.Array[Double]]])
+  }
 }
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
@@ -54,7 +59,21 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     var respondsToData: js.Array[RespondsTo] = js.Array()
     var containmentData: js.Array[Contains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
-    var menuTarget: Option[Post] = None
+
+    var _menuTarget: Option[Post] = None
+    def menuTarget = _menuTarget
+    def menuTarget_=(target: Option[Post]) {
+      _menuTarget = target
+
+      _menuTarget match {
+        case Some(post) =>
+          ringMenu.style("visibility", "visible")
+          AppCircuit.dispatch(SetRespondingTo(Some(post.id)))
+        case None =>
+          ringMenu.style("visibility", "hidden")
+          AppCircuit.dispatch(SetRespondingTo(None))
+      }
+    }
 
     val simulation = d3.forceSimulation[Post]()
       .force("center", d3.forceCenter())
@@ -194,6 +213,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       import graph.respondsTos
       import graph.containment
 
+      menuTarget match {
+        case Some(post) if !posts.isDefinedAt(post.id) =>
+          menuTarget = None
+        case _ =>
+      }
+
       postData = p.posts.values.toJSArray
       val post = postElements.selectAll("div")
         .data(postData, (p: Post) => p.id)
@@ -234,15 +259,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           .on("drag", postDragged _: js.ThisFunction)
           .on("end", postDragEnded _: js.ThisFunction))
         .on("click", { (p: Post) =>
-          if (menuTarget.isEmpty || menuTarget.get != p) {
+          if (menuTarget.isEmpty || menuTarget.get != p)
             menuTarget = Some(p)
-            ringMenu.style("visibility", "visible")
-            AppCircuit.dispatch(SetRespondingTo(Some(p.id)))
-          } else {
+          else
             menuTarget = None
-            ringMenu.style("visibility", "hidden")
-            AppCircuit.dispatch(SetRespondingTo(None))
-          }
+
           draw()
         })
       post.exit().remove()
@@ -307,7 +328,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y2", (d: Contains) => d.target.y)
 
       containmentHulls.selectAll("path")
-        .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(p => s"${p(0)} ${p(1)}").mkString("M", "L", "Z"))
+        .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(_.map(p => s"${p(0)} ${p(1)}").mkString("M", "L", "Z")).getOrElse(""))
 
       menuTarget.foreach { post =>
         ringMenu.attr("transform", s"translate(${post.x}, ${post.y})")

@@ -1,7 +1,7 @@
 package d3v4
 
 import scalajs.js
-import scalajs.js.{native, Object, undefined}
+import scalajs.js.{native, Object, undefined, `|`}
 import scala.scalajs.js.annotation._
 
 package object polygon {
@@ -9,6 +9,6 @@ package object polygon {
 
   @js.native
   trait D3Polygon extends d3 {
-    def polygonHull(points: js.Array[js.Array[Double]]): js.Array[js.Array[Double]] = native
+    def polygonHull(points: js.Array[js.Array[Double]]): js.Array[js.Array[Double]] | Null = native
   }
 }

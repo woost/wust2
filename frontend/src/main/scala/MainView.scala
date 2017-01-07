@@ -13,6 +13,8 @@ package object frontend {
 
   import graph._
 
+  val GraphConnect = AppCircuit.connect(_.graph)
+
   val MainView = ReactComponentB[ModelProxy[RootModel]]("MainView")
     .render_P { proxy =>
       val model = proxy.value
@@ -30,7 +32,7 @@ package object frontend {
           Client.wireApi.connect(source.id, target.id).call()
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
-        GraphView(graph),
+        GraphConnect(g => GraphView(g.value)),
         model.respondingTo.collect {
           case targetId if graph.posts.isDefinedAt(targetId) =>
             <.div(

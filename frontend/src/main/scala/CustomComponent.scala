@@ -23,7 +23,7 @@ abstract class CustomComponent[_Props](componentName: String = "CustomComponent"
     .backend(backendFactory(_))
     .render(c => c.backend.render(c.props))
     .componentDidMount(c => Callback { c.backend.init(); c.backend.update(c.props, None) })
-    .componentWillReceiveProps(c => Callback { c.$.backend.update(c.nextProps, Some(c.currentProps)) })
+    .componentWillReceiveProps(c => Callback { if (c.nextProps != c.currentProps) c.$.backend.update(c.nextProps, Some(c.currentProps)) })
     .shouldComponentUpdate(_ => false) // let our custom code handle the update instead
     .componentWillUnmount(c => Callback { c.backend.cleanup() })
     .build

@@ -24,13 +24,34 @@ package object graph {
     def fullDegree(post: Post) = respondsToDegree(post) + containsDegree(post)
     def fullDegree(respondsTo: RespondsTo) = 2
 
-    def incidentRespondsTos(post: AtomId) = respondsTos.values.collect { case r if r.in == post || r.out == post => r.id }
-    def incidentContains(post: AtomId) = containment.values.collect { case c if c.parent == post || c.child == post => c.id }
-    def remove(post: AtomId) = copy(
-      posts = posts - post,
-      respondsTos = respondsTos -- incidentRespondsTos(post),
-      containment = containment -- incidentContains(post)
-    )
+    def incidentRespondsTos(atomId: AtomId) = respondsTos.values.collect { case r if r.in == atomId || r.out == atomId => r.id }
+    def incidentContains(atomId: AtomId) = containment.values.collect { case c if c.parent == atomId || c.child == atomId => c.id }
+
+    def dependingRespondsEdges(atomId: AtomId) = {
+      // RespondsTo.in must be a Post, so no cycles can occour
+
+      var next = incidentRespondsTos(atomId).toList
+      var result: List[AtomId] = Nil
+      var i = 0
+      while (next.nonEmpty && i < 10) {
+        result ::= next.head
+        val candidates = incidentRespondsTos(next.head).toList
+        next = next.tail ::: candidates
+        i += 1
+      }
+      result
+    }
+
+    def remove(atomId: AtomId) = {
+      val removedPosts = posts.get(atomId).map(_.id)
+      val removedResponds = dependingRespondsEdges(atomId)
+      val removedContains = incidentContains(atomId)
+      copy(
+        posts = posts -- removedPosts,
+        respondsTos = respondsTos -- removedResponds,
+        containment = containment -- removedContains
+      )
+    }
 
     def children(post: Post): Set[Post] = containment.values.collect { case c if c.parent == post.id => posts(c.child) }.toSet //TODO: breakout with generic on requested collection type
   }
@@ -38,7 +59,9 @@ package object graph {
     def empty = Graph()
   }
 
+  //TODO: rename Post -> ???, RespondsTo -> Connects
   case class Post(id: AtomId, title: String) extends PostPlatformSpecificExtensions
   case class RespondsTo(id: AtomId, in: AtomId, out: AtomId) extends RespondsToPlatformSpecificExtensions
+  //TODO: reverse direction of contains?
   case class Contains(id: AtomId, parent: AtomId, child: AtomId) extends ContainsPlatformSpecificExtensions
 }
