@@ -1,5 +1,5 @@
 package object graph {
-  //TODO: different types of ids to restrict RespondsTo in/out
+  //TODO: different types of ids to restrict Connects in/out
   //TODO: this also needs to be done as database contstraint
   type AtomId = Long
 
@@ -15,20 +15,20 @@ package object graph {
   //      wenn containment: in = post, out = post
   case class Graph(
     posts: Map[AtomId, Post] = Map.empty,
-    respondsTos: Map[AtomId, RespondsTo] = Map.empty, //TODO: rename: responding, responses?
+    respondsTos: Map[AtomId, Connects] = Map.empty, //TODO: rename: responding, responses?
     containment: Map[AtomId, Contains] = Map.empty
   ) {
     //TODO: acceleration Datastructures from pharg
-    def respondsToDegree(post: Post) = respondsTos.values.count(r => r.in == post.id || r.out == post.id)
+    def respondsToDegree(post: Post) = respondsTos.values.count(r => r.sourceId == post.id || r.targetId == post.id)
     def containsDegree(post: Post) = containment.values.count(c => c.parent == post.id || c.child == post.id)
     def fullDegree(post: Post) = respondsToDegree(post) + containsDegree(post)
-    def fullDegree(respondsTo: RespondsTo) = 2
+    def fullDegree(respondsTo: Connects) = 2
 
-    def incidentRespondsTos(atomId: AtomId) = respondsTos.values.collect { case r if r.in == atomId || r.out == atomId => r.id }
+    def incidentRespondsTos(atomId: AtomId) = respondsTos.values.collect { case r if r.sourceId == atomId || r.targetId == atomId => r.id }
     def incidentContains(atomId: AtomId) = containment.values.collect { case c if c.parent == atomId || c.child == atomId => c.id }
 
     def dependingRespondsEdges(atomId: AtomId) = {
-      // RespondsTo.in must be a Post, so no cycles can occour
+      // Connects.in must be a Post, so no cycles can occour
 
       var next = incidentRespondsTos(atomId).toList
       var result: List[AtomId] = Nil
@@ -59,9 +59,12 @@ package object graph {
     def empty = Graph()
   }
 
-  //TODO: rename Post -> ???, RespondsTo -> Connects
+  //TODO: rename Post -> ???
   case class Post(id: AtomId, title: String) extends PostPlatformSpecificExtensions
-  case class RespondsTo(id: AtomId, in: AtomId, out: AtomId) extends RespondsToPlatformSpecificExtensions
+  object Post { def apply(title: String): Post = Post(0L, title) }
+  case class Connects(id: AtomId, sourceId: AtomId, targetId: AtomId) extends RespondsToPlatformSpecificExtensions
+  object Connects { def apply(in: AtomId, out: AtomId): Connects = Connects(0L, in, out) }
   //TODO: reverse direction of contains?
   case class Contains(id: AtomId, parent: AtomId, child: AtomId) extends ContainsPlatformSpecificExtensions
+  object Contains { def apply(parent: AtomId, child: AtomId): Contains = Contains(0L, parent, child) }
 }

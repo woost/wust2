@@ -6,6 +6,11 @@ services:
       context: .
       # args:
       #   - version = "0.1-SNAPSHOT"
+    environment:
+      - POSTGRES_USER = "postgres"
+      - POSTGRES_PASSWORD = "test"
+      - POSTGRES_DB = "postgres"
+      - POSTGRES_HOSTNAME = "postgres"
     ports:
       - "80:8080"
     links:
@@ -14,3 +19,5 @@ services:
     build: pg
     environment:
       - POSTGRES_PASSWORD = "test"
+    ports:
+      - "5432:5432"

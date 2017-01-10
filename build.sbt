@@ -129,6 +129,10 @@ lazy val backend = project
   .settings(commonSettings: _*)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
+    libraryDependencies ++=
+        "org.postgresql" % "postgresql" % "9.4.1212" ::
+        "io.getquill" %% "quill-jdbc" % "1.0.2-SNAPSHOT" ::
+      Nil,
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),
     compile in Compile := ((compile in Compile) dependsOn scalaJSPipeline).value,

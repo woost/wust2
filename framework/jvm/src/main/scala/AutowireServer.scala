@@ -68,7 +68,8 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
         .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
         .recover {
           case UserViewableException(msg) => BadRequest(seqId, s"error: $msg")
-          case NonFatal(_) => BadRequest(seqId, "internal server error")
+          case NonFatal(msg) => BadRequest(seqId, s"other error: $msg")
+          // case NonFatal(_) => BadRequest(seqId, "internal server error")
         }.map(Serializer.serialize[ServerMessage](_))
         .pipeTo(outgoing)
     case Subscription(channel) => subscribe(outgoing, channel)

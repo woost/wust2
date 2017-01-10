@@ -57,7 +57,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val ringMenu = menuLayer.append("g")
 
     var postData: js.Array[Post] = js.Array()
-    var respondsToData: js.Array[RespondsTo] = js.Array()
+    var respondsToData: js.Array[Connects] = js.Array()
     var containmentData: js.Array[Contains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
 
@@ -176,7 +176,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force[ManyBody[Post]]("repel").strength(-1000)
       simulation.force[Collision[Post]]("collision").radius((p: Post) => p.radius)
 
-      simulation.force[force.Link[RespondsTo]]("respondsTo").distance(100)
+      simulation.force[force.Link[Connects]]("respondsTo").distance(100)
       simulation.force[force.Link[Contains]]("containment").distance(100)
 
       simulation.force[PositioningX[Post]]("gravityx").strength(0.1)
@@ -226,12 +226,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .data(postData, (p: Post) => p.id)
 
       respondsToData = p.respondsTos.values.map { e =>
-        e.source = posts(e.in)
-        e.target = posts.getOrElse(e.out, respondsTos(e.out))
+        e.source = posts(e.sourceId)
+        e.target = posts.getOrElse(e.targetId, respondsTos(e.targetId))
         e
       }.toJSArray
       val respondsTo = respondsToElements.selectAll("line")
-        .data(respondsToData, (r: RespondsTo) => r.id)
+        .data(respondsToData, (r: Connects) => r.id)
 
       containmentData = p.containment.values.map { e =>
         e.source = posts(e.parent)
@@ -292,11 +292,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.radius = p.size.length / 2
       }: js.ThisFunction)
 
-      simulation.force[force.Link[RespondsTo]]("respondsTo").strength { (e: RespondsTo) =>
+      simulation.force[force.Link[Connects]]("respondsTo").strength { (e: Connects) =>
         import p.fullDegree
         val targetDeg = e.target match {
           case p: Post => fullDegree(p)
-          case _: RespondsTo => 2
+          case _: Connects => 2
         }
         1.0 / min(fullDegree(e.source), targetDeg)
       }
@@ -307,7 +307,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
 
       simulation.nodes(postData)
-      simulation.force[force.Link[RespondsTo]]("respondsTo").links(respondsToData)
+      simulation.force[force.Link[Connects]]("respondsTo").links(respondsToData)
       simulation.force[force.Link[Contains]]("containment").links(containmentData)
       simulation.alpha(1).restart()
     }
@@ -318,10 +318,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("top", (d: Post) => s"${d.y.get + d.centerOffset.y}px")
 
       respondsToElements.selectAll("line")
-        .attr("x1", (d: RespondsTo) => d.source.x)
-        .attr("y1", (d: RespondsTo) => d.source.y)
-        .attr("x2", (d: RespondsTo) => d.target.x)
-        .attr("y2", (d: RespondsTo) => d.target.y)
+        .attr("x1", (d: Connects) => d.source.x)
+        .attr("y1", (d: Connects) => d.source.y)
+        .attr("x2", (d: Connects) => d.target.x)
+        .attr("y2", (d: Connects) => d.target.y)
 
       containmentElements.selectAll("line")
         .attr("x1", (d: Contains) => d.source.x)

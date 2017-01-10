@@ -19,7 +19,7 @@ object Client extends WebsocketClient[Channel, ApiEvent, Authorize] {
   val map: PartialFunction[ApiEvent, Action] = {
     case NewPost(atom) => AddPost(atom)
     case DeletePost(atomId) => RemovePost(atomId)
-    case NewRespondsTo(atom) => AddRespondsTo(atom)
+    case NewConnects(atom) => AddRespondsTo(atom)
   }
 
   val dispatch: ApiEvent => Unit = map.andThen(a => AppCircuit.dispatch(a)) orElse { case e => println(s"unknown event: $e") }

@@ -13,7 +13,7 @@ case class RootModel(
 case class SetGraph(graph: Graph) extends Action
 case class AddPost(post: Post) extends Action
 case class RemovePost(id: AtomId) extends Action
-case class AddRespondsTo(respondsTo: RespondsTo) extends Action
+case class AddRespondsTo(respondsTo: Connects) extends Action
 case class SetRespondingTo(target: Option[AtomId]) extends Action
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
