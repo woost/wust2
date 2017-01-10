@@ -166,6 +166,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
 
       svg.call(d3js.zoom().on("zoom", zoomed _))
+      svg.on("click", () => menuTarget = None)
 
       simulation.force[Centering]("center").x(width / 2).y(height / 2)
       simulation.force[PositioningX[Post]]("gravityx").x(width / 2)
