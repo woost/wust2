@@ -47,6 +47,7 @@ object Dispatcher {
 
 case class UserViewableException(msg: String) extends Exception(msg)
 
+//TODO serializing actor
 //TODO channel dependency, then subscribe, signal => action!
 class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
   messages: Messages[CHANNEL,EVENT,AUTH],
@@ -75,7 +76,7 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
       val nextUser = authorize(auth)
       nextUser
         .map(_ => LoggedIn())
-        .recover { case e => LoginFailed(e.getMessage) }
+        .recover { case NonFatal(e) => LoginFailed(e.getMessage) }
         .map(Serializer.serialize[ServerMessage](_))
         .pipeTo(outgoing)
       context.become(connected(outgoing, nextUser))
@@ -109,6 +110,7 @@ object Serializer {
   }
 }
 
+//TODO independent of autowire
 abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler, USER] {
   def route: Route
   def router: Option[USER] => AutowireServer.Router

@@ -29,6 +29,7 @@ case class LoginFailureException(error: String) extends Exception(error)
 case object TimeoutException extends Exception
 case object SupersededAuthentication extends Exception
 
+//TODO: remove dependency to autowire
 abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] {
   def receive(event: EVENT): Unit
 
