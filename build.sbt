@@ -17,7 +17,9 @@ lazy val commonSettings = Seq(
     "-feature" ::
     "-language:_" ::
     "-Ywarn-unused" ::
-    Nil
+    Nil,
+  // also watch managed library dependencies (only works with scala 2.11 currently)
+  watchSources <++= (managedClasspath in Compile) map { cp => cp.files }
 )
 
 lazy val root = project.in(file("."))
@@ -25,8 +27,6 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
     addCommandAlias("dev", "~backend/re-start")
-  // also watch managed library dependencies
-  // watchSources <++= (managedClasspath in Compile) map { cp => cp.files }
   )
 
 val reactVersion = "15.4.1"
