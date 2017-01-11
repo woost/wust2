@@ -52,12 +52,7 @@ lazy val graph = crossProject
     )
   )
 lazy val graphJS = graph.js
-  .dependsOn(`scalajs-d3v4`)
 lazy val graphJVM = graph.jvm
-
-lazy val `scalajs-d3v4` = project
-  .enablePlugins(ScalaJSPlugin)
-  .settings(commonSettings: _*)
 
 lazy val framework = crossProject
   .settings(commonSettings: _*)
@@ -100,28 +95,26 @@ lazy val frontend = project
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scalajs-react-custom-component" % "0.1.0" ::
+
+      "com.github.fdietze" %%% "scala-js-d3v4-selection" % "1.0.3" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-collection" % "1.0.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-dispatch" % "1.0.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-quadtree" % "1.0.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-timer" % "1.0.3" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-force" % "1.0.4" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-interpolate" % "1.1.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-ease" % "1.0.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-transition" % "1.0.3" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-zoom" % "1.1.1" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-drag" % "1.0.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-polygon" % "1.0.2" ::
       Nil
     ),
 
     jsDependencies ++= Seq(
       "org.webjars.bower" % "react" % reactVersion / "react-with-addons.js" minified "react-with-addons.min.js",
       "org.webjars.bower" % "react" % reactVersion / "react-dom.js" minified "react-dom.min.js" dependsOn "react-with-addons.js",
-      "org.webjars.bower" % "react" % reactVersion / "react-dom-server.js" minified "react-dom-server.min.js" dependsOn "react-dom.js",
-
-      "org.webjars.npm" % "d3-selection" % "1.0.2" / "d3-selection.js" minified "d3-selection.min.js",
-      "org.webjars.npm" % "d3-collection" % "1.0.2" / "d3-collection.js" minified "d3-collection.min.js",
-      "org.webjars.npm" % "d3-dispatch" % "1.0.2" / "d3-dispatch.js" minified "d3-dispatch.min.js",
-      "org.webjars.npm" % "d3-quadtree" % "1.0.2" / "d3-quadtree.js" minified "d3-quadtree.min.js",
-      "org.webjars.npm" % "d3-timer" % "1.0.3" / "d3-timer.js" minified "d3-timer.min.js",
-      "org.webjars.npm" % "d3-force" % "1.0.4" / "d3-force.js" minified "d3-force.min.js",
-      "org.webjars.npm" % "d3-interpolate" % "1.1.2" / "d3-interpolate.js" minified "d3-interpolate.min.js",
-      "org.webjars.npm" % "d3-ease" % "1.0.2" / "d3-ease.js" minified "d3-ease.min.js",
-      "org.webjars.npm" % "d3-transition" % "1.0.3" / "d3-transition.js" minified "d3-transition.min.js"
-        dependsOn "d3-selection.js",
-      "org.webjars.npm" % "d3-zoom" % "1.1.1" / "d3-zoom.js" minified "d3-zoom.min.js"
-        dependsOn "d3-ease.js",
-      "org.webjars.npm" % "d3-drag" % "1.0.2" / "d3-drag.js" minified "d3-drag.min.js",
-      "org.webjars.npm" % "d3-polygon" % "1.0.2" / "d3-polygon.js" minified "d3-polygon.min.js"
+      "org.webjars.bower" % "react" % reactVersion / "react-dom-server.js" minified "react-dom-server.min.js" dependsOn "react-dom.js"
     )
   )
 
