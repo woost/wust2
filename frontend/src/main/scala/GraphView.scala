@@ -17,11 +17,11 @@ import graph._
 import collection.breakOut
 import math._
 
-import d3v4._
-import d3v4.force._
-import d3v4.polygon._
-import d3v4.zoom._
-import d3v4.selection._
+import org.scalajs.d3v4._
+import org.scalajs.d3v4.force._
+import org.scalajs.d3v4.zoom._
+import org.scalajs.d3v4.selection._
+import org.scalajs.d3v4.polygon._
 
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
@@ -81,7 +81,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       .force("gravityx", d3.forceX())
       .force("gravityy", d3.forceY())
       .force("repel", d3.forceManyBody())
-      .force("collision", d3.forceCollide())
+      .force("collision", d3.forceCollide()) //TODO: rectangle collision detection?
       .force("respondsTo", d3.forceLink())
       .force("containment", d3.forceLink())
 

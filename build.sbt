@@ -51,6 +51,12 @@ lazy val graph = crossProject
       Nil
     )
   )
+  .jsSettings(
+    libraryDependencies ++= (
+      "com.github.fdietze" %%% "scala-js-d3v4-force" % "1.0.4" ::
+      Nil
+    )
+  )
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
