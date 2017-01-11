@@ -27,11 +27,26 @@ object Model {
   val container = Post(nextId(), "Container")
   val contains1 = Contains(nextId(), container.id, post1.id)
   val contains2 = Contains(nextId(), container.id, post4.id)
+
   var graph = Graph(
     Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4, container.id -> container),
     Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3),
     Map(contains1.id -> contains1, contains2.id -> contains2)
   )
+
+  // TODO: This graph will produce NaNs in the d3 simulation
+  // probably because the link force writes a field "index" into both nodes and links and there is a conflict when one edge is a node and a link at the same time.
+  // the first NaN occours in linkforce.initialize(): bias[0] becomes NaN
+  // var graph = Graph(
+  //   Map(0L -> Post(0L, "Hallo"), 1L -> Post(1L, "Ballo"), 4L -> Post(4L, "Penos")),
+  //   Map(
+  //     5L -> RespondsTo(5L, 4, 2),
+  //     14L -> RespondsTo(14L, 0, 1),
+  //     13L -> RespondsTo(13L, 4, 1),
+  //     2L -> RespondsTo(2L, 1, 0)
+  //   ),
+  //   Map()
+  // )
 }
 
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
