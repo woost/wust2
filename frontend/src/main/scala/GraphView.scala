@@ -9,6 +9,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
+import fdietze.scalajs.react.component._
 
 import vectory._
 
