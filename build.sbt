@@ -55,7 +55,7 @@ lazy val graph = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
-      "com.github.fdietze" %%% "scala-js-d3v4-force" % "1.0.4" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-force" % d3v4FacadeVersion ::
       Nil
     )
   )
