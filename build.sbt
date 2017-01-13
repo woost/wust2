@@ -110,6 +110,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scala-js-d3v4-quadtree" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-timer" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-force" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-drag" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-interpolate" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-ease" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-transition" % d3v4FacadeVersion ::

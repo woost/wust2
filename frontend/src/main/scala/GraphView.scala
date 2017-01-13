@@ -3,8 +3,8 @@ package frontend
 import scalajs.js
 import js.JSConverters._
 import scala.scalajs.js.annotation._
-import org.scalajs.dom._
-import raw.HTMLElement
+import org.scalajs.dom
+import dom.raw.HTMLElement
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import japgolly.scalajs.react._
@@ -22,6 +22,7 @@ import org.scalajs.d3v4.force._
 import org.scalajs.d3v4.zoom._
 import org.scalajs.d3v4.selection._
 import org.scalajs.d3v4.polygon._
+import org.scalajs.d3v4.drag._
 
 case class ContainmentCluster(parent: Post, children: IndexedSeq[Post]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
@@ -174,7 +175,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force[PositioningY[Post]]("gravityy").y(height / 2)
 
       simulation.force[ManyBody[Post]]("repel").strength(-1000)
-      simulation.force[Collision[Post]]("collision").radius((p: Post) => p.radius)
+      simulation.force[Collision[Post]]("collision").radius((p: Post) => p.collisionRadius)
 
       simulation.force[force.Link[Connects]]("respondsTo").distance(100)
       simulation.force[force.Link[Contains]]("containment").distance(100)
@@ -184,14 +185,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def zoomed() {
-      transform = d3.event[ZoomEvent].transform
+      transform = d3.event.asInstanceOf[ZoomEvent].transform
       svg.selectAll("g").attr("transform", transform)
       html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
       menuLayer.attr("transform", transform)
     }
 
     def postDragStarted(node: HTMLElement, p: Post) {
-      val eventPos = Vec2(d3.event[MouseEvent].clientX, d3.event[MouseEvent].clientY)
+      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
+      println("hier nicht")
       p.dragStart = eventPos
       p.fixedPos = eventPos
 
@@ -200,7 +202,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def postDragged(node: HTMLElement, p: Post) {
-      val eventPos = Vec2(d3.event[MouseEvent].clientX, d3.event[MouseEvent].clientY)
+      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
+      println("hier")
       p.fixedPos = p.dragStart + (eventPos - p.dragStart) / transform.k
     }
 
@@ -290,6 +293,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.size = Vec2(rect.width, rect.height)
         p.centerOffset = p.size / -2
         p.radius = p.size.length / 2
+        p.collisionRadius = p.radius
       }: js.ThisFunction)
 
       simulation.force[force.Link[Connects]]("respondsTo").strength { (e: Connects) =>

@@ -42,6 +42,7 @@ trait ExtendedD3Node extends D3Node {
   def rect = pos.map { pos => AARect(pos, size) }
   var centerOffset: Vec2 = Vec2(0, 0)
   var radius: Double = 0
+  var collisionRadius: Double = 0
 
   var dragStart = Vec2(0, 0)
 }
