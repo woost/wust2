@@ -23,6 +23,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM)
   .settings(
     publish := {},
     publishLocal := {},
