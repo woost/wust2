@@ -184,14 +184,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def zoomed() {
-      transform = d3.event.transform
+      transform = d3.event[ZoomEvent].transform
       svg.selectAll("g").attr("transform", transform)
       html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
       menuLayer.attr("transform", transform)
     }
 
     def postDragStarted(node: HTMLElement, p: Post) {
-      val eventPos = Vec2(d3.event.x, d3.event.y)
+      val eventPos = Vec2(d3.event[MouseEvent].clientX, d3.event[MouseEvent].clientY)
       p.dragStart = eventPos
       p.fixedPos = eventPos
 
@@ -200,7 +200,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def postDragged(node: HTMLElement, p: Post) {
-      val eventPos = Vec2(d3.event.x, d3.event.y)
+      val eventPos = Vec2(d3.event[MouseEvent].clientX, d3.event[MouseEvent].clientY)
       p.fixedPos = p.dragStart + (eventPos - p.dragStart) / transform.k
     }
 

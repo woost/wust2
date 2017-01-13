@@ -31,6 +31,7 @@ lazy val root = project.in(file("."))
 
 val reactVersion = "15.4.1"
 val akkaVersion = "2.4.14"
+val d3v4FacadeVersion = "0.1.0-SNAPSHOT"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -102,18 +103,18 @@ lazy val frontend = project
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scalajs-react-custom-component" % "0.1.0" ::
 
-      "com.github.fdietze" %%% "scala-js-d3v4-selection" % "1.0.3" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-collection" % "1.0.2" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-dispatch" % "1.0.2" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-quadtree" % "1.0.2" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-timer" % "1.0.3" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-force" % "1.0.4" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-interpolate" % "1.1.2" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-ease" % "1.0.2" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-transition" % "1.0.3" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-zoom" % "1.1.1" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-drag" % "1.0.2" ::
-      "com.github.fdietze" %%% "scala-js-d3v4-polygon" % "1.0.2" ::
+      "com.github.fdietze" %%% "scala-js-d3v4-selection" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-collection" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-dispatch" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-quadtree" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-timer" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-force" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-interpolate" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-ease" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-transition" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-zoom" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-drag" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-polygon" % d3v4FacadeVersion ::
       Nil
     ),
 
@@ -130,8 +131,8 @@ lazy val backend = project
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
     libraryDependencies ++=
-        "org.postgresql" % "postgresql" % "9.4.1212" ::
-        "io.getquill" %% "quill-jdbc" % "1.0.2-SNAPSHOT" ::
+      "org.postgresql" % "postgresql" % "9.4.1212" ::
+      "io.getquill" %% "quill-jdbc" % "1.0.2-SNAPSHOT" ::
       Nil,
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),
