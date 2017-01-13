@@ -4,20 +4,20 @@ services:
   wust:
     build:
       context: .
-      # args:
-      #   - version = "0.1-SNAPSHOT"
+      args:
+        version: "0.1-SNAPSHOT"
     environment:
-      - POSTGRES_USER = "postgres"
-      - POSTGRES_PASSWORD = "test"
-      - POSTGRES_DB = "postgres"
-      - POSTGRES_HOSTNAME = "postgres"
+      POSTGRES_HOSTNAME: "postgres"
+      POSTGRES_USER: "wust-user"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_DB: "wust"
     ports:
       - "80:8080"
-    links:
+    depends_on:
       - postgres
   postgres:
     build: pg
     environment:
-      - POSTGRES_PASSWORD = "test"
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: "wust-user"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_DB: "wust"
