@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  postgres:
+    build: pg
+    environment: &pg_env
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg_data/:/var/lib/postgresql/data

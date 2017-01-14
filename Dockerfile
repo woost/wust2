@@ -1,4 +1,4 @@
-FROM anapsix/alpine-java
+FROM openjdk:8-jre-alpine
 
 ARG version
 
