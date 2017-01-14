@@ -2,7 +2,10 @@
 
 ARGS="${@:2}"
 
-export POSTGRES_DB=${POSTGRES_DB:-'wust'} POSTGRES_USER=${POSTGRES_USER:-'test'} POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-'test'}
+export POSTGRES_HOSTNAME=localhost \
+       POSTGRES_DB=${POSTGRES_DB:-'wust'} \
+       POSTGRES_USER=${POSTGRES_USER:-'test'} \
+       POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-'test'}
 
 case $1 in
 dev)
