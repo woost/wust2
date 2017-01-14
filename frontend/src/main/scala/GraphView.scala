@@ -170,15 +170,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       svg.call(d3js.zoom().on("zoom", zoomed _))
       svg.on("click", () => menuTarget = None)
 
-      simulation.force[Centering]("center").x(width / 2).y(height / 2)
+      simulation.force[Centering[Post]]("center").x(width / 2).y(height / 2)
       simulation.force[PositioningX[Post]]("gravityx").x(width / 2)
       simulation.force[PositioningY[Post]]("gravityy").y(height / 2)
 
       simulation.force[ManyBody[Post]]("repel").strength(-1000)
       simulation.force[Collision[Post]]("collision").radius((p: Post) => p.collisionRadius)
 
-      simulation.force[force.Link[Connects]]("respondsTo").distance(100)
-      simulation.force[force.Link[Contains]]("containment").distance(100)
+      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("respondsTo").distance(100)
+      simulation.force[force.Link[Post, Contains]]("containment").distance(100)
 
       simulation.force[PositioningX[Post]]("gravityx").strength(0.1)
       simulation.force[PositioningY[Post]]("gravityy").strength(0.1)
@@ -194,10 +194,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     def postDragStarted(node: HTMLElement, p: Post) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       println("hier nicht")
-      p.dragStart = eventPos
+      p.dragStart = eventPos //TODO: does the event already provide this?
       p.fixedPos = eventPos
 
       d3js.select(node).style("cursor", "move")
+      p.collisionRadius = 0.0
+      simulation.force[Collision[Post]]("collision").initialize(simulation.nodes())
       simulation.alphaTarget(0.7).restart()
     }
 
@@ -209,6 +211,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     def postDragEnded(node: HTMLElement, p: Post) {
       d3js.select(node).style("cursor", "default")
+      p.collisionRadius = p.radius
+      simulation.force[Collision[Post]]("collision").initialize(simulation.nodes())
       simulation.alphaTarget(0)
     }
 
@@ -296,7 +300,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.collisionRadius = p.radius
       }: js.ThisFunction)
 
-      simulation.force[force.Link[Connects]]("respondsTo").strength { (e: Connects) =>
+      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("respondsTo").strength { (e: Connects) =>
         import p.fullDegree
         val targetDeg = e.target match {
           case p: Post => fullDegree(p)
@@ -305,14 +309,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source), targetDeg)
       }
 
-      simulation.force[force.Link[Contains]]("containment").strength { (e: Contains) =>
+      simulation.force[force.Link[Post, Contains]]("containment").strength { (e: Contains) =>
         import p.fullDegree
         1.0 / min(fullDegree(e.source), fullDegree(e.target))
       }
 
       simulation.nodes(postData)
-      simulation.force[force.Link[Connects]]("respondsTo").links(respondsToData)
-      simulation.force[force.Link[Contains]]("containment").links(containmentData)
+      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("respondsTo").links(respondsToData)
+      simulation.force[force.Link[Post, Contains]]("containment").links(containmentData)
       simulation.alpha(1).restart()
     }
 
