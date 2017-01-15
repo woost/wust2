@@ -2,7 +2,7 @@ package frontend
 
 import boopickle.Default._
 
-import diode.Action, Action._
+import diode._, Action._
 import framework._
 import api._, graph._
 
@@ -13,15 +13,13 @@ object TypePicklers {
 }
 import TypePicklers._
 
+object Action {
+    implicit object actionType extends ActionType[ApiEvent]
+}
+import Action._
+
 object Client extends WebsocketClient[Channel, ApiEvent, Authorize] {
   val wireApi = wire[Api]
 
-  val map: PartialFunction[ApiEvent, Action] = {
-    case NewPost(atom) => AddPost(atom)
-    case DeletePost(atomId) => RemovePost(atomId)
-    case NewConnects(atom) => AddRespondsTo(atom)
-  }
-
-  val dispatch: ApiEvent => Unit = map.andThen(a => AppCircuit.dispatch(a)) orElse { case e => println(s"unknown event: $e") }
-  def receive(event: ApiEvent) = dispatch(event)
+  def receive(event: ApiEvent) = AppCircuit.dispatch(event)
 }
