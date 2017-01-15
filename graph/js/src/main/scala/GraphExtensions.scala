@@ -52,7 +52,7 @@ trait PostPlatformSpecificExtensions extends ExtendedD3Node with D3NodeImpl {
   var isClosest = false
 }
 
-trait RespondsToPlatformSpecificExtensions extends D3Link[Post, ExtendedD3Node] with ExtendedD3Node with D3LinkImpl[Post, ExtendedD3Node] {
+trait ConnectsPlatformSpecificExtensions extends D3Link[Post, ExtendedD3Node] with ExtendedD3Node with D3LinkImpl[Post, ExtendedD3Node] {
 
   var source: Post = _
   var target: ExtendedD3Node = _

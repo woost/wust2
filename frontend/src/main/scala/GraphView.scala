@@ -53,7 +53,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val svg = container.append("svg")
     lazy val html = container.append("div")
     lazy val postElements = html.append("div")
-    lazy val respondsToElements = svg.append("g")
+    lazy val connectionElements = svg.append("g")
     lazy val containmentElements = svg.append("g")
     lazy val containmentHulls = svg.append("g")
     lazy val menuSvg = container.append("svg")
@@ -61,7 +61,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val ringMenu = menuLayer.append("g")
 
     var postData: js.Array[Post] = js.Array()
-    var respondsToData: js.Array[Connects] = js.Array()
+    var connectionData: js.Array[Connects] = js.Array()
     var containmentData: js.Array[Contains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
 
@@ -86,7 +86,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       .force("gravityy", d3.forceY())
       .force("repel", d3.forceManyBody())
       .force("collision", d3.forceCollide()) //TODO: rectangle collision detection?
-      .force("respondsTo", d3.forceLink())
+      .force("connection", d3.forceLink())
       .force("containment", d3.forceLink())
 
     simulation.on("tick", draw _)
@@ -114,7 +114,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       svg
       containmentHulls
       containmentElements
-      respondsToElements
+      connectionElements
 
       html
       postElements
@@ -181,7 +181,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.force[ManyBody[Post]]("repel").strength(-1000)
       simulation.force[Collision[Post]]("collision").radius((p: Post) => p.collisionRadius)
 
-      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("respondsTo").distance(100)
+      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("connection").distance(100)
       simulation.force[force.Link[Post, Contains]]("containment").distance(100)
 
       simulation.force[PositioningX[Post]]("gravityx").strength(0.1)
@@ -249,8 +249,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     override def update(p: Props, oldProps: Option[Props] = None) {
       val graph = p
       import graph.posts
-      import graph.respondsTos
-      import graph.containment
+      import graph.connections
+      import graph.containments
 
       menuTarget match {
         case Some(post) if !posts.isDefinedAt(post.id) =>
@@ -262,15 +262,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       val post = postElements.selectAll("div")
         .data(postData, (p: Post) => p.id)
 
-      respondsToData = p.respondsTos.values.map { e =>
+      connectionData = p.connections.values.map { e =>
         e.source = posts(e.sourceId)
-        e.target = posts.getOrElse(e.targetId, respondsTos(e.targetId))
+        e.target = posts.getOrElse(e.targetId, connections(e.targetId))
         e
       }.toJSArray
-      val respondsTo = respondsToElements.selectAll("line")
-        .data(respondsToData, (r: Connects) => r.id)
+      val connection = connectionElements.selectAll("line")
+        .data(connectionData, (r: Connects) => r.id)
 
-      containmentData = p.containment.values.map { e =>
+      containmentData = p.containments.values.map { e =>
         e.source = posts(e.parent)
         e.target = posts(e.child)
         e
@@ -279,7 +279,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .data(containmentData, (r: Contains) => r.id)
 
       containmentClusters = {
-        val parents: Seq[Post] = containment.values.map(c => posts(c.parent)).toSeq.distinct
+        val parents: Seq[Post] = containments.values.map(c => posts(c.parent)).toSeq.distinct
         parents.map(p => new ContainmentCluster(p, graph.children(p).toIndexedSeq)).toJSArray
       }
       val containmentHull = containmentHulls.selectAll("path")
@@ -307,9 +307,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         })
       post.exit().remove()
 
-      respondsTo.enter().append("line")
+      connection.enter().append("line")
         .style("stroke", "#8F8F8F")
-      respondsTo.exit().remove()
+      connection.exit().remove()
 
       contains.enter().append("line")
         .style("stroke", "blue")
@@ -330,7 +330,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.collisionRadius = p.radius
       }: js.ThisFunction)
 
-      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("respondsTo").strength { (e: Connects) =>
+      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("connection").strength { (e: Connects) =>
         import p.fullDegree
         val targetDeg = e.target match {
           case p: Post => fullDegree(p)
@@ -345,28 +345,28 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
 
       simulation.nodes(postData)
-      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("respondsTo").links(respondsToData)
+      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, Connects]]("connection").links(connectionData)
       simulation.force[force.Link[Post, Contains]]("containment").links(containmentData)
       simulation.alpha(1).restart()
     }
 
     def draw() {
       postElements.selectAll("div")
-        .style("left", (d: Post) => s"${d.x.get + d.centerOffset.x}px")
-        .style("top", (d: Post) => s"${d.y.get + d.centerOffset.y}px")
+        .style("left", (p: Post) => s"${p.x.get + p.centerOffset.x}px")
+        .style("top", (p: Post) => s"${p.y.get + p.centerOffset.y}px")
         .style("border", (p: Post) => if (p.isClosest) "5px solid blue" else "none")
 
-      respondsToElements.selectAll("line")
-        .attr("x1", (d: Connects) => d.source.x)
-        .attr("y1", (d: Connects) => d.source.y)
-        .attr("x2", (d: Connects) => d.target.x)
-        .attr("y2", (d: Connects) => d.target.y)
+      connectionElements.selectAll("line")
+        .attr("x1", (e: Connects) => e.source.x)
+        .attr("y1", (e: Connects) => e.source.y)
+        .attr("x2", (e: Connects) => e.target.x)
+        .attr("y2", (e: Connects) => e.target.y)
 
       containmentElements.selectAll("line")
-        .attr("x1", (d: Contains) => d.source.x)
-        .attr("y1", (d: Contains) => d.source.y)
-        .attr("x2", (d: Contains) => d.target.x)
-        .attr("y2", (d: Contains) => d.target.y)
+        .attr("x1", (e: Contains) => e.source.x)
+        .attr("y1", (e: Contains) => e.source.y)
+        .attr("x2", (e: Contains) => e.target.x)
+        .attr("y2", (e: Contains) => e.target.y)
 
       containmentHulls.selectAll("path")
         .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(_.map(p => s"${p(0)} ${p(1)}").mkString("M", "L", "Z")).getOrElse(""))

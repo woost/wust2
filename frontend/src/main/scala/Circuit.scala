@@ -40,9 +40,9 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
         ))
       case DeletePost(id) =>
         updated(value.remove(id))
-      case NewConnects(respondsTo) =>
+      case NewConnects(connects) =>
         updated(value.copy(
-          respondsTos = value.respondsTos + (respondsTo.id -> respondsTo)
+          connections = value.connections + (connects.id -> connects)
         ))
     }
   }

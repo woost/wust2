@@ -1,5 +1,5 @@
 package graph
 
 trait PostPlatformSpecificExtensions
-trait RespondsToPlatformSpecificExtensions
+trait ConnectsPlatformSpecificExtensions
 trait ContainsPlatformSpecificExtensions
