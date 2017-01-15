@@ -45,7 +45,7 @@ object Dispatcher {
   case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
-case class UserViewableException(msg: String) extends Exception(msg)
+class UserViewableException(msg: String) extends Exception(msg)
 
 //TODO serializing actor
 //TODO channel dependency, then subscribe, signal => action!
@@ -67,7 +67,7 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
         .map(_.map(Response(seqId, _)))
         .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
         .recover {
-          case UserViewableException(msg) => BadRequest(seqId, s"error: $msg")
+          case e: UserViewableException => BadRequest(seqId, s"error: ${e.getMessage}")
           case NonFatal(msg) => BadRequest(seqId, s"other error: $msg")
           // case NonFatal(_) => BadRequest(seqId, "internal server error")
         }.map(Serializer.serialize[ServerMessage](_))

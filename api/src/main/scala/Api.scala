@@ -1,17 +1,18 @@
 package api
 
 import java.nio.ByteBuffer
+import scala.concurrent.Future
 
 import graph._
 
 trait Api {
-  def getPost(id: AtomId): Post
+  def getPost(id: AtomId): Future[Post]
   def deletePost(id: AtomId): Unit
-  def getGraph(): Graph
-  def addPost(msg: String): Post
-  def connect(from: AtomId, to: AtomId): Connects
-  def respond(to: AtomId, msg: String): (Post, Connects)
-  // def getComponent(id: Id): Graph
+  def getGraph(): Future[Graph]
+  def addPost(msg: String): Future[Post]
+  def connect(from: AtomId, to: AtomId): Future[Connects]
+  def respond(to: AtomId, msg: String): Future[(Post, Connects)]
+  // def getComponent(id: Id): Future[Graph]
 }
 
 sealed trait Channel
