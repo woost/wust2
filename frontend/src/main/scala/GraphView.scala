@@ -4,6 +4,7 @@ import scalajs.js
 import js.JSConverters._
 import scala.scalajs.js.annotation._
 import org.scalajs.dom
+import org.scalajs.dom.console
 import dom.raw.HTMLElement
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
@@ -93,6 +94,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     val menuActions = {
       import autowire._
       import boopickle.Default._
+
       (
         ("A", { (p: Post) => println(s"A: $p") }) ::
         ("B", { (p: Post) => println(s"B: $p") }) ::
@@ -193,27 +195,38 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     def postDragStarted(node: HTMLElement, p: Post) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-      println("hier nicht")
-      p.dragStart = eventPos //TODO: does the event already provide this?
+      p.dragStart = eventPos
       p.fixedPos = eventPos
+      p.pos = eventPos
 
       d3js.select(node).style("cursor", "move")
-      p.collisionRadius = 0.0
-      simulation.force[Collision[Post]]("collision").initialize(simulation.nodes())
-      simulation.alphaTarget(0.7).restart()
+      simulation.stop()
     }
 
     def postDragged(node: HTMLElement, p: Post) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-      println("hier")
       p.fixedPos = p.dragStart + (eventPos - p.dragStart) / transform.k
+      p.pos = p.fixedPos
+      draw()
     }
 
     def postDragEnded(node: HTMLElement, p: Post) {
+      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
+      p.pos = p.dragStart // prevents finding the dragged post as closest post
+      val closest = simulation.find(eventPos.x, eventPos.y, 50).toOption
+      closest match {
+        case Some(target) if target != p =>
+          import autowire._
+          import boopickle.Default._
+
+          Client.wireApi.connect(p.id, target.id).call()
+          p.fixedPos = js.undefined
+        case _ =>
+          p.pos = eventPos
+          p.fixedPos = eventPos
+      }
       d3js.select(node).style("cursor", "default")
-      p.collisionRadius = p.radius
-      simulation.force[Collision[Post]]("collision").initialize(simulation.nodes())
-      simulation.alphaTarget(0)
+      simulation.alpha(1).restart()
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) {
