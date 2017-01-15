@@ -5,12 +5,20 @@ import diode.react._
 
 import graph._, api._
 
+sealed trait Tab
+object Tab {
+  case object Graph extends Tab
+  case object List extends Tab
+}
+
 case class RootModel(
   graph: Graph = Graph.empty,
-  respondingTo: Option[AtomId] = None
+  respondingTo: Option[AtomId] = None,
+  activeTab: Tab = Tab.Graph
 )
 
 case class SetGraph(graph: Graph) extends Action
+case class SwitchTab(tab: Tab) extends Action
 case class SetRespondingTo(target: Option[AtomId]) extends Action
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
@@ -19,6 +27,7 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   val globalHandler = new ActionHandler(zoomRW(m => m)((m, v) => v)) {
     override def handle = {
       case SetRespondingTo(targetOpt) => updated(value.copy(respondingTo = targetOpt))
+      case SwitchTab(active: Tab) => updated(value.copy(activeTab = active))
     }
   }
 

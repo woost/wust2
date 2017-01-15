@@ -32,7 +32,12 @@ package object frontend {
           Client.wireApi.connect(source.id, target.id).call()
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
-        GraphConnect(g => GraphView(g.value)),
+        <.button("graph", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.Graph))),
+        <.button("list", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.List))),
+        model.activeTab match {
+          case Tab.Graph => GraphConnect(g => GraphView(g.value))
+          case Tab.List => GraphConnect(ListView.component(_))
+        },
         model.respondingTo.collect {
           case targetId if graph.posts.isDefinedAt(targetId) =>
             <.div(
