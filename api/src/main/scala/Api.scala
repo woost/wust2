@@ -7,7 +7,7 @@ import graph._
 
 trait Api {
   def getPost(id: AtomId): Future[Option[Post]]
-  def deletePost(id: AtomId): Unit
+  def deletePost(id: AtomId): Future[Boolean]
   def getGraph(): Future[Graph]
   def addPost(msg: String): Future[Post]
   def connect(from: AtomId, to: AtomId): Future[Option[Connects]]
@@ -25,6 +25,11 @@ object Channel {
     case _: NewConnects => Graph
   }
 }
+
+sealed trait ApiError
+case object InternalServerError extends ApiError
+case class NotFound(path: Seq[String]) extends ApiError
+case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
 case class NewPost(post: Post) extends ApiEvent

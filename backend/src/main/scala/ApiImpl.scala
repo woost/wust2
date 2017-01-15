@@ -5,9 +5,6 @@ import api._, graph._, framework._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-case object UnauthorizedException extends UserViewableException("unauthorized")
-case object WrongCredentials extends UserViewableException("wrong credentials")
-
 object Db {
   import io.getquill._
 
@@ -87,21 +84,22 @@ object Model {
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   import Model._, Db._, ctx._
 
-  def withUser[T](f: User => T): T = userOpt.map(f).getOrElse {
-    throw UnauthorizedException
+  def withUser[T](f: User => Future[T]): Future[T] = userOpt.map(f).getOrElse {
+    Future.failed(UserError(Unauthorized))
   }
 
-  def withUser[T](f: => T): T = withUser(_ => f)
+  def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
 
   def getPost(id: AtomId): Future[Option[Post]] = {
     val q = quote { query[Post].filter(_.id == lift(id)).take(1) }
     ctx.run(q).map(_.headOption)
   }
 
-  def deletePost(id: AtomId): Unit = {
+  def deletePost(id: AtomId): Future[Boolean] = withUser {
     val q = quote { query[Post].filter(_.id == lift(id)).delete }
-    for (_ <- ctx.run(q)) {
+    for (_ <- ctx.run(q)) yield {
       emit(DeletePost(id))
+      true
     }
   }
 

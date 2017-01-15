@@ -7,7 +7,7 @@ object Messages {
   type SequenceId = Int
 }
 
-class Messages[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] {
+class Messages[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] {
   import Messages._
 
   //TODO: fix double serialization of request/response through autowire
@@ -19,9 +19,9 @@ class Messages[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] {
 
   sealed trait ServerMessage
   case class Response(seqId: SequenceId, result: ByteBuffer) extends ServerMessage
-  case class BadRequest(seqId: SequenceId, error: String) extends ServerMessage
+  case class BadRequest(seqId: SequenceId, error: ERROR) extends ServerMessage
   case class LoggedIn() extends ServerMessage
-  case class LoginFailed(msg: String) extends ServerMessage
+  case class LoginFailed() extends ServerMessage
   case class LoggedOut() extends ServerMessage
   case class Notification(event: EVENT) extends ServerMessage
 

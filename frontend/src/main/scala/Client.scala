@@ -10,6 +10,7 @@ object TypePicklers {
   implicit val channelPickler = implicitly[Pickler[Channel]]
   implicit val eventPickler = implicitly[Pickler[ApiEvent]]
   implicit val authPickler = implicitly[Pickler[Authorize]]
+  implicit val errorPickler = implicitly[Pickler[ApiError]]
 }
 import TypePicklers._
 
@@ -18,7 +19,7 @@ object Action {
 }
 import Action._
 
-object Client extends WebsocketClient[Channel, ApiEvent, Authorize] {
+object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val wireApi = wire[Api]
 
   def receive(event: ApiEvent) = AppCircuit.dispatch(event)

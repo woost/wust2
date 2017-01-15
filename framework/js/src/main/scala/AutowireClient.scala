@@ -24,16 +24,16 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-case class BadRequestException(error: String) extends Exception(error)
-case class LoginFailureException(error: String) extends Exception(error)
-case object TimeoutException extends Exception
-case object SupersededAuthentication extends Exception
-
 //TODO: remove dependency to autowire
-abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] {
+abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] {
   def receive(event: EVENT): Unit
 
-  private val messages = new Messages[CHANNEL,EVENT,AUTH]
+  case class BadRequestException(error: ERROR) extends Exception
+  case object LoginFailureException extends Exception
+  case object TimeoutException extends Exception
+  case object SupersededAuthentication extends Exception
+
+  private val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
   import messages._
 
   private val wsPromise = Promise[WebSocket]()
@@ -121,8 +121,8 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler] 
               case Notification(event) => receive(event)
               case LoggedIn() => authenticateRequest trySuccess true
               case LoggedOut() => authenticateRequest trySuccess true
-              case LoginFailed(error) =>
-                authenticateRequest tryFailure LoginFailureException(error)
+              case LoginFailed() =>
+                authenticateRequest tryFailure LoginFailureException
             }
           }
           reader.readAsArrayBuffer(blob)

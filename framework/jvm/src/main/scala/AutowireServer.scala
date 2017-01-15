@@ -29,6 +29,8 @@ object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
+case class PathNotFoundException(path: Seq[String]) extends Exception
+
 class Dispatcher[CHANNEL,PAYLOAD] extends EventBus with LookupClassification {
   import Dispatcher._
 
@@ -45,19 +47,18 @@ object Dispatcher {
   case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
-class UserViewableException(msg: String) extends Exception(msg)
-
 //TODO serializing actor
 //TODO channel dependency, then subscribe, signal => action!
-class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
-  messages: Messages[CHANNEL,EVENT,AUTH],
+class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
+  messages: Messages[CHANNEL,EVENT,ERROR,AUTH],
   subscribe: (ActorRef, CHANNEL) => Unit,
   router: Option[USER] => Router[ByteBuffer],
+  toError: PartialFunction[Throwable,ERROR],
   authorize: AUTH => Future[USER]) extends Actor {
   import messages._
 
-  object NotAuthenticated extends Exception("not authenticated")
-  val unauthorized = Future.failed(NotAuthenticated)
+  case object NotAuthenticated extends Exception
+  val notAuthenticated = Future.failed(NotAuthenticated)
 
   //TODO different Receive for loggedin and loggedout? context.become...
   def connected(outgoing: ActorRef, user: Future[USER]): Receive = {
@@ -65,19 +66,16 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
       router(user.value.flatMap(_.toOption))
         .lift(Request(path, args))
         .map(_.map(Response(seqId, _)))
-        .getOrElse(Future.successful(BadRequest(seqId, s"no route for request: $path")))
-        .recover {
-          case e: UserViewableException => BadRequest(seqId, s"error: ${e.getMessage}")
-          case NonFatal(msg) => BadRequest(seqId, s"other error: $msg")
-          // case NonFatal(_) => BadRequest(seqId, "internal server error")
-        }.map(Serializer.serialize[ServerMessage](_))
+        .getOrElse(Future.failed(PathNotFoundException(path)))
+        .recover(toError andThen { case err => BadRequest(seqId, err) })
+        .map(Serializer.serialize[ServerMessage](_))
         .pipeTo(outgoing)
     case Subscription(channel) => subscribe(outgoing, channel)
     case Login(auth) =>
       val nextUser = authorize(auth)
       nextUser
         .map(_ => LoggedIn())
-        .recover { case NonFatal(e) => LoginFailed(e.getMessage) }
+        .recover { case NonFatal(_) => LoginFailed() }
         .map(Serializer.serialize[ServerMessage](_))
         .pipeTo(outgoing)
       context.become(connected(outgoing, nextUser))
@@ -85,11 +83,11 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,USER](
     // client sends: Login, Logout. sees: LoggedOut, LoggedIn. actor state: LoggedOut
     case Logout() =>
       outgoing ! Serializer.serialize[ServerMessage](LoggedOut())
-      context.become(connected(outgoing, unauthorized))
+      context.become(connected(outgoing, notAuthenticated))
   }
 
   def receive = {
-    case ConnectedClient.Connected(outgoing) => context.become(connected(outgoing, unauthorized))
+    case ConnectedClient.Connected(outgoing) => context.become(connected(outgoing, notAuthenticated))
   }
 }
 object ConnectedClient {
@@ -112,12 +110,13 @@ object Serializer {
 }
 
 //TODO independent of autowire
-abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler, USER] {
+abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler, USER] {
   def route: Route
   def router: Option[USER] => AutowireServer.Router
+  def toError: PartialFunction[Throwable,ERROR]
   def authorize(auth: AUTH): Future[USER]
 
-  private lazy val messages = new Messages[CHANNEL,EVENT,AUTH]
+  private lazy val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
   import messages._
 
   private implicit val system = ActorSystem()
@@ -126,7 +125,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, AUTH: Pickler, 
   private val dispatcher = new Dispatcher[CHANNEL,Message]
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, router, authorize)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, router, toError, authorize)))
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message].map {
