@@ -18,7 +18,7 @@ package object graph {
     def incidentConnections(atomId: AtomId) = connections.values.collect { case r if r.sourceId == atomId || r.targetId == atomId => r.id }
     def incidentContains(atomId: AtomId) = containments.values.collect { case c if c.parent == atomId || c.child == atomId => c.id }
 
-    def dependingRespondsEdges(atomId: AtomId) = {
+    def incidentConnectionsDeep(atomId: AtomId) = {
       // Connects.in must be a Post, so no cycles can occour
 
       var next = incidentConnections(atomId).toList
@@ -33,14 +33,21 @@ package object graph {
       result
     }
 
-    def remove(atomId: AtomId) = {
+    def removePost(atomId: AtomId) = {
       val removedPosts = posts.get(atomId).map(_.id)
-      val removedResponds = dependingRespondsEdges(atomId)
+      val removedConnections = incidentConnectionsDeep(atomId)
       val removedContains = incidentContains(atomId)
       copy(
         posts = posts -- removedPosts,
-        connections = connections -- removedResponds,
+        connections = connections -- removedConnections,
         containments = containments -- removedContains
+      )
+    }
+
+    def removeConnection(atomId: AtomId) = {
+      val removedConnections = incidentConnectionsDeep(atomId)
+      copy(
+        connections = connections -- removedConnections - atomId
       )
     }
 

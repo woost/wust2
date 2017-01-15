@@ -31,31 +31,35 @@ object Db {
 
   def initGraph(): Future[Graph] = {
     println("init graph in db...")
-    for (post1 <- newPost("Hallo");
-         post2 <- newPost("Ballo");
-         post3 <- newPost("Penos");
-         post4 <- newPost("Wost");
-         container <- newPost("Container");
-         responds1 <- newConnects(post2.id, post1.id);
-         responds2 <- newConnects(post3.id, responds1.id);
-         responds3 <- newConnects(post4.id, responds2.id);
-         contains1 <- newContains(container.id, post1.id);
-         contains2 <- newContains(container.id, post4.id)) yield {
+    for (
+      post1 <- newPost("Hallo");
+      post2 <- newPost("Ballo");
+      post3 <- newPost("Penos");
+      post4 <- newPost("Wost");
+      container <- newPost("Container");
+      responds1 <- newConnects(post2.id, post1.id);
+      responds2 <- newConnects(post3.id, responds1.id);
+      responds3 <- newConnects(post4.id, responds2.id);
+      contains1 <- newContains(container.id, post1.id);
+      contains2 <- newContains(container.id, post4.id)
+    ) yield {
 
-        println("init done.")
+      println("init done.")
 
-          Graph(
-          Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4, container.id -> container),
-          Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3),
-          Map(contains1.id -> contains1, contains2.id -> contains2)
-        )
+      Graph(
+        Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4, container.id -> container),
+        Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3),
+        Map(contains1.id -> contains1, contains2.id -> contains2)
+      )
     }
   }
 
   def wholeGraph(): Future[Graph] = {
-    for (posts <- ctx.run(query[Post]);
-          connects <- ctx.run(query[Connects]);
-          contains <- ctx.run(query[Contains])) yield {
+    for (
+      posts <- ctx.run(query[Post]);
+      connects <- ctx.run(query[Connects]);
+      contains <- ctx.run(query[Contains])
+    ) yield {
 
       Graph(
         posts.map(p => p.id -> p).toMap,
@@ -103,6 +107,14 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     }
   }
 
+  def deleteConnection(id: AtomId): Future[Boolean] = withUser {
+    val q = quote { query[Connects].filter(_.id == lift(id)).delete }
+    for (_ <- ctx.run(q)) yield {
+      emit(DeleteConnection(id))
+      true
+    }
+  }
+
   def getGraph(): Future[Graph] = wholeGraph()
 
   def addPost(msg: String): Future[Post] = withUser {
@@ -118,11 +130,11 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
       query[Connects].insert(lift(connects)).returning(x => x.id)
     }
     val newId = ctx.run(q).map(Some(_)).recover {
-      case e: /*GenericDatabaseException*/Exception => None
+      case e: /*GenericDatabaseException*/ Exception => None
     }
     for (idOpt <- newId) yield idOpt.map { id =>
       val edge = connects.copy(id = id)
-      emit(NewConnects(edge))
+      emit(NewConnection(edge))
       edge
     }
   }
@@ -134,15 +146,16 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   //TODO: felix no option
   def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]] = withUser {
     //TODO do in one request, does currently not handle errors
-    for(post <- newPost(msg);
-        edgeOpt <- connect(post.id, to)) yield edgeOpt.map { edge =>
+    for (
+      post <- newPost(msg);
+      edgeOpt <- connect(post.id, to)
+    ) yield edgeOpt.map { edge =>
       emit(NewPost(post))
-      emit(NewConnects(edge))
+      emit(NewConnection(edge))
       (post, edge)
     }
   }
 }
-
 
 // TODO: This graph will produce NaNs in the d3 simulation
 // probably because the link force writes a field "index" into both nodes and links and there is a conflict when one edge is a node and a link at the same time.

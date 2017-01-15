@@ -53,7 +53,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val svg = container.append("svg")
     lazy val html = container.append("div")
     lazy val postElements = html.append("div")
-    lazy val connectionElements = svg.append("g")
+    lazy val connectionLines = svg.append("g")
+    lazy val connectionElements = html.append("div")
     lazy val containmentElements = svg.append("g")
     lazy val containmentHulls = svg.append("g")
     lazy val menuSvg = container.append("svg")
@@ -114,9 +115,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       svg
       containmentHulls
       containmentElements
-      connectionElements
+      connectionLines
 
       html
+      connectionElements
       postElements
 
       menuSvg
@@ -267,7 +269,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         e.target = posts.getOrElse(e.targetId, connections(e.targetId))
         e
       }.toJSArray
-      val connection = connectionElements.selectAll("line")
+      val connectionLine = connectionLines.selectAll("line")
+        .data(connectionData, (r: Connects) => r.id)
+      val connectionElement = connectionElements.selectAll("div")
         .data(connectionData, (r: Connects) => r.id)
 
       containmentData = p.containments.values.map { e =>
@@ -307,9 +311,22 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         })
       post.exit().remove()
 
-      connection.enter().append("line")
+      connectionLine.enter().append("line")
         .style("stroke", "#8F8F8F")
-      connection.exit().remove()
+      connectionLine.exit().remove()
+
+      connectionElement.enter().append("div")
+        .style("position", "absolute")
+        .text("X")
+        .style("pointer-events", "auto") // reenable
+        .on("click", { (e: Connects) =>
+          println("delete edge")
+          import autowire._
+          import boopickle.Default._
+
+          Client.wireApi.deleteConnection(e.id).call()
+        })
+      connectionElement.exit().remove()
 
       contains.enter().append("line")
         .style("stroke", "blue")
@@ -356,7 +373,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("top", (p: Post) => s"${p.y.get + p.centerOffset.y}px")
         .style("border", (p: Post) => if (p.isClosest) "5px solid blue" else "none")
 
-      connectionElements.selectAll("line")
+      connectionElements.selectAll("div")
+        .style("left", (e: Connects) => s"${e.x.get}px")
+        .style("top", (e: Connects) => s"${e.y.get}px")
+
+      connectionLines.selectAll("line")
         .attr("x1", (e: Connects) => e.source.x)
         .attr("y1", (e: Connects) => e.source.y)
         .attr("x2", (e: Connects) => e.target.x)
