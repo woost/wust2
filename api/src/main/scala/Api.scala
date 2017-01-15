@@ -6,12 +6,12 @@ import scala.concurrent.Future
 import graph._
 
 trait Api {
-  def getPost(id: AtomId): Future[Post]
+  def getPost(id: AtomId): Future[Option[Post]]
   def deletePost(id: AtomId): Unit
   def getGraph(): Future[Graph]
   def addPost(msg: String): Future[Post]
-  def connect(from: AtomId, to: AtomId): Future[Connects]
-  def respond(to: AtomId, msg: String): Future[(Post, Connects)]
+  def connect(from: AtomId, to: AtomId): Future[Option[Connects]]
+  def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]]
   // def getComponent(id: Id): Future[Graph]
 }
 

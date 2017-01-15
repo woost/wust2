@@ -6,6 +6,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class NotFoundException(msg: String) extends UserViewableException(msg)
+case class InsertFailedException(msg: String) extends UserViewableException(msg)
 case object UnauthorizedException extends UserViewableException("unauthorized")
 case object WrongCredentials extends UserViewableException("wrong credentials")
 
@@ -68,10 +69,6 @@ object Db {
       )
     }
   }
-
-  implicit class OnConflict[T](q: Insert[T]) {
-    def onConflict = quote(infix"$q on conflict").asInstanceOf[Insert[T]]
-  }
 }
 
 object Model {
@@ -98,11 +95,9 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
 
   def withUser[T](f: => T): T = withUser(_ => f)
 
-  def getPost(id: AtomId): Future[Post] = {
+  def getPost(id: AtomId): Future[Option[Post]] = {
     val q = quote { query[Post].filter(_.id == lift(id)).take(1) }
-    ctx.run(q).map(_.headOption.getOrElse {
-      throw NotFoundException(s"post with id '$id' not found")
-    })
+    ctx.run(q).map(_.headOption)
   }
 
   def deletePost(id: AtomId): Unit = {
@@ -115,17 +110,21 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   def getGraph(): Future[Graph] = wholeGraph()
 
   def addPost(msg: String): Future[Post] = withUser {
-    //uns fehlt die id im client
     for (post <- newPost(msg)) yield {
       emit(NewPost(post))
       post
     }
   }
 
-  def connect(sourceId: AtomId, targetId: AtomId): Future[Connects] = withUser {
+  def connect(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]] = withUser {
     val connects = Connects(sourceId, targetId)
-    val q = quote { query[Connects].insert(lift(connects)).returning(x => x.id) }
-    for (id <- ctx.run(q)) yield {
+    val q = quote {
+      query[Connects].insert(lift(connects)).returning(x => x.id)
+    }
+    val newId = ctx.run(q).map(Some(_)).recover {
+      case e: /*GenericDatabaseException*/Exception => None
+    }
+    for (idOpt <- newId) yield idOpt.map { id =>
       val edge = connects.copy(id = id)
       emit(NewConnects(edge))
       edge
@@ -136,9 +135,11 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  def respond(to: AtomId, msg: String): Future[(Post, Connects)] = withUser {
+  //TODO: felix no option
+  def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]] = withUser {
+    //TODO do in one request, does currently not handle errors
     for(post <- newPost(msg);
-        edge <- newConnects(post.id, to)) yield {
+        edgeOpt <- connect(post.id, to)) yield edgeOpt.map { edge =>
       emit(NewPost(post))
       emit(NewConnects(edge))
       (post, edge)
