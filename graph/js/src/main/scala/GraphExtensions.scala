@@ -47,7 +47,10 @@ trait ExtendedD3Node extends D3Node {
   var dragStart = Vec2(0, 0)
 }
 
-trait PostPlatformSpecificExtensions extends ExtendedD3Node with D3NodeImpl
+trait PostPlatformSpecificExtensions extends ExtendedD3Node with D3NodeImpl {
+  var dragClosest: Option[Post] = None
+  var isClosest = false
+}
 
 trait RespondsToPlatformSpecificExtensions extends D3Link[Post, ExtendedD3Node] with ExtendedD3Node with D3LinkImpl[Post, ExtendedD3Node] {
 

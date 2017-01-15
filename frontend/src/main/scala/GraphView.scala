@@ -46,6 +46,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val menuRadius = (menuOuterRadius + menuInnerRadius) / 2
   val menuThickness = menuOuterRadius - menuInnerRadius
 
+  val dragHitRadius = 50
+
   class Backend($: Scope) extends CustomBackend($) {
     lazy val container = d3js.select(component)
     lazy val svg = container.append("svg")
@@ -205,6 +207,20 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     def postDragged(node: HTMLElement, p: Post) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
+
+      p.pos = p.dragStart // prevents finding the dragged post as closest post
+      val closest = simulation.find(eventPos.x, eventPos.y, dragHitRadius).toOption
+
+      if (closest != p.dragClosest) {
+        p.dragClosest.foreach(_.isClosest = false)
+        closest match {
+          case Some(target) if target != p =>
+            target.isClosest = true
+          case _ =>
+        }
+        p.dragClosest = closest
+      }
+
       p.fixedPos = p.dragStart + (eventPos - p.dragStart) / transform.k
       p.pos = p.fixedPos
       draw()
@@ -213,13 +229,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     def postDragEnded(node: HTMLElement, p: Post) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       p.pos = p.dragStart // prevents finding the dragged post as closest post
-      val closest = simulation.find(eventPos.x, eventPos.y, 50).toOption
+      val closest = simulation.find(eventPos.x, eventPos.y, dragHitRadius).toOption
       closest match {
         case Some(target) if target != p =>
           import autowire._
           import boopickle.Default._
 
           Client.wireApi.connect(p.id, target.id).call()
+          target.isClosest = false
           p.fixedPos = js.undefined
         case _ =>
           p.pos = eventPos
@@ -337,6 +354,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       postElements.selectAll("div")
         .style("left", (d: Post) => s"${d.x.get + d.centerOffset.x}px")
         .style("top", (d: Post) => s"${d.y.get + d.centerOffset.y}px")
+        .style("border", (p: Post) => if (p.isClosest) "5px solid blue" else "none")
 
       respondsToElements.selectAll("line")
         .attr("x1", (d: Connects) => d.source.x)
