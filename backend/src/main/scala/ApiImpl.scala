@@ -5,8 +5,6 @@ import api._, graph._, framework._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-case class NotFoundException(msg: String) extends UserViewableException(msg)
-case class InsertFailedException(msg: String) extends UserViewableException(msg)
 case object UnauthorizedException extends UserViewableException("unauthorized")
 case object WrongCredentials extends UserViewableException("wrong credentials")
 
