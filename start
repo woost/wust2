@@ -7,6 +7,12 @@ export POSTGRES_DB=${POSTGRES_DB:-'wust'} \
 cmd="$(dirname $0)/docker/compose"
 
 case $1 in
+test)
+    $cmd test down
+    $cmd test build
+    $cmd test run test
+    $cmd test down
+    ;;
 dev)
     $cmd dev down
     $cmd dev build wust

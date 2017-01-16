@@ -1,0 +1,18 @@
+version: '2.1'
+
+services:
+  postgres:
+    build: pg
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-'user'}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-'pw'}
+      POSTGRES_DB: ${POSTGRES_DB:-'db'}
+  test:
+    build:
+      context: pg
+      dockerfile: Dockerfile.test
+    command: -h postgres -u ${POSTGRES_USER:-'user'} -w ${POSTGRES_PASSWORD:-'pw'} -d ${POSTGRES_DB:-'db'}
+    depends_on:
+      - postgres
+    volumes:
+      - "../pg_tests/:/t"
