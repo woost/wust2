@@ -1,26 +1,25 @@
 #!/bin/bash
 
-ARGS="${@:2}"
-
-export POSTGRES_HOSTNAME=localhost \
-       POSTGRES_DB=${POSTGRES_DB:-'wust'} \
+export POSTGRES_DB=${POSTGRES_DB:-'wust'} \
        POSTGRES_USER=${POSTGRES_USER:-'test'} \
        POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-'test'}
 
+cmd="$(dirname $0)/docker/compose"
+
 case $1 in
 dev)
-    docker-compose --project wust_dev --file docker-compose-dev.yml down
-    docker-compose --project wust_dev --file docker-compose-dev.yml build wust
-    docker-compose --project wust_dev --file docker-compose-dev.yml run wust
+    $cmd dev down
+    $cmd dev build wust
+    $cmd dev run wust
     ;;
 local)
-    docker-compose --project wust_local --file docker-compose-local.yml down
-    docker-compose --project wust_local --file docker-compose-local.yml up --build -d
-    sbt
+    $cmd local down
+    $cmd local up --build -d
+    POSTGRES_HOSTNAME=localhost sbt
     ;;
 prod)
     sbt backend/assembly
-    docker-compose --project wust up --build
+    $cmd prod up --build
     ;;
 *)
     echo "unknown stage '$1', expected one of [prod,local,dev]"

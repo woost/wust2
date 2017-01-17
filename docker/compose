@@ -1,0 +1,26 @@
+#!/bin/bash
+
+if [[ $# -lt 1 ]]; then
+    echo "usage: $(basename $0) stage <docker-compose args>"
+    exit
+fi
+
+stage=$1
+args="${@:2}"
+
+if [[ "$stage" == "prod" ]]; then
+    compose_file="docker-compose.yml"
+    compose_project="wust"
+else
+    compose_file="docker-compose-$stage.yml"
+    compose_project="wust_$stage"
+fi
+
+compose_path="$(dirname $0)/$compose_file"
+
+if [[ ! -e $compose_path ]]; then
+    echo "stage $stage does not exist"
+    exit 1
+fi
+
+docker-compose --project $compose_project --file $compose_path $args
