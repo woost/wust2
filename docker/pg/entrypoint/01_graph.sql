@@ -10,13 +10,19 @@ CREATE TABLE _post (
     title text NOT NULL
 );
 
+create rule _post_delete as on delete to _post do delete from atom where id = OLD.id;
+
 CREATE TABLE _connects (
     id integer PRIMARY KEY REFERENCES atom ON DELETE CASCADE
 );
 
+create rule _connects_delete as on delete to _connects do delete from atom where id = OLD.id;
+
 CREATE TABLE _contains (
     id integer PRIMARY KEY REFERENCES atom ON DELETE CASCADE
 );
+
+create rule _contains_delete as on delete to _contains do delete from atom where id = OLD.id;
 
 CREATE TABLE _incidence (
     id integer PRIMARY KEY REFERENCES atom ON DELETE CASCADE,
@@ -24,6 +30,8 @@ CREATE TABLE _incidence (
     targetId integer NOT NULL REFERENCES atom ON DELETE CASCADE,
     UNIQUE(sourceId, targetId)
 );
+
+create rule _incidence_delete as on delete to _incidence do delete from atom where id = OLD.id;
 
 /* post nodes */
 create view post as select * from _post;
