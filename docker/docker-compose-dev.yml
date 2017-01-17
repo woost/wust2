@@ -18,9 +18,8 @@ services:
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
-    ports:
-      - "8080:8080"
     volumes:
-      - ./:/src
+      - ../:/src
+      - ~/.ivy2/:/root/.ivy2
     depends_on:
       - postgres

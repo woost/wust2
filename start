@@ -10,7 +10,7 @@ case $1 in
 dev)
     $cmd dev down
     $cmd dev build wust
-    $cmd dev run wust
+    $cmd dev run --publish "8080:8080" wust
     ;;
 local)
     $cmd local down
