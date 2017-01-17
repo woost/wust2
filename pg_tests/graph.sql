@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(19);
+SELECT plan(20);
 
 /* structure */
 SELECT col_not_null('_post', 'title');
@@ -111,6 +111,11 @@ select is_empty(
 
 select is_empty(
   'select * from connects',
+  'connects is empty after post collapse'
+);
+
+select is_empty(
+  'select * from contains',
   'connects is empty after post collapse'
 );
 

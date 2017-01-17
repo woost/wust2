@@ -42,8 +42,6 @@ with ins as (
 )
 insert into _post (id, title) select id, NEW.title from ins returning id, title;
 
-create or replace rule post_delete as on delete to post do instead delete from atom where id = OLD.id;
-
 /* connects edges */
 create view connects as select _connects.id, sourceId, targetId from _connects join _incidence on _connects.id = _incidence.id;
 
