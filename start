@@ -16,7 +16,7 @@ test)
 dev)
     $cmd dev down
     $cmd dev build wust
-    $cmd dev run --publish "8080:8080" wust
+    $cmd dev run --service-ports wust
     ;;
 local)
     $cmd local down

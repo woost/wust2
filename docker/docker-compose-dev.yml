@@ -18,6 +18,8 @@ services:
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
+    ports:
+      - "8080:8080"
     volumes:
       - ../:/src
       - ~/.ivy2/:/root/.ivy2
