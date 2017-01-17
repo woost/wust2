@@ -317,6 +317,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       connectionElement.enter().append("div")
         .style("position", "absolute")
+        .style("cursor", "pointer")
         .text("X")
         .style("pointer-events", "auto") // reenable
         .on("click", { (e: Connects) =>
