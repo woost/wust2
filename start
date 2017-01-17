@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 export POSTGRES_DB=${POSTGRES_DB:-'wust'} \
        POSTGRES_USER=${POSTGRES_USER:-'test'} \
