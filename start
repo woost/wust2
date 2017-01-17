@@ -10,7 +10,7 @@ case $1 in
 test)
     $cmd test down
     $cmd test build
-    $cmd test run test
+    $cmd test up test
     $cmd test down
     ;;
 dev)

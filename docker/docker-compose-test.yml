@@ -11,7 +11,7 @@ services:
     build:
       context: pg
       dockerfile: Dockerfile.test
-    command: -h postgres -u ${POSTGRES_USER:-'user'} -w ${POSTGRES_PASSWORD:-'pw'} -d ${POSTGRES_DB:-'db'}
+    command: -h postgres -u ${POSTGRES_USER:-user} -w ${POSTGRES_PASSWORD:-pw} -d ${POSTGRES_DB:-db}
     depends_on:
       - postgres
     volumes:
