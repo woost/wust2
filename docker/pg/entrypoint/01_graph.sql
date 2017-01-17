@@ -61,3 +61,24 @@ with ins as (
 insert into _incidence(id, sourceId, targetId) select id, NEW.parent, NEW.child from ins returning id, sourceId, targetId;
 
 create or replace rule contains_delete as on delete to contains do instead delete from atom where id = OLD.id;
+
+create or replace function graph_component(start integer) returns setof integer as $$
+declare
+    queue Integer[] := array[start];
+begin
+    create temporary table visited (id integer NOT NULL) on commit drop;
+    create unique index on visited (id);
+
+    WHILE array_length(queue,1) > 0 LOOP
+        insert into visited (select unnest(queue)) on conflict do nothing;
+        queue := array(
+            select targetId
+            from (select unnest(queue) as id) as q
+            join _incidence on sourceId = q.id
+            left outer join visited on targetId = visited.id
+            where visited.id is NULL
+        );
+    END LOOP;
+    return query (select id from visited);
+end;
+$$ language plpgsql;

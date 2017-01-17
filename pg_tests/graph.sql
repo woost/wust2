@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(11);
+SELECT plan(12);
 
 SELECT col_not_null('_post', 'title');
 SELECT has_column('post', 'title');
@@ -45,6 +45,12 @@ SELECT isnt_empty(
    RETURNING
     (id, parent, child);',
   'insert contains'
+);
+
+SELECT results_eq(
+  'select graph_component(1)',
+  'select id from post',
+  'graph component'
 );
 
 SELECT lives_ok(
