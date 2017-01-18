@@ -54,7 +54,7 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
   router: Option[USER] => Router[ByteBuffer],
   toError: PartialFunction[Throwable,ERROR],
   authorize: AUTH => Future[Option[USER]]) extends Actor {
-  import messages._
+  import messages._, ConnectedClient._
 
   val notAuthenticated: Future[Option[USER]] = Future.successful(None)
 
@@ -81,7 +81,7 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
   }
 
   def receive = {
-    case ConnectedClient.Connected(outgoing) => context.become(connected(outgoing, notAuthenticated))
+    case Connected(outgoing) => context.become(connected(outgoing, notAuthenticated))
   }
 }
 object ConnectedClient {

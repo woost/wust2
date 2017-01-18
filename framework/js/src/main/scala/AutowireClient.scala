@@ -57,21 +57,18 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
 
 abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] {
   def receive(event: EVENT): Unit
-
-  case class BadRequestException(error: ERROR) extends Exception
+  def fromError(error: ERROR): Throwable
 
   private val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
   import messages._
 
   private val wsPromise = Promise[WebSocket]()
-  private val wsFuture = wsPromise.future
-
   private val controlRequests = new OpenRequests[Boolean]
   private val callRequests = new OpenRequests[ByteBuffer]
 
   private def send(msg: ClientMessage) {
     val bytes = Pickle.intoBytes(msg)
-    for (ws <- wsFuture) ws.send(bytes.arrayBuffer())
+    for (ws <- wsPromise.future) ws.send(bytes.arrayBuffer())
   }
 
   private def request(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
@@ -80,20 +77,15 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
     promise.future
   }
 
-  def login(auth: AUTH): Future[Boolean] = {
+  private def control(control: Control): Future[Boolean] = {
     val (id, promise) = controlRequests.open()
-    send(ControlRequest(id, Login(auth)))
+    send(ControlRequest(id, control))
     promise.future
   }
 
-  def logout(): Future[Boolean] = {
-    val (id, promise) = controlRequests.open()
-    send(ControlRequest(id, Logout()))
-    promise.future
-  }
-
-  def subscribe(channel: CHANNEL) = send(Subscription(channel))
-
+  def login(auth: AUTH): Future[Boolean] = control(Login(auth))
+  def logout(): Future[Boolean] = control(Logout())
+  def subscribe(channel: CHANNEL): Unit = send(Subscription(channel))
   val wire = new AutowireClient(request)
 
   def run(location: String) {
@@ -117,7 +109,7 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
             wsMsg match {
               case CallResponse(seqId, result) =>
                 callRequests.get(seqId).foreach { req =>
-                  result.fold(req tryFailure BadRequestException(_), req trySuccess _)
+                  result.fold(req tryFailure fromError(_), req trySuccess _)
                 }
               case ControlResponse(seqId, success) =>
                 controlRequests.get(seqId).foreach(_ trySuccess success)

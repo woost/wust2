@@ -19,8 +19,11 @@ object Action {
 }
 import Action._
 
+case class BadRequestException(error: ApiError) extends Exception
+
 object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val wireApi = wire[Api]
 
+  def fromError(error: ApiError) = BadRequestException(error)
   def receive(event: ApiEvent) = AppCircuit.dispatch(event)
 }
