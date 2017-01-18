@@ -31,11 +31,10 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
     case NonFatal(_) => InternalServerError
   }
 
-  def authorize(auth: Authorize): Future[User] = auth match {
+  def authorize(auth: Authorize): Future[Option[User]] = auth match {
     case PasswordAuth(name, pw) =>
-      Model.users.find(u => u.name == name)
-        .map(Future.successful)
-        .getOrElse(Future.failed(new Exception))
+      val user = Model.users.find(u => u.name == name)
+      Future.successful(user)
   }
 
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)

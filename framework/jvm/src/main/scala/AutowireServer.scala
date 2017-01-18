@@ -53,15 +53,14 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
   subscribe: (ActorRef, CHANNEL) => Unit,
   router: Option[USER] => Router[ByteBuffer],
   toError: PartialFunction[Throwable,ERROR],
-  authorize: AUTH => Future[USER]) extends Actor {
+  authorize: AUTH => Future[Option[USER]]) extends Actor {
   import messages._
 
-  case object NotAuthenticated extends Exception
-  val notAuthenticated = Future.failed(NotAuthenticated)
+  val notAuthenticated: Future[Option[USER]] = Future.successful(None)
 
-  def connected(outgoing: ActorRef, user: Future[USER]): Receive = {
+  def connected(outgoing: ActorRef, user: Future[Option[USER]]): Receive = {
     case CallRequest(seqId, path, args) =>
-      router(user.value.flatMap(_.toOption)).lift(Request(path, args))
+      router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.failed(PathNotFoundException(path)))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
@@ -108,7 +107,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   def route: Route
   def router: Option[USER] => AutowireServer.Router
   def toError: PartialFunction[Throwable,ERROR]
-  def authorize(auth: AUTH): Future[USER]
+  def authorize(auth: AUTH): Future[Option[USER]]
 
   private lazy val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
   import messages._
