@@ -47,7 +47,6 @@ object Dispatcher {
   case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
-//TODO serializing actor
 //TODO channel dependency, then subscribe, signal => action!
 class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
   messages: Messages[CHANNEL,EVENT,ERROR,AUTH],
@@ -60,30 +59,26 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
   case object NotAuthenticated extends Exception
   val notAuthenticated = Future.failed(NotAuthenticated)
 
-  //TODO different Receive for loggedin and loggedout? context.become...
   def connected(outgoing: ActorRef, user: Future[USER]): Receive = {
     case CallRequest(seqId, path, args) =>
-      router(user.value.flatMap(_.toOption))
-        .lift(Request(path, args))
-        .map(_.map(Response(seqId, _)))
+      router(user.value.flatMap(_.toOption)).lift(Request(path, args))
+        .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.failed(PathNotFoundException(path)))
-        .recover(toError andThen { case err => BadRequest(seqId, err) })
-        .map(Serializer.serialize[ServerMessage](_))
+        .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
         .pipeTo(outgoing)
+    case ControlRequest(seqId, control) => control match {
+      case Login(auth) =>
+        val nextUser = authorize(auth)
+        nextUser.map(_ => true)
+          .recover { case NonFatal(_) => false }
+          .map(ControlResponse(seqId, _))
+          .pipeTo(outgoing)
+        context.become(connected(outgoing, nextUser))
+      case Logout() =>
+        outgoing ! ControlResponse(seqId, true)
+        context.become(connected(outgoing, notAuthenticated))
+    }
     case Subscription(channel) => subscribe(outgoing, channel)
-    case Login(auth) =>
-      val nextUser = authorize(auth)
-      nextUser
-        .map(_ => LoggedIn())
-        .recover { case NonFatal(_) => LoginFailed() }
-        .map(Serializer.serialize[ServerMessage](_))
-        .pipeTo(outgoing)
-      context.become(connected(outgoing, nextUser))
-    //TODO a future login will respond with LoggedIn even if there was a logout in between
-    // client sends: Login, Logout. sees: LoggedOut, LoggedIn. actor state: LoggedOut
-    case Logout() =>
-      outgoing ! Serializer.serialize[ServerMessage](LoggedOut())
-      context.become(connected(outgoing, notAuthenticated))
   }
 
   def receive = {
@@ -109,7 +104,6 @@ object Serializer {
   }
 }
 
-//TODO independent of autowire
 abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler, USER] {
   def route: Route
   def router: Option[USER] => AutowireServer.Router
@@ -127,20 +121,24 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
     val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, router, toError, authorize)))
 
-    val incomingMessages: Sink[Message, NotUsed] =
+    val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
         case bm: BinaryMessage.Strict => Serializer.deserialize[ClientMessage](bm)
         //TODO: streamed?
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, PoisonPill))
 
-    val outgoingMessages: Source[Message, NotUsed] =
-      Source.actorRef[Message](10, OverflowStrategy.fail) //TODO why 10?
+    val outgoing: Source[Message, NotUsed] =
+      Source.actorRef[Any](10, OverflowStrategy.fail) //TODO why 10?
         .mapMaterializedValue { outActor =>
           connectedClientActor ! ConnectedClient.Connected(outActor)
           NotUsed
+        }.map {
+          //TODO no any, proper serialize map
+          case msg: ServerMessage => Serializer.serialize(msg)
+          case other: Message => other
         }
 
-    Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
+    Flow.fromSinkAndSource(incoming, outgoing)
   }
 
   private val commonRoute = (pathSingleSlash & get) {
@@ -149,7 +147,8 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
 
   val wire = AutowireServer
 
-  def emit(channel: CHANNEL, event: EVENT) = {
+  def emit(channel: CHANNEL, event: EVENT) {
+    //TODO blocking serialize meh...
     val payload = Serializer.serialize[ServerMessage](Notification(event))
     dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
   }
