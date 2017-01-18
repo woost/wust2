@@ -68,7 +68,7 @@ class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
     case ControlRequest(seqId, control) => control match {
       case Login(auth) =>
         val nextUser = authorize(auth)
-        nextUser.map(_ => true)
+        nextUser.map(_.isDefined)
           .recover { case NonFatal(_) => false }
           .map(ControlResponse(seqId, _))
           .pipeTo(outgoing)
