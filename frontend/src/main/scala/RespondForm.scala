@@ -31,7 +31,7 @@ object RespondForm {
       )
     }
     def respond(p: Props) = {
-      ($.state >>= { text => Callback { Client.wireApi.respond(p.target, text).call() } }) >> $.setState("")
+      ($.state >>= { text => Callback { Client.api.respond(p.target, text).call() } }) >> $.setState("")
     }
   }
 

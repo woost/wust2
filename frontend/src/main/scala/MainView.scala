@@ -21,7 +21,7 @@ package object frontend {
       val graph = model.graph
       <.div(
         <.button("add post", ^.onClick --> Callback {
-          Client.wireApi.addPost("Posti").call()
+          Client.api.addPost("Posti").call()
         }),
         <.button("connect something", ^.onClick --> Callback {
           import scala.util.Random.nextInt
@@ -29,7 +29,7 @@ package object frontend {
           val n = posts.size
           val source = posts(nextInt(n))
           val target = (posts diff List(source))(nextInt(n - 1))
-          Client.wireApi.connect(source.id, target.id).call()
+          Client.api.connect(source.id, target.id).call()
         }),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
         <.button("graph", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.Graph))),

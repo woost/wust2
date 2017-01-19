@@ -102,7 +102,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         ("A", { (p: Post) => println(s"A: $p") }) ::
         ("B", { (p: Post) => println(s"B: $p") }) ::
         ("C", { (p: Post) => println(s"C: $p") }) ::
-        ("Del", { (p: Post) => Client.wireApi.deletePost(p.id).call() }) ::
+        ("Del", { (p: Post) => Client.api.deletePost(p.id).call() }) ::
         ("Unfix", { (p: Post) => p.fixedPos = js.undefined; simulation.restart() }) ::
         Nil
       )
@@ -237,7 +237,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           import autowire._
           import boopickle.Default._
 
-          Client.wireApi.connect(p.id, target.id).call()
+          Client.api.connect(p.id, target.id).call()
           target.isClosest = false
           p.fixedPos = js.undefined
         case _ =>
@@ -325,7 +325,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           import autowire._
           import boopickle.Default._
 
-          Client.wireApi.deleteConnection(e.id).call()
+          Client.api.deleteConnection(e.id).call()
         })
       connectionElement.exit().remove()
 

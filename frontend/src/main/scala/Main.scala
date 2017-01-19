@@ -23,10 +23,9 @@ object Main extends js.JSApp {
   @JSExport
   def main(): Unit = {
     Client.run(s"ws://${window.location.host}")
-    Client.login(PasswordAuth("hans", "***"))
     Client.subscribe(Channel.Graph)
 
-    Client.wireApi.getGraph().call().foreach { graph =>
+    Client.api.getGraph().call().foreach { graph =>
       AppCircuit.dispatch(SetGraph(graph))
     }
 

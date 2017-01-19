@@ -3,7 +3,6 @@ package framework
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
-import scala.util.{Success,Failure}
 
 import akka.NotUsed
 import akka.event.{LookupClassification, EventBus}
@@ -29,8 +28,6 @@ object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-case class PathNotFoundException(path: Seq[String]) extends Exception
-
 class Dispatcher[CHANNEL,PAYLOAD] extends EventBus with LookupClassification {
   import Dispatcher._
 
@@ -47,9 +44,10 @@ object Dispatcher {
   case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
+case class PathNotFoundException(path: Seq[String]) extends Exception
 //TODO channel dependency, then subscribe, signal => action!
-class ConnectedClient[CHANNEL,EVENT,AUTH,ERROR,USER](
-  messages: Messages[CHANNEL,EVENT,ERROR,AUTH],
+class ConnectedClient[CHANNEL,AUTH,ERROR,USER](
+  messages: Messages[CHANNEL,_,ERROR,AUTH],
   subscribe: (ActorRef, CHANNEL) => Unit,
   router: Option[USER] => Router[ByteBuffer],
   toError: PartialFunction[Throwable,ERROR],
@@ -105,7 +103,7 @@ object Serializer {
 
 abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler, USER] {
   def route: Route
-  def router: Option[USER] => AutowireServer.Router
+  def router(user: Option[USER]): AutowireServer.Router
   def toError: PartialFunction[Throwable,ERROR]
   def authorize(auth: AUTH): Future[Option[USER]]
 
@@ -146,8 +144,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
 
   val wire = AutowireServer
 
-  def emit(channel: CHANNEL, event: EVENT) {
-    //TODO blocking serialize meh...
+  def emit(channel: CHANNEL, event: EVENT): Unit = Future {
     val payload = Serializer.serialize[ServerMessage](Notification(event))
     dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
   }
