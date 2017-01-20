@@ -23,6 +23,7 @@ object Main extends js.JSApp {
   @JSExport
   def main(): Unit = {
     Client.run(s"ws://${window.location.host}")
+    Client.login(PasswordAuth("hans", "***"))
     Client.subscribe(Channel.Graph)
 
     Client.api.getGraph().call().foreach { graph =>
