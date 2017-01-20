@@ -2,7 +2,7 @@ version: '2'
 
 services:
   postgres:
-    build: pg
+    build: ../postgres
     environment: &pg_env
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -13,7 +13,7 @@ services:
     stdin_open: true
     tty: true
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile.dev
     environment:
       <<: *pg_env

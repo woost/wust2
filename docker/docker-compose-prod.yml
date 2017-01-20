@@ -3,16 +3,16 @@ version: '2.1'
 #TODO: pg and wust should be published to registry and reference images, do not build here
 services:
   postgres:
-    build: pg
+    build: ../postgres
     environment: &pg_env
-      POSTGRES_USER: ${WUST_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${WUST_POSTGRES_PW}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PW}
       POSTGRES_DB: "wust"
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
   wust:
     build:
-      context: .
+      context: ..
       args:
         version: "0.1-SNAPSHOT"
     environment:

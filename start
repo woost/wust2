@@ -25,6 +25,7 @@ local)
     ;;
 prod)
     sbt backend/assembly
+    $cmd prod down
     $cmd prod up --build
     ;;
 *)
