@@ -41,11 +41,11 @@ SELECT isnt_empty(
 
 SELECT isnt_empty(
   'INSERT INTO
-    contains (id, parent, child)
+    contains (id, parentId, childId)
   VALUES
     (DEFAULT, 2, 1)
    RETURNING
-    (id, parent, child);',
+    (id, parentId, childId);',
   'insert contains'
 );
 
@@ -90,11 +90,11 @@ SELECT isnt_empty(
 
 SELECT isnt_empty(
   'INSERT INTO
-    contains (id, parent, child)
+    contains (id, parentId, childId)
   VALUES
     (DEFAULT, 2, 1)
    RETURNING
-    (id, parent, child);',
+    (id, parentId, childId);',
   'insert contains'
 );
 

@@ -1,5 +1,0 @@
-package graph
-
-trait PostPlatformSpecificExtensions
-trait ConnectsPlatformSpecificExtensions
-trait ContainsPlatformSpecificExtensions

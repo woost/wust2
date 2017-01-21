@@ -20,7 +20,8 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused" ::
     Nil,
   // also watch managed library dependencies (only works with scala 2.11 currently)
-  watchSources <++= (managedClasspath in Compile) map { cp => cp.files }
+  watchSources <++= (managedClasspath in Compile) map { cp => cp.files },
+  maxErrors := 5
 )
 
 lazy val root = project.in(file("."))

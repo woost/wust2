@@ -11,12 +11,12 @@ package object graph {
   ) {
     //TODO: acceleration Datastructures from pharg
     def connectionDegree(post: Post) = connections.values.count(r => r.sourceId == post.id || r.targetId == post.id)
-    def containmentDegree(post: Post) = containments.values.count(c => c.parent == post.id || c.child == post.id)
+    def containmentDegree(post: Post) = containments.values.count(c => c.parentId == post.id || c.childId == post.id)
     def fullDegree(post: Post) = connectionDegree(post) + containmentDegree(post)
     def fullDegree(connection: Connects) = 2
 
     def incidentConnections(atomId: AtomId) = connections.values.collect { case r if r.sourceId == atomId || r.targetId == atomId => r.id }
-    def incidentContains(atomId: AtomId) = containments.values.collect { case c if c.parent == atomId || c.child == atomId => c.id }
+    def incidentContains(atomId: AtomId) = containments.values.collect { case c if c.parentId == atomId || c.childId == atomId => c.id }
 
     def incidentConnectionsDeep(atomId: AtomId) = {
       // Connects.in must be a Post, so no cycles can occour
@@ -51,18 +51,18 @@ package object graph {
       )
     }
 
-    def children(post: Post): Set[Post] = containments.values.collect { case c if c.parent == post.id => posts(c.child) }.toSet //TODO: breakout with generic on requested collection type
+    def children(post: Post): Set[Post] = containments.values.collect { case c if c.parentId == post.id => posts(c.childId) }.toSet //TODO: breakout with generic on requested collection type
   }
   object Graph {
     def empty = Graph()
   }
 
   //TODO: rename Post -> ???
-  case class Post(id: AtomId, title: String) extends PostPlatformSpecificExtensions
+  case class Post(id: AtomId, title: String)
   object Post { def apply(title: String): Post = Post(0L, title) }
-  case class Connects(id: AtomId, sourceId: AtomId, targetId: AtomId) extends ConnectsPlatformSpecificExtensions
+  case class Connects(id: AtomId, sourceId: AtomId, targetId: AtomId)
   object Connects { def apply(in: AtomId, out: AtomId): Connects = Connects(0L, in, out) }
   //TODO: reverse direction of contains?
-  case class Contains(id: AtomId, parent: AtomId, child: AtomId) extends ContainsPlatformSpecificExtensions
-  object Contains { def apply(parent: AtomId, child: AtomId): Contains = Contains(0L, parent, child) }
+  case class Contains(id: AtomId, parentId: AtomId, childId: AtomId)
+  object Contains { def apply(parentId: AtomId, childId: AtomId): Contains = Contains(0L, parentId, childId) }
 }
