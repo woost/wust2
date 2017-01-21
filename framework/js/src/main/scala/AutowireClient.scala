@@ -5,18 +5,14 @@ import scala.util.control.NonFatal
 
 import boopickle.Default._
 
-import scalajs.js
-import org.scalajs.dom._
-import collection.mutable
 import concurrent.{Promise, Future}
 import java.nio.ByteBuffer
 import java.util.{Timer,TimerTask}
 
 import scala.scalajs.js.typedarray._
-import scala.scalajs.js.typedarray.TypedArrayBufferOps._
 import org.scalajs.dom.raw.{Blob, FileReader, MessageEvent, ProgressEvent}
 
-import framework.message._, Messages._
+import framework.message._
 
 class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[ByteBuffer]) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
   override def doCall(req: Request): Future[ByteBuffer] = send(req.path, req.args)
@@ -26,6 +22,8 @@ class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[Byte
 
 case object TimeoutException extends Exception
 class OpenRequests[T](timeoutMillis: Int = 60000) {
+  import collection.mutable
+
   private val openRequests = mutable.HashMap.empty[SequenceId, Promise[T]]
 
   private val nextSeqId: () => SequenceId = {
@@ -55,6 +53,37 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
   def get(seqId: SequenceId): Option[Promise[T]] = openRequests.get(seqId)
 }
 
+class WebsocketConnection {
+  import org.scalajs.dom._
+  import TypedArrayBufferOps._
+
+  private val wsPromise = Promise[WebSocket]()
+
+  def send(bytes: ByteBuffer) {
+    for (ws <- wsPromise.future) ws.send(bytes.arrayBuffer())
+  }
+
+  def run(location: String)(receive: ByteBuffer => Unit) {
+    val wsRaw = new WebSocket(location)
+
+    wsRaw.onerror = (e: ErrorEvent) => console.log("error", e)
+    wsRaw.onopen = (_: Event) => wsPromise success wsRaw
+    wsRaw.onmessage = { (e: MessageEvent) =>
+      e.data match {
+        case blob: Blob =>
+          val reader = new FileReader()
+          reader.onloadend = (ev : ProgressEvent) => {
+            val buff = reader.result.asInstanceOf[ArrayBuffer]
+            val bytes = TypedArrayBuffer.wrap(buff)
+            receive(bytes)
+          }
+
+          reader.readAsArrayBuffer(blob)
+      }
+    }
+  }
+}
+
 abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] {
   def receive(event: EVENT): Unit
   def fromError(error: ERROR): Throwable
@@ -62,16 +91,13 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
   import messages._
 
-  private val wsPromise = Promise[WebSocket]()
   private val controlRequests = new OpenRequests[Boolean]
   private val callRequests = new OpenRequests[ByteBuffer]
+  private lazy val ws = new WebsocketConnection
 
-  private def send(msg: ClientMessage) {
-    val bytes = Pickle.intoBytes(msg)
-    for (ws <- wsPromise.future) ws.send(bytes.arrayBuffer())
-  }
+  private def send(msg: ClientMessage): Unit = ws.send(Pickle.intoBytes(msg))
 
-  private def request(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
+  private def call(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
     val (id, promise) = callRequests.open()
     send(CallRequest(id, path, args))
     promise.future
@@ -86,39 +112,16 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   def login(auth: AUTH): Future[Boolean] = control(Login(auth))
   def logout(): Future[Boolean] = control(Logout())
   def subscribe(channel: CHANNEL): Unit = send(Subscription(channel))
-  val wire = new AutowireClient(request)
 
-  def run(location: String) {
-    val wsRaw = new WebSocket(location)
-    wsRaw.onerror = { (e: ErrorEvent) =>
-      console.log("error", e)
-    }
+  val wire = new AutowireClient(call)
 
-    wsRaw.onopen = { (e: Event) =>
-      wsPromise.success(wsRaw)
-    }
-
-    wsRaw.onmessage = { (e: MessageEvent) =>
-      e.data match {
-        case blob: Blob =>
-          val reader = new FileReader()
-          reader.onloadend = (ev : ProgressEvent) => {
-            val buff = reader.result.asInstanceOf[ArrayBuffer]
-            val wrapped = TypedArrayBuffer.wrap(buff)
-            val wsMsg = Unpickle[ServerMessage].fromBytes(wrapped)
-            wsMsg match {
-              case CallResponse(seqId, result) =>
-                callRequests.get(seqId).foreach { req =>
-                  result.fold(req tryFailure fromError(_), req trySuccess _)
-                }
-              case ControlResponse(seqId, success) =>
-                controlRequests.get(seqId).foreach(_ trySuccess success)
-              case Notification(event) => receive(event)
-            }
-          }
-
-          reader.readAsArrayBuffer(blob)
+  def run(location: String): Unit = ws.run(location) { bytes =>
+    Unpickle[ServerMessage].fromBytes(bytes) match {
+      case CallResponse(seqId, result) => callRequests.get(seqId).foreach { req =>
+        result.fold(req tryFailure fromError(_), req trySuccess _)
       }
+      case ControlResponse(seqId, success) => controlRequests.get(seqId).foreach(_ trySuccess success)
+      case Notification(event) => receive(event)
     }
   }
 }

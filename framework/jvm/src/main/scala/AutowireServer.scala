@@ -1,13 +1,13 @@
 package framework
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext.Implicits.global //TODO
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 import akka.NotUsed
 import akka.event.{LookupClassification, EventBus}
 import akka.actor._
-import akka.http.scaladsl._
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
@@ -17,11 +17,11 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.util.ByteString
 
-import autowire.Core.{Request,Router}
+import autowire.Core.{Request, Router}
 import boopickle.Default._
 import java.nio.ByteBuffer
 
-import framework.message._, Messages._
+import framework.message._
 
 object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
@@ -147,12 +147,12 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
     handleWebSocketMessages(newConnectedClient)
   }
 
-  val wire = AutowireServer
-
   def emit(channel: CHANNEL, event: EVENT): Unit = Future {
     val payload = Serializer.serialize[ServerMessage](Notification(event))
     dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
   }
+
+  val wire = AutowireServer
 
   def run(interface: String, port: Int): Future[ServerBinding] = {
     Http().bindAndHandle(commonRoute ~ route, interface = interface, port = port)

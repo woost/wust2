@@ -3,13 +3,7 @@ package framework.message
 import boopickle.Default._
 import java.nio.ByteBuffer
 
-object Messages {
-  type SequenceId = Int
-}
-
 class Messages[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] {
-  import Messages._
-
   sealed trait Control
   case class Login(auth: AUTH) extends Control
   case class Logout() extends Control
