@@ -48,7 +48,7 @@ case class PathNotFoundException(path: Seq[String]) extends Exception
 //TODO channel dependency, then subscribe, signal => action!
 class ConnectedClient[CHANNEL,AUTH,ERROR,USER](
   messages: Messages[CHANNEL,_,ERROR,AUTH],
-  subscribe: (ActorRef, CHANNEL) => Unit,
+  dispatcher: Dispatcher[CHANNEL,_],
   router: Option[USER] => Router[ByteBuffer],
   toError: PartialFunction[Throwable,ERROR],
   authorize: AUTH => Future[Option[USER]]) extends Actor {
@@ -75,15 +75,20 @@ class ConnectedClient[CHANNEL,AUTH,ERROR,USER](
         outgoing ! ControlResponse(seqId, true)
         context.become(connected(outgoing, notAuthenticated))
     }
-    case Subscription(channel) => subscribe(outgoing, channel)
+    case Subscription(channel) => dispatcher.subscribe(outgoing, channel)
+    case Stop =>
+      dispatcher.unsubscribe(outgoing)
+      context.stop(self)
   }
 
   def receive = {
-    case Connected(outgoing) => context.become(connected(outgoing, notAuthenticated))
+    case Connect(outgoing) => context.become(connected(outgoing, notAuthenticated))
+    case Stop => context.stop(self)
   }
 }
 object ConnectedClient {
-  case class Connected(actor: ActorRef)
+  case class Connect(actor: ActorRef)
+  case object Stop
 }
 
 object Serializer {
@@ -116,18 +121,18 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private val dispatcher = new Dispatcher[CHANNEL,Message]
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher.subscribe, router, toError, authorize)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher, router, toError, authorize)))
 
     val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
         case bm: BinaryMessage.Strict => Serializer.deserialize[ClientMessage](bm)
         //TODO: streamed?
-      }.to(Sink.actorRef[ClientMessage](connectedClientActor, PoisonPill))
+      }.to(Sink.actorRef[ClientMessage](connectedClientActor, ConnectedClient.Stop))
 
     val outgoing: Source[Message, NotUsed] =
       Source.actorRef[Any](10, OverflowStrategy.fail) //TODO why 10?
         .mapMaterializedValue { outActor =>
-          connectedClientActor ! ConnectedClient.Connected(outActor)
+          connectedClientActor ! ConnectedClient.Connect(outActor)
           NotUsed
         }.map {
           //TODO no any, proper serialize map
