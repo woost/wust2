@@ -291,8 +291,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       post.enter().append("div")
         .text((post: Post) => post.title)
-        .style("background-color", "#EEEEEE")
-        .style("border", "1px solid #DDDDDD")
+        .style("background-color", "#f8f8f8")
+        .style("padding", "3px 5px")
+        .style("border-radius", "5px")
+        .style("border", "1px solid #AAA")
         .style("max-width", "100px")
         .style("position", "absolute")
         .style("cursor", "default")
@@ -317,9 +319,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       connectionElement.enter().append("div")
         .style("position", "absolute")
-        .style("cursor", "pointer")
-        .text("X")
+        .style("font-size", "20px")
+        .style("margin-left", "-0.5ex")
+        .style("margin-top", "-0.5em")
+        .text("\u00d7")
         .style("pointer-events", "auto") // reenable
+        .style("cursor", "pointer")
         .on("click", { (e: Connects) =>
           println("delete edge")
           import autowire._
@@ -372,7 +377,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       postElements.selectAll("div")
         .style("left", (p: Post) => s"${p.x.get + p.centerOffset.x}px")
         .style("top", (p: Post) => s"${p.y.get + p.centerOffset.y}px")
-        .style("border", (p: Post) => if (p.isClosest) "5px solid blue" else "none")
+        .style("border", (p: Post) => if (p.isClosest) "5px solid blue" else "1px solid #AAA")
 
       connectionElements.selectAll("div")
         .style("left", (e: Connects) => s"${e.x.get}px")
