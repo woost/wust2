@@ -8,6 +8,9 @@ import com.roundeights.hasher.Hasher
 
 import api._, graph._, framework._
 
+import util.time._
+import util.future._
+
 case class User(id: Long, name: String)
 case class Password(id: Long, digest: Array[Byte])
 
@@ -54,8 +57,9 @@ object Db {
       querySchema[User]("\"user\"").filter(_.name == lift(name)).join(query[Password]).on((u, p) => u.id == p.id).take(1)
     }
 
-    ctx.run(q).map(_.headOption.filter { case (user, pw) =>
-      passwordDigest(password) hash= pw.digest
+    ctx.run(q).map(_.headOption.filter {
+      case (user, pw) =>
+        passwordDigest(password) hash = pw.digest
     }.map(_._1))
   }
 

@@ -22,7 +22,8 @@ import boopickle.Default._
 import com.outr.scribe._
 
 import framework.message._
-import util.time.Timer
+import util.time.StopWatch
+import util.future._
 import scala.util.{Success, Failure}
 
 object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
@@ -61,35 +62,26 @@ class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
 
   def connected(outgoing: ActorRef, user: Future[Option[USER]]): Receive = {
     case CallRequest(seqId, path, args) =>
-      val timer = new Timer
-      timer.start()
+      val timer = StopWatch.started
 
-      val f = router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
+      router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.failed(PathNotFoundException(path)))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
-
-      f.onComplete {
-        _ => logger.info(f"CallRequest($seqId): ${timer.readMicros}us")
-      }
-
-      f.pipeTo(outgoing)
+        .onCompleteRun { logger.info(f"CallRequest($seqId): ${timer.readMicros}us") }
+        .pipeTo(outgoing)
 
     case ControlRequest(seqId, control) => control match {
       case Login(auth) =>
-        val timer = new Timer
-        timer.start()
+        val timer = StopWatch.started
 
         val nextUser = authorize(auth)
-        val f = nextUser.map(_.isDefined)
+        nextUser.map(_.isDefined)
           .recover { case NonFatal(_) => false }
           .map(ControlResponse(seqId, _))
+          .onCompleteRun { logger.info(f"Login($seqId): ${timer.readMicros}us") }
+          .pipeTo(outgoing)
 
-        f.onComplete {
-          _ => logger.info(f"Login($seqId): ${timer.readMicros}us")
-        }
-
-        f.pipeTo(outgoing)
         context.become(connected(outgoing, nextUser))
       case Logout() =>
         outgoing ! ControlResponse(seqId, true)

@@ -13,7 +13,7 @@ import scala.scalajs.js.typedarray._
 import org.scalajs.dom.raw.{Blob, FileReader, MessageEvent, ProgressEvent}
 
 import framework.message._
-import util.time.{Timer => Stopwatch}
+import util.time.StopWatch
 import com.outr.scribe._
 
 class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[ByteBuffer]) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
@@ -45,8 +45,7 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
   }
 
   def open(): (SequenceId, Promise[T]) = {
-    val stopwatch = new Stopwatch
-    stopwatch.start()
+    val stopwatch = StopWatch.started
     val promise = newPromise
     val seqId = nextSeqId()
     openRequests += seqId -> promise
