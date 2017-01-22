@@ -22,7 +22,8 @@ import collection.breakOut
 object Main extends js.JSApp {
   @JSExport
   def main(): Unit = {
-    Client.run(s"ws://${window.location.host}")
+    val protocol = if (window.location.protocol == "https:") "wss" else "ws"
+    Client.run(s"$protocol://${window.location.host}")
     Client.subscribe(Channel.Graph)
 
     Client.api.getGraph().call().foreach { graph =>

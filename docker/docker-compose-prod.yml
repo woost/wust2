@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: "wust"
     volumes:
-      - ./pg_data/:/var/lib/postgresql/data
+      - /pg_data/:/var/lib/postgresql/data
   wust:
     build:
       context: ..
@@ -18,7 +18,15 @@ services:
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
-    ports:
-      - "80:8080"
     depends_on:
       - postgres
+  nginx:
+    build:
+      context: ../nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    depends_on:
+      - wust
+    volumes:
+      - /etc/letsencrypt/:/etc/letsencrypt/
