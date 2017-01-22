@@ -1,6 +1,3 @@
-drop schema public cascade;
-create schema public;
-
 CREATE TABLE atom (
     id serial PRIMARY KEY
 );
