@@ -27,7 +27,7 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
     case UserError(error) => error
     case PathNotFoundException(path) => NotFound(path)
     case NonFatal(e) =>
-      logger.error(s"request handler threw exception: ${e.getStackTrace}")
+      logger.error("request handler threw exception", e)
       InternalServerError
   }
 
