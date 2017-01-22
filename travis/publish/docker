@@ -3,20 +3,19 @@
 
 sbt backend/assembly
 
-[ "$TRAVIS_BRANCH" == "master" ] && TAG_POSTFIX="" || TAG_POSTFIX="-$TRAVIS_BRANCH"
+[[ "$TRAVIS_BRANCH" == "master" ]] && TAG_POSTFIX="" || TAG_POSTFIX="-$TRAVIS_BRANCH"
+[[ -n "${TRAVIS_TAG}" ]] && VERSION_BASE="$TRAVIS_TAG" || VERSION_BASE="$TRAVIS_COMMIT"
 
 latest="latest$TAG_POSTFIX"
+version="$VERSION_BASE$TAG_POSTFIX"
 
 docker build --tag "woost/postgres:$latest" postgres
 docker build --build-arg version=0.1-SNAPSHOT --tag "woost/wust2:$latest" .
 
-if [[ -n "${TRAVIS_TAG}" ]]; then
-    version="$TRAVIS_TAG$TAG_POSTFIX"
-    docker build --tag "woost/postgres:$version" postgres
-    docker build --tag "woost/wust2:$version" .
-fi
+docker build --tag "woost/postgres:$version" postgres
+docker build --tag "woost/wust2:$version" .
 
 docker images
 # docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-# docker push woost/postgres:latest
-# docker push woost/wust2:latest
+# docker push woost/postgres
+# docker push woost/wust2
