@@ -9,9 +9,11 @@ cmd="$(dirname $0)/docker/compose"
 case $1 in
 test)
     $cmd test down
-    $cmd test build
-    $cmd test up test
+    $cmd test up --build -d postgres
+    $cmd test run test
+    rc=$?
     $cmd test down
+    exit $rc
     ;;
 dev)
     $cmd dev down

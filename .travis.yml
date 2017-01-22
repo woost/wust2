@@ -1,0 +1,40 @@
+sudo: required
+
+services:
+  - docker
+
+
+language: scala
+scala:
+   - 2.11.8
+jdk:
+    - oraclejdk8
+
+script:
+    - travis/test/postgres
+    - travis/test/sbt
+    - rm ~/.sbt/boot/scala-*/org.scala-sbt/sbt/*/sbt.components.lock ~/.sbt/boot/sbt.boot.lock # cache
+
+after_success:
+    # publish docker image
+    - travis/publish/docker
+    - rm ~/.sbt/boot/scala-*/org.scala-sbt/sbt/*/sbt.components.lock ~/.sbt/boot/sbt.boot.lock # cache
+
+cache:
+  directories:
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt/boot/
+
+before_cache:
+  # Tricks to avoid unnecessary cache updates
+  # http://www.scala-sbt.org/0.13/docs/Travis-CI-with-sbt.html
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.sbt -name "*.lock" -delete
+
+# - sbt ++$TRAVIS_SCALA_VERSION clean coverage renescaJVM/test
+# after_success:
+# - sbt ++$TRAVIS_SCALA_VERSION coveralls
+# pin jdk and neo4j version but release for each scala version separately
+# take an arbitrary fixed combination from build matrix for each scala version and publish
+# multi-line script?
+# - test -n "${TRAVIS_TAG}" && test "${TRAVIS_JDK_VERSION}" = 'oraclejdk7' && test "${NEO4J_VERSION}" = '2.3.7' && openssl aes-256-cbc -k "$file_encryption_password" -in credentials.sbt.enc -out local.credentials.sbt -d && openssl aes-256-cbc -k "$file_encryption_password" -in secring.gpg.enc -out local.secring.gpg -d && openssl aes-256-cbc -k "$file_encryption_password" -in pubring.gpg.enc -out local.pubring.gpg -d && sbt ++$TRAVIS_SCALA_VERSION publishSigned sonatypeRelease

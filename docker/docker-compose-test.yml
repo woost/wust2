@@ -1,17 +1,17 @@
-version: '2.1'
+version: '2'
 
 services:
   postgres:
     build: ../postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-'user'}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-'pw'}
-      POSTGRES_DB: ${POSTGRES_DB:-'db'}
+      POSTGRES_USER: 'user'
+      POSTGRES_PASSWORD: 'pw'
+      POSTGRES_DB: 'db'
   test:
     build:
       context: ../postgres
       dockerfile: Dockerfile.test
-    command: -h postgres -u ${POSTGRES_USER:-user} -w ${POSTGRES_PASSWORD:-pw} -d ${POSTGRES_DB:-db}
+    command: -h postgres -u 'user' -w 'pw' -d 'db'
     depends_on:
       - postgres
     volumes:
