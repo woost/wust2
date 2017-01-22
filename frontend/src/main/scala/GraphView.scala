@@ -26,6 +26,7 @@ import org.scalajs.d3v4.zoom._
 import org.scalajs.d3v4.selection._
 import org.scalajs.d3v4.polygon._
 import org.scalajs.d3v4.drag._
+import util.collectionHelpers._
 
 trait ExtendedD3Node extends D3Node {
   def pos = for (x <- x; y <- y) yield Vec2(x, y)
@@ -349,14 +350,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.alpha(1).restart()
     }
 
-    implicit class RichColletion[T](col: Iterable[T]) {
-      def by[X](lens: T => X): Map[X, T] = col.map(x => lens(x) -> x)(breakOut)
-    }
-
-    implicit class RichJSArray[T](col: js.Array[T]) {
-      def by[X](lens: T => X): Map[X, T] = col.map(x => lens(x) -> x)(breakOut)
-    }
-
     override def update(p: Props, oldProps: Option[Props] = None) {
       val graph = p
       import graph.posts
@@ -370,14 +363,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
 
       postData = p.posts.values.map(new SimPost(_)).toJSArray
-      val postIdToSimPost: Map[AtomId, SimPost] = postData.by(_.id)
+      val postIdToSimPost: Map[AtomId, SimPost] = (postData: js.ArrayOps[SimPost]).by(_.id)
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
 
       connectionData = p.connections.values.map { c =>
         new SimConnects(c, postIdToSimPost(c.sourceId))
       }.toJSArray
-      val connIdToSimConnects: Map[AtomId, SimConnects] = connectionData.by(_.id)
+      val connIdToSimConnects: Map[AtomId, SimConnects] = (connectionData: js.ArrayOps[SimConnects]).by(_.id)
       connectionData.foreach { e =>
         e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
       }

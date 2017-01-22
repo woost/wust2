@@ -25,7 +25,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM)
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM)
   .settings(
     publish := {},
     publishLocal := {},
@@ -64,6 +64,11 @@ lazy val graph = crossProject
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
+lazy val util = crossProject
+  .settings(commonSettings: _*)
+lazy val utilJS = util.js
+lazy val utilJVM = util.jvm
+
 lazy val framework = crossProject
   .settings(commonSettings: _*)
   .settings(
@@ -96,7 +101,7 @@ lazy val frameworkJVM = framework.jvm
 //TODO: source maps
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSWeb /*, WorkbenchPlugin*/ )
-  .dependsOn(frameworkJS, apiJS)
+  .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings: _*)
   .settings(
     persistLauncher := true,
@@ -136,7 +141,7 @@ lazy val frontend = project
 lazy val backend = project
   .enablePlugins(SbtWeb)
   .settings(commonSettings: _*)
-  .dependsOn(frameworkJVM, apiJVM)
+  .dependsOn(frameworkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.0.1" ::
