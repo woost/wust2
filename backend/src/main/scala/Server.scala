@@ -10,8 +10,6 @@ import com.outr.scribe._
 
 import api._, framework._
 
-case class User(name: String)
-
 object TypePicklers {
   implicit val channelPickler = implicitly[Pickler[Channel]]
   implicit val eventPickler = implicitly[Pickler[ApiEvent]]
@@ -23,9 +21,9 @@ import TypePicklers._
 case class UserError(error: ApiError) extends Exception
 
 object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, User] with App {
-  def router(user: Option[User]) = wire.route[Api](new ApiImpl(user, emit))
+  override def router(user: Option[User]) = wire.route[Api](new ApiImpl(user, emit))
 
-  def toError: PartialFunction[Throwable, ApiError] = {
+  override def toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
     case PathNotFoundException(path) => NotFound(path)
     case NonFatal(e) =>
@@ -33,21 +31,19 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
       InternalServerError
   }
 
-  def authorize(auth: Authorize): Future[Option[User]] = auth match {
-    case PasswordAuth(name, pw) =>
-      val user = Model.users.find(u => u.name == name)
-      Future.successful(user)
+  override def authorize(auth: Authorize): Future[Option[User]] = auth match {
+    case PasswordAuth(name, pw) => Db.getUser(name, pw).map(_.headOption)
   }
 
-  def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
-
-  val route = encodeResponse {
+  override val route = encodeResponse {
     pathSingleSlash {
       getFromResource("index-dev.html")
     } ~ pathPrefix("assets") {
       getFromResourceDirectory("public")
     }
   }
+
+  def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
 
   run("0.0.0.0", 8080) foreach { binding =>
     logger.info(s"Server online at ${binding.localAddress}")

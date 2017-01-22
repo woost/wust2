@@ -7,6 +7,7 @@ scalaVersion in ThisBuild := "2.11.8"
 lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
+    ("RoundEights" at "http://maven.spikemark.net/roundeights") ::
     Nil
   ),
   scalacOptions ++=
@@ -138,6 +139,8 @@ lazy val backend = project
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.0.1" ::
+      "com.roundeights" %% "hasher" % "1.2.0" ::
+      "org.mindrot" % "jbcrypt" % "0.3m" :: //TODO version 0.4?
       Nil,
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),

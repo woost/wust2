@@ -24,6 +24,6 @@ case class BadRequestException(error: ApiError) extends Exception
 object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val api = wire[Api]
 
-  def fromError(error: ApiError) = BadRequestException(error)
-  def receive(event: ApiEvent) = AppCircuit.dispatch(event)
+  override def fromError(error: ApiError) = BadRequestException(error)
+  override def receive(event: ApiEvent) = AppCircuit.dispatch(event)
 }
