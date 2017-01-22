@@ -26,7 +26,7 @@ local)
 prod)
     sbt backend/assembly
     $cmd prod down
-    $cmd prod up --build
+    $cmd prod up --build -d
     ;;
 *)
     echo "unknown stage '$1', expected one of [prod,local,dev]"
