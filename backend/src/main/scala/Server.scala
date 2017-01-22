@@ -41,11 +41,13 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
 
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
 
-  val route = pathSingleSlash {
+  val route = encodeResponse {
+    pathSingleSlash {
       getFromResource("index-dev.html")
     } ~ pathPrefix("assets") {
       getFromResourceDirectory("public")
     }
+  }
 
   run("0.0.0.0", 8080) foreach { binding =>
     logger.info(s"Server online at ${binding.localAddress}")
