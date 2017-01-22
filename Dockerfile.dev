@@ -11,5 +11,4 @@ RUN wget -qO- "http://dl.bintray.com/sbt/native-packages/sbt/$SBT_VERSION/sbt-$S
 RUN mkdir /src
 WORKDIR /src
 
-CMD dev
-ENTRYPOINT sbt dev
+CMD sbt

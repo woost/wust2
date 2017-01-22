@@ -18,12 +18,12 @@ test)
 dev)
     $cmd dev down
     $cmd dev build wust
-    $cmd dev run --service-ports wust
+    $cmd dev run --service-ports wust sbt dev
     ;;
 local)
     $cmd local down
     $cmd local up --build -d
-    POSTGRES_HOSTNAME=localhost sbt
+    POSTGRES_HOSTNAME=localhost sbt dev
     ;;
 prod)
     sbt backend/assembly
