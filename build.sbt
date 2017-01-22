@@ -70,6 +70,7 @@ lazy val utilJS = util.js
 lazy val utilJVM = util.jvm
 
 lazy val framework = crossProject
+  .dependsOn(util)
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= (
@@ -141,7 +142,7 @@ lazy val frontend = project
 lazy val backend = project
   .enablePlugins(SbtWeb)
   .settings(commonSettings: _*)
-  .dependsOn(frameworkJVM, apiJVM, utilJVM)
+  .dependsOn(frameworkJVM, apiJVM)
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.0.1" ::

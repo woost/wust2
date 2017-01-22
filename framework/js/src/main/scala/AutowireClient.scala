@@ -7,12 +7,14 @@ import boopickle.Default._
 
 import concurrent.{Promise, Future}
 import java.nio.ByteBuffer
-import java.util.{Timer,TimerTask}
+import java.util.{Timer, TimerTask}
 
 import scala.scalajs.js.typedarray._
 import org.scalajs.dom.raw.{Blob, FileReader, MessageEvent, ProgressEvent}
 
 import framework.message._
+import util.time.{Timer => Stopwatch}
+import com.outr.scribe._
 
 class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[ByteBuffer]) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
   override def doCall(req: Request): Future[ByteBuffer] = send(req.path, req.args)
@@ -43,10 +45,15 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
   }
 
   def open(): (SequenceId, Promise[T]) = {
+    val stopwatch = new Stopwatch
+    stopwatch.start()
     val promise = newPromise
     val seqId = nextSeqId()
     openRequests += seqId -> promise
-    promise.future onComplete (_ => openRequests -= seqId)
+    promise.future onComplete { _ =>
+      openRequests -= seqId
+      logger.info(s"$seqId: ${stopwatch.readMillis}ms")
+    }
     seqId -> promise
   }
 
@@ -72,7 +79,7 @@ class WebsocketConnection {
       e.data match {
         case blob: Blob =>
           val reader = new FileReader()
-          reader.onloadend = (ev : ProgressEvent) => {
+          reader.onloadend = (ev: ProgressEvent) => {
             val buff = reader.result.asInstanceOf[ArrayBuffer]
             val bytes = TypedArrayBuffer.wrap(buff)
             receive(bytes)
@@ -88,7 +95,7 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   def receive(event: EVENT): Unit
   def fromError(error: ERROR): Throwable
 
-  private val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
+  private val messages = new Messages[CHANNEL, EVENT, ERROR, AUTH]
   import messages._
 
   private val controlRequests = new OpenRequests[Boolean]

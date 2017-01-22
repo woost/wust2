@@ -22,16 +22,18 @@ import boopickle.Default._
 import com.outr.scribe._
 
 import framework.message._
+import util.time.Timer
+import scala.util.{Success, Failure}
 
 object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
 }
 
-class Dispatcher[CHANNEL,PAYLOAD] extends EventBus with LookupClassification {
+class Dispatcher[CHANNEL, PAYLOAD] extends EventBus with LookupClassification {
   import Dispatcher._
 
-  type Event = ChannelEvent[CHANNEL,PAYLOAD]
+  type Event = ChannelEvent[CHANNEL, PAYLOAD]
   type Classifier = CHANNEL
   type Subscriber = ActorRef
 
@@ -41,35 +43,53 @@ class Dispatcher[CHANNEL,PAYLOAD] extends EventBus with LookupClassification {
   protected def mapSize: Int = 128 // expected size of classifiers
 }
 object Dispatcher {
-  case class ChannelEvent[CHANNEL,PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
+  case class ChannelEvent[CHANNEL, PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
 }
 
 case class PathNotFoundException(path: Seq[String]) extends Exception
 //TODO channel dependency, then subscribe, signal => action!
-class ConnectedClient[CHANNEL,AUTH,ERROR,USER](
-  messages: Messages[CHANNEL,_,ERROR,AUTH],
-  dispatcher: Dispatcher[CHANNEL,_],
+class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
+  messages: Messages[CHANNEL, _, ERROR, AUTH],
+  dispatcher: Dispatcher[CHANNEL, _],
   router: Option[USER] => Router[ByteBuffer],
-  toError: PartialFunction[Throwable,ERROR],
-  authorize: AUTH => Future[Option[USER]]) extends Actor {
+  toError: PartialFunction[Throwable, ERROR],
+  authorize: AUTH => Future[Option[USER]]
+) extends Actor {
   import messages._, ConnectedClient._
 
   val notAuthenticated: Future[Option[USER]] = Future.successful(None)
 
   def connected(outgoing: ActorRef, user: Future[Option[USER]]): Receive = {
     case CallRequest(seqId, path, args) =>
-      router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
+      val timer = new Timer
+      timer.start()
+
+      val f = router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.failed(PathNotFoundException(path)))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
-        .pipeTo(outgoing)
+
+      f.onComplete {
+        _ => logger.info(f"CallRequest($seqId): ${timer.readMicros}us")
+      }
+
+      f.pipeTo(outgoing)
+
     case ControlRequest(seqId, control) => control match {
       case Login(auth) =>
+        val timer = new Timer
+        timer.start()
+
         val nextUser = authorize(auth)
-        nextUser.map(_.isDefined)
+        val f = nextUser.map(_.isDefined)
           .recover { case NonFatal(_) => false }
           .map(ControlResponse(seqId, _))
-          .pipeTo(outgoing)
+
+        f.onComplete {
+          _ => logger.info(f"Login($seqId): ${timer.readMicros}us")
+        }
+
+        f.pipeTo(outgoing)
         context.become(connected(outgoing, nextUser))
       case Logout() =>
         outgoing ! ControlResponse(seqId, true)
@@ -92,12 +112,12 @@ object ConnectedClient {
 }
 
 object Serializer {
-  def serialize[T : Pickler](msg: T): Message = {
+  def serialize[T: Pickler](msg: T): Message = {
     val bytes = Pickle.intoBytes(msg)
     BinaryMessage(ByteString(bytes))
   }
 
-  def deserialize[T : Pickler](bm: BinaryMessage.Strict): T = {
+  def deserialize[T: Pickler](bm: BinaryMessage.Strict): T = {
     val bytes = bm.getStrictData.asByteBuffer
     val msg = Unpickle[T].fromBytes(bytes)
     msg
@@ -107,16 +127,16 @@ object Serializer {
 abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler, USER] {
   def route: Route
   def router(user: Option[USER]): AutowireServer.Router
-  def toError: PartialFunction[Throwable,ERROR]
+  def toError: PartialFunction[Throwable, ERROR]
   def authorize(auth: AUTH): Future[Option[USER]]
 
-  private lazy val messages = new Messages[CHANNEL,EVENT,ERROR,AUTH]
+  private lazy val messages = new Messages[CHANNEL, EVENT, ERROR, AUTH]
   import messages._
 
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
-  private val dispatcher = new Dispatcher[CHANNEL,Message]
+  private val dispatcher = new Dispatcher[CHANNEL, Message]
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
     val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher, router, toError, authorize)))
