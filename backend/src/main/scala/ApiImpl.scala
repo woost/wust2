@@ -105,6 +105,12 @@ object Db {
   }
 }
 
+class AuthApiImpl extends AuthApi {
+  def register(name: String, password: String): Future[Boolean] = {
+    Db.newUser(name, password).map(_.isDefined)
+  }
+}
+
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   import Db._, ctx._
 
@@ -113,10 +119,6 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   }
 
   def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
-
-  def register(name: String, password: String): Future[Boolean] = {
-    newUser(name, password).map(_.isDefined)
-  }
 
   def getPost(id: AtomId): Future[Option[Post]] = {
     val q = quote { query[Post].filter(_.id == lift(id)).take(1) }

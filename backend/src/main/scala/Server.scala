@@ -21,7 +21,8 @@ import TypePicklers._
 case class UserError(error: ApiError) extends Exception
 
 object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, User] with App {
-  override def router(user: Option[User]) = wire.route[Api](new ApiImpl(user, emit))
+  override def router(user: Option[User]) =
+    wire.route[Api](new ApiImpl(user, emit)) orElse wire.route[AuthApi](new AuthApiImpl)
 
   override def toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error

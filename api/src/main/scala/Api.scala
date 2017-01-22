@@ -5,6 +5,10 @@ import scala.concurrent.Future
 
 import graph._
 
+trait AuthApi {
+  def register(name: String, password: String): Future[Boolean]
+}
+
 trait Api {
   def getPost(id: AtomId): Future[Option[Post]]
   def deletePost(id: AtomId): Future[Boolean]
@@ -13,7 +17,6 @@ trait Api {
   def connect(from: AtomId, to: AtomId): Future[Option[Connects]]
   def deleteConnection(id: AtomId): Future[Boolean]
   def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]]
-  def register(name: String, password: String): Future[Boolean]
   // def getComponent(id: Id): Future[Graph]
 }
 
