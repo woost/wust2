@@ -75,12 +75,16 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.typesafe.akka" %% "akka-http" % "10.0.0" ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
+      // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
+      // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
+      "com.outr" %% "scribe" % "1.3.2" ::
       Nil
     )
   )
   .jsSettings(
     libraryDependencies ++= (
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
+      "com.outr" %%% "scribe" % "1.3.2" ::
       Nil
     )
   )
@@ -133,7 +137,7 @@ lazy val backend = project
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
     libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % "1.0.1"::
+      "io.getquill" %% "quill-async-postgres" % "1.0.1" ::
       Nil,
     scalaJSProjects := Seq(frontend),
     pipelineStages in Assets := Seq(scalaJSPipeline),

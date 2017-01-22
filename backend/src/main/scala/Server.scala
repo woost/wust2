@@ -1,11 +1,12 @@
 package backend
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
-import boopickle.Default._
 import akka.http.scaladsl.server.Directives._
+import boopickle.Default._
+import com.outr.scribe._
 
 import api._, framework._
 
@@ -27,7 +28,9 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
   def toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
     case PathNotFoundException(path) => NotFound(path)
-    case NonFatal(_) => InternalServerError
+    case NonFatal(e) =>
+      logger.error(s"request handler threw exception: ${e.getStackTrace}")
+      InternalServerError
   }
 
   def authorize(auth: Authorize): Future[Option[User]] = auth match {
@@ -39,12 +42,12 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
 
   val route = pathSingleSlash {
-    getFromResource("index-dev.html")
-  } ~ pathPrefix("assets") {
-    getFromResourceDirectory("public")
-  }
+      getFromResource("index-dev.html")
+    } ~ pathPrefix("assets") {
+      getFromResourceDirectory("public")
+    }
 
   run("0.0.0.0", 8080) foreach { binding =>
-    println(s"Server online at ${binding.localAddress}")
+    logger.info(s"Server online at ${binding.localAddress}")
   }
 }

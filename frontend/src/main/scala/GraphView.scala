@@ -7,6 +7,7 @@ import org.scalajs.dom
 import org.scalajs.dom.console
 import dom.raw.HTMLElement
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
+import com.outr.scribe._
 
 import japgolly.scalajs.react._
 import japgolly.scalajs.react.vdom.prefix_<^._
@@ -99,9 +100,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       import boopickle.Default._
 
       (
-        ("A", { (p: Post) => println(s"A: $p") }) ::
-        ("B", { (p: Post) => println(s"B: $p") }) ::
-        ("C", { (p: Post) => println(s"C: $p") }) ::
+        ("A", { (p: Post) => logger.debug(s"A: $p") }) ::
+        ("B", { (p: Post) => logger.debug(s"B: $p") }) ::
+        ("C", { (p: Post) => logger.debug(s"C: $p") }) ::
         ("Del", { (p: Post) => Client.api.deletePost(p.id).call() }) ::
         ("Unfix", { (p: Post) => p.fixedPos = js.undefined; simulation.restart() }) ::
         Nil
@@ -326,7 +327,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("pointer-events", "auto") // reenable
         .style("cursor", "pointer")
         .on("click", { (e: Connects) =>
-          println("delete edge")
+          logger.debug("delete edge")
           import autowire._
           import boopickle.Default._
 

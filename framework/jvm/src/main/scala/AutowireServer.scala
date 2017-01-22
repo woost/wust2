@@ -3,6 +3,7 @@ package framework
 import scala.concurrent.ExecutionContext.Implicits.global //TODO
 import scala.concurrent.Future
 import scala.util.control.NonFatal
+import java.nio.ByteBuffer
 
 import akka.NotUsed
 import akka.event.{LookupClassification, EventBus}
@@ -16,10 +17,9 @@ import akka.pattern.pipe
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.util.ByteString
-
 import autowire.Core.{Request, Router}
 import boopickle.Default._
-import java.nio.ByteBuffer
+import com.outr.scribe._
 
 import framework.message._
 
@@ -93,7 +93,6 @@ object ConnectedClient {
 
 object Serializer {
   def serialize[T : Pickler](msg: T): Message = {
-    println(s"--> $msg")
     val bytes = Pickle.intoBytes(msg)
     BinaryMessage(ByteString(bytes))
   }
@@ -101,7 +100,6 @@ object Serializer {
   def deserialize[T : Pickler](bm: BinaryMessage.Strict): T = {
     val bytes = bm.getStrictData.asByteBuffer
     val msg = Unpickle[T].fromBytes(bytes)
-    println(s"<-- $msg")
     msg
   }
 }
@@ -125,7 +123,10 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
 
     val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
-        case bm: BinaryMessage.Strict => Serializer.deserialize[ClientMessage](bm)
+        case bm: BinaryMessage.Strict =>
+          val msg = Serializer.deserialize[ClientMessage](bm)
+          logger.info(s"<-- $msg")
+          msg
         //TODO: streamed?
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, ConnectedClient.Stop))
 
@@ -136,7 +137,9 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
           NotUsed
         }.map {
           //TODO no any, proper serialize map
-          case msg: ServerMessage => Serializer.serialize(msg)
+          case msg: ServerMessage =>
+            logger.info(s"--> $msg")
+            Serializer.serialize(msg)
           case other: Message => other
         }
 
@@ -148,6 +151,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   }
 
   def emit(channel: CHANNEL, event: EVENT): Unit = Future {
+    logger.info(s"-[$channel]-> event: $event")
     val payload = Serializer.serialize[ServerMessage](Notification(event))
     dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
   }

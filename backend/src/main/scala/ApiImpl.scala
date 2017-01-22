@@ -1,9 +1,11 @@
 package backend
 
-import api._, graph._, framework._
-
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+
+import com.outr.scribe._
+
+import api._, graph._, framework._
 
 object Db {
   import io.getquill._
