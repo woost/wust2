@@ -157,7 +157,9 @@ lazy val backend = project
     // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
     // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
     WebKeys.packagePrefix in Assets := "public/",
-    managedClasspath in Runtime += (packageBin in Assets).value
+    managedClasspath in Runtime += (packageBin in Assets).value,
+    libraryDependencies ++= Seq("org.specs2" %% "specs2-core" % "3.8.7" % "test"),
+    scalacOptions in Test ++= Seq("-Yrangepos")
   )
 
 // loads the server project at sbt startup
