@@ -13,6 +13,7 @@ trait Api {
   def connect(from: AtomId, to: AtomId): Future[Option[Connects]]
   def deleteConnection(id: AtomId): Future[Boolean]
   def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]]
+  def register(name: String, password: String): Future[Boolean]
   // def getComponent(id: Id): Future[Graph]
 }
 

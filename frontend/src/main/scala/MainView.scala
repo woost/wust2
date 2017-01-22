@@ -31,6 +31,8 @@ package object frontend {
           val target = (posts diff List(source))(nextInt(n - 1))
           Client.api.connect(source.id, target.id).call()
         }),
+        <.button(^.onClick --> Callback { Client.api.register("hans", "***").call() }, "register"),
+        <.button(^.onClick --> Callback { Client.login(api.PasswordAuth("hans", "***")) }, "login"),
         <.button(^.onClick --> Callback { Client.logout() }, "logout"),
         <.button("graph", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.Graph))),
         <.button("list", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.List))),

@@ -4,21 +4,18 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.outr.scribe._
-import com.roundeights.hasher.{Hash, Hasher}
+import com.roundeights.hasher.Hasher
 
 import api._, graph._, framework._
 
 case class User(id: Long, name: String)
-case class Password(id: Long, digest: Hash)
+case class Password(id: Long, digest: Array[Byte])
 
 object Db {
   import io.getquill._
 
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
   import ctx._
-
-  implicit val encodeDigest = ctx.MappedEncoding[Hash,String](_.hex)
-  // implicit val decodeDigest = ctx.MappedEncoding[String,Hash](s => new Hash(s))
 
   def newPost(title: String): Future[Post] = {
     val post = Post(title)
@@ -38,26 +35,28 @@ object Db {
     ctx.run(q).map(id => contains.copy(id = id))
   }
 
-  def passwordDigest(password: String): Hash = Hasher(password).bcrypt
+  def passwordDigest(password: String) = Hasher(password).bcrypt
 
-  val createUserAndPassword = quote { (name: String, digest: String) =>
+  val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
     infix"""with ins as (
-      insert into user(id, name) values(DEFAULT, $name);
+      insert into "user"(id, name) values(DEFAULT, $name) returning id
     ) insert into password(id, digest) select id, $digest from ins returning id;""".as[Insert[Long]]
   }
 
-  def newUser(name: String, password: String): Future[User] = {
+  def newUser(name: String, password: String): Future[Option[User]] = {
     val digest = passwordDigest(password)
-    val q = quote(createUserAndPassword(lift(name), lift(digest.hex)))
-    ctx.run(q).map(User(_, name))
+    val q = quote(createUserAndPassword(lift(name), lift(digest)))
+    ctx.run(q).map(id => Some(User(id, name))).recover { case _: Exception => None }
   }
 
   def getUser(name: String, password: String): Future[Option[User]] = {
-    val digest = passwordDigest(password)
     val q = quote {
-      query[User].filter(_.name == lift(name)).join(query[Password].filter(_.digest == lift(digest))).on((u, p) => u.id == p.id).map { case (u, p) => u }.take(1)
+      querySchema[User]("\"user\"").filter(_.name == lift(name)).join(query[Password]).on((u, p) => u.id == p.id).take(1)
     }
-    ctx.run(q).map(_.headOption)
+
+    ctx.run(q).map(_.headOption.filter { case (user, pw) =>
+      passwordDigest(password) hash= pw.digest
+    }.map(_._1))
   }
 
   def initGraph(): Future[Graph] = {
@@ -103,7 +102,6 @@ object Db {
   //TODO init to sql script
   for (graph <- wholeGraph() if graph.posts.isEmpty) {
     initGraph()
-    newUser("hans", "***")
   }
 }
 
@@ -115,6 +113,10 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   }
 
   def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
+
+  def register(name: String, password: String): Future[Boolean] = {
+    newUser(name, password).map(_.isDefined)
+  }
 
   def getPost(id: AtomId): Future[Option[Post]] = {
     val q = quote { query[Post].filter(_.id == lift(id)).take(1) }
