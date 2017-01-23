@@ -76,6 +76,16 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
 
   var dragClosest: Option[SimPost] = None
   var isClosest = false
+
+  def newGhost = {
+    val g = new SimPost(post)
+    g.x = x
+    g.y = y
+    g.size = size
+    g.centerOffset = centerOffset
+    g
+  }
+  var ghost: Option[SimPost] = None
 }
 
 class SimConnects(val connects: Connects, val source: SimPost) extends D3Link[SimPost, ExtendedD3Node] with ExtendedD3Node with D3LinkImpl[SimPost, ExtendedD3Node] {
@@ -152,10 +162,13 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val dragHitRadius = 50
 
   class Backend($: Scope) extends CustomBackend($) {
+    var graph: Graph = _
+
     lazy val container = d3js.select(component)
     lazy val svg = container.append("svg")
     lazy val html = container.append("div")
     lazy val postElements = html.append("div")
+    lazy val ghostPostElements = html.append("div")
     lazy val connectionLines = svg.append("g")
     lazy val connectionElements = html.append("div")
     lazy val containmentElements = svg.append("g")
@@ -165,6 +178,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val ringMenu = menuLayer.append("g")
 
     var postData: js.Array[SimPost] = js.Array()
+    var postIdToSimPost: Map[AtomId, SimPost] = Map.empty
     var connectionData: js.Array[SimConnects] = js.Array()
     var containmentData: js.Array[SimContains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
@@ -221,6 +235,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       html
       connectionElements
       postElements
+      ghostPostElements
 
       menuSvg
       menuLayer
@@ -299,21 +314,45 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       menuLayer.attr("transform", transform)
     }
 
+    def updateGhosts() {
+      val posts = graph.posts.values
+      val ghosts = posts.flatMap(p => postIdToSimPost(p.id).ghost).toJSArray
+      val post = ghostPostElements.selectAll("div")
+        .data(ghosts, (p: SimPost) => p.id)
+
+      post.enter().append("div")
+        .text((post: SimPost) => post.title)
+        .style("opacity", "0.5")
+        .style("background-color", "#f8f8f8")
+        .style("padding", "3px 5px")
+        .style("border-radius", "5px")
+        .style("border", "1px solid #AAA")
+        .style("max-width", "100px")
+        .style("position", "absolute")
+        .style("cursor", "move")
+        .style("pointer-events", "auto") // reenable
+
+      post.exit().remove()
+    }
+
     def postDragStarted(node: HTMLElement, p: SimPost) {
+      val ghost = p.newGhost
+      p.ghost = Some(ghost)
+      updateGhosts()
+
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       p.dragStart = eventPos
-      p.fixedPos = eventPos
-      p.pos = eventPos
+      ghost.pos = eventPos
+      drawGhosts()
 
-      d3js.select(node).style("cursor", "move")
       simulation.stop()
     }
 
     def postDragged(node: HTMLElement, p: SimPost) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
+      val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
 
-      p.pos = p.dragStart // prevents finding the dragged post as closest post
-      val closest = simulation.find(eventPos.x, eventPos.y, dragHitRadius).toOption
+      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitRadius).toOption
 
       if (closest != p.dragClosest) {
         p.dragClosest.foreach(_.isClosest = false)
@@ -324,16 +363,18 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         }
         p.dragClosest = closest
       }
+      val ghost = p.ghost.get
 
-      p.fixedPos = p.dragStart + (eventPos - p.dragStart) / transform.k
-      p.pos = p.fixedPos
-      draw()
+      ghost.pos = transformedEventPos
+      drawGhosts()
+      drawPosts() // for highlighting closest
     }
 
     def postDragEnded(node: HTMLElement, p: SimPost) {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-      p.pos = p.dragStart // prevents finding the dragged post as closest post
-      val closest = simulation.find(eventPos.x, eventPos.y, dragHitRadius).toOption
+      val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
+
+      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitRadius).toOption
       closest match {
         case Some(target) if target != p =>
           import autowire._
@@ -343,18 +384,22 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           target.isClosest = false
           p.fixedPos = js.undefined
         case _ =>
-          p.pos = eventPos
-          p.fixedPos = eventPos
+          p.pos = transformedEventPos
+          p.fixedPos = transformedEventPos
       }
-      d3js.select(node).style("cursor", "default")
+
+      p.ghost = None
+      updateGhosts()
+      drawGhosts()
+
       simulation.alpha(1).restart()
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) {
-      val graph = p
-      import graph.posts
-      import graph.connections
-      import graph.containments
+      graph = p
+      val posts = graph.posts
+      val connections = graph.connections
+      val containments = graph.containments
 
       menuTarget match {
         case Some(post) if !posts.isDefinedAt(post.id) =>
@@ -363,7 +408,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
 
       postData = p.posts.values.map(new SimPost(_)).toJSArray
-      val postIdToSimPost: Map[AtomId, SimPost] = (postData: js.ArrayOps[SimPost]).by(_.id)
+      postIdToSimPost = (postData: js.ArrayOps[SimPost]).by(_.id)
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
 
@@ -474,11 +519,21 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.alpha(1).restart()
     }
 
-    def draw() {
+    def drawGhosts() {
+      ghostPostElements.selectAll("div")
+        .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
+        .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+    }
+
+    def drawPosts() {
       postElements.selectAll("div")
         .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
         .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
         .style("border", (p: SimPost) => if (p.isClosest) "5px solid blue" else "1px solid #AAA")
+    }
+
+    def draw() {
+      drawPosts()
 
       connectionElements.selectAll("div")
         .style("left", (e: SimConnects) => s"${e.x.get}px")
