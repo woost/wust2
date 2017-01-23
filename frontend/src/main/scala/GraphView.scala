@@ -76,6 +76,13 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
 
   var dragClosest: Option[SimPost] = None
   var isClosest = false
+  var dropAngle = 0.0
+  def dropIndex(n: Int) = {
+    val positiveAngle = (dropAngle + 2 * Pi) % (2 * Pi)
+    val stepSize = 2 * Pi / n
+    val index = (positiveAngle / stepSize).toInt
+    index
+  }
 
   def newGhost = {
     val g = new SimPost(post)
@@ -159,7 +166,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val menuRadius = (menuOuterRadius + menuInnerRadius) / 2
   val menuThickness = menuOuterRadius - menuInnerRadius
 
-  val dragHitRadius = 50
+  val dragHitDetectRadius = 200
 
   class Backend($: Scope) extends CustomBackend($) {
     var graph: Graph = _
@@ -277,7 +284,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("stroke", "rgba(0,0,0,0.7)")
 
       for (((symbol, action), i) <- menuActions.zipWithIndex) {
-        val angle = i * 2 * Math.PI / menuActions.size
+        val angle = i * 2 * Pi / menuActions.size
         ringMenu
           .append("text")
           .text(symbol)
@@ -349,21 +356,20 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def postDragged(node: HTMLElement, p: SimPost) {
+      val ghost = p.ghost.get
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
+      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
 
-      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitRadius).toOption
-
-      if (closest != p.dragClosest) {
-        p.dragClosest.foreach(_.isClosest = false)
-        closest match {
-          case Some(target) if target != p =>
-            target.isClosest = true
-          case _ =>
-        }
-        p.dragClosest = closest
+      p.dragClosest.foreach(_.isClosest = false)
+      closest match {
+        case Some(target) if target != p =>
+          val dir = ghost.pos.get - target.pos.get
+          target.isClosest = true
+          target.dropAngle = dir.angle
+        case _ =>
       }
-      val ghost = p.ghost.get
+      p.dragClosest = closest
 
       ghost.pos = transformedEventPos
       drawGhosts()
@@ -374,13 +380,17 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
 
-      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitRadius).toOption
+      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
       closest match {
         case Some(target) if target != p =>
           import autowire._
           import boopickle.Default._
 
-          Client.api.connect(p.id, target.id).call()
+          if (target.dropIndex(2) == 0)
+            Client.api.connect(p.id, target.id).call()
+          else
+            Client.api.contain(p.id, target.id).call()
+
           target.isClosest = false
           p.fixedPos = js.undefined
         case _ =>
@@ -525,11 +535,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
     }
 
+    val dropColors = Array("green", "blue")
     def drawPosts() {
       postElements.selectAll("div")
         .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
         .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-        .style("border", (p: SimPost) => if (p.isClosest) "5px solid blue" else "1px solid #AAA")
+        .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(2))}" else "1px solid #AAA")
     }
 
     def draw() {

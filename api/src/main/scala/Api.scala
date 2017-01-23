@@ -14,7 +14,8 @@ trait Api {
   def deletePost(id: AtomId): Future[Boolean]
   def getGraph(): Future[Graph]
   def addPost(msg: String): Future[Post]
-  def connect(from: AtomId, to: AtomId): Future[Option[Connects]]
+  def connect(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]]
+  def contain(childId: AtomId, parentId: AtomId): Future[Option[Contains]]
   def deleteConnection(id: AtomId): Future[Boolean]
   def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]]
   // def getComponent(id: Id): Future[Graph]
@@ -29,6 +30,7 @@ object Channel {
     case _: DeletePost => Graph
     case _: DeleteConnection => Graph
     case _: NewConnection => Graph
+    case _: NewContainment => Graph
   }
 }
 
@@ -42,6 +44,7 @@ case class NewPost(post: Post) extends ApiEvent
 case class DeletePost(id: AtomId) extends ApiEvent
 case class DeleteConnection(id: AtomId) extends ApiEvent
 case class NewConnection(edge: Connects) extends ApiEvent //TODO or containment
+case class NewContainment(edge: Contains) extends ApiEvent //TODO or containment
 
 sealed trait Authorize
 case class PasswordAuth(name: String, password: String) extends Authorize

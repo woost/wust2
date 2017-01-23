@@ -169,6 +169,21 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     }
   }
 
+  def contain(childId: AtomId, parentId: AtomId): Future[Option[Contains]] = withUser {
+    val contains = Contains(childId, parentId)
+    val q = quote {
+      query[Contains].insert(lift(contains)).returning(x => x.id)
+    }
+    val newId = ctx.run(q).map(Some(_)).recover {
+      case e: /*GenericDatabaseException*/ Exception => None
+    }
+    for (idOpt <- newId) yield idOpt.map { id =>
+      val edge = contains.copy(id = id)
+      emit(NewContainment(edge))
+      edge
+    }
+  }
+
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }

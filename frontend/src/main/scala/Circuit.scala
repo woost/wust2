@@ -46,6 +46,10 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
         updated(value.copy(
           connections = value.connections + (connects.id -> connects)
         ))
+      case NewContainment(contains) =>
+        updated(value.copy(
+          containments = value.containments + (contains.id -> contains)
+        ))
     }
   }
   override val actionHandler = composeHandlers(globalHandler, graphHandler)
