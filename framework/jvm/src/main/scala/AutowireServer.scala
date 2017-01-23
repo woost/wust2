@@ -158,9 +158,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
     Flow.fromSinkAndSource(incoming, outgoing)
   }
 
-  private val commonRoute = (pathSingleSlash & get) {
-    handleWebSocketMessages(newConnectedClient)
-  }
+  protected val websocketHandler = handleWebSocketMessages(newConnectedClient)
 
   def emit(channel: CHANNEL, event: EVENT): Unit = Future {
     logger.info(s"-[$channel]-> event: $event")
@@ -171,6 +169,6 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   val wire = AutowireServer
 
   def run(interface: String, port: Int): Future[ServerBinding] = {
-    Http().bindAndHandle(commonRoute ~ route, interface = interface, port = port)
+    Http().bindAndHandle(route, interface = interface, port = port)
   }
 }

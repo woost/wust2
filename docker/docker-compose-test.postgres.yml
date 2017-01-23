@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: 'pw'
       POSTGRES_DB: 'db'
   db-migration:
-    image: woost/db-migration
+    image: woost/wust2.db-migration
     command: -url='jdbc:postgresql://postgres/db' -schemas=public -user=user -password=pw migrate
     depends_on:
       - postgres

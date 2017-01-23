@@ -29,6 +29,12 @@ dev)
     $compose up -d
     POSTGRES_HOSTNAME=localhost sbt dev
     ;;
+prod.http)
+    sbt docker
+    $compose up -d postgres
+    $compose run db-migration
+    $compose up
+    ;;
 prod)
     sbt docker
     $compose up -d postgres
@@ -36,6 +42,6 @@ prod)
     $compose up
     ;;
 *)
-    echo "unknown stage '$1', expected one of [dev,dev.docker,test.postgres,prod]"
+    echo "unknown stage '$1', expected one of [test,dev,local,prod.http,prod,prod.http]"
     exit 1
 esac

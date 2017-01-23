@@ -10,7 +10,7 @@ services:
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
   db-migration:
-    image: woost/db-migration
+    image: woost/wust2.db-migration
     command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=${POSTGRES_USER} -password=${POSTGRES_PASSWORD} migrate
     depends_on:
       - postgres

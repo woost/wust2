@@ -22,15 +22,10 @@ services:
     depends_on:
       - postgres
   nginx:
-    image: woost/wust2.nginx:0.1.0-SNAPSHOT
+    image: woost/wust2.nginx:http-0.1.0-SNAPSHOT
     environment:
       HOST_DOMAIN: ${HOST_DOMAIN}
-      SSL_CERT_PATH: ${SSL_CERT_PATH}
-      SSL_KEY_PATH: ${SSL_KEY_PATH}
     ports:
-      - "443:443"
       - "80:80"
     depends_on:
       - wust
-    volumes:
-      - ${NGINX_VOLUME}:${NGINX_VOLUME}

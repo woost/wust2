@@ -23,7 +23,7 @@ object Main extends js.JSApp {
   @JSExport
   def main(): Unit = {
     val protocol = if (window.location.protocol == "https:") "wss" else "ws"
-    Client.run(s"$protocol://${window.location.host}")
+    Client.run(s"$protocol://${window.location.host}/ws")
     Client.subscribe(Channel.Graph)
 
     Client.api.getGraph().call().foreach { graph =>

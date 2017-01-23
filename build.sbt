@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, nginx, dbMigration)
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, nginxHttps, nginxHttp, dbMigration)
   .settings(
     publish := {},
     publishLocal := {},
@@ -97,12 +97,13 @@ lazy val framework = crossProject
       Nil
     )
   )
+
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
 //TODO: source maps
 lazy val frontend = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSWeb /*, WorkbenchPlugin*/ )
+  .enablePlugins(ScalaJSPlugin, ScalaJSWeb/*, WorkbenchPlugin*/ )
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings: _*)
   .settings(
@@ -141,10 +142,26 @@ lazy val frontend = project
       "org.webjars.bower" % "react" % reactVersion / "react-dom.js" minified "react-dom.min.js" dependsOn "react-with-addons.js",
       "org.webjars.bower" % "react" % reactVersion / "react-dom-server.js" minified "react-dom-server.min.js" dependsOn "react-dom.js"
     )
+
+    // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
+    // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
+    // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
+    // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
+  )
+
+lazy val assets = project
+  .enablePlugins(SbtWeb)
+  .settings(
+    unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
+    //TODO filter out
+    // excludeFilter in filter := "*.js" || "index.html",
+    // includeFilter in filter := "*",
+    scalaJSProjects := Seq(frontend),
+    pipelineStages in Assets := Seq(scalaJSPipeline, filter)
   )
 
 lazy val backend = project
-  .enablePlugins(SbtWeb, DockerPlugin)
+  .enablePlugins(DockerPlugin)
   .settings(dockerBackend: _*)
   .settings(commonSettings: _*)
   .dependsOn(frameworkJVM, apiJVM)
@@ -153,22 +170,14 @@ lazy val backend = project
       "io.getquill" %% "quill-async-postgres" % "1.0.1" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.3m" :: //TODO version 0.4?
+      "org.specs2" %% "specs2-core" % "3.8.7" % "test" ::
+
       Nil,
-    scalaJSProjects := Seq(frontend),
-    pipelineStages in Assets := Seq(scalaJSPipeline),
-    compile in Compile := ((compile in Compile) dependsOn scalaJSPipeline).value,
-    // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
-    // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
-    // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
-    // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
-    WebKeys.packagePrefix in Assets := "public/",
-    managedClasspath in Runtime += (packageBin in Assets).value,
-    libraryDependencies ++= Seq("org.specs2" %% "specs2-core" % "3.8.7" % "test"),
     scalacOptions in Test ++= Seq("-Yrangepos")
   )
 
 // loads the server project at sbt startup
-onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
+// onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
 
 
 def dockerImageName(name: String, version: String) = ImageName(
@@ -195,29 +204,33 @@ val dockerBackend = Seq(
   )
 )
 
-//TODO contain assets from frontend and index.html
-lazy val nginx = project
+//TODO watchSources <++= baseDirectory map { p => (p / "reverse-proxy.conf").get } //TODO
+lazy val nginxHttps = project.in(file("nginx/https"))
   .enablePlugins(DockerPlugin)
-  .settings(dockerNginx)
-  .settings(
-    watchSources <++= baseDirectory map { p => (p / "reverse-proxy.conf").get } //TODO
-  )
+  .settings(dockerNginx(None))
 
-val dockerNginx = Seq(
-    dockerfile in docker := {
-      new Dockerfile {
-        from("nginx:1.11.8-alpine")
-        copy(baseDirectory(_ / "nginx-template-config.sh").value, "/nginx-template-config.sh")
-        copy(baseDirectory(_ / "reverse-proxy.conf").value, "/templates/default.conf.tpl")
-        run("chmod", "+x", "/nginx-template-config.sh")
-        entryPoint("/nginx-template-config.sh")
-      }
-    },
-    imageNames in docker := Seq(
-      dockerImageName("nginx", "latest"),
-      dockerImageName("nginx", version.value)
-    )
+lazy val nginxHttp = project.in(file("nginx/http"))
+  .enablePlugins(DockerPlugin)
+  .settings(dockerNginx(Some("http")))
+
+def dockerNginx(tagPostfix: Option[String]) = Seq(
+  dockerfile in docker := {
+    val assetFolder = (WebKeys.assets in assets).value
+
+    new Dockerfile {
+      from("nginx:1.11.8-alpine")
+      copy(baseDirectory(_ / "nginx-template-config.sh").value, "/nginx-template-config.sh")
+      copy(baseDirectory(_ / "reverse-proxy.conf").value, "/templates/default.conf.tpl")
+      run("chmod", "+x", "/nginx-template-config.sh")
+      copy(assetFolder, "/public")
+      entryPoint("/nginx-template-config.sh")
+    }
+  },
+  imageNames in docker := Seq(
+    dockerImageName("wust2.nginx", tagPostfix.getOrElse("latest")),
+    dockerImageName("wust2.nginx", tagPostfix.map(_ + "-" + version.value).getOrElse(version.value))
   )
+)
 
 // TODO: migrator and use normal postgres image
 lazy val dbMigration = project
@@ -235,7 +248,7 @@ val dockerDbMigration = Seq(
     }
   },
   imageNames in docker := Seq(
-    dockerImageName("db-migration", "latest"),
-    dockerImageName("db-migration", version.value)
+    dockerImageName("wust2.db-migration", "latest"),
+    dockerImageName("wust2.db-migration", version.value)
   )
 )

@@ -36,12 +36,8 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
     case PasswordAuth(name, pw) => Db.getUser(name, pw).map(_.headOption)
   }
 
-  override val route = encodeResponse {
-    pathSingleSlash {
-      getFromResource("index-dev.html")
-    } ~ pathPrefix("assets") {
-      getFromResourceDirectory("public")
-    }
+  override val route = (path("ws") & get) {
+    websocketHandler
   }
 
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
