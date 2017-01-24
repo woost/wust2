@@ -147,11 +147,11 @@ class SimContains(val contains: Contains, val parent: SimPost, val child: SimPos
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
-  def convexHull: Option[js.Array[js.Array[Double]]] = {
+  def convexHull: js.Array[js.Array[Double]] = {
     val hull = d3.polygonHull(positions)
     //TODO: how to correctly handle scalajs union type?
-    if (hull == null) None
-    else Some(hull.asInstanceOf[js.Array[js.Array[Double]]])
+    if (hull == null) positions
+    else hull.asInstanceOf[js.Array[js.Array[Double]]]
   }
 }
 
@@ -510,11 +510,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       contains.exit().remove()
 
       containmentHull.enter().append("path")
-        .style("stroke", "#0075B8")
         .style("fill", "#00C1FF")
+        .style("stroke", "#00C1FF")
+        .style("stroke-width", "70px")
+        .style("stroke-linejoin", "round")
+        .style("opacity", "0.7")
       containmentHull.exit().remove()
 
       postElements.selectAll("div").each({ (node: HTMLElement, p: SimPost) =>
+        //TODO: if this fails, because post is not rendered yet, recalculate it lazyly
         val rect = node.getBoundingClientRect
         p.size = Vec2(rect.width, rect.height)
         p.centerOffset = p.size / -2
@@ -575,7 +579,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y2", (e: SimContains) => e.target.y)
 
       containmentHulls.selectAll("path")
-        .attr("d", (cluster: ContainmentCluster) => cluster.convexHull.map(_.map(p => s"${p(0)} ${p(1)}").mkString("M", "L", "Z")).getOrElse(""))
+        .attr("d", { (cluster: ContainmentCluster) =>
+          // https://codeplea.com/introduction-to-splines
+          // https://github.com/d3/d3-shape#curves
+          val points = cluster.convexHull
+          // val curve = d3js.curveCardinalClosed
+          val curve = d3js.curveCatmullRomClosed.alpha(0.5)
+          // val curve = d3js.curveNatural
+          d3js.line().curve(curve)(points)
+        })
 
       menuTarget.foreach { post =>
         ringMenu.attr("transform", s"translate(${post.x}, ${post.y})")
