@@ -2,7 +2,7 @@ version: '2'
 
 services:
   postgres:
-    build: ../postgres
+    image: woost/postgres
     environment: &pg_env
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -10,9 +10,9 @@ services:
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
   wust:
+    image: monostream/openjdk-sbt
     stdin_open: true
     tty: true
-    image: monostream/openjdk-sbt
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"

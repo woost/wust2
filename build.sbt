@@ -25,7 +25,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM)
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, nginx, postgres)
   .settings(
     publish := {},
     publishLocal := {},
@@ -143,7 +143,8 @@ lazy val frontend = project
   )
 
 lazy val backend = project
-  .enablePlugins(SbtWeb)
+  .enablePlugins(SbtWeb, DockerPlugin)
+  .settings(dockerBackend: _*)
   .settings(commonSettings: _*)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
@@ -167,3 +168,67 @@ lazy val backend = project
 
 // loads the server project at sbt startup
 onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
+
+
+def dockerImageName(name: String, version: String) = ImageName(
+  namespace = Some("woost"),
+  repository = name,
+  tag = Some(version)
+)
+
+val dockerBackend = Seq(
+  dockerfile in docker := {
+    val artifact: File = assembly.value
+    val artifactTargetPath = s"/app/${artifact.name}.jar"
+
+    new Dockerfile {
+      from("openjdk:8-jre-alpine")
+      copy(artifact, artifactTargetPath)
+      workDir("/app")
+      entryPoint("java", "-jar", artifactTargetPath)
+    }
+  },
+  imageNames in docker := Seq(
+    dockerImageName("wust2", "latest"),
+    dockerImageName("wust2", s"v${version.value}")
+  )
+)
+
+//TODO contain assets from frontend and index.html
+lazy val nginx = project
+  .enablePlugins(DockerPlugin)
+  .settings(dockerNginx)
+  .settings(
+    watchSources <++= baseDirectory map { p => (p / "reverse-proxy.conf").get } //TODO
+  )
+
+val dockerNginx = Seq(
+    dockerfile in docker := {
+      new Dockerfile {
+        from("nginx:1.11.8-alpine")
+        copy(baseDirectory(_ / "reverse-proxy.conf").value, "/etc/nginx/conf.d/default.conf")
+      }
+    },
+    imageNames in docker := Seq(
+      dockerImageName("nginx", "latest"),
+      dockerImageName("nginx", s"v${version.value}")
+    )
+  )
+
+// TODO: migrator and use normal postgres image
+lazy val postgres = project
+  .enablePlugins(DockerPlugin)
+  .settings(dockerPostgres)
+
+val dockerPostgres = Seq(
+  dockerfile in docker := {
+    new Dockerfile {
+      from("postgres:9.6.1-alpine")
+      copy(baseDirectory(_ / "initSQL/").value, "/docker-entrypoint-initdb.d/")
+    }
+  },
+  imageNames in docker := Seq(
+    dockerImageName("postgres", "latest"),
+    dockerImageName("postgres", s"v${version.value}")
+  )
+)

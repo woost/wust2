@@ -1,9 +1,8 @@
-version: '2.1'
+version: '2'
 
-#TODO: pg and wust should be published to registry and reference images, do not build here
 services:
   postgres:
-    build: ../postgres
+    image: woost/postgres:0.1.0-SNAPSHOT
     environment: &pg_env
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -12,17 +11,14 @@ services:
       - /pg_data/:/var/lib/postgresql/data
   wust:
     build:
-      context: ..
-      args:
-        version: "0.1-SNAPSHOT"
+      image: woost/wust2:0.1.0-SNAPSHOT
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
     depends_on:
       - postgres
   nginx:
-    build:
-      context: ../nginx
+    image: woost/nginx:0.1.0-SNAPSHOT
     ports:
       - "443:443"
       - "80:80"

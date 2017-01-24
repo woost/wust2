@@ -2,7 +2,7 @@ version: '2'
 
 services:
   postgres:
-    build: ../postgres
+    image: woost/postgres
     environment:
       POSTGRES_USER: 'user'
       POSTGRES_PASSWORD: 'pw'
