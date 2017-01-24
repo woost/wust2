@@ -389,7 +389,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           if (target.dropIndex(2) == 0)
             Client.api.connect(p.id, target.id).call()
           else
-            Client.api.contain(p.id, target.id).call()
+            Client.api.contain(target.id, p.id).call()
 
           target.isClosest = false
           p.fixedPos = js.undefined

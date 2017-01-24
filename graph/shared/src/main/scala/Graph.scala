@@ -51,7 +51,7 @@ package object graph {
       )
     }
 
-    def children(post: Post): Set[Post] = containments.values.collect { case c if c.parentId == post.id => posts(c.childId) }.toSet //TODO: breakout with generic on requested collection type
+    def children(post: Post): Seq[Post] = containments.values.collect { case c if c.parentId == post.id => posts(c.childId) }.toSeq //TODO: breakout with generic on requested collection type
   }
   object Graph {
     def empty = Graph()
