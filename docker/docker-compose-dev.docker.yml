@@ -12,16 +12,14 @@ services:
   wust:
     stdin_open: true
     tty: true
-    build:
-      context: ..
-      dockerfile: Dockerfile.dev
+    image: monostream/openjdk-sbt
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
     ports:
       - "8080:8080"
     volumes:
-      - ../:/src
+      - ../:/workspace
       - ~/.ivy2/:/root/.ivy2
     depends_on:
       - postgres
