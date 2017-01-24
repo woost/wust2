@@ -423,7 +423,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         case _ =>
       }
 
-      postData = p.posts.values.map(new SimPost(_)).toJSArray
+      postData = p.posts.values.map { p =>
+        val sp = new SimPost(p)
+        postIdToSimPost.get(sp.id).foreach { old =>
+          sp.x = old.x
+          sp.y = old.y
+        }
+        sp
+      }.toJSArray
       postIdToSimPost = (postData: js.ArrayOps[SimPost]).by(_.id)
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
