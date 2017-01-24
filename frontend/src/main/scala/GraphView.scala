@@ -178,7 +178,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     lazy val ghostPostElements = html.append("div")
     lazy val connectionLines = svg.append("g")
     lazy val connectionElements = html.append("div")
-    lazy val containmentElements = svg.append("g")
     lazy val containmentHulls = svg.append("g")
     lazy val menuSvg = container.append("svg")
     lazy val menuLayer = menuSvg.append("g")
@@ -246,7 +245,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       svg
       containmentHulls
-      containmentElements
       connectionLines
 
       html
@@ -413,17 +411,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     override def update(p: Props, oldProps: Option[Props] = None) {
       graph = p
-      val posts = graph.posts
-      val connections = graph.connections
-      val containments = graph.containments
 
       menuTarget match {
-        case Some(post) if !posts.isDefinedAt(post.id) =>
+        case Some(post) if !graph.posts.isDefinedAt(post.id) =>
           menuTarget = None
         case _ =>
       }
 
-      postData = p.posts.values.map { p =>
+      postData = graph.posts.values.map { p =>
         val sp = new SimPost(p)
         postIdToSimPost.get(sp.id).foreach { old =>
           sp.x = old.x
@@ -435,7 +430,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
 
-      connectionData = p.connections.values.map { c =>
+      connectionData = graph.connections.values.map { c =>
         new SimConnects(c, postIdToSimPost(c.sourceId))
       }.toJSArray
       val connIdToSimConnects: Map[AtomId, SimConnects] = (connectionData: js.ArrayOps[SimConnects]).by(_.id)
@@ -447,14 +442,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       val connectionElement = connectionElements.selectAll("div")
         .data(connectionData, (r: SimConnects) => r.id)
 
-      containmentData = p.containments.values.map { c =>
+      containmentData = graph.containments.values.map { c =>
         new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
       }.toJSArray
-      val contains = containmentElements.selectAll("line")
-        .data(containmentData, (r: SimContains) => r.id)
 
       containmentClusters = {
-        val parents: Seq[Post] = containments.values.map(c => posts(c.parentId)).toSeq.distinct
+        val parents: Seq[Post] = graph.containments.values.map(c => graph.posts(c.parentId)).toSeq.distinct
         parents.map(p => new ContainmentCluster(postIdToSimPost(p.id), graph.children(p).map(p => postIdToSimPost(p.id))(breakOut))).toJSArray
       }
       val containmentHull = containmentHulls.selectAll("path")
@@ -504,10 +497,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           Client.api.deleteConnection(e.id).call()
         })
       connectionElement.exit().remove()
-
-      contains.enter().append("line")
-        .style("stroke", "blue")
-      contains.exit().remove()
 
       containmentHull.enter().append("path")
         .style("fill", "#00C1FF")
@@ -571,12 +560,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y1", (e: SimConnects) => e.source.y)
         .attr("x2", (e: SimConnects) => e.target.x)
         .attr("y2", (e: SimConnects) => e.target.y)
-
-      containmentElements.selectAll("line")
-        .attr("x1", (e: SimContains) => e.source.x)
-        .attr("y1", (e: SimContains) => e.source.y)
-        .attr("x2", (e: SimContains) => e.target.x)
-        .attr("y2", (e: SimContains) => e.target.y)
 
       containmentHulls.selectAll("path")
         .attr("d", { (cluster: ContainmentCluster) =>
