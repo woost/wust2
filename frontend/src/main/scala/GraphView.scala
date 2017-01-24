@@ -28,6 +28,13 @@ import org.scalajs.d3v4.polygon._
 import org.scalajs.d3v4.drag._
 import util.collectionHelpers._
 
+object D3Dynamic {
+  //TODO: write more facade types instead of using dynamic
+  val d3js = js.Dynamic.global.d3
+}
+import D3Dynamic.d3js
+
+
 trait ExtendedD3Node extends D3Node {
   def pos = for (x <- x; y <- y) yield Vec2(x, y)
   def pos_=(newPos: js.UndefOr[Vec2]) {
@@ -73,6 +80,10 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   //TODO: delegert!
   def id = post.id
   def title = post.title
+
+  lazy val baseHue = (id * 137) % 360
+  lazy val baseColor = d3js.hcl(baseHue, 50, 70).toString
+  var mixedChildColor = ""
 
   var dragClosest: Option[SimPost] = None
   var isClosest = false
@@ -156,8 +167,6 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
 }
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
-  val d3js = js.Dynamic.global.d3 //TODO: write more facade types instead of using dynamic
-
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   val width = 640
   val height = 480
@@ -500,8 +509,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       connectionElement.exit().remove()
 
       containmentHull.enter().append("path")
-        .style("fill", "#00C1FF")
-        .style("stroke", "#00C1FF")
+        .style("fill", (cluster:ContainmentCluster) => cluster.parent.baseColor)
+        .style("stroke", (cluster:ContainmentCluster) => cluster.parent.baseColor)
         .style("stroke-width", "70px")
         .style("stroke-linejoin", "round")
         .style("opacity", "0.7")

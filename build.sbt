@@ -131,6 +131,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scala-js-d3v4-polygon" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-shape" % d3v4FacadeVersion ::
       "com.github.fdietze" %%% "scala-js-d3v4-path" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4-color" % d3v4FacadeVersion ::
       Nil
     ),
 
