@@ -221,14 +221,24 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     val menuActions = {
       import autowire._
       import boopickle.Default._
-
       (
-        ("Split", { (p: SimPost) => logger.debug(s"C: $p") }) ::
+        // ("Split", { (p: SimPost) => logger.debug(s"C: $p") }) ::
         ("Del", { (p: SimPost) => Client.api.deletePost(p.id).call() }) ::
         ("Unfix", { (p: SimPost) => p.fixedPos = js.undefined; simulation.restart() }) ::
         Nil
       )
     }
+
+    val dropActions = {
+      import autowire._
+      import boopickle.Default._
+      (
+        ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+        ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+        Nil
+      ).toArray
+    }
+    val dropColors = dropActions.map(_._2)
 
     override def init() {
       // init lazy vals to set drawing order
@@ -266,7 +276,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("height", s"${height}px")
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
-
 
       menuSvg
         .style("position", "absolute")
@@ -386,10 +395,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           import autowire._
           import boopickle.Default._
 
-          if (target.dropIndex(2) == 0)
-            Client.api.connect(p.id, target.id).call()
-          else
-            Client.api.contain(target.id, p.id).call()
+          dropActions(target.dropIndex(dropActions.size))._3(p, target)
 
           target.isClosest = false
           p.fixedPos = js.undefined
@@ -535,12 +541,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
     }
 
-    val dropColors = Array("green", "blue")
     def drawPosts() {
       postElements.selectAll("div")
         .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
         .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-        .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(2))}" else "1px solid #AAA")
+        .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #AAA")
     }
 
     def draw() {
