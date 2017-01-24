@@ -3,25 +3,11 @@ version: '2'
 services:
   postgres:
     build: ../postgres
-    environment: &pg_env
+    environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: "wust"
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
-  wust:
-    stdin_open: true
-    tty: true
-    build:
-      context: ..
-      dockerfile: Dockerfile.dev
-    environment:
-      <<: *pg_env
-      POSTGRES_HOSTNAME: "postgres"
-    ports:
-      - "8080:8080"
-    volumes:
-      - ../:/src
-      - ~/.ivy2/:/root/.ivy2
-    depends_on:
-      - postgres

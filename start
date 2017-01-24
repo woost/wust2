@@ -4,33 +4,34 @@ export POSTGRES_DB=${POSTGRES_DB:-'wust'} \
        POSTGRES_USER=${POSTGRES_USER:-'test'} \
        POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-'test'}
 
-cmd="$(dirname $0)/docker/compose"
+stage="$1"
+compose="$(dirname $0)/docker/compose $stage"
 
-case $1 in
-test)
-    $cmd test down
-    $cmd test up --build -d postgres
-    $cmd test run test
+case $stage in
+test.postgres)
+    $compose down
+    $compose up --build -d postgres
+    $compose run test
     rc=$?
-    $cmd test down
+    $compose down
     exit $rc
     ;;
-dev)
-    $cmd dev down
-    $cmd dev build wust
-    $cmd dev run --service-ports wust sbt dev
+dev.docker)
+    $compose down
+    $compose build wust
+    $compose run --service-ports wust sbt dev
     ;;
-local)
-    $cmd local down
-    $cmd local up --build -d
+dev)
+    $compose down
+    $compose up --build -d
     POSTGRES_HOSTNAME=localhost sbt dev
     ;;
 prod)
     sbt backend/assembly
-    $cmd prod down
-    $cmd prod up --build -d
+    $compose down
+    $compose up --build -d
     ;;
 *)
-    echo "unknown stage '$1', expected one of [prod,local,dev]"
+    echo "unknown stage '$1', expected one of [dev,dev.docker,test.postgres,prod]"
     exit 1
 esac
