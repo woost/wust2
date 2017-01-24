@@ -158,6 +158,7 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
 object GraphView extends CustomComponent[Graph]("GraphView") {
   val d3js = js.Dynamic.global.d3 //TODO: write more facade types instead of using dynamic
 
+  //TODO: dynamic by screen size, refresh on window resize, put into centering force
   val width = 640
   val height = 480
 
@@ -257,28 +258,28 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       ringMenu
 
       container
-        .style("position", "relative")
-        .style("width", s"${width}px")
-        .style("height", s"${height}px")
-        .style("border", "1px solid #DDDDDD")
+        .style("position", "absolute")
+        .style("top", "0")
+        .style("left", "0")
+        .style("z-index", "-1")
+        .style("width", "100%")
+        .style("height", "100%")
         .style("overflow", "hidden")
 
       svg
         .style("position", "absolute")
-        .attr("width", width)
-        .attr("height", height)
+        .style("width", "100%")
+        .style("height", "100%")
 
       html
         .style("position", "absolute")
-        .style("width", s"${width}px")
-        .style("height", s"${height}px")
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
 
       menuSvg
         .style("position", "absolute")
-        .attr("width", width)
-        .attr("height", height)
+        .style("width", "100%")
+        .style("height", "100%")
         .style("pointer-events", "none")
 
       ringMenu
@@ -307,7 +308,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       svg.call(d3js.zoom().on("zoom", zoomed _))
       svg.on("click", () => menuTarget = None)
 
-      //TODO: type cast necessary? we only put constants in here...
+      //TODO: store forces in individual variables to avoid acessing them by simulation.force[Type Cast]
       simulation.force[Centering[SimPost]]("center").x(width / 2).y(height / 2)
       simulation.force[PositioningX[SimPost]]("gravityx").x(width / 2)
       simulation.force[PositioningY[SimPost]]("gravityy").y(height / 2)
