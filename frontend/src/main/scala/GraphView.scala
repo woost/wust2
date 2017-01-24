@@ -267,6 +267,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
 
+
       menuSvg
         .style("position", "absolute")
         .attr("width", width)
@@ -337,7 +338,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("max-width", "100px")
         .style("position", "absolute")
         .style("cursor", "move")
-        .style("pointer-events", "auto") // reenable
 
       post.exit().remove()
     }
