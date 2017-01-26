@@ -422,12 +422,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     override def update(p: Props, oldProps: Option[Props] = None) {
       graph = p
 
-      menuTarget match {
-        case Some(post) if !graph.posts.isDefinedAt(post.id) =>
-          menuTarget = None
-        case _ =>
-      }
-
       postData = graph.posts.values.map { p =>
         val sp = new SimPost(p)
         postIdToSimPost.get(sp.id).foreach { old =>
@@ -437,6 +431,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         sp
       }.toJSArray
       postIdToSimPost = (postData: js.ArrayOps[SimPost]).by(_.id)
+
+      menuTarget = menuTarget.collect{case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
+
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
 
