@@ -1,4 +1,5 @@
 name := "wust"
+version in ThisBuild := "0.1.0-SNAPSHOT"
 
 //TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
@@ -190,7 +191,7 @@ val dockerBackend = Seq(
   },
   imageNames in docker := Seq(
     dockerImageName("wust2", "latest"),
-    dockerImageName("wust2", s"v${version.value}")
+    dockerImageName("wust2", version.value)
   )
 )
 
@@ -211,7 +212,7 @@ val dockerNginx = Seq(
     },
     imageNames in docker := Seq(
       dockerImageName("nginx", "latest"),
-      dockerImageName("nginx", s"v${version.value}")
+      dockerImageName("nginx", version.value)
     )
   )
 
@@ -232,6 +233,6 @@ val dockerDbMigration = Seq(
   },
   imageNames in docker := Seq(
     dockerImageName("db-migration", "latest"),
-    dockerImageName("db-migration", s"v${version.value}")
+    dockerImageName("db-migration", version.value)
   )
 )
