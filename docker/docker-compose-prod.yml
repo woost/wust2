@@ -15,8 +15,7 @@ services:
     depends_on:
       - postgres
   wust:
-    build:
-      image: woost/wust2:0.1.0-SNAPSHOT
+    image: woost/wust2:0.1.0-SNAPSHOT
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
@@ -24,10 +23,14 @@ services:
       - postgres
   nginx:
     image: woost/nginx:0.1.0-SNAPSHOT
+    environment:
+      HOST_DOMAIN: ${HOST_DOMAIN}
+      SSL_CERT_PATH: ${SSL_CERT_PATH}
+      SSL_KEY_PATH: ${SSL_KEY_PATH}
     ports:
       - "443:443"
       - "80:80"
     depends_on:
       - wust
     volumes:
-      - /etc/letsencrypt/:/etc/letsencrypt/
+      - ${NGINX_VOLUME}:${NGINX_VOLUME}

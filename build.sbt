@@ -207,7 +207,10 @@ val dockerNginx = Seq(
     dockerfile in docker := {
       new Dockerfile {
         from("nginx:1.11.8-alpine")
-        copy(baseDirectory(_ / "reverse-proxy.conf").value, "/etc/nginx/conf.d/default.conf")
+        copy(baseDirectory(_ / "nginx-template-config.sh").value, "/nginx-template-config.sh")
+        copy(baseDirectory(_ / "reverse-proxy.conf").value, "/templates/default.conf.tpl")
+        run("chmod", "+x", "/nginx-template-config.sh")
+        entryPoint("/nginx-template-config.sh")
       }
     },
     imageNames in docker := Seq(

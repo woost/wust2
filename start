@@ -33,7 +33,7 @@ prod)
     sbt docker
     $compose up -d postgres
     $compose run db-migration
-    $compose restart wust nginx
+    $compose up
     ;;
 *)
     echo "unknown stage '$1', expected one of [dev,dev.docker,test.postgres,prod]"
