@@ -25,7 +25,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, nginx, postgres)
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, nginx, dbMigration)
   .settings(
     publish := {},
     publishLocal := {},
@@ -216,19 +216,22 @@ val dockerNginx = Seq(
   )
 
 // TODO: migrator and use normal postgres image
-lazy val postgres = project
+lazy val dbMigration = project
   .enablePlugins(DockerPlugin)
-  .settings(dockerPostgres)
+  .settings(dockerDbMigration)
 
-val dockerPostgres = Seq(
+val dockerDbMigration = Seq(
   dockerfile in docker := {
     new Dockerfile {
-      from("postgres:9.6.1-alpine")
-      copy(baseDirectory(_ / "initSQL/").value, "/docker-entrypoint-initdb.d/")
+     from("dhoer/flyway:4.0.3-alpine")
+      copy(baseDirectory(_ / "sql").value, "/flyway/sql")
+      copy(baseDirectory(_ / "flyway-await-postgres.sh").value, "/flyway-await-postgres.sh")
+      run("chmod", "+x", "/flyway-await-postgres.sh")
+      entryPoint("/flyway-await-postgres.sh")
     }
   },
   imageNames in docker := Seq(
-    dockerImageName("postgres", "latest"),
-    dockerImageName("postgres", s"v${version.value}")
+    dockerImageName("db-migration", "latest"),
+    dockerImageName("db-migration", s"v${version.value}")
   )
 )

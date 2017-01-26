@@ -2,7 +2,7 @@ version: '2'
 
 services:
   postgres:
-    image: woost/postgres
+    image: postgres:9.6.1-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -11,3 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
+  db-migration:
+    image: woost/db-migration
+    command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=${POSTGRES_USER} -password=${POSTGRES_PASSWORD} migrate
+    depends_on:
+      - postgres

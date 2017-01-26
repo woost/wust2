@@ -9,29 +9,31 @@ compose="$(dirname $0)/docker/compose $stage"
 
 case $stage in
 test.postgres)
-    sbt postgres/docker
+    sbt dbMigration/docker
     $compose down
-    $compose up -d postgres
+    $compose run db-migration
     $compose run test
     rc=$?
     $compose down
     exit $rc
     ;;
 dev.docker)
-    sbt postgres/docker
+    sbt dbMigration/docker
     $compose down
+    $compose up -d db-migration
     $compose run --service-ports wust sbt dev
     ;;
 dev)
-    sbt postgres/docker
+    sbt dbMigration/docker
     $compose down
     $compose up -d
     POSTGRES_HOSTNAME=localhost sbt dev
     ;;
 prod)
     sbt docker
-    $compose down
-    $compose up -d
+    $compose up -d postgres
+    $compose run db-migration
+    $compose restart wust nginx
     ;;
 *)
     echo "unknown stage '$1', expected one of [dev,dev.docker,test.postgres,prod]"
