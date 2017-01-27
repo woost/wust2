@@ -24,7 +24,7 @@ dev)
     export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
     $compose up -d
-    POSTGRES_HOSTNAME=localhost sbt dev
+    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust sbt dev
     ;;
 prod.http)
     sbt docker
