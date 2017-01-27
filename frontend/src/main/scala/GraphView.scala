@@ -98,6 +98,7 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
     g.y = y
     g.size = size
     g.centerOffset = centerOffset
+    g.color = color
     g
   }
   var ghost: Option[SimPost] = None
