@@ -30,7 +30,8 @@ lazy val root = project.in(file("."))
     publishLocal := {},
     // also watch managed library dependencies (only works with scala 2.11 currently)
     watchSources ++= (managedClasspath in Compile).map(_.files).value,
-    addCommandAlias("dev", "~; backend/re-start; frontend/fastOptJS")
+
+    addCommandAlias("dev", "~; backend/re-start; workbench/compile")
   )
 
 val reactVersion = "15.4.1"
@@ -39,7 +40,7 @@ val d3v4FacadeVersion = "0.1.0-SNAPSHOT"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
-  .settings(commonSettings: _*)
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       Nil
@@ -49,7 +50,7 @@ lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
 lazy val graph = crossProject
-  .settings(commonSettings: _*)
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
@@ -66,13 +67,13 @@ lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
 lazy val util = crossProject
-  .settings(commonSettings: _*)
+  .settings(commonSettings)
 lazy val utilJS = util.js
 lazy val utilJVM = util.jvm
 
 lazy val framework = crossProject
   .dependsOn(util)
-  .settings(commonSettings: _*)
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
@@ -101,21 +102,10 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
-lazy val workbench = project
-  .enablePlugins(WorkbenchPlugin)
-  .settings(
-    refreshBrowsers <<= refreshBrowsers.triggeredBy(fastOptJS in Compile in frontend)
-  )
-
-//TODO: source maps
 lazy val frontend = project
-  // <<<<<<< HEAD
-  //   .enablePlugins(ScalaJSPlugin, ScalaJSWeb/*, WorkbenchPlugin*/ )
-  // =======
-  .enablePlugins(ScalaJSPlugin)
-  // >>>>>>> wip
+  .enablePlugins(ScalaJSPlugin, ScalaJSWeb)
   .dependsOn(frameworkJS, apiJS, utilJS)
-  .settings(commonSettings: _*)
+  .settings(commonSettings)
   .settings(
     persistLauncher := true,
     persistLauncher in Test := false,
@@ -152,28 +142,20 @@ lazy val frontend = project
       "org.webjars.bower" % "react" % reactVersion / "react-dom.js" minified "react-dom.min.js" dependsOn "react-with-addons.js",
       "org.webjars.bower" % "react" % reactVersion / "react-dom-server.js" minified "react-dom-server.min.js" dependsOn "react-dom.js"
     )
-
-  // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
-  // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
-  // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
-  // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
   )
 
 lazy val assets = project
   .enablePlugins(SbtWeb)
   .settings(
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
-    //TODO filter out
-    // excludeFilter in filter := "*.js" || "index.html",
-    // includeFilter in filter := "*",
     scalaJSProjects := Seq(frontend),
-    pipelineStages in Assets := Seq(scalaJSPipeline, filter)
+    pipelineStages in Assets := Seq(scalaJSPipeline)
   )
 
 lazy val backend = project
   .enablePlugins(DockerPlugin)
-  .settings(dockerBackend: _*)
-  .settings(commonSettings: _*)
+  .settings(dockerBackend)
+  .settings(commonSettings)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
     libraryDependencies ++=
@@ -210,6 +192,14 @@ val dockerBackend = Seq(
   )
 )
 
+lazy val workbench = project.in(file("workbench"))
+  .enablePlugins(WorkbenchPlugin, SbtWeb)
+  .dependsOn(assets)
+  .settings(
+    compile in Compile := ((compile in Compile) dependsOn WebKeys.assets).value,
+    refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile)
+  )
+
 //TODO watchSources <++= baseDirectory map { p => (p / "reverse-proxy.conf").get } //TODO
 lazy val nginxHttps = project.in(file("nginx/https"))
   .enablePlugins(DockerPlugin)
@@ -238,7 +228,6 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
   )
 )
 
-// TODO: migrator and use normal postgres image
 lazy val dbMigration = project
   .enablePlugins(DockerPlugin)
   .settings(dockerDbMigration)
