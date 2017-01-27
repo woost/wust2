@@ -24,7 +24,7 @@ object Main extends js.JSApp {
   def main(): Unit = {
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
-    val port = if (location.port == "12345") "8080" else "443"
+    val port = if (location.port == "12345") "8080" else location.port
     Client.run(s"$protocol://${location.hostname}:$port/ws")
     Client.subscribe(Channel.Graph)
 

@@ -70,7 +70,6 @@ class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
         .onCompleteRun { logger.info(f"CallRequest($seqId): ${timer.readMicros}us") }
         .pipeTo(outgoing)
-
     case ControlRequest(seqId, control) => control match {
       case Login(auth) =>
         val timer = StopWatch.started
@@ -158,7 +157,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
     Flow.fromSinkAndSource(incoming, outgoing)
   }
 
-  protected val websocketHandler = handleWebSocketMessages(newConnectedClient)
+  protected def websocketHandler = handleWebSocketMessages(newConnectedClient)
 
   def emit(channel: CHANNEL, event: EVENT): Unit = Future {
     logger.info(s"-[$channel]-> event: $event")
