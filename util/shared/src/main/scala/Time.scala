@@ -44,7 +44,7 @@ package object time {
       }
       totalPassedTime += passed / n
 
-      return passed.toDouble / n
+      passed.toDouble / n
     }
 
     def readNanos = if (totalPassedTime == 0) passed else totalPassedTime

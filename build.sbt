@@ -197,6 +197,7 @@ lazy val workbench = project.in(file("workbench"))
   .dependsOn(assets)
   .settings(
     compile in Compile := ((compile in Compile) dependsOn WebKeys.assets).value,
+    //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
     refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile)
   )
 

@@ -4,7 +4,7 @@ package object graph {
   type AtomId = Long
 
   // Database layout:
-  case class Graph(
+  final case class Graph(
     posts: Map[AtomId, Post] = Map.empty,
     connections: Map[AtomId, Connects] = Map.empty, //TODO: rename: responding, responses?
     containments: Map[AtomId, Contains] = Map.empty
@@ -59,11 +59,11 @@ package object graph {
   }
 
   //TODO: rename Post -> ???
-  case class Post(id: AtomId, title: String)
+  final case class Post(id: AtomId, title: String)
   object Post { def apply(title: String): Post = Post(0L, title) }
-  case class Connects(id: AtomId, sourceId: AtomId, targetId: AtomId)
+  final case class Connects(id: AtomId, sourceId: AtomId, targetId: AtomId)
   object Connects { def apply(in: AtomId, out: AtomId): Connects = Connects(0L, in, out) }
   //TODO: reverse direction of contains?
-  case class Contains(id: AtomId, parentId: AtomId, childId: AtomId)
+  final case class Contains(id: AtomId, parentId: AtomId, childId: AtomId)
   object Contains { def apply(parentId: AtomId, childId: AtomId): Contains = Contains(0L, parentId, childId) }
 }
