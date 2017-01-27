@@ -149,7 +149,7 @@ lazy val assets = project
   .settings(
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
-    pipelineStages in Assets := Seq(scalaJSPipeline)
+    pipelineStages in Assets := Seq(scalaJSPipeline, gzip) //TODO zopfli?
   )
 
 lazy val backend = project
