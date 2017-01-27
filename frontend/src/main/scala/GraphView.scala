@@ -34,7 +34,6 @@ object D3Dynamic {
 }
 import D3Dynamic.d3js
 
-
 trait ExtendedD3Node extends D3Node {
   def pos = for (x <- x; y <- y) yield Vec2(x, y)
   def pos_=(newPos: js.UndefOr[Vec2]) {
@@ -81,9 +80,7 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   def id = post.id
   def title = post.title
 
-  lazy val baseHue = (id * 137) % 360
-  lazy val baseColor = d3js.hcl(baseHue, 50, 70).toString
-  var mixedChildColor = ""
+  var color = "red"
 
   var dragClosest: Option[SimPost] = None
   var isClosest = false
@@ -177,6 +174,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val menuThickness = menuOuterRadius - menuInnerRadius
 
   val dragHitDetectRadius = 200
+  val postDefaultColor = d3js.lab("#f8f8f8")
+  def baseHue(id: AtomId) = (id * 137) % 360
+  def baseColor(id: AtomId) = d3js.hcl(baseHue(id), 50, 70)
 
   class Backend($: Scope) extends CustomBackend($) {
     var graph: Graph = _
@@ -348,7 +348,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       post.enter().append("div")
         .text((post: SimPost) => post.title)
         .style("opacity", "0.5")
-        .style("background-color", "#f8f8f8")
+        .style("background-color", (post: SimPost) => post.color)
         .style("padding", "3px 5px")
         .style("border-radius", "5px")
         .style("border", "1px solid #AAA")
@@ -425,14 +425,24 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       postData = graph.posts.values.map { p =>
         val sp = new SimPost(p)
         postIdToSimPost.get(sp.id).foreach { old =>
+          // preserve position
           sp.x = old.x
           sp.y = old.y
         }
+        //TODO: d3-color Facades!
+        val parents = graph.parents(p.id)
+        val parentColors: Seq[js.Dynamic] = parents.map((p: Post) => baseColor(p.id))
+        val colors: Seq[js.Dynamic] = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor) +: parentColors
+        val labColors = colors.map((c: js.Dynamic) => d3js.lab(c))
+        val colorSum = labColors.reduce((c1, c2) => d3js.lab(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b))
+        val colorCount = labColors.size.asInstanceOf[js.Dynamic]
+        val colorAvg = d3js.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
+        sp.color = colorAvg.toString()
         sp
       }.toJSArray
       postIdToSimPost = (postData: js.ArrayOps[SimPost]).by(_.id)
 
-      menuTarget = menuTarget.collect{case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
+      menuTarget = menuTarget.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
 
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
@@ -455,14 +465,15 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       containmentClusters = {
         val parents: Seq[Post] = graph.containments.values.map(c => graph.posts(c.parentId)).toSeq.distinct
-        parents.map(p => new ContainmentCluster(postIdToSimPost(p.id), graph.children(p).map(p => postIdToSimPost(p.id))(breakOut))).toJSArray
+        parents.map(p => new ContainmentCluster(postIdToSimPost(p.id), graph.children(p.id).map(p => postIdToSimPost(p.id))(breakOut))).toJSArray
       }
       val containmentHull = containmentHulls.selectAll("path")
         .data(containmentClusters, (c: ContainmentCluster) => c.parent.id)
 
+      post.exit().remove()
       post.enter().append("div")
         .text((post: SimPost) => post.title)
-        .style("background-color", "#f8f8f8")
+        .style("background-color", (post: SimPost) => post.color)
         .style("padding", "3px 5px")
         .style("border-radius", "5px")
         .style("border", "1px solid #AAA")
@@ -482,7 +493,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
           draw()
         })
-      post.exit().remove()
 
       connectionLine.enter().append("line")
         .style("stroke", "#8F8F8F")
@@ -506,8 +516,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       connectionElement.exit().remove()
 
       containmentHull.enter().append("path")
-        .style("fill", (cluster:ContainmentCluster) => cluster.parent.baseColor)
-        .style("stroke", (cluster:ContainmentCluster) => cluster.parent.baseColor)
+        .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
+        .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
         .style("stroke-width", "70px")
         .style("stroke-linejoin", "round")
         .style("opacity", "0.7")
