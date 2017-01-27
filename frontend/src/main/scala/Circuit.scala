@@ -31,7 +31,7 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
     }
   }
 
-  val graphHandler = new ActionHandler(zoomRW(_.graph)((m, v) => m.copy(graph = v))) {
+  val graphHandler = new ActionHandler(zoomTo(_.graph)) {
     override def handle = {
       case SetGraph(graph) => updated(graph)
       case NewPost(post) =>

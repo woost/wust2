@@ -76,7 +76,7 @@ lazy val framework = crossProject
   .settings(
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
-      "me.chrons" %%% "boopickle" % "1.2.5" ::
+      "io.suzaku" %%% "boopickle" % "1.2.6" ::
       Nil
     )
   )
@@ -110,8 +110,8 @@ lazy val frontend = project
     persistLauncher in Test := false,
 
     libraryDependencies ++= (
-      "me.chrons" %%% "diode" % "1.1.0" ::
-      "me.chrons" %%% "diode-react" % "1.1.0" ::
+      "io.suzaku" %%% "diode" % "1.1.1" ::
+      "io.suzaku" %%% "diode-react" % "1.1.1" ::
       "com.github.japgolly.scalajs-react" %%% "core" % "0.11.3" ::
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
