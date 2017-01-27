@@ -52,6 +52,6 @@ prod)
     $compose up -d
     ;;
 *)
-    echo "unknown stage '$1', expected one of [test,dev,dev.docker,psql,psql.docker,prod.http,prod,prod.http]"
+    echo "unknown stage '$1', expected one of [test.postgres,psql,psql.docker,dev,dev.docker,prod,prod.http]"
     exit 1
 esac
