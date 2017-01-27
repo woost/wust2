@@ -1,14 +1,11 @@
 #!/bin/bash -e
 
-export POSTGRES_DB=${POSTGRES_DB:-'wust'} \
-       POSTGRES_USER=${POSTGRES_USER:-'test'} \
-       POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-'test'}
-
 stage="$1"
 compose="$(dirname $0)/docker/compose $stage"
 
 case $stage in
 test.postgres)
+    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
     $compose down
     $compose run db-migration
@@ -18,14 +15,14 @@ test.postgres)
     exit $rc
     ;;
 dev.docker)
+    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
-    $compose down
     $compose up -d db-migration
     $compose run --service-ports wust sbt dev
     ;;
 dev)
+    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
-    $compose down
     $compose up -d
     POSTGRES_HOSTNAME=localhost sbt dev
     ;;
@@ -33,13 +30,13 @@ prod.http)
     sbt docker
     $compose up -d postgres
     $compose run db-migration
-    $compose up
+    $compose up -d
     ;;
 prod)
     sbt docker
     $compose up -d postgres
     $compose run db-migration
-    $compose up
+    $compose up -d
     ;;
 *)
     echo "unknown stage '$1', expected one of [test,dev,local,prod.http,prod,prod.http]"
