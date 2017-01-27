@@ -3,7 +3,7 @@ version in ThisBuild := "0.1.0-SNAPSHOT"
 
 //TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
-scalaVersion in ThisBuild := "2.11.8"
+scalaVersion in ThisBuild := "2.11.8" //TODO: 2.12 (scribe is blocking)
 
 lazy val commonSettings = Seq(
   resolvers ++= (
@@ -34,8 +34,8 @@ lazy val root = project.in(file("."))
     addCommandAlias("dev", "~; backend/re-start; workbench/compile")
   )
 
-val reactVersion = "15.4.1"
-val akkaVersion = "2.4.14"
+val reactVersion = "15.4.2"
+val akkaVersion = "2.4.16"
 val d3v4FacadeVersion = "0.1.0-SNAPSHOT"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
@@ -78,23 +78,22 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % "1.2.6" ::
+      "com.outr" %%% "scribe" % "1.3.2" ::
       Nil
     )
   )
   .jvmSettings(
     libraryDependencies ++= (
-      "com.typesafe.akka" %% "akka-http" % "10.0.0" ::
+      "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
       // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
       // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
-      "com.outr" %% "scribe" % "1.3.2" ::
       Nil
     )
   )
   .jsSettings(
     libraryDependencies ++= (
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
-      "com.outr" %%% "scribe" % "1.3.2" ::
       Nil
     )
   )
