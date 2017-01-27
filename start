@@ -1,7 +1,8 @@
 #!/bin/bash -e
 
 stage="$1"
-compose="$(dirname $0)/docker/compose $stage"
+compose_stage="$(dirname $0)/docker/compose"
+compose="$compose_stage $stage"
 
 case $stage in
 test.postgres)
@@ -13,6 +14,18 @@ test.postgres)
     rc=$?
     $compose down
     exit $rc
+    ;;
+psql.docker)
+    export POSTGRES_USER=test POSTGRES_PASSWORD=test
+    sbt dbMigration/docker
+    $compose_stage dev up -d db-migration
+    $compose_stage dev exec postgres psql -U $POSTGRES_USER wust
+    ;;
+psql)
+    export POSTGRES_USER=test POSTGRES_PASSWORD=test
+    sbt dbMigration/docker
+    $compose_stage dev run db-migration
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER wust
     ;;
 dev.docker)
     export POSTGRES_USER=test POSTGRES_PASSWORD=test
@@ -39,6 +52,6 @@ prod)
     $compose up -d
     ;;
 *)
-    echo "unknown stage '$1', expected one of [test,dev,local,prod.http,prod,prod.http]"
+    echo "unknown stage '$1', expected one of [test,dev,dev.docker,psql,psql.docker,prod.http,prod,prod.http]"
     exit 1
 esac
