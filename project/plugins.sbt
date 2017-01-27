@@ -3,7 +3,7 @@ addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.0.3")
 addSbtPlugin("com.slidingautonomy.sbt" % "sbt-filter" % "1.0.1")
 
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.8.0")
-// addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.0")
+addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.0")
 
 addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.0")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.3")

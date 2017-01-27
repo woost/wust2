@@ -20,8 +20,6 @@ lazy val commonSettings = Seq(
     "-language:_" ::
     "-Ywarn-unused" ::
     Nil,
-  // also watch managed library dependencies (only works with scala 2.11 currently)
-  watchSources <++= (managedClasspath in Compile) map { cp => cp.files },
   maxErrors := 5
 )
 
@@ -30,7 +28,9 @@ lazy val root = project.in(file("."))
   .settings(
     publish := {},
     publishLocal := {},
-    addCommandAlias("dev", "~backend/re-start")
+    // also watch managed library dependencies (only works with scala 2.11 currently)
+    watchSources ++= (managedClasspath in Compile).map(_.files).value,
+    addCommandAlias("dev", "~; backend/re-start; frontend/fastOptJS")
   )
 
 val reactVersion = "15.4.1"
@@ -101,9 +101,19 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
+lazy val workbench = project
+  .enablePlugins(WorkbenchPlugin)
+  .settings(
+    refreshBrowsers <<= refreshBrowsers.triggeredBy(fastOptJS in Compile in frontend)
+  )
+
 //TODO: source maps
 lazy val frontend = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSWeb/*, WorkbenchPlugin*/ )
+  // <<<<<<< HEAD
+  //   .enablePlugins(ScalaJSPlugin, ScalaJSWeb/*, WorkbenchPlugin*/ )
+  // =======
+  .enablePlugins(ScalaJSPlugin)
+  // >>>>>>> wip
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings: _*)
   .settings(
@@ -143,10 +153,10 @@ lazy val frontend = project
       "org.webjars.bower" % "react" % reactVersion / "react-dom-server.js" minified "react-dom-server.min.js" dependsOn "react-dom.js"
     )
 
-    // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
-    // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
-    // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
-    // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
+  // scalaJSDev <<= (scalaJSDev andFinally (refreshBrowsers in frontend)),
+  // refreshBrowsers in frontend <<= ((refreshBrowsers in frontend).triggeredBy(packageBin)),
+  // packageBin in Compile <<= ((packageBin in Compile) andFinally (refreshBrowsers in frontend)),
+  // fastOptJS in Compile in frontend <<= ((fastOptJS in Compile in frontend) andFinally (refreshBrowsers in frontend)),
   )
 
 lazy val assets = project
@@ -175,10 +185,6 @@ lazy val backend = project
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos")
   )
-
-// loads the server project at sbt startup
-// onLoad in Global := (Command.process("project backend", _: State)) compose (onLoad in Global).value
-
 
 def dockerImageName(name: String, version: String) = ImageName(
   namespace = Some("woost"),
@@ -240,7 +246,7 @@ lazy val dbMigration = project
 val dockerDbMigration = Seq(
   dockerfile in docker := {
     new Dockerfile {
-     from("dhoer/flyway:4.0.3-alpine")
+      from("dhoer/flyway:4.0.3-alpine")
       copy(baseDirectory(_ / "sql").value, "/flyway/sql")
       copy(baseDirectory(_ / "flyway-await-postgres.sh").value, "/flyway-await-postgres.sh")
       run("chmod", "+x", "/flyway-await-postgres.sh")

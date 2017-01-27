@@ -1,0 +1,1 @@
+../../frontend/target/scala-2.11/frontend-jsdeps.js
