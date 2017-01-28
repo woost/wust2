@@ -9,10 +9,14 @@ services:
     extends:
       file: common-prod.yml
       service: db-migration
+    depends_on:
+      - postgres
   wust:
     extends:
       file: common-prod.yml
       service: wust
+    depends_on:
+      - postgres
   nginx:
     image: woost/wust2.nginx:http-0.1.0-SNAPSHOT
     environment:
