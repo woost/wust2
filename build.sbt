@@ -164,7 +164,6 @@ lazy val backend = project
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.3m" :: //TODO version 0.4?
       "org.specs2" %% "specs2-core" % "3.8.7" % "it,test" ::
-
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos")
   )

@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: "dev"
       POSTGRES_PASSWORD: "dev"
       POSTGRES_DB: "dev"
-    entrypoint: "sh -c 'apk add --no-cache socat &&  socat TCP-LISTEN:1234,fork TCP4:localhost:12345 & sbt dev'" #TODO
+    entrypoint: "sh -c 'apk add --no-cache socat && socat TCP-LISTEN:1234,fork TCP4:localhost:12345 & sbt dev'" #TODO
     ports:
       - "8080:8080"
       - "12345:1234"
