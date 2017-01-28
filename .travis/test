@@ -2,7 +2,7 @@
 
 ./start test.postgres
 
-#TODO ./start test.integration
+./start test.integration
 
 HOST_DOMAIN=localhost POSTGRES_USER=travis POSTGRES_PASSWORD=travis ./start prod.http
 nc -z localhost 80

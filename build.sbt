@@ -154,6 +154,8 @@ lazy val assets = project
 lazy val backend = project
   .enablePlugins(DockerPlugin)
   .settings(dockerBackend)
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
   .settings(commonSettings)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
@@ -161,7 +163,7 @@ lazy val backend = project
       "io.getquill" %% "quill-async-postgres" % "1.0.1" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.3m" :: //TODO version 0.4?
-      "org.specs2" %% "specs2-core" % "3.8.7" % "test" ::
+      "org.specs2" %% "specs2-core" % "3.8.7" % "it,test" ::
 
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos")
