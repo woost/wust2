@@ -227,14 +227,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     simulation.on("tick", draw _)
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
-
+    case class MenuAction(symbol: String, action: (SimPost) => Unit)
     val menuActions = {
       import autowire._
       import boopickle.Default._
       (
         // ("Split", { (p: SimPost) => logger.debug(s"C: $p") }) ::
-        ("Del", { (p: SimPost) => Client.api.deletePost(p.id).call() }) ::
-        ("Unfix", { (p: SimPost) => p.fixedPos = js.undefined; simulation.restart() }) ::
+        MenuAction("Del", { (p: SimPost) => Client.api.deletePost(p.id).call() }) ::
+        MenuAction("Unfix", { (p: SimPost) => p.fixedPos = js.undefined; simulation.restart() }) ::
         Nil
       )
     }
@@ -261,7 +261,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       html
       connectionElements
       postElements
-      ghostPostElements
+      ghostPostElements //TODO: place above ring menu?
 
       menuSvg
       menuLayer
@@ -295,25 +295,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       ringMenu
         .style("visibility", "hidden")
 
-      ringMenu
-        .append("circle")
-        .attr("r", menuRadius)
-        .attr("stroke-width", menuThickness)
-        .attr("fill", "none")
-        .attr("stroke", "rgba(0,0,0,0.7)")
-
-      for (((symbol, action), i) <- menuActions.zipWithIndex) {
-        val angle = i * 2 * Pi / menuActions.size
-        ringMenu
-          .append("text")
-          .text(symbol)
-          .attr("fill", "white")
-          .attr("x", cos(angle) * menuRadius)
-          .attr("y", sin(angle) * menuRadius)
-          .style("pointer-events", "all")
-          .style("cursor", "pointer")
-          .on("click", { () => menuTarget foreach action })
-      }
+      initRingMenu()
 
       svg.call(d3js.zoom().on("zoom", zoomed _))
       svg.on("click", () => menuTarget = None)
@@ -331,6 +313,39 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       simulation.force[PositioningX[SimPost]]("gravityx").strength(0.1)
       simulation.force[PositioningY[SimPost]]("gravityy").strength(0.1)
+    }
+
+    def initRingMenu() {
+      val pie = d3js.pie()
+        .value(1)
+        .padAngle(2 * Pi / 100)
+
+      val arc = d3js.arc()
+        .innerRadius(menuInnerRadius)
+        .outerRadius(menuOuterRadius)
+        .cornerRadius(3)
+
+      val pieData = menuActions.toJSArray
+      val ringMenuArc = ringMenu.selectAll("path")
+        .data(pie(pieData))
+      val ringMenuLabels = ringMenu.selectAll("text")
+        .data(pie(pieData))
+
+      ringMenuArc.enter()
+        .append("path")
+        .attr("d", (d: js.Dynamic) => arc(d))
+        .attr("fill", "rgba(0,0,0,0.7)")
+        .style("cursor", "pointer")
+        .style("pointer-events", "all")
+        .on("click", (d: js.Dynamic) => menuTarget foreach d.data.asInstanceOf[MenuAction].action)
+
+      ringMenuLabels.enter()
+        .append("text")
+        .text((d: js.Dynamic) => d.data.asInstanceOf[MenuAction].symbol)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("x", (d: js.Dynamic) => arc.centroid(d).asInstanceOf[js.Array[Double]](0))
+        .attr("y", (d: js.Dynamic) => arc.centroid(d).asInstanceOf[js.Array[Double]](1))
     }
 
     def zoomed() {
@@ -587,6 +602,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           // val curve = d3js.curveCardinalClosed
           val curve = d3js.curveCatmullRomClosed.alpha(0.5)
           // val curve = d3js.curveNatural
+
           d3js.line().curve(curve)(points)
         })
 
