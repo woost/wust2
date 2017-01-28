@@ -6,7 +6,6 @@ compose="$compose_stage $stage"
 
 case $stage in
 test.postgres)
-    sbt dbMigration/docker
     $compose down
     $compose run db-migration
     $compose run test
@@ -15,7 +14,6 @@ test.postgres)
     exit $rc
     ;;
 test.integration)
-    sbt dbMigration/docker
     $compose down
     $compose run db-migration
     $compose run test
@@ -44,13 +42,11 @@ dev)
     POSTGRES_HOSTNAME=localhost POSTGRES_DB=dev POSTGRES_USER=dev POSTGRES_PASSWORD=dev sbt dev
     ;;
 prod.http)
-    sbt docker
     $compose up -d postgres
     $compose run db-migration
     $compose up -d
     ;;
 prod)
-    sbt docker
     $compose up -d postgres
     $compose run db-migration
     $compose up -d

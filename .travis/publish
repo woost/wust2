@@ -2,9 +2,9 @@
 
 [[ "$TRAVIS_BRANCH" == "master" ]] || exit 0
 
-sbt docker
-
 docker images
+#TODO
 # docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-# docker push woost/postgres
 # docker push woost/wust2
+# docker push woost/wust2.db-migration
+# docker push woost/wust2.nginx

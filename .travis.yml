@@ -11,13 +11,12 @@ jdk:
     - oraclejdk8
 
 script:
-    - travis/test/postgres
-    - travis/test/sbt
+    - .travis/build
+    - .travis/test
     - rm ~/.sbt/boot/scala-*/org.scala-sbt/sbt/*/sbt.components.lock ~/.sbt/boot/sbt.boot.lock # cache
 
 after_success:
-    # publish docker image
-    - travis/publish/docker
+    - .travis/publish
     - rm ~/.sbt/boot/scala-*/org.scala-sbt/sbt/*/sbt.components.lock ~/.sbt/boot/sbt.boot.lock # cache
 
 cache:
