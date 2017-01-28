@@ -3,7 +3,7 @@ version in ThisBuild := "0.1.0-SNAPSHOT"
 
 //TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
-scalaVersion in ThisBuild := "2.11.8" //TODO: 2.12 (scribe is blocking)
+scalaVersion in ThisBuild := "2.11.8" //TODO: 2.12 (quill is blocking)
 
 lazy val commonSettings = Seq(
   resolvers ++= (
