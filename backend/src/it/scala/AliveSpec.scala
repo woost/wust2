@@ -14,7 +14,7 @@ class AliveSpec(implicit ee: ExecutionEnv) extends Specification {
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
-  val connection = Http().outgoingConnection("nginx", 80)
+  val connection = Http().outgoingConnection("localhost", 80)
 
   def get(path: String): Future[HttpResponse] = {
     val request = RequestBuilding.Get(path)

@@ -15,26 +15,16 @@ test.postgres)
     ;;
 test.integration)
     $compose down
-    $compose run db-migration
-    $compose run test
+    $compose up -d
+    sbt it:test
     rc=$?
     $compose down
     exit $rc
-    ;;
-psql.docker)
-    sbt dbMigration/docker
-    $compose_stage dev up -d db-migration
-    $compose_stage dev exec postgres psql -U dev
     ;;
 psql)
     sbt dbMigration/docker
     $compose_stage dev run db-migration
     PGPASSWORD=dev psql -h localhost -U dev
-    ;;
-dev.docker)
-    sbt dbMigration/docker
-    $compose up -d db-migration
-    $compose run --service-ports wust
     ;;
 dev)
     sbt dbMigration/docker
@@ -52,6 +42,6 @@ prod)
     $compose up -d
     ;;
 *)
-    echo "unknown stage '$1', expected one of [test.postgres,psql,psql.docker,dev,dev.docker,prod,prod.http]"
+    echo "unknown stage '$1', expected one of [psql,dev,test.postgres,test.integration,prod.http,prod]"
     exit 1
 esac

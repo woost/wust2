@@ -24,13 +24,7 @@ services:
     image: woost/wust2.nginx:http #TODO with tls?
     environment:
       HOST_DOMAIN: "localhost"
+    ports:
+      - "80:80"
     depends_on:
       - wust
-  test:
-    image: monostream/openjdk-sbt
-    command: sbt it:test
-    volumes:
-      - ../:/workspace
-      - ~/.ivy2/:/root/.ivy2
-    depends_on:
-      - nginx
