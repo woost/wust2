@@ -176,7 +176,7 @@ def dockerImageName(name: String, version: String) = ImageName(
 val dockerBackend = Seq(
   dockerfile in docker := {
     val artifact: File = assembly.value
-    val artifactTargetPath = s"/app/${artifact.name}.jar"
+    val artifactTargetPath = s"/app/${artifact.name}"
 
     new Dockerfile {
       from("openjdk:8-jre-alpine")
