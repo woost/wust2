@@ -61,6 +61,7 @@ class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
   val notAuthenticated: Future[Option[USER]] = Future.successful(None)
 
   def connected(outgoing: ActorRef, user: Future[Option[USER]]): Receive = {
+    case Ping() => outgoing ! Pong()
     case CallRequest(seqId, path, args) =>
       val timer = StopWatch.started
 

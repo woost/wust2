@@ -101,7 +101,15 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private val callRequests = new OpenRequests[ByteBuffer]
   private lazy val ws = new WebsocketConnection
 
-  private def send(msg: ClientMessage): Unit = ws.send(Pickle.intoBytes(msg))
+  import scala.scalajs.js.timers._
+  private var timeoutHandle: Option[SetTimeoutHandle] = None
+  private val pingTimeout = 50000
+
+  private def send(msg: ClientMessage): Unit = {
+    timeoutHandle.foreach(clearTimeout)
+    timeoutHandle = Some(setTimeout(pingTimeout)(send(Ping())))
+    ws.send(Pickle.intoBytes(msg))
+  }
 
   private def call(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
     val (id, promise) = callRequests.open()
@@ -128,6 +136,7 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
       }
       case ControlResponse(seqId, success) => controlRequests.get(seqId).foreach(_ trySuccess success)
       case Notification(event) => receive(event)
+      case Pong() =>
     }
   }
 }

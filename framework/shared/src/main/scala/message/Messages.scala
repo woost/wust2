@@ -10,11 +10,13 @@ class Messages[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] 
 
   //TODO: fix double serialization of request/response through autowire
   sealed trait ClientMessage
+  case class Ping() extends ClientMessage
   case class CallRequest(seqId: SequenceId, path: Seq[String], args: Map[String, ByteBuffer]) extends ClientMessage
   case class ControlRequest(seqId: SequenceId, control: Control) extends ClientMessage
   case class Subscription(channel: CHANNEL) extends ClientMessage
 
   sealed trait ServerMessage
+  case class Pong() extends ServerMessage
   case class CallResponse(seqId: SequenceId, result: Either[ERROR,ByteBuffer]) extends ServerMessage
   case class ControlResponse(seqId: SequenceId, success: Boolean) extends ServerMessage
   case class Notification(event: EVENT) extends ServerMessage
@@ -24,10 +26,12 @@ class Messages[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] 
     .addConcreteType[Login]
     .addConcreteType[Logout]
   implicit def clientMessagePickler = compositePickler[ClientMessage]
+    .addConcreteType[Ping]
     .addConcreteType[CallRequest]
     .addConcreteType[ControlRequest]
     .addConcreteType[Subscription]
   implicit def ServerMessagePickler = compositePickler[ServerMessage]
+    .addConcreteType[Pong]
     .addConcreteType[CallResponse]
     .addConcreteType[ControlResponse]
     .addConcreteType[Notification]
