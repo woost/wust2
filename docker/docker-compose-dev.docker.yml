@@ -2,27 +2,28 @@ version: '2'
 
 services:
   postgres:
-    image: postgres:9.6.1-alpine
-    environment: &pg_env
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: "wust"
-    volumes:
-      - ./pg_data/:/var/lib/postgresql/data
+    extends:
+      file: common-dev.yml
+      service: postgres
   db-migration:
-    image: woost/wust2.db-migration
-    command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=${POSTGRES_USER} -password=${POSTGRES_PASSWORD} migrate
+    extends:
+      file: common-dev.yml
+      service: db-migration
     depends_on:
       - postgres
   wust:
-    image: monostream/openjdk-sbt
     stdin_open: true
     tty: true
+    image: monostream/openjdk-sbt
     environment:
-      <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
+      POSTGRES_USER: "dev"
+      POSTGRES_PASSWORD: "dev"
+      POSTGRES_DB: "dev"
+    entrypoint: "sh -c 'apk add --no-cache socat &&  socat TCP-LISTEN:1234,fork TCP4:localhost:12345 & sbt dev'" #TODO
     ports:
       - "8080:8080"
+      - "12345:1234"
     volumes:
       - ../:/workspace
       - ~/.ivy2/:/root/.ivy2

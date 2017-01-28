@@ -2,20 +2,19 @@ version: '2'
 
 services:
   postgres:
-    image: postgres:9.6.1-alpine
-    environment:
-      POSTGRES_USER: 'user'
-      POSTGRES_PASSWORD: 'pw'
-      POSTGRES_DB: 'db'
+    extends:
+      file: common-test.yml
+      service: postgres
   db-migration:
-    image: woost/wust2.db-migration
-    command: -url='jdbc:postgresql://postgres/db' -schemas=public -user=user -password=pw migrate
+    extends:
+      file: common-test.yml
+      service: db-migration
     depends_on:
       - postgres
   test:
     image: cornerman/docker-pgtap
-    command: -h postgres -u 'user' -w 'pw' -d 'db'
-    depends_on:
-      - postgres
+    command: -h postgres -u 'test' -w 'test' -d 'test'
     volumes:
       - "../dbMigration/tests/:/t"
+    depends_on:
+      - postgres

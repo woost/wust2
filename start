@@ -6,7 +6,15 @@ compose="$compose_stage $stage"
 
 case $stage in
 test.postgres)
-    export POSTGRES_USER=test POSTGRES_PASSWORD=test
+    sbt dbMigration/docker
+    $compose down
+    $compose run db-migration
+    $compose run test
+    rc=$?
+    $compose down
+    exit $rc
+    ;;
+test.integration)
     sbt dbMigration/docker
     $compose down
     $compose run db-migration
@@ -16,28 +24,24 @@ test.postgres)
     exit $rc
     ;;
 psql.docker)
-    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
     $compose_stage dev up -d db-migration
-    $compose_stage dev exec postgres psql -U $POSTGRES_USER wust
+    $compose_stage dev exec postgres psql -U dev
     ;;
 psql)
-    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
     $compose_stage dev run db-migration
-    PGPASSWORD=$POSTGRES_PASSWORD psql -h localhost -U $POSTGRES_USER wust
+    PGPASSWORD=dev psql -h localhost -U dev
     ;;
 dev.docker)
-    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
     $compose up -d db-migration
-    $compose run --service-ports wust sbt dev
+    $compose run --service-ports wust
     ;;
 dev)
-    export POSTGRES_USER=test POSTGRES_PASSWORD=test
     sbt dbMigration/docker
     $compose up -d
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust sbt dev
+    POSTGRES_HOSTNAME=localhost POSTGRES_DB=dev POSTGRES_USER=dev POSTGRES_PASSWORD=dev sbt dev
     ;;
 prod.http)
     sbt docker

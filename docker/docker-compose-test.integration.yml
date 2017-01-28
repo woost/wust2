@@ -1,0 +1,36 @@
+version: '2'
+
+services:
+  postgres:
+    extends:
+      file: common-test.yml
+      service: postgres
+  db-migration:
+    extends:
+      file: common-test.yml
+      service: db-migration
+    depends_on:
+      - postgres
+  wust:
+    image: woost/wust2
+    environment:
+      POSTGRES_HOSTNAME: "postgres"
+      POSTGRES_USER: "test"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_DB: "test"
+    depends_on:
+      - postgres
+  nginx:
+    image: woost/wust2.nginx:http #TODO with tls?
+    environment:
+      HOST_DOMAIN: "localhost"
+    depends_on:
+      - wust
+  test:
+    image: monostream/openjdk-sbt
+    command: sbt it:test
+    volumes:
+      - ../:/workspace
+      - ~/.ivy2/:/root/.ivy2
+    depends_on:
+      - nginx

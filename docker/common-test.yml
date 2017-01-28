@@ -1,0 +1,12 @@
+version: '2'
+
+services:
+  postgres:
+    image: postgres:9.6.1-alpine
+    environment:
+      POSTGRES_USER: 'test'
+      POSTGRES_PASSWORD: 'test'
+      POSTGRES_DB: 'test'
+  db-migration:
+    image: woost/wust2.db-migration
+    command: -url='jdbc:postgresql://postgres/test' -schemas=public -user=test -password=test migrate
