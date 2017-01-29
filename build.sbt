@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, nginxHttps, nginxHttp, dbMigration)
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, test, nginxHttps, nginxHttp, dbMigration)
   .settings(
     publish := {},
     publishLocal := {},
@@ -155,8 +155,6 @@ lazy val assets = project
 lazy val backend = project
   .enablePlugins(DockerPlugin)
   .settings(dockerBackend)
-  .configs(IntegrationTest)
-  .settings(Defaults.itSettings)
   .settings(commonSettings)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
@@ -164,9 +162,21 @@ lazy val backend = project
       "io.getquill" %% "quill-async-postgres" % "1.0.1" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.3m" :: //TODO version 0.4?
-      "org.specs2" %% "specs2-core" % "3.8.7" % "it,test" ::
+      "org.specs2" %% "specs2-core" % "3.8.7" % "test" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos")
+  )
+
+lazy val test = project
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++=
+      "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
+      "org.specs2" %% "specs2-core" % "3.8.7" % "it" ::
+      Nil
   )
 
 def dockerImageName(name: String, version: String) = ImageName(

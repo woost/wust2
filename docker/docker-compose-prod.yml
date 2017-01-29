@@ -27,6 +27,6 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ${NGINX_VOLUME}:${NGINX_VOLUME}
+      - ${NGINX_VOLUME}:${NGINX_VOLUME}:ro
     depends_on:
       - wust

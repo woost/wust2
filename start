@@ -1,26 +1,17 @@
 #!/bin/bash -e
 
+script_dir="$(dirname $(readlink -f '$0'))"
 stage="$1"
 compose_stage="$(dirname $0)/docker/compose"
 compose="$compose_stage $stage"
 
+function run_test() {
+    stage="$1"
+    prep="$2"
+    cmd="$3"
+}
+
 case $stage in
-test.postgres)
-    $compose down
-    $compose run db-migration
-    $compose run test
-    rc=$?
-    $compose down
-    exit $rc
-    ;;
-test.integration)
-    $compose down
-    $compose up -d
-    sbt it:test
-    rc=$?
-    $compose down
-    exit $rc
-    ;;
 psql)
     sbt dbMigration/docker
     $compose_stage dev run db-migration
@@ -41,7 +32,32 @@ prod)
     $compose run db-migration
     $compose up -d
     ;;
+test.postgres)
+    $compose down
+    $compose run db-migration
+    $compose run test
+    $compose down
+    ;;
+test.integration)
+    $compose down
+    $compose up -d
+    sbt it:test
+    $compose down
+    ;;
+test.prod.http)
+    $compose_stage prod.http down
+    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test $compose_stage prod.http up -d
+    sbt test/it:test
+    $compose_stage prod.http down
+    ;;
+test.prod)
+    $compose_stage prod down
+    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test NGINX_VOLUME=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem $compose_stage prod up -d
+    #TODO sbt test/it:test
+    nc -z localhost 80 && nc -z localhost 443
+    $compose_stage prod down
+    ;;
 *)
-    echo "unknown stage '$1', expected one of [psql,dev,test.postgres,test.integration,prod.http,prod]"
+    echo "unknown stage '$1', expected one of [psql,dev,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]"
     exit 1
 esac
