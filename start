@@ -17,12 +17,10 @@ dev)
     POSTGRES_HOSTNAME=localhost POSTGRES_DB=dev POSTGRES_USER=dev POSTGRES_PASSWORD=dev sbt
     ;;
 prod.http)
-    $compose up -d postgres
     $compose run db-migration
     $compose up -d
     ;;
 prod)
-    $compose up -d postgres
     $compose run db-migration
     $compose up -d
     ;;
