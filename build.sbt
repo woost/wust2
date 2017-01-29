@@ -11,6 +11,8 @@ lazy val commonSettings = Seq(
     ("RoundEights" at "http://maven.spikemark.net/roundeights") ::
     Nil
   ),
+  // watch managed library dependencies (only works with scala 2.11 currently)
+  watchSources ++= (managedClasspath in Compile).map(_.files).value,
   scalacOptions ++=
     "-encoding" :: "UTF-8" ::
     "-unchecked" ::
@@ -28,8 +30,6 @@ lazy val root = project.in(file("."))
   .settings(
     publish := {},
     publishLocal := {},
-    // also watch managed library dependencies (only works with scala 2.11 currently)
-    watchSources ++= (managedClasspath in Compile).map(_.files).value,
 
     addCommandAlias("dev", "~; backend/re-start; workbench/compile")
   )
