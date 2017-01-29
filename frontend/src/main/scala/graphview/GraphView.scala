@@ -29,13 +29,13 @@ import org.scalajs.d3v4.polygon._
 import org.scalajs.d3v4.drag._
 import util.collectionHelpers._
 
-object D3Dynamic {
-  //TODO: write more facade types instead of using dynamic
-  val d3js = js.Dynamic.global.d3
-}
-import D3Dynamic.d3js
+@JSImport("d3", JSImport.Namespace)
+@js.native
+object d3native extends js.Object
 
 object GraphView extends CustomComponent[Graph]("GraphView") {
+  val d3js = d3native.asInstanceOf[js.Dynamic]
+
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   val width = 640
   val height = 480

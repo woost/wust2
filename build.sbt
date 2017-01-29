@@ -38,7 +38,6 @@ lazy val root = project.in(file("."))
 
 val reactVersion = "15.4.2"
 val akkaVersion = "2.4.16"
-val d3v4FacadeVersion = "0.1.0-SNAPSHOT"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -90,13 +89,10 @@ lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
 lazy val frontend = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSWeb)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings)
   .settings(
-    persistLauncher := true,
-    persistLauncher in Test := false,
-
     libraryDependencies ++= (
       "io.suzaku" %%% "diode" % "1.1.1" ::
       "io.suzaku" %%% "diode-react" % "1.1.1" ::
@@ -104,35 +100,27 @@ lazy val frontend = project
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scalajs-react-custom-component" % "0.1.0" ::
-
-      "com.github.fdietze" %%% "scala-js-d3v4-selection" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-collection" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-dispatch" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-quadtree" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-timer" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-force" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-drag" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-interpolate" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-ease" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-transition" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-zoom" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-drag" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-polygon" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-shape" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-path" % d3v4FacadeVersion ::
-      "com.github.fdietze" %%% "scala-js-d3v4-color" % d3v4FacadeVersion ::
+      "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
 
-    jsDependencies ++= Seq(
-      "org.webjars.bower" % "react" % reactVersion / "react-with-addons.js" minified "react-with-addons.min.js",
-      "org.webjars.bower" % "react" % reactVersion / "react-dom.js" minified "react-dom.min.js" dependsOn "react-with-addons.js",
-      "org.webjars.bower" % "react" % reactVersion / "react-dom-server.js" minified "react-dom-server.min.js" dependsOn "react-dom.js"
-    )
+    //TODO: scalajs-react bundler support: https://github.com/japgolly/scalajs-react/pull/320
+    // until then we are exposing react to the global namespace:
+    // (https://scalacenter.github.io/scalajs-bundler/cookbook.html#global-namespace)
+    npmDependencies in Compile ++= Seq(
+      "react" -> reactVersion,
+      "react-dom" -> reactVersion
+    ),
+    // Add a dependency to the expose-loader (which will expose react to the global namespace)
+    npmDevDependencies in Compile += "expose-loader" -> "0.7.1",
+    // Use a custom config file to export the JS dependencies to the global namespace,
+    // as expected by the scalajs-react facade
+    webpackConfigFile := Some(baseDirectory.value / "webpack.config.js"),
+    watchSources += baseDirectory.value / "webpack.config.js"
   )
 
 lazy val assets = project
-  .enablePlugins(SbtWeb)
+  .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
