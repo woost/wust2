@@ -50,25 +50,11 @@ lazy val api = crossProject.crossType(CrossType.Pure)
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
-lazy val graph = crossProject
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= (
-      "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      Nil
-    )
-  )
-  .jsSettings(
-    libraryDependencies ++= (
-      "com.github.fdietze" %%% "scala-js-d3v4-force" % d3v4FacadeVersion ::
-      Nil
-    )
-  )
+lazy val graph = crossProject.settings(commonSettings)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
-lazy val util = crossProject
-  .settings(commonSettings)
+lazy val util = crossProject.settings(commonSettings)
 lazy val utilJS = util.js
 lazy val utilJVM = util.jvm
 
@@ -207,6 +193,7 @@ lazy val workbench = project.in(file("workbench"))
   .enablePlugins(WorkbenchPlugin, SbtWeb)
   .dependsOn(assets)
   .settings(
+    watchSources += baseDirectory.value / "index.html", //TODO: does not work. put in assets?
     compile in Compile := ((compile in Compile) dependsOn WebKeys.assets).value,
     //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
     //TODO: do not refresh if compilation failed
