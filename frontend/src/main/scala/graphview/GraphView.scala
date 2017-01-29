@@ -66,6 +66,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     (
       ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
       ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+      ("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
       Nil
     ).toArray
   }
@@ -438,6 +439,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.alpha(1).restart()
     }
 
+    def draw() {
+      drawPosts()
+      drawRelations()
+      drawPostMenu()
+    }
+
     def drawGhosts() {
       ghostPostElements.selectAll("div")
         .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
@@ -451,9 +458,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #AAA")
     }
 
-    def draw() {
-      drawPosts()
-
+    def drawRelations() {
       connectionElements.selectAll("div")
         .style("left", (e: SimConnects) => s"${e.x.get}px")
         .style("top", (e: SimConnects) => s"${e.y.get}px")
@@ -475,11 +480,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
           d3js.line().curve(curve)(points)
         })
+    }
 
+    def drawPostMenu() {
       menuTarget.foreach { post =>
         ringMenu.attr("transform", s"translate(${post.x}, ${post.y})")
       }
     }
+
   }
 
   val backendFactory = new Backend(_)
