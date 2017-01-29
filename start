@@ -5,12 +5,6 @@ stage="$1"
 compose_stage="$(dirname $0)/docker/compose"
 compose="$compose_stage $stage"
 
-function run_test() {
-    stage="$1"
-    prep="$2"
-    cmd="$3"
-}
-
 case $stage in
 psql)
     sbt dbMigration/docker
