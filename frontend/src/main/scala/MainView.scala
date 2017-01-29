@@ -12,6 +12,7 @@ package object frontend {
   import boopickle.Default._
 
   import graph._
+  import graphview.GraphView
 
   val GraphConnect = AppCircuit.connect(_.graph)
 

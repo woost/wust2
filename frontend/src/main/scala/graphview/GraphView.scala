@@ -1,4 +1,6 @@
-package frontend
+package frontend.graphview
+
+import frontend._
 
 import scalajs.js
 import js.JSConverters._
@@ -21,7 +23,6 @@ import math._
 
 import org.scalajs.d3v4._
 import org.scalajs.d3v4.force._
-import org.scalajs.d3v4.force.{SimulationNode => D3Node, SimulationLink => D3Link, SimulationNodeImpl => D3NodeImpl, SimulationLinkImpl => D3LinkImpl}
 import org.scalajs.d3v4.zoom._
 import org.scalajs.d3v4.selection._
 import org.scalajs.d3v4.polygon._
@@ -34,136 +35,6 @@ object D3Dynamic {
 }
 import D3Dynamic.d3js
 
-trait ExtendedD3Node extends D3Node {
-  def pos = for (x <- x; y <- y) yield Vec2(x, y)
-  def pos_=(newPos: js.UndefOr[Vec2]) {
-    if (newPos.isDefined) {
-      x = newPos.get.x
-      y = newPos.get.y
-    } else {
-      x = js.undefined
-      y = js.undefined
-    }
-  }
-  def vel = for (vx <- vx; vy <- vy) yield Vec2(vx, vy)
-  def vel_=(newVel: js.UndefOr[Vec2]) {
-    if (newVel.isDefined) {
-      vx = newVel.get.x
-      vy = newVel.get.y
-    } else {
-      vx = js.undefined
-      vy = js.undefined
-    }
-  }
-  def fixedPos = for (fx <- fx; fy <- fy) yield Vec2(fx, fy)
-  def fixedPos_=(newFixedPos: js.UndefOr[Vec2]) {
-    if (newFixedPos.isDefined) {
-      fx = newFixedPos.get.x
-      fy = newFixedPos.get.y
-    } else {
-      fx = js.undefined
-      fy = js.undefined
-    }
-  }
-
-  var size: Vec2 = Vec2(0, 0)
-  def rect = pos.map { pos => AARect(pos, size) }
-  var centerOffset: Vec2 = Vec2(0, 0)
-  var radius: Double = 0
-  var collisionRadius: Double = 0
-
-  var dragStart = Vec2(0, 0)
-}
-
-class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
-  //TODO: delegert!
-  def id = post.id
-  def title = post.title
-
-  var color = "red"
-
-  var dragClosest: Option[SimPost] = None
-  var isClosest = false
-  var dropAngle = 0.0
-  def dropIndex(n: Int) = {
-    val positiveAngle = (dropAngle + 2 * Pi) % (2 * Pi)
-    val stepSize = 2 * Pi / n
-    val index = (positiveAngle / stepSize).toInt
-    index
-  }
-
-  def newGhost = {
-    val g = new SimPost(post)
-    g.x = x
-    g.y = y
-    g.size = size
-    g.centerOffset = centerOffset
-    g.color = color
-    g
-  }
-  var ghost: Option[SimPost] = None
-}
-
-class SimConnects(val connects: Connects, val source: SimPost) extends D3Link[SimPost, ExtendedD3Node] with ExtendedD3Node with D3LinkImpl[SimPost, ExtendedD3Node] {
-  //TODO: delegert!
-  def id = connects.id
-  def sourceId = connects.sourceId
-  def targetId = connects.targetId
-
-  // this is necessary because target can be a SimConnects itself
-  var target: ExtendedD3Node = _
-
-  // propagate d3 gets/sets to incident posts
-  def x = for (sx <- source.x; tx <- target.x) yield (sx + tx) / 2
-  def x_=(newX: js.UndefOr[Double]) {
-    val diff = for (x <- x; newX <- newX) yield (newX - x) / 2
-    source.x = for (x <- source.x; diff <- diff) yield x + diff
-    target.x = for (x <- target.x; diff <- diff) yield x + diff
-  }
-  def y = for (sy <- source.y; ty <- target.y) yield (sy + ty) / 2
-  def y_=(newY: js.UndefOr[Double]) {
-    val diff = for (y <- y; newY <- newY) yield (newY - y) / 2
-    source.y = for (y <- source.y; diff <- diff) yield y + diff
-    target.y = for (y <- target.y; diff <- diff) yield y + diff
-  }
-  def vx = for (svx <- source.vx; tvx <- target.vx) yield (svx + tvx) / 2
-  def vx_=(newVX: js.UndefOr[Double]) {
-    val diff = for (vx <- vx; newVX <- newVX) yield (newVX - vx) / 2
-    source.vx = for (vx <- source.vx; diff <- diff) yield vx + diff
-    target.vx = for (vx <- target.vx; diff <- diff) yield vx + diff
-  }
-  def vy = for (svy <- source.vy; tvy <- target.vy) yield (svy + tvy) / 2
-  def vy_=(newVY: js.UndefOr[Double]) {
-    val diff = for (vy <- vy; newVY <- newVY) yield (newVY - vy) / 2
-    source.vy = for (vy <- source.vy; diff <- diff) yield vy + diff
-    target.vy = for (vy <- target.vy; diff <- diff) yield vy + diff
-  }
-  def fx: js.UndefOr[Double] = ???
-  def fx_=(newFX: js.UndefOr[Double]): Unit = ???
-  def fy: js.UndefOr[Double] = ???
-  def fy_=(newFX: js.UndefOr[Double]): Unit = ???
-}
-
-class SimContains(val contains: Contains, val parent: SimPost, val child: SimPost) extends D3LinkImpl[SimPost, SimPost] {
-  //TODO: delegert!
-  def id = contains.id
-  def parentId = contains.parentId
-  def childId = contains.childId
-
-  def source = parent
-  def target = child
-}
-
-class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost]) {
-  def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
-  def convexHull: js.Array[js.Array[Double]] = {
-    val hull = d3.polygonHull(positions)
-    //TODO: how to correctly handle scalajs union type?
-    if (hull == null) positions
-    else hull.asInstanceOf[js.Array[js.Array[Double]]]
-  }
-}
-
 object GraphView extends CustomComponent[Graph]("GraphView") {
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   val width = 640
@@ -171,13 +42,34 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
   val menuOuterRadius = 100
   val menuInnerRadius = 50
-  val menuRadius = (menuOuterRadius + menuInnerRadius) / 2
-  val menuThickness = menuOuterRadius - menuInnerRadius
 
   val dragHitDetectRadius = 200
   val postDefaultColor = d3js.lab("#f8f8f8")
   def baseHue(id: AtomId) = (id * 137) % 360
   def baseColor(id: AtomId) = d3js.hcl(baseHue(id), 50, 70)
+
+  case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
+  val menuActions = {
+    import autowire._
+    import boopickle.Default._
+    (
+      MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+      MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
+      MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
+      Nil
+    )
+  }
+
+  val dropActions = {
+    import autowire._
+    import boopickle.Default._
+    (
+      ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+      ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+      Nil
+    ).toArray
+  }
+  val dropColors = dropActions.map(_._2)
 
   class Backend($: Scope) extends CustomBackend($) {
     var graph: Graph = _
@@ -204,7 +96,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     def menuTarget = _menuTarget
     def menuTarget_=(target: Option[SimPost]) {
       _menuTarget = target
-
       _menuTarget match {
         case Some(post) =>
           ringMenu.style("visibility", "visible")
@@ -227,29 +118,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     simulation.on("tick", draw _)
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
-    case class MenuAction(symbol: String, action: (SimPost) => Unit)
-    val menuActions = {
-      import autowire._
-      import boopickle.Default._
-      (
-        // ("Split", { (p: SimPost) => logger.debug(s"C: $p") }) ::
-        MenuAction("Del", { (p: SimPost) => Client.api.deletePost(p.id).call() }) ::
-        MenuAction("Unfix", { (p: SimPost) => p.fixedPos = js.undefined; simulation.restart() }) ::
-        Nil
-      )
-    }
-
-    val dropActions = {
-      import autowire._
-      import boopickle.Default._
-      (
-        ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
-        ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
-        Nil
-      ).toArray
-    }
-    val dropColors = dropActions.map(_._2)
-
     override def init() {
       // init lazy vals to set drawing order
       container
@@ -337,7 +205,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("fill", "rgba(0,0,0,0.7)")
         .style("cursor", "pointer")
         .style("pointer-events", "all")
-        .on("click", (d: js.Dynamic) => menuTarget foreach d.data.asInstanceOf[MenuAction].action)
+        .on("click", (d: js.Dynamic) => menuTarget.foreach(d.data.asInstanceOf[MenuAction].action(_, simulation)))
 
       ringMenuLabels.enter()
         .append("text")
@@ -410,6 +278,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     def postDragEnded(node: HTMLElement, p: SimPost) {
+      logger.info("postDragEnded")
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
 
@@ -436,6 +305,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) {
+      logger.info(s"update: " + oldProps.map(_ != p).getOrElse(true))
       graph = p
 
       postData = graph.posts.values.map { p =>
@@ -497,18 +367,18 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("position", "absolute")
         .style("cursor", "default")
         .style("pointer-events", "auto") // reenable
-        .call(d3js.drag()
-          .on("start", postDragStarted _: js.ThisFunction)
-          .on("drag", postDragged _: js.ThisFunction)
-          .on("end", postDragEnded _: js.ThisFunction))
         .on("click", { (p: SimPost) =>
+          //TODO: click should not trigger drag
           if (menuTarget.isEmpty || menuTarget.get != p)
             menuTarget = Some(p)
           else
             menuTarget = None
-
           draw()
         })
+        .call(d3js.drag()
+          .on("start", postDragStarted _: js.ThisFunction)
+          .on("drag", postDragged _: js.ThisFunction)
+          .on("end", postDragEnded _: js.ThisFunction))
 
       connectionLine.enter().append("line")
         .style("stroke", "#8F8F8F")
@@ -523,7 +393,6 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .style("pointer-events", "auto") // reenable
         .style("cursor", "pointer")
         .on("click", { (e: SimConnects) =>
-          logger.debug("delete edge")
           import autowire._
           import boopickle.Default._
 
