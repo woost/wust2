@@ -32,7 +32,8 @@ lazy val root = project.in(file("."))
     publishLocal := {},
 
     addCommandAlias("dev", "~; backend/re-start; workbench/compile"),
-    addCommandAlias("devf", "~workbench/compile")
+    addCommandAlias("devfwatch", "~workbench/compile"),
+    addCommandAlias("devf", "; backend/re-start; devfwatch")
   )
 
 val reactVersion = "15.4.2"
