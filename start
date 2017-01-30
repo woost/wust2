@@ -49,6 +49,10 @@ test.prod)
     nc -z localhost 80 && nc -z localhost 443
     $compose_stage prod down
     ;;
+local.prod)
+    $compose_stage prod down
+    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test NGINX_VOLUME=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem $compose_stage prod up -d
+    ;;
 *)
     echo "unknown stage '$1', expected one of [psql,dev,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]"
     exit 1
