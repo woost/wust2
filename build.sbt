@@ -154,30 +154,6 @@ lazy val test = project
       Nil
   )
 
-def dockerImageName(name: String, version: String) = ImageName(
-  namespace = Some("woost"),
-  repository = name,
-  tag = Some(version)
-)
-
-val dockerBackend = Seq(
-  dockerfile in docker := {
-    val artifact: File = assembly.value
-    val artifactTargetPath = s"/app/${artifact.name}"
-
-    new Dockerfile {
-      from("openjdk:8-jre-alpine")
-      copy(artifact, artifactTargetPath)
-      workDir("/app")
-      entryPoint("java", "-jar", artifactTargetPath)
-    }
-  },
-  imageNames in docker := Seq(
-    dockerImageName("wust2", "latest"),
-    dockerImageName("wust2", version.value)
-  )
-)
-
 lazy val workbench = project.in(file("workbench"))
   .enablePlugins(WorkbenchPlugin, SbtWeb)
   .dependsOn(assets)
@@ -188,6 +164,33 @@ lazy val workbench = project.in(file("workbench"))
     //TODO: do not refresh if compilation failed
     refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile)
   )
+
+
+
+def dockerImageName(name: String, version: String) = ImageName(
+  namespace = Some("woost"),
+  repository = name,
+  tag = Some(version)
+)
+
+val dockerBackend = Seq(
+  dockerfile in docker := {
+    val artifact: File = assembly.value
+    val artifactPath = s"/app/${artifact.name}"
+
+    new Dockerfile {
+      from("openjdk:8-jre-alpine")
+      run("adduser", "user", "-D", "-u", "1000")
+      user("user")
+      copy(artifact, artifactPath)
+      entryPoint("java", "-jar", artifactPath)
+    }
+  },
+  imageNames in docker := Seq(
+    dockerImageName("wust2", "latest"),
+    dockerImageName("wust2", version.value)
+  )
+)
 
 //TODO watchSources <++= baseDirectory map { p => (p / "reverse-proxy.conf").get } //TODO
 lazy val nginxHttps = project.in(file("nginx/https"))
@@ -206,7 +209,6 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
       from("nginx:1.11.8-alpine")
       copy(baseDirectory(_ / "nginx-template-config.sh").value, "/nginx-template-config.sh")
       copy(baseDirectory(_ / "reverse-proxy.conf").value, "/templates/default.conf.tpl")
-      run("chmod", "+x", "/nginx-template-config.sh")
       copy(assetFolder, "/public")
       entryPoint("/nginx-template-config.sh")
     }
@@ -225,10 +227,12 @@ val dockerDbMigration = Seq(
   dockerfile in docker := {
     new Dockerfile {
       from("dhoer/flyway:4.0.3-alpine")
+      run("adduser", "user", "-D", "-u", "1000")
+      run("chown", "-R", "user:user", "/flyway")
+      user("user")
       copy(baseDirectory(_ / "sql").value, "/flyway/sql")
-      copy(baseDirectory(_ / "flyway-await-postgres.sh").value, "/flyway-await-postgres.sh")
-      run("chmod", "+x", "/flyway-await-postgres.sh")
-      entryPoint("/flyway-await-postgres.sh")
+      copy(baseDirectory(_ / "flyway-await-postgres.sh").value, s"/flyway/flyway-await-postgres.sh")
+      entryPoint("/flyway/flyway-await-postgres.sh")
     }
   },
   imageNames in docker := Seq(
