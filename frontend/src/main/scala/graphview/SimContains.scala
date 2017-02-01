@@ -4,7 +4,7 @@ import graph._
 import math._
 
 import scalajs.js
-import org.scalajs.d3v4.force._
+import org.scalajs.d3v4._
 import vectory._
 
 class SimContains(val contains: Contains, val parent: SimPost, val child: SimPost) extends SimulationLinkImpl[SimPost, SimPost] {

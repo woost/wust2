@@ -4,7 +4,7 @@ import graph._
 import math._
 
 import scalajs.js
-import org.scalajs.d3v4.force._
+import org.scalajs.d3v4._
 import vectory._
 
 class SimConnects(val connects: Connects, val source: SimPost) extends SimulationLink[SimPost, ExtendedD3Node] with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {

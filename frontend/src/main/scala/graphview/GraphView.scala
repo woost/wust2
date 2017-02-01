@@ -22,19 +22,9 @@ import collection.breakOut
 import math._
 
 import org.scalajs.d3v4._
-import org.scalajs.d3v4.force._
-import org.scalajs.d3v4.zoom._
-import org.scalajs.d3v4.selection._
-import org.scalajs.d3v4.polygon._
-import org.scalajs.d3v4.drag._
 import util.collectionHelpers._
 
-@JSImport("d3", JSImport.Namespace)
-@js.native
-object d3native extends js.Object
-
 object GraphView extends CustomComponent[Graph]("GraphView") {
-  val d3js = d3native.asInstanceOf[js.Dynamic]
 
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   val width = 640
@@ -44,9 +34,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
   val menuInnerRadius = 50
 
   val dragHitDetectRadius = 200
-  val postDefaultColor = d3js.lab("#f8f8f8")
+  val postDefaultColor = d3.lab("#f8f8f8")
   def baseHue(id: AtomId) = (id * 137) % 360
-  def baseColor(id: AtomId) = d3js.hcl(baseHue(id), 50, 70)
+  def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 70)
 
   case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
   val menuActions = {
@@ -108,7 +98,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
-    lazy val container = d3js.select(component)
+    lazy val container = d3.select(component)
     lazy val svg = container.append("svg")
     lazy val html = container.append("div")
     lazy val postElements = html.append("div")
@@ -167,30 +157,30 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       initRingMenu()
 
-      svg.call(d3js.zoom().on("zoom", zoomed _))
+      svg.call(d3.zoom().on("zoom", zoomed _))
       svg.on("click", () => menuTarget = None)
 
-      //TODO: store forces in individual variables to avoid acessing them by simulation.force[Type Cast]
-      simulation.force[Centering[SimPost]]("center").x(width / 2).y(height / 2)
-      simulation.force[PositioningX[SimPost]]("gravityx").x(width / 2)
-      simulation.force[PositioningY[SimPost]]("gravityy").y(height / 2)
+      //TODO: store forces in individual variables to avoid acessing them by simulation.forceAs[Type Cast]
+      simulation.forceAs[Centering[SimPost]]("center").x(width / 2).y(height / 2)
+      simulation.forceAs[PositioningX[SimPost]]("gravityx").x(width / 2)
+      simulation.forceAs[PositioningY[SimPost]]("gravityy").y(height / 2)
 
-      simulation.force[ManyBody[SimPost]]("repel").strength(-1000)
-      simulation.force[Collision[SimPost]]("collision").radius((p: SimPost) => p.collisionRadius)
+      simulation.forceAs[ManyBody[SimPost]]("repel").strength(-1000)
+      simulation.forceAs[Collision[SimPost]]("collision").radius((p: SimPost) => p.collisionRadius)
 
-      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, SimConnects]]("connection").distance(100)
-      simulation.force[force.Link[SimPost, SimContains]]("containment").distance(100)
+      simulation.asInstanceOf[Simulation[SimulationNode]].forceAs[Link[SimulationNode, SimConnects]]("connection").distance(100)
+      simulation.forceAs[Link[SimPost, SimContains]]("containment").distance(100)
 
-      simulation.force[PositioningX[SimPost]]("gravityx").strength(0.1)
-      simulation.force[PositioningY[SimPost]]("gravityy").strength(0.1)
+      simulation.forceAs[PositioningX[SimPost]]("gravityx").strength(0.1)
+      simulation.forceAs[PositioningY[SimPost]]("gravityy").strength(0.1)
     }
 
     def initRingMenu() {
-      val pie = d3js.pie()
+      val pie = d3.pie()
         .value(1)
         .padAngle(2 * Pi / 100)
 
-      val arc = d3js.arc()
+      val arc = d3.arc()
         .innerRadius(menuInnerRadius)
         .outerRadius(menuOuterRadius)
         .cornerRadius(3)
@@ -203,19 +193,19 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
       ringMenuArc.enter()
         .append("path")
-        .attr("d", (d: js.Dynamic) => arc(d))
+        .attr("d", (d: PieArcDatum[MenuAction]) => arc(d))
         .attr("fill", "rgba(0,0,0,0.7)")
         .style("cursor", "pointer")
         .style("pointer-events", "all")
-        .on("click", (d: js.Dynamic) => menuTarget.foreach(d.data.asInstanceOf[MenuAction].action(_, simulation)))
+        .on("click", (d: PieArcDatum[MenuAction]) => menuTarget.foreach(d.data.action(_, simulation)))
 
       ringMenuLabels.enter()
         .append("text")
-        .text((d: js.Dynamic) => d.data.asInstanceOf[MenuAction].symbol)
+        .text((d: PieArcDatum[MenuAction]) => d.data.symbol)
         .attr("text-anchor", "middle")
         .attr("fill", "white")
-        .attr("x", (d: js.Dynamic) => arc.centroid(d).asInstanceOf[js.Array[Double]](0))
-        .attr("y", (d: js.Dynamic) => arc.centroid(d).asInstanceOf[js.Array[Double]](1))
+        .attr("x", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(0))
+        .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
     }
 
     override def update(p: Props, oldProps: Option[Props] = None) {
@@ -231,12 +221,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         }
         //TODO: d3-color Facades!
         val parents = graph.parents(p.id)
-        val parentColors: Seq[js.Dynamic] = parents.map((p: Post) => baseColor(p.id))
-        val colors: Seq[js.Dynamic] = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor) +: parentColors
-        val labColors = colors.map((c: js.Dynamic) => d3js.lab(c))
-        val colorSum = labColors.reduce((c1, c2) => d3js.lab(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b))
-        val colorCount = labColors.size.asInstanceOf[js.Dynamic]
-        val colorAvg = d3js.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
+        val parentColors: Seq[Hcl] = parents.map((p: Post) => baseColor(p.id))
+        val colors: Seq[Color] = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor) +: parentColors
+        val labColors = colors.map(d3.lab(_))
+        val colorSum = labColors.reduce((c1, c2) => d3.lab(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b))
+        val colorCount = labColors.size
+        val colorAvg = d3.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
         sp.color = colorAvg.toString()
         sp
       }.toJSArray
@@ -289,10 +279,10 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
             menuTarget = None
           draw()
         })
-        .call(d3js.drag()
-          .on("start", postDragStarted _: js.ThisFunction)
-          .on("drag", postDragged _: js.ThisFunction)
-          .on("end", postDragEnded _: js.ThisFunction))
+        .call(d3.drag[SimPost]()
+          .on("start", postDragStarted _)
+          .on("drag", postDragged _)
+          .on("end", postDragEnded _))
 
       connectionLine.enter().append("line")
         .style("stroke", "#8F8F8F")
@@ -329,9 +319,9 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.centerOffset = p.size / -2
         p.radius = p.size.length / 2
         p.collisionRadius = p.radius
-      }: js.ThisFunction)
+      })
 
-      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, SimConnects]]("connection").strength { (e: SimConnects) =>
+      simulation.asInstanceOf[Simulation[SimulationNode]].forceAs[Link[SimulationNode, SimConnects]]("connection").strength { (e: SimConnects) =>
         import p.fullDegree
         val targetDeg = e.target match {
           case p: SimPost => fullDegree(p.post)
@@ -340,14 +330,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source.post), targetDeg)
       }
 
-      simulation.force[force.Link[SimPost, SimContains]]("containment").strength { (e: SimContains) =>
+      simulation.forceAs[Link[SimPost, SimContains]]("containment").strength { (e: SimContains) =>
         import p.fullDegree
         1.0 / min(fullDegree(e.source.post), fullDegree(e.target.post))
       }
 
       simulation.nodes(postData)
-      simulation.asInstanceOf[Simulation[SimulationNode]].force[force.Link[SimulationNode, SimConnects]]("connection").links(connectionData)
-      simulation.force[force.Link[SimPost, SimContains]]("containment").links(containmentData)
+      simulation.asInstanceOf[Simulation[SimulationNode]].forceAs[Link[SimulationNode, SimConnects]]("connection").links(connectionData)
+      simulation.forceAs[Link[SimPost, SimContains]]("containment").links(containmentData)
       simulation.alpha(1).restart()
     }
 
@@ -373,12 +363,12 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
     def zoomed() {
       transform = d3.event.asInstanceOf[ZoomEvent].transform
-      svg.selectAll("g").attr("transform", transform)
+      svg.selectAll("g").attr("transform", transform.toString)
       html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
-      menuLayer.attr("transform", transform)
+      menuLayer.attr("transform", transform.toString)
     }
 
-    def postDragStarted(node: HTMLElement, p: SimPost) {
+    def postDragStarted(p: SimPost) {
       val ghost = p.newGhost
       p.ghost = Some(ghost)
       updateGhosts()
@@ -391,7 +381,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       simulation.stop()
     }
 
-    def postDragged(node: HTMLElement, p: SimPost) {
+    def postDragged(p: SimPost) {
       val ghost = p.ghost.get
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
@@ -412,7 +402,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       drawPosts() // for highlighting closest
     }
 
-    def postDragEnded(node: HTMLElement, p: SimPost) {
+    def postDragEnded(p: SimPost) {
       logger.info("postDragEnded")
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
@@ -474,11 +464,11 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
           // https://codeplea.com/introduction-to-splines
           // https://github.com/d3/d3-shape#curves
           val points = cluster.convexHull
-          // val curve = d3js.curveCardinalClosed
-          val curve = d3js.curveCatmullRomClosed.alpha(0.5)
-          // val curve = d3js.curveNatural
+          // val curve = d3.curveCardinalClosed
+          val curve = d3.curveCatmullRomClosed.alpha(0.5)
+          // val curve = d3.curveNatural
 
-          d3js.line().curve(curve)(points)
+          d3.line().curve(curve)(points)
         })
     }
 

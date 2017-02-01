@@ -5,11 +5,9 @@ import math._
 import collection.breakOut
 
 import scalajs.js
-import org.scalajs.d3v4.force._
 import vectory._
 
 import org.scalajs.d3v4._
-import org.scalajs.d3v4.polygon._
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost]) {
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)

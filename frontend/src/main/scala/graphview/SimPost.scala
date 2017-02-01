@@ -4,8 +4,8 @@ import graph._
 import math._
 
 import scalajs.js
-import org.scalajs.d3v4.force._
 import vectory._
+import org.scalajs.d3v4._
 
 class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   //TODO: delegert!

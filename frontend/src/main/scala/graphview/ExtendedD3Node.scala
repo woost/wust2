@@ -1,8 +1,8 @@
 package frontend.graphview
 
 import scalajs.js
-import org.scalajs.d3v4.force._
 import vectory._
+import org.scalajs.d3v4._
 
 trait ExtendedD3Node extends SimulationNode {
   def pos = for (x <- x; y <- y) yield Vec2(x, y)
