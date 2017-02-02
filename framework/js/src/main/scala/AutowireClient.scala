@@ -105,9 +105,13 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private var timeoutHandle: Option[SetTimeoutHandle] = None
   private val pingTimeout = 50000
 
-  private def send(msg: ClientMessage): Unit = {
+  private def acknowledgeTraffic(): Unit = {
     timeoutHandle.foreach(clearTimeout)
     timeoutHandle = Some(setTimeout(pingTimeout)(send(Ping())))
+  }
+
+  private def send(msg: ClientMessage): Unit = {
+    acknowledgeTraffic()
     ws.send(Pickle.intoBytes(msg))
   }
 
@@ -130,6 +134,7 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   val wire = new AutowireClient(call)
 
   def run(location: String): Unit = ws.run(location) { bytes =>
+    acknowledgeTraffic()
     Unpickle[ServerMessage].fromBytes(bytes) match {
       case CallResponse(seqId, result) => callRequests.get(seqId).foreach { req =>
         result.fold(req tryFailure fromError(_), req trySuccess _)
