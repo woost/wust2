@@ -24,46 +24,52 @@ import math._
 import org.scalajs.d3v4._
 import util.collectionHelpers._
 
-object GraphView extends CustomComponent[Graph]("GraphView") {
+case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
 
-  //TODO: dynamic by screen size, refresh on window resize, put into centering force
-  val width = 640
-  val height = 480
+object GraphView extends Playground[Graph]("GraphView") {
+  val environmentFactory = new D3Environment(_)
 
-  val menuOuterRadius = 100
-  val menuInnerRadius = 50
-
-  val dragHitDetectRadius = 200
-  val postDefaultColor = d3.lab("#f8f8f8")
-  def baseHue(id: AtomId) = (id * 137) % 360
-  def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 70)
-
-  case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
-  val menuActions = {
-    import autowire._
-    import boopickle.Default._
-    (
-      MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-      MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
-      MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
-      Nil
-    )
-  }
-
-  val dropActions = {
-    import autowire._
-    import boopickle.Default._
-    (
-      ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
-      ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
-      ("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
-      Nil
-    ).toArray
-  }
-  val dropColors = dropActions.map(_._2)
-
-  class Backend($: Scope) extends CustomBackend($) {
+  class D3Environment(component: HTMLElement) extends Environment {
     var graph: Graph = _
+    override def setProps(newGraph: Graph) { graph = newGraph }
+    override def propsUpdated(oldGraph: Graph) { update(graph) }
+
+    //TODO: dynamic by screen size, refresh on window resize, put into centering force
+    val width = 640
+    val height = 480
+
+    val menuOuterRadius = 100
+    val menuInnerRadius = 50
+    val menuPaddingAngle = 2 * Pi / 100
+    val menuCornerRadius = 3
+
+    val dragHitDetectRadius = 200
+    val postDefaultColor = d3.lab("#f8f8f8")
+    def baseHue(id: AtomId) = (id * 137) % 360
+    def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 70)
+
+    val menuActions = {
+      import autowire._
+      import boopickle.Default._
+      (
+        MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+        MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
+        MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
+        Nil
+      )
+    }
+
+    val dropActions = {
+      import autowire._
+      import boopickle.Default._
+      (
+        ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+        ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+        ("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
+        Nil
+      ).toArray
+    }
+    val dropColors = dropActions.map(_._2)
 
     var postData: js.Array[SimPost] = js.Array()
     var postIdToSimPost: Map[AtomId, SimPost] = Map.empty
@@ -85,105 +91,99 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
       }
     }
 
+    object forces {
+      val center = d3.forceCenter[SimPost]()
+      val gravityX = d3.forceX[SimPost]()
+      val gravityY = d3.forceY[SimPost]()
+      val repel = d3.forceManyBody[SimPost]()
+      val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
+      val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+      val containment = d3.forceLink[SimPost, SimContains]()
+    }
+
     val simulation = d3.forceSimulation[SimPost]()
-      .force("center", d3.forceCenter())
-      .force("gravityx", d3.forceX())
-      .force("gravityy", d3.forceY())
-      .force("repel", d3.forceManyBody())
-      .force("collision", d3.forceCollide()) //TODO: rectangle collision detection?
-      .force("connection", d3.forceLink())
-      .force("containment", d3.forceLink())
+      .force("center", forces.center)
+      .force("gravityx", forces.gravityX)
+      .force("gravityy", forces.gravityY)
+      .force("repel", forces.repel)
+      .force("collision", forces.collision)
+      .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+      .force("containment", forces.containment)
 
     simulation.on("tick", draw _)
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
-    lazy val container = d3.select(component)
-    lazy val svg = container.append("svg")
-    lazy val html = container.append("div")
-    lazy val postElements = html.append("div")
-    lazy val ghostPostElements = html.append("div")
-    lazy val connectionLines = svg.append("g")
-    lazy val connectionElements = html.append("div")
-    lazy val containmentHulls = svg.append("g")
-    lazy val menuSvg = container.append("svg")
-    lazy val menuLayer = menuSvg.append("g")
-    lazy val ringMenu = menuLayer.append("g")
+    // order is important
+    val container = d3.select(component)
+    val svg = container.append("svg")
+    val containmentHulls = svg.append("g")
+    val connectionLines = svg.append("g")
 
-    override def init() {
-      // init lazy vals to set drawing order
-      container
+    val html = container.append("div")
+    val connectionElements = html.append("div")
+    val postElements = html.append("div")
+    val ghostPostElements = html.append("div") //TODO: place above ring menu?
 
-      svg
-      containmentHulls
-      connectionLines
+    val menuSvg = container.append("svg")
+    val menuLayer = menuSvg.append("g")
+    val ringMenu = menuLayer.append("g")
 
-      html
-      connectionElements
-      postElements
-      ghostPostElements //TODO: place above ring menu?
+    container
+      .style("position", "absolute")
+      .style("top", "0")
+      .style("left", "0")
+      .style("z-index", "-1")
+      .style("width", "100%")
+      .style("height", "100%")
+      .style("overflow", "hidden")
 
-      menuSvg
-      menuLayer
-      ringMenu
+    svg
+      .style("position", "absolute")
+      .style("width", "100%")
+      .style("height", "100%")
 
-      container
-        .style("position", "absolute")
-        .style("top", "0")
-        .style("left", "0")
-        .style("z-index", "-1")
-        .style("width", "100%")
-        .style("height", "100%")
-        .style("overflow", "hidden")
+    html
+      .style("position", "absolute")
+      .style("pointer-events", "none") // pass through to svg (e.g. zoom)
+      .style("transform-origin", "top left") // same as svg default
 
-      svg
-        .style("position", "absolute")
-        .style("width", "100%")
-        .style("height", "100%")
+    menuSvg
+      .style("position", "absolute")
+      .style("width", "100%")
+      .style("height", "100%")
+      .style("pointer-events", "none")
 
-      html
-        .style("position", "absolute")
-        .style("pointer-events", "none") // pass through to svg (e.g. zoom)
-        .style("transform-origin", "top left") // same as svg default
+    ringMenu
+      .style("visibility", "hidden")
 
-      menuSvg
-        .style("position", "absolute")
-        .style("width", "100%")
-        .style("height", "100%")
-        .style("pointer-events", "none")
+    initRingMenu()
 
-      ringMenu
-        .style("visibility", "hidden")
+    svg.call(d3.zoom().on("zoom", zoomed _))
+    svg.on("click", () => menuTarget = None)
 
-      initRingMenu()
+    forces.center.x(width / 2).y(height / 2)
+    forces.gravityX.x(width / 2)
+    forces.gravityY.y(height / 2)
 
-      svg.call(d3.zoom().on("zoom", zoomed _))
-      svg.on("click", () => menuTarget = None)
+    forces.repel.strength(-1000)
+    forces.collision.radius((p: SimPost) => p.collisionRadius)
 
-      //TODO: store forces in individual variables to avoid acessing them by simulation.forceAs[Type Cast]
-      simulation.forceAs[Centering[SimPost]]("center").x(width / 2).y(height / 2)
-      simulation.forceAs[PositioningX[SimPost]]("gravityx").x(width / 2)
-      simulation.forceAs[PositioningY[SimPost]]("gravityy").y(height / 2)
+    forces.connection.distance(100)
+    forces.containment.distance(100)
 
-      simulation.forceAs[ManyBody[SimPost]]("repel").strength(-1000)
-      simulation.forceAs[Collision[SimPost]]("collision").radius((p: SimPost) => p.collisionRadius)
-
-      simulation.asInstanceOf[Simulation[SimulationNode]].forceAs[Link[SimulationNode, SimConnects]]("connection").distance(100)
-      simulation.forceAs[Link[SimPost, SimContains]]("containment").distance(100)
-
-      simulation.forceAs[PositioningX[SimPost]]("gravityx").strength(0.1)
-      simulation.forceAs[PositioningY[SimPost]]("gravityy").strength(0.1)
-    }
+    forces.gravityX.strength(0.1)
+    forces.gravityY.strength(0.1)
 
     def initRingMenu() {
       val pie = d3.pie()
         .value(1)
-        .padAngle(2 * Pi / 100)
+        .padAngle(menuPaddingAngle)
 
       val arc = d3.arc()
         .innerRadius(menuInnerRadius)
         .outerRadius(menuOuterRadius)
-        .cornerRadius(3)
+        .cornerRadius(menuCornerRadius)
 
       val pieData = menuActions.toJSArray
       val ringMenuArc = ringMenu.selectAll("path")
@@ -208,10 +208,7 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
     }
 
-    override def update(p: Props, oldProps: Option[Props] = None) {
-      logger.info(s"update: " + oldProps.map(_ != p).getOrElse(true))
-      graph = p
-
+    def update(graph: Graph) {
       postData = graph.posts.values.map { p =>
         val sp = new SimPost(p)
         postIdToSimPost.get(sp.id).foreach { old =>
@@ -321,8 +318,8 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         p.collisionRadius = p.radius
       })
 
-      simulation.asInstanceOf[Simulation[SimulationNode]].forceAs[Link[SimulationNode, SimConnects]]("connection").strength { (e: SimConnects) =>
-        import p.fullDegree
+      forces.connection.strength { (e: SimConnects) =>
+        import graph.fullDegree
         val targetDeg = e.target match {
           case p: SimPost => fullDegree(p.post)
           case _: SimConnects => 2
@@ -330,14 +327,14 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source.post), targetDeg)
       }
 
-      simulation.forceAs[Link[SimPost, SimContains]]("containment").strength { (e: SimContains) =>
-        import p.fullDegree
+      forces.containment.strength { (e: SimContains) =>
+        import graph.fullDegree
         1.0 / min(fullDegree(e.source.post), fullDegree(e.target.post))
       }
 
       simulation.nodes(postData)
-      simulation.asInstanceOf[Simulation[SimulationNode]].forceAs[Link[SimulationNode, SimConnects]]("connection").links(connectionData)
-      simulation.forceAs[Link[SimPost, SimContains]]("containment").links(containmentData)
+      forces.connection.links(connectionData)
+      forces.containment.links(containmentData)
       simulation.alpha(1).restart()
     }
 
@@ -480,5 +477,4 @@ object GraphView extends CustomComponent[Graph]("GraphView") {
 
   }
 
-  val backendFactory = new Backend(_)
 }

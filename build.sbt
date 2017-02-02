@@ -99,7 +99,7 @@ lazy val frontend = project
       "com.github.japgolly.scalajs-react" %%% "core" % "0.11.3" ::
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      "com.github.fdietze" %%% "scalajs-react-custom-component" % "0.1.0" ::
+      "com.github.fdietze" %%% "scalajs-react-custom-component" % "0.2.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
@@ -164,8 +164,6 @@ lazy val workbench = project.in(file("workbench"))
     //TODO: do not refresh if compilation failed
     refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile)
   )
-
-
 
 def dockerImageName(name: String, version: String) = ImageName(
   namespace = Some("woost"),
