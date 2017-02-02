@@ -24,7 +24,7 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
     index
   }
 
-  def newGhost = {
+  def newDraggingPost = {
     val g = new SimPost(post)
     g.x = x
     g.y = y
@@ -33,5 +33,5 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
     g.color = color
     g
   }
-  var ghost: Option[SimPost] = None
+  var draggingPost: Option[SimPost] = None
 }

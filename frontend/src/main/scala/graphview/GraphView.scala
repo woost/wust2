@@ -77,11 +77,11 @@ object GraphView extends Playground[Graph]("GraphView") {
     var containmentData: js.Array[SimContains] = js.Array()
     var containmentClusters: js.Array[ContainmentCluster] = js.Array()
 
-    var _menuTarget: Option[SimPost] = None
-    def menuTarget = _menuTarget
-    def menuTarget_=(target: Option[SimPost]) {
-      _menuTarget = target
-      _menuTarget match {
+    var _focusedPost: Option[SimPost] = None
+    def focusedPost = _focusedPost
+    def focusedPost_=(target: Option[SimPost]) {
+      _focusedPost = target
+      _focusedPost match {
         case Some(post) =>
           ringMenu.style("visibility", "visible")
           AppCircuit.dispatch(SetRespondingTo(Some(post.id)))
@@ -114,6 +114,7 @@ object GraphView extends Playground[Graph]("GraphView") {
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
+    // prepare containers where we will append elements depending on the data
     // order is important
     val container = d3.select(component)
     val svg = container.append("svg")
@@ -123,59 +124,70 @@ object GraphView extends Playground[Graph]("GraphView") {
     val html = container.append("div")
     val connectionElements = html.append("div")
     val postElements = html.append("div")
-    val ghostPostElements = html.append("div") //TODO: place above ring menu?
+    val draggingPostElements = html.append("div") //TODO: place above ring menu?
 
     val menuSvg = container.append("svg")
     val menuLayer = menuSvg.append("g")
     val ringMenu = menuLayer.append("g")
 
-    container
-      .style("position", "absolute")
-      .style("top", "0")
-      .style("left", "0")
-      .style("z-index", "-1")
-      .style("width", "100%")
-      .style("height", "100%")
-      .style("overflow", "hidden")
-
-    svg
-      .style("position", "absolute")
-      .style("width", "100%")
-      .style("height", "100%")
-
-    html
-      .style("position", "absolute")
-      .style("pointer-events", "none") // pass through to svg (e.g. zoom)
-      .style("transform-origin", "top left") // same as svg default
-
-    menuSvg
-      .style("position", "absolute")
-      .style("width", "100%")
-      .style("height", "100%")
-      .style("pointer-events", "none")
-
-    ringMenu
-      .style("visibility", "hidden")
-
+    initContainerDimensionsAndPositions()
     initRingMenu()
+    initZoomEvents()
+    initForces()
 
-    svg.call(d3.zoom().on("zoom", zoomed _))
-    svg.on("click", () => menuTarget = None)
+    svg.on("click", () => focusedPost = None)
 
-    forces.center.x(width / 2).y(height / 2)
-    forces.gravityX.x(width / 2)
-    forces.gravityY.y(height / 2)
+    def initForces() {
 
-    forces.repel.strength(-1000)
-    forces.collision.radius((p: SimPost) => p.collisionRadius)
+      forces.center.x(width / 2).y(height / 2)
+      forces.gravityX.x(width / 2)
+      forces.gravityY.y(height / 2)
 
-    forces.connection.distance(100)
-    forces.containment.distance(100)
+      forces.repel.strength(-1000)
+      forces.collision.radius((p: SimPost) => p.collisionRadius)
 
-    forces.gravityX.strength(0.1)
-    forces.gravityY.strength(0.1)
+      forces.connection.distance(100)
+      forces.containment.distance(100)
+
+      forces.gravityX.strength(0.1)
+      forces.gravityY.strength(0.1)
+    }
+
+    def initZoomEvents() {
+      svg.call(d3.zoom().on("zoom", zoomed _))
+    }
+
+    def initContainerDimensionsAndPositions() {
+      container
+        .style("position", "absolute")
+        .style("top", "0")
+        .style("left", "0")
+        .style("z-index", "-1")
+        .style("width", "100%")
+        .style("height", "100%")
+        .style("overflow", "hidden")
+
+      svg
+        .style("position", "absolute")
+        .style("width", "100%")
+        .style("height", "100%")
+
+      html
+        .style("position", "absolute")
+        .style("pointer-events", "none") // pass through to svg (e.g. zoom)
+        .style("transform-origin", "top left") // same as svg default
+    }
 
     def initRingMenu() {
+      menuSvg
+        .style("position", "absolute")
+        .style("width", "100%")
+        .style("height", "100%")
+        .style("pointer-events", "none")
+
+      ringMenu
+        .style("visibility", "hidden")
+
       val pie = d3.pie()
         .value(1)
         .padAngle(menuPaddingAngle)
@@ -197,7 +209,7 @@ object GraphView extends Playground[Graph]("GraphView") {
         .attr("fill", "rgba(0,0,0,0.7)")
         .style("cursor", "pointer")
         .style("pointer-events", "all")
-        .on("click", (d: PieArcDatum[MenuAction]) => menuTarget.foreach(d.data.action(_, simulation)))
+        .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.foreach(d.data.action(_, simulation)))
 
       ringMenuLabels.enter()
         .append("text")
@@ -229,7 +241,7 @@ object GraphView extends Playground[Graph]("GraphView") {
       }.toJSArray
       postIdToSimPost = (postData: js.ArrayOps[SimPost]).by(_.id)
 
-      menuTarget = menuTarget.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
+      focusedPost = focusedPost.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
 
       val post = postElements.selectAll("div")
         .data(postData, (p: SimPost) => p.id)
@@ -270,10 +282,10 @@ object GraphView extends Playground[Graph]("GraphView") {
         .style("pointer-events", "auto") // reenable
         .on("click", { (p: SimPost) =>
           //TODO: click should not trigger drag
-          if (menuTarget.isEmpty || menuTarget.get != p)
-            menuTarget = Some(p)
+          if (focusedPost.isEmpty || focusedPost.get != p)
+            focusedPost = Some(p)
           else
-            menuTarget = None
+            focusedPost = None
           draw()
         })
         .call(d3.drag[SimPost]()
@@ -338,11 +350,11 @@ object GraphView extends Playground[Graph]("GraphView") {
       simulation.alpha(1).restart()
     }
 
-    def updateGhosts() {
+    def updateDraggingPosts() {
       val posts = graph.posts.values
-      val ghosts = posts.flatMap(p => postIdToSimPost(p.id).ghost).toJSArray
-      val post = ghostPostElements.selectAll("div")
-        .data(ghosts, (p: SimPost) => p.id)
+      val draggingPosts = posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
+      val post = draggingPostElements.selectAll("div")
+        .data(draggingPosts, (p: SimPost) => p.id)
 
       post.enter().append("div")
         .text((post: SimPost) => post.title)
@@ -366,20 +378,20 @@ object GraphView extends Playground[Graph]("GraphView") {
     }
 
     def postDragStarted(p: SimPost) {
-      val ghost = p.newGhost
-      p.ghost = Some(ghost)
-      updateGhosts()
+      val draggingPost = p.newDraggingPost
+      p.draggingPost = Some(draggingPost)
+      updateDraggingPosts()
 
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       p.dragStart = eventPos
-      ghost.pos = eventPos
-      drawGhosts()
+      draggingPost.pos = eventPos
+      drawDraggingPosts()
 
       simulation.stop()
     }
 
     def postDragged(p: SimPost) {
-      val ghost = p.ghost.get
+      val draggingPost = p.draggingPost.get
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
       val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
@@ -387,15 +399,15 @@ object GraphView extends Playground[Graph]("GraphView") {
       p.dragClosest.foreach(_.isClosest = false)
       closest match {
         case Some(target) if target != p =>
-          val dir = ghost.pos.get - target.pos.get
+          val dir = draggingPost.pos.get - target.pos.get
           target.isClosest = true
           target.dropAngle = dir.angle
         case _ =>
       }
       p.dragClosest = closest
 
-      ghost.pos = transformedEventPos
-      drawGhosts()
+      draggingPost.pos = transformedEventPos
+      drawDraggingPosts()
       drawPosts() // for highlighting closest
     }
 
@@ -419,9 +431,9 @@ object GraphView extends Playground[Graph]("GraphView") {
           p.fixedPos = transformedEventPos
       }
 
-      p.ghost = None
-      updateGhosts()
-      drawGhosts()
+      p.draggingPost = None
+      updateDraggingPosts()
+      drawDraggingPosts()
 
       simulation.alpha(1).restart()
     }
@@ -432,8 +444,8 @@ object GraphView extends Playground[Graph]("GraphView") {
       drawPostMenu()
     }
 
-    def drawGhosts() {
-      ghostPostElements.selectAll("div")
+    def drawDraggingPosts() {
+      draggingPostElements.selectAll("div")
         .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
         .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
     }
@@ -470,7 +482,7 @@ object GraphView extends Playground[Graph]("GraphView") {
     }
 
     def drawPostMenu() {
-      menuTarget.foreach { post =>
+      focusedPost.foreach { post =>
         ringMenu.attr("transform", s"translate(${post.x}, ${post.y})")
       }
     }
