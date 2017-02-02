@@ -8,6 +8,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.ws._
+import akka.http.scaladsl.model.{StatusCode, StatusCodes}
 import akka.stream.scaladsl._
 import akka.stream.ActorMaterializer
 
@@ -37,13 +38,17 @@ object WustConnection {
     case false =>
       if (n > 1) {
         if (sleepMillis > 0) Thread.sleep(sleepMillis)
-        retry(n - 1)(fun)
+        retry(n - 1, sleepMillis)(fun)
       } else false
   }
 
+  def pathIsUp(path: String, validate: HttpResponse => Boolean) =
+    retry(10, sleepMillis = 1000)(Await.ready(get(path), 5.second).value.get.filter(validate).isSuccess)
+
   lazy val ready = {
     println("Waiting for Wust to be up...")
-    retry(10, sleepMillis = 1000)(Await.ready(get("/"), 10.second).value.get.filter(_.status.isSuccess).isSuccess)
+    pathIsUp("/", r => r.status.isSuccess && !r.entity.isDefault) &&
+      pathIsUp("/ws", _.status != StatusCodes.BadGateway)
   }
 }
 
