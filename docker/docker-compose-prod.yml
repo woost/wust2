@@ -19,6 +19,7 @@ services:
       - postgres
   nginx:
     image: woost/wust2.nginx:0.1.0-SNAPSHOT
+    restart: always
     environment:
       HOST_DOMAIN: ${HOST_DOMAIN}
       SSL_CERT_PATH: "${NGINX_VOLUME}/${SSL_CERT}"
