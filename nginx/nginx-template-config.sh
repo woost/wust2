@@ -5,7 +5,9 @@ for template in /templates/*.tpl; do
     config_file="/etc/nginx/conf.d/$file_base"
     echo "substituting in $template"
     cat $template \
-        | sed "s,\$HOST_DOMAIN,${HOST_DOMAIN?},g" \
+        | sed "s,\$HOST_DOMAIN,${HOST_DOMAIN},g" \
+        | sed "s,\$SSL_CERT_PATH,${SSL_CERT_PATH},g" \
+        | sed "s,\$SSL_KEY_PATH,${SSL_KEY_PATH},g" \
         | tee $config_file
 
     echo " -> config written to $config_file"

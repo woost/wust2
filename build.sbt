@@ -206,7 +206,7 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
 
     new Dockerfile {
       from("nginx:1.11.8-alpine")
-      copy(baseDirectory(_ / "nginx-template-config.sh").value, "/nginx-template-config.sh")
+      copy(baseDirectory(_ / ".." / "nginx-template-config.sh").value, "/nginx-template-config.sh")
       copy(baseDirectory(_ / "reverse-proxy.conf").value, "/templates/default.conf.tpl")
       copy(assetFolder, "/public")
       entryPoint("/nginx-template-config.sh")
