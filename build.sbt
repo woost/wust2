@@ -31,9 +31,9 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("dev", "~; backend/re-start; workbench/compile"),
+    addCommandAlias("dev", "~; backend/re-start; frontend/clean; workbench/compile"),
     addCommandAlias("devfwatch", "~workbench/compile"),
-    addCommandAlias("devf", "; backend/re-start; devfwatch")
+    addCommandAlias("devf", "; backend/re-start; frontend/clean; devfwatch")
   )
 
 val reactVersion = "15.4.2"
@@ -117,6 +117,7 @@ lazy val frontend = project
     // as expected by the scalajs-react facade
     webpackConfigFile := Some(baseDirectory.value / "webpack.config.js"),
     watchSources += baseDirectory.value / "webpack.config.js"
+  //TODO: enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
 
 lazy val assets = project
