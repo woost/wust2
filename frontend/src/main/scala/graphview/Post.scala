@@ -13,35 +13,6 @@ import vectory._
 import org.scalajs.d3v4._
 import util.collectionHelpers._
 
-class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
-  //TODO: delegert!
-  def id = post.id
-  def title = post.title
-
-  var color = "red"
-
-  var dragClosest: Option[SimPost] = None
-  var isClosest = false
-  var dropAngle = 0.0
-  def dropIndex(n: Int) = {
-    val positiveAngle = (dropAngle + 2 * Pi) % (2 * Pi)
-    val stepSize = 2 * Pi / n
-    val index = (positiveAngle / stepSize).toInt
-    index
-  }
-
-  def newDraggingPost = {
-    val g = new SimPost(post)
-    g.x = x
-    g.y = y
-    g.size = size
-    g.centerOffset = centerOffset
-    g.color = color
-    g
-  }
-  var draggingPost: Option[SimPost] = None
-}
-
 class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
@@ -113,47 +84,5 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
       .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #AAA")
-  }
-}
-
-class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
-  extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
-  import env._
-
-  override def enter(menu: Selection[SimPost]) {
-    val pie = d3.pie()
-      .value(1)
-      .padAngle(menuPaddingAngle)
-
-    val arc = d3.arc()
-      .innerRadius(menuInnerRadius)
-      .outerRadius(menuOuterRadius)
-      .cornerRadius(menuCornerRadius)
-
-    val pieData = menuActions.toJSArray
-    val ringMenuArc = menu.selectAll("path")
-      .data(pie(pieData))
-    val ringMenuLabels = menu.selectAll("text")
-      .data(pie(pieData))
-
-    ringMenuArc.enter()
-      .append("path")
-      .attr("d", (d: PieArcDatum[MenuAction]) => arc(d))
-      .attr("fill", "rgba(0,0,0,0.7)")
-      .style("cursor", "pointer")
-      .style("pointer-events", "all")
-      .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.foreach(d.data.action(_, simulation)))
-
-    ringMenuLabels.enter()
-      .append("text")
-      .text((d: PieArcDatum[MenuAction]) => d.data.symbol)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("x", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(0))
-      .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
-  }
-
-  override def drawCall(menu: Selection[SimPost]) {
-    menu.attr("transform", (p: SimPost) => s"translate(${p.x}, ${p.y})")
   }
 }
