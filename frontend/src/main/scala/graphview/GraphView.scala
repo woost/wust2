@@ -25,11 +25,12 @@ import org.scalajs.d3v4._
 import util.collectionHelpers._
 
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
+case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
 
 object GraphView extends Playground[Graph]("GraphView") {
   val environmentFactory = new D3Environment(_)
 
-  class D3Environment(component: HTMLElement) extends Environment {
+  class D3Environment(component: HTMLElement) extends Environment { thisEnv =>
     var graph: Graph = _
     override def setProps(newGraph: Graph) { graph = newGraph }
     override def propsUpdated(oldGraph: Graph) { update(graph) }
@@ -38,10 +39,10 @@ object GraphView extends Playground[Graph]("GraphView") {
     val width = 640
     val height = 480
 
-    val menuOuterRadius = 100
-    val menuInnerRadius = 50
-    val menuPaddingAngle = 2 * Pi / 100
-    val menuCornerRadius = 3
+    val menuOuterRadius = 100.0
+    val menuInnerRadius = 50.0
+    val menuPaddingAngle = 2.0 * Pi / 100.0
+    val menuCornerRadius = 3.0
 
     val dragHitDetectRadius = 200
     val postDefaultColor = d3.lab("#f8f8f8")
@@ -63,54 +64,27 @@ object GraphView extends Playground[Graph]("GraphView") {
       import autowire._
       import boopickle.Default._
       (
-        ("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
-        ("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
-        ("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
+        DropAction("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+        DropAction("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+        DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
         Nil
       ).toArray
     }
-    val dropColors = dropActions.map(_._2)
+    val dropColors = dropActions.map(_.color)
 
-    var postData: js.Array[SimPost] = js.Array()
-    var postIdToSimPost: Map[AtomId, SimPost] = Map.empty
-    var connectionData: js.Array[SimConnects] = js.Array()
-    var containmentData: js.Array[SimContains] = js.Array()
-    var containmentClusters: js.Array[ContainmentCluster] = js.Array()
-
+    //TODO: multiple menus for multi-user multi-touch interface?
     var _focusedPost: Option[SimPost] = None
     def focusedPost = _focusedPost
     def focusedPost_=(target: Option[SimPost]) {
+      postMenuSelection.update(target.toJSArray)
       _focusedPost = target
       _focusedPost match {
         case Some(post) =>
-          ringMenu.style("visibility", "visible")
           AppCircuit.dispatch(SetRespondingTo(Some(post.id)))
         case None =>
-          ringMenu.style("visibility", "hidden")
           AppCircuit.dispatch(SetRespondingTo(None))
       }
     }
-
-    object forces {
-      val center = d3.forceCenter[SimPost]()
-      val gravityX = d3.forceX[SimPost]()
-      val gravityY = d3.forceY[SimPost]()
-      val repel = d3.forceManyBody[SimPost]()
-      val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
-      val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
-      val containment = d3.forceLink[SimPost, SimContains]()
-    }
-
-    val simulation = d3.forceSimulation[SimPost]()
-      .force("center", forces.center)
-      .force("gravityx", forces.gravityX)
-      .force("gravityy", forces.gravityY)
-      .force("repel", forces.repel)
-      .force("collision", forces.collision)
-      .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
-      .force("containment", forces.containment)
-
-    simulation.on("tick", draw _)
 
     var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
@@ -118,26 +92,49 @@ object GraphView extends Playground[Graph]("GraphView") {
     // order is important
     val container = d3.select(component)
     val svg = container.append("svg")
-    val containmentHulls = svg.append("g")
-    val connectionLines = svg.append("g")
+    val containmentHullSelection = new ContainmentHullSelection(svg.append("g"), thisEnv)
+    val connectionLineSelection = new ConnectionLineSelection(svg.append("g"), thisEnv)
 
     val html = container.append("div")
-    val connectionElements = html.append("div")
-    val postElements = html.append("div")
-    val draggingPostElements = html.append("div") //TODO: place above ring menu?
+    val connectionElementSelection = new ConnectionElementSelection(html.append("div"), thisEnv)
+    val postSelection = new PostSelection(html.append("div"), thisEnv)
+    val draggingPostSelection = new DraggingPostSelection(html.append("div"), thisEnv) //TODO: place above ring menu?
 
     val menuSvg = container.append("svg")
     val menuLayer = menuSvg.append("g")
-    val ringMenu = menuLayer.append("g")
+    val postMenuSelection = new PostMenuSelection(menuLayer.append("g"), thisEnv)
 
     initContainerDimensionsAndPositions()
-    initRingMenu()
     initZoomEvents()
-    initForces()
+    val forces = initForces()
+    val simulation = initSimulation()
 
     svg.on("click", () => focusedPost = None)
 
-    def initForces() {
+    /////////////////////////////
+
+    def initSimulation(): Simulation[SimPost] = {
+      d3.forceSimulation[SimPost]()
+        .force("center", forces.center)
+        .force("gravityx", forces.gravityX)
+        .force("gravityy", forces.gravityY)
+        .force("repel", forces.repel)
+        .force("collision", forces.collision)
+        .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+        .force("containment", forces.containment)
+        .on("tick", draw _)
+    }
+
+    def initForces() = {
+      object forces {
+        val center = d3.forceCenter[SimPost]()
+        val gravityX = d3.forceX[SimPost]()
+        val gravityY = d3.forceY[SimPost]()
+        val repel = d3.forceManyBody[SimPost]()
+        val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
+        val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+        val containment = d3.forceLink[SimPost, SimContains]()
+      }
 
       forces.center.x(width / 2).y(height / 2)
       forces.gravityX.x(width / 2)
@@ -151,6 +148,8 @@ object GraphView extends Playground[Graph]("GraphView") {
 
       forces.gravityX.strength(0.1)
       forces.gravityY.strength(0.1)
+
+      forces
     }
 
     def initZoomEvents() {
@@ -176,159 +175,28 @@ object GraphView extends Playground[Graph]("GraphView") {
         .style("position", "absolute")
         .style("pointer-events", "none") // pass through to svg (e.g. zoom)
         .style("transform-origin", "top left") // same as svg default
-    }
 
-    def initRingMenu() {
       menuSvg
         .style("position", "absolute")
         .style("width", "100%")
         .style("height", "100%")
         .style("pointer-events", "none")
 
-      ringMenu
-        .style("visibility", "hidden")
-
-      val pie = d3.pie()
-        .value(1)
-        .padAngle(menuPaddingAngle)
-
-      val arc = d3.arc()
-        .innerRadius(menuInnerRadius)
-        .outerRadius(menuOuterRadius)
-        .cornerRadius(menuCornerRadius)
-
-      val pieData = menuActions.toJSArray
-      val ringMenuArc = ringMenu.selectAll("path")
-        .data(pie(pieData))
-      val ringMenuLabels = ringMenu.selectAll("text")
-        .data(pie(pieData))
-
-      ringMenuArc.enter()
-        .append("path")
-        .attr("d", (d: PieArcDatum[MenuAction]) => arc(d))
-        .attr("fill", "rgba(0,0,0,0.7)")
-        .style("cursor", "pointer")
-        .style("pointer-events", "all")
-        .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.foreach(d.data.action(_, simulation)))
-
-      ringMenuLabels.enter()
-        .append("text")
-        .text((d: PieArcDatum[MenuAction]) => d.data.symbol)
-        .attr("text-anchor", "middle")
-        .attr("fill", "white")
-        .attr("x", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(0))
-        .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
     }
 
     def update(graph: Graph) {
-      postData = graph.posts.values.map { p =>
-        val sp = new SimPost(p)
-        postIdToSimPost.get(sp.id).foreach { old =>
-          // preserve position
-          sp.x = old.x
-          sp.y = old.y
-        }
-        //TODO: d3-color Facades!
-        val parents = graph.parents(p.id)
-        val parentColors: Seq[Hcl] = parents.map((p: Post) => baseColor(p.id))
-        val colors: Seq[Color] = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor) +: parentColors
-        val labColors = colors.map(d3.lab(_))
-        val colorSum = labColors.reduce((c1, c2) => d3.lab(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b))
-        val colorCount = labColors.size
-        val colorAvg = d3.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
-        sp.color = colorAvg.toString()
-        sp
-      }.toJSArray
-      postIdToSimPost = (postData: js.ArrayOps[SimPost]).by(_.id)
+      import postSelection.postIdToSimPost
+
+      postSelection.update(graph.posts.values)
+      connectionLineSelection.update(graph.connections.values)
+      connectionElementSelection.update(connectionLineSelection.data)
+      containmentHullSelection.update(graph.containments.values)
 
       focusedPost = focusedPost.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
 
-      val post = postElements.selectAll("div")
-        .data(postData, (p: SimPost) => p.id)
-
-      connectionData = graph.connections.values.map { c =>
-        new SimConnects(c, postIdToSimPost(c.sourceId))
-      }.toJSArray
-      val connIdToSimConnects: Map[AtomId, SimConnects] = (connectionData: js.ArrayOps[SimConnects]).by(_.id)
-      connectionData.foreach { e =>
-        e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
-      }
-      val connectionLine = connectionLines.selectAll("line")
-        .data(connectionData, (r: SimConnects) => r.id)
-      val connectionElement = connectionElements.selectAll("div")
-        .data(connectionData, (r: SimConnects) => r.id)
-
-      containmentData = graph.containments.values.map { c =>
+      val containmentData = graph.containments.values.map { c =>
         new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
       }.toJSArray
-
-      containmentClusters = {
-        val parents: Seq[Post] = graph.containments.values.map(c => graph.posts(c.parentId)).toSeq.distinct
-        parents.map(p => new ContainmentCluster(postIdToSimPost(p.id), graph.children(p.id).map(p => postIdToSimPost(p.id))(breakOut))).toJSArray
-      }
-      val containmentHull = containmentHulls.selectAll("path")
-        .data(containmentClusters, (c: ContainmentCluster) => c.parent.id)
-
-      post.exit().remove()
-      post.enter().append("div")
-        .text((post: SimPost) => post.title)
-        .style("background-color", (post: SimPost) => post.color)
-        .style("padding", "3px 5px")
-        .style("border-radius", "5px")
-        .style("border", "1px solid #AAA")
-        .style("max-width", "100px")
-        .style("position", "absolute")
-        .style("cursor", "default")
-        .style("pointer-events", "auto") // reenable
-        .on("click", { (p: SimPost) =>
-          //TODO: click should not trigger drag
-          if (focusedPost.isEmpty || focusedPost.get != p)
-            focusedPost = Some(p)
-          else
-            focusedPost = None
-          draw()
-        })
-        .call(d3.drag[SimPost]()
-          .on("start", postDragStarted _)
-          .on("drag", postDragged _)
-          .on("end", postDragEnded _))
-
-      connectionLine.enter().append("line")
-        .style("stroke", "#8F8F8F")
-      connectionLine.exit().remove()
-
-      connectionElement.enter().append("div")
-        .style("position", "absolute")
-        .style("font-size", "20px")
-        .style("margin-left", "-0.5ex")
-        .style("margin-top", "-0.5em")
-        .text("\u00d7")
-        .style("pointer-events", "auto") // reenable
-        .style("cursor", "pointer")
-        .on("click", { (e: SimConnects) =>
-          import autowire._
-          import boopickle.Default._
-
-          Client.api.deleteConnection(e.id).call()
-        })
-      connectionElement.exit().remove()
-
-      containmentHull.enter().append("path")
-        .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
-        .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
-        .style("stroke-width", "70px")
-        .style("stroke-linejoin", "round")
-        .style("opacity", "0.7")
-      containmentHull.exit().remove()
-
-      postElements.selectAll("div").each({ (node: HTMLElement, p: SimPost) =>
-        //TODO: if this fails, because post is not rendered yet, recalculate it lazyly
-        val rect = node.getBoundingClientRect
-        p.size = Vec2(rect.width, rect.height)
-        p.centerOffset = p.size / -2
-        p.radius = p.size.length / 2
-        p.collisionRadius = p.radius
-      })
 
       forces.connection.strength { (e: SimConnects) =>
         import graph.fullDegree
@@ -344,30 +212,17 @@ object GraphView extends Playground[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source.post), fullDegree(e.target.post))
       }
 
-      simulation.nodes(postData)
-      forces.connection.links(connectionData)
+      simulation.nodes(postSelection.data)
+      forces.connection.links(connectionLineSelection.data)
       forces.containment.links(containmentData)
       simulation.alpha(1).restart()
     }
 
     def updateDraggingPosts() {
+      import postSelection.postIdToSimPost
       val posts = graph.posts.values
       val draggingPosts = posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
-      val post = draggingPostElements.selectAll("div")
-        .data(draggingPosts, (p: SimPost) => p.id)
-
-      post.enter().append("div")
-        .text((post: SimPost) => post.title)
-        .style("opacity", "0.5")
-        .style("background-color", (post: SimPost) => post.color)
-        .style("padding", "3px 5px")
-        .style("border-radius", "5px")
-        .style("border", "1px solid #AAA")
-        .style("max-width", "100px")
-        .style("position", "absolute")
-        .style("cursor", "move")
-
-      post.exit().remove()
+      draggingPostSelection.update(draggingPosts)
     }
 
     def zoomed() {
@@ -385,7 +240,7 @@ object GraphView extends Playground[Graph]("GraphView") {
       val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
       p.dragStart = eventPos
       draggingPost.pos = eventPos
-      drawDraggingPosts()
+      draggingPostSelection.draw()
 
       simulation.stop()
     }
@@ -407,8 +262,8 @@ object GraphView extends Playground[Graph]("GraphView") {
       p.dragClosest = closest
 
       draggingPost.pos = transformedEventPos
-      drawDraggingPosts()
-      drawPosts() // for highlighting closest
+      draggingPostSelection.draw()
+      postSelection.draw() // for highlighting closest
     }
 
     def postDragEnded(p: SimPost) {
@@ -422,7 +277,7 @@ object GraphView extends Playground[Graph]("GraphView") {
           import autowire._
           import boopickle.Default._
 
-          dropActions(target.dropIndex(dropActions.size))._3(p, target)
+          dropActions(target.dropIndex(dropActions.size)).action(p, target)
 
           target.isClosest = false
           p.fixedPos = js.undefined
@@ -433,60 +288,18 @@ object GraphView extends Playground[Graph]("GraphView") {
 
       p.draggingPost = None
       updateDraggingPosts()
-      drawDraggingPosts()
+      draggingPostSelection.draw()
 
       simulation.alpha(1).restart()
     }
 
     def draw() {
-      drawPosts()
-      drawRelations()
-      drawPostMenu()
-    }
-
-    def drawDraggingPosts() {
-      draggingPostElements.selectAll("div")
-        .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
-        .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-    }
-
-    def drawPosts() {
-      postElements.selectAll("div")
-        .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
-        .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-        .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #AAA")
-    }
-
-    def drawRelations() {
-      connectionElements.selectAll("div")
-        .style("left", (e: SimConnects) => s"${e.x.get}px")
-        .style("top", (e: SimConnects) => s"${e.y.get}px")
-
-      connectionLines.selectAll("line")
-        .attr("x1", (e: SimConnects) => e.source.x)
-        .attr("y1", (e: SimConnects) => e.source.y)
-        .attr("x2", (e: SimConnects) => e.target.x)
-        .attr("y2", (e: SimConnects) => e.target.y)
-
-      containmentHulls.selectAll("path")
-        .attr("d", { (cluster: ContainmentCluster) =>
-          // https://codeplea.com/introduction-to-splines
-          // https://github.com/d3/d3-shape#curves
-          val points = cluster.convexHull
-          // val curve = d3.curveCardinalClosed
-          val curve = d3.curveCatmullRomClosed.alpha(0.5)
-          // val curve = d3.curveNatural
-
-          d3.line().curve(curve)(points)
-        })
-    }
-
-    def drawPostMenu() {
-      focusedPost.foreach { post =>
-        ringMenu.attr("transform", s"translate(${post.x}, ${post.y})")
-      }
+      postSelection.draw()
+      connectionLineSelection.draw()
+      connectionElementSelection.draw()
+      containmentHullSelection.draw()
+      postMenuSelection.draw()
     }
 
   }
-
 }
