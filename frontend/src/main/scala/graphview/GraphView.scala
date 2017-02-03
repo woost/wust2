@@ -23,6 +23,8 @@ import math._
 
 import org.scalajs.d3v4._
 import util.collectionHelpers._
+import autowire._
+import boopickle.Default._
 
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
@@ -46,32 +48,24 @@ object GraphView extends Playground[Graph]("GraphView") {
     val menuPaddingAngle = 2.0 * Pi / 100.0
     val menuCornerRadius = 3.0
 
-    val dragHitDetectRadius = 200
+    val dragHitDetectRadius = 50
     val postDefaultColor = d3.lab("#f8f8f8")
     def baseHue(id: AtomId) = (id * 137) % 360
     def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 70)
 
-    val menuActions = {
-      import autowire._
-      import boopickle.Default._
-      (
-        MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-        MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
-        MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
-        Nil
-      )
-    }
+    val menuActions = (
+      MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+      MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
+      MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
+      Nil
+    )
 
-    val dropActions = {
-      import autowire._
-      import boopickle.Default._
-      (
-        DropAction("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
-        DropAction("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
-        DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
-        Nil
-      ).toArray
-    }
+    val dropActions = (
+      DropAction("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+      DropAction("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+      DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
+      Nil
+    ).toArray
     val dropColors = dropActions.map(_.color)
 
     //TODO: multiple menus for multi-user multi-touch interface?
@@ -115,18 +109,6 @@ object GraphView extends Playground[Graph]("GraphView") {
 
     /////////////////////////////
 
-    def initSimulation(): Simulation[SimPost] = {
-      d3.forceSimulation[SimPost]()
-        .force("center", forces.center)
-        .force("gravityx", forces.gravityX)
-        .force("gravityy", forces.gravityY)
-        .force("repel", forces.repel)
-        .force("collision", forces.collision)
-        .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
-        .force("containment", forces.containment)
-        .on("tick", draw _)
-    }
-
     def initForces() = {
       object forces {
         val center = d3.forceCenter[SimPost]()
@@ -154,8 +136,27 @@ object GraphView extends Playground[Graph]("GraphView") {
       forces
     }
 
+    def initSimulation(): Simulation[SimPost] = {
+      d3.forceSimulation[SimPost]()
+        .force("center", forces.center)
+        .force("gravityx", forces.gravityX)
+        .force("gravityy", forces.gravityY)
+        .force("repel", forces.repel)
+        .force("collision", forces.collision)
+        .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+        .force("containment", forces.containment)
+        .on("tick", draw _)
+    }
+
     def initZoomEvents() {
       svg.call(d3.zoom().on("zoom", zoomed _))
+    }
+
+    def zoomed() {
+      transform = d3.event.asInstanceOf[ZoomEvent].transform
+      svg.selectAll("g").attr("transform", transform.toString)
+      html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
+      menuLayer.attr("transform", transform.toString)
     }
 
     def initContainerDimensionsAndPositions() {
@@ -196,10 +197,7 @@ object GraphView extends Playground[Graph]("GraphView") {
 
       focusedPost = focusedPost.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
 
-      val containmentData = graph.containments.values.map { c =>
-        new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
-      }.toJSArray
-
+      //TODO: this can be removed after implementing link force which supports hyperedges
       forces.connection.strength { (e: SimConnects) =>
         import graph.fullDegree
         val targetDeg = e.target match {
@@ -214,17 +212,15 @@ object GraphView extends Playground[Graph]("GraphView") {
         1.0 / min(fullDegree(e.source.post), fullDegree(e.target.post))
       }
 
+      val containmentData = graph.containments.values.map { c =>
+        new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
+      }.toJSArray
+
       simulation.nodes(postSelection.data)
       forces.connection.links(connectionLineSelection.data)
       forces.containment.links(containmentData)
-      simulation.alpha(1).restart()
-    }
 
-    def zoomed() {
-      transform = d3.event.asInstanceOf[ZoomEvent].transform
-      svg.selectAll("g").attr("transform", transform.toString)
-      html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
-      menuLayer.attr("transform", transform.toString)
+      simulation.alpha(1).restart()
     }
 
     def draw() {
@@ -234,6 +230,5 @@ object GraphView extends Playground[Graph]("GraphView") {
       containmentHullSelection.draw()
       postMenuSelection.draw()
     }
-
   }
 }
