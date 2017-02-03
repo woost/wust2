@@ -14,7 +14,8 @@ import org.scalajs.dom
 import vectory._
 import util.collectionHelpers._
 
-class SimConnects(val connects: Connects, val source: SimPost) extends SimulationLink[SimPost, ExtendedD3Node] with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {
+class SimConnects(val connects: Connects, val source: SimPost)
+  extends SimulationLink[SimPost, ExtendedD3Node] with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {
   //TODO: delegert!
   def id = connects.id
   def sourceId = connects.sourceId
@@ -54,7 +55,7 @@ class SimConnects(val connects: Connects, val source: SimPost) extends Simulatio
   def fy_=(newFX: js.UndefOr[Double]): Unit = ???
 }
 
-class ConnectionLineSelection(container: Selection[dom.EventTarget], env: GraphView.D3Environment)
+class ConnectionLineSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimConnects](container, "line", keyFunction = Some((p: SimConnects) => p.id)) {
   import env._
   import postSelection.postIdToSimPost
@@ -86,7 +87,7 @@ class ConnectionLineSelection(container: Selection[dom.EventTarget], env: GraphV
   }
 }
 
-class ConnectionElementSelection(container: Selection[dom.EventTarget], env: GraphView.D3Environment)
+class ConnectionElementSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimConnects](container, "div", keyFunction = Some((p: SimConnects) => p.id)) {
   import env._
 

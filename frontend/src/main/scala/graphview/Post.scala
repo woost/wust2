@@ -42,9 +42,10 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   var draggingPost: Option[SimPost] = None
 }
 
-class PostSelection(container: Selection[dom.EventTarget], env: GraphView.D3Environment)
+class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
+  import PostDrag._
 
   var postIdToSimPost: Map[AtomId, SimPost] = Map.empty
   def update(posts: Iterable[Post]) {
@@ -115,31 +116,7 @@ class PostSelection(container: Selection[dom.EventTarget], env: GraphView.D3Envi
   }
 }
 
-class DraggingPostSelection(container: Selection[dom.EventTarget], env: GraphView.D3Environment)
-  extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
-
-  import env._
-  override def enter(post: Selection[SimPost]) {
-    post
-      .text((post: SimPost) => post.title)
-      .style("opacity", "0.5")
-      .style("background-color", (post: SimPost) => post.color)
-      .style("padding", "3px 5px")
-      .style("border-radius", "5px")
-      .style("border", "1px solid #AAA")
-      .style("max-width", "100px")
-      .style("position", "absolute")
-      .style("cursor", "move")
-  }
-
-  override def drawCall(post: Selection[SimPost]) {
-    post
-      .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
-      .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-  }
-}
-
-class PostMenuSelection(container: Selection[dom.EventTarget], env: GraphView.D3Environment)
+class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
 

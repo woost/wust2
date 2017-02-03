@@ -35,6 +35,8 @@ object GraphView extends Playground[Graph]("GraphView") {
     override def setProps(newGraph: Graph) { graph = newGraph }
     override def propsUpdated(oldGraph: Graph) { update(graph) }
 
+    private implicit val implicitEnv = thisEnv
+
     //TODO: dynamic by screen size, refresh on window resize, put into centering force
     val width = 640
     val height = 480
@@ -92,17 +94,17 @@ object GraphView extends Playground[Graph]("GraphView") {
     // order is important
     val container = d3.select(component)
     val svg = container.append("svg")
-    val containmentHullSelection = new ContainmentHullSelection(svg.append("g"), thisEnv)
-    val connectionLineSelection = new ConnectionLineSelection(svg.append("g"), thisEnv)
+    val containmentHullSelection = new ContainmentHullSelection(svg.append("g"))
+    val connectionLineSelection = new ConnectionLineSelection(svg.append("g"))
 
     val html = container.append("div")
-    val connectionElementSelection = new ConnectionElementSelection(html.append("div"), thisEnv)
-    val postSelection = new PostSelection(html.append("div"), thisEnv)
-    val draggingPostSelection = new DraggingPostSelection(html.append("div"), thisEnv) //TODO: place above ring menu?
+    val connectionElementSelection = new ConnectionElementSelection(html.append("div"))
+    val postSelection = new PostSelection(html.append("div"))
+    val draggingPostSelection = new DraggingPostSelection(html.append("div")) //TODO: place above ring menu?
 
     val menuSvg = container.append("svg")
     val menuLayer = menuSvg.append("g")
-    val postMenuSelection = new PostMenuSelection(menuLayer.append("g"), thisEnv)
+    val postMenuSelection = new PostMenuSelection(menuLayer.append("g"))
 
     initContainerDimensionsAndPositions()
     initZoomEvents()
@@ -218,79 +220,11 @@ object GraphView extends Playground[Graph]("GraphView") {
       simulation.alpha(1).restart()
     }
 
-    def updateDraggingPosts() {
-      import postSelection.postIdToSimPost
-      val posts = graph.posts.values
-      val draggingPosts = posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
-      draggingPostSelection.update(draggingPosts)
-    }
-
     def zoomed() {
       transform = d3.event.asInstanceOf[ZoomEvent].transform
       svg.selectAll("g").attr("transform", transform.toString)
       html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
       menuLayer.attr("transform", transform.toString)
-    }
-
-    def postDragStarted(p: SimPost) {
-      val draggingPost = p.newDraggingPost
-      p.draggingPost = Some(draggingPost)
-      updateDraggingPosts()
-
-      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-      p.dragStart = eventPos
-      draggingPost.pos = eventPos
-      draggingPostSelection.draw()
-
-      simulation.stop()
-    }
-
-    def postDragged(p: SimPost) {
-      val draggingPost = p.draggingPost.get
-      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-      val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
-      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
-
-      p.dragClosest.foreach(_.isClosest = false)
-      closest match {
-        case Some(target) if target != p =>
-          val dir = draggingPost.pos.get - target.pos.get
-          target.isClosest = true
-          target.dropAngle = dir.angle
-        case _ =>
-      }
-      p.dragClosest = closest
-
-      draggingPost.pos = transformedEventPos
-      draggingPostSelection.draw()
-      postSelection.draw() // for highlighting closest
-    }
-
-    def postDragEnded(p: SimPost) {
-      logger.info("postDragEnded")
-      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-      val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
-
-      val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
-      closest match {
-        case Some(target) if target != p =>
-          import autowire._
-          import boopickle.Default._
-
-          dropActions(target.dropIndex(dropActions.size)).action(p, target)
-
-          target.isClosest = false
-          p.fixedPos = js.undefined
-        case _ =>
-          p.pos = transformedEventPos
-          p.fixedPos = transformedEventPos
-      }
-
-      p.draggingPost = None
-      updateDraggingPosts()
-      draggingPostSelection.draw()
-
-      simulation.alpha(1).restart()
     }
 
     def draw() {

@@ -24,7 +24,7 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
 }
 
 // TODO: merge with ContainmentCluster?
-class ContainmentHullSelection(container: Selection[dom.EventTarget], env: GraphView.D3Environment)
+class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[ContainmentCluster](container, "path", keyFunction = Some((p: ContainmentCluster) => p.id)) {
   import env._
   import postSelection.postIdToSimPost
