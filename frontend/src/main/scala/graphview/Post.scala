@@ -26,9 +26,13 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
     val newData = posts.map { p =>
       val sp = new SimPost(p)
       postIdToSimPost.get(sp.id).foreach { old =>
-        // preserve position
+        // preserve position, velocity and fixed position
         sp.x = old.x
         sp.y = old.y
+        sp.vx = old.vx
+        sp.vy = old.vy
+        sp.fx = old.fx
+        sp.fy = old.fy
       }
 
       val parents = graph.parents(p.id)
