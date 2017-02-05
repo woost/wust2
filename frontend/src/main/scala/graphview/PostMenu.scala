@@ -7,15 +7,31 @@ import math._
 
 import scalajs.js
 import js.JSConverters._
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
 import util.collectionHelpers._
+import autowire._
+import boopickle.Default._
+import com.outr.scribe._
 
 class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
+
+  val menuOuterRadius = 100.0
+  val menuInnerRadius = 50.0
+  val menuPaddingAngle = 2.0 * Pi / 100.0
+  val menuCornerRadius = 3.0
+
+  val menuActions = (
+    MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+    MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
+    MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
+    Nil
+  )
 
   override def enter(menu: Selection[SimPost]) {
     val pie = d3.pie()

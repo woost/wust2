@@ -43,30 +43,9 @@ object GraphView extends Playground[Graph]("GraphView") {
     val width = 640
     val height = 480
 
-    val menuOuterRadius = 100.0
-    val menuInnerRadius = 50.0
-    val menuPaddingAngle = 2.0 * Pi / 100.0
-    val menuCornerRadius = 3.0
-
-    val dragHitDetectRadius = 50
     val postDefaultColor = d3.lab("#f8f8f8")
     def baseHue(id: AtomId) = (id * 137) % 360
     def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 70)
-
-    val menuActions = (
-      MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-      MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
-      MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
-      Nil
-    )
-
-    val dropActions = (
-      DropAction("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
-      DropAction("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
-      DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
-      Nil
-    ).toArray
-    val dropColors = dropActions.map(_.color)
 
     //TODO: multiple menus for multi-user multi-touch interface?
     var _focusedPost: Option[SimPost] = None

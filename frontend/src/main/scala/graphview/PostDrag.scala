@@ -7,16 +7,20 @@ import math._
 
 import scalajs.js
 import js.JSConverters._
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
 import util.collectionHelpers._
+import autowire._
+import boopickle.Default._
+import com.outr.scribe._
 
 class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
-
   import env._
+
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)
@@ -38,6 +42,15 @@ class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env:
 }
 
 object PostDrag {
+  val dragHitDetectRadius = 50
+  val dropActions = (
+    DropAction("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+    DropAction("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+    DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
+    Nil
+  ).toArray
+  val dropColors = dropActions.map(_.color)
+
   def updateDraggingPosts()(implicit env: GraphView.D3Environment) {
     import env._
     import postSelection.postIdToSimPost
