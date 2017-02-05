@@ -8,6 +8,7 @@ import math._
 import scalajs.js
 import js.JSConverters._
 import org.scalajs.dom
+import org.scalajs.dom.console
 import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
@@ -47,7 +48,6 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)
-      .style("background-color", (post: SimPost) => post.color)
       .style("padding", "3px 5px")
       .style("border-radius", "3px")
       .style("max-width", "100px")
@@ -82,6 +82,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+      .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #444")
   }
 }
