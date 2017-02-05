@@ -34,7 +34,7 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit e
     val newData = parents.map(p =>
       new ContainmentCluster(
         parent = postIdToSimPost(p.id),
-        children = graph.children(p.id).map(p => postIdToSimPost(p.id))(breakOut)
+        children = graph.transitiveChildren(p.id).map(p => postIdToSimPost(p.id))(breakOut)
       )).toJSArray
 
     update(newData)
