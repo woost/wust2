@@ -31,6 +31,7 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit e
 
   def update(containments: Iterable[Contains]) {
     val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
+    //TODO: topological sort by containment, to display nested sets on top
     val newData = parents.map(p =>
       new ContainmentCluster(
         parent = postIdToSimPost(p.id),

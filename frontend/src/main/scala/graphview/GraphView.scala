@@ -52,9 +52,9 @@ object GraphView extends Playground[Graph]("GraphView") {
       _focusedPost = target
       _focusedPost match {
         case Some(post) =>
-          AppCircuit.dispatch(SetRespondingTo(Some(post.id)))
+          AppCircuit.dispatch(SetFocusedPost(Some(post.id)))
         case None =>
-          AppCircuit.dispatch(SetRespondingTo(None))
+          AppCircuit.dispatch(SetFocusedPost(None))
       }
     }
 

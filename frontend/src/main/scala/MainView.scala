@@ -21,37 +21,27 @@ package object frontend {
       val model = proxy.value
       val graph = model.graph
       <.div(
-        <.button("add post", ^.onClick --> Callback {
-          Client.api.addPost("Posti").call()
-        }),
-        <.button("connect something", ^.onClick --> Callback {
-          import scala.util.Random.nextInt
-          val posts: IndexedSeq[Post] = graph.posts.values.toIndexedSeq
-          val n = posts.size
-          val source = posts(nextInt(n))
-          val target = (posts diff List(source))(nextInt(n - 1))
-          Client.api.connect(source.id, target.id).call()
-        }),
-        <.button(^.onClick --> Callback { Client.auth.register("hans", "***").call() }, "register"),
-        <.button(^.onClick --> Callback { Client.login(api.PasswordAuth("hans", "***")) }, "login"),
-        <.button(^.onClick --> Callback { Client.logout() }, "logout"),
+        ^.fontFamily := "sans-serif",
+
+        <.button("register", ^.onClick --> Callback { Client.auth.register("hans", "***").call() }),
+        <.button("login", ^.onClick --> Callback { Client.login(api.PasswordAuth("hans", "***")) }),
+        <.button("logout", ^.onClick --> Callback { Client.logout() }),
         <.button("graph", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.Graph))),
         <.button("list", ^.onClick --> proxy.dispatchCB(SwitchTab(Tab.List))),
         model.activeTab match {
           case Tab.Graph => GraphConnect(g => GraphView(g.value))
           case Tab.List => GraphConnect(ListView.component(_))
         },
-        model.respondingTo.collect {
-          case targetId if graph.posts.isDefinedAt(targetId) =>
-            <.div(
-              ^.position := "fixed",
-              ^.width := "100%",
-              ^.bottom := "0",
-              ^.background := "#FFF",
-              ^.borderTop := "1px solid #DDD",
-              RespondForm(graph, targetId)
-            )
-        }
+        <.div(
+          ^.position := "fixed",
+          ^.width := "100%",
+          ^.bottom := "0",
+          ^.left := "0",
+          ^.padding := "5px",
+          ^.background := "#FFF",
+          ^.borderTop := "1px solid #DDD",
+          AddPostForm(graph, model.focusedPost)
+        )
       )
     }
     .build

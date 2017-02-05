@@ -51,7 +51,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       .text((post: SimPost) => post.title)
       .style("padding", "3px 5px")
       .style("border-radius", "3px")
-      .style("max-width", "100px")
+      .style("max-width", "10em")
       .style("position", "absolute")
       .style("cursor", "default")
       .style("pointer-events", "auto") // reenable

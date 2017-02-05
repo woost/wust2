@@ -13,20 +13,20 @@ object Tab {
 
 case class RootModel(
   graph: Graph = Graph.empty,
-  respondingTo: Option[AtomId] = None,
+  focusedPost: Option[AtomId] = None,
   activeTab: Tab = Tab.Graph
 )
 
 case class SetGraph(graph: Graph) extends Action
 case class SwitchTab(tab: Tab) extends Action
-case class SetRespondingTo(target: Option[AtomId]) extends Action
+case class SetFocusedPost(target: Option[AtomId]) extends Action
 
 object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   def initialModel = RootModel()
 
   val globalHandler = new ActionHandler(zoomRW(m => m)((m, v) => v)) {
     override def handle = {
-      case SetRespondingTo(targetOpt) => updated(value.copy(respondingTo = targetOpt))
+      case SetFocusedPost(targetOpt) => updated(value.copy(focusedPost = targetOpt))
       case SwitchTab(active: Tab) => updated(value.copy(activeTab = active))
     }
   }
@@ -34,12 +34,14 @@ object AppCircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
   val graphHandler = new ActionHandler(zoomTo(_.graph)) {
     override def handle = {
       case SetGraph(graph) => updated(graph)
+      //TODO: update focusedPost
       case NewPost(post) =>
         updated(value.copy(
           posts = value.posts + (post.id -> post)
         ))
       case DeletePost(id) =>
         updated(value.removePost(id))
+      //TODO: update focusedPost
       case DeleteConnection(id) =>
         updated(value.removeConnection(id))
       case DeleteContainment(id) =>
