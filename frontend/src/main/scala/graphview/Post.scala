@@ -49,8 +49,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       .text((post: SimPost) => post.title)
       .style("background-color", (post: SimPost) => post.color)
       .style("padding", "3px 5px")
-      .style("border-radius", "5px")
-      .style("border", "1px solid #AAA")
+      .style("border-radius", "3px")
       .style("max-width", "100px")
       .style("position", "absolute")
       .style("cursor", "default")
@@ -83,6 +82,6 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-      .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #AAA")
+      .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #444")
   }
 }
