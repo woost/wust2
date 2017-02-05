@@ -1,19 +1,16 @@
 package framework
 
-import scala.concurrent.ExecutionContext.Implicits.global //TODO
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.control.NonFatal
 import java.nio.ByteBuffer
 
 import akka.NotUsed
-import akka.event.{LookupClassification, EventBus}
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.ws.{Message, BinaryMessage}
-import akka.pattern.pipe
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl._
 import akka.util.ByteString
@@ -22,85 +19,10 @@ import boopickle.Default._
 import com.outr.scribe._
 
 import framework.message._
-import util.time.StopWatch
-import util.future._
-import scala.util.{Success, Failure}
 
 object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
   def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
   def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
-}
-
-class Dispatcher[CHANNEL, PAYLOAD] extends EventBus with LookupClassification {
-  import Dispatcher._
-
-  type Event = ChannelEvent[CHANNEL, PAYLOAD]
-  type Classifier = CHANNEL
-  type Subscriber = ActorRef
-
-  protected def classify(event: Event): Classifier = event.channel
-  protected def publish(event: Event, subscriber: Subscriber): Unit = subscriber ! event.payload
-  protected def compareSubscribers(a: Subscriber, b: Subscriber): Int = a.compareTo(b)
-  protected def mapSize: Int = 128 // expected size of classifiers
-}
-object Dispatcher {
-  case class ChannelEvent[CHANNEL, PAYLOAD](channel: CHANNEL, payload: PAYLOAD)
-}
-
-case class PathNotFoundException(path: Seq[String]) extends Exception
-//TODO channel dependency, then subscribe, signal => action!
-class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
-  messages: Messages[CHANNEL, _, ERROR, AUTH],
-  dispatcher: Dispatcher[CHANNEL, _],
-  router: Option[USER] => Router[ByteBuffer],
-  toError: PartialFunction[Throwable, ERROR],
-  authorize: AUTH => Future[Option[USER]]
-) extends Actor {
-  import messages._, ConnectedClient._
-
-  val notAuthenticated: Future[Option[USER]] = Future.successful(None)
-
-  def connected(outgoing: ActorRef, user: Future[Option[USER]]): Receive = {
-    case Ping() => outgoing ! Pong()
-    case CallRequest(seqId, path, args) =>
-      val timer = StopWatch.started
-
-      router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
-        .map(_.map(resp => CallResponse(seqId, Right(resp))))
-        .getOrElse(Future.failed(PathNotFoundException(path)))
-        .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
-        .onCompleteRun { logger.info(f"CallRequest($seqId): ${timer.readMicros}us") }
-        .pipeTo(outgoing)
-    case ControlRequest(seqId, control) => control match {
-      case Login(auth) =>
-        val timer = StopWatch.started
-
-        val nextUser = authorize(auth)
-        nextUser.map(_.isDefined)
-          .recover { case NonFatal(_) => false }
-          .map(ControlResponse(seqId, _))
-          .onCompleteRun { logger.info(f"Login($seqId): ${timer.readMicros}us") }
-          .pipeTo(outgoing)
-
-        context.become(connected(outgoing, nextUser))
-      case Logout() =>
-        outgoing ! ControlResponse(seqId, true)
-        context.become(connected(outgoing, notAuthenticated))
-    }
-    case Subscription(channel) => dispatcher.subscribe(outgoing, channel)
-    case Stop =>
-      dispatcher.unsubscribe(outgoing)
-      context.stop(self)
-  }
-
-  def receive = {
-    case Connect(outgoing) => context.become(connected(outgoing, notAuthenticated))
-    case Stop => context.stop(self)
-  }
-}
-object ConnectedClient {
-  case class Connect(actor: ActorRef)
-  case object Stop
 }
 
 object Serializer {
