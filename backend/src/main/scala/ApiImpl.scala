@@ -144,6 +144,13 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
       true
     }
   }
+  def deleteContainment(id: AtomId): Future[Boolean] = withUser {
+    val q = quote { query[Contains].filter(_.id == lift(id)).delete }
+    for (_ <- ctx.run(q)) yield {
+      emit(DeleteContainment(id))
+      true
+    }
+  }
 
   def getGraph(): Future[Graph] = wholeGraph()
 

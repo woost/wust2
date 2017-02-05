@@ -46,7 +46,7 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit e
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke-width", "70px")
       .style("stroke-linejoin", "round")
-      .style("opacity", "0.7")
+      .style("opacity", "0.6")
   }
 
   override def drawCall(hull: Selection[ContainmentCluster]) {

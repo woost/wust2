@@ -17,6 +17,8 @@ package object graph {
 
     def incidentConnections(atomId: AtomId) = connections.values.collect { case r if r.sourceId == atomId || r.targetId == atomId => r.id }
     def incidentContains(atomId: AtomId) = containments.values.collect { case c if c.parentId == atomId || c.childId == atomId => c.id }
+    def incidentParentContains(atomId: AtomId) = containments.values.collect { case c if c.childId == atomId => c.id }
+    def incidentChildContains(atomId: AtomId) = containments.values.collect { case c if c.parentId == atomId => c.id }
 
     def incidentConnectionsDeep(atomId: AtomId) = {
       // Connects.in must be a Post, so no cycles can occour
@@ -48,6 +50,12 @@ package object graph {
       val removedConnections = incidentConnectionsDeep(atomId)
       copy(
         connections = connections -- removedConnections - atomId
+      )
+    }
+
+    def removeContainment(atomId: AtomId) = {
+      copy(
+        containments = containments - atomId
       )
     }
 
