@@ -13,6 +13,7 @@ import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
 import util.collectionHelpers._
+import Color._
 
 class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
@@ -29,15 +30,11 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
         sp.x = old.x
         sp.y = old.y
       }
-      //TODO: d3-color Facades!
+
       val parents = graph.parents(p.id)
-      val parentColors: Seq[Hcl] = parents.map((p: Post) => baseColor(p.id))
-      val colors: Seq[Color] = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor) +: parentColors
-      val labColors = colors.map(d3.lab(_))
-      val colorSum = labColors.reduce((c1, c2) => d3.lab(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b))
-      val colorCount = labColors.size
-      val colorAvg = d3.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
-      sp.color = colorAvg.toString()
+      val parentColors = parents.map((p: Post) => baseColor(p.id))
+      val selfColor = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor)
+      sp.color = (if (parentColors.nonEmpty) mixColors(selfColor, mixColors(parentColors)) else selfColor).toString()
       sp
     }.toJSArray
 

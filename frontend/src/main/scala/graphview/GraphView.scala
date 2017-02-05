@@ -18,6 +18,7 @@ import fdietze.scalajs.react.component._
 import vectory._
 
 import graph._
+import Color._
 import collection.breakOut
 import math._
 
@@ -42,10 +43,6 @@ object GraphView extends Playground[Graph]("GraphView") {
     //TODO: dynamic by screen size, refresh on window resize, put into centering force
     val width = 640
     val height = 480
-
-    val postDefaultColor = d3.lab("#f8f8f8")
-    def baseHue(id: AtomId) = (id * 137) % 360
-    def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 70)
 
     //TODO: multiple menus for multi-user multi-touch interface?
     var _focusedPost: Option[SimPost] = None
