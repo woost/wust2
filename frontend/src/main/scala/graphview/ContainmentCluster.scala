@@ -7,6 +7,7 @@ import collection.breakOut
 import scalajs.js
 import js.JSConverters._
 import org.scalajs.dom
+import algorithm.topologicalSort
 import vectory._
 
 import org.scalajs.d3v4._
@@ -31,8 +32,13 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit e
 
   def update(containments: Iterable[Contains]) {
     val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
-    //TODO: topological sort by containment, to display nested sets on top
-    val newData = parents.map(p =>
+
+    // due to transitive containment visualisation,
+    // inner posts should be drawn above outer ones.
+    // TODO: breaks on circular containment
+    val ordered = topologicalSort(parents, (p: Post) => graph.children(p.id))
+
+    val newData = ordered.map(p =>
       new ContainmentCluster(
         parent = postIdToSimPost(p.id),
         children = graph.transitiveChildren(p.id).map(p => postIdToSimPost(p.id))(breakOut)
@@ -47,7 +53,7 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit e
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke-width", "70px")
       .style("stroke-linejoin", "round")
-      .style("opacity", "0.6")
+      .style("opacity", "0.8")
   }
 
   override def drawCall(hull: Selection[ContainmentCluster]) {

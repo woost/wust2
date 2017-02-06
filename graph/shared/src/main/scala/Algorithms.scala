@@ -1,6 +1,8 @@
-package object Algorithms {
+package graph
+package object algorithm {
   import collection.mutable
 
+  //TODO: depthfirstsearch producing a sequence
   def depthFirstSearch[V](start: V, continue: V => Iterable[V]) = new Iterable[V] {
     def iterator = new Iterator[V] {
 
@@ -24,5 +26,27 @@ package object Algorithms {
         current
       }
     }
+  }
+
+  def topologicalSort[V](vertices: Iterable[V], successors: V => Iterable[V]): Seq[V] = {
+    // TODO: give result even if there is a cycle
+
+    var sorted: List[V] = Nil
+    val unmarked = mutable.HashSet.empty[V] ++ vertices
+    val tempMarked = mutable.HashSet.empty[V]
+
+    while (unmarked.nonEmpty) visit(unmarked.head)
+
+    def visit(n: V) {
+      if (unmarked(n)) {
+        tempMarked += n
+        for (m <- successors(n)) visit(m)
+        unmarked -= n
+        tempMarked -= n
+        sorted ::= n
+      }
+    }
+
+    sorted
   }
 }

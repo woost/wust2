@@ -61,7 +61,7 @@ package object graph {
 
     def parents(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.childId == postId => posts(c.parentId) }.toSeq //TODO: breakout with generic on requested collection type
     def children(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.parentId == postId => posts(c.childId) }.toSeq //TODO: breakout with generic on requested collection type
-    def transitiveChildren(postId: AtomId) = Algorithms.depthFirstSearch[Post](posts(postId), (p: Post) => children(p.id))
+    def transitiveChildren(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => children(p.id))
   }
 
   object Graph {
