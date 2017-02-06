@@ -52,7 +52,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       .style("padding", "3px 5px")
       .style("border-radius", "3px")
       .style("max-width", "10em")
-      .style("position", "absolute")
+      .style("position", "absolute") // TODO: max-width does not work with position:absolute
       .style("cursor", "default")
       .style("pointer-events", "auto") // reenable
       .on("click", { (p: SimPost) =>
