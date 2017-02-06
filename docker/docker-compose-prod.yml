@@ -22,12 +22,12 @@ services:
     restart: always
     environment:
       HOST_DOMAIN: ${HOST_DOMAIN}
-      SSL_CERT_PATH: "${NGINX_VOLUME}/${SSL_CERT}"
-      SSL_KEY_PATH: "${NGINX_VOLUME}/${SSL_KEY}"
+      SSL_CERT_PATH: "/cert_dir/${SSL_CERT}"
+      SSL_KEY_PATH: "/cert_dir/${SSL_KEY}"
     ports:
       - "443:443"
       - "80:80"
     volumes:
-      - ${NGINX_VOLUME}:${NGINX_VOLUME}:ro
+      - ${CERT_DIR}:/cert_dir/:ro
     depends_on:
       - wust

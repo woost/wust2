@@ -44,7 +44,7 @@ test.prod.http)
     ;;
 test.prod)
     $compose_stage prod down
-    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test NGINX_VOLUME=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem $compose_stage prod up -d
+    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test CERT_DIR=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem $compose_stage prod up -d
     #TODO sbt test/it:test
     nc -z localhost 80 && nc -z localhost 443
     $compose_stage prod down
@@ -55,7 +55,7 @@ local.prod.http)
     ;;
 local.prod)
     $compose_stage prod down
-    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test NGINX_VOLUME=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem $compose_stage prod up -d
+    HOST_DOMAIN=localhost POSTGRES_USER=test POSTGRES_PASSWORD=test CERT_DIR=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem $compose_stage prod up -d
     ;;
 *)
     echo "unknown stage '$1', expected one of [psql,dev,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod,local.prod.http,local.prod]"
