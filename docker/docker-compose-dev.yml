@@ -2,14 +2,21 @@ version: '2'
 
 services:
   postgres:
-    extends:
-      file: common-dev.yml
-      service: postgres
+    stdin_open: true
+    tty: true
+    image: postgres:9.6.1-alpine
+    environment:
+      POSTGRES_USER: "wust"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_DB: "wust"
     ports:
       - "5432:5432"
+    volumes:
+      - ./pg_data/:/var/lib/postgresql/data
   db-migration:
-    extends:
-      file: common-dev.yml
-      service: db-migration
+    stdin_open: true
+    tty: true
+    image: woost/wust2.db-migration
+    command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=wust -password=test migrate
     depends_on:
       - postgres

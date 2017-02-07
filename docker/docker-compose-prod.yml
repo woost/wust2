@@ -18,16 +18,11 @@ services:
     depends_on:
       - postgres
   nginx:
-    image: woost/wust2.nginx:0.1.0-SNAPSHOT
-    restart: always
-    environment:
-      HOST_DOMAIN: ${HOST_DOMAIN}
-      SSL_CERT_PATH: "/cert_dir/${SSL_CERT}"
-      SSL_KEY_PATH: "/cert_dir/${SSL_KEY}"
+    extends:
+      file: common-prod.yml
+      service: nginx
     ports:
       - "443:443"
       - "80:80"
-    volumes:
-      - ${CERT_DIR}:/cert_dir/:ro
     depends_on:
       - wust

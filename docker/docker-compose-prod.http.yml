@@ -18,10 +18,9 @@ services:
     depends_on:
       - postgres
   nginx:
-    image: woost/wust2.nginx:http-0.1.0-SNAPSHOT
-    restart: always
-    environment:
-      HOST_DOMAIN: ${HOST_DOMAIN}
+    extends:
+      file: common-prod.yml
+      service: nginx-http
     ports:
       - "80:80"
     depends_on:

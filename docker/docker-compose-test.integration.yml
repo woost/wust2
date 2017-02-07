@@ -18,9 +18,10 @@ services:
     depends_on:
       - postgres
   nginx:
-    image: woost/wust2.nginx:http
-    environment:
-      HOST_DOMAIN: "localhost"
+    extends:
+      file: common-test.yml
+      #TODO: test with tls or even both? (needs test client to accept our test_cert.pem)
+      service: nginx-http
     ports:
       - "80:80"
     depends_on:

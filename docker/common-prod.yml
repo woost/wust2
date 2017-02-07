@@ -19,3 +19,17 @@ services:
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
+  nginx:
+    image: woost/wust2.nginx:0.1.0-SNAPSHOT
+    restart: always
+    environment:
+      HOST_DOMAIN: ${HOST_DOMAIN}
+      SSL_CERT_PATH: "/cert_dir/${SSL_CERT}"
+      SSL_KEY_PATH: "/cert_dir/${SSL_KEY}"
+    volumes:
+      - ${CERT_DIR}:/cert_dir/:ro
+  nginx-http:
+    image: woost/wust2.nginx:http-0.1.0-SNAPSHOT
+    restart: always
+    environment:
+      HOST_DOMAIN: ${HOST_DOMAIN}
