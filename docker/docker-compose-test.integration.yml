@@ -12,16 +12,13 @@ services:
     depends_on:
       - postgres
   wust:
-    image: woost/wust2
-    environment:
-      POSTGRES_HOSTNAME: "postgres"
-      POSTGRES_USER: "test"
-      POSTGRES_PASSWORD: "test"
-      POSTGRES_DB: "test"
+    extends:
+      file: common-test.yml
+      service: wust
     depends_on:
       - postgres
   nginx:
-    image: woost/wust2.nginx:http #TODO with tls?
+    image: woost/wust2.nginx:http
     environment:
       HOST_DOMAIN: "localhost"
     ports:

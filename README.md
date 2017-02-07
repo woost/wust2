@@ -32,8 +32,7 @@ $ sbt docker
 Set environment variables according to your setup:
 ```sh
 HOST_DOMAIN=<domain>
-POSTGRES_USER=<a user name>
-POSTGRES_PASSWORD=<a password>
+POSTGRES_PASSWORD=<password for postgres user 'wust'>
 CERT_DIR=<directory on docker host containing SSL_CERT and SSL_KEY, will be mounted read-only in nginx container>
 SSL_CERT=<tls certificate file path used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate) (relative to CERT_DIR)>
       $SSL_KEY_PATH;

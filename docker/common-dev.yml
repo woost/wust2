@@ -6,13 +6,13 @@ services:
     tty: true
     image: postgres:9.6.1-alpine
     environment:
-      POSTGRES_USER: "dev"
-      POSTGRES_PASSWORD: "dev"
-      POSTGRES_DB: "dev"
+      POSTGRES_USER: "wust"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_DB: "wust"
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
   db-migration:
     stdin_open: true
     tty: true
     image: woost/wust2.db-migration
-    command: -url='jdbc:postgresql://postgres/dev' -schemas=public -user=dev -password=dev migrate
+    command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=wust -password=test migrate
