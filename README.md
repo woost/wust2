@@ -30,14 +30,11 @@ $ sbt docker
 # production
 
 Set environment variables according to your setup:
-```sh
-HOST_DOMAIN=<domain>
-POSTGRES_PASSWORD=<password for postgres user 'wust'>
-CERT_DIR=<directory on docker host containing SSL_CERT and SSL_KEY, will be mounted read-only in nginx container>
-SSL_CERT=<tls certificate file path used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate) (relative to CERT_DIR)>
-      $SSL_KEY_PATH;
-SSL_KEY=<tls private key file path used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key) (relative to CERT_DIR)>
-```
+* HOST_DOMAIN: domain (example.com)
+* POSTGRES_PASSWORD: a password for the postgres application user 'wust'
+* CERT_DIR: directory on docker host containing SSL_CERT and SSL_KEY, is mounted read-only in nginx container
+* SSL_CERT: path to tls certificate (relative to CERT_DIR), used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate) 
+* SSL_KEY: path to private tls key (relative to CERT_DIR), used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)
 
 Start production in docker:
 ```
