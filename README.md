@@ -36,6 +36,8 @@ Set environment variables according to your setup:
 * SSL_CERT: path to tls certificate (relative to CERT_DIR), used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate) 
 * SSL_KEY: path to private tls key (relative to CERT_DIR), used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)
 
+See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl)
+
 For persisting its data, the postgres container mounts the folder `/pg_data` on the docker host.
 
 Start production in docker:
