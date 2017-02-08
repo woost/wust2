@@ -30,11 +30,11 @@ $ sbt docker
 # production
 
 Set environment variables according to your setup:
-* HOST_DOMAIN: domain (example.com)
-* POSTGRES_PASSWORD: a password for the postgres application user 'wust'
-* CERT_DIR: directory on docker host containing SSL_CERT and SSL_KEY, is mounted read-only in nginx container
-* SSL_CERT: path to tls certificate (relative to CERT_DIR), used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate) 
-* SSL_KEY: path to private tls key (relative to CERT_DIR), used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)
+* **HOST_DOMAIN**: domain (example.com)
+* **POSTGRES_PASSWORD**: a password for the postgres application user 'wust'
+* **CERT_DIR**: directory on docker host containing SSL_CERT and SSL_KEY, is mounted read-only in nginx container
+* **SSL_CERT**: path to tls certificate (relative to CERT_DIR), used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate) 
+* **SSL_KEY**: path to private tls key (relative to CERT_DIR), used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)
 
 See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl)
 
@@ -49,3 +49,9 @@ Or without tls:
 ```
 $ ./start prod.http
 ```
+
+Example:
+```bash
+HOST_DOMAIN=yourdomain.com POSTGRES_USER=wust POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
+```
+
