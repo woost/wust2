@@ -52,6 +52,6 @@ $ ./start prod.http
 
 Example:
 ```bash
-HOST_DOMAIN=yourdomain.com POSTGRES_USER=wust POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
+HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
 ```
 
