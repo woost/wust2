@@ -60,6 +60,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
     post
       .text((post: SimPost) => post.title)
       .style("padding", "3px 5px")
+      .style("border", "1px solid #444")
       .style("border-radius", "3px")
       .style("max-width", "10em")
       .style("position", "absolute") // TODO: max-width does not work with position:absolute
@@ -94,6 +95,5 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
       .style("background-color", (post: SimPost) => post.color)
-      .style("border", (p: SimPost) => if (p.isClosest) s"5px solid ${dropColors(p.dropIndex(dropActions.size))}" else "1px solid #444")
   }
 }

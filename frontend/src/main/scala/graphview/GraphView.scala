@@ -73,8 +73,10 @@ object GraphView extends Playground[Graph]("GraphView") {
     val draggingPostSelection = new DraggingPostSelection(html.append("div")) //TODO: place above ring menu?
 
     val menuSvg = container.append("svg")
-    val menuLayer = menuSvg.append("g")
-    val postMenuSelection = new PostMenuSelection(menuLayer.append("g"))
+    val postMenuLayer = menuSvg.append("g")
+    val postMenuSelection = new PostMenuSelection(postMenuLayer.append("g"))
+    val dropMenuLayer = menuSvg.append("g")
+    val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"))
 
     initContainerDimensionsAndPositions()
     initZoomEvents()
@@ -132,7 +134,8 @@ object GraphView extends Playground[Graph]("GraphView") {
       transform = d3.event.asInstanceOf[ZoomEvent].transform
       svg.selectAll("g").attr("transform", transform.toString)
       html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
-      menuLayer.attr("transform", transform.toString)
+      postMenuLayer.attr("transform", transform.toString)
+      dropMenuLayer.attr("transform", transform.toString)
     }
 
     def initContainerDimensionsAndPositions() {

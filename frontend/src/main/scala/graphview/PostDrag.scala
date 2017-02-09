@@ -42,14 +42,13 @@ class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env:
 }
 
 object PostDrag {
-  val dragHitDetectRadius = 50
+  val dragHitDetectRadius = 100
   val dropActions = (
     DropAction("Connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
     DropAction("Contain", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
     DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
     Nil
   ).toArray
-  val dropColors = dropActions.map(_.color)
 
   def updateDraggingPosts()(implicit env: GraphView.D3Environment) {
     import env._
@@ -58,6 +57,16 @@ object PostDrag {
     val posts = graph.posts.values
     val draggingPosts = posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
     draggingPostSelection.update(draggingPosts)
+    draggingPostSelection.draw()
+  }
+
+  def updateClosestPosts()(implicit env: GraphView.D3Environment) {
+    import env._
+    import postSelection.postIdToSimPost
+
+    val closest = postIdToSimPost.values.filter(_.isClosest).toJSArray
+    dropMenuSelection.update(closest)
+    dropMenuSelection.draw()
   }
 
   def postDragStarted(p: SimPost)(implicit env: GraphView.D3Environment) {
@@ -69,7 +78,6 @@ object PostDrag {
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     p.dragStart = eventPos
     draggingPost.pos = eventPos
-    draggingPostSelection.draw()
 
     simulation.stop()
   }
@@ -90,6 +98,7 @@ object PostDrag {
       case _ =>
     }
     p.dragClosest = closest
+    updateClosestPosts()
 
     draggingPost.pos = transformedEventPos
     draggingPostSelection.draw()
@@ -115,10 +124,10 @@ object PostDrag {
         p.pos = transformedEventPos
         p.fixedPos = transformedEventPos
     }
+    updateClosestPosts()
 
     p.draggingPost = None
     updateDraggingPosts()
-    draggingPostSelection.draw()
 
     simulation.alpha(1).restart()
   }

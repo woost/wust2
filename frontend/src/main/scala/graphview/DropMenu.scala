@@ -17,21 +17,14 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
+class DropMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
   extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
 
   val menuOuterRadius = 100.0
-  val menuInnerRadius = 50.0
+  val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
   val menuCornerRadius = 2.0
-
-  val menuActions = (
-    MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-    MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
-    MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
-    Nil
-  )
 
   override def enter(menu: Selection[SimPost]) {
     val pie = d3.pie()
@@ -43,7 +36,7 @@ class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: Gra
       .outerRadius(menuOuterRadius)
       .cornerRadius(menuCornerRadius)
 
-    val pieData = menuActions.toJSArray
+    val pieData = PostDrag.dropActions.toJSArray
     val ringMenuArc = menu.selectAll("path")
       .data(pie(pieData))
     val ringMenuLabels = menu.selectAll("text")
@@ -51,19 +44,18 @@ class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: Gra
 
     ringMenuArc.enter()
       .append("path")
-      .attr("d", (d: PieArcDatum[MenuAction]) => arc(d))
+      .attr("d", (d: PieArcDatum[DropAction]) => arc(d))
       .attr("fill", "rgba(0,0,0,0.7)")
       .style("cursor", "pointer")
       .style("pointer-events", "all")
-      .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.foreach(d.data.action(_, simulation)))
 
     ringMenuLabels.enter()
       .append("text")
-      .text((d: PieArcDatum[MenuAction]) => d.data.symbol)
+      .text((d: PieArcDatum[DropAction]) => d.data.symbol)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
-      .attr("x", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(0))
-      .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
+      .attr("x", (d: PieArcDatum[DropAction]) => arc.centroid(d)(0))
+      .attr("y", (d: PieArcDatum[DropAction]) => arc.centroid(d)(1))
   }
 
   override def drawCall(menu: Selection[SimPost]) {

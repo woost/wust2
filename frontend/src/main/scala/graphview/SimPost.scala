@@ -15,7 +15,7 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   var isClosest = false
   var dropAngle = 0.0
   def dropIndex(n: Int) = {
-    val positiveAngle = (dropAngle + 2 * Pi) % (2 * Pi)
+    val positiveAngle = (dropAngle + 2.5*Pi) % (2 * Pi) // 0 degree is at 12 o'clock, proceeding clockwise (conform to d3.pie())
     val stepSize = 2 * Pi / n
     val index = (positiveAngle / stepSize).toInt
     index
