@@ -18,10 +18,9 @@ import org.specs2.specification.AroundEach
 
 object WustConnection {
   private implicit val system = ActorSystem()
-  private implicit val materializer = ActorMaterializer()
-  import system.dispatcher
+  implicit val materializer = ActorMaterializer()
 
-  val httpConnection = Http().outgoingConnection("localhost", 80)
+  lazy val httpConnection = Http().outgoingConnection("localhost", 80)
   def wsConnection(flow: Flow[Message, Message, Future[Done]]) = Http().singleWebSocketRequest(WebSocketRequest("ws://localhost/ws"), flow)
 
   def ws(sink: Sink[Message, Future[Done]], source: Source[Message, NotUsed]): (Future[WebSocketUpgradeResponse], Future[Done]) = {
@@ -47,7 +46,7 @@ object WustConnection {
 
   lazy val ready = {
     println("Waiting for Wust to be up...")
-    pathIsUp("/", r => r.status.isSuccess && !r.entity.isDefault) &&
+    pathIsUp("/", r => r.status.isSuccess) &&
       pathIsUp("/ws", _.status != StatusCodes.BadGateway)
   }
 }
