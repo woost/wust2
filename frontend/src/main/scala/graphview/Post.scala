@@ -35,10 +35,20 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
         sp.fy = old.fy
       }
 
-      val parents = graph.parents(p.id)
-      val parentColors = parents.map((p: Post) => baseColor(p.id))
-      val selfColor = (if (graph.children(p.id).nonEmpty) baseColor(p.id) else postDefaultColor)
-      sp.color = (if (parentColors.nonEmpty) mixColors(selfColor, mixColors(parentColors)) else selfColor).toString()
+      def parents = graph.parents(p.id)
+      def hasParents = parents.nonEmpty
+      def mixedDirectParentColors = mixColors(parents.map((p: Post) => baseColor(p.id)))
+      def hasChildren = graph.children(p.id).nonEmpty
+      sp.color = (
+        if (hasChildren)
+          baseColor(p.id)
+        else { // no children
+          if (hasParents)
+            mixColors(mixedDirectParentColors, postDefaultColor)
+          else
+            postDefaultColor
+        }
+      ).toString()
       sp
     }.toJSArray
 
