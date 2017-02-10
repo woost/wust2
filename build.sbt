@@ -21,8 +21,7 @@ lazy val commonSettings = Seq(
     "-feature" ::
     "-language:_" ::
     "-Ywarn-unused" ::
-    Nil,
-  maxErrors := 5
+    Nil
 )
 
 lazy val root = project.in(file("."))
@@ -87,7 +86,6 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
-
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(frameworkJS, apiJS, utilJS)
@@ -101,7 +99,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
-  enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
+    enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
 
 lazy val assets = project
