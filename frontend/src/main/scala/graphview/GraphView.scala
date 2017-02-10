@@ -29,7 +29,14 @@ case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) 
 
 object GraphView { thisEnv =>
 
-  def component() = <div id="here_be_d3"></div> //TODO:
+  val component = <div id="here_be_d3"></div> //TODO:
+
+  var state: State = _ //TODO
+
+  def init(rxGraph: Rx[Graph]) {
+    state = new State(rxGraph)
+    rxGraph foreach ((newGraph: Graph) => state.update(newGraph)) //TODO: foreachNext? leak?
+  }
 
   class State(rxGraph: Rx[Graph]) { thisEnv =>
     def graph = rxGraph.value
@@ -203,11 +210,4 @@ object GraphView { thisEnv =>
       postMenuSelection.draw()
     }
   }
-  var state: State = _ //TODO
-
-  def init(rxGraph: Rx[Graph]) {
-    state = new State(rxGraph)
-    rxGraph foreach ((newGraph: Graph) => state.update(newGraph)) //TODO: foreachNext? leak?
-  }
-
 }

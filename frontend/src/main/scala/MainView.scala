@@ -25,7 +25,7 @@ object MainView {
       <button onclick={ (_: Event) => Client.auth.register("hans", "***").call(); () }>register</button>
       <button onclick={ (_: Event) => Client.login(api.PasswordAuth("hans", "***")); () }>login</button>
       <button onclick={ (_: Event) => Client.logout(); () }>logout</button>
-      <button onclick={ (_: Event) => tabMode.update(_ => Tab.Graph); () }>graph</button>
+      <button onclick={ (_: Event) => tabMode.update(_ => Tab.Graph); GraphView.init(state.graph); () }>graph</button>
       <button onclick={ (_: Event) => tabMode.update(_ => Tab.List); () }>list</button>
       {
         tabMode.map {
@@ -34,7 +34,7 @@ object MainView {
         }
       }
       <div style="position:fixed; width:100%; bottom:0; left:0; padding:5px; background:#FFF; borderTop:1px; solid #DDD">
-        {AddPostForm.component(state.graph, state.focusedPost)}
+        { AddPostForm.component(state.graph, state.focusedPost) }
       </div>
     </div>
 }
