@@ -2,7 +2,6 @@ package frontend
 
 import boopickle.Default._
 
-import diode._, Action._
 import framework._
 import api._, graph._
 
@@ -14,11 +13,6 @@ object TypePicklers {
 }
 import TypePicklers._
 
-object Action {
-    implicit object actionType extends ActionType[ApiEvent]
-}
-import Action._
-
 case class BadRequestException(error: ApiError) extends Exception
 
 object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
@@ -26,5 +20,5 @@ object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val auth = wire[AuthApi]
 
   override def fromError(error: ApiError) = BadRequestException(error)
-  override def receive(event: ApiEvent) = AppCircuit.dispatch(event)
+  override def receive(event: ApiEvent) = GlobalState.serverEvent(event)
 }

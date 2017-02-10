@@ -36,7 +36,6 @@ lazy val root = project.in(file("."))
     addCommandAlias("devf", "; backend/re-start; frontend/clean; devfwatch")
   )
 
-val reactVersion = "15.4.2"
 val akkaVersion = "2.4.16"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
@@ -88,36 +87,21 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
+
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings)
   .settings(
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
     libraryDependencies ++= (
-      "io.suzaku" %%% "diode" % "1.1.1" ::
-      "io.suzaku" %%% "diode-react" % "1.1.1" ::
-      "com.github.japgolly.scalajs-react" %%% "core" % "0.11.3" ::
+      "in.nvilla" %%% "monadic-html" % "0.2.2" ::
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      "com.github.fdietze" %%% "scalajs-react-custom-component" % "0.2.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
-
-    //TODO: scalajs-react bundler support: https://github.com/japgolly/scalajs-react/pull/320
-    // until then we are exposing react to the global namespace:
-    // (https://scalacenter.github.io/scalajs-bundler/cookbook.html#global-namespace)
-    npmDependencies in Compile ++= Seq(
-      "react" -> reactVersion,
-      "react-dom" -> reactVersion
-    ),
-    // Add a dependency to the expose-loader (which will expose react to the global namespace)
-    npmDevDependencies in Compile += "expose-loader" -> "0.7.1",
-    // Use a custom config file to export the JS dependencies to the global namespace,
-    // as expected by the scalajs-react facade
-    webpackConfigFile := Some(baseDirectory.value / "webpack.config.js"),
-    watchSources += baseDirectory.value / "webpack.config.js"
-  //TODO: enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
+  enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
 
 lazy val assets = project

@@ -5,11 +5,6 @@ import scala.scalajs.js.annotation.JSExport
 import scala.concurrent.Future
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
-import japgolly.scalajs.react._
-import japgolly.scalajs.react.vdom.prefix_<^._
-
-import diode._
-import diode.react._
 
 import org.scalajs.dom._
 import boopickle.Default._
@@ -27,12 +22,24 @@ object Main extends js.JSApp {
     val port = if (location.port == "12345") "8080" else location.port
     Client.run(s"$protocol://${location.hostname}:$port/ws")
     Client.subscribe(Channel.Graph)
+    Client.login(api.PasswordAuth("hans", "***"))
 
     Client.api.getGraph().call().foreach { graph =>
-      AppCircuit.dispatch(SetGraph(graph))
+      GlobalState.graph := graph
     }
 
-    val mainView = AppCircuit.connect(m => m)
-    ReactDOM.render(mainView(m => MainView(m)), document.getElementById("container"))
+    val state = GlobalState
+    mhtml.mount(document.getElementById("container"), MainView.component(state))
+    graphview.GraphView.init(GlobalState.graph)
+    //TODO: mhtml-onattached
   }
 }
+
+// object Helper {
+//   implicit class Pipe[T](val v: T) extends AnyVal {
+//     def |>[U] (f: T => U) = f(v)
+//     def ||>[U](f: T => U): T = {f(v); v}
+//     // def #!(str: String = ""): T = {println(str + v); v}
+//   }
+// }
+// import Helper._

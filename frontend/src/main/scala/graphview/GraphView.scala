@@ -11,11 +11,8 @@ import dom.raw.HTMLElement
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import com.outr.scribe._
 
-import japgolly.scalajs.react._
-import japgolly.scalajs.react.vdom.prefix_<^._
-import fdietze.scalajs.react.component._
-
 import vectory._
+import mhtml._
 
 import graph._
 import Color._
@@ -30,15 +27,13 @@ import boopickle.Default._
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
 
-object GraphView extends Playground[Graph]("GraphView") {
-  val environmentFactory = new D3Environment(_)
+object GraphView { thisEnv =>
 
-  class D3Environment(component: HTMLElement) extends Environment { thisEnv =>
-    var graph: Graph = _
-    override def setProps(newGraph: Graph) { graph = newGraph }
-    override def propsUpdated(oldGraph: Graph) { update(graph) }
+  def component() = <div id="here_be_d3"></div> //TODO:
 
-    private implicit val implicitEnv = thisEnv
+  class State(rxGraph: Rx[Graph]) { thisEnv =>
+    def graph = rxGraph.value
+    private implicit val stateEnv = thisEnv
 
     //TODO: dynamic by screen size, refresh on window resize, put into centering force
     val width = 640
@@ -52,9 +47,9 @@ object GraphView extends Playground[Graph]("GraphView") {
       _focusedPost = target
       _focusedPost match {
         case Some(post) =>
-          AppCircuit.dispatch(SetFocusedPost(Some(post.id)))
+          GlobalState.focusedPost := Some(post.id)
         case None =>
-          AppCircuit.dispatch(SetFocusedPost(None))
+          GlobalState.focusedPost := None
       }
     }
 
@@ -62,7 +57,7 @@ object GraphView extends Playground[Graph]("GraphView") {
 
     // prepare containers where we will append elements depending on the data
     // order is important
-    val container = d3.select(component)
+    val container = d3.select("#here_be_d3")
     val svg = container.append("svg")
     val containmentHullSelection = new ContainmentHullSelection(svg.append("g"))
     val connectionLineSelection = new ConnectionLineSelection(svg.append("g"))
@@ -84,9 +79,7 @@ object GraphView extends Playground[Graph]("GraphView") {
     val simulation = initSimulation()
 
     svg.on("click", () => focusedPost = None)
-
     /////////////////////////////
-
     def initForces() = {
       object forces {
         val center = d3.forceCenter[SimPost]()
@@ -169,6 +162,8 @@ object GraphView extends Playground[Graph]("GraphView") {
     def update(graph: Graph) {
       import postSelection.postIdToSimPost
 
+      println(s"UPDATIng IN GRAphVIEW: $graph")
+
       postSelection.update(graph.posts.values)
       connectionLineSelection.update(graph.connections.values)
       connectionElementSelection.update(connectionLineSelection.data)
@@ -210,4 +205,11 @@ object GraphView extends Playground[Graph]("GraphView") {
       postMenuSelection.draw()
     }
   }
+  var state: State = _ //TODO
+
+  def init(rxGraph: Rx[Graph]) {
+    state = new State(rxGraph)
+    rxGraph foreach ((newGraph: Graph) => state.update(newGraph)) //TODO: foreachNext? leak?
+  }
+
 }

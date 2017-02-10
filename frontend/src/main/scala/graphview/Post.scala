@@ -15,7 +15,7 @@ import org.scalajs.d3v4._
 import util.collectionHelpers._
 import Color._
 
-class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
+class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.State)
   extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
   import PostDrag._

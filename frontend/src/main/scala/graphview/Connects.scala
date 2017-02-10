@@ -14,7 +14,7 @@ import org.scalajs.dom
 import vectory._
 import util.collectionHelpers._
 
-class ConnectionLineSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
+class ConnectionLineSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.State)
   extends DataSelection[SimConnects](container, "line", keyFunction = Some((p: SimConnects) => p.id)) {
   import env._
   import postSelection.postIdToSimPost
@@ -46,7 +46,7 @@ class ConnectionLineSelection(container: Selection[dom.EventTarget])(implicit en
   }
 }
 
-class ConnectionElementSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.D3Environment)
+class ConnectionElementSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.State)
   extends DataSelection[SimConnects](container, "div", keyFunction = Some((p: SimConnects) => p.id)) {
   import env._
 
