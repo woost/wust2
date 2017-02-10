@@ -39,6 +39,13 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map((p: Post) => baseColor(p.id)))
       def hasChildren = graph.children(p.id).nonEmpty
+      sp.border = (
+        if (hasChildren)
+          "2px solid #444"
+        else { // no children
+          "2px solid transparent"
+        }
+      ).toString()
       sp.color = (
         if (hasChildren)
           baseColor(p.id)
@@ -60,7 +67,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
     post
       .text((post: SimPost) => post.title)
       .style("padding", "3px 5px")
-      .style("border", "1px solid #444")
+      // .style("border", "1px solid #444")
       .style("border-radius", "3px")
       .style("max-width", "10em")
       .style("position", "absolute") // TODO: max-width does not work with position:absolute
@@ -95,5 +102,6 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
       .style("background-color", (post: SimPost) => post.color)
+      .style("border", (p: SimPost) => p.border)
   }
 }
