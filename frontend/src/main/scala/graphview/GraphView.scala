@@ -162,8 +162,6 @@ object GraphView { thisEnv =>
     def update(graph: Graph) {
       import postSelection.postIdToSimPost
 
-      println(s"UPDATIng IN GRAphVIEW: $graph")
-
       postSelection.update(graph.posts.values)
       connectionLineSelection.update(graph.connections.values)
       connectionElementSelection.update(connectionLineSelection.data)
