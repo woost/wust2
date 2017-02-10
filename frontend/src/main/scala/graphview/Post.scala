@@ -41,9 +41,9 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
       def hasChildren = graph.children(p.id).nonEmpty
       sp.border = (
         if (hasChildren)
-          "2px solid #444"
+          "2px solid rgba(0,0,0,0.4)"
         else { // no children
-          "2px solid transparent"
+          "2px solid rgba(0,0,0,0.05)"
         }
       ).toString()
       sp.color = (
