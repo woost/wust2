@@ -94,8 +94,10 @@ object GraphView { thisEnv =>
         val gravityY = d3.forceY[SimPost]()
         val repel = d3.forceManyBody[SimPost]()
         val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
-        val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+        // val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+        val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
         val containment = d3.forceLink[SimPost, SimContains]()
+        //TODO: push posts out of containment clusters they don't belong to
       }
 
       forces.center.x(width / 2).y(height / 2)
@@ -105,7 +107,7 @@ object GraphView { thisEnv =>
       forces.repel.strength(-1000)
       forces.collision.radius((p: SimPost) => p.collisionRadius)
 
-      forces.connection.distance(100)
+      // forces.connection.distance(100)
       forces.containment.distance(100)
 
       forces.gravityX.strength(0.1)
@@ -121,7 +123,8 @@ object GraphView { thisEnv =>
         .force("gravityy", forces.gravityY)
         .force("repel", forces.repel)
         .force("collision", forces.collision)
-        .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+        // .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+        .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
         .force("containment", forces.containment)
         .on("tick", draw _)
     }
@@ -177,7 +180,7 @@ object GraphView { thisEnv =>
       focusedPost = focusedPost.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
 
       //TODO: this can be removed after implementing link force which supports hyperedges
-      forces.connection.strength { (e: SimConnects) =>
+      forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>
         import graph.fullDegree
         val targetDeg = e.target match {
           case p: SimPost => fullDegree(p.post)
@@ -196,7 +199,7 @@ object GraphView { thisEnv =>
       }.toJSArray
 
       simulation.nodes(postSelection.data)
-      forces.connection.links(connectionLineSelection.data)
+      forces.connection.links = connectionLineSelection.data
       forces.containment.links(containmentData)
 
       simulation.alpha(1).restart()

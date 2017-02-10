@@ -51,7 +51,7 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit e
     hull
       .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
-      .style("stroke-width", "70px")
+      .style("stroke-width", "70px") // TODO: dependent on nesting depth
       .style("stroke-linejoin", "round")
       .style("opacity", "0.8")
   }
