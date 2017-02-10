@@ -43,7 +43,7 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphVi
         if (hasChildren)
           "2px solid rgba(0,0,0,0.4)"
         else { // no children
-          "2px solid rgba(0,0,0,0.05)"
+          "2px solid rgba(0,0,0,0.1)"
         }
       ).toString()
       sp.color = (
