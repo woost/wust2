@@ -28,8 +28,8 @@ class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: Gra
 
   val menuActions = (
     MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-    MenuAction("Del", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
-    MenuAction("Unfix", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) ::
+    MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
+    MenuAction("Auto Position", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
     Nil
   )
 
