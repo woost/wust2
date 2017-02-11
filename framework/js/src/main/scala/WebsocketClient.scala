@@ -24,13 +24,13 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private val callRequests = new OpenRequests[ByteBuffer]
   private lazy val ws = new WebsocketConnection
 
-  import scala.scalajs.js.timers._
-  private var timeoutHandle: Option[SetTimeoutHandle] = None
-  private val pingTimeout = 50000
-
-  private def acknowledgeTraffic(): Unit = {
-    timeoutHandle.foreach(clearTimeout)
-    timeoutHandle = Some(setTimeout(pingTimeout)(send(Ping())))
+  private val acknowledgeTraffic: () => Unit = {
+    import scala.scalajs.js.timers._
+    var timeoutHandle: Option[SetTimeoutHandle] = None
+    () => {
+      timeoutHandle.foreach(clearTimeout)
+      timeoutHandle = Some(setTimeout(50000)(send(Ping())))
+    }
   }
 
   private def send(msg: ClientMessage): Unit = {
