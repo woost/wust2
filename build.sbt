@@ -30,9 +30,11 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("dev", "~; backend/re-start; frontend/clean; workbench/compile"),
+    addCommandAlias("dev", "~; backend/re-start; workbench/compile"),
     addCommandAlias("devfwatch", "~workbench/compile"),
-    addCommandAlias("devf", "; backend/re-start; frontend/clean; devfwatch")
+    addCommandAlias("devf", "; backend/re-start; devfwatch"),
+
+    watchSources ++= (watchSources in workbench).value
   )
 
 val akkaVersion = "2.4.16"
@@ -102,6 +104,21 @@ lazy val frontend = project
     enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
 
+lazy val workbench = project.in(file("workbench"))
+  .enablePlugins(WorkbenchPlugin, SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
+  .settings(
+    compile in Compile := ((compile in Compile) dependsOn WebKeys.assets).value, // triggers pipeline on workbench compile
+    unmanagedResourceDirectories in Assets += (baseDirectory in assets).value / "public", // include other assets
+
+    scalaJSProjects := Seq(frontend),
+    pipelineStages in Assets := Seq(scalaJSPipeline),
+
+    watchSources += baseDirectory.value / "index.html",
+    watchSources ++= (watchSources in assets).value,
+    //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
+    refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile) //TODO: do not refresh if compilation failed
+  )
+
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
@@ -135,17 +152,6 @@ lazy val test = project
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
       "org.specs2" %% "specs2-core" % "3.8.7" % "it" ::
       Nil
-  )
-
-lazy val workbench = project.in(file("workbench"))
-  .enablePlugins(WorkbenchPlugin, SbtWeb)
-  .dependsOn(assets)
-  .settings(
-    watchSources += baseDirectory.value / "index.html", //TODO: does not work. put in assets?
-    compile in Compile := ((compile in Compile) dependsOn WebKeys.assets).value,
-    //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
-    //TODO: do not refresh if compilation failed
-    refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile)
   )
 
 def dockerImageName(name: String, version: String) = ImageName(
