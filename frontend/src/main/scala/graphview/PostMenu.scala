@@ -55,7 +55,7 @@ class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: Gra
       .attr("fill", "rgba(0,0,0,0.7)")
       .style("cursor", "pointer")
       .style("pointer-events", "all")
-      .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.foreach(d.data.action(_, simulation)))
+      .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.value.foreach(d.data.action(_, simulation)))
 
     ringMenuLabels.enter()
       .append("text")

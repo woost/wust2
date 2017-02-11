@@ -20,7 +20,7 @@ object MainView {
 
   private val tabMode: Var[Tab] = Var(Tab.Graph)
 
-  def component(state: GlobalState.type) =
+  def component(state: GlobalState) =
     <div style="font-family:sans-serif">
       <button onclick={ (_: Event) => Client.auth.register("hans", "***").call(); () }>register</button>
       <button onclick={ (_: Event) => Client.login(api.PasswordAuth("hans", "***")); () }>login</button>

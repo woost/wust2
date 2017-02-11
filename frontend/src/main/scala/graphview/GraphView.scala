@@ -27,7 +27,7 @@ import boopickle.Default._
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
 
-class GraphState(rxGraph: Rx[Graph]) { thisEnv =>
+class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { thisEnv =>
   def graph = rxGraph.value
   private implicit val stateEnv = thisEnv
 
@@ -36,18 +36,8 @@ class GraphState(rxGraph: Rx[Graph]) { thisEnv =>
   val height = 480
 
   //TODO: multiple menus for multi-user multi-touch interface?
-  var _focusedPost: Option[SimPost] = None
-  def focusedPost = _focusedPost
-  def focusedPost_=(target: Option[SimPost]) {
-    postMenuSelection.update(target.toJSArray)
-    _focusedPost = target
-    _focusedPost match {
-      case Some(post) =>
-        GlobalState.focusedPost := Some(post.id)
-      case None =>
-        GlobalState.focusedPost := None
-    }
-  }
+  focusedPostId.foreach(_ foreach (id => postMenuSelection.update(js.Array(postSelection.postIdToSimPost(id)))))
+  val focusedPost = focusedPostId.map(_.flatMap(id => postSelection.postIdToSimPost.get(id)))
 
   var transform: Transform = d3.zoomIdentity // stores current pan and zoom
 
@@ -74,7 +64,7 @@ class GraphState(rxGraph: Rx[Graph]) { thisEnv =>
   val forces = initForces()
   val simulation = initSimulation()
 
-  svg.on("click", () => focusedPost = None)
+  svg.on("click", () => focusedPostId := None)
   /////////////////////////////
   def initForces() = {
     object forces {
@@ -166,8 +156,6 @@ class GraphState(rxGraph: Rx[Graph]) { thisEnv =>
     connectionElementSelection.update(connectionLineSelection.data)
     containmentHullSelection.update(graph.containments.values)
 
-    focusedPost = focusedPost.collect { case sp if postIdToSimPost.isDefinedAt(sp.id) => postIdToSimPost(sp.id) }
-
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>
       val targetDeg = e.target match {
@@ -207,11 +195,11 @@ object GraphView { thisEnv =>
     <div id="here_be_d3"></div>
   }
 
-  val init: Rx[Graph] => Unit = {
+  val init: (Rx[Graph], Var[Option[AtomId]]) => Unit = {
     var cancelable: Option[Cancelable] = None
-    rxGraph => {
+    (rxGraph, focusedPost) => {
       cancelable.foreach(_.cancel)
-      val state = new GraphState(rxGraph)
+      val state = new GraphState(rxGraph, focusedPost)
       cancelable = Some(rxGraph.foreach((newGraph: Graph) => state.update)) //TODO: foreachNext? leak?
     }
   }

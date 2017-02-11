@@ -1,5 +1,6 @@
 package frontend
 
+import collection.mutable
 import boopickle.Default._
 
 import framework._
@@ -19,6 +20,12 @@ object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val api = wire[Api]
   val auth = wire[AuthApi]
 
+  private val subscribers = mutable.ArrayBuffer.empty[ApiEvent => Unit]
+
+  def subscribe(handler: ApiEvent => Unit) = {
+    subscribers += handler
+  }
+
   override def fromError(error: ApiError) = BadRequestException(error)
-  override def receive(event: ApiEvent) = GlobalState.serverEvent(event)
+  override def receive(event: ApiEvent) = subscribers.foreach(_(event))
 }

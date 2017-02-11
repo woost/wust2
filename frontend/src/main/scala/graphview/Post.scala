@@ -75,10 +75,8 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphSt
       .style("pointer-events", "auto") // reenable
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
-        if (focusedPost.isEmpty || focusedPost.get != p)
-          focusedPost = Some(p)
-        else
-          focusedPost = None
+        if (focusedPost.value.isEmpty || focusedPost.value.get != p) focusedPostId := Some(p.id)
+        else focusedPostId := None
         env.postMenuSelection.draw()
       })
       .call(d3.drag[SimPost]()

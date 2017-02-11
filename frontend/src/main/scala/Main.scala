@@ -20,17 +20,20 @@ object Main extends js.JSApp {
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
     val port = if (location.port == "12345") "8080" else location.port
+
+    val state = new GlobalState
+
+    Client.subscribe(state.onApiEvent)
     Client.run(s"$protocol://${location.hostname}:$port/ws")
     Client.subscribe(Channel.Graph)
     Client.login(api.PasswordAuth("hans", "***"))
 
     Client.api.getGraph().call().foreach { graph =>
-      GlobalState.graph := graph
+      state.graph := graph
     }
 
-    val state = GlobalState
     mhtml.mount(document.getElementById("container"), MainView.component(state))
-    graphview.GraphView.init(GlobalState.graph)
+    graphview.GraphView.init(state.graph, state.focusedPost)
     //TODO: mhtml-onattached
   }
 }
