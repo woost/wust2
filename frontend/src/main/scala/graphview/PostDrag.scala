@@ -17,7 +17,7 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.State)
+class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
   extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
 
@@ -50,7 +50,7 @@ object PostDrag {
     Nil
   ).toArray
 
-  def updateDraggingPosts()(implicit env: GraphView.State) {
+  def updateDraggingPosts()(implicit env: GraphState) {
     import env._
     import postSelection.postIdToSimPost
 
@@ -60,7 +60,7 @@ object PostDrag {
     draggingPostSelection.draw()
   }
 
-  def updateClosestPosts()(implicit env: GraphView.State) {
+  def updateClosestPosts()(implicit env: GraphState) {
     import env._
     import postSelection.postIdToSimPost
 
@@ -69,7 +69,7 @@ object PostDrag {
     dropMenuSelection.draw()
   }
 
-  def postDragStarted(p: SimPost)(implicit env: GraphView.State) {
+  def postDragStarted(p: SimPost)(implicit env: GraphState) {
     import env._
     val draggingPost = p.newDraggingPost
     p.draggingPost = Some(draggingPost)
@@ -82,7 +82,7 @@ object PostDrag {
     simulation.stop()
   }
 
-  def postDragged(p: SimPost)(implicit env: GraphView.State) {
+  def postDragged(p: SimPost)(implicit env: GraphState) {
     import env._
     val draggingPost = p.draggingPost.get
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
@@ -105,7 +105,7 @@ object PostDrag {
     postSelection.draw() // for highlighting closest
   }
 
-  def postDragEnded(p: SimPost)(implicit env: GraphView.State) {
+  def postDragEnded(p: SimPost)(implicit env: GraphState) {
     import env._
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k

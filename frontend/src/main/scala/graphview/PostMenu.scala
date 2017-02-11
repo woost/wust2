@@ -17,7 +17,7 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphView.State)
+class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
   extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
   import env._
 
