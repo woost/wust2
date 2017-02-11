@@ -27,13 +27,57 @@ import boopickle.Default._
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
 
+class Forces {
+  val center = d3.forceCenter[SimPost]()
+  val gravityX = d3.forceX[SimPost]()
+  val gravityY = d3.forceY[SimPost]()
+  val repel = d3.forceManyBody[SimPost]()
+  val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
+  // val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+  val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
+  val containment = d3.forceLink[SimPost, SimContains]()
+  //TODO: push posts out of containment clusters they don't belong to
+}
+object Forces {
+  def apply(height: Int, width: Int) = {
+    val forces = new Forces
+
+    forces.center.x(width / 2).y(height / 2)
+    forces.gravityX.x(width / 2)
+    forces.gravityY.y(height / 2)
+
+    forces.repel.strength(-1000)
+    forces.collision.radius((p: SimPost) => p.collisionRadius)
+
+    // forces.connection.distance(100)
+    forces.containment.distance(100)
+
+    forces.gravityX.strength(0.1)
+    forces.gravityY.strength(0.1)
+
+    forces
+  }
+}
+
+object Simulation {
+  def apply(forces: Forces): Simulation[SimPost] = d3.forceSimulation[SimPost]()
+    .force("center", forces.center)
+    .force("gravityx", forces.gravityX)
+    .force("gravityy", forces.gravityY)
+    .force("repel", forces.repel)
+    .force("collision", forces.collision)
+    // .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+    .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
+    .force("containment", forces.containment)
+}
+
 class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { thisEnv =>
   def graph = rxGraph.value
   private implicit val stateEnv = thisEnv
 
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
-  val width = 640
-  val height = 480
+  private val width = 640
+  private val height = 480
 
   //TODO: multiple menus for multi-user multi-touch interface?
   focusedPostId.foreach(_ foreach (id => postMenuSelection.update(js.Array(postSelection.postIdToSimPost(id)))))
@@ -59,60 +103,19 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
   val dropMenuLayer = menuSvg.append("g")
   val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"))
 
+  val forces = Forces(height, width)
+  val simulation = Simulation(forces)
+
   initContainerDimensionsAndPositions()
-  initZoomEvents()
-  val forces = initForces()
-  val simulation = initSimulation()
+  initEvents()
 
-  svg.on("click", () => focusedPostId := None)
-  /////////////////////////////
-  def initForces() = {
-    object forces {
-      val center = d3.forceCenter[SimPost]()
-      val gravityX = d3.forceX[SimPost]()
-      val gravityY = d3.forceY[SimPost]()
-      val repel = d3.forceManyBody[SimPost]()
-      val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
-      // val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
-      val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
-      val containment = d3.forceLink[SimPost, SimContains]()
-      //TODO: push posts out of containment clusters they don't belong to
-    }
-
-    forces.center.x(width / 2).y(height / 2)
-    forces.gravityX.x(width / 2)
-    forces.gravityY.y(height / 2)
-
-    forces.repel.strength(-1000)
-    forces.collision.radius((p: SimPost) => p.collisionRadius)
-
-    // forces.connection.distance(100)
-    forces.containment.distance(100)
-
-    forces.gravityX.strength(0.1)
-    forces.gravityY.strength(0.1)
-
-    forces
-  }
-
-  def initSimulation(): Simulation[SimPost] = {
-    d3.forceSimulation[SimPost]()
-      .force("center", forces.center)
-      .force("gravityx", forces.gravityX)
-      .force("gravityy", forces.gravityY)
-      .force("repel", forces.repel)
-      .force("collision", forces.collision)
-      // .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
-      .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
-      .force("containment", forces.containment)
-      .on("tick", draw _)
-  }
-
-  def initZoomEvents() {
+  private def initEvents() {
     svg.call(d3.zoom().on("zoom", zoomed _))
+    svg.on("click", () => focusedPostId := None)
+    simulation.on("tick", draw _)
   }
 
-  def zoomed() {
+  private def zoomed() {
     transform = d3.event.asInstanceOf[ZoomEvent].transform
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
@@ -120,7 +123,15 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
     dropMenuLayer.attr("transform", transform.toString)
   }
 
-  def initContainerDimensionsAndPositions() {
+  private def draw() {
+    postSelection.draw()
+    connectionLineSelection.draw()
+    connectionElementSelection.draw()
+    containmentHullSelection.draw()
+    postMenuSelection.draw()
+  }
+
+  private def initContainerDimensionsAndPositions() {
     container
       .style("position", "absolute")
       .style("top", "0")
@@ -145,31 +156,30 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
       .style("width", "100%")
       .style("height", "100%")
       .style("pointer-events", "none")
-
   }
 
-  def update {
+  def update(newGraph: Graph) {
     import postSelection.postIdToSimPost
 
-    postSelection.update(graph.posts.values)
-    connectionLineSelection.update(graph.connections.values)
+    postSelection.update(newGraph.posts.values)
+    connectionLineSelection.update(newGraph.connections.values)
     connectionElementSelection.update(connectionLineSelection.data)
-    containmentHullSelection.update(graph.containments.values)
+    containmentHullSelection.update(newGraph.containments.values)
 
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>
       val targetDeg = e.target match {
-        case p: SimPost => graph.fullDegree(p.post)
+        case p: SimPost => newGraph.fullDegree(p.post)
         case _: SimConnects => 2
       }
-      1.0 / min(graph.fullDegree(e.source.post), targetDeg)
+      1.0 / min(newGraph.fullDegree(e.source.post), targetDeg)
     }
 
     forces.containment.strength { (e: SimContains) =>
-      1.0 / min(graph.fullDegree(e.source.post), graph.fullDegree(e.target.post))
+      1.0 / min(newGraph.fullDegree(e.source.post), newGraph.fullDegree(e.target.post))
     }
 
-    val containmentData = graph.containments.values.map { c =>
+    val containmentData = newGraph.containments.values.map { c =>
       new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
     }.toJSArray
 
@@ -178,14 +188,6 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
     forces.containment.links(containmentData)
 
     simulation.alpha(1).restart()
-  }
-
-  def draw() {
-    postSelection.draw()
-    connectionLineSelection.draw()
-    connectionElementSelection.draw()
-    containmentHullSelection.draw()
-    postMenuSelection.draw()
   }
 }
 
@@ -200,7 +202,7 @@ object GraphView { thisEnv =>
     (rxGraph, focusedPost) => {
       cancelable.foreach(_.cancel)
       val state = new GraphState(rxGraph, focusedPost)
-      cancelable = Some(rxGraph.foreach((newGraph: Graph) => state.update)) //TODO: foreachNext? leak?
+      cancelable = Some(rxGraph.foreach(state.update)) //TODO: foreachNext? leak?
     }
   }
 }
