@@ -27,10 +27,10 @@ object MainView {
       <button onclick={ (_: Event) => Client.logout(); () }>logout</button>
       <button onclick={ (_: Event) => tabMode := Tab.Graph; () }>graph</button>
       <button onclick={ (_: Event) => tabMode := Tab.List; () }>list</button>
-      <div style={ tabMode.map(m => if (m == Tab.Graph) "visibility:visible" else "visibility:hidden") }>
+      <div style={ tabMode.map(m => if (m == Tab.Graph) "display:block" else "display:none") }>
         { GraphView.component }
       </div>
-      <div style={ tabMode.map(m => if (m == Tab.List) "visibility:visible" else "visibility:hidden") }>
+      <div style={ tabMode.map(m => if (m == Tab.List) "display:block" else "display:none") }>
         { ListView.component(state.graph) }
       </div>
       <div style="position:fixed; width:100%; bottom:0; left:0; padding:5px; background:#FFF; borderTop:1px; solid #DDD">
