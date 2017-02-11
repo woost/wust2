@@ -101,6 +101,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
+    // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
 
@@ -124,7 +125,8 @@ lazy val assets = project
   .settings(
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
-    pipelineStages in Assets := Seq(scalaJSPipeline, gzip) //TODO zopfli?
+    //TODO: minify html
+    pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip) //TODO zopfli?
   )
 
 lazy val backend = project
