@@ -40,8 +40,8 @@ package object algorithm {
     def visit(n: V) {
       if (unmarked(n)) {
         tempMarked += n
-        for (m <- successors(n)) visit(m)
         unmarked -= n
+        for (m <- successors(n)) visit(m)
         tempMarked -= n
         sorted ::= n
       }
