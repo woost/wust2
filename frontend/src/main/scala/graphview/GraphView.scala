@@ -22,7 +22,6 @@ import math._
 import org.scalajs.d3v4._
 import util.collectionHelpers._
 import autowire._
-import boopickle.Default._
 
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
@@ -169,7 +168,7 @@ class D3State {
   val simulation = Simulation(forces)
 }
 
-class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
+class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
 
   val rxPosts = new RxPosts(rxGraph, focusedPostId)
   val d3State = new D3State
@@ -192,7 +191,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
   val postMenuLayer = menuSvg.append("g")
   val postMenuSelection = SelectData.autoRx(new PostMenuSelection(rxPosts, d3State), focusedPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = SelectData.autoRx(new DropMenuSelection(postDrag), closestPosts)(dropMenuLayer.append("g"))
+  val dropMenuSelection = SelectData.autoRx(DropMenuSelection, closestPosts)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
   initEvents()

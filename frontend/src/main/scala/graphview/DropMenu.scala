@@ -18,7 +18,16 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class DropMenuSelection(postDrag: PostDrag) extends DataComponent[SimPost] {
+object DropMenu {
+  val dropActions = (
+    DropAction("connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+    DropAction("insert into", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
+    DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
+    Nil
+  ).toArray
+}
+
+object DropMenuSelection extends DataComponent[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
@@ -36,7 +45,7 @@ class DropMenuSelection(postDrag: PostDrag) extends DataComponent[SimPost] {
       .outerRadius(menuOuterRadius)
       .cornerRadius(menuCornerRadius)
 
-    val pieData = postDrag.dropActions.toJSArray //TODO: where to store dropActions?
+    val pieData = DropMenu.dropActions.toJSArray
     val ringMenuArc = menu.selectAll("path")
       .data(pie(pieData))
     val ringMenuLabels = menu.selectAll("text")

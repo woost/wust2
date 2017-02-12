@@ -53,12 +53,6 @@ class PostDrag(rxPosts: RxPosts, d3State: D3State, onPostDragged: () => Unit = (
   private def postIdToSimPost = rxPosts.postIdToSimPost.value
 
   private val dragHitDetectRadius = 100
-  val dropActions = (
-    DropAction("connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
-    DropAction("insert into", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
-    DropAction("Merge", "red", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
-    Nil
-  ).toArray
 
   def updateDraggingPosts() {
     val posts = graph.posts.values
@@ -103,6 +97,7 @@ class PostDrag(rxPosts: RxPosts, d3State: D3State, onPostDragged: () => Unit = (
   }
 
   def postDragEnded(p: SimPost) {
+    import DropMenu.dropActions
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
 
