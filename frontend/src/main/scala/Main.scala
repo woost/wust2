@@ -23,7 +23,7 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
-    Client.subscribe(state.onApiEvent)
+    Client.listen(state.onApiEvent)
     Client.run(s"$protocol://${location.hostname}:$port/ws")
     Client.subscribe(Channel.Graph)
     Client.login(api.PasswordAuth("hans", "***"))

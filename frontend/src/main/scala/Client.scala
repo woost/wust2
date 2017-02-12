@@ -20,12 +20,12 @@ object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val api = wire[Api]
   val auth = wire[AuthApi]
 
-  private val subscribers = mutable.ArrayBuffer.empty[ApiEvent => Unit]
+  private val listeners = mutable.ArrayBuffer.empty[ApiEvent => Unit]
 
-  def subscribe(handler: ApiEvent => Unit) = {
-    subscribers += handler
+  def listen(handler: ApiEvent => Unit) = {
+    listeners += handler
   }
 
   override def fromError(error: ApiError) = BadRequestException(error)
-  override def receive(event: ApiEvent) = subscribers.foreach(_(event))
+  override def receive(event: ApiEvent) = listeners.foreach(_(event))
 }
