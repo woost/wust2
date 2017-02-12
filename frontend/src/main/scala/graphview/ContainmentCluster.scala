@@ -25,9 +25,8 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
 }
 
 // TODO: merge with ContainmentCluster?
-class ContainmentHullSelection(container: Selection[dom.EventTarget], rxPosts: RxPosts)
-  extends RxDataSelection[ContainmentCluster](container, "path", rxPosts.rxSimContainmentCluster, keyFunction = Some((p: ContainmentCluster) => p.id)) {
-
+object ContainmentHullSelection extends DataComponent[ContainmentCluster] {
+  override val tag = "path"
   override def enter(hull: Selection[ContainmentCluster]) {
     hull
       .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
@@ -37,7 +36,7 @@ class ContainmentHullSelection(container: Selection[dom.EventTarget], rxPosts: R
       .style("opacity", "0.8")
   }
 
-  override def drawCall(hull: Selection[ContainmentCluster]) {
+  override def draw(hull: Selection[ContainmentCluster]) {
     hull
       .attr("d", { (cluster: ContainmentCluster) =>
         // https://codeplea.com/introduction-to-splines

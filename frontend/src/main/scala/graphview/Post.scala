@@ -16,14 +16,10 @@ import org.scalajs.d3v4._
 import util.collectionHelpers._
 import Color._
 
-class PostSelection(
-  container: Selection[dom.EventTarget],
-  rxPosts: RxPosts,
-  postDrag: PostDrag
-)
-  extends RxDataSelection[SimPost](container, "div", rxPosts.rxSimPosts, keyFunction = Some((p: SimPost) => p.id)) {
+class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataComponent[SimPost] {
   import postDrag._, rxPosts.focusedPost
 
+  override val tag = "div"
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)
@@ -46,7 +42,7 @@ class PostSelection(
         .on("drag", postDragged _)
         .on("end", postDragEnded _))
 
-    nodes.each({ (node: HTMLElement, p: SimPost) =>
+    post.each({ (node: HTMLElement, p: SimPost) =>
       //TODO: if this fails, because post is not rendered yet, recalculate it lazyly
       val rect = node.getBoundingClientRect
       p.size = Vec2(rect.width, rect.height)
@@ -57,7 +53,7 @@ class PostSelection(
 
   }
 
-  override def drawCall(post: Selection[SimPost]) {
+  override def draw(post: Selection[SimPost]) {
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")

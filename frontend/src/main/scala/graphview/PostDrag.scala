@@ -18,9 +18,8 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class DraggingPostSelection(container: Selection[dom.EventTarget], rxData: Rx[js.Array[SimPost]])
-  extends RxDataSelection[SimPost](container, "div", rxData, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
-
+object DraggingPostSelection extends DataComponent[SimPost] {
+  override val tag = "div"
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)
@@ -34,19 +33,18 @@ class DraggingPostSelection(container: Selection[dom.EventTarget], rxData: Rx[js
       .style("cursor", "move")
   }
 
-  override def drawCall(post: Selection[SimPost]) {
+  override def draw(post: Selection[SimPost]) {
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
   }
 }
 
-class PostDrag(container: Selection[dom.EventTarget], rxPosts: RxPosts, d3State: D3State) {
+class PostDrag(rxPosts: RxPosts, d3State: D3State) {
   import d3State.{simulation, transform}
 
   val draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
   val closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
-  val draggingPostSelection = new DraggingPostSelection(container, draggingPosts) //TODO: place above ring menu?
 
   def graph = rxPosts.rxGraph.value
   def postIdToSimPost = rxPosts.postIdToSimPost.value
@@ -98,8 +96,8 @@ class PostDrag(container: Selection[dom.EventTarget], rxPosts: RxPosts, d3State:
     updateClosestPosts()
 
     draggingPost.pos = transformedEventPos
-    draggingPostSelection.draw() // because draggingPosts set does not change, only coordinates
-    // // postSelection.draw() // for highlighting closest
+    draggingPosts.update(i => i) // because draggingPosts set does not change, only coordinates
+    // TODO: draggingPostSelection.draw()
   }
 
   def postDragEnded(p: SimPost) {

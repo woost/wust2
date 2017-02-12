@@ -6,58 +6,36 @@ import org.scalajs.dom
 import org.scalajs.d3v4._
 import mhtml._
 
-abstract class DataSelection[T](
-  val container: Selection[dom.EventTarget],
-  val tag: String,
-  keyFunction: Option[T => Any] = None
-) {
-  // var data: js.Array[T] = js.Array[T]()
-  final def nodes = container.selectAll[T](tag)
-
-  def update(newData: js.Array[T]) {
-    // data = newData
-
-    val element = keyFunction
-      .map(nodes.data(newData, _))
-      .getOrElse(nodes.data(newData))
-
-    enter(element.enter().append(tag))
-    exit(element.exit())
-  }
-  final def draw() { drawCall(nodes) }
-
+trait DataComponent[T] {
+  def tag: String
   def enter(appended: Selection[T]) {}
   def exit(selection: Selection[T]) { selection.remove() }
-
-  def drawCall(selection: Selection[T]) {}
+  def draw(selection: Selection[T]) {}
 }
 
-abstract class RxDataSelection[T](
-  val container: Selection[dom.EventTarget],
-  val tag: String,
-  val rxData: Rx[js.Array[T]],
-  keyFunction: Option[T => Any] = None, //TODO: js.UndefOr to always pass it as second argument to data()
-  autoDraw: Boolean = false
-) {
-
-  final def nodes = container.selectAll[T](tag)
-
-  rxData.foreach { data =>
-    val element = keyFunction
-      .map(kf => nodes.data(data, kf))
-      .getOrElse(nodes.data(data))
-
-    val entered = element.enter()
-    val appen = entered.append(tag)
-    enter(appen)
-    exit(element.exit())
-
-    if (autoDraw) draw()
+class SelectData[T](component: DataComponent[T], container: Selection[dom.EventTarget]) {
+  def nodes = container.selectAll[T](component.tag)
+  def draw(): Unit = component.draw(nodes)
+  def update(data: js.Array[T], key: T => Any = i => i): Unit = {
+    val element = nodes.data(data, key)
+    component.enter(element.enter().append(component.tag))
+    component.exit(element.exit())
   }
+}
 
-  final def draw() { drawCall(nodes) }
-
-  def enter(appended: Selection[T]) {}
-  def exit(selection: Selection[T]) { selection.remove() }
-  def drawCall(selection: Selection[T]) {}
+object SelectData {
+  def apply[T](component: DataComponent[T])(container: Selection[dom.EventTarget]) = new SelectData(component, container)
+  def rx[T](component: DataComponent[T], rxData: Rx[js.Array[T]], key: T => Any = (i:T) => i)(container: Selection[dom.EventTarget]): SelectData[T] = {
+    val select = new SelectData(component, container)
+    rxData.foreach(select.update(_, key))
+    select
+  }
+  def autoRx[T](component: DataComponent[T], rxData: Rx[js.Array[T]], key: T => Any = (i:T) => i)(container: Selection[dom.EventTarget]): SelectData[T] = {
+    val select = new SelectData(component, container)
+    rxData.foreach { data =>
+      select.update(data, key)
+      select.draw()
+    }
+    select
+  }
 }

@@ -137,7 +137,7 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
     newData
   }
 
-  val rxSimContainmentCluster = rxGraph.map { graph =>
+  val rxContainmentCluster = rxGraph.map { graph =>
     val containments = graph.containments.values
     val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
 
@@ -173,25 +173,26 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
 
   val rxPosts = new RxPosts(rxGraph, focusedPostId)
   val d3State = new D3State
+  val postDrag = new PostDrag(rxPosts, d3State)
+  import rxPosts._, postDrag.{draggingPosts, closestPosts}
 
   // prepare containers where we will append elements depending on the data
   // order is important
   val container = d3.select("#here_be_d3")
   val svg = container.append("svg")
-  val containmentHullSelection = new ContainmentHullSelection(svg.append("g"), rxPosts)
-  val connectionLineSelection = new ConnectionLineSelection(svg.append("g"), rxPosts)
+  val containmentHullSelection = SelectData.rx[ContainmentCluster](ContainmentHullSelection, rxContainmentCluster, key = _.id)(svg.append("g"))
+  val connectionLineSelection = SelectData.rx[SimConnects](ConnectionLineSelection, rxSimConnects, key = _.id)(svg.append("g"))
 
   val html = container.append("div")
-  val connectionElementSelection = new ConnectionElementSelection(html.append("div"), rxPosts)
-  val postSelectionHTMLTODO = html.append("div")
-  val postDrag = new PostDrag(html.append("div"), rxPosts, d3State)
-  val postSelection = new PostSelection(postSelectionHTMLTODO, rxPosts, postDrag)
+  val connectionElementSelection = SelectData.rx[SimConnects](ConnectionElementSelection, rxSimConnects, key = _.id)(html.append("div"))
+  val postSelection = SelectData.rx[SimPost](new PostSelection(rxPosts, postDrag), rxSimPosts, key = _.id)(html.append("div"))
+  val draggingPostSelection = SelectData.autoRx[SimPost](DraggingPostSelection, postDrag.draggingPosts, key = _.id)(html.append("div")) //TODO: place above ring menu?
 
   val menuSvg = container.append("svg")
   val postMenuLayer = menuSvg.append("g")
-  val postMenuSelection = new PostMenuSelection(postMenuLayer.append("g"), rxPosts, d3State)
+  val postMenuSelection = SelectData.autoRx[SimPost](new PostMenuSelection(rxPosts, d3State), focusedPost.map(_.toJSArray), key = _.id)(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"), postDrag)
+  val dropMenuSelection = SelectData.autoRx[SimPost](new DropMenuSelection(postDrag), closestPosts, key = _.id)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
   initEvents()
@@ -200,7 +201,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
-    rxPosts.rxSimPosts.foreach(data => d3State.simulation.nodes(data))
+    rxSimPosts.foreach(data => d3State.simulation.nodes(data))
   }
 
   private def zoomed() {
@@ -247,7 +248,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
   }
 
   def update(newGraph: Graph) {
-    import d3State._, rxPosts._
+    import d3State._
 
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>

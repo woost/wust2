@@ -15,18 +15,14 @@ import mhtml._
 import vectory._
 import util.collectionHelpers._
 
-class ConnectionLineSelection(
-  container: Selection[dom.EventTarget],
-  rxPosts: RxPosts
-)
-  extends RxDataSelection[SimConnects](container, "line", rxPosts.rxSimConnects, keyFunction = Some((p: SimConnects) => p.id)) {
-
+object ConnectionLineSelection extends DataComponent[SimConnects] {
+  override val tag = "line"
   override def enter(line: Selection[SimConnects]) {
     line
       .style("stroke", "#8F8F8F")
   }
 
-  override def drawCall(line: Selection[SimConnects]) {
+  override def draw(line: Selection[SimConnects]) {
     line
       .attr("x1", (e: SimConnects) => e.source.x)
       .attr("y1", (e: SimConnects) => e.source.y)
@@ -35,9 +31,8 @@ class ConnectionLineSelection(
   }
 }
 
-class ConnectionElementSelection(container: Selection[dom.EventTarget], rxPosts: RxPosts)
-  extends RxDataSelection[SimConnects](container, "div", rxPosts.rxSimConnects, keyFunction = Some((p: SimConnects) => p.id)) {
-
+object ConnectionElementSelection extends DataComponent[SimConnects] {
+  override val tag = "div"
   override def enter(element: Selection[SimConnects]) {
     element
       .style("position", "absolute")
@@ -53,13 +48,11 @@ class ConnectionElementSelection(container: Selection[dom.EventTarget], rxPosts:
 
         Client.api.deleteConnection(e.id).call()
       })
-
   }
 
-  override def drawCall(element: Selection[SimConnects]) {
+  override def draw(element: Selection[SimConnects]) {
     element
       .style("left", (e: SimConnects) => s"${e.x.get}px")
       .style("top", (e: SimConnects) => s"${e.y.get}px")
-
   }
 }

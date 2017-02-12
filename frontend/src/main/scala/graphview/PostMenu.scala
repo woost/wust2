@@ -19,25 +19,20 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class PostMenuSelection(
-  container: Selection[dom.EventTarget],
-  rxPosts: RxPosts,
-  d3State: D3State
-)
-  extends RxDataSelection[SimPost](container, "g", rxPosts.focusedPost.map(_.toJSArray).target, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
-
+class PostMenuSelection(rxPosts: RxPosts, d3State: D3State) extends DataComponent[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 50.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
   val menuCornerRadius = 2.0
 
-  def menuActions = (
+  val menuActions = (
     MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Auto Position", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
     Nil
   )
 
+  override val tag = "g"
   override def enter(menu: Selection[SimPost]) {
     import rxPosts.focusedPost
     import d3State.simulation
@@ -74,7 +69,7 @@ class PostMenuSelection(
       .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
   }
 
-  override def drawCall(menu: Selection[SimPost]) {
+  override def draw(menu: Selection[SimPost]) {
     menu.attr("transform", (p: SimPost) => s"translate(${p.x}, ${p.y})")
   }
 }

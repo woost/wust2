@@ -18,18 +18,13 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class DropMenuSelection(
-  container: Selection[dom.EventTarget],
-  postDrag: PostDrag
-
-)
-  extends RxDataSelection[SimPost](container, "g", postDrag.closestPosts, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
-
+class DropMenuSelection(postDrag: PostDrag) extends DataComponent[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
   val menuCornerRadius = 2.0
 
+  override val tag = "g"
   override def enter(menu: Selection[SimPost]) {
     val pie = d3.pie()
       .value(1)
@@ -62,7 +57,7 @@ class DropMenuSelection(
       .attr("y", (d: PieArcDatum[DropAction]) => arc.centroid(d)(1))
   }
 
-  override def drawCall(menu: Selection[SimPost]) {
+  override def draw(menu: Selection[SimPost]) {
     menu.attr("transform", (p: SimPost) => s"translate(${p.x}, ${p.y})")
   }
 }
