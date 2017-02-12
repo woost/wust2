@@ -293,12 +293,3 @@ object GraphView { thisEnv =>
     }
   }
 }
-
-// Uncaught TypeError: Cannot read property 'target$1' of null
-// at $c_Lfrontend_graphview_GraphState.init___Lmhtml_Rx__Lfrontend_SourceVar (GraphView.scala:273)
-// at $c_Lfrontend_graphview_GraphView$$anonfun$9.apply__Lmhtml_Rx__Lfrontend_SourceVar__V (GraphView.scala:281)
-// at $c_Lfrontend_graphview_GraphView$$anonfun$9.apply__O__O__O (GraphView.scala:281)
-// at $c_Lfrontend_Main$.main__V (Main.scala:19)
-// at $c_Lfrontend_Main$.$$js$exported$meth$main__O (Main.scala:18)
-// at $c_Lfrontend_Main$.main (Main.scala:18)
-// at scalajsbundler-fastOptJS-launcher.js:1
