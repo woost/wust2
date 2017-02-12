@@ -203,7 +203,6 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
       edgeOpt <- connect(post.id, to)
     ) yield edgeOpt.map { edge =>
       emit(NewPost(post))
-      emit(NewConnection(edge))
       (post, edge)
     }
   }
