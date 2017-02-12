@@ -8,7 +8,6 @@ import mhtml._
 import scalajs.js
 import js.JSConverters._
 import org.scalajs.dom
-import algorithm.topologicalSort
 import vectory._
 
 import org.scalajs.d3v4._
@@ -25,32 +24,9 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
   }
 }
 
-object ContainmentHullSelection {
-  def apply(container: Selection[dom.EventTarget], rxPosts: RxPosts, rxGraph: Rx[Graph]) = {
-    import rxPosts.postIdToSimPost
-    val rxData = rxGraph.map { graph =>
-
-      val containments = graph.containments.values
-      val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
-
-      // due to transitive containment visualisation,
-      // inner posts should be drawn above outer ones.
-      // TODO: breaks on circular containment
-      val ordered = topologicalSort(parents, (p: Post) => graph.children(p.id))
-
-      ordered.map(p =>
-        new ContainmentCluster(
-          parent = postIdToSimPost.value(p.id),
-          children = graph.transitiveChildren(p.id).map(p => postIdToSimPost.value(p.id))(breakOut)
-        )).toJSArray
-    }
-    new ContainmentHullSelection(container, rxData)
-  }
-}
-
 // TODO: merge with ContainmentCluster?
-class ContainmentHullSelection(container: Selection[dom.EventTarget], rxData: Rx[js.Array[ContainmentCluster]])
-  extends RxDataSelection[ContainmentCluster](container, "path", rxData, keyFunction = Some((p: ContainmentCluster) => p.id)) {
+class ContainmentHullSelection(container: Selection[dom.EventTarget], rxPosts: RxPosts)
+  extends RxDataSelection[ContainmentCluster](container, "path", rxPosts.rxSimContainmentCluster, keyFunction = Some((p: ContainmentCluster) => p.id)) {
 
   override def enter(hull: Selection[ContainmentCluster]) {
     hull

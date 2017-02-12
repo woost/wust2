@@ -22,7 +22,7 @@ class PostSelection(
   postDrag: PostDrag
 )
   extends RxDataSelection[SimPost](container, "div", rxPosts.rxSimPosts, keyFunction = Some((p: SimPost) => p.id)) {
-  import postDrag._, rxPosts._
+  import postDrag._, rxPosts.focusedPost
 
   override def enter(post: Selection[SimPost]) {
     post

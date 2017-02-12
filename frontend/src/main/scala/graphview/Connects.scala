@@ -15,38 +15,11 @@ import mhtml._
 import vectory._
 import util.collectionHelpers._
 
-object ConnectionLineSelection {
-  def apply(container: Selection[dom.EventTarget], rxPosts: RxPosts, rxGraph: Rx[Graph]) = {
-    import rxPosts.postIdToSimPost
-    val rxData = for {
-      graph <- rxGraph
-      postIdToSimPost <- postIdToSimPost
-    } yield {
-
-      val newData = graph.connections.values.map { c =>
-        new SimConnects(c, postIdToSimPost(c.sourceId))
-      }.toJSArray
-
-      val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
-
-      // set hyperedge targets, goes away with custom linkforce
-      newData.foreach { e =>
-        e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
-      }
-
-      newData
-    }
-
-    new ConnectionLineSelection(container, rxData)
-
-  }
-}
-
 class ConnectionLineSelection(
   container: Selection[dom.EventTarget],
-  rxData: Rx[js.Array[SimConnects]]
+  rxPosts: RxPosts
 )
-  extends RxDataSelection[SimConnects](container, "line", rxData, keyFunction = Some((p: SimConnects) => p.id)) {
+  extends RxDataSelection[SimConnects](container, "line", rxPosts.rxSimConnects, keyFunction = Some((p: SimConnects) => p.id)) {
 
   override def enter(line: Selection[SimConnects]) {
     line
@@ -62,8 +35,8 @@ class ConnectionLineSelection(
   }
 }
 
-class ConnectionElementSelection(container: Selection[dom.EventTarget], rxData: Rx[js.Array[SimConnects]])
-  extends RxDataSelection[SimConnects](container, "div", rxData, keyFunction = Some((p: SimConnects) => p.id)) {
+class ConnectionElementSelection(container: Selection[dom.EventTarget], rxPosts: RxPosts)
+  extends RxDataSelection[SimConnects](container, "div", rxPosts.rxSimConnects, keyFunction = Some((p: SimConnects) => p.id)) {
 
   override def enter(element: Selection[SimConnects]) {
     element

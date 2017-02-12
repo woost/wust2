@@ -119,6 +119,41 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
     map <- postIdToSimPost
   } yield idOpt.flatMap(map.get)
 
+  val rxSimConnects = for {
+    graph <- rxGraph
+    postIdToSimPost <- postIdToSimPost
+  } yield {
+    val newData = graph.connections.values.map { c =>
+      new SimConnects(c, postIdToSimPost(c.sourceId))
+    }.toJSArray
+
+    val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
+
+    // set hyperedge targets, goes away with custom linkforce
+    newData.foreach { e =>
+      e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
+    }
+
+    newData
+  }
+
+  val rxSimContainmentCluster = rxGraph.map { graph =>
+    val containments = graph.containments.values
+    val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
+
+    // due to transitive containment visualisation,
+    // inner posts should be drawn above outer ones.
+    // TODO: breaks on circular containment
+
+    val ordered = algorithm.topologicalSort(parents, (p: Post) => graph.children(p.id))
+
+    ordered.map(p =>
+      new ContainmentCluster(
+        parent = postIdToSimPost.value(p.id),
+        children = graph.transitiveChildren(p.id).map(p => postIdToSimPost.value(p.id))(breakOut)
+      )).toJSArray
+  }
+
   // rxSimPosts.foreach(v => println(s"post rxSimPosts update: $v"))
   // postIdToSimPost.foreach(v => println(s"postIdToSimPost update: $v"))
   // for (v <- focusedPost) { println(s"focusedSimPost update: $v") }
@@ -137,19 +172,17 @@ class D3State {
 class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
 
   val rxPosts = new RxPosts(rxGraph, focusedPostId)
-  import rxPosts._
-
   val d3State = new D3State
 
   // prepare containers where we will append elements depending on the data
   // order is important
   val container = d3.select("#here_be_d3")
   val svg = container.append("svg")
-  val containmentHullSelection = ContainmentHullSelection(svg.append("g"), rxPosts, rxGraph)
-  val connectionLineSelection = ConnectionLineSelection(svg.append("g"), rxPosts, rxGraph)
+  val containmentHullSelection = new ContainmentHullSelection(svg.append("g"), rxPosts)
+  val connectionLineSelection = new ConnectionLineSelection(svg.append("g"), rxPosts)
 
   val html = container.append("div")
-  val connectionElementSelection = new ConnectionElementSelection(html.append("div"), connectionLineSelection.rxData)
+  val connectionElementSelection = new ConnectionElementSelection(html.append("div"), rxPosts)
   val postSelectionHTMLTODO = html.append("div")
   val postDrag = new PostDrag(html.append("div"), rxPosts, d3State)
   val postSelection = new PostSelection(postSelectionHTMLTODO, rxPosts, postDrag)
@@ -158,9 +191,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
   val postMenuLayer = menuSvg.append("g")
   val postMenuSelection = new PostMenuSelection(postMenuLayer.append("g"), rxPosts, d3State)
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"), postDrag.closestPosts, postDrag)
-
-  rxSimPosts.foreach(data => d3State.simulation.nodes(data))
+  val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"), postDrag)
 
   initContainerDimensionsAndPositions()
   initEvents()
@@ -169,6 +200,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
+    rxPosts.rxSimPosts.foreach(data => d3State.simulation.nodes(data))
   }
 
   private def zoomed() {
@@ -215,7 +247,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
   }
 
   def update(newGraph: Graph) {
-    import d3State._
+    import d3State._, rxPosts._
 
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>

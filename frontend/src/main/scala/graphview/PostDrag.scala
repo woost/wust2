@@ -42,7 +42,7 @@ class DraggingPostSelection(container: Selection[dom.EventTarget], rxData: Rx[js
 }
 
 class PostDrag(container: Selection[dom.EventTarget], rxPosts: RxPosts, d3State: D3State) {
-  import d3State._
+  import d3State.{simulation, transform}
 
   val draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
   val closestPosts: Var[js.Array[SimPost]] = Var(js.Array())

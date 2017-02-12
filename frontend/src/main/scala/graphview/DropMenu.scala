@@ -20,11 +20,10 @@ import com.outr.scribe._
 
 class DropMenuSelection(
   container: Selection[dom.EventTarget],
-  rxData: Rx[js.Array[SimPost]],
   postDrag: PostDrag
 
 )
-  extends RxDataSelection[SimPost](container, "g", rxData, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
+  extends RxDataSelection[SimPost](container, "g", postDrag.closestPosts, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
 
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
