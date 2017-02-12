@@ -42,7 +42,9 @@ class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataComponent[
         .on("start", postDragStarted _)
         .on("drag", postDragged _)
         .on("end", postDragEnded _))
+  }
 
+  override def update(post: Selection[SimPost]) {
     post.each({ (node: HTMLElement, p: SimPost) =>
       //TODO: if this fails, because post is not rendered yet, recalculate it lazyly
       val rect = node.getBoundingClientRect
@@ -51,7 +53,6 @@ class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataComponent[
       p.radius = p.size.length / 2
       p.collisionRadius = p.radius
     })
-
   }
 
   override def draw(post: Selection[SimPost]) {

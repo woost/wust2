@@ -10,6 +10,7 @@ trait DataComponent[T] {
   val tag: String
   val key: T => Any //TODO undefor?
   def enter(appended: Selection[T]) {}
+  def update(selection: Selection[T]) {}
   def exit(selection: Selection[T]) { selection.remove() }
   def draw(selection: Selection[T]) {}
 }
@@ -20,6 +21,7 @@ class SelectData[T](component: DataComponent[T], container: Selection[dom.EventT
   def update(data: js.Array[T]): Unit = {
     val element = nodes.data(data, component.key)
     component.enter(element.enter().append(component.tag))
+    component.update(nodes)
     component.exit(element.exit())
   }
 }
