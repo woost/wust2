@@ -40,16 +40,18 @@ object DraggingPostSelection extends DataComponent[SimPost] {
   }
 }
 
-class PostDrag(rxPosts: RxPosts, d3State: D3State) {
+class PostDrag(rxPosts: RxPosts, d3State: D3State, onPostDragged: () => Unit = () => ()) {
   import d3State.{simulation, transform}
 
-  val draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
-  val closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
+  private val _draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
+  private val _closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
+  def draggingPosts: Rx[js.Array[SimPost]] = _draggingPosts
+  def closestPosts: Rx[js.Array[SimPost]] = _closestPosts
 
-  def graph = rxPosts.rxGraph.value
-  def postIdToSimPost = rxPosts.postIdToSimPost.value
+  private def graph = rxPosts.rxGraph.value
+  private def postIdToSimPost = rxPosts.postIdToSimPost.value
 
-  val dragHitDetectRadius = 100
+  private val dragHitDetectRadius = 100
   val dropActions = (
     DropAction("connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
     DropAction("insert into", "blue", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
@@ -59,11 +61,11 @@ class PostDrag(rxPosts: RxPosts, d3State: D3State) {
 
   def updateDraggingPosts() {
     val posts = graph.posts.values
-    draggingPosts := posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
+    _draggingPosts := posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
   }
 
   def updateClosestPosts() {
-    closestPosts := postIdToSimPost.values.filter(_.isClosest).toJSArray
+    _closestPosts := postIdToSimPost.values.filter(_.isClosest).toJSArray
   }
 
   def postDragStarted(p: SimPost) {
@@ -96,8 +98,6 @@ class PostDrag(rxPosts: RxPosts, d3State: D3State) {
     updateClosestPosts()
 
     draggingPost.pos = transformedEventPos
-    draggingPosts.update(i => i) // because draggingPosts set does not change, only coordinates
-    // TODO: draggingPostSelection.draw()
   }
 
   def postDragEnded(p: SimPost) {

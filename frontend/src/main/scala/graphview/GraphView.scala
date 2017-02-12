@@ -173,7 +173,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
 
   val rxPosts = new RxPosts(rxGraph, focusedPostId)
   val d3State = new D3State
-  val postDrag = new PostDrag(rxPosts, d3State)
+  val postDrag = new PostDrag(rxPosts, d3State, onPostDrag)
   import rxPosts._, postDrag.{draggingPosts, closestPosts}
 
   // prepare containers where we will append elements depending on the data
@@ -186,7 +186,7 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
   val html = container.append("div")
   val connectionElementSelection = SelectData.rx[SimConnects](ConnectionElementSelection, rxSimConnects, key = _.id)(html.append("div"))
   val postSelection = SelectData.rx[SimPost](new PostSelection(rxPosts, postDrag), rxSimPosts, key = _.id)(html.append("div"))
-  val draggingPostSelection = SelectData.autoRx[SimPost](DraggingPostSelection, postDrag.draggingPosts, key = _.id)(html.append("div")) //TODO: place above ring menu?
+  val draggingPostSelection = SelectData.autoRx[SimPost](DraggingPostSelection, draggingPosts, key = _.id)(html.append("div")) //TODO: place above ring menu?
 
   val menuSvg = container.append("svg")
   val postMenuLayer = menuSvg.append("g")
@@ -196,6 +196,10 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
 
   initContainerDimensionsAndPositions()
   initEvents()
+
+  private def onPostDrag() {
+    draggingPostSelection.draw()
+  }
 
   private def initEvents() {
     svg.call(d3.zoom().on("zoom", zoomed _))
