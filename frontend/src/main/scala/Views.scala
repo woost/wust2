@@ -16,7 +16,7 @@ package object views {
 
   def genericPost(post: Post, color: d3v4.Color, afterTitle: Option[Node]) =
     //TODO: share style with graphview
-    <div style={ s"padding: 3px 5px; margin: 3px; borderRadius: 3px; maxWidth: 10em; border: 1px solid #444; background-color: ${color.toString}" }>
+    <div style={ s"padding: 3px 5px; margin: 3px; borderRadius: 3px; max-width: 10em; border: 1px solid #444; background-color: ${color.toString}" }>
       { post.title }
       { afterTitle.getOrElse(emptyHTML) }
     </div>

@@ -33,7 +33,7 @@ object MainView {
       <div style={ tabMode.map(m => if (m == Tab.List) "display:block" else "display:none") }>
         { ListView.component(state.graph) }
       </div>
-      <div style="position:fixed; width:100%; bottom:0; left:0; padding:5px; background:#FFF; borderTop:1px; solid #DDD">
+      <div style="position:fixed; width:100%; bottom:0; left:0; padding:5px; background:#f7f7f7; border-top:1px solid #DDD">
         { AddPostForm.component(state.graph, state.focusedPostId) }
       </div>
     </div>
