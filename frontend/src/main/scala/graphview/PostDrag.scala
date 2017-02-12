@@ -4,6 +4,7 @@ import frontend._
 
 import graph._
 import math._
+import mhtml._
 
 import scalajs.js
 import js.JSConverters._
@@ -17,9 +18,8 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
-  import env._
+class DraggingPostSelection(container: Selection[dom.EventTarget], rxData: Rx[js.Array[SimPost]])
+  extends RxDataSelection[SimPost](container, "div", rxData, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
 
   override def enter(post: Selection[SimPost]) {
     post
@@ -41,7 +41,16 @@ class DraggingPostSelection(container: Selection[dom.EventTarget])(implicit env:
   }
 }
 
-object PostDrag {
+class PostDrag(container: Selection[dom.EventTarget], rxPosts: RxPosts, d3State: D3State) {
+  import d3State._
+
+  val draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
+  val closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
+  val draggingPostSelection = new DraggingPostSelection(container, draggingPosts) //TODO: place above ring menu?
+
+  def graph = rxPosts.rxGraph.value
+  def postIdToSimPost = rxPosts.postIdToSimPost.value
+
   val dragHitDetectRadius = 100
   val dropActions = (
     DropAction("connect", "green", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
@@ -50,27 +59,16 @@ object PostDrag {
     Nil
   ).toArray
 
-  def updateDraggingPosts()(implicit env: GraphState) {
-    import env._
-    import postSelection.postIdToSimPost
-
+  def updateDraggingPosts() {
     val posts = graph.posts.values
-    val draggingPosts = posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
-    draggingPostSelection.update(draggingPosts)
-    draggingPostSelection.draw()
+    draggingPosts := posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
   }
 
-  def updateClosestPosts()(implicit env: GraphState) {
-    import env._
-    import postSelection.postIdToSimPost
-
-    val closest = postIdToSimPost.values.filter(_.isClosest).toJSArray
-    dropMenuSelection.update(closest)
-    dropMenuSelection.draw()
+  def updateClosestPosts() {
+    closestPosts := postIdToSimPost.values.filter(_.isClosest).toJSArray
   }
 
-  def postDragStarted(p: SimPost)(implicit env: GraphState) {
-    import env._
+  def postDragStarted(p: SimPost) {
     val draggingPost = p.newDraggingPost
     p.draggingPost = Some(draggingPost)
     updateDraggingPosts()
@@ -82,8 +80,7 @@ object PostDrag {
     simulation.stop()
   }
 
-  def postDragged(p: SimPost)(implicit env: GraphState) {
-    import env._
+  def postDragged(p: SimPost) {
     val draggingPost = p.draggingPost.get
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
@@ -101,12 +98,11 @@ object PostDrag {
     updateClosestPosts()
 
     draggingPost.pos = transformedEventPos
-    draggingPostSelection.draw()
-    postSelection.draw() // for highlighting closest
+    draggingPostSelection.draw() // because draggingPosts set does not change, only coordinates
+    // // postSelection.draw() // for highlighting closest
   }
 
-  def postDragEnded(p: SimPost)(implicit env: GraphState) {
-    import env._
+  def postDragEnded(p: SimPost) {
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
 

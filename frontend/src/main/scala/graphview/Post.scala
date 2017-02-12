@@ -4,6 +4,7 @@ import frontend._
 
 import graph._
 import math._
+import mhtml._
 
 import scalajs.js
 import js.JSConverters._
@@ -15,53 +16,13 @@ import org.scalajs.d3v4._
 import util.collectionHelpers._
 import Color._
 
-class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[SimPost](container, "div", keyFunction = Some((p: SimPost) => p.id)) {
-  import env._
-  import PostDrag._
-
-  var postIdToSimPost: Map[AtomId, SimPost] = Map.empty
-  def update(posts: Iterable[Post]) {
-
-    val newData = posts.map { p =>
-      val sp = new SimPost(p)
-      postIdToSimPost.get(sp.id).foreach { old =>
-        // preserve position, velocity and fixed position
-        sp.x = old.x
-        sp.y = old.y
-        sp.vx = old.vx
-        sp.vy = old.vy
-        sp.fx = old.fx
-        sp.fy = old.fy
-      }
-
-      def parents = graph.parents(p.id)
-      def hasParents = parents.nonEmpty
-      def mixedDirectParentColors = mixColors(parents.map((p: Post) => baseColor(p.id)))
-      def hasChildren = graph.children(p.id).nonEmpty
-      sp.border = (
-        if (hasChildren)
-          "2px solid rgba(0,0,0,0.4)"
-        else { // no children
-          "2px solid rgba(0,0,0,0.1)"
-        }
-      ).toString()
-      sp.color = (
-        if (hasChildren)
-          baseColor(p.id)
-        else { // no children
-          if (hasParents)
-            mixColors(mixedDirectParentColors, postDefaultColor)
-          else
-            postDefaultColor
-        }
-      ).toString()
-      sp
-    }.toJSArray
-
-    update(newData)
-    postIdToSimPost = (newData: js.ArrayOps[SimPost]).by(_.id)
-  }
+class PostSelection(
+  container: Selection[dom.EventTarget],
+  rxPosts: RxPosts,
+  postDrag: PostDrag
+)
+  extends RxDataSelection[SimPost](container, "div", rxPosts.rxSimPosts, keyFunction = Some((p: SimPost) => p.id)) {
+  import postDrag._, rxPosts._
 
   override def enter(post: Selection[SimPost]) {
     post
@@ -75,9 +36,10 @@ class PostSelection(container: Selection[dom.EventTarget])(implicit env: GraphSt
       .style("pointer-events", "auto") // reenable
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
-        if (focusedPost.value.isEmpty || focusedPost.value.get != p) focusedPostId := Some(p.id)
-        else focusedPostId := None
-        env.postMenuSelection.draw()
+        if (focusedPost.value.isEmpty || focusedPost.value.get != p)
+          focusedPost := Some(p.id)
+        else
+          focusedPost := None
       })
       .call(d3.drag[SimPost]()
         .on("start", postDragStarted _)

@@ -4,11 +4,13 @@ import frontend._
 
 import graph._
 import math._
+import mhtml._
 
 import scalajs.js
 import js.JSConverters._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom
+import org.scalajs.dom.console
 import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
@@ -17,16 +19,19 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
-  import env._
+class PostMenuSelection(
+  container: Selection[dom.EventTarget],
+  rxPosts: RxPosts,
+  d3State: D3State
+)
+  extends RxDataSelection[SimPost](container, "g", rxPosts.focusedPost.map(_.toJSArray).target, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
 
   val menuOuterRadius = 100.0
   val menuInnerRadius = 50.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
   val menuCornerRadius = 2.0
 
-  val menuActions = (
+  def menuActions = (
     MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Auto Position", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
@@ -34,6 +39,9 @@ class PostMenuSelection(container: Selection[dom.EventTarget])(implicit env: Gra
   )
 
   override def enter(menu: Selection[SimPost]) {
+    import rxPosts.focusedPost
+    import d3State.simulation
+
     val pie = d3.pie()
       .value(1)
       .padAngle(menuPaddingAngle)

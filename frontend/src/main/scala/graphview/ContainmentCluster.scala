@@ -3,6 +3,7 @@ package frontend.graphview
 import graph._
 import math._
 import collection.breakOut
+import mhtml._
 
 import scalajs.js
 import js.JSConverters._
@@ -24,28 +25,32 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
   }
 }
 
-// TODO: merge with ContainmentCluster?
-class ContainmentHullSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[ContainmentCluster](container, "path", keyFunction = Some((p: ContainmentCluster) => p.id)) {
-  import env._
-  import postSelection.postIdToSimPost
+object ContainmentHullSelection {
+  def apply(container: Selection[dom.EventTarget], rxPosts: RxPosts, rxGraph: Rx[Graph]) = {
+    import rxPosts.postIdToSimPost
+    val rxData = rxGraph.map { graph =>
 
-  def update(containments: Iterable[Contains]) {
-    val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
+      val containments = graph.containments.values
+      val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
 
-    // due to transitive containment visualisation,
-    // inner posts should be drawn above outer ones.
-    // TODO: breaks on circular containment
-    val ordered = topologicalSort(parents, (p: Post) => graph.children(p.id))
+      // due to transitive containment visualisation,
+      // inner posts should be drawn above outer ones.
+      // TODO: breaks on circular containment
+      val ordered = topologicalSort(parents, (p: Post) => graph.children(p.id))
 
-    val newData = ordered.map(p =>
-      new ContainmentCluster(
-        parent = postIdToSimPost(p.id),
-        children = graph.transitiveChildren(p.id).map(p => postIdToSimPost(p.id))(breakOut)
-      )).toJSArray
-
-    update(newData)
+      ordered.map(p =>
+        new ContainmentCluster(
+          parent = postIdToSimPost.value(p.id),
+          children = graph.transitiveChildren(p.id).map(p => postIdToSimPost.value(p.id))(breakOut)
+        )).toJSArray
+    }
+    new ContainmentHullSelection(container, rxData)
   }
+}
+
+// TODO: merge with ContainmentCluster?
+class ContainmentHullSelection(container: Selection[dom.EventTarget], rxData: Rx[js.Array[ContainmentCluster]])
+  extends RxDataSelection[ContainmentCluster](container, "path", rxData, keyFunction = Some((p: ContainmentCluster) => p.id)) {
 
   override def enter(hull: Selection[ContainmentCluster]) {
     hull

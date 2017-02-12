@@ -4,6 +4,7 @@ import frontend._
 
 import graph._
 import math._
+import mhtml._
 
 import scalajs.js
 import js.JSConverters._
@@ -17,9 +18,13 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class DropMenuSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[SimPost](container, "g", keyFunction = Some((p: SimPost) => p.id)) {
-  import env._
+class DropMenuSelection(
+  container: Selection[dom.EventTarget],
+  rxData: Rx[js.Array[SimPost]],
+  postDrag: PostDrag
+
+)
+  extends RxDataSelection[SimPost](container, "g", rxData, keyFunction = Some((p: SimPost) => p.id), autoDraw = true) {
 
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
@@ -36,7 +41,7 @@ class DropMenuSelection(container: Selection[dom.EventTarget])(implicit env: Gra
       .outerRadius(menuOuterRadius)
       .cornerRadius(menuCornerRadius)
 
-    val pieData = PostDrag.dropActions.toJSArray
+    val pieData = postDrag.dropActions.toJSArray //TODO: where to store dropActions?
     val ringMenuArc = menu.selectAll("path")
       .data(pie(pieData))
     val ringMenuLabels = menu.selectAll("text")

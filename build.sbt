@@ -102,6 +102,7 @@ lazy val frontend = project
       Nil
     ),
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
+    relativeSourceMaps := false,
     enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
 
@@ -126,7 +127,9 @@ lazy val assets = project
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
     //TODO: minify html
-    pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip) //TODO zopfli?
+    //TODO: only serve minified assets
+    //TODO: zopfli
+    pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip)
   )
 
 lazy val backend = project

@@ -32,4 +32,7 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
     g
   }
   var draggingPost: Option[SimPost] = None
+
+  //TODO: derive
+  override def toString = s"SimPost($post, $title, $x, $y)"
 }

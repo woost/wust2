@@ -10,28 +10,44 @@ import js.JSConverters._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.d3v4._
 import org.scalajs.dom
+import mhtml._
 
 import vectory._
 import util.collectionHelpers._
 
-class ConnectionLineSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[SimConnects](container, "line", keyFunction = Some((p: SimConnects) => p.id)) {
-  import env._
-  import postSelection.postIdToSimPost
+object ConnectionLineSelection {
+  def apply(container: Selection[dom.EventTarget], rxPosts: RxPosts, rxGraph: Rx[Graph]) = {
+    import rxPosts.postIdToSimPost
+    val rxData = for {
+      graph <- rxGraph
+      postIdToSimPost <- postIdToSimPost
+    } yield {
 
-  def update(connections: Iterable[Connects]) {
-    val newData = graph.connections.values.map { c =>
-      new SimConnects(c, postIdToSimPost(c.sourceId))
-    }.toJSArray
+      val newData = graph.connections.values.map { c =>
+        new SimConnects(c, postIdToSimPost(c.sourceId))
+      }.toJSArray
 
-    val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
+      val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
 
-    newData.foreach { e =>
-      e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
+      // set hyperedge targets, goes away with custom linkforce
+      newData.foreach { e =>
+        e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
+      }
+
+      newData
     }
 
-    update(newData)
+    new ConnectionLineSelection(container, rxData)
+
   }
+}
+
+class ConnectionLineSelection(
+  container: Selection[dom.EventTarget],
+  rxData: Rx[js.Array[SimConnects]]
+)
+  extends RxDataSelection[SimConnects](container, "line", rxData, keyFunction = Some((p: SimConnects) => p.id)) {
+
   override def enter(line: Selection[SimConnects]) {
     line
       .style("stroke", "#8F8F8F")
@@ -46,9 +62,8 @@ class ConnectionLineSelection(container: Selection[dom.EventTarget])(implicit en
   }
 }
 
-class ConnectionElementSelection(container: Selection[dom.EventTarget])(implicit env: GraphState)
-  extends DataSelection[SimConnects](container, "div", keyFunction = Some((p: SimConnects) => p.id)) {
-  import env._
+class ConnectionElementSelection(container: Selection[dom.EventTarget], rxData: Rx[js.Array[SimConnects]])
+  extends RxDataSelection[SimConnects](container, "div", rxData, keyFunction = Some((p: SimConnects) => p.id)) {
 
   override def enter(element: Selection[SimConnects]) {
     element

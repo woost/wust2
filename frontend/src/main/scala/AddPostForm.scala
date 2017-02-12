@@ -13,11 +13,11 @@ import org.scalajs.d3v4
 import Color._
 
 object AddPostForm {
-  def component(rxGraph: Rx[Graph], target: Rx[Option[AtomId]]) = {
+  def component(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) = {
     def graph = rxGraph.value
     <div>
       {
-        target.map {
+        focusedPostId.target.map {
           case Some(postId) =>
             val post = graph.posts(postId)
             <div>
@@ -31,7 +31,7 @@ object AddPostForm {
         val input = e.target.asInstanceOf[raw.HTMLInputElement]
         val text = input.value
         if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-          val fut = target.value match {
+          val fut = focusedPostId.value match {
             case Some(postId) => Client.api.respond(postId, text).call().map(_.isDefined)
             case None => Client.api.addPost(text).call().map(_ => true)
           }

@@ -71,40 +71,96 @@ object Simulation {
     .force("containment", forces.containment)
 }
 
-class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { thisEnv =>
-  def graph = rxGraph.value
-  private implicit val stateEnv = thisEnv
+class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
+  val rxSimPosts: Rx[js.Array[SimPost]] = rxGraph.map { graph =>
+    graph.posts.values.map { p =>
+      val sp = new SimPost(p)
+      postIdToSimPost.value.get(sp.id).foreach { old =>
+        // preserve position, velocity and fixed position
+        sp.x = old.x
+        sp.y = old.y
+        sp.vx = old.vx
+        sp.vy = old.vy
+        sp.fx = old.fx
+        sp.fy = old.fy
+      }
 
+      def parents = graph.parents(p.id)
+      def hasParents = parents.nonEmpty
+      def mixedDirectParentColors = mixColors(parents.map((p: Post) => baseColor(p.id)))
+      def hasChildren = graph.children(p.id).nonEmpty
+      sp.border = (
+        if (hasChildren)
+          "2px solid rgba(0,0,0,0.4)"
+        else { // no children
+          "2px solid rgba(0,0,0,0.1)"
+        }
+      ).toString()
+      sp.color = (
+        if (hasChildren)
+          baseColor(p.id)
+        else { // no children
+          if (hasParents)
+            mixColors(mixedDirectParentColors, postDefaultColor)
+          else
+            postDefaultColor
+        }
+      ).toString()
+      sp
+
+    }.toJSArray
+  }
+
+  val postIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.map(nd => (nd: js.ArrayOps[SimPost]).by(_.id))
+
+  //TODO: multiple menus for multi-user multi-touch interface?
+  val focusedPost = for {
+    idOpt <- focusedPostId
+    map <- postIdToSimPost
+  } yield idOpt.flatMap(map.get)
+
+  // rxSimPosts.foreach(v => println(s"post rxSimPosts update: $v"))
+  // postIdToSimPost.foreach(v => println(s"postIdToSimPost update: $v"))
+  // for (v <- focusedPost) { println(s"focusedSimPost update: $v") }
+}
+
+class D3State {
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   private val width = 640
   private val height = 480
 
-  //TODO: multiple menus for multi-user multi-touch interface?
-  focusedPostId.foreach(_ foreach (id => postMenuSelection.update(js.Array(postSelection.postIdToSimPost(id)))))
-  val focusedPost = focusedPostId.map(_.flatMap(id => postSelection.postIdToSimPost.get(id)))
-
   var transform: Transform = d3.zoomIdentity // stores current pan and zoom
+  val forces = Forces(height, width)
+  val simulation = Simulation(forces)
+}
+
+class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
+
+  val rxPosts = new RxPosts(rxGraph, focusedPostId)
+  import rxPosts._
+
+  val d3State = new D3State
 
   // prepare containers where we will append elements depending on the data
   // order is important
   val container = d3.select("#here_be_d3")
   val svg = container.append("svg")
-  val containmentHullSelection = new ContainmentHullSelection(svg.append("g"))
-  val connectionLineSelection = new ConnectionLineSelection(svg.append("g"))
+  val containmentHullSelection = ContainmentHullSelection(svg.append("g"), rxPosts, rxGraph)
+  val connectionLineSelection = ConnectionLineSelection(svg.append("g"), rxPosts, rxGraph)
 
   val html = container.append("div")
-  val connectionElementSelection = new ConnectionElementSelection(html.append("div"))
-  val postSelection = new PostSelection(html.append("div"))
-  val draggingPostSelection = new DraggingPostSelection(html.append("div")) //TODO: place above ring menu?
+  val connectionElementSelection = new ConnectionElementSelection(html.append("div"), connectionLineSelection.rxData)
+  val postSelectionHTMLTODO = html.append("div")
+  val postDrag = new PostDrag(html.append("div"), rxPosts, d3State)
+  val postSelection = new PostSelection(postSelectionHTMLTODO, rxPosts, postDrag)
 
   val menuSvg = container.append("svg")
   val postMenuLayer = menuSvg.append("g")
-  val postMenuSelection = new PostMenuSelection(postMenuLayer.append("g"))
+  val postMenuSelection = new PostMenuSelection(postMenuLayer.append("g"), rxPosts, d3State)
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"))
+  val dropMenuSelection = new DropMenuSelection(dropMenuLayer.append("g"), postDrag.closestPosts, postDrag)
 
-  val forces = Forces(height, width)
-  val simulation = Simulation(forces)
+  rxSimPosts.foreach(data => d3State.simulation.nodes(data))
 
   initContainerDimensionsAndPositions()
   initEvents()
@@ -112,10 +168,11 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
   private def initEvents() {
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
-    simulation.on("tick", draw _)
+    d3State.simulation.on("tick", draw _)
   }
 
   private def zoomed() {
+    import d3State._
     transform = d3.event.asInstanceOf[ZoomEvent].transform
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
@@ -128,7 +185,6 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
     connectionLineSelection.draw()
     connectionElementSelection.draw()
     containmentHullSelection.draw()
-    postMenuSelection.draw()
   }
 
   private def initContainerDimensionsAndPositions() {
@@ -159,12 +215,7 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
   }
 
   def update(newGraph: Graph) {
-    import postSelection.postIdToSimPost
-
-    postSelection.update(newGraph.posts.values)
-    connectionLineSelection.update(newGraph.connections.values)
-    connectionElementSelection.update(connectionLineSelection.data)
-    containmentHullSelection.update(newGraph.containments.values)
+    import d3State._
 
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>
@@ -180,11 +231,10 @@ class GraphState(rxGraph: Rx[Graph], val focusedPostId: Var[Option[AtomId]]) { t
     }
 
     val containmentData = newGraph.containments.values.map { c =>
-      new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
+      new SimContains(c, postIdToSimPost.value(c.parentId), postIdToSimPost.value(c.childId))
     }.toJSArray
 
-    simulation.nodes(postSelection.data)
-    forces.connection.links = connectionLineSelection.data
+    // forces.connection.links = connectionLineSelection.data
     forces.containment.links(containmentData)
 
     simulation.alpha(1).restart()
@@ -197,7 +247,7 @@ object GraphView { thisEnv =>
     <div id="here_be_d3"></div>
   }
 
-  val init: (Rx[Graph], Var[Option[AtomId]]) => Unit = {
+  val init: (Rx[Graph], SourceVar[Option[AtomId], Option[AtomId]]) => Unit = {
     var cancelable: Option[Cancelable] = None
     (rxGraph, focusedPost) => {
       cancelable.foreach(_.cancel)
@@ -206,3 +256,12 @@ object GraphView { thisEnv =>
     }
   }
 }
+
+// Uncaught TypeError: Cannot read property 'target$1' of null
+// at $c_Lfrontend_graphview_GraphState.init___Lmhtml_Rx__Lfrontend_SourceVar (GraphView.scala:273)
+// at $c_Lfrontend_graphview_GraphView$$anonfun$9.apply__Lmhtml_Rx__Lfrontend_SourceVar__V (GraphView.scala:281)
+// at $c_Lfrontend_graphview_GraphView$$anonfun$9.apply__O__O__O (GraphView.scala:281)
+// at $c_Lfrontend_Main$.main__V (Main.scala:19)
+// at $c_Lfrontend_Main$.$$js$exported$meth$main__O (Main.scala:18)
+// at $c_Lfrontend_Main$.main (Main.scala:18)
+// at scalajsbundler-fastOptJS-launcher.js:1
