@@ -27,7 +27,15 @@ object AddPostForm {
           case None => <div>New Post:</div>
         }
       }
-      <input type="text" onkeyup={ (e: KeyboardEvent) =>
+      {
+        //TODO: onattached -> store domnode -> focus
+        focusedPostId.foreach { _ =>
+          val input = document.getElementById("addpostfield").asInstanceOf[raw.HTMLInputElement]
+          if (input != null) input.focus()
+        }
+        ""
+      }
+      <input type="text" id="addpostfield" onkeyup={ (e: KeyboardEvent) =>
         val input = e.target.asInstanceOf[raw.HTMLInputElement]
         val text = input.value
         if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
