@@ -14,9 +14,15 @@ class SourceVar[S, A](source: Var[S], mapping: Rx[S] => Rx[A]) { //TODO: extends
   def foreach(s: A => Unit) = target.foreach(s)
   def flatMap[B](s: A => Rx[B]): SourceVar[S, B] = new SourceVar(source, (_: Rx[S]) => target.flatMap(s))
 }
+object SourceVar {
+  implicit def SourceVarIsRx[A](s: SourceVar[_,A]): Rx[A] = s.target
+}
 
 class GlobalState {
-  val graph = Var(Graph.empty)
+  val graph = new SourceVar(
+    source = Var(Graph.empty),
+    (source: Rx[Graph]) => source.map(_.consistent)
+  )
   val focusedPostId = new SourceVar(
     source = Var[Option[AtomId]](None),
     (source: Rx[Option[AtomId]]) => source.flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
