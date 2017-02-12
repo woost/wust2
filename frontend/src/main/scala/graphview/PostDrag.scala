@@ -27,7 +27,7 @@ object DraggingPostSelection extends DataComponent[SimPost] {
       .style("opacity", "0.5")
       .style("background-color", (post: SimPost) => post.color)
       .style("padding", "3px 5px")
-      .style("border-radius", "5px")
+      .style("border-radius", "3px")
       .style("border", "1px solid #AAA")
       .style("max-width", "100px")
       .style("position", "absolute")
