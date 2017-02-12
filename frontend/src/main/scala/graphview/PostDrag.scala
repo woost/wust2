@@ -99,6 +99,7 @@ class PostDrag(rxPosts: RxPosts, d3State: D3State, onPostDragged: () => Unit = (
     updateClosestPosts()
 
     draggingPost.pos = transformedEventPos
+    onPostDragged()
   }
 
   def postDragEnded(p: SimPost) {
