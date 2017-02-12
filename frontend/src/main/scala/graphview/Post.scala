@@ -20,6 +20,7 @@ class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataComponent[
   import postDrag._, rxPosts.focusedPost
 
   override val tag = "div"
+  override val key: SimPost => Any = _.id
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)

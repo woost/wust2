@@ -7,7 +7,8 @@ import org.scalajs.d3v4._
 import mhtml._
 
 trait DataComponent[T] {
-  def tag: String
+  val tag: String
+  val key: T => Any
   def enter(appended: Selection[T]) {}
   def exit(selection: Selection[T]) { selection.remove() }
   def draw(selection: Selection[T]) {}
@@ -16,8 +17,8 @@ trait DataComponent[T] {
 class SelectData[T](component: DataComponent[T], container: Selection[dom.EventTarget]) {
   def nodes = container.selectAll[T](component.tag)
   def draw(): Unit = component.draw(nodes)
-  def update(data: js.Array[T], key: T => Any = i => i): Unit = {
-    val element = nodes.data(data, key)
+  def update(data: js.Array[T]): Unit = {
+    val element = nodes.data(data, component.key)
     component.enter(element.enter().append(component.tag))
     component.exit(element.exit())
   }
@@ -25,15 +26,15 @@ class SelectData[T](component: DataComponent[T], container: Selection[dom.EventT
 
 object SelectData {
   def apply[T](component: DataComponent[T])(container: Selection[dom.EventTarget]) = new SelectData(component, container)
-  def rx[T](component: DataComponent[T], rxData: Rx[js.Array[T]], key: T => Any = (i:T) => i)(container: Selection[dom.EventTarget]): SelectData[T] = {
+  def rx[T](component: DataComponent[T], rxData: Rx[js.Array[T]])(container: Selection[dom.EventTarget]): SelectData[T] = {
     val select = new SelectData(component, container)
-    rxData.foreach(select.update(_, key))
+    rxData.foreach(select.update)
     select
   }
-  def autoRx[T](component: DataComponent[T], rxData: Rx[js.Array[T]], key: T => Any = (i:T) => i)(container: Selection[dom.EventTarget]): SelectData[T] = {
+  def autoRx[T](component: DataComponent[T], rxData: Rx[js.Array[T]])(container: Selection[dom.EventTarget]): SelectData[T] = {
     val select = new SelectData(component, container)
     rxData.foreach { data =>
-      select.update(data, key)
+      select.update(data)
       select.draw()
     }
     select

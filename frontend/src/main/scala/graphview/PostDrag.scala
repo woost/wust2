@@ -20,6 +20,7 @@ import com.outr.scribe._
 
 object DraggingPostSelection extends DataComponent[SimPost] {
   override val tag = "div"
+  override val key: SimPost => Any = _.id
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)

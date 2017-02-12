@@ -180,19 +180,19 @@ class GraphState(val rxGraph: Rx[Graph], val focusedPostId: SourceVar[Option[Ato
   // order is important
   val container = d3.select("#here_be_d3")
   val svg = container.append("svg")
-  val containmentHullSelection = SelectData.rx[ContainmentCluster](ContainmentHullSelection, rxContainmentCluster, key = _.id)(svg.append("g"))
-  val connectionLineSelection = SelectData.rx[SimConnects](ConnectionLineSelection, rxSimConnects, key = _.id)(svg.append("g"))
+  val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
+  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
 
   val html = container.append("div")
-  val connectionElementSelection = SelectData.rx[SimConnects](ConnectionElementSelection, rxSimConnects, key = _.id)(html.append("div"))
-  val postSelection = SelectData.rx[SimPost](new PostSelection(rxPosts, postDrag), rxSimPosts, key = _.id)(html.append("div"))
-  val draggingPostSelection = SelectData.autoRx[SimPost](DraggingPostSelection, draggingPosts, key = _.id)(html.append("div")) //TODO: place above ring menu?
+  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
+  val postSelection = SelectData.rx(new PostSelection(rxPosts, postDrag), rxSimPosts)(html.append("div"))
+  val draggingPostSelection = SelectData.autoRx(DraggingPostSelection, draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
   val menuSvg = container.append("svg")
   val postMenuLayer = menuSvg.append("g")
-  val postMenuSelection = SelectData.autoRx[SimPost](new PostMenuSelection(rxPosts, d3State), focusedPost.map(_.toJSArray), key = _.id)(postMenuLayer.append("g"))
+  val postMenuSelection = SelectData.autoRx(new PostMenuSelection(rxPosts, d3State), focusedPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = SelectData.autoRx[SimPost](new DropMenuSelection(postDrag), closestPosts, key = _.id)(dropMenuLayer.append("g"))
+  val dropMenuSelection = SelectData.autoRx(new DropMenuSelection(postDrag), closestPosts)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
   initEvents()

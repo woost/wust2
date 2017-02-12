@@ -17,6 +17,7 @@ import util.collectionHelpers._
 
 object ConnectionLineSelection extends DataComponent[SimConnects] {
   override val tag = "line"
+  override val key: SimConnects => Any = _.id
   override def enter(line: Selection[SimConnects]) {
     line
       .style("stroke", "#8F8F8F")
@@ -33,6 +34,7 @@ object ConnectionLineSelection extends DataComponent[SimConnects] {
 
 object ConnectionElementSelection extends DataComponent[SimConnects] {
   override val tag = "div"
+  override val key: SimConnects => Any = _.id
   override def enter(element: Selection[SimConnects]) {
     element
       .style("position", "absolute")

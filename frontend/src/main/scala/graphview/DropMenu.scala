@@ -25,6 +25,7 @@ class DropMenuSelection(postDrag: PostDrag) extends DataComponent[SimPost] {
   val menuCornerRadius = 2.0
 
   override val tag = "g"
+  override val key: SimPost => Any = _.id
   override def enter(menu: Selection[SimPost]) {
     val pie = d3.pie()
       .value(1)

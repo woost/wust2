@@ -33,6 +33,7 @@ class PostMenuSelection(rxPosts: RxPosts, d3State: D3State) extends DataComponen
   )
 
   override val tag = "g"
+  override val key: SimPost => Any = _.id
   override def enter(menu: Selection[SimPost]) {
     import rxPosts.focusedPost
     import d3State.simulation
