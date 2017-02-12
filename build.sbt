@@ -30,8 +30,8 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("dev", "~; backend/re-start; workbench/compile"),
-    addCommandAlias("devfwatch", "~workbench/compile"),
+    addCommandAlias("dev", "~; backend/re-start; workbench/assets"),
+    addCommandAlias("devfwatch", "~workbench/assets"),
     addCommandAlias("devf", "; backend/re-start; devfwatch"),
 
     watchSources ++= (watchSources in workbench).value
@@ -108,7 +108,7 @@ lazy val frontend = project
 lazy val workbench = project.in(file("workbench"))
   .enablePlugins(WorkbenchPlugin, SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
-    compile in Compile := ((compile in Compile) dependsOn WebKeys.assets).value, // triggers pipeline on workbench compile
+    devCommands in scalaJSPipeline ++= Seq("assets"), // build assets in dev mode
     unmanagedResourceDirectories in Assets += (baseDirectory in assets).value / "public", // include other assets
 
     scalaJSProjects := Seq(frontend),
@@ -117,7 +117,7 @@ lazy val workbench = project.in(file("workbench"))
     watchSources += baseDirectory.value / "index.html",
     watchSources ++= (watchSources in assets).value,
     //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
-    refreshBrowsers <<= refreshBrowsers.triggeredBy(compile in Compile) //TODO: do not refresh if compilation failed
+    refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
   )
 
 lazy val assets = project
