@@ -119,8 +119,8 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
   } yield idOpt.flatMap(map.get)
 
   val rxSimConnects = for {
-    graph <- rxGraph
     postIdToSimPost <- postIdToSimPost
+    graph <- rxGraph
   } yield {
     val newData = graph.connections.values.map { c =>
       new SimConnects(c, postIdToSimPost(c.sourceId))
