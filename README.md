@@ -55,3 +55,13 @@ Example:
 HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
 ```
 
+# building blocks
+
+* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js)
+* [postgres](https://github.com/postgres/postgres)
+* [quill](https://github.com/getquill/quill)
+* [akka-http](https://github.com/akka/akka-http)
+* [autowire](https://github.com/lihaoyi/autowire)
+* [boopickle](https://github.com/suzaku-io/boopickle)
+* [monadic-html](https://github.com/OlivierBlanvillain/monadic-html)
+* [d3](https://github.com/d3/d3)
