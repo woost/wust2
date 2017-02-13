@@ -14,6 +14,7 @@ trait Api {
   def deletePost(id: AtomId): Future[Boolean]
   def getGraph(): Future[Graph]
   def addPost(msg: String): Future[Post]
+  def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]]
   def contain(childId: AtomId, parentId: AtomId): Future[Option[Contains]]
   def deleteConnection(id: AtomId): Future[Boolean]
@@ -28,11 +29,12 @@ object Channel {
 
   def fromEvent(event: ApiEvent) = event match {
     case _: NewPost => Graph
+    case _: UpdatedPost => Graph
+    case _: NewConnection => Graph
+    case _: NewContainment => Graph
     case _: DeletePost => Graph
     case _: DeleteConnection => Graph
     case _: DeleteContainment => Graph
-    case _: NewConnection => Graph
-    case _: NewContainment => Graph
   }
 }
 
@@ -43,11 +45,12 @@ case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
 case class NewPost(post: Post) extends ApiEvent
+case class UpdatedPost(post: Post) extends ApiEvent
+case class NewConnection(edge: Connects) extends ApiEvent
+case class NewContainment(edge: Contains) extends ApiEvent
 case class DeletePost(id: AtomId) extends ApiEvent
 case class DeleteConnection(id: AtomId) extends ApiEvent
 case class DeleteContainment(id: AtomId) extends ApiEvent
-case class NewConnection(edge: Connects) extends ApiEvent //TODO or containment
-case class NewContainment(edge: Contains) extends ApiEvent //TODO or containment
 
 sealed trait Authorize
 case class PasswordAuth(name: String, password: String) extends Authorize

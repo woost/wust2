@@ -144,6 +144,7 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
       true
     }
   }
+
   def deleteContainment(id: AtomId): Future[Boolean] = withUser {
     val q = quote { query[Contains].filter(_.id == lift(id)).delete }
     for (_ <- ctx.run(q)) yield {
@@ -153,6 +154,16 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   }
 
   def getGraph(): Future[Graph] = wholeGraph()
+
+  def updatePost(post: Post): Future[Boolean] = withUser {
+    val q = quote { query[Post].filter(_.id == lift(post.id)).update(lift(post)) }
+    val updated = ctx.run(q).map(_ == 1)
+
+    for (success <- updated) yield {
+      if (success) emit(UpdatedPost(post))
+      success
+    }
+  }
 
   def addPost(msg: String): Future[Post] = withUser {
     for (post <- newPost(msg)) yield {

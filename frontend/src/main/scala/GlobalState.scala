@@ -33,6 +33,7 @@ class GlobalState {
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)
+    case UpdatedPost(post) => graph.update(_.removePost(post.id) + post)
     case NewConnection(connects) => graph.update(_ + connects)
     case NewContainment(contains) => graph.update(_ + contains)
 
