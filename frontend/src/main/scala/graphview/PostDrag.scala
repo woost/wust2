@@ -18,9 +18,8 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-object DraggingPostSelection extends DataComponent[SimPost] {
+object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
-  override val key: SimPost => Any = _.id
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)

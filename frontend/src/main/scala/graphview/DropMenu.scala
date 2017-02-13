@@ -27,14 +27,13 @@ object DropMenu {
   ).toArray
 }
 
-object DropMenuSelection extends DataComponent[SimPost] {
+object DropMenuSelection extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
   val menuCornerRadius = 2.0
 
   override val tag = "g"
-  override val key: SimPost => Any = _.id
   override def enter(menu: Selection[SimPost]) {
     val pie = d3.pie()
       .value(1)

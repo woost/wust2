@@ -168,30 +168,36 @@ class D3State {
   val simulation = Simulation(forces)
 }
 
+object KeyImplicits {
+  implicit val SimPostWithKey = new WithKey[SimPost](_.id)
+  implicit val SimConnectsWithKey = new WithKey[SimConnects](_.id)
+  implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
+}
+
 class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
 
   val rxPosts = new RxPosts(rxGraph, focusedPostId)
   val d3State = new D3State
   val postDrag = new PostDrag(rxPosts, d3State, onPostDrag)
-  import rxPosts._, postDrag.{draggingPosts, closestPosts}
 
   // prepare containers where we will append elements depending on the data
   // order is important
+  import KeyImplicits._
   val container = d3.select("#here_be_d3")
   val svg = container.append("svg")
-  val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
-  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
+  val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxPosts.rxContainmentCluster)(svg.append("g"))
+  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxPosts.rxSimConnects)(svg.append("g"))
 
   val html = container.append("div")
-  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
-  val postSelection = SelectData.rx(new PostSelection(rxPosts, postDrag), rxSimPosts)(html.append("div"))
-  val draggingPostSelection = SelectData.autoRx(DraggingPostSelection, draggingPosts)(html.append("div")) //TODO: place above ring menu?
+  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxPosts.rxSimConnects)(html.append("div"))
+  val postSelection = SelectData.rx(new PostSelection(rxPosts, postDrag), rxPosts.rxSimPosts)(html.append("div"))
+  val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
   val menuSvg = container.append("svg")
   val postMenuLayer = menuSvg.append("g")
-  val postMenuSelection = SelectData.autoRx(new PostMenuSelection(rxPosts, d3State), focusedPost.map(_.toJSArray))(postMenuLayer.append("g"))
+  val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(rxPosts, d3State), rxPosts.focusedPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = SelectData.autoRx(DropMenuSelection, closestPosts)(dropMenuLayer.append("g"))
+  val dropMenuSelection = SelectData.rxDraw(DropMenuSelection, postDrag.closestPosts)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
   initEvents()
@@ -204,7 +210,7 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
-    rxSimPosts.foreach(data => d3State.simulation.nodes(data))
+    rxPosts.rxSimPosts.foreach(data => d3State.simulation.nodes(data))
   }
 
   private def zoomed() {
@@ -251,7 +257,7 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
   }
 
   def update(newGraph: Graph) {
-    import d3State._
+    import d3State._, rxPosts._
 
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>

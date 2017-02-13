@@ -16,11 +16,10 @@ import org.scalajs.d3v4._
 import util.collectionHelpers._
 import Color._
 
-class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataComponent[SimPost] {
+class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataSelection[SimPost] {
   import postDrag._, rxPosts.focusedPost
 
   override val tag = "div"
-  override val key: SimPost => Any = _.id
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)

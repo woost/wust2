@@ -25,9 +25,8 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost])
 }
 
 // TODO: merge with ContainmentCluster?
-object ContainmentHullSelection extends DataComponent[ContainmentCluster] {
+object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   override val tag = "path"
-  override val key: ContainmentCluster => Any = _.id
   override def enter(hull: Selection[ContainmentCluster]) {
     hull
       .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
