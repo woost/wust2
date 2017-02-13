@@ -68,8 +68,9 @@ package object graph {
     def +(c: Contains) = copy(containments = containments + (c.id -> c))
 
     def consistent = copy(
-      connections = connections.filter { p => posts.get(p._2.sourceId).isDefined && posts.get(p._2.targetId).isDefined },
-      containments = containments.filter { p => posts.get(p._2.childId).isDefined && posts.get(p._2.parentId).isDefined })
+      connections = connections.filter { case (cid, c) => posts.get(c.sourceId).isDefined && posts.get(c.targetId).isDefined },
+      containments = containments.filter { case (cid, c) => posts.get(c.childId).isDefined && posts.get(c.parentId).isDefined }
+    )
   }
 
   object Graph {
