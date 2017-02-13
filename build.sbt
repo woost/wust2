@@ -101,7 +101,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
-    // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
+    scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     relativeSourceMaps := false,
     enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
   )
