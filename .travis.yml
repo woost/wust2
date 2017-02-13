@@ -13,11 +13,9 @@ jdk:
 script:
     - .travis/build
     - .travis/test
-    - rm ~/.sbt/boot/scala-*/org.scala-sbt/sbt/*/sbt.components.lock ~/.sbt/boot/sbt.boot.lock # cache
 
 after_success:
     - .travis/publish
-    - rm ~/.sbt/boot/scala-*/org.scala-sbt/sbt/*/sbt.components.lock ~/.sbt/boot/sbt.boot.lock # cache
 
 cache:
   directories:
