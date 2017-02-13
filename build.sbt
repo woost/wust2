@@ -129,7 +129,7 @@ lazy val assets = project
     //TODO: minify html
     //TODO: only serve minified assets
     //TODO: zopfli
-    pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip)
+    pipelineStages in Assets := Seq(scalaJSPipeline, /* TODO: uglify, */ gzip)
   )
 
 lazy val backend = project
