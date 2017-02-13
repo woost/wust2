@@ -109,6 +109,10 @@ lazy val frontend = project
 lazy val workbench = project.in(file("workbench"))
   .enablePlugins(WorkbenchPlugin, SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
+    // we have a symbolic link from src -> ../frontend/src
+    // to correct the paths in the source-map
+    scalaSource := baseDirectory.value / "src-not-found",
+
     devCommands in scalaJSPipeline ++= Seq("assets"), // build assets in dev mode
     unmanagedResourceDirectories in Assets += (baseDirectory in assets).value / "public", // include other assets
 
