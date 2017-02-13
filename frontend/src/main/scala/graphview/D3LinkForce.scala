@@ -87,6 +87,8 @@ class CustomLinkForce[N <: SimulationNode, L <: SimulationLink[_ <: N, _ <: N]] 
 
   def initialize(newNodes: js.Array[N]) {
     nodes = newNodes
+    //TODO: initialize is called too often:
+    // - on every node and on every link update => set both at the same time
     // println(s"initialize:  nodes(${nodes.size}), links(${links.size})")
     if (nodes.isEmpty) return ;
 

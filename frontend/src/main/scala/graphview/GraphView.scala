@@ -211,6 +211,7 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
     rxPosts.rxSimPosts.foreach(data => d3State.simulation.nodes(data))
+    //TODO: currently produces NaNs: rxPosts.rxSimConnects.foreach { data => d3State.forces.connection.links = data }
   }
 
   private def zoomed() {
@@ -276,7 +277,7 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
       new SimContains(c, postIdToSimPost.value(c.parentId), postIdToSimPost.value(c.childId))
     }.toJSArray
 
-    // forces.connection.links = connectionLineSelection.data
+    forces.connection.links = rxSimConnects.value
     forces.containment.links(containmentData)
 
     simulation.alpha(1).restart()
