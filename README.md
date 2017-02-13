@@ -58,9 +58,11 @@ HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs 
 # building blocks
 
 * [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js)
+* [nginx](https://github.com/nginx/nginx)
 * [postgres](https://github.com/postgres/postgres)
+* [flyway](https://github.com/flyway/flyway)
 * [quill](https://github.com/getquill/quill)
-* [akka-http](https://github.com/akka/akka-http)
+* [akka](https://github.com/akka/akka)
 * [autowire](https://github.com/lihaoyi/autowire)
 * [boopickle](https://github.com/suzaku-io/boopickle)
 * [monadic-html](https://github.com/OlivierBlanvillain/monadic-html)
