@@ -26,6 +26,7 @@ class PostMenuSelection(rxPosts: RxPosts, d3State: D3State) extends DataSelectio
   val menuCornerRadius = 2.0
 
   val menuActions = (
+    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => rxPosts.editedPostId := Some(p.id) }) ::
     MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Auto Position", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned

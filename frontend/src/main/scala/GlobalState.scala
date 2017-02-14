@@ -23,7 +23,13 @@ class GlobalState {
     source = Var(Graph.empty),
     (source: Rx[Graph]) => source.map(_.consistent)
   )
+
   val focusedPostId = new SourceVar(
+    source = Var[Option[AtomId]](None),
+    (source: Rx[Option[AtomId]]) => source.flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
+  )
+
+  val editedPostId = new SourceVar(
     source = Var[Option[AtomId]](None),
     (source: Rx[Option[AtomId]]) => source.flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
   )
@@ -33,7 +39,7 @@ class GlobalState {
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)
-    case UpdatedPost(post) => graph.update(_.removePost(post.id) + post)
+    case UpdatedPost(post) => graph.update(_ + post)
     case NewConnection(connects) => graph.update(_ + connects)
     case NewContainment(contains) => graph.update(_ + contains)
 

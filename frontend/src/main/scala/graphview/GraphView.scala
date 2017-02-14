@@ -70,7 +70,10 @@ object Simulation {
     .force("containment", forces.containment)
 }
 
-class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
+class RxPosts(state: GlobalState) {
+  val rxGraph = state.graph
+  val editedPostId = state.editedPostId
+
   val rxSimPosts: Rx[js.Array[SimPost]] = rxGraph.map { graph =>
     graph.posts.values.map { p =>
       val sp = new SimPost(p)
@@ -114,7 +117,7 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
 
   //TODO: multiple menus for multi-user multi-touch interface?
   val focusedPost = for {
-    idOpt <- focusedPostId
+    idOpt <- state.focusedPostId
     map <- postIdToSimPost
   } yield idOpt.flatMap(map.get)
 
@@ -129,6 +132,7 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
     val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
 
     // set hyperedge targets, goes away with custom linkforce
+    //TODO do not create new foreach for each trigger
     newData.foreach { e =>
       e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
     }
@@ -174,11 +178,11 @@ object KeyImplicits {
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }
 
-class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Option[AtomId]]) {
-
-  val rxPosts = new RxPosts(rxGraph, focusedPostId)
+class GraphView(state: GlobalState) {
+  val rxPosts = new RxPosts(state)
   val d3State = new D3State
   val postDrag = new PostDrag(rxPosts, d3State, onPostDrag)
+  import state._
 
   // prepare containers where we will append elements depending on the data
   // order is important
@@ -200,13 +204,19 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
   val dropMenuSelection = SelectData.rxDraw(DropMenuSelection, postDrag.closestPosts)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
-  initEvents()
+  val eventCancel = initEvents()
+  val updateCancel = graph.foreach(update)
+
+  private def cancel() {
+    eventCancel.cancel()
+    updateCancel.cancel()
+  }
 
   private def onPostDrag() {
     draggingPostSelection.draw()
   }
 
-  private def initEvents() {
+  private def initEvents(): Cancelable = {
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
@@ -258,7 +268,7 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
       .style("pointer-events", "none")
   }
 
-  def update(newGraph: Graph) {
+  private def update(newGraph: Graph) {
     import d3State._, rxPosts._
 
     //TODO: this can be removed after implementing link force which supports hyperedges
@@ -291,12 +301,11 @@ object GraphView { thisEnv =>
     <div id="here_be_d3"></div>
   }
 
-  val init: (Rx[Graph], SourceVar[Option[AtomId], Option[AtomId]]) => Unit = {
-    var cancelable: Option[Cancelable] = None
-    (rxGraph, focusedPost) => {
-      cancelable.foreach(_.cancel)
-      val state = new GraphState(rxGraph, focusedPost)
-      cancelable = Some(rxGraph.foreach(state.update)) //TODO: foreachNext? leak?
+  val init: GlobalState => Unit = {
+    var view: Option[GraphView] = None
+    state => {
+      view.foreach(_.cancel)
+      view = Some(new GraphView(state))
     }
   }
 }
