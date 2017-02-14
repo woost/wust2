@@ -92,7 +92,7 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
         if (hasChildren)
           "2px solid rgba(0,0,0,0.4)"
         else { // no children
-          "2px solid rgba(0,0,0,0.1)"
+          "2px solid rgba(0,0,0,0.2)"
         }
       ).toString()
       sp.color = (
