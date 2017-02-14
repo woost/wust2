@@ -44,6 +44,10 @@ class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataSelection[
   }
 
   override def update(post: Selection[SimPost]) {
+    post
+      .style("background-color", (post: SimPost) => post.color)
+      .style("border", (p: SimPost) => p.border)
+
     post.each({ (node: HTMLElement, p: SimPost) =>
       //TODO: if this fails, because post is not rendered yet, recalculate it lazyly
       val rect = node.getBoundingClientRect
@@ -58,7 +62,5 @@ class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataSelection[
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
-      .style("background-color", (post: SimPost) => post.color)
-      .style("border", (p: SimPost) => p.border)
   }
 }
