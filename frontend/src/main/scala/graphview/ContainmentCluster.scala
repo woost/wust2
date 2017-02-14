@@ -12,7 +12,7 @@ import vectory._
 
 import org.scalajs.d3v4._
 
-class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost]) {
+class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
 
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
@@ -31,9 +31,13 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
     hull
       .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
-      .style("stroke-width", "70px") // TODO: dependent on nesting depth
       .style("stroke-linejoin", "round")
       .style("opacity", "0.8")
+  }
+
+  override def update(hull: Selection[ContainmentCluster]) {
+    hull
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.depth * 15 + 70}px")
   }
 
   override def draw(hull: Selection[ContainmentCluster]) {

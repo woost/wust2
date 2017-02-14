@@ -1,4 +1,6 @@
+
 package object graph {
+  import collection.mutable
   //TODO: different types of ids to restrict Connects in/out
   //TODO: this also needs to be done as database contstraint
   type AtomId = Long
@@ -71,6 +73,28 @@ package object graph {
       connections = connections.filter { case (cid, c) => posts.get(c.sourceId).isDefined && posts.get(c.targetId).isDefined },
       containments = containments.filter { case (cid, c) => posts.get(c.childId).isDefined && posts.get(c.parentId).isDefined }
     )
+
+    lazy val depth: collection.Map[AtomId, Int] = {
+      val tmpDepths = mutable.HashMap[AtomId, Int]()
+      val visited = mutable.HashSet[AtomId]() // to handle cycles
+      def getDepth(id: AtomId): Int = {
+        tmpDepths.getOrElse(id, {
+          if (!visited(id)) {
+            visited += id
+
+            val c = children(id)
+            val d = if (c.isEmpty) 0 else c.map(p => getDepth(p.id)).max + 1
+            tmpDepths(id) = d
+            d
+          } else 0 // cycle
+        })
+      }
+
+      for (id <- posts.keys if !tmpDepths.isDefinedAt(id)) {
+        getDepth(id)
+      }
+      tmpDepths
+    }
   }
 
   object Graph {

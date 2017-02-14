@@ -142,15 +142,15 @@ class RxPosts(val rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], O
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.
-    // TODO: breaks on circular containment
-
     val ordered = algorithm.topologicalSort(parents, (p: Post) => graph.children(p.id))
 
-    ordered.map(p =>
+    ordered.map { p =>
       new ContainmentCluster(
         parent = postIdToSimPost.value(p.id),
-        children = graph.transitiveChildren(p.id).map(p => postIdToSimPost.value(p.id))(breakOut)
-      )).toJSArray
+        children = graph.transitiveChildren(p.id).map(p => postIdToSimPost.value(p.id))(breakOut),
+        depth = graph.depth(p.id)
+      )
+    }.toJSArray
   }
 
   // rxSimPosts.foreach(v => println(s"post rxSimPosts update: $v"))
