@@ -18,6 +18,11 @@ In the sbt prompt, you can then start watching sources and recompile while devel
 > dev
 ```
 
+If you are only developing the frontend, you can also skip recompilation of the backend:
+```
+> devf
+```
+
 Access wust via http://localhost:12345/workbench/index.html
 
 # build docker images
