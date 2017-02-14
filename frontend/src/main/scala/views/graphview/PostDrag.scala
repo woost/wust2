@@ -40,7 +40,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
   }
 }
 
-class PostDrag(rxPosts: RxPosts, d3State: D3State, onPostDragged: () => Unit = () => ()) {
+class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ()) {
   import d3State.{simulation, transform}
 
   private val _draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
@@ -48,8 +48,8 @@ class PostDrag(rxPosts: RxPosts, d3State: D3State, onPostDragged: () => Unit = (
   def draggingPosts: Rx[js.Array[SimPost]] = _draggingPosts
   def closestPosts: Rx[js.Array[SimPost]] = _closestPosts
 
-  private def graph = rxPosts.rxGraph.value
-  private def postIdToSimPost = rxPosts.postIdToSimPost.value
+  private def graph = graphState.rxGraph.value
+  private def postIdToSimPost = graphState.postIdToSimPost.value
 
   private val dragHitDetectRadius = 100
 

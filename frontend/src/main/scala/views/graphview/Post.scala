@@ -16,8 +16,8 @@ import org.scalajs.d3v4._
 import util.collectionHelpers._
 import Color._
 
-class PostSelection(rxPosts: RxPosts, postDrag: PostDrag) extends DataSelection[SimPost] {
-  import postDrag._, rxPosts.focusedPost
+class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSelection[SimPost] {
+  import postDrag._, graphState.focusedPost
 
   override val tag = "div"
   override def enter(post: Selection[SimPost]) {

@@ -19,14 +19,14 @@ import autowire._
 import boopickle.Default._
 import com.outr.scribe._
 
-class PostMenuSelection(rxPosts: RxPosts, d3State: D3State) extends DataSelection[SimPost] {
+class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 50.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
   val menuCornerRadius = 2.0
 
   val menuActions = (
-    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => rxPosts.editedPostId := Some(p.id) }) ::
+    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.editedPostId := Some(p.id) }) ::
     MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Auto Position", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
@@ -35,7 +35,7 @@ class PostMenuSelection(rxPosts: RxPosts, d3State: D3State) extends DataSelectio
 
   override val tag = "g"
   override def enter(menu: Selection[SimPost]) {
-    import rxPosts.focusedPost
+    import graphState.focusedPost
     import d3State.simulation
 
     val pie = d3.pie()
