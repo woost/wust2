@@ -17,12 +17,14 @@ dev)
     POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt
     ;;
 prod.http)
+    $compose pull
     $compose run db-migration
-    $compose up -d
+    $compose up -d --remove-orphans
     ;;
 prod)
+    $compose pull
     $compose run db-migration
-    $compose up -d
+    $compose up -d --remove-orphans
     ;;
 test.postgres)
     $compose down
