@@ -1,4 +1,4 @@
-package frontend
+package frontend.views
 
 import org.scalajs.dom._
 import mhtml._

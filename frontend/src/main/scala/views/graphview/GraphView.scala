@@ -1,4 +1,4 @@
-package frontend.graphview
+package frontend.views.graphview
 
 import frontend._
 
@@ -15,7 +15,7 @@ import vectory._
 import mhtml._
 
 import graph._
-import Color._
+import frontend.Color._
 import collection.breakOut
 import math._
 

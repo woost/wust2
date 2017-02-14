@@ -1,4 +1,4 @@
-package frontend
+package frontend.views
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom._
@@ -8,6 +8,7 @@ import scala.xml.Node
 import autowire._
 import boopickle.Default._
 
+import frontend.{GlobalState, Client}
 import graph._
 import graphview.GraphView
 

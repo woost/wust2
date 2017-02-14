@@ -1,4 +1,4 @@
-package frontend.graphview
+package frontend.views.graphview
 
 import graph.Post
 import math._

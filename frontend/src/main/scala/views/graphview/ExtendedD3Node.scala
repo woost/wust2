@@ -1,4 +1,4 @@
-package frontend.graphview
+package frontend.views.graphview
 
 import scalajs.js
 import vectory._

@@ -1,17 +1,18 @@
-package frontend
+package frontend.views
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import org.scalajs.d3v4
 import org.scalajs.dom._
-import Color._
+import frontend.Client
+import frontend.Color._
 import graph._
 import autowire._
 import boopickle.Default._
 import scala.xml.Node
 import mhtml.emptyHTML
 
-package object views {
+object Views {
   def post(p: Post) = genericPost(p, postDefaultColor, None)
 
   def genericPost(post: Post, color: d3v4.Color, afterTitle: Option[Node]) =

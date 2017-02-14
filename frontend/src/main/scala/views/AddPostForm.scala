@@ -1,4 +1,4 @@
-package frontend
+package frontend.views
 
 import org.scalajs.dom._
 import org.scalajs.dom.ext.KeyCode
@@ -10,7 +10,8 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import mhtml._
 import graph._
 import org.scalajs.d3v4
-import Color._
+import frontend.{Client, SourceVar}
+import frontend.Color._
 
 object AddPostForm {
   class InteractionMode[F,E](val focus: Rx[Option[F]], val edit: Rx[Option[E]]) {
@@ -44,8 +45,8 @@ object AddPostForm {
     def responseLabel(postId: AtomId) = {
       val post = graph.posts(postId)
       <div>
-        { views.parents(graph.incidentParentContains(post.id).toSeq, graph) }
-        { views.post(post) }
+        { Views.parents(graph.incidentParentContains(post.id).toSeq, graph) }
+        { Views.post(post) }
       </div>
     }
 

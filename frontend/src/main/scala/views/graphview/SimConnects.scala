@@ -1,4 +1,4 @@
-package frontend.graphview
+package frontend.views.graphview
 
 import graph.Connects
 import org.scalajs.d3v4._
