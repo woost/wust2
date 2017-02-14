@@ -225,6 +225,7 @@ class GraphState(rxGraph: Rx[Graph], focusedPostId: SourceVar[Option[AtomId], Op
 
   private def draw() {
     postSelection.draw()
+    postMenuSelection.draw()
     connectionLineSelection.draw()
     connectionElementSelection.draw()
     containmentHullSelection.draw()
