@@ -14,13 +14,12 @@ import framework.message._
 import util.time.StopWatch
 import util.future._
 
-case class PathNotFoundException(path: Seq[String]) extends Exception
-
 //TODO decouple. channel dependency, then subscribe, signal => action!
 class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
   messages: Messages[CHANNEL, _, ERROR, AUTH],
   dispatcher: Dispatcher[CHANNEL, _],
   router: Option[USER] => Router[ByteBuffer],
+  pathNotFound: Seq[String] => ERROR,
   toError: PartialFunction[Throwable, ERROR],
   authorize: AUTH => Future[Option[USER]]
 ) extends Actor {
@@ -35,7 +34,7 @@ class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
 
       router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
-        .getOrElse(Future.failed(PathNotFoundException(path)))
+        .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
         .onCompleteRun { logger.info(f"CallRequest($seqId): ${timer.readMicros}us") }
         .pipeTo(outgoing)

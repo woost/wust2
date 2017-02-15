@@ -24,9 +24,9 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
   override def router(user: Option[User]) =
     wire.route[Api](new ApiImpl(user, emit)) orElse wire.route[AuthApi](new AuthApiImpl)
 
+  override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
   override def toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
-    case PathNotFoundException(path) => NotFound(path)
     case NonFatal(e) =>
       logger.error("request handler threw exception", e)
       InternalServerError

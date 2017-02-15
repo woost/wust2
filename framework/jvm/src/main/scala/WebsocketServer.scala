@@ -41,6 +41,7 @@ object Serializer {
 abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler, USER] {
   def route: Route
   def router(user: Option[USER]): AutowireServer.Router
+  def pathNotFound(path: Seq[String]): ERROR
   def toError: PartialFunction[Throwable, ERROR]
   def authorize(auth: AUTH): Future[Option[USER]]
 
@@ -53,7 +54,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   private val dispatcher = new Dispatcher[CHANNEL, Message]
 
   private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher, router, toError, authorize)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher, router, pathNotFound, toError, authorize)))
 
     val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
