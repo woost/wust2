@@ -33,7 +33,7 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
   }
 
   override def authorize(auth: Authorize): Future[Option[User]] = auth match {
-    case PasswordAuth(name, pw) => Db.getUser(name, pw).map(_.headOption)
+    case PasswordAuth(name, pw) => Db.user.get(name, pw).map(_.headOption)
   }
 
   override val route = (path("ws") & get) {

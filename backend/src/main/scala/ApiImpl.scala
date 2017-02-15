@@ -3,202 +3,67 @@ package backend
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.outr.scribe._
-import com.roundeights.hasher.Hasher
-
-import api._, graph._, framework._
-
-import util.time._
-import util.future._
+import api._, graph._
 
 case class User(id: Long, name: String)
 case class Password(id: Long, digest: Array[Byte])
 
-object Db {
-  import io.getquill._
-
-  lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
-  import ctx._
-
-  def newPost(title: String): Future[Post] = {
-    val post = Post(title)
-    val q = quote { query[Post].insert(lift(post)).returning(_.id) }
-    ctx.run(q).map(id => post.copy(id = id))
-  }
-
-  def newConnects(in: AtomId, out: AtomId): Future[Connects] = {
-    val connects = Connects(in, out)
-    val q = quote { query[Connects].insert(lift(connects)).returning(_.id) }
-    ctx.run(q).map(id => connects.copy(id = id))
-  }
-
-  def newContains(parent: AtomId, child: AtomId): Future[Contains] = {
-    val contains = Contains(parent, child)
-    val q = quote { query[Contains].insert(lift(contains)).returning(_.id) }
-    ctx.run(q).map(id => contains.copy(id = id))
-  }
-
-  def passwordDigest(password: String) = Hasher(password).bcrypt
-
-  val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
-    infix"""with ins as (
-      insert into "user"(id, name) values(DEFAULT, $name) returning id
-    ) insert into password(id, digest) select id, $digest from ins returning id;""".as[Insert[Long]]
-  }
-
-  def newUser(name: String, password: String): Future[Option[User]] = {
-    val digest = passwordDigest(password)
-    val q = quote(createUserAndPassword(lift(name), lift(digest)))
-    ctx.run(q).map(id => Some(User(id, name))).recover { case _: Exception => None }
-  }
-
-  def getUser(name: String, password: String): Future[Option[User]] = {
-    val q = quote {
-      querySchema[User]("\"user\"").filter(_.name == lift(name)).join(query[Password]).on((u, p) => u.id == p.id).take(1)
-    }
-
-    ctx.run(q).map(_.headOption.filter {
-      case (user, pw) =>
-        passwordDigest(password) hash = pw.digest
-    }.map(_._1))
-  }
-
-  def wholeGraph(): Future[Graph] = {
-    for (
-      posts <- ctx.run(query[Post]);
-      connects <- ctx.run(query[Connects]);
-      contains <- ctx.run(query[Contains])
-    ) yield {
-
-      Graph(
-        posts.map(p => p.id -> p).toMap,
-        connects.map(p => p.id -> p).toMap,
-        contains.map(p => p.id -> p).toMap
-      )
-    }
-  }
-}
-
 class AuthApiImpl extends AuthApi {
   def register(name: String, password: String): Future[Boolean] = {
-    Db.newUser(name, password).map(_.isDefined)
+    Db.user(name, password).map(_.isDefined)
   }
 }
 
 class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
-  import Db._, ctx._
+  import util.Pipe
 
-  def withUser[T](f: User => Future[T]): Future[T] = userOpt.map(f).getOrElse {
+  private def withUser[T](f: User => Future[T]): Future[T] = userOpt.map(f).getOrElse {
     Future.failed(UserError(Unauthorized))
   }
 
-  def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
+  private def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
 
-  def getPost(id: AtomId): Future[Option[Post]] = {
-    val q = quote { query[Post].filter(_.id == lift(id)).take(1) }
-    ctx.run(q).map(_.headOption)
+  def getPost(id: AtomId): Future[Option[Post]] = Db.post.get(id)
+
+  def addPost(msg: String): Future[Post] = withUser {
+    Db.post(msg) ||> (_.foreach(NewPost(_) |> emit))
+  }
+
+  def updatePost(post: Post): Future[Boolean] = withUser {
+    Db.post.update(post) ||> (_.foreach(if (_) UpdatedPost(post) |> emit))
   }
 
   def deletePost(id: AtomId): Future[Boolean] = withUser {
-    val q = quote { query[Post].filter(_.id == lift(id)).delete }
-    for (_ <- ctx.run(q)) yield {
-      emit(DeletePost(id))
-      true
-    }
-  }
-
-  def deleteConnection(id: AtomId): Future[Boolean] = withUser {
-    val q = quote { query[Connects].filter(_.id == lift(id)).delete }
-    for (_ <- ctx.run(q)) yield {
-      emit(DeleteConnection(id))
-      true
-    }
-  }
-
-  def deleteContainment(id: AtomId): Future[Boolean] = withUser {
-    val q = quote { query[Contains].filter(_.id == lift(id)).delete }
-    for (_ <- ctx.run(q)) yield {
-      emit(DeleteContainment(id))
-      true
-    }
-  }
-
-  def getGraph(): Future[Graph] = wholeGraph()
-
-  def updatePost(post: Post): Future[Boolean] = withUser {
-    val q = quote { query[Post].filter(_.id == lift(post.id)).update(lift(post)) }
-    val updated = ctx.run(q).map(_ == 1)
-
-    for (success <- updated) yield {
-      if (success) emit(UpdatedPost(post))
-      success
-    }
-  }
-
-  def addPost(msg: String): Future[Post] = withUser {
-    for (post <- newPost(msg)) yield {
-      emit(NewPost(post))
-      post
-    }
+    Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emit))
   }
 
   def connect(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]] = withUser {
-    val connects = Connects(sourceId, targetId)
-    val q = quote {
-      query[Connects].insert(lift(connects)).returning(x => x.id)
-    }
-    val newId = ctx.run(q).map(Some(_)).recover {
-      case e: /*GenericDatabaseException*/ Exception => None
-    }
-    for (idOpt <- newId) yield idOpt.map { id =>
-      val edge = connects.copy(id = id)
-      emit(NewConnection(edge))
-      edge
-    }
+    Db.connects(sourceId, targetId) ||> (_.foreach(_.foreach(NewConnection(_) |> emit)))
+  }
+
+  def deleteConnection(id: AtomId): Future[Boolean] = withUser {
+    Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emit))
   }
 
   def contain(childId: AtomId, parentId: AtomId): Future[Option[Contains]] = withUser {
-    val contains = Contains(childId, parentId)
-    val q = quote {
-      query[Contains].insert(lift(contains)).returning(x => x.id)
-    }
-    val newId = ctx.run(q).map(Some(_)).recover {
-      case e: /*GenericDatabaseException*/ Exception => None
-    }
-    for (idOpt <- newId) yield idOpt.map { id =>
-      val edge = contains.copy(id = id)
-      emit(NewContainment(edge))
-      edge
-    }
+    Db.contains(childId, parentId) ||> (_.foreach(_.foreach(NewContainment(_) |> emit)))
+  }
+
+  def deleteContainment(id: AtomId): Future[Boolean] = withUser {
+    Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emit))
   }
 
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  //TODO: felix no option
   def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]] = withUser {
-    //TODO do in one request, does currently not handle errors
-    for (
-      post <- newPost(msg);
-      edgeOpt <- connect(post.id, to)
-    ) yield edgeOpt.map { edge =>
-      emit(NewPost(post))
-      (post, edge)
-    }
+    //TODO do in one request, does currently not handle errors, then no get
+    for {
+      post <- addPost(msg)
+      edge <- connect(post.id, to)
+    } yield edge.map((post, _))
   }
-}
 
-// TODO: This graph will produce NaNs in the d3 simulation
-// probably because the link force writes a field "index" into both nodes and links and there is a conflict when one edge is a node and a link at the same time.
-// the first NaN occours in linkforce.initialize(): bias[0] becomes NaN
-// var graph = Graph(
-//   Map(0L -> Post(0L, "Hallo"), 1L -> Post(1L, "Ballo"), 4L -> Post(4L, "Penos")),
-//   Map(
-//     5L -> RespondsTo(5L, 4, 2),
-//     14L -> RespondsTo(14L, 0, 1),
-//     13L -> RespondsTo(13L, 4, 1),
-//     2L -> RespondsTo(2L, 1, 0)
-//   ),
-//   Map()
-// )
+  def getGraph(): Future[Graph] = Db.graph.get()
+}

@@ -12,7 +12,7 @@ import com.outr.scribe._
 
 import framework.message._
 import util.time.StopWatch
-import util.future._
+import util.Pipe
 
 //TODO decouple. channel dependency, then subscribe, signal => action!
 class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
@@ -36,7 +36,7 @@ class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
-        .onCompleteRun { logger.info(f"CallRequest($seqId): ${timer.readMicros}us") }
+        .||> (_.onComplete { _ => logger.info(f"CallRequest($seqId): ${timer.readMicros}us") })
         .pipeTo(outgoing)
     case ControlRequest(seqId, control) => control match {
       case Login(auth) =>
@@ -46,7 +46,7 @@ class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
         nextUser.map(_.isDefined)
           .recover { case NonFatal(_) => false }
           .map(ControlResponse(seqId, _))
-          .onCompleteRun { logger.info(f"Login($seqId): ${timer.readMicros}us") }
+          .||> (_.onComplete { _ => logger.info(f"Login($seqId): ${timer.readMicros}us") })
           .pipeTo(outgoing)
 
         context.become(connected(outgoing, nextUser))
