@@ -63,31 +63,6 @@ object Db {
     }.map(_._1))
   }
 
-  def initGraph(): Future[Graph] = {
-    println("init graph in db...")
-    for (
-      post1 <- newPost("Hallo");
-      post2 <- newPost("Ballo");
-      post3 <- newPost("Penos");
-      post4 <- newPost("Wost");
-      container <- newPost("Container");
-      responds1 <- newConnects(post2.id, post1.id);
-      responds2 <- newConnects(post3.id, responds1.id);
-      responds3 <- newConnects(post4.id, responds2.id);
-      contains1 <- newContains(container.id, post1.id);
-      contains2 <- newContains(container.id, post4.id)
-    ) yield {
-
-      println("init done.")
-
-      Graph(
-        Map(post1.id -> post1, post2.id -> post2, post3.id -> post3, post4.id -> post4, container.id -> container),
-        Map(responds1.id -> responds1, responds2.id -> responds2, responds3.id -> responds3),
-        Map(contains1.id -> contains1, contains2.id -> contains2)
-      )
-    }
-  }
-
   def wholeGraph(): Future[Graph] = {
     for (
       posts <- ctx.run(query[Post]);
@@ -101,11 +76,6 @@ object Db {
         contains.map(p => p.id -> p).toMap
       )
     }
-  }
-
-  //TODO init to sql script
-  for (graph <- wholeGraph() if graph.posts.isEmpty) {
-    initGraph()
   }
 }
 
