@@ -101,6 +101,8 @@ class GraphView(state: GlobalState) {
       .style("position", "absolute")
       .style("pointer-events", "none") // pass through to svg (e.g. zoom)
       .style("transform-origin", "top left") // same as svg default
+      .style("width", "100%")
+      .style("height", "100%")
 
     menuSvg
       .style("position", "absolute")
