@@ -5,7 +5,6 @@ import org.scalajs.d3v4._
 import frontend._
 
 class Forces {
-  val center = d3.forceCenter[SimPost]()
   val gravityX = d3.forceX[SimPost]()
   val gravityY = d3.forceY[SimPost]()
   val repel = d3.forceManyBody[SimPost]()
@@ -19,7 +18,6 @@ object Forces {
   def apply(height: Int, width: Int) = {
     val forces = new Forces
 
-    forces.center.x(width / 2).y(height / 2)
     forces.gravityX.x(width / 2)
     forces.gravityY.y(height / 2)
 
@@ -38,7 +36,6 @@ object Forces {
 
 object Simulation {
   def apply(forces: Forces): Simulation[SimPost] = d3.forceSimulation[SimPost]()
-    .force("center", forces.center)
     .force("gravityx", forces.gravityX)
     .force("gravityy", forces.gravityY)
     .force("repel", forces.repel)
