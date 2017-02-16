@@ -3,6 +3,7 @@ package frontend.views.graphview
 import scalajs.js
 import vectory._
 import org.scalajs.d3v4._
+import org.scalajs.dom.raw.HTMLElement
 
 trait ExtendedD3Node extends SimulationNode {
   def pos = for (x <- x; y <- y) yield Vec2(x, y)
@@ -36,8 +37,16 @@ trait ExtendedD3Node extends SimulationNode {
     }
   }
 
+  def recalculateSize(node: HTMLElement) {
+      val rect = node.getBoundingClientRect
+      size = Vec2(rect.width, rect.height)
+      centerOffset = size / -2
+      radius = size.length / 2
+      collisionRadius = radius
+  }
+
   var size: Vec2 = Vec2(0, 0)
-  def rect = pos.map { pos => AARect(pos, size) }
+  // def rect = pos.map { pos => AARect(pos, size) }
   var centerOffset: Vec2 = Vec2(0, 0)
   var radius: Double = 0
   var collisionRadius: Double = 0

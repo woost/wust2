@@ -47,18 +47,18 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
     post
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
-
-    post.each({ (node: HTMLElement, p: SimPost) =>
-      //TODO: if this fails, because post is not rendered yet, recalculate it lazyly
-      val rect = node.getBoundingClientRect
-      p.size = Vec2(rect.width, rect.height)
-      p.centerOffset = p.size / -2
-      p.radius = p.size.length / 2
-      p.collisionRadius = p.radius
-    })
   }
 
   override def draw(post: Selection[SimPost]) {
+
+    // lazily recalculate rendered size to center posts
+    post.data().headOption.foreach { p =>
+      if (p.size.width == 0)
+        post.each({ (node: HTMLElement, p: SimPost) =>
+          p.recalculateSize(node)
+        })
+    }
+
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
