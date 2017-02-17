@@ -33,8 +33,6 @@ object Main extends js.JSApp {
     }
 
     mhtml.mount(document.getElementById("container"), views.MainView.component(state))
-    views.graphview.GraphView.init(state)
-    //TODO: mhtml-onattached
   }
 }
 

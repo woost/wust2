@@ -1,6 +1,8 @@
 package frontend.views.graphview
 
 import scalajs.js
+import org.scalajs.dom
+import scala.xml.Node
 import js.JSConverters._
 import org.scalajs.d3v4._
 import mhtml.Cancelable
@@ -19,7 +21,7 @@ object KeyImplicits {
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }
 
-class GraphView(state: GlobalState) {
+class GraphView(state: GlobalState, element: dom.html.Element) {
   val graphState = new GraphState(state)
   val d3State = new D3State
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
@@ -28,7 +30,7 @@ class GraphView(state: GlobalState) {
   // prepare containers where we will append elements depending on the data
   // order is important
   import KeyImplicits._
-  val container = d3.select("#here_be_d3")
+  val container = d3.select(element)
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, graphState.rxContainmentCluster)(svg.append("g"))
   val connectionLineSelection = SelectData.rx(ConnectionLineSelection, graphState.rxSimConnects)(svg.append("g"))
@@ -139,16 +141,10 @@ class GraphView(state: GlobalState) {
 }
 
 object GraphView { thisEnv =>
-  val component = {
-    //TODO: use mhtml-onattached instead of init
-    <div id="here_be_d3"></div>
-  }
-
-  val init: GlobalState => Unit = {
+  def component(state: GlobalState) = {
     var view: Option[GraphView] = None
-    state => {
-      view.foreach(_.cancel)
-      view = Some(new GraphView(state))
-    }
+    def mount(e: dom.html.Element) { view = Some(new GraphView(state, e)) }
+    def unmount(e: dom.html.Element) { view.foreach(_.cancel); view = None }
+    <div mhtml-onmount={ mount _ } mhtml-onunmount={ unmount _ }></div>
   }
 }

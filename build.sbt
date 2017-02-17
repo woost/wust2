@@ -98,7 +98,7 @@ lazy val frontend = project
   .settings(
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
     libraryDependencies ++= (
-      "in.nvilla" %%% "monadic-html" % "0.2.2" ::
+      "in.nvilla" %%% "monadic-html" % "0.2.3" ::
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::

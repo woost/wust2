@@ -29,7 +29,7 @@ object MainView {
       <button onclick={ (_: Event) => tabMode := Tab.Graph; () }>graph</button>
       <button onclick={ (_: Event) => tabMode := Tab.List; () }>list</button>
       <div style={ tabMode.map(m => if (m == Tab.Graph) "display:block" else "display:none") }>
-        { GraphView.component }
+        { GraphView.component(state) }
       </div>
       <div style={ tabMode.map(m => if (m == Tab.List) "display:block" else "display:none") }>
         { ListView.component(state.graph) }
