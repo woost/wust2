@@ -30,9 +30,12 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
+    addCommandAlias("clean", "; root/clean; assets/clean; workbench/clean"),
+
     addCommandAlias("dev", "~; backend/re-start; workbench/assets"),
     addCommandAlias("devfwatch", "~workbench/assets"),
     addCommandAlias("devf", "; backend/re-start; devfwatch"),
+
 
     watchSources ++= (watchSources in workbench).value
   )
