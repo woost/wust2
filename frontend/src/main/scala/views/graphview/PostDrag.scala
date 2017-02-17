@@ -28,7 +28,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
       .style("padding", "3px 5px")
       .style("border-radius", "3px")
       .style("border", "1px solid #AAA")
-      .style("max-width", "100px")
+      .style("max-width", "10em") //TODO: share styles with original posts
       .style("position", "absolute")
       .style("cursor", "move")
   }
