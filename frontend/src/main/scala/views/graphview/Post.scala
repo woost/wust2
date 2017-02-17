@@ -47,6 +47,10 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
     post
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
+
+    post.each({ (node: HTMLElement, p: SimPost) =>
+      p.recalculateSize(node)
+    })
   }
 
   override def draw(post: Selection[SimPost]) {

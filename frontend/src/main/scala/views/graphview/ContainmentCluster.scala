@@ -14,6 +14,7 @@ import org.scalajs.d3v4._
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
+  val maxRadius = children.map(_.radius).max * 2
 
   def positions: js.Array[js.Array[Double]] = (children :+ parent).map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
   def convexHull: js.Array[js.Array[Double]] = {
@@ -24,7 +25,6 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost],
   }
 }
 
-// TODO: merge with ContainmentCluster?
 object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   override val tag = "path"
   override def enter(hull: Selection[ContainmentCluster]) {
@@ -37,7 +37,7 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
 
   override def update(hull: Selection[ContainmentCluster]) {
     hull
-      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.depth * 15 + 70}px")
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px")
   }
 
   override def draw(hull: Selection[ContainmentCluster]) {
