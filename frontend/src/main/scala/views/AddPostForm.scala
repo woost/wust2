@@ -10,7 +10,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import mhtml._
 import graph._
 import org.scalajs.d3v4
-import frontend.{Client, SourceVar}
+import frontend.Client
 import frontend.Color._
 
 object AddPostForm {
