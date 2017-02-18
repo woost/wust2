@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
+set -o pipefail
 
 script_dir="$(dirname $(readlink -f '$0'))"
 stage="$1"

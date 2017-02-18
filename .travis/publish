@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
+set -o pipefail
 
 [[ "$TRAVIS_BRANCH" == "master" ]] || exit 0
 
