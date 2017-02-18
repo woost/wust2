@@ -36,7 +36,6 @@ lazy val root = project.in(file("."))
     addCommandAlias("devfwatch", "~workbench/assets"),
     addCommandAlias("devf", "; backend/re-start; devfwatch"),
 
-
     watchSources ++= (watchSources in workbench).value
   )
 
@@ -136,7 +135,7 @@ lazy val assets = project
     //TODO: minify html
     //TODO: only serve minified assets
     //TODO: zopfli
-    pipelineStages in Assets := Seq(scalaJSPipeline, /* TODO: uglify, */ gzip)
+    pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip)
   )
 
 lazy val backend = project
