@@ -127,6 +127,8 @@ lazy val workbench = project.in(file("workbench"))
     refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
   )
 
+import JsTaskKeys._
+import scala.concurrent.duration._
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
@@ -135,6 +137,7 @@ lazy val assets = project
     //TODO: minify html
     //TODO: only serve minified assets
     //TODO: zopfli
+    timeoutPerSource := 10.minutes,
     pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip)
   )
 
