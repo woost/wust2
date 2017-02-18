@@ -13,7 +13,6 @@ jdk:
 node_js: "6"
 
 script:
-    - node --version
     - set -e # https://github.com/travis-ci/travis-ci/issues/1066#issuecomment-32415710
     - .travis/build
     - .travis/test
