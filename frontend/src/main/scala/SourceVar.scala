@@ -12,3 +12,8 @@ class SourceVar[S, A](source: Var[S], mapping: Rx[S] => Rx[A]) extends Rx[A] {
   override def map[B](f: A => B): SourceVar[S, B] = new SourceVar(source, (_: Rx[S]) => target.map(f))
   override def flatMap[B](s: A => Rx[B]): SourceVar[S, B] = new SourceVar(source, (_: Rx[S]) => target.flatMap(s))
 }
+object SourceVar {
+  import scala.xml.{XmlElementEmbeddable, XmlAttributeEmbeddable}
+  implicit def sourceVarElementEmbeddable[S,A] = XmlElementEmbeddable.atom[SourceVar[S,A]]
+  implicit def sourceVarAttributeEmbeddable[S,A] = XmlAttributeEmbeddable.atom[SourceVar[S,A]]
+}
