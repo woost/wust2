@@ -41,7 +41,7 @@ object Simulation {
     .force("repel", forces.repel)
     .force("collision", forces.collision)
     // .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
-    // .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
+    .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
     .force("containment", forces.containment)
 }
 
