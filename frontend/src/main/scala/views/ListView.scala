@@ -1,10 +1,11 @@
 package frontend.views
 
 import org.scalajs.dom._
+import org.scalajs.d3v4
 import mhtml._
 
 import graph._
-import frontend.{EditMode, FocusMode, InteractionMode, GlobalState}
+import frontend._
 
 object ListView {
   def toggleOption(id: AtomId): Option[AtomId] => Option[AtomId] = {
@@ -12,9 +13,13 @@ object ListView {
     case _ => Some(id)
   }
 
-  def modeStyle(id: AtomId): InteractionMode => String = {
-    case EditMode(`id`) => "background:#0000FF;"
-    case FocusMode(`id`) => "background:#00FF00;"
+  def postColor(id: AtomId): InteractionMode => d3v4.Color = {
+    case FocusMode(`id`) => d3v4.d3.lab("#00ff00")
+    case EditMode(`id`) => d3v4.d3.lab("#0000ff")
+    case _ => Color.postDefaultColor
+  }
+
+  def editPostStyle(id: AtomId): InteractionMode => String = {
     case _ => ""
   }
 
@@ -32,9 +37,14 @@ object ListView {
     import state._
 
     def postItem(post: Post) =
-      <div style={ mode.map(modeStyle(post.id)) }>
-        <span onclick={ () => focusedPostId.update(toggleOption(post.id)) }>{post.toString}</span>
-        <span onclick={ () => editedPostId.update(toggleOption(post.id)) }>[edit]</span>
+      <div onclick={ () => focusedPostId.update(toggleOption(post.id)) }>
+        {
+          mode.map { mode =>
+            Views.post(post, color = postColor(post.id)(mode), afterTitle = Some(
+              <span onclick={ () => editedPostId.update(toggleOption(post.id)) }>[edit]</span>
+            ))
+          }
+        }
       </div>
 
     def postTreeItem(tree: Tree[Post], indent: Int = 0): xml.Node =

@@ -13,9 +13,7 @@ import scala.xml.Node
 import mhtml.emptyHTML
 
 object Views {
-  def post(p: Post) = genericPost(p, postDefaultColor, None)
-
-  def genericPost(post: Post, color: d3v4.Color, afterTitle: Option[Node]) =
+  def post(post: Post, color: d3v4.Color = postDefaultColor, afterTitle: Option[Node] = None) =
     //TODO: share style with graphview
     <div style={ s"padding: 3px 5px; margin: 3px; border-radius: 3px; max-width: 10em; border: 1px solid #444; background-color: ${color.toString}" }>
       { post.title }
@@ -29,7 +27,7 @@ object Views {
         containsIds.map { containsId =>
           val contains = graph.containments(containsId)
           val parent = graph.posts(contains.parentId)
-          genericPost(parent, baseColor(parent.id), Some(
+          post(parent, baseColor(parent.id), Some(
             <span onclick={ (_: Event) => Client.api.deleteContainment(contains.id).call(); () } style="padding: 0 0 0 3px; cursor: pointer">
               ×
             </span>

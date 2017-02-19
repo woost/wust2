@@ -16,7 +16,7 @@ import frontend.Color._
 object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[AtomId]], postId: AtomId) = {
     <div>
-      Edit Post: <button onclick={ (_: Event) => editedPostId := None }>x</button>
+      Edit Post: <button onclick={ (_: Event) => editedPostId := None }>×</button>
       { responseLabel(graph, postId) }
     </div>
   }
