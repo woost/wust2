@@ -30,10 +30,16 @@ class VarRx[S, A](write: WriteVar[S], rx: Rx[A]) extends WriteVar[S] with Rx[A] 
   override def flatMap[B](f: A => Rx[B]): VarRx[S, B] = VarRx(write, rx.flatMap(f))
 }
 object VarRx {
-  def apply[S](value: S) = { val v = Var(value); new VarRx(v, v) }
   def apply[S, A](write: WriteVar[S], rx: Rx[A]) = new VarRx(write, rx)
+  def apply[S](value: S) = VarIsVarRx(Var(value))
 
-  implicit def VarIsVarRx[A](v: Var[A]) = VarRx(v, v)
+  implicit def VarIsVarRx[A](v: Var[A]) = new VarRx(v, v)
+
+  implicit class SymmetricVarRx[A](varRx: VarRx[A,A]) {
+    def projection[B](from: A => B, to: B => A) = varRx
+      .writeProjection(from, to)
+      .map(from)
+  }
 
   // instead of the defined implicits, which require exactly one type parameter for a subclass of rx:
   // https://github.com/OlivierBlanvillain/monadic-html/blob/40a7e2963238cb286651cf539e6f680b579f00d3/monadic-html/src/main/scala/scala/xml/xml.scala#L195
