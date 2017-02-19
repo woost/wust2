@@ -25,6 +25,15 @@ class GlobalState {
   val editedPostId = VarRx[Option[AtomId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
+  //TODO: better?
+  val collapsedPosts = new collection.mutable.HashMap[AtomId, Var[Boolean]] {
+    def safeGet(key: AtomId) = getOrElseUpdate(key, Var(false))
+  }
+  graph.foreach { graph =>
+    collapsedPosts --= collapsedPosts.keys.filterNot(graph.posts.keys.toSet)
+  }
+
+
   val mode = editedPostId.flatMap(e => focusedPostId.map(f => InteractionMode(edit = e, focus = f)))
 
   // graph.foreach(v => println(s"graph update: $v"))

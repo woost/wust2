@@ -37,11 +37,21 @@ object ListView {
     import state._
 
     def postItem(post: Post) =
-      <div onclick={ () => focusedPostId.update(toggleOption(post.id)) }>
+      // <div onclick={ () => focusedPostId.update(toggleOption(post.id)) }>
+    <div>
         {
           mode.map { mode =>
             Views.post(post, color = postColor(post.id)(mode), afterTitle = Some(
-              <span onclick={ () => editedPostId.update(toggleOption(post.id)) }>[edit]</span>
+              <div>
+                <span onclick={ () => editedPostId.update(toggleOption(post.id)) }>[edit]</span>
+                {
+                  collapsedPosts.safeGet(post.id).map { collapsed =>
+                    <span onclick={ () => collapsedPosts(post.id) := !collapsed }>
+                    { if (collapsed) "+" else "-" }
+                  </span>
+                  }
+                }
+              </div>
             ))
           }
         }
@@ -50,7 +60,12 @@ object ListView {
     def postTreeItem(tree: Tree[Post], indent: Int = 0): xml.Node =
       <div style={ s"margin-left: ${indent * 10}px" }>
         { postItem(tree.element) }
-        { tree.children.map(postTreeItem(_, indent + 1)) }
+        {
+          collapsedPosts.safeGet(tree.element.id).map { collapsed =>
+            if (collapsed) Seq(emptyHTML)
+            else tree.children.map(postTreeItem(_, indent + 1))
+          }
+        }
       </div>
 
 
