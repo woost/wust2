@@ -37,8 +37,7 @@ object ListView {
     import state._
 
     def postItem(post: Post) =
-      // <div onclick={ () => focusedPostId.update(toggleOption(post.id)) }>
-    <div>
+      <div onclick={ () => focusedPostId.update(toggleOption(post.id)) }>
         {
           mode.map { mode =>
             Views.post(post, color = postColor(post.id)(mode), afterTitle = Some(
