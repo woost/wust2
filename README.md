@@ -7,6 +7,8 @@
 Requirements:
 * sbt
 * docker
+* node
+* npm
 
 Start all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
 ```
@@ -33,6 +35,9 @@ $ sbt docker
 ```
 
 # production
+
+Requirements:
+* docker
 
 Set environment variables according to your setup:
 * **HOST_DOMAIN**: domain (example.com)
