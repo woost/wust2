@@ -3,7 +3,7 @@ package mhtml
 trait WriteVar[A] {
   def :=(newValue: A): Unit
   def update(f: A => A): Unit
-  def writeProjection[B](from: A => B, to: B => A): WriteVar[B] = VarProjection(this, from, to)
+  def writeProjection[B](from: A => B, to: B => A): WriteVar[B] = WriteProjection(this, from, to)
 }
 object WriteVar {
   implicit def VarIsWriteVar[A](v: Var[A]) = new WriteVar[A] {
@@ -11,11 +11,17 @@ object WriteVar {
     def update(f: A => A) = v.update(f)
   }
 }
+object WriteProjection {
+  def apply[S, A](v: WriteVar[S], from: S => A, to: A => S): WriteVar[A] = new WriteVar[A] {
+    def :=(newValue: A) = v := to(newValue)
+    def update(f: A => A) = v.update(from andThen f andThen to)
+  }
+}
 
 class VarRx[S, A](write: WriteVar[S], rx: Rx[A]) extends WriteVar[S] with Rx[A] {
   override def :=(newValue: S) = write := newValue
   override def update(f: S => S) = write.update(f)
-  override def writeProjection[T](from: S => T, to: T => S): VarRx[T, A] = VarRx(VarProjection(write, from, to), rx)
+  override def writeProjection[T](from: S => T, to: T => S): VarRx[T, A] = VarRx(WriteProjection(write, from, to), rx)
 
   override def value = rx.value
   override def foreachNext(f: A => Unit) = rx.foreachNext(f)
@@ -35,12 +41,3 @@ object VarRx {
   implicit def sourceVarElementEmbeddable[S,A] = XmlElementEmbeddable.atom[VarRx[S,A]]
   implicit def sourceVarAttributeEmbeddable[S,A] = XmlAttributeEmbeddable.atom[VarRx[S,A]]
 }
-
-class VarProjection[S, A](source: WriteVar[S], from: S => A, to: A => S) extends WriteVar[A] {
-  override def :=(newValue: A) = source := to(newValue)
-  override def update(f: A => A) = source.update(from andThen f andThen to)
-}
-object VarProjection {
-  def apply[S, A](source: WriteVar[S], from: S => A, to: A => S) = new VarProjection(source, from, to)
-}
-
