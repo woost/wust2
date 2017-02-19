@@ -3,14 +3,14 @@ package frontend
 import graph._, api._
 import mhtml._
 
-case class InteractionMode[E,F](edit: Option[E], focus: Option[F])
+case class InteractionMode(edit: Option[AtomId], focus: Option[AtomId])
 object FocusMode {
-  def unapply[F,E](mode: InteractionMode[E,F]): Option[F] = Some(mode) collect {
+  def unapply(mode: InteractionMode): Option[AtomId] = Some(mode) collect {
     case InteractionMode(None, Some(f)) => f
   }
 }
 object EditMode {
-  def unapply[F,E](mode: InteractionMode[E,F]): Option[E] = Some(mode) collect {
+  def unapply(mode: InteractionMode): Option[AtomId] = Some(mode) collect {
     case InteractionMode(Some(e), _) => e
   }
 }
