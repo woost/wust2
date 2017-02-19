@@ -3,21 +3,29 @@ package frontend
 import graph._, api._
 import mhtml._
 
+case class InteractionMode[E,F](edit: Option[E], focus: Option[F])
+object FocusMode {
+  def unapply[F,E](mode: InteractionMode[E,F]): Option[F] = Some(mode) collect {
+    case InteractionMode(None, Some(f)) => f
+  }
+}
+object EditMode {
+  def unapply[F,E](mode: InteractionMode[E,F]): Option[E] = Some(mode) collect {
+    case InteractionMode(Some(e), _) => e
+  }
+}
+
 class GlobalState {
-  val graph = new SourceVar(
-    source = Var(Graph.empty),
-    (source: Rx[Graph]) => source.map(_.consistent)
-  )
+  val graph = VarRx(Graph.empty)
+    .map(_.consistent)
 
-  val focusedPostId = new SourceVar(
-    source = Var[Option[AtomId]](None),
-    (source: Rx[Option[AtomId]]) => source.flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
-  )
+  val focusedPostId = VarRx[Option[AtomId]](None)
+    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
-  val editedPostId = new SourceVar(
-    source = Var[Option[AtomId]](None),
-    (source: Rx[Option[AtomId]]) => source.flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
-  )
+  val editedPostId = VarRx[Option[AtomId]](None)
+    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
+
+  val mode = editedPostId.flatMap(e => focusedPostId.map(f => InteractionMode(edit = e, focus = f)))
 
   // graph.foreach(v => println(s"graph update: $v"))
   // focusedPostId.foreach(v => println(s"focusedPostId update: $v"))

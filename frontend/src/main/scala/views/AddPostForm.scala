@@ -10,54 +10,36 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import mhtml._
 import graph._
 import org.scalajs.d3v4
-import frontend.Client
+import frontend._
 import frontend.Color._
 
 object AddPostForm {
-  class InteractionMode[F,E](val focus: Rx[Option[F]], val edit: Rx[Option[E]]) {
-    val rx: Rx[InteractionMode[F,E]] = edit.flatMap(_ => focus.map(_ => this))
-  }
-  object InteractionMode {
-    def unapply[F,E](mode: InteractionMode[F,E]): Option[(Option[F],Option[E])] = Some((mode.focus.value, mode.edit.value))
-  }
-  object FocusMode {
-    def unapply[F,E](mode: InteractionMode[F,E]): Option[F] = Some(mode) collect {
-      case InteractionMode(Some(f), None) => f
-    }
-  }
-  object EditMode {
-    def unapply[F,E](mode: InteractionMode[F,E]): Option[E] = Some(mode) collect {
-      case InteractionMode(_, Some(e)) => e
-    }
+  def editLabel(graph: Graph, editedPostId: WriteVar[Option[AtomId]], postId: AtomId) = {
+    <div>
+      Edit Post: <button onclick={ (_: Event) => editedPostId := None }>x</button>
+      { responseLabel(graph, postId) }
+    </div>
   }
 
-  def component(rxGraph: Rx[Graph], focusedPostId: Rx[Option[AtomId]], editedPostId: SourceVar[Option[AtomId], Option[AtomId]]) = {
-    val mode = new InteractionMode(focus = focusedPostId, edit = editedPostId)
-    def graph = rxGraph.value
+  def responseLabel(graph: Graph, postId: AtomId) = {
+    val post = graph.posts(postId)
+    <div>
+      { Views.parents(graph.incidentParentContains(post.id).toSeq, graph) }
+      { Views.post(post) }
+    </div>
+  }
 
-    def editLabel(postId: AtomId) = {
-      <div>
-        Edit Post: <button onclick={ (_: Event) => editedPostId := None }>x</button>
-        { responseLabel(postId) }
-      </div>
-    }
+  val newLabel = <div>New Post:</div>
 
-    def responseLabel(postId: AtomId) = {
-      val post = graph.posts(postId)
-      <div>
-        { Views.parents(graph.incidentParentContains(post.id).toSeq, graph) }
-        { Views.post(post) }
-      </div>
-    }
-
-    val newLabel = <div>New Post:</div>
+  def component(state: GlobalState) = {
+    import state._
 
     //TODO: onattached -> store domnode -> focus
-    mode.rx.foreach { mode =>
+    mode.foreach { mode =>
       val input = document.getElementById("addpostfield").asInstanceOf[raw.HTMLInputElement]
       if (input != null) {
         mode match {
-          case EditMode(postId) => input.value = graph.posts(postId).title
+          case EditMode(postId) => input.value = graph.value.posts(postId).title
           case _ => input.value = ""
         }
         input.focus()
@@ -66,9 +48,9 @@ object AddPostForm {
 
     <div>
       {
-        mode.rx.map {
-          case EditMode(postId) => editLabel(postId)
-          case FocusMode(postId) => responseLabel(postId)
+        mode.map {
+          case EditMode(postId) => editLabel(graph.value, editedPostId, postId)
+          case FocusMode(postId) => responseLabel(graph.value, postId)
           case _ => newLabel
         }
       }
@@ -76,8 +58,8 @@ object AddPostForm {
         val input = e.target.asInstanceOf[raw.HTMLInputElement]
         val text = input.value
         if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-          val fut = mode match {
-            case EditMode(postId) => Client.api.updatePost(graph.posts(postId).copy(title = text)).call()
+          val fut = mode.value match {
+            case EditMode(postId) => Client.api.updatePost(graph.value.posts(postId).copy(title = text)).call()
             case FocusMode(postId) => Client.api.respond(postId, text).call().map(_.isDefined)
             case _ => Client.api.addPost(text).call().map(_ => true)
           }
