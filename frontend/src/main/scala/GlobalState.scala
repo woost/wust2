@@ -16,13 +16,13 @@ object EditMode {
 }
 
 class GlobalState {
-  val graph = VarRx(Graph.empty)
+  val graph = RxVar(Graph.empty)
     .map(_.consistent)
 
-  val focusedPostId = VarRx[Option[AtomId]](None)
+  val focusedPostId = RxVar[Option[AtomId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
-  val editedPostId = VarRx[Option[AtomId]](None)
+  val editedPostId = RxVar[Option[AtomId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
   //TODO: better?
