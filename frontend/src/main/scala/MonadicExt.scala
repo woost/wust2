@@ -14,7 +14,7 @@ object WriteVar {
 object WriteProjection {
   def apply[S, A](v: WriteVar[S], from: PartialFunction[S,A], to: A => S): WriteVar[A] = new WriteVar[A] {
     def :=(newValue: A) = v := to(newValue)
-    def update(f: A => A) = v.update(from andThen f andThen to)
+    def update(f: A => A) = v.update((from andThen f andThen to) orElse { case i => i })
   }
 }
 
