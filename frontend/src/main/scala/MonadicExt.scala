@@ -3,7 +3,7 @@ package mhtml
 trait WriteVar[A] {
   def :=(newValue: A): Unit
   def update(f: A => A): Unit
-  def writeProjection[B](from: A => B, to: B => A): WriteVar[B] = WriteProjection(this, from, to)
+  def writeProjection[B](from: PartialFunction[A,B], to: B => A): WriteVar[B] = WriteProjection(this, from, to)
 }
 object WriteVar {
   implicit def VarIsWriteVar[A](v: Var[A]) = new WriteVar[A] {
@@ -12,7 +12,7 @@ object WriteVar {
   }
 }
 object WriteProjection {
-  def apply[S, A](v: WriteVar[S], from: S => A, to: A => S): WriteVar[A] = new WriteVar[A] {
+  def apply[S, A](v: WriteVar[S], from: PartialFunction[S,A], to: A => S): WriteVar[A] = new WriteVar[A] {
     def :=(newValue: A) = v := to(newValue)
     def update(f: A => A) = v.update(from andThen f andThen to)
   }
@@ -21,7 +21,7 @@ object WriteProjection {
 class VarRx[S, A](write: WriteVar[S], rx: Rx[A]) extends WriteVar[S] with Rx[A] {
   override def :=(newValue: S) = write := newValue
   override def update(f: S => S) = write.update(f)
-  override def writeProjection[T](from: S => T, to: T => S): VarRx[T, A] = VarRx(WriteProjection(write, from, to), rx)
+  override def writeProjection[T](from: PartialFunction[S,T], to: T => S): VarRx[T, A] = VarRx(WriteProjection(write, from, to), rx)
 
   override def value = rx.value
   override def foreachNext(f: A => Unit) = rx.foreachNext(f)
@@ -36,7 +36,7 @@ object VarRx {
   implicit def VarIsVarRx[A](v: Var[A]) = new VarRx(v, v)
 
   implicit class SymmetricVarRx[A](varRx: VarRx[A,A]) {
-    def projection[B](from: A => B, to: B => A) = varRx
+    def projection[B](from: PartialFunction[A,B], to: B => A) = varRx
       .writeProjection(from, to)
       .map(from)
   }
