@@ -44,10 +44,10 @@ object ListView {
               <div>
                 <span onclick={ () => editedPostId.update(toggleOption(post.id)) }>[edit]</span>
                 {
-                  collapsedPosts.safeGet(post.id).map { collapsed =>
+                  collapsedPosts(post.id).map { collapsed =>
                     <span onclick={ () => collapsedPosts(post.id) := !collapsed }>
-                    { if (collapsed) "+" else "-" }
-                  </span>
+                      { if (collapsed) "+" else "-" }
+                    </span>
                   }
                 }
               </div>
@@ -60,7 +60,7 @@ object ListView {
       <div style={ s"margin-left: ${indent * 10}px" }>
         { postItem(tree.element) }
         {
-          collapsedPosts.safeGet(tree.element.id).map { collapsed =>
+          collapsedPosts(tree.element.id).map { collapsed =>
             if (collapsed) Seq(emptyHTML)
             else tree.children.map(postTreeItem(_, indent + 1))
           }
