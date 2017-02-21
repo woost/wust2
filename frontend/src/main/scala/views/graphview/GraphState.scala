@@ -13,6 +13,7 @@ import frontend.Color._
 class GraphState(state: GlobalState) {
   val rxGraph = state.graph
   val editedPostId = state.editedPostId
+  val collapsedPosts = state.collapsedPosts
 
   val rxSimPosts: Rx[js.Array[SimPost]] = rxGraph.map { graph =>
     graph.posts.values.map { p =>
