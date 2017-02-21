@@ -7,6 +7,7 @@
 Requirements:
 * sbt
 * docker
+* docker-compose
 * node
 * npm
 
@@ -38,6 +39,7 @@ $ sbt docker
 
 Requirements:
 * docker
+* docker-compose
 
 Set environment variables according to your setup:
 * **HOST_DOMAIN**: domain (example.com)
