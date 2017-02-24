@@ -73,7 +73,6 @@ class GraphState(state: GlobalState) {
     val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
 
     // set hyperedge targets, goes away with custom linkforce
-    //TODO do not create new foreach for each trigger
     newData.foreach { e =>
       e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
     }
