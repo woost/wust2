@@ -3,16 +3,12 @@ package frontend.views
 import org.scalajs.dom._
 import org.scalajs.d3v4
 import mhtml._
+import util.collectionHelpers._
 
 import graph._
 import frontend._
 
 object ListView {
-  def toggleOption(id: AtomId): Option[AtomId] => Option[AtomId] = {
-    case Some(`id`) => None
-    case _ => Some(id)
-  }
-
   def postColor(id: AtomId): InteractionMode => d3v4.Color = {
     case FocusMode(`id`) => d3v4.d3.lab("#00ff00")
     case EditMode(`id`) => d3v4.d3.lab("#0000ff")
@@ -37,16 +33,16 @@ object ListView {
     import state._
 
     def postItem(post: Post) =
-      <div onclick={ () => focusedPostId.update(toggleOption(post.id)) }>
+      <div onclick={ () => focusedPostId.update(_.setOrToggle(post.id)) }>
         {
           mode.map { mode =>
             Views.post(post, color = postColor(post.id)(mode), afterTitle = Some(
               <div>
-                <span onclick={ () => editedPostId.update(toggleOption(post.id)) }>[edit]</span>
+                <span onclick={ () => editedPostId.update(_.setOrToggle(post.id)) }>[edit]</span>
                 {
-                  collapsedPosts(post.id).map { collapsed =>
-                    <span onclick={ () => collapsedPosts(post.id) := !collapsed }>
-                      { if (collapsed) "+" else "-" }
+                  collapsedPostIds.map { collapsed =>
+                    <span onclick={ () => collapsedPostIds.update(_.toggle(post.id)) }>
+                      { if (collapsed(post.id)) "+" else "-" }
                     </span>
                   }
                 }
@@ -60,13 +56,9 @@ object ListView {
       <div style={ s"margin-left: ${indent * 10}px" }>
         { postItem(tree.element) }
         {
-          collapsedPosts(tree.element.id).map { collapsed =>
-            if (collapsed) Seq(emptyHTML)
-            else tree.children.map(postTreeItem(_, indent + 1))
-          }
+          tree.children.map(postTreeItem(_, indent + 1))
         }
       </div>
-
 
     //TODO: performance: https://github.com/OlivierBlanvillain/monadic-html/issues/13
     <div>

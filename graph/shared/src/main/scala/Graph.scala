@@ -37,6 +37,7 @@ package object graph {
       result
     }
 
+    def removePosts(atomIds: Iterable[AtomId]) = atomIds.foldLeft(this)((g, p) => g removePost p) //TODO: more efficient
     def removePost(atomId: AtomId) = {
       val removedPosts = posts.get(atomId).map(_.id)
       val removedConnections = incidentConnectionsDeep(atomId)
@@ -63,7 +64,7 @@ package object graph {
 
     def parents(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.childId == postId => posts(c.parentId) }.toSeq //TODO: breakout with generic on requested collection type
     def children(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.parentId == postId => posts(c.childId) }.toSeq //TODO: breakout with generic on requested collection type
-    def transitiveChildren(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => children(p.id))
+    def transitiveChildren(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => children(p.id)).drop(1)
 
     def +(p: Post) = copy(posts = posts + (p.id -> p))
     def +(c: Connects) = copy(connections = connections + (c.id -> c))

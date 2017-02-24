@@ -16,27 +16,35 @@ object EditMode {
 }
 
 class GlobalState {
-  val graph = RxVar(Graph.empty)
+  val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
 
   val focusedPostId = RxVar[Option[AtomId]](None)
-    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
+    .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
 
   val editedPostId = RxVar[Option[AtomId]](None)
-    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
+    .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
 
   val mode = editedPostId.flatMap(e => focusedPostId.map(f => InteractionMode(edit = e, focus = f)))
 
-  //TODO: better?
-  val collapsedPosts = new {
-    private val inner = new collection.mutable.HashMap[AtomId, Var[Boolean]]
-    def apply(key: AtomId) = inner.getOrElseUpdate(key, Var(false))
-    def ensureOnly(keys: Set[AtomId]) = inner --= inner.keys.filterNot(keys)
+  val collapsedPostIds = RxVar[Set[AtomId]](Set.empty)
+    .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
+
+  val graph: RxVar[Graph, Graph] = for {
+    graph <- rawGraph
+    collapsed <- collapsedPostIds
+  } yield {
+    println("HIIIIIIIII")
+    val hide = collapsed.flatMap(c => graph.transitiveChildren(c).map(_.id))
+    // TODO exclude overlapping
+    import util.Pipe
+    (graph removePosts hide) ||> (_ => println("nicht gestorben"))
+
   }
 
-  graph.foreach { graph =>
-    collapsedPosts.ensureOnly(graph.posts.keys.toSet)
-  }
+  collapsedPostIds.debug("collapsed")
+  rawGraph.debug("rawGraph")
+  graph.debug("graph")
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)

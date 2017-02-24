@@ -16,7 +16,7 @@ import frontend.Color._
 object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[AtomId]], postId: AtomId) = {
     <div>
-      Edit Post: <button onclick={ (_: Event) => editedPostId := None }>×</button>
+      Edit Post:<button onclick={ (_: Event) => editedPostId := None }>×</button>
       { responseLabel(graph, postId) }
     </div>
   }
@@ -64,10 +64,12 @@ object AddPostForm {
             case _ => Client.api.addPost(text).call().map(_ => true)
           }
 
-          fut.foreach { success => if (success) {
-            input.value = ""
-            editedPostId := None
-          }}
+          fut.foreach { success =>
+            if (success) {
+              input.value = ""
+              editedPostId := None
+            }
+          }
         }
         ()
       }/>

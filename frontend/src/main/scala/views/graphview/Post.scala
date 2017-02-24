@@ -32,10 +32,7 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
       .style("pointer-events", "auto") // reenable
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
-        if (focusedPost.value.isEmpty || focusedPost.value.get != p)
-          focusedPost := Some(p.id)
-        else
-          focusedPost := None
+        focusedPost.update(_.setOrToggle(p.id))
       })
       .call(d3.drag[SimPost]()
         .on("start", postDragStarted _)

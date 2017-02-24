@@ -27,7 +27,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
 
   val menuActions = (
     // TODO indication for toggle button? switch string/appearance on basis of value?
-    MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.collapsedPosts(p.id).update(!_) }) ::
+    MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.collapsedPostIds.update(_.toggle(p.id)) }) ::
     MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.editedPostId := Some(p.id) }) ::
     MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
