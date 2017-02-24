@@ -1,6 +1,7 @@
 package mhtml
 
 import util.Pipe
+import scala.xml.{XmlElementEmbeddable, XmlAttributeEmbeddable}
 
 trait WriteVar[A] {
   def :=(newValue: A): Unit
@@ -63,7 +64,11 @@ object RxVar {
 
   // instead of the defined implicits, which require exactly one type parameter for a subclass of rx:
   // https://github.com/OlivierBlanvillain/monadic-html/blob/40a7e2963238cb286651cf539e6f680b579f00d3/monadic-html/src/main/scala/scala/xml/xml.scala#L195
-  import scala.xml.{XmlElementEmbeddable, XmlAttributeEmbeddable}
   implicit def sourceVarElementEmbeddable[S, A] = XmlElementEmbeddable.atom[RxVar[S, A]]
   implicit def sourceVarAttributeEmbeddable[S, A] = XmlAttributeEmbeddable.atom[RxVar[S, A]]
+}
+
+object XmlElementExt {
+  implicit val unitElementEmbeddable = XmlElementEmbeddable.atom[Unit]
+  implicit val unitAttributeEmbeddable = XmlAttributeEmbeddable.atom[Unit]
 }

@@ -34,17 +34,17 @@ class GlobalState {
     graph <- rawGraph
     collapsed <- collapsedPostIds
   } yield {
-    println("HIIIIIIIII")
+    // println("HIIIIIIIII")
     val hide = collapsed.flatMap(c => graph.transitiveChildren(c).map(_.id))
     // TODO exclude overlapping
-    import util.Pipe
-    (graph removePosts hide) ||> (_ => println("nicht gestorben"))
+    // import util.Pipe
+    (graph removePosts hide) // ||> (_ => println("nicht gestorben"))
 
   }
 
-  collapsedPostIds.debug("collapsed")
-  rawGraph.debug("rawGraph")
-  graph.debug("graph")
+  // collapsedPostIds.debug("collapsed")
+  // rawGraph.debug("rawGraph")
+  // graph.debug("graph")
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)

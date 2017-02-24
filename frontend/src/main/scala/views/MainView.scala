@@ -3,7 +3,7 @@ package frontend.views
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom._
 
-import mhtml._
+import mhtml._, XmlElementExt._
 import scala.xml.Node
 import autowire._
 import boopickle.Default._
@@ -32,7 +32,9 @@ object MainView {
         { GraphView.component(state) }
       </div>
       <div style={ tabMode.map(m => if (m == Tab.List) "display:block" else "display:none") }>
-        { ListView.component(state) }
+      {
+        //dass das hier compiled 
+      }
       </div>
       <div style="position:fixed; width:100%; bottom:0; left:0; padding:5px; background:#f7f7f7; border-top:1px solid #DDD">
         { AddPostForm.component(state) }
