@@ -104,8 +104,10 @@ lazy val frontend = project
       Nil
     ),
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
-    relativeSourceMaps := false,
-    enableReloadWorkflow := true // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
+    enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
+    emitSourceMaps := false,
+    npmDevDependencies in Compile += "compression-webpack-plugin" -> "0.2.0",
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
 
 lazy val workbench = project.in(file("workbench"))
@@ -127,8 +129,6 @@ lazy val workbench = project.in(file("workbench"))
     refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
   )
 
-import JsTaskKeys._
-import scala.concurrent.duration._
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
@@ -137,8 +137,7 @@ lazy val assets = project
     //TODO: minify html
     //TODO: only serve minified assets
     //TODO: zopfli
-    timeoutPerSource := 10.minutes,
-    pipelineStages in Assets := Seq(scalaJSPipeline, uglify, gzip)
+    pipelineStages in Assets := Seq(scalaJSPipeline)
   )
 
 lazy val backend = project
