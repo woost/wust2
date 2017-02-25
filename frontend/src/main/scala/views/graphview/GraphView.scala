@@ -13,7 +13,7 @@ import graph._
 import frontend.Color._
 
 case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
-case class DropAction(symbol: String, color: String, action: (SimPost, SimPost) => Unit)
+case class DropAction(symbol: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {
   implicit val SimPostWithKey = new WithKey[SimPost](_.id)
