@@ -1,6 +1,7 @@
-package graph
+package util
 package object algorithm {
   import collection.mutable
+  import collection.IterableLike
 
   //TODO: depthfirstsearch producing a sequence
   def depthFirstSearch[V](start: V, continue: V => Iterable[V]) = new Iterable[V] {
@@ -28,7 +29,7 @@ package object algorithm {
     }
   }
 
-  def topologicalSort[V](vertices: Iterable[V], successors: V => Iterable[V]): Seq[V] = {
+  def topologicalSort[V,COLL](vertices: IterableLike[V,COLL], successors: V => Iterable[V]): Seq[V] = {
     // TODO: give result even if there is a cycle
 
     var sorted: List[V] = Nil

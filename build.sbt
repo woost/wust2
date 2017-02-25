@@ -52,7 +52,9 @@ lazy val api = crossProject.crossType(CrossType.Pure)
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
-lazy val graph = crossProject.settings(commonSettings)
+lazy val graph = crossProject
+  .settings(commonSettings)
+  .dependsOn(util)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 

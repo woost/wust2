@@ -86,7 +86,7 @@ class GraphState(state: GlobalState) {
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.
-    val ordered = algorithm.topologicalSort(parents, (p: Post) => graph.children(p.id))
+    val ordered = parents.topologicalSortBy((p: Post) => graph.children(p.id))
 
     ordered.map { p =>
       new ContainmentCluster(

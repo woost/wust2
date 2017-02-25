@@ -19,6 +19,8 @@ class GlobalState {
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
 
+  val currentView = RxVar[View]()
+
   val focusedPostId = RxVar[Option[AtomId]](None)
     .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
 
@@ -34,11 +36,37 @@ class GlobalState {
     graph <- rawGraph
     collapsed <- collapsedPostIds
   } yield {
-    // println("HIIIIIIIII")
-    val hide = collapsed.flatMap(c => graph.transitiveChildren(c).map(_.id))
-    // TODO exclude overlapping
-    // import util.Pipe
-    (graph removePosts hide) // ||> (_ => println("nicht gestorben"))
+    val toCollapse = collapsed
+      .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).map(_.id).exists(collapsed))
+
+    val removePosts = toCollapse
+      .map { collapsedId =>
+        collapsedId -> graph.transitiveChildren(collapsedId).map(_.id)
+      }.toMap
+
+    val removeEdges = removePosts.values.flatten
+      .map { p =>
+        p -> graph.incidentConnections(p)
+      }.toMap
+
+    val addEdges = removePosts
+      .flatMap { case (parent, children) => children.flatMap { child =>
+        val edges = removeEdges(child)
+        edges.flatMap{edgeid => 
+          val edge = graph.connections(edgeid)
+          if( edge.sourceId == child && edge.targetId == child )
+            None
+          else if (edge.sourceId == child)
+            Some(edge.copy(sourceId = parent))
+          else // edge.targetId == child
+            Some(edge.copy(targetId = parent))
+        }
+      }
+    }
+    // TODO exclude overlappi
+    graph
+      .removePosts(removePosts.values.flatten)
+      .removeConnections(removeEdges.values.flatten) ++ addEdges
 
   }
 

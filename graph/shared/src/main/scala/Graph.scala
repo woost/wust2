@@ -1,6 +1,7 @@
 
 package object graph {
   import collection.mutable
+  import util.algorithm
   //TODO: different types of ids to restrict Connects in/out
   //TODO: this also needs to be done as database contstraint
   type AtomId = Long
@@ -49,6 +50,7 @@ package object graph {
       )
     }
 
+    def removeConnections(atomIds: Iterable[AtomId]) = atomIds.foldLeft(this)((g, e) => g removeConnection e)
     def removeConnection(atomId: AtomId) = {
       val removedConnections = incidentConnectionsDeep(atomId)
       copy(
@@ -62,13 +64,21 @@ package object graph {
       )
     }
 
+    def involvedInCycle(atomId: AtomId): Boolean = {
+      // children(atomId).exits(child => transitiveChildren(child.id).contains(atomId))
+      children(atomId).exists(child => algorithm.depthFirstSearch[AtomId](child.id, id => children(id).map(_.id)).exists(_ == atomId))
+    }
+
     def parents(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.childId == postId => posts(c.parentId) }.toSeq //TODO: breakout with generic on requested collection type
     def children(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.parentId == postId => posts(c.childId) }.toSeq //TODO: breakout with generic on requested collection type
     def transitiveChildren(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => children(p.id)).drop(1)
+    def transitiveParents(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => parents(p.id)).drop(1)
 
     def +(p: Post) = copy(posts = posts + (p.id -> p))
     def +(c: Connects) = copy(connections = connections + (c.id -> c))
     def +(c: Contains) = copy(containments = containments + (c.id -> c))
+
+    def ++(cs: Iterable[Connects]) = copy(connections = connections ++ cs.map( c => c.id-> c) )
 
     def consistent = copy(
       connections = connections.filter { case (cid, c) => posts.get(c.sourceId).isDefined && posts.get(c.targetId).isDefined },
