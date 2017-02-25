@@ -47,11 +47,10 @@ class GraphView(state: GlobalState, element: dom.html.Element) {
   val dropMenuSelection = SelectData.rxDraw(DropMenuSelection, postDrag.closestPosts)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
-  val eventCancel = initEvents()
+  initEvents()
   val updateCancel = graph.foreach(update)
 
   private def cancel() {
-    eventCancel.cancel()
     updateCancel.cancel()
   }
 
@@ -59,11 +58,10 @@ class GraphView(state: GlobalState, element: dom.html.Element) {
     draggingPostSelection.draw()
   }
 
-  private def initEvents(): Cancelable = {
+  private def initEvents(): Unit = {
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
-    graphState.rxSimPosts.foreach(data => d3State.simulation.nodes(data))
     //TODO: currently produces NaNs: graphState.rxSimConnects.foreach { data => d3State.forces.connection.links = data }
   }
 
@@ -117,7 +115,7 @@ class GraphView(state: GlobalState, element: dom.html.Element) {
     import d3State._, graphState._
 
     //TODO: this can be removed after implementing link force which supports hyperedges
-    forces.connection.strength = { (e: SimConnects, _: Int, _: js.Array[SimConnects]) =>
+    forces.connection.strength { (e: SimConnects) =>
       val targetDeg = e.target match {
         case p: SimPost => newGraph.fullDegree(p.post)
         case _: SimConnects => 2
@@ -133,8 +131,9 @@ class GraphView(state: GlobalState, element: dom.html.Element) {
       new SimContains(c, postIdToSimPost.value(c.parentId), postIdToSimPost.value(c.childId))
     }.toJSArray
 
-    forces.connection.links = rxSimConnects.value
+    forces.connection.links ( rxSimConnects.value)
     forces.containment.links(containmentData)
+    d3State.simulation.nodes(graphState.rxSimPosts.value)
 
     simulation.alpha(1).restart()
   }

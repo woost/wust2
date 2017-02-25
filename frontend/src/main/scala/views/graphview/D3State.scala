@@ -9,8 +9,8 @@ class Forces {
   val gravityY = d3.forceY[SimPost]()
   val repel = d3.forceManyBody[SimPost]()
   val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
-  // val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
-  val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
+  val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+  // val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
   val containment = d3.forceLink[SimPost, SimContains]()
   //TODO: push posts out of containment clusters they don't belong to
 }
@@ -40,8 +40,8 @@ object Simulation {
     .force("gravityy", forces.gravityY)
     .force("repel", forces.repel)
     .force("collision", forces.collision)
-    // .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
-    .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
+    .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+    // .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
     .force("containment", forces.containment)
 }
 
