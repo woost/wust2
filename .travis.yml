@@ -22,6 +22,7 @@ after_success:
     - .travis/publish
 
 cache:
+  yarn: true
   directories:
   - $HOME/.ivy2/cache
   - $HOME/.sbt/boot/
