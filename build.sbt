@@ -103,8 +103,13 @@ lazy val frontend = project
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
+      "com.lihaoyi" %%% "utest" % "0.4.5" % "test" ::
+      // "org.specs2" %% "specs2-core" % "3.8.7" % "test" :: // TODO: switch to specs2 when it is available for scalajs: https://github.com/etorreborre/specs2/issues/465
       Nil
     ),
+    // scalacOptions in Test ++= Seq("-Yrangepos"), // for specs2
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
@@ -167,7 +172,8 @@ lazy val test = project
       "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
       "org.specs2" %% "specs2-core" % "3.8.7" % "it" ::
-      Nil
+      Nil,
+    scalacOptions in Test ++= Seq("-Yrangepos")
   )
 
 def dockerImageName(name: String, version: String) = ImageName(
