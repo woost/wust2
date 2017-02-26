@@ -40,7 +40,8 @@ class GraphState(state: GlobalState) {
         }
       ).toString()
       sp.color = (
-        if (hasChildren)
+        //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
+        if (hasChildren || collapsedPostIds.value(p.id))
           baseColor(p.id)
         else { // no children
           if (hasParents)
