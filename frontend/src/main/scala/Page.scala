@@ -18,6 +18,10 @@ object View {
   case class Any(views: Iterable[View]) extends View
   case class NoneOf(views: Iterable[View]) extends View
 
+  def All(views: View*) = new All(views)
+  def Any(views: View*) = new Any(views)
+  def NoneOf(views: View*) = new NoneOf(views)
+
   def apply(view: View, graph: Graph): Graph = {
     view match {
       case Empty => Graph.empty
@@ -37,23 +41,20 @@ object View {
 
         val addEdges = removePosts
           .flatMap {
-            case (parent, children) => children.flatMap { child =>
-              val edges = removeEdges(child)
-              edges.flatMap{ edgeid =>
-                val edge = graph.connections(edgeid)
-                if (edge.sourceId == child && edge.targetId == child)
-                  None
-                else if (edge.sourceId == child)
-                  Some(edge.copy(sourceId = parent))
-                else // edge.targetId == child
-                  Some(edge.copy(targetId = parent))
+            case (parent, children) =>
+              children.flatMap { child =>
+                removeEdges(child).map(graph.connections).map {
+                  case edge @ Connects(_, `child`, _) => edge.copy(sourceId = parent)
+                  case edge @ Connects(_, _, `child`) => edge.copy(targetId = parent)
+                }
               }
-            }
           }
+
         // TODO exclude overlappi
         graph
+          .removeConnections(removeEdges.values.flatten)
+          .++(addEdges)
           .removePosts(removePosts.values.flatten)
-          .removeConnections(removeEdges.values.flatten) ++ addEdges
       case All(views) =>
         views.foldLeft(graph)((g, v) => View(v, g))
       case _ => graph
