@@ -39,12 +39,19 @@ case class View(
 object View {
   def collapse(selector: Selector, graph: Graph): Graph = {
     val toCollapse = graph.posts.keys.filter(selector.apply)
+      //TODO: only the cycle should not be collapsed, but we should still collapse other children (not in the cycle)
       .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).map(_.id).exists(selector.apply))
 
-    val removePosts = toCollapse
+    val collapseChildren = toCollapse
       .map { collapsedId =>
         collapsedId -> graph.transitiveChildren(collapsedId).map(_.id)
       }.toMap
+
+    val removableChildren = collapseChildren.values.flatten
+      .filter(id => graph.transitiveParents(id).map(_.id).toList.diff(collapseChildren.flatMap { case (k,v) => k :: v.toList }.toList).isEmpty)
+      .toSet
+
+    val removePosts = collapseChildren.mapValues(_.filter(removableChildren))
 
     val removeEdges = removePosts.values.flatten
       .map { p =>
@@ -62,7 +69,6 @@ object View {
           }
       }
 
-    // TODO exclude overlappi
     graph
       .removeConnections(removeEdges.values.flatten)
       .++(addEdges)
