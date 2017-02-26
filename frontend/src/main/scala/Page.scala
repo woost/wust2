@@ -48,7 +48,7 @@ object View {
       }.toMap
 
     val removableChildren = collapseChildren.values.flatten
-      .filter(id => graph.transitiveParents(id).map(_.id).toList.diff(collapseChildren.flatMap { case (k,v) => k :: v.toList }.toList).isEmpty)
+      .filter(id => graph.transitiveParents(id).map(_.id).toList.diff(collapseChildren.flatMap { case (k, v) => k :: v.toList }.toList).isEmpty)
       .toSet
 
     val removePosts = collapseChildren.mapValues(_.filter(removableChildren))
@@ -58,20 +58,20 @@ object View {
         p -> graph.incidentConnections(p)
       }.toMap
 
-    val addEdges = removePosts
-      .flatMap {
-        case (parent, children) =>
-          children.flatMap { child =>
-            removeEdges(child).map(graph.connections).map {
-              case edge @ Connects(_, `child`, _) => edge.copy(sourceId = parent)
-              case edge @ Connects(_, _, `child`) => edge.copy(targetId = parent)
-            }
-          }
+    def edgesToParents(addEdges: Map[AtomId, Connects], parent: AtomId, child: AtomId): Map[AtomId, Connects] = {
+      val connectionMap = graph.connections ++ addEdges
+      addEdges ++ removeEdges(child).map(connectionMap).map {
+        case edge @ Connects(id, `child`, _) => id -> edge.copy(sourceId = parent)
+        case edge @ Connects(id, _, `child`) => id -> edge.copy(targetId = parent)
       }
+    }
+
+    val addEdges = removePosts.toList.flatMap { case (parent, children) => children.map(child => parent -> child) }
+      .foldLeft(Map.empty[AtomId, Connects])((edges, pc) => edgesToParents(edges, pc._1, pc._2))
 
     graph
       .removeConnections(removeEdges.values.flatten)
-      .++(addEdges)
+      .++(addEdges.values)
       .removePosts(removePosts.values.flatten)
   }
 
