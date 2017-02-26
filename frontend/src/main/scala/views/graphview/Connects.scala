@@ -35,6 +35,7 @@ object ConnectionElementSelection extends DataSelection[SimConnects] {
   override val tag = "div"
   override def enter(element: Selection[SimConnects]) {
     element
+      .attr("title", (e: SimConnects) => e.id)
       .style("position", "absolute")
       .style("font-size", "20px")
       .style("margin-left", "-0.5ex")

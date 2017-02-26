@@ -23,6 +23,7 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
   override def enter(post: Selection[SimPost]) {
     post
       .text((post: SimPost) => post.title)
+      .attr("title", (post: SimPost) => post.id)
       .style("padding", "3px 5px")
       // .style("border", "1px solid #444")
       .style("border-radius", "3px")
