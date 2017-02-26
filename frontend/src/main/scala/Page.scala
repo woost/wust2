@@ -5,59 +5,72 @@ import graph._
 // views immutable, dass urls nicht kaputt gehen
 // wust.space/view/$viewitd
 
-sealed trait View
+trait Selector {
+  import Selector._
+  def intersect(that: Selector): Selector = new Intersect(this, that)
+  def union(that: Selector): Selector = new Union(this, that)
+  def apply(id: AtomId): Boolean
+}
+object Selector {
+  // case class TitleMatch(regex: String) extends Selector
+  case object Nothing extends Selector {
+    override def apply(id: AtomId) = false
+  }
+  case object All extends Selector {
+    override def apply(id: AtomId) = true
+  }
+  case class IdSet(set: Set[AtomId]) extends Selector {
+    override def apply(id: AtomId) = set(id)
+  }
+  case class Union(a: Selector, b: Selector) extends Selector {
+    def apply(id: AtomId) = a(id) || b(id)
+  }
+  case class Intersect(a: Selector, b: Selector) extends Selector {
+    def apply(id: AtomId) = a(id) && b(id)
+  }
+}
+
+case class View(
+    collapsed: Selector = Selector.Nothing) {
+  def intersect(that: View) = copy(collapsed = this.collapsed intersect that.collapsed)
+  def union(that: View) = copy(collapsed = this.collapsed union that.collapsed)
+}
+
 object View {
+  def collapse(selector: Selector, graph: Graph): Graph = {
+    val toCollapse = graph.posts.keys.filter(selector.apply)
+      .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).map(_.id).exists(selector.apply))
 
-  case object Empty extends View
-  // case class Fixed(postId:AtomId) extends View
-  // case class Search(str:String) extends View
-  case class Collapse(collapsedIds: Set[AtomId]) extends View
-  // case class Exclude(excloude:Post) extends View // Mir ist es egal, ob mein Problem ein todo ist oder nicht.
-  // case class Include(post:Post) extends View // normal selection
-  case class All(views: Iterable[View] = Nil) extends View
-  case class Any(views: Iterable[View]) extends View
-  case class NoneOf(views: Iterable[View]) extends View
+    val removePosts = toCollapse
+      .map { collapsedId =>
+        collapsedId -> graph.transitiveChildren(collapsedId).map(_.id)
+      }.toMap
 
-  def All(views: View*) = new All(views)
-  def Any(views: View*) = new Any(views)
-  def NoneOf(views: View*) = new NoneOf(views)
+    val removeEdges = removePosts.values.flatten
+      .map { p =>
+        p -> graph.incidentConnections(p)
+      }.toMap
+
+    val addEdges = removePosts
+      .flatMap {
+        case (parent, children) =>
+          children.flatMap { child =>
+            removeEdges(child).map(graph.connections).map {
+              case edge @ Connects(_, `child`, _) => edge.copy(sourceId = parent)
+              case edge @ Connects(_, _, `child`) => edge.copy(targetId = parent)
+            }
+          }
+      }
+
+    // TODO exclude overlappi
+    graph
+      .removeConnections(removeEdges.values.flatten)
+      .++(addEdges)
+      .removePosts(removePosts.values.flatten)
+  }
 
   def apply(view: View, graph: Graph): Graph = {
-    view match {
-      case Empty => Graph.empty
-      case Collapse(collapsed) =>
-        val toCollapse = collapsed
-          .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).map(_.id).exists(collapsed))
-
-        val removePosts = toCollapse
-          .map { collapsedId =>
-            collapsedId -> graph.transitiveChildren(collapsedId).map(_.id)
-          }.toMap
-
-        val removeEdges = removePosts.values.flatten
-          .map { p =>
-            p -> graph.incidentConnections(p)
-          }.toMap
-
-        val addEdges = removePosts
-          .flatMap {
-            case (parent, children) =>
-              children.flatMap { child =>
-                removeEdges(child).map(graph.connections).map {
-                  case edge @ Connects(_, `child`, _) => edge.copy(sourceId = parent)
-                  case edge @ Connects(_, _, `child`) => edge.copy(targetId = parent)
-                }
-              }
-          }
-
-        // TODO exclude overlappi
-        graph
-          .removeConnections(removeEdges.values.flatten)
-          .++(addEdges)
-          .removePosts(removePosts.values.flatten)
-      case All(views) =>
-        views.foldLeft(graph)((g, v) => View(v, g))
-      case _ => graph
-    }
+    val collapsed = collapse(view.collapsed, graph)
+    collapsed
   }
 }

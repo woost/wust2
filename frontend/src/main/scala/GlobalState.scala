@@ -20,21 +20,20 @@ class GlobalState {
     .map(_.consistent)
 
   val collapsedPostIds = RxVar[Set[AtomId]](Set.empty)
-    .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
+
+  val currentView = RxVar[View](View())
+    .flatMap(v => collapsedPostIds.map(collapsed => v.union(View(collapsed = Selector.IdSet(collapsed)))))
+
+  val graph = rawGraph.flatMap(g => currentView.map(View(_, g)))
 
   val focusedPostId = RxVar[Option[AtomId]](None)
-    .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
+    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
   val editedPostId = RxVar[Option[AtomId]](None)
-    .flatMap(source => rawGraph.map(g => source.filter(g.posts.isDefinedAt)))
+    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
   val mode: Rx[InteractionMode] = editedPostId
     .flatMap(e => focusedPostId.map(f => InteractionMode(edit = e, focus = f)))
-
-  val currentView = RxVar[View](View.All())
-    .flatMap(v => collapsedPostIds.map(collapsed => View.All(v, View.Collapse(collapsed))))
-
-  val graph = rawGraph.flatMap(g => currentView.map(View(_, g)))
 
   // collapsedPostIds.debug("collapsed")
   // rawGraph.debug("rawGraph")
