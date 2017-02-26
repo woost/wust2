@@ -40,7 +40,7 @@ object AddPostForm {
       if (input != null) {
         mode match {
           case EditMode(postId) => input.value = graph.value.posts(postId).title
-          case _ => input.value = ""
+          case _ =>
         }
         input.focus()
       }
