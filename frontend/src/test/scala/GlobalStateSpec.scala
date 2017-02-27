@@ -44,7 +44,7 @@ class GlobalStateSpec extends FlatSpec {
     assert(state.editedPostId.value == None)
   }
 
-  "mode" should "be consistent with mode" in {
+  it should "be consistent with mode" in {
     val state = new GlobalState
     state.mode.foreach(_ => ()) //TODO WHY?
     state.editedPostId := Some(1L)

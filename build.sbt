@@ -54,6 +54,12 @@ lazy val apiJVM = api.jvm
 
 lazy val graph = crossProject
   .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= (
+      "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
+      Nil
+    )
+  )
   .dependsOn(util)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
