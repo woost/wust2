@@ -41,11 +41,11 @@ object RxVar {
 
   implicit def VarIsRxVar[A](v: Var[A]) = new RxVar(v, v)
 
-  implicit class SymmetricRxVar[A](rxVar: RxVar[A, A]) {
+  implicit class SymmetricRxVar[A](val rxVar: RxVar[A, A]) extends AnyVal {
     def projection[B](to: B => A, from: A => B) = rxVar.map(from).writeProjection(to, { case v => from(v) })
   }
 
-  implicit class RichRx[A](rx: Rx[A]) {
+  implicit class RichRx[A](val rx: Rx[A]) extends AnyVal {
     def mapWithPrevious[B](initial: B)(f: (B, A) => B): Rx[B] = {
       var prev = f(initial, rx.value)
       rx.map { curr =>
