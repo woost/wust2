@@ -65,7 +65,6 @@ package object graph {
     }
 
     def involvedInCycle(atomId: AtomId): Boolean = {
-      // children(atomId).exits(child => transitiveChildren(child.id).contains(atomId))
       children(atomId).exists(child => algorithm.depthFirstSearch[AtomId](child.id, id => children(id).map(_.id)).exists(_ == atomId))
     }
 

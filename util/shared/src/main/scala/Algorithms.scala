@@ -1,5 +1,6 @@
 package util
-package object algorithm {
+
+object algorithm {
   import collection.mutable
   import collection.IterableLike
 
@@ -29,7 +30,7 @@ package object algorithm {
     }
   }
 
-  def topologicalSort[V,COLL](vertices: IterableLike[V,COLL], successors: V => Iterable[V]): Seq[V] = {
+  def topologicalSort[V,COLL[V]](vertices: IterableLike[V,COLL[V]], successors: V => Iterable[V]): Seq[V] = {
     // TODO: give result even if there is a cycle
 
     var sorted: List[V] = Nil
