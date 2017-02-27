@@ -37,7 +37,7 @@ class GlobalState {
 
   // collapsedPostIds.debug("collapsed")
   // rawGraph.debug("rawGraph")
-  graph.debug("graph")
+  // graph.debug("graph")
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post)                 => graph.update(_ + post)
