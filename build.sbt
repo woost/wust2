@@ -62,7 +62,7 @@ lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "org.scalatest" %% "scalatest" % "3.0.1" % "test" ::
+      "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
       Nil
     )
   )
@@ -110,7 +110,7 @@ lazy val frontend = project
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
-      "com.lihaoyi" %%% "utest" % "0.4.5" % "test" ::
+      "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
       // "org.specs2" %% "specs2-core" % "3.8.7" % "test" :: // TODO: switch to specs2 when it is available for scalajs: https://github.com/etorreborre/specs2/issues/465
       Nil
     ),
