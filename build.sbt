@@ -32,9 +32,10 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("clean", "; root/clean; assets/clean; workbench/clean"),
 
-    addCommandAlias("dev", "~; backend/re-start; workbench/assets"),
+    addCommandAlias("devwatch", "~; backend/re-start; workbench/assets"),
+    addCommandAlias("dev", "; project root; devwatch"),
     addCommandAlias("devfwatch", "~workbench/assets"),
-    addCommandAlias("devf", "; backend/re-start; devfwatch"),
+    addCommandAlias("devf", "; project root; backend/re-start; devfwatch"),
 
     watchSources ++= (watchSources in workbench).value
   )
