@@ -11,7 +11,7 @@ case $stage in
 psql)
     sbt dbMigration/docker
     $compose_stage dev run db-migration
-    PGPASSWORD=test psql -h localhost -U dev
+    PGPASSWORD=test psql -h localhost -U wust
     ;;
 dev)
     sbt dbMigration/docker
