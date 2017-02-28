@@ -54,6 +54,7 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
   override def draw(post: Selection[SimPost]) {
 
     // lazily recalculate rendered size to center posts
+    // TODO: sometimes some elements still have size 0
     post.data().headOption.foreach { p =>
       if (p.size.width == 0)
         post.each({ (node: HTMLElement, p: SimPost) =>

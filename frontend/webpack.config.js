@@ -11,8 +11,8 @@ config.plugins.push(new webpack.DefinePlugin({
 }));
 config.plugins.push(new CompressionPlugin({
   asset: "[path].gz[query]",
-  algorithm: "gzip",
-  test: /\.js$|\.html$/,
+  algorithm: "zopfli",
+  test: /\.js$|\.js.map$/,
   minRatio: 0.0
 }));
 

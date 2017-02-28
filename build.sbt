@@ -128,7 +128,7 @@ lazy val frontend = project
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
     emitSourceMaps := true,
-    npmDevDependencies in Compile += "compression-webpack-plugin" -> "0.2.0",
+    npmDevDependencies in Compile ++= ("compression-webpack-plugin" -> "0.3.1" :: Nil),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
 
@@ -156,10 +156,10 @@ lazy val assets = project
   .settings(
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
-    //TODO: minify html
-    //TODO: only serve minified assets
-    //TODO: zopfli
+    includeFilter in Assets := "*.gz",
     pipelineStages in Assets := Seq(scalaJSPipeline)
+  //TODO: zopfli
+  //TODO: minify html
   )
 
 lazy val backend = project
