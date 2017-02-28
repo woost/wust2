@@ -29,12 +29,14 @@ object MainView {
       <button onclick={ (_: Event) => tabMode := Tab.Graph; () }>graph</button>
       <button onclick={ (_: Event) => tabMode := Tab.List; () }>list</button>
       <div style={ tabMode.map(m => if (m == Tab.Graph) "display:block" else "display:none") }>
-        { GraphView.component(state) }
+        {
+          GraphView.component(state)
+        }
       </div>
       <div style={ tabMode.map(m => if (m == Tab.List) "display:block" else "display:none") }>
-      {
-         ListView.component(state) 
-      }
+        {
+          // ListView.component(state)
+        }
       </div>
       <div style="position:fixed; width:100%; bottom:0; left:0; padding:5px; background:#f7f7f7; border-top:1px solid #DDD">
         { AddPostForm.component(state) }

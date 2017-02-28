@@ -22,9 +22,9 @@ object ListView {
   case class Tree[A](element: A, children: Seq[Tree[A]] = Seq.empty)
 
   //TODO contain + connections + backlinks
-  def spannedTree(graph: Graph, post: Post): Tree[Post] = spannedTree(graph, post, Set(post))
-  def spannedTree(graph: Graph, post: Post, seen: Set[Post]): Tree[Post] = {
-    Tree(post, children = graph.children(post.id).filterNot(seen).map { child =>
+  def spannedTree(graph: Graph, post: AtomId): Tree[AtomId] = spannedTree(graph, post, Set(post))
+  def spannedTree(graph: Graph, post: AtomId, seen: Set[AtomId]): Tree[AtomId] = {
+    Tree(post, children = graph.children(post).toSeq.filterNot(seen).map { child =>
       spannedTree(graph, child, seen ++ Set(child))
     })
   }
@@ -52,11 +52,11 @@ object ListView {
         }
       </div>
 
-    def postTreeItem(tree: Tree[Post], indent: Int = 0): xml.Node =
+    def postTreeItem(graph: Graph, tree: Tree[AtomId], indent: Int = 0): xml.Node =
       <div style={ s"margin-left: ${indent * 10}px" }>
-        { postItem(tree.element) }
+        { postItem(graph.posts(tree.element)) }
         {
-          tree.children.map(postTreeItem(_, indent + 1))
+          tree.children.map(postTreeItem(graph, _, indent + 1))
         }
       </div>
 
@@ -64,8 +64,8 @@ object ListView {
     <div>
       {
         graph.map { graph =>
-          graph.posts.values.map { post =>
-            postTreeItem(spannedTree(graph, post))
+          graph.posts.keys.map { postId =>
+            postTreeItem(graph, spannedTree(graph, postId))
           }
         }
       }

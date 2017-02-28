@@ -30,7 +30,7 @@ class GraphState(state: GlobalState) {
 
       def parents = graph.parents(p.id)
       def hasParents = parents.nonEmpty
-      def mixedDirectParentColors = mixColors(parents.map((p: Post) => baseColor(p.id)))
+      def mixedDirectParentColors = mixColors(parents.map(baseColor))
       def hasChildren = graph.children(p.id).nonEmpty
       sp.border = (
         if (hasChildren)
@@ -83,17 +83,17 @@ class GraphState(state: GlobalState) {
 
   val rxContainmentCluster = rxGraph.map { graph =>
     val containments = graph.containments.values
-    val parents: Seq[Post] = containments.map(c => graph.posts(c.parentId)).toSeq.distinct
+    val parents = containments.map(c => c.parentId).toSeq.distinct
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.
-    val ordered = parents.topologicalSortBy((p: Post) => graph.children(p.id))
+    val ordered = parents.topologicalSortBy(graph.children)
 
     ordered.map { p =>
       new ContainmentCluster(
-        parent = postIdToSimPost.value(p.id),
-        children = graph.transitiveChildren(p.id).map(p => postIdToSimPost.value(p.id))(breakOut),
-        depth = graph.depth(p.id)
+        parent = postIdToSimPost.value(p),
+        children = graph.transitiveChildren(p).map(p => postIdToSimPost.value(p))(breakOut),
+        depth = graph.depth(p)
       )
     }.toJSArray
   }

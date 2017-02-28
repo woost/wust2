@@ -1,30 +1,39 @@
 
 package object graph {
   import collection.mutable
-  import util.{algorithm,Pipe}
+  import util.{algorithm, Pipe}
+  import algorithm._
   //TODO: different types of ids to restrict Connects in/out
   //TODO: this also needs to be done as database contstraint
   type AtomId = Long
 
-  // Database layout:
   final case class Graph(
-      posts:        Map[AtomId, Post]     = Map.empty,
-      connections:  Map[AtomId, Connects] = Map.empty, //TODO: rename: responding, responses?
-      containments: Map[AtomId, Contains] = Map.empty) {
+    posts: Map[AtomId, Post] = Map.empty, // TODO: accept List and generate Map lazily
+    connections: Map[AtomId, Connects] = Map.empty,
+    containments: Map[AtomId, Contains] = Map.empty
+  ) {
     override def toString = s"Graph(${posts.values.toList}.by(_.id),${connections.values.toList}.by(_.id), ${containments.values.toList}.by(_.id))"
-    //TODO: acceleration Datastructures from pharg
-    def connectionDegree(post: Post) = connections.values.count(r => r.sourceId == post.id || r.targetId == post.id)
-    def containmentDegree(post: Post) = containments.values.count(c => c.parentId == post.id || c.childId == post.id)
-    def fullDegree(post: Post) = connectionDegree(post) + containmentDegree(post)
-    def fullDegree(connection: Connects) = 2
 
-    def incidentConnections(atomId: AtomId) = connections.values.collect { case r if r.sourceId == atomId || r.targetId == atomId => r.id }
-    def incidentContains(atomId: AtomId) = containments.values.collect { case c if c.parentId == atomId || c.childId == atomId => c.id }
-    def incidentParentContains(atomId: AtomId) = containments.values.collect { case c if c.childId == atomId => c.id }
-    def incidentChildContains(atomId: AtomId) = containments.values.collect { case c if c.parentId == atomId => c.id }
+    lazy val successors = directedAdjacencyList[AtomId, Connects](connections.values, _.sourceId, _.targetId)
+    lazy val predecessors = directedAdjacencyList[AtomId, Connects](connections.values, _.targetId, _.sourceId)
+    lazy val neighbours = adjacencyList[AtomId, Connects](connections.values, _.targetId, _.sourceId)
+
+    lazy val children = directedAdjacencyList[AtomId, Contains](containments.values, _.parentId, _.childId)
+    lazy val parents = directedAdjacencyList[AtomId, Contains](containments.values, _.childId, _.parentId)
+    lazy val containmentNeighbours = adjacencyList[AtomId, Contains](containments.values, _.parentId, _.childId)
+
+    //TODO: remove .mapValues(_.map(_.id))
+    lazy val incomingConnections = directedIncidenceList[AtomId, Connects](connections.values, _.targetId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+    lazy val outgoingConnections = directedIncidenceList[AtomId, Connects](connections.values, _.sourceId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+    lazy val incidentConnections = incidenceList[AtomId, Connects](connections.values, _.sourceId, _.targetId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+
+    lazy val incidentParentContains = directedIncidenceList[AtomId, Contains](containments.values, _.childId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+    lazy val incidentChildContains = directedIncidenceList[AtomId, Contains](containments.values, _.parentId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+    lazy val incidentContains = incidenceList[AtomId, Contains](containments.values, _.parentId, _.childId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
 
     def incidentConnectionsDeep(atomId: AtomId) = {
-      // Connects.in must be a Post, so no cycles can occour
+      // Currently connects.in must be a Post, so no cycles can occour
+      // TODO: algorithm to build for all atomIds simultanously
 
       var next = incidentConnections(atomId).toList
       var result: List[AtomId] = Nil
@@ -38,6 +47,11 @@ package object graph {
       result
     }
 
+    lazy val connectionDegree = degreeSequence[AtomId, Connects](connections.values, _.targetId, _.sourceId)
+    lazy val containmentDegree = degreeSequence[AtomId, Contains](containments.values, _.parentId, _.childId)
+    def fullDegree(post: AtomId) = connectionDegree(post) + containmentDegree(post)
+    def fullDegree(connection: Connects) = 2
+
     def removePosts(atomIds: Iterable[AtomId]) = atomIds.foldLeft(this)((g, p) => g removePost p) //TODO: more efficient
     def removePost(atomId: AtomId) = {
       val removedPosts = posts.get(atomId).map(_.id)
@@ -46,29 +60,32 @@ package object graph {
       copy(
         posts = posts -- removedPosts,
         connections = connections -- removedConnections,
-        containments = containments -- removedContains)
+        containments = containments -- removedContains
+      )
     }
 
     def removeConnections(atomIds: Iterable[AtomId]) = atomIds.foldLeft(this)((g, e) => g removeConnection e)
     def removeConnection(atomId: AtomId) = {
       val removedConnections = incidentConnectionsDeep(atomId)
       copy(
-        connections = connections -- removedConnections - atomId)
+        connections = connections -- removedConnections - atomId
+      )
     }
 
     def removeContainment(atomId: AtomId) = {
       copy(
-        containments = containments - atomId)
+        containments = containments - atomId
+      )
     }
 
     def involvedInCycle(atomId: AtomId): Boolean = {
-      children(atomId).exists(child => algorithm.depthFirstSearch[AtomId](child.id, id => children(id).map(_.id)).exists(_ == atomId))
+      children(atomId).exists(child => depthFirstSearch(child, children).exists(_ == atomId))
     }
 
-    def parents(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.childId == postId => posts(c.parentId) }.toSeq //TODO: breakout with generic on requested collection type
-    def children(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.parentId == postId => posts(c.childId) }.toSeq //TODO: breakout with generic on requested collection type
-    def transitiveChildren(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => children(p.id)) |> {children => if(involvedInCycle(postId)) children else children.drop(1)} //TODO better?
-    def transitiveParents(postId: AtomId) = algorithm.depthFirstSearch[Post](posts(postId), (p: Post) => parents(p.id)) |> {parents => if(involvedInCycle(postId)) parents else parents.drop(1)} //TODO better?
+    // def parents(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.childId == postId => posts(c.parentId) }.toSeq //TODO: breakout with generic on requested collection type
+    // def children(postId: AtomId): Seq[Post] = containments.values.collect { case c if c.parentId == postId => posts(c.childId) }.toSeq //TODO: breakout with generic on requested collection type
+    def transitiveChildren(postId: AtomId) = depthFirstSearch(postId, children) |> { children => if (involvedInCycle(postId)) children else children.drop(1) } //TODO better?
+    def transitiveParents(postId: AtomId) = depthFirstSearch(postId, parents) |> { parents => if (involvedInCycle(postId)) parents else parents.drop(1) } //TODO better?
 
     def +(p: Post) = copy(posts = posts + (p.id -> p))
     def +(c: Connects) = copy(connections = connections + (c.id -> c))
@@ -78,7 +95,8 @@ package object graph {
 
     def consistent = copy(
       connections = connections.filter { case (cid, c) => posts.get(c.sourceId).isDefined && posts.get(c.targetId).isDefined },
-      containments = containments.filter { case (cid, c) => posts.get(c.childId).isDefined && posts.get(c.parentId).isDefined })
+      containments = containments.filter { case (cid, c) => posts.get(c.childId).isDefined && posts.get(c.parentId).isDefined }
+    )
 
     lazy val depth: collection.Map[AtomId, Int] = {
       val tmpDepths = mutable.HashMap[AtomId, Int]()
@@ -89,11 +107,10 @@ package object graph {
             visited += id
 
             val c = children(id)
-            val d = if (c.isEmpty) 0 else c.map(p => getDepth(p.id)).max + 1
+            val d = if (c.isEmpty) 0 else c.map(getDepth).max + 1
             tmpDepths(id) = d
             d
-          }
-          else 0 // cycle
+          } else 0 // cycle
         })
       }
 

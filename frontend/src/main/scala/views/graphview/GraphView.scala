@@ -117,21 +117,21 @@ class GraphView(state: GlobalState, element: dom.html.Element) {
     //TODO: this can be removed after implementing link force which supports hyperedges
     forces.connection.strength { (e: SimConnects) =>
       val targetDeg = e.target match {
-        case p: SimPost => newGraph.fullDegree(p.post)
+        case p: SimPost => newGraph.fullDegree(p.post.id)
         case _: SimConnects => 2
       }
-      1.0 / min(newGraph.fullDegree(e.source.post), targetDeg)
+      1.0 / min(newGraph.fullDegree(e.source.post.id), targetDeg)
     }
 
     forces.containment.strength { (e: SimContains) =>
-      1.0 / min(newGraph.fullDegree(e.source.post), newGraph.fullDegree(e.target.post))
+      1.0 / min(newGraph.fullDegree(e.source.post.id), newGraph.fullDegree(e.target.post.id))
     }
 
     val containmentData = newGraph.containments.values.map { c =>
       new SimContains(c, postIdToSimPost.value(c.parentId), postIdToSimPost.value(c.childId))
     }.toJSArray
 
-    forces.connection.links ( rxSimConnects.value)
+    forces.connection.links(rxSimConnects.value)
     forces.containment.links(containmentData)
     d3State.simulation.nodes(graphState.rxSimPosts.value)
 

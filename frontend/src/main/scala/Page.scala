@@ -31,29 +31,31 @@ object Selector {
 }
 
 case class View(
-    collapsed: Selector = Selector.Nothing) {
+  collapsed: Selector = Selector.Nothing
+) {
   def intersect(that: View) = copy(collapsed = this.collapsed intersect that.collapsed)
   def union(that: View) = copy(collapsed = this.collapsed union that.collapsed)
 }
 
 object View {
   def collapse(selector: Selector, graph: Graph): Graph = {
+    //TODO: currently only top-level-parents can be collapsed
     val toCollapse = graph.posts.keys.filter(selector.apply)
       //TODO: only the cycle should not be collapsed, but we should still collapse other children (not in the cycle)
-      .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).map(_.id).exists(selector.apply))
+      .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).exists(selector.apply))
 
     val collapseChildren = toCollapse
       .map { collapsedId =>
-        collapsedId -> graph.transitiveChildren(collapsedId).map(_.id)
+        collapsedId -> graph.transitiveChildren(collapsedId)
       }.toMap
 
     val removableChildren = collapseChildren.values.flatten
-      .filter(id => graph.transitiveParents(id).map(_.id).toList.diff(collapseChildren.flatMap { case (k, v) => k :: v.toList }.toList).isEmpty)
+      .filter(id => graph.transitiveParents(id).toList.diff(collapseChildren.flatMap { case (k, v) => k :: v.toList }.toList).isEmpty)
       .toSet
 
     val removePosts = collapseChildren.mapValues(_.filter(removableChildren))
 
-    val removeEdges = removePosts.values.flatten
+    val removeEdges = removePosts.values.flatten // TODO: use adjacency lists of graph directly
       .map { p =>
         p -> graph.incidentConnections(p)
       }.toMap
