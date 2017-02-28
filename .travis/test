@@ -2,6 +2,8 @@
 set -e
 set -o pipefail
 
+sbt test
+
 ./start test.postgres
 
 ./start test.integration
