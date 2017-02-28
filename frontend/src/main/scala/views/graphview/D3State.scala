@@ -24,7 +24,7 @@ object Forces {
     forces.repel.strength(-1000)
     forces.collision.radius((p: SimPost) => p.collisionRadius)
 
-    // forces.connection.distance(100)
+    forces.connection.distance(130)
     forces.containment.distance(100)
 
     forces.gravityX.strength(0.1)
