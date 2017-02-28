@@ -118,4 +118,12 @@ object algorithm {
 
     sorted
   }
+
+  case class Tree[A](element: A, children: Seq[Tree[A]] = Seq.empty)
+  def spannedTree[V](vertex: V, successors: V => Iterable[V]): Tree[V] = spannedTree(vertex, successors, Set(vertex))
+  def spannedTree[V](vertex: V, successors: V => Iterable[V], seen: Set[V]): Tree[V] = {
+    Tree(vertex, children = successors(vertex).toSeq.filterNot(seen).map { child =>
+      spannedTree(child, successors, seen ++ Set(child))
+    })
+  }
 }

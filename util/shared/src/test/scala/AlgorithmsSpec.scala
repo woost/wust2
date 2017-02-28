@@ -136,4 +136,32 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       assert(list == List(0, 1, 2, 3))
     }
   }
+
+  "spanned tree" - {
+    "one vertex" - {
+      val tree = spannedTree(1, (_:Int) => List.empty)
+      assert(tree == Tree(1, List.empty))
+    }
+
+    "same children" in {
+      val tree = spannedTree(1, (_:Int) => List(2, 3))
+      assert(tree ==
+        Tree(1, List(Tree(2, List(Tree(3, List.empty))), Tree(3, List(Tree(2, List.empty)))))
+      )
+    }
+
+    "directed cycle" in {
+      val edges = Map(
+        0 -> Seq(1),
+        1 -> Seq(2),
+        2 -> Seq(1, 3),
+        3 -> Seq.empty
+      )
+
+      val tree = spannedTree(0, edges)
+      assert(tree ==
+        Tree(0, List(Tree(1, List(Tree(2, List(Tree(3, List.empty)))))))
+      )
+    }
+  }
 }

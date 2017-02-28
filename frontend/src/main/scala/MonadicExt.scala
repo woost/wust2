@@ -64,8 +64,8 @@ object RxVar {
 
   // instead of the defined implicits, which require exactly one type parameter for a subclass of rx:
   // https://github.com/OlivierBlanvillain/monadic-html/blob/40a7e2963238cb286651cf539e6f680b579f00d3/monadic-html/src/main/scala/scala/xml/xml.scala#L195
-  implicit def sourceVarElementEmbeddable[S, A] = XmlElementEmbeddable.atom[RxVar[S, A]]
-  implicit def sourceVarAttributeEmbeddable[S, A] = XmlAttributeEmbeddable.atom[RxVar[S, A]]
+  implicit def rxVarAttributeEmbeddable[S, T: XmlAttributeEmbeddable] = XmlAttributeEmbeddable.atom[RxVar[S,T]]
+  implicit def rxVarElementEmbeddable[S, T: XmlElementEmbeddable] = XmlElementEmbeddable.atom[RxVar[S,T]]
 }
 
 object XmlElementExt {
