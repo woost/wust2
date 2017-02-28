@@ -43,11 +43,11 @@ object ListView {
     </div>
   }
 
-  def postTreeItem(state: GlobalState, tree: Tree[AtomId], toPost: AtomId => Post, indent: Int = 0): xml.Node =
+  def postTreeItem(tree: Tree[AtomId], showPost: AtomId => xml.Node, indent: Int = 0): xml.Node =
     <div style={ s"margin-left: ${indent * 10}px" }>
-      { postItem(state, toPost(tree.element)) }
+      { showPost(tree.element) }
       {
-        tree.children.map(postTreeItem(state, _, toPost, indent + 1))
+        tree.children.map(postTreeItem(_, showPost, indent + 1))
       }
     </div>
 
@@ -58,7 +58,7 @@ object ListView {
         state.graph.map { graph =>
           graph.posts.keys.map { postId =>
             val tree = redundantSpanningTree(postId, graph.children)
-            postTreeItem(state, tree, graph.posts)
+            postTreeItem(tree, id => postItem(state, graph.posts(id)))
           }(breakOut)
         }
       }
