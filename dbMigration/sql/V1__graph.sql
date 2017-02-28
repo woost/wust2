@@ -25,7 +25,7 @@ CREATE TABLE _incidence (
     id integer PRIMARY KEY REFERENCES atom ON DELETE CASCADE,
     sourceId integer NOT NULL REFERENCES atom ON DELETE CASCADE,
     targetId integer NOT NULL REFERENCES atom ON DELETE CASCADE,
-    UNIQUE(sourceId, targetId) -- TODO: remove
+    UNIQUE(sourceId, targetId)
 );
 
 create rule _incidence_delete as on delete to _incidence do delete from atom where id = OLD.id;
