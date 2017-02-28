@@ -83,7 +83,7 @@ class GraphState(state: GlobalState) {
 
   val rxContainmentCluster = rxGraph.map { graph =>
     val containments = graph.containments.values
-    val parents = containments.map(c => c.parentId).toSeq.distinct
+    val parents: Seq[AtomId] = containments.map(c => c.parentId)(breakOut).distinct
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.

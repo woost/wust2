@@ -1,6 +1,7 @@
 package frontend
 
 import graph._
+import collection.breakOut
 
 // views immutable, dass urls nicht kaputt gehen
 // wust.space/view/$viewitd
@@ -40,25 +41,25 @@ case class View(
 object View {
   def collapse(selector: Selector, graph: Graph): Graph = {
     //TODO: currently only top-level-parents can be collapsed
-    val toCollapse = graph.posts.keys.filter(selector.apply)
+    val toCollapse: Iterable[AtomId] = graph.posts.keys.filter(selector.apply)
       //TODO: only the cycle should not be collapsed, but we should still collapse other children (not in the cycle)
       .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).exists(selector.apply))
 
-    val collapseChildren = toCollapse
+    val collapseChildren: Map[AtomId, Iterable[AtomId]] = toCollapse
       .map { collapsedId =>
         collapsedId -> graph.transitiveChildren(collapsedId)
-      }.toMap
+      }(breakOut)
 
-    val removableChildren = collapseChildren.values.flatten
+    val removableChildren: Set[AtomId] = collapseChildren.values.flatten
       .filter(id => graph.transitiveParents(id).toList.diff(collapseChildren.flatMap { case (k, v) => k :: v.toList }.toList).isEmpty)
       .toSet
 
-    val removePosts = collapseChildren.mapValues(_.filter(removableChildren))
+    val removePosts: Map[AtomId, Iterable[AtomId]] = collapseChildren.mapValues(_.filter(removableChildren))
 
-    val removeEdges = removePosts.values.flatten // TODO: use adjacency lists of graph directly
+    val removeEdges: Map[AtomId, Set[AtomId]] = removePosts.values.flatten // TODO: use adjacency lists of graph directly
       .map { p =>
         p -> graph.incidentConnections(p)
-      }.toMap
+      }(breakOut)
 
     def edgesToParents(addEdges: Map[AtomId, Connects], parent: AtomId, child: AtomId): Map[AtomId, Connects] = {
       val connectionMap = graph.connections ++ addEdges

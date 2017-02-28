@@ -111,9 +111,11 @@ object Db {
         posts <- ctx.run(query[Post]);
         connects <- ctx.run(query[Connects]);
         contains <- ctx.run(query[Contains])
-      ) yield Graph(posts.map(p => p.id -> p).toMap,
-          connects.map(p => p.id -> p).toMap,
-          contains.map(p => p.id -> p).toMap)
+      ) yield Graph(
+        posts.by(_.id),
+        connects.by(_.id),
+        contains.by(_.id)
+      )
     }
   }
 }

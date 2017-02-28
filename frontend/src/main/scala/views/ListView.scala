@@ -4,6 +4,7 @@ import org.scalajs.dom._
 import org.scalajs.d3v4
 import mhtml._
 import util.collectionHelpers._
+import collection.breakOut
 
 import graph._
 import frontend._
@@ -58,7 +59,7 @@ object ListView {
           graph.posts.keys.map { postId =>
             val tree = spannedTree(postId, graph.children)
             postTreeItem(state, tree, graph.posts)
-          }.toSeq
+          }(breakOut)
         }
       }
     </div>
