@@ -3,6 +3,7 @@ package backend
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.roundeights.hasher.Hasher
+import util.collectionHelpers._
 
 import graph._
 
