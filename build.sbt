@@ -127,7 +127,7 @@ lazy val frontend = project
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
-    emitSourceMaps := false,
+    emitSourceMaps := true,
     npmDevDependencies in Compile += "compression-webpack-plugin" -> "0.2.0",
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
