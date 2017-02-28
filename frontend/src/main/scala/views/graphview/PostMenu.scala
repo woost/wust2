@@ -61,7 +61,10 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
       .attr("fill", "rgba(0,0,0,0.7)")
       .style("cursor", "pointer")
       .style("pointer-events", "all")
-      .on("click", (d: PieArcDatum[MenuAction]) => focusedPost.value.foreach(d.data.action(_, simulation)))
+      .on("click", { (d: PieArcDatum[MenuAction]) =>
+        focusedPost.value.foreach(d.data.action(_, simulation))
+        focusedPost := None
+      })
       .on("mousedown", (d: PieArcDatum[MenuAction]) => d3.event.asInstanceOf[org.scalajs.dom.Event].preventDefault()) // disable selecting text in menu
 
     ringMenuLabels.enter()
