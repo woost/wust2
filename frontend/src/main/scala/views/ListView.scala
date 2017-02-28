@@ -8,7 +8,7 @@ import collection.breakOut
 
 import graph._
 import frontend._
-import util.algorithm.{Tree, spannedTree}
+import util.algorithm.{Tree, redundantSpanningTree}
 
 object ListView {
   def postColor(id: AtomId): InteractionMode => d3v4.Color = {
@@ -57,7 +57,7 @@ object ListView {
       {
         state.graph.map { graph =>
           graph.posts.keys.map { postId =>
-            val tree = spannedTree(postId, graph.children)
+            val tree = redundantSpanningTree(postId, graph.children)
             postTreeItem(state, tree, graph.posts)
           }(breakOut)
         }

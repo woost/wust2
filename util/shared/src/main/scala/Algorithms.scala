@@ -2,6 +2,7 @@ package util
 
 object algorithm {
   import collection.mutable
+  import collection.breakOut
   import collection.IterableLike
 
   def directedAdjacencyList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): Map[V, Set[V]] = { // TODO: Multimap
@@ -120,10 +121,10 @@ object algorithm {
   }
 
   case class Tree[A](element: A, children: Seq[Tree[A]] = Seq.empty)
-  def spannedTree[V](vertex: V, successors: V => Iterable[V]): Tree[V] = spannedTree(vertex, successors, Set(vertex))
-  def spannedTree[V](vertex: V, successors: V => Iterable[V], seen: Set[V]): Tree[V] = {
-    Tree(vertex, children = successors(vertex).toSeq.filterNot(seen).map { child =>
-      spannedTree(child, successors, seen ++ Set(child))
-    })
+  def redundantSpanningTree[V](root: V, successors: V => Iterable[V]): Tree[V] = redundantSpanningTree(root, successors, Set(root))
+  def redundantSpanningTree[V](root: V, successors: V => Iterable[V], seen: Set[V]): Tree[V] = {
+    Tree(root, children = successors(root).filterNot(seen).map { child =>
+      redundantSpanningTree(child, successors, seen ++ Seq(child))
+    }(breakOut))
   }
 }
