@@ -4,7 +4,7 @@ services:
   postgres:
     stdin_open: true
     tty: true
-    image: postgres:9.6.1-alpine
+    image: postgres:9.6.2-alpine
     environment:
       POSTGRES_USER: "wust"
       POSTGRES_PASSWORD: "test"
