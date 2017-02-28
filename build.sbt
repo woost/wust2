@@ -128,7 +128,12 @@ lazy val frontend = project
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
     emitSourceMaps := true,
-    npmDevDependencies in Compile ++= ("compression-webpack-plugin" -> "0.3.1" :: Nil),
+    npmDevDependencies in Compile ++= (
+      "compression-webpack-plugin" -> "0.3.1" ::
+      "brotli-webpack-plugin" -> "0.2.0" ::
+      "webpack-closure-compiler" -> "2.1.4" ::
+      Nil
+    ),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
 
@@ -159,7 +164,7 @@ lazy val assets = project
     npmAssets ++= {
       // without dependsOn, the file list is generated before webpack does its thing.
       // Which would mean that generated files by webpack do not land in the pipeline.
-      val assets = (npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.gz"
+      val assets = ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.gz") +++ ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.br")
       val nodeModules = (npmUpdate in (frontend, Compile)).value
       assets.pair(relativeTo(nodeModules))
     },
