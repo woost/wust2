@@ -14,22 +14,28 @@ package object graph {
   ) {
     override def toString = s"Graph(${posts.values.toList}.by(_.id),${connections.values.toList}.by(_.id), ${containments.values.toList}.by(_.id))"
 
-    lazy val successors = directedAdjacencyList[AtomId, Connects](connections.values, _.sourceId, _.targetId)
-    lazy val predecessors = directedAdjacencyList[AtomId, Connects](connections.values, _.targetId, _.sourceId)
-    lazy val neighbours = adjacencyList[AtomId, Connects](connections.values, _.targetId, _.sourceId)
+    private val postDefaultNeighbourhood = posts.mapValues(_ => Set.empty[AtomId])
+    lazy val successors = postDefaultNeighbourhood ++ directedAdjacencyList[AtomId, Connects](connections.values, _.sourceId, _.targetId)
+    lazy val predecessors = postDefaultNeighbourhood ++ directedAdjacencyList[AtomId, Connects](connections.values, _.targetId, _.sourceId)
+    lazy val neighbours = postDefaultNeighbourhood ++ adjacencyList[AtomId, Connects](connections.values, _.targetId, _.sourceId)
 
-    lazy val children = directedAdjacencyList[AtomId, Contains](containments.values, _.parentId, _.childId)
-    lazy val parents = directedAdjacencyList[AtomId, Contains](containments.values, _.childId, _.parentId)
-    lazy val containmentNeighbours = adjacencyList[AtomId, Contains](containments.values, _.parentId, _.childId)
+    lazy val children = postDefaultNeighbourhood ++ directedAdjacencyList[AtomId, Contains](containments.values, _.parentId, _.childId)
+    lazy val parents = postDefaultNeighbourhood ++ directedAdjacencyList[AtomId, Contains](containments.values, _.childId, _.parentId)
+    lazy val containmentNeighbours = postDefaultNeighbourhood ++ adjacencyList[AtomId, Contains](containments.values, _.parentId, _.childId)
 
     //TODO: remove .mapValues(_.map(_.id))
-    lazy val incomingConnections = directedIncidenceList[AtomId, Connects](connections.values, _.targetId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
-    lazy val outgoingConnections = directedIncidenceList[AtomId, Connects](connections.values, _.sourceId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
-    lazy val incidentConnections = incidenceList[AtomId, Connects](connections.values, _.sourceId, _.targetId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+    // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
+    // that's why the need default values from connectionDefaultNeighbourhood
+    private val connectionDefaultNeighbourhood = connections.mapValues(_ => Set.empty[AtomId])
+    lazy val incomingConnections = postDefaultNeighbourhood ++ connectionDefaultNeighbourhood ++
+      directedIncidenceList[AtomId, Connects](connections.values, _.targetId).mapValues(_.map(_.id))
+    lazy val outgoingConnections = postDefaultNeighbourhood ++ directedIncidenceList[AtomId, Connects](connections.values, _.sourceId).mapValues(_.map(_.id))
+    lazy val incidentConnections = postDefaultNeighbourhood ++ connectionDefaultNeighbourhood ++
+      incidenceList[AtomId, Connects](connections.values, _.sourceId, _.targetId).mapValues(_.map(_.id))
 
-    lazy val incidentParentContains = directedIncidenceList[AtomId, Contains](containments.values, _.childId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
-    lazy val incidentChildContains = directedIncidenceList[AtomId, Contains](containments.values, _.parentId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
-    lazy val incidentContains = incidenceList[AtomId, Contains](containments.values, _.parentId, _.childId).mapValues(_.map(_.id)).withDefaultValue(Set.empty)
+    lazy val incidentParentContains = postDefaultNeighbourhood ++ directedIncidenceList[AtomId, Contains](containments.values, _.childId).mapValues(_.map(_.id))
+    lazy val incidentChildContains = postDefaultNeighbourhood ++ directedIncidenceList[AtomId, Contains](containments.values, _.parentId).mapValues(_.map(_.id))
+    lazy val incidentContains = postDefaultNeighbourhood ++ incidenceList[AtomId, Contains](containments.values, _.parentId, _.childId).mapValues(_.map(_.id))
 
     def incidentConnectionsDeep(atomId: AtomId) = {
       // Currently connects.in must be a Post, so no cycles can occour
@@ -47,8 +53,9 @@ package object graph {
       result
     }
 
-    lazy val connectionDegree = degreeSequence[AtomId, Connects](connections.values, _.targetId, _.sourceId)
-    lazy val containmentDegree = degreeSequence[AtomId, Contains](containments.values, _.parentId, _.childId)
+    private val postDefaultDegree = posts.mapValues(_ => 0)
+    lazy val connectionDegree = postDefaultDegree ++ degreeSequence[AtomId, Connects](connections.values, _.targetId, _.sourceId)
+    lazy val containmentDegree = postDefaultDegree ++ degreeSequence[AtomId, Contains](containments.values, _.parentId, _.childId)
     def fullDegree(post: AtomId) = connectionDegree(post) + containmentDegree(post)
     def fullDegree(connection: Connects) = 2
 
