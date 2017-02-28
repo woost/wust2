@@ -156,9 +156,14 @@ lazy val assets = project
   .settings(
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
-    includeFilter in Assets := "*.gz",
+    npmAssets ++= {
+      // without dependsOn, the file list is generated before webpack does its thing.
+      // Which would mean that generated files by webpack do not land in the pipeline.
+      val assets = (npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.gz"
+      val nodeModules = (npmUpdate in (frontend, Compile)).value
+      assets.pair(relativeTo(nodeModules))
+    },
     pipelineStages in Assets := Seq(scalaJSPipeline)
-  //TODO: zopfli
   //TODO: minify html
   )
 
