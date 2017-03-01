@@ -21,6 +21,7 @@ object WriteProjection {
   }
 }
 
+//TODO: new methods from new release
 class RxVar[S, A](write: WriteVar[S], rx: Rx[A]) extends WriteVar[S] with Rx[A] {
   import RxVar.RichRx
 
@@ -29,7 +30,6 @@ class RxVar[S, A](write: WriteVar[S], rx: Rx[A]) extends WriteVar[S] with Rx[A] 
   override def writeProjection[T](to: T => S, from: PartialFunction[S, T]): RxVar[T, A] = RxVar(write.writeProjection(to, from), rx)
 
   override def value = rx.value
-  override def foreachNext(f: A => Unit) = rx.foreachNext(f)
   override def foreach(f: A => Unit) = rx.foreach(f)
   override def map[B](f: A => B): RxVar[S, B] = RxVar(write, rx.map(f))
   override def flatMap[B](f: A => Rx[B]): RxVar[S, B] = RxVar(write, rx.flatMap(f))

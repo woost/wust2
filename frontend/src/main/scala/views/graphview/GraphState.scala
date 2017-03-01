@@ -81,7 +81,10 @@ class GraphState(state: GlobalState) {
     newData
   }
 
-  val rxContainmentCluster = rxGraph.map { graph =>
+  val rxContainmentCluster = for {
+    postIdToSimPost <- postIdToSimPost
+    graph <- rxGraph
+  } yield {
     val containments = graph.containments.values
     val parents: Seq[AtomId] = containments.map(c => c.parentId)(breakOut).distinct
 
@@ -91,8 +94,8 @@ class GraphState(state: GlobalState) {
 
     ordered.map { p =>
       new ContainmentCluster(
-        parent = postIdToSimPost.value(p),
-        children = graph.transitiveChildren(p).map(p => postIdToSimPost.value(p))(breakOut),
+        parent = postIdToSimPost(p),
+        children = graph.transitiveChildren(p).map(p => postIdToSimPost(p))(breakOut),
         depth = graph.depth(p)
       )
     }.toJSArray
