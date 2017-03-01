@@ -10,4 +10,3 @@ set -o pipefail
     sbt 'set scalaVersion in ThisBuild := "2.11.8"' publish-local
 )
 
-sbt compile test docker

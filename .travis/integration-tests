@@ -2,12 +2,7 @@
 set -e
 set -o pipefail
 
-sbt test
-
 ./start test.postgres
-
 ./start test.integration
-
 ./start test.prod.http
-
 ./start test.prod

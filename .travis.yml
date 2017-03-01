@@ -1,25 +1,27 @@
 sudo: required
 
-services:
-  - docker
-
-
+services: docker
 language: scala
-scala:
-   - 2.11.8
-jdk:
-    - oraclejdk8
+jdk: oraclejdk8
+node_js: 6
 
-node_js: "6"
+install:
+    - set -e # https://github.com/travis-ci/travis-ci/issues/1066#issuecomment-32415710
+    - .travis/install_monadic-html
+    - set +e
 
 script:
-    - set -e # https://github.com/travis-ci/travis-ci/issues/1066#issuecomment-32415710
-    - .travis/build
-    - .travis/test
+    - set -e
+    - sbt docker
+    - .travis/integration-tests
+    - sbt clean coverage utilJVM/test graphJVM/test backend/test coverageReport && sbt coverageAggregate
     - set +e
 
 after_success:
-    - .travis/publish
+    - set -e
+    - .travis/publish-docker
+    - sbt coveralls
+    - set +e
 
 cache:
   yarn: true
