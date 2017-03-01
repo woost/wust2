@@ -37,7 +37,7 @@ test.postgres)
 test.integration)
     $compose down
     $compose up -d
-    sbt ~it:test
+    sbt it:test
     $compose down
     ;;
 test.prod.http)
