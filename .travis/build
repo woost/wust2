@@ -3,8 +3,11 @@ set -e
 set -o pipefail
 
 #TODO: remove when new monadic-html released (this is 0.2.4-SNAPSHOT)
-git clone -b mario --single-branch --depth=1 https://github.com/OlivierBlanvillain/monadic-html
-cd monadic-html
-sbt +publish-local
+(
+    cd /tmp/
+    git clone -b mario --single-branch --depth=1 https://github.com/OlivierBlanvillain/monadic-html
+    cd monadic-html
+    sbt 'set scalaVersion in ThisBuild := "2.11.8"' publish-local
+)
 
 sbt docker
