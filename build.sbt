@@ -194,11 +194,12 @@ lazy val test = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
-      "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
+      "com.typesafe.akka" %% "akka-http" % "10.0.3" % "it" ::
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion % "it" ::
       "org.specs2" %% "specs2-core" % "3.8.7" % "it" ::
+      "org.seleniumhq.selenium" % "selenium-java" % "3.2.0" % "it" ::
       Nil,
-    scalacOptions in Test ++= Seq("-Yrangepos")
+    scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
 
 def dockerImageName(name: String, version: String) = ImageName(
