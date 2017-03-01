@@ -14,7 +14,8 @@ script:
     - set -e
     - sbt docker
     - .travis/integration-tests
-    - sbt clean coverage utilJVM/test graphJVM/test backend/test coverageReport && sbt coverageAggregate
+    - sbt testJS
+    - sbt clean coverage testJVM coverageReport && sbt coverageAggregate
     - set +e
 
 after_success:

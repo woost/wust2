@@ -37,6 +37,9 @@ lazy val root = project.in(file("."))
     addCommandAlias("devfwatch", "~workbench/assets"),
     addCommandAlias("devf", "; project root; backend/re-start; devfwatch"),
 
+    addCommandAlias("testJS", "; utilJS/test; graphJS/test; frameworkJS/test; apiJS/test; frontend/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; backend/test"),
+
     watchSources ++= (watchSources in workbench).value
   )
 
