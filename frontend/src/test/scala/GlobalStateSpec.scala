@@ -2,8 +2,11 @@ package frontend
 
 import org.scalatest._
 import graph._
+import rx.Ctx.Owner.Unsafe._
 
 class GlobalStateSpec extends FreeSpec with MustMatchers {
+
+  //TODO: test the number of rx updates
 
   "raw graph" - {
     "be consistent" in {
@@ -11,7 +14,8 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.rawGraph := Graph(
         posts = Map(1L -> Post(1, "title")),
         connections = Map(2L -> Connects(2, 1, 11)),
-        containments = Map(3L -> Contains(3, 1, 12)))
+        containments = Map(3L -> Contains(3, 1, 12))
+      )
 
       state.rawGraph.value mustEqual Graph(posts = Map(1L -> Post(1, "title")))
     }
@@ -23,7 +27,8 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.rawGraph := Graph(
         posts = Map(1L -> Post(1, "title"), 11L -> Post(11, "title2")),
         connections = Map(2L -> Connects(2, 1, 11)),
-        containments = Map(3L -> Contains(3, 11, 1)))
+        containments = Map(3L -> Contains(3, 11, 1))
+      )
 
       state.rawGraph.value mustEqual state.graph.value
     }
@@ -58,10 +63,10 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.mode.foreach(_ => ()) //TODO WHY?
       state.editedPostId := Some(1L)
       state.focusedPostId := Some(1L)
-      state.mode.value mustEqual InteractionMode(None, None)
+      state.mode.now mustEqual InteractionMode(None, None)
 
       state.rawGraph := Graph(posts = Map(1L -> Post(1, "title")))
-      state.mode.value mustEqual InteractionMode(Some(1L), Some(1L))
+      state.mode.now mustEqual InteractionMode(Some(1L), Some(1L))
     }
 
     "have view" in {
@@ -69,7 +74,8 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.rawGraph := Graph(
         posts = Map(1L -> Post(1, "title"), 11L -> Post(11, "title2")),
         connections = Map.empty,
-        containments = Map(3L -> Contains(3, 1, 11)))
+        containments = Map(3L -> Contains(3, 1, 11))
+      )
       state.currentView := View(collapsed = Selector.IdSet(Set(1L)))
 
       state.graph.value mustEqual Graph(posts = Map(1L -> Post(1, "title")))

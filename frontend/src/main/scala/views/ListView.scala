@@ -2,8 +2,10 @@ package frontend.views
 
 import org.scalajs.dom._
 import org.scalajs.d3v4
-import mhtml._
 import util.collection._
+import rx._
+import scalatags.rx.all._
+import scalatags.JsDom.all._
 import collection.breakOut
 
 import graph._
@@ -21,47 +23,43 @@ object ListView {
     case _ => ""
   }
 
-  def postItem(state: GlobalState, post: Post) = {
+  def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner) = {
     import state._
-    <div onclick={ () => focusedPostId.update(_.setOrToggle(post.id)) }>
-      {
-        mode.map { mode =>
-          Views.post(post, color = postColor(post.id)(mode), afterTitle = Some(
-            <div>
-              <span onclick={ () => editedPostId.update(_.setOrToggle(post.id)) }>[edit]</span>
-              {
-                collapsedPostIds.map { collapsed =>
-                  <span onclick={ () => collapsedPostIds.update(_.toggle(post.id)) }>
-                    { if (collapsed(post.id)) "+" else "-" }
-                  </span>
-                }
-              }
-            </div>
-          ))
-        }
+    div(
+      onclick := { () => focusedPostId.update(_.setOrToggle(post.id)) },
+      mode.map { mode =>
+        post.toString
+        // Views.post(post, color = postColor(post.id)(mode), afterTitle = Some(
+        //   <div>
+        //     <span onclick={ () => editedPostId.update(_.setOrToggle(post.id)) }>[edit]</span>
+        //     {
+        //       collapsedPostIds.map { collapsed =>
+        //         <span onclick={ () => collapsedPostIds.update(_.toggle(post.id)) }>
+        //           { if (collapsed(post.id)) "+" else "-" }
+        //         </span>
+        //       }
+        //     }
+        //     )
+        // ))
       }
-    </div>
+    )
   }
 
-  def postTreeItem(tree: Tree[AtomId], showPost: AtomId => xml.Node, indent: Int = 0): xml.Node =
-    <div style={ s"margin-left: ${indent * 10}px" }>
-      { showPost(tree.element) }
-      {
-        tree.children.map(postTreeItem(_, showPost, indent + 1))
-      }
-    </div>
+  def postTreeItem(tree: Tree[AtomId], showPost: AtomId => Modifier, indent: Int = 0)(implicit ctx: Ctx.Owner): Modifier = div(
+    marginLeft := indent * 10,
+    showPost(tree.element),
+    tree.children.map(postTreeItem(_, showPost, indent + 1))
+  )
 
-  def component(state: GlobalState) = {
-    //TODO: performance: https://github.com/OlivierBlanvillain/monadic-html/issues/13
-    <div>
-      {
-        state.graph.map { graph =>
-          graph.posts.keys.map { postId =>
-            val tree = redundantSpanningTree(postId, graph.children)
-            postTreeItem(tree, id => postItem(state, graph.posts(id)))
-          }(breakOut)
-        }
-      }
-    </div>
+  def component(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val a: Rx[Element] = state.graph.map { graph =>
+      div( //TODO: avoid this nesting by passing Rx[Seq[Element]] to the outer div?
+        (graph.posts.keys.map { postId =>
+          val tree = redundantSpanningTree(postId, graph.children)
+          postTreeItem(tree, id => postItem(state, graph.posts(id)))
+        }).toList
+      ).render
+    }
+    div(a)
   }
 }

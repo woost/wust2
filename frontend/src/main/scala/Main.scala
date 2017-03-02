@@ -13,6 +13,11 @@ import api.Channel
 import graph._
 import collection.breakOut
 
+import scalatags.JsDom.all._
+import scalatags.rx.all._
+import rx._
+import rx.Ctx.Owner.Unsafe._ //TODO: is this correct?
+
 @JSExport
 object Main extends js.JSApp {
   @JSExport
@@ -32,6 +37,8 @@ object Main extends js.JSApp {
       state.graph := graph
     }
 
-    mhtml.mount(document.getElementById("container"), views.MainView.component(state))
+    document.getElementById("container").appendChild(
+      views.MainView.component(state).render
+    )
   }
 }
