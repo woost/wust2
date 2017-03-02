@@ -41,7 +41,7 @@ package object graph {
       // Currently connects.in must be a Post, so no cycles can occour
       // TODO: algorithm to build for all atomIds simultanously
 
-      var next = incidentConnections(atomId).toList
+      var next = incidentConnections.get(atomId).toList.flatten
       var result: List[AtomId] = Nil
       var i = 0
       while (next.nonEmpty && i < 10) {
@@ -63,7 +63,7 @@ package object graph {
     def removePost(atomId: AtomId) = {
       val removedPosts = posts.get(atomId).map(_.id)
       val removedConnections = incidentConnectionsDeep(atomId)
-      val removedContains = incidentContains(atomId)
+      val removedContains = incidentContains.get(atomId).toList.flatten
       copy(
         posts = posts -- removedPosts,
         connections = connections -- removedConnections,
