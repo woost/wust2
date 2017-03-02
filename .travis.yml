@@ -7,7 +7,6 @@ node_js: 6
 
 install:
     - set -e # https://github.com/travis-ci/travis-ci/issues/1066#issuecomment-32415710
-    - .travis/install_monadic-html
     - set +e
 
 script:
