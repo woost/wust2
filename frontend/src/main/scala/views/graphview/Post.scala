@@ -13,7 +13,7 @@ import org.scalajs.dom.console
 import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
-import util.collectionHelpers._
+import util.collection._
 import Color._
 
 class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSelection[SimPost] {

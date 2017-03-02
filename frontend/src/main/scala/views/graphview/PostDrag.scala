@@ -13,7 +13,7 @@ import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import vectory._
 import org.scalajs.d3v4._
-import util.collectionHelpers._
+import util.collection._
 import autowire._
 import boopickle.Default._
 import com.outr.scribe._

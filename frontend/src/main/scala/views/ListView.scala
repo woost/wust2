@@ -3,7 +3,7 @@ package frontend.views
 import org.scalajs.dom._
 import org.scalajs.d3v4
 import mhtml._
-import util.collectionHelpers._
+import util.collection._
 import collection.breakOut
 
 import graph._

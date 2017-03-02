@@ -2,7 +2,7 @@ package frontend.views.graphview
 
 import scalajs.js
 import js.JSConverters._
-import util.collectionHelpers._
+import util.collection._
 import collection.breakOut
 import mhtml._
 

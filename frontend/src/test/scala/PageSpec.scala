@@ -2,7 +2,7 @@ package frontend
 
 import graph._
 import org.scalatest._
-import util.collectionHelpers._
+import util.collection._
 
 class PageTest extends FreeSpec with MustMatchers {
   "view" - {

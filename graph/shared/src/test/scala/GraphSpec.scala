@@ -1,7 +1,7 @@
 package graph
 
 import org.scalatest._
-import util.collectionHelpers._
+import util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   val containsId: () => Long = {

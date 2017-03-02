@@ -13,7 +13,7 @@ import org.scalajs.dom
 import mhtml._
 
 import vectory._
-import util.collectionHelpers._
+import util.collection._
 
 object ConnectionLineSelection extends DataSelection[SimConnects] {
   override val tag = "line"

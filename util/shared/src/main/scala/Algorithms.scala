@@ -1,9 +1,9 @@
 package util
 
 object algorithm {
-  import collection.mutable
-  import collection.breakOut
-  import collection.IterableLike
+  import scala.collection.mutable
+  import scala.collection.breakOut
+  import scala.collection.IterableLike
 
   def directedAdjacencyList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): Map[V, Set[V]] = { // TODO: Multimap
     edges
