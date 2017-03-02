@@ -33,8 +33,9 @@ class RxVar[S, A](write: WriteVar[S], val rx: Rx[A]) extends WriteVar[S] {
   def foreach(f: A => Unit)(implicit ctx: Ctx.Owner) = rx.foreach(f)
   def map[B](f: A => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.map(f))
   def flatMap[B](f: A => Rx[B])(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.flatMap(f))
-  def mapWithPrevious[B](initial: B)(f: (B, A) => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.mapWithPrevious(initial)(f))
+  def foldp[B](initial: B)(f: (B, A) => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.foldp(initial)(f))
 }
+
 object RxVar {
   def apply[S, A](write: WriteVar[S], rx: Rx[A]): RxVar[S, A] = new RxVar(write, rx)
   def apply[S](value: S): RxVar[S, S] = VarIsRxVar(Var(value))
@@ -48,7 +49,7 @@ object RxVar {
   }
 
   implicit class RichRx[A](val rx: Rx[A]) extends AnyVal {
-    def mapWithPrevious[B](initial: B)(f: (B, A) => B)(implicit ctx: Ctx.Owner): Rx[B] = {
+    def foldp[B](initial: B)(f: (B, A) => B)(implicit ctx: Ctx.Owner): Rx[B] = {
       var prev = f(initial, rx.now)
       rx.map { curr =>
         val next = f(prev, curr)

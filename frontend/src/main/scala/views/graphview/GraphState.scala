@@ -5,10 +5,12 @@ import js.JSConverters._
 import util.collection._
 import collection.breakOut
 import rx._
+import frontend.RxVar._
 
 import frontend.GlobalState
 import graph._
 import frontend.Color._
+import util.Pipe
 
 class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxGraph = state.graph
@@ -18,16 +20,6 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxSimPosts: Rx[js.Array[SimPost]] = rxGraph.map { graph =>
     graph.posts.values.map { p =>
       val sp = new SimPost(p)
-      //TODO: avoid now
-      postIdToSimPost.now.get(sp.id).foreach { old =>
-        // preserve position, velocity and fixed position
-        sp.x = old.x
-        sp.y = old.y
-        sp.vx = old.vx
-        sp.vy = old.vy
-        sp.fx = old.fx
-        sp.fy = old.fy
-      }
 
       def parents = graph.parents(p.id)
       def hasParents = parents.nonEmpty
@@ -56,7 +48,21 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  val postIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.map(nd => (nd: js.ArrayOps[SimPost]).by(_.id))
+  val postIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.foldp(Map.empty[AtomId, SimPost]) {
+    (previousMap, simPosts) =>
+      (simPosts: js.ArrayOps[SimPost]).by(_.id) ||> (_.foreach {
+        case (id, simPost) =>
+          previousMap.get(id).foreach { previousSimPost =>
+            // preserve position, velocity and fixed position
+            simPost.x = previousSimPost.x
+            simPost.y = previousSimPost.y
+            simPost.vx = previousSimPost.vx
+            simPost.vy = previousSimPost.vy
+            simPost.fx = previousSimPost.fx
+            simPost.fy = previousSimPost.fy
+          }
+      })
+  }
 
   //TODO: multiple menus for multi-user multi-touch interface?
   val focusedPost = for {
