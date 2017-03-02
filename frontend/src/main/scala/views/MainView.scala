@@ -11,7 +11,7 @@ import boopickle.Default._
 
 import frontend.{GlobalState, Client}
 import graph._
-// import graphview.GraphView
+import graphview.GraphView
 
 object MainView {
   sealed trait Tab
@@ -32,7 +32,7 @@ object MainView {
       button(onclick := { (_: Event) => tabMode() = Tab.Graph })("graph"),
       button(onclick := { (_: Event) => tabMode() = Tab.List })("list"),
       div(display := graphDisplay)(
-        "Graph"
+        GraphView.component(state)
       ),
       div(display := listDisplay)(
         ListView.component(state)
