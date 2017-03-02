@@ -59,7 +59,7 @@ object DropMenuSelection extends DataSelection[SimPost] {
 
     ringMenuLabels.enter()
       .append("text")
-      .text((d: PieArcDatum[DropAction]) => d.data.symbol)
+      .text((d: PieArcDatum[DropAction]) => d.data.name)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
       .attr("x", (d: PieArcDatum[DropAction]) => arc.centroid(d)(0))

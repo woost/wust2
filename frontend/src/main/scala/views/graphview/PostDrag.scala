@@ -48,7 +48,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
   def draggingPosts: Rx[js.Array[SimPost]] = _draggingPosts
   def closestPosts: Rx[js.Array[SimPost]] = _closestPosts
 
-  private def graph = graphState.rxGraph.value
+  private def graph = graphState.rxGraph.now //TODO: avoid now
   private def postIdToSimPost = graphState.postIdToSimPost.now
 
   private val dragHitDetectRadius = 100

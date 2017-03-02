@@ -17,7 +17,10 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val editedPostId = state.editedPostId
   val collapsedPostIds = state.collapsedPostIds
 
-  val rxSimPosts: Rx[js.Array[SimPost]] = rxGraph.map { graph =>
+  val rxSimPosts: Rx[js.Array[SimPost]] = for {
+    graph <- rxGraph
+    collapsedPostIds <- collapsedPostIds
+  } yield {
     graph.posts.values.map { p =>
       val sp = new SimPost(p)
 
@@ -34,7 +37,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       ).toString()
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
-        if (hasChildren || collapsedPostIds.value(p.id))
+        if (hasChildren || collapsedPostIds(p.id))
           baseColor(p.id)
         else { // no children
           if (hasParents)
@@ -48,7 +51,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  val postIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.foldp(Map.empty[AtomId, SimPost]) {
+  val postIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.fold(Map.empty[AtomId, SimPost]) {
     (previousMap, simPosts) =>
       (simPosts: js.ArrayOps[SimPost]).by(_.id) ||> (_.foreach {
         case (id, simPost) =>
@@ -71,8 +74,8 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   } yield idOpt.flatMap(map.get)
 
   val rxSimConnects = for {
-    postIdToSimPost <- postIdToSimPost
     graph <- rxGraph
+    postIdToSimPost <- postIdToSimPost
   } yield {
     val newData = graph.connections.values.map { c =>
       new SimConnects(c, postIdToSimPost(c.sourceId))
@@ -88,9 +91,18 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     newData
   }
 
-  val rxContainmentCluster = for {
+  val rxSimContains = for {
+    newGraph <- rxGraph
     postIdToSimPost <- postIdToSimPost
+  } yield {
+    newGraph.containments.values.map { c =>
+      new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
+    }.toJSArray
+  }
+
+  val rxContainmentCluster = for {
     graph <- rxGraph
+    postIdToSimPost <- postIdToSimPost
   } yield {
     val containments = graph.containments.values
     val parents: Seq[AtomId] = containments.map(c => c.parentId)(breakOut).distinct
@@ -108,7 +120,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  // rxSimPosts.foreach(v => println(s"post rxSimPosts update: $v"))
-  // postIdToSimPost.foreach(v => println(s"postIdToSimPost update: $v"))
-  // for (v <- focusedPost) { println(s"focusedSimPost update: $v") }
+  rxSimPosts.foreach(v => println(s"simPosts update"))
+  postIdToSimPost.foreach(v => println(s"postIdToSimPost update"))
+  for (v <- focusedPost) { println(s"focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}") }
 }

@@ -13,8 +13,8 @@ import frontend.GlobalState
 import graph._
 import frontend.Color._
 
-case class MenuAction(symbol: String, action: (SimPost, Simulation[SimPost]) => Unit)
-case class DropAction(symbol: String, action: (SimPost, SimPost) => Unit)
+case class MenuAction(name: String, action: (SimPost, Simulation[SimPost]) => Unit)
+case class DropAction(name: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {
   implicit val SimPostWithKey = new WithKey[SimPost](_.id)
@@ -50,6 +50,10 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
   initContainerDimensionsAndPositions()
   initEvents()
   graph.foreach(update)
+
+  graphState.rxSimConnects.foreach { simConnects => d3State.forces.connection.links(simConnects) }
+  graphState.rxSimContains.foreach { simContains => d3State.forces.containment.links(simContains) }
+  graphState.rxSimPosts.foreach { simPosts => d3State.simulation.nodes(simPosts) }
 
   private def onPostDrag() {
     draggingPostSelection.draw()
@@ -123,15 +127,6 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
     forces.containment.strength { (e: SimContains) =>
       1.0 / math.min(newGraph.fullDegree(e.source.post.id), newGraph.fullDegree(e.target.post.id))
     }
-
-    //TODO: avoid now and trigger completely by foreach
-    val containmentData = newGraph.containments.values.map { c =>
-      new SimContains(c, postIdToSimPost.now(c.parentId), postIdToSimPost.now(c.childId))
-    }.toJSArray
-
-    forces.connection.links(rxSimConnects.now)
-    forces.containment.links(containmentData)
-    d3State.simulation.nodes(graphState.rxSimPosts.now)
 
     simulation.alpha(1).restart()
   }

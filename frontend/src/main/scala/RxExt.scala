@@ -29,11 +29,10 @@ class RxVar[S, A](write: WriteVar[S], val rx: Rx[A]) extends WriteVar[S] {
   override def update(f: S => S) = write.update(f)
   override def writeProjection[T](to: T => S, from: PartialFunction[S, T]): RxVar[T, A] = RxVar(write.writeProjection(to, from), rx)
 
-  def value = rx.now //TODO: rename
+  def now = rx.now
   def foreach(f: A => Unit)(implicit ctx: Ctx.Owner) = rx.foreach(f)
   def map[B](f: A => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.map(f))
   def flatMap[B](f: A => Rx[B])(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.flatMap(f))
-  def foldp[B](initial: B)(f: (B, A) => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.foldp(initial)(f))
 }
 
 object RxVar {
@@ -49,15 +48,6 @@ object RxVar {
   }
 
   implicit class RichRx[A](val rx: Rx[A]) extends AnyVal {
-    def foldp[B](initial: B)(f: (B, A) => B)(implicit ctx: Ctx.Owner): Rx[B] = {
-      var prev = f(initial, rx.now)
-      rx.map { curr =>
-        val next = f(prev, curr)
-        prev = next
-        next
-      }
-    }
-
     def debug(implicit ctx: Ctx.Owner): Rx[A] = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Rx[A] = {
       rx.foreach(x => println(s"$name: $x"))
