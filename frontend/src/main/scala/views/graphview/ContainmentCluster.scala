@@ -16,7 +16,7 @@ import org.scalajs.d3v4._
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
   val posts = (children :+ parent)
-  def maxRadius = (posts.maxBy(_.radius).radius * 2) ||> println
+  def maxRadius = posts.maxBy(_.radius).radius * 2
 
   def positions: js.Array[js.Array[Double]] = posts.map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
   def convexHull: js.Array[js.Array[Double]] = {
@@ -37,11 +37,6 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
       .style("opacity", "0.8")
   }
 
-  override def update(hull: Selection[ContainmentCluster]) {
-    hull
-      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px")
-  }
-
   override def draw(hull: Selection[ContainmentCluster]) {
     hull
       .attr("d", { (cluster: ContainmentCluster) =>
@@ -54,5 +49,6 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
 
         d3.line().curve(curve)(points)
       })
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px")
   }
 }
