@@ -26,20 +26,20 @@ object ListView {
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Modifier = {
     import state._
     Views.post(
-      post,
-      backgroundColor := postColor(post.id, mode).map(_.toString),
-      onclick := { () => focusedPostId.update(_.setOrToggle(post.id)) }
+      post
     )(
-        div(
-          span(onclick := { () => editedPostId.update(_.setOrToggle(post.id)) }, "[edit]"),
-          collapsedPostIds.rx.map { collapsed =>
-            span(
-              onclick := { () => collapsedPostIds.update(_.toggle(post.id)) },
-              if (collapsed(post.id)) "+" else "-"
-            ).render
-          }
-        )
+      backgroundColor := postColor(post.id, mode).map(_.toString),
+      onclick := { () => focusedPostId.update(_.setOrToggle(post.id)) },
+      div(
+        span(onclick := { () => editedPostId.update(_.setOrToggle(post.id)) }, "[edit]"),
+        collapsedPostIds.rx.map { collapsed =>
+          span(
+            onclick := { () => collapsedPostIds.update(_.toggle(post.id)) },
+            if (collapsed(post.id)) "+" else "-"
+          ).render
+        }
       )
+    )
   }
 
   def postTreeItem(tree: Tree[AtomId], showPost: AtomId => Modifier, indent: Int = 0)(implicit ctx: Ctx.Owner): Modifier = div(
