@@ -16,12 +16,12 @@ import util.algorithm.{Tree, redundantSpanningTree}
 object ListView {
   //TODO: report bug about pattern matching in rx.map:
   //scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (_)
-  val modeToColor: InteractionMode => d3v4.Color = {
-    case FocusMode(_) => d3v4.d3.lab("#88ff88")
-    case EditMode(_) => d3v4.d3.lab("#8888ff")
+  def modeToColor(id: AtomId): InteractionMode => d3v4.Color = {
+    case FocusMode(`id`) => d3v4.d3.lab("#AAFFAA")
+    case EditMode(`id`) => d3v4.d3.lab("#AAAAFF")
     case _ => Color.postDefaultColor
   }
-  def postColor(id: AtomId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map(modeToColor)
+  def postColor(id: AtomId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map(modeToColor(id))
 
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Modifier = {
     import state._
