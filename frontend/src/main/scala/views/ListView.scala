@@ -12,6 +12,7 @@ import graph._
 import frontend._
 import util.algorithm.{Tree, redundantSpanningTree}
 
+//TODO: rename to TreeView?
 object ListView {
   def postColor(id: AtomId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map {
     //TODO scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (`id`)
@@ -24,19 +25,19 @@ object ListView {
     import state._
     Views.post(
       post,
-      color := postColor(post.id, mode).map(_.toString),
+      backgroundColor := postColor(post.id, mode).map(_.toString),
       onclick := { () => focusedPostId.update(_.setOrToggle(post.id)) }
     )(
-      div(
-        span(onclick := { () => editedPostId.update(_.setOrToggle(post.id)) }, "[edit]"),
-        collapsedPostIds.rx.map { collapsed =>
-          span(
-            onclick := { () => collapsedPostIds.update(_.toggle(post.id)) },
-            if (collapsed(post.id)) "+" else "-"
-          ).render
-        }
+        div(
+          span(onclick := { () => editedPostId.update(_.setOrToggle(post.id)) }, "[edit]"),
+          collapsedPostIds.rx.map { collapsed =>
+            span(
+              onclick := { () => collapsedPostIds.update(_.toggle(post.id)) },
+              if (collapsed(post.id)) "+" else "-"
+            ).render
+          }
+        )
       )
-    )
   }
 
   def postTreeItem(tree: Tree[AtomId], showPost: AtomId => Modifier, indent: Int = 0)(implicit ctx: Ctx.Owner): Modifier = div(
