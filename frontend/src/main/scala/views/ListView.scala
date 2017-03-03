@@ -14,12 +14,14 @@ import util.algorithm.{Tree, redundantSpanningTree}
 
 //TODO: rename to TreeView?
 object ListView {
-  def postColor(id: AtomId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map {
-    //TODO scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (`id`)
-    // case FocusMode(`id`) => d3v4.d3.lab("#00ff00")
-    // case EditMode(`id`) => d3v4.d3.lab("#0000ff")
+  //TODO: report bug about pattern matching in rx.map:
+  //scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (_)
+  val modeToColor: InteractionMode => d3v4.Color = {
+    case FocusMode(_) => d3v4.d3.lab("#88ff88")
+    case EditMode(_) => d3v4.d3.lab("#8888ff")
     case _ => Color.postDefaultColor
   }
+  def postColor(id: AtomId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map(modeToColor)
 
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Modifier = {
     import state._
