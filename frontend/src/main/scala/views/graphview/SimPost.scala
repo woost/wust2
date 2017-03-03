@@ -3,6 +3,7 @@ package frontend.views.graphview
 import graph.Post
 import math._
 import org.scalajs.d3v4._
+import util.Pipe
 
 class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   //TODO: delegert!
@@ -23,13 +24,15 @@ class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   }
 
   def newDraggingPost = {
-    val g = new SimPost(post)
-    g.x = x
-    g.y = y
-    g.size = size
-    g.centerOffset = centerOffset
-    g.color = color
-    g
+    new SimPost(post) ||> { g =>
+      g.x = x
+      g.y = y
+      g.size = size
+      g.centerOffset = centerOffset
+
+      g.color = color
+      g.border = border
+    }
   }
   var draggingPost: Option[SimPost] = None
 

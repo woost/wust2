@@ -11,6 +11,7 @@ import js.JSConverters._
 import org.scalajs.dom
 import org.scalajs.dom.console
 import org.scalajs.dom.raw.HTMLElement
+import scalatags.JsDom.all._
 import vectory._
 import org.scalajs.d3v4._
 import util.collection._
@@ -20,17 +21,13 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
   import postDrag._, graphState.focusedPost
 
   override val tag = "div"
-  override def enter(post: Selection[SimPost]) {
-    post
-      .text((post: SimPost) => post.title)
-      .attr("title", (post: SimPost) => post.id)
-      .style("padding", "3px 5px")
-      // .style("border", "1px solid #444")
-      .style("border-radius", "3px")
-      .style("max-width", "10em")
-      .style("position", "absolute") // TODO: max-width does not work with position:absolute
-      .style("cursor", "default")
-      .style("pointer-events", "auto") // reenable
+  override def enter(post: Enter[SimPost]) {
+    post.append((simPost: SimPost) => frontend.views.Views.post(simPost.post)(
+      title := simPost.title,
+      position.absolute,
+      pointerEvents.auto, // reenable
+      cursor.default
+    ).render)
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
         focusedPost.update(_.setOrToggle(p.id))

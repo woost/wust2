@@ -11,26 +11,28 @@ import js.JSConverters._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.console
 import vectory._
 import org.scalajs.d3v4._
 import util.collection._
 import autowire._
 import boopickle.Default._
 import com.outr.scribe._
+import scalatags.JsDom.all._
+import util.Pipe
 
 object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
-  override def enter(post: Selection[SimPost]) {
-    post
-      .text((post: SimPost) => post.title)
-      .style("opacity", "0.5")
-      .style("background-color", (post: SimPost) => post.color)
-      .style("padding", "3px 5px")
-      .style("border-radius", "3px")
-      .style("border", "1px solid #AAA")
-      .style("max-width", "10em") //TODO: share styles with original posts
-      .style("position", "absolute")
-      .style("cursor", "move")
+  override def enter(post: Enter[SimPost]) {
+    post.append { (simPost: SimPost) =>
+      frontend.views.Views.post(simPost.post)(
+        position.absolute,
+        cursor.move,
+        opacity := 0.5,
+        border := simPost.border,
+        backgroundColor := simPost.color
+      ).render
+    }
   }
 
   override def draw(post: Selection[SimPost]) {

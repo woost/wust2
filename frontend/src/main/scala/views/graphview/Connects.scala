@@ -17,7 +17,7 @@ import util.collection._
 
 object ConnectionLineSelection extends DataSelection[SimConnects] {
   override val tag = "line"
-  override def enter(line: Selection[SimConnects]) {
+  override def enterAppend(line: Selection[SimConnects]) {
     line
       .style("stroke", "#8F8F8F")
   }
@@ -33,7 +33,7 @@ object ConnectionLineSelection extends DataSelection[SimConnects] {
 
 object ConnectionElementSelection extends DataSelection[SimConnects] {
   override val tag = "div"
-  override def enter(element: Selection[SimConnects]) {
+  override def enterAppend(element: Selection[SimConnects]) {
     element
       .attr("title", (e: SimConnects) => e.id)
       .style("position", "absolute")

@@ -36,7 +36,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
   )
 
   override val tag = "g"
-  override def enter(menu: Selection[SimPost]) {
+  override def enterAppend(menu: Selection[SimPost]) {
     import graphState.focusedPost
     import d3State.simulation
 

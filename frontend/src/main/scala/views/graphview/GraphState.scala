@@ -28,6 +28,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map(baseColor))
       def hasChildren = graph.children(p.id).nonEmpty
+      //TODO: move border and color to views.post()
       sp.border = (
         if (hasChildren)
           "2px solid rgba(0,0,0,0.4)"

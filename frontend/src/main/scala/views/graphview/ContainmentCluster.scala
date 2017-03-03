@@ -29,7 +29,7 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost],
 
 object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   override val tag = "path"
-  override def enter(hull: Selection[ContainmentCluster]) {
+  override def enterAppend(hull: Selection[ContainmentCluster]) {
     hull
       .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)

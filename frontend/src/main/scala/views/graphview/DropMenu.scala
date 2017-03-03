@@ -34,7 +34,7 @@ object DropMenuSelection extends DataSelection[SimPost] {
   val menuCornerRadius = 2.0
 
   override val tag = "g"
-  override def enter(menu: Selection[SimPost]) {
+  override def enterAppend(menu: Selection[SimPost]) {
     val pie = d3.pie()
       .value(1)
       .padAngle(menuPaddingAngle)
