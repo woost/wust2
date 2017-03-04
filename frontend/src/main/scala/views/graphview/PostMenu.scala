@@ -32,8 +32,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
     // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
-    Nil
-  )
+    Nil)
 
   override val tag = "g"
   override def enter(menu: Enter[SimPost]) {
@@ -66,7 +65,9 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
         .style("cursor", "pointer")
         .style("pointer-events", "all")
         .on("click", { (d: PieArcDatum[MenuAction]) =>
-          println(s"\nMenu ${d.data.name}: [${simPost.id}]${simPost.title}")
+          DevOnly {
+            println(s"\nMenu ${d.data.name}: [${simPost.id}]${simPost.title}")
+          }
           d.data.action(simPost, simulation)
           rxFocusedSimPost := None
         })

@@ -8,7 +8,7 @@ import rx._
 import frontend.RxVar
 import frontend.RxVar._
 
-import frontend.GlobalState
+import frontend.{ DevOnly, GlobalState }
 import graph._
 import frontend.Color._
 import util.Pipe
@@ -35,8 +35,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
           "2px solid rgba(0,0,0,0.4)"
         else { // no children
           "2px solid rgba(0,0,0,0.2)"
-        }
-      ).toString()
+        }).toString()
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
         if (hasChildren || collapsedPostIds(p.id))
@@ -46,8 +45,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
             mixColors(mixedDirectParentColors, postDefaultColor)
           else
             postDefaultColor
-        }
-      ).toString()
+        }).toString()
       sp
 
     }.toJSArray
@@ -115,15 +113,16 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       new ContainmentCluster(
         parent = postIdToSimPost(p),
         children = graph.transitiveChildren(p).map(p => postIdToSimPost(p))(breakOut),
-        depth = graph.depth(p)
-      )
+        depth = graph.depth(p))
     }.toJSArray
   }
 
-  rxSimPosts.debug(v => s"  simPosts: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-  rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.keys.toSeq.sorted.mkString(",")}")
-  rxSimConnects.debug(v => s"  simConnects: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-  rxSimContains.debug(v => s"  simContains: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-  rxContainmentCluster.debug(v => s"  containmentCluster: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-  rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}")
+  DevOnly {
+    rxSimPosts.debug(v => s"  simPosts: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+    rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.keys.toSeq.sorted.mkString(",")}")
+    rxSimConnects.debug(v => s"  simConnects: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+    rxSimContains.debug(v => s"  simContains: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+    rxContainmentCluster.debug(v => s"  containmentCluster: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+    rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}")
+  }
 }

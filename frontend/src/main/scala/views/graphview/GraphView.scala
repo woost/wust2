@@ -10,7 +10,7 @@ import scalatags.JsDom.all._
 import math._
 import util.Pipe
 
-import frontend.GlobalState
+import frontend.{DevOnly, GlobalState}
 import graph._
 import frontend.Color._
 
@@ -51,13 +51,16 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
 
   initContainerDimensionsAndPositions()
   initEvents()
-  rxGraph.foreach(update) // TODO
 
   Rx { rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
     val simPosts = rxSimPosts.now
     val simConnects = rxSimConnects.now
     val simContains = rxSimContains.now
-    println("    updating graph simulation")
+
+    DevOnly {
+      println("    updating graph simulation")
+    }
+
     d3State.simulation.nodes(simPosts)
     d3State.forces.connection.links(simConnects)
     d3State.forces.containment.links(simContains)
@@ -74,6 +77,8 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
     // d3State.forces.containment.strength { (e: SimContains) =>
     //   1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
     // }
+
+    d3State.simulation.alpha(1).restart()
   }
 
   private def onPostDrag() {
@@ -131,12 +136,6 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
       .style("width", "100%")
       .style("height", "100%")
       .style("pointer-events", "none")
-  }
-
-  private def update(newGraph: Graph) {
-    import d3State._, graphState._
-
-    simulation.alpha(1).restart()
   }
 }
 
