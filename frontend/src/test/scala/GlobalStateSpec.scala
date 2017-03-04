@@ -47,7 +47,6 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
 
     "be consistent with edited" in {
       val state = new GlobalState
-      state.editedPostId.foreach(_ => ()) //TODO WHY?
       state.editedPostId := Some(1L)
       state.editedPostId.now mustEqual None
 
@@ -60,13 +59,12 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
 
     "be consistent with mode" in {
       val state = new GlobalState
-      state.mode.foreach(_ => ()) //TODO WHY?
       state.editedPostId := Some(1L)
       state.focusedPostId := Some(1L)
-      state.mode.now mustEqual InteractionMode(None, None)
+      state.mode.now mustEqual DefaultMode
 
       state.rawGraph := Graph(posts = Map(1L -> Post(1, "title")))
-      state.mode.now mustEqual InteractionMode(Some(1L), Some(1L))
+      state.mode.now mustEqual EditMode(1L)
     }
 
     "have view" in {
