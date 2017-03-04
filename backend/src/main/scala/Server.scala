@@ -6,7 +6,6 @@ import scala.util.control.NonFatal
 
 import akka.http.scaladsl.server.Directives._
 import boopickle.Default._
-import com.outr.scribe._
 
 import api._, framework._
 
@@ -28,7 +27,7 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
   override def toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
     case NonFatal(e) =>
-      logger.error("request handler threw exception", e)
+      scribe.error("request handler threw exception", e)
       InternalServerError
   }
 
@@ -43,6 +42,6 @@ object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, Us
   def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
 
   run("0.0.0.0", 8080) foreach { binding =>
-    logger.info(s"Server online at ${binding.localAddress}")
+    scribe.info(s"Server online at ${binding.localAddress}")
   }
 }

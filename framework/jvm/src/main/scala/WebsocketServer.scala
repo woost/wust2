@@ -16,7 +16,6 @@ import akka.stream.scaladsl._
 import akka.util.ByteString
 import autowire.Core.{Request, Router}
 import boopickle.Default._
-import com.outr.scribe._
 
 import framework.message._
 
@@ -60,7 +59,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
       Flow[Message].map {
         case bm: BinaryMessage.Strict =>
           val msg = Serializer.deserialize[ClientMessage](bm)
-          logger.info(s"<-- $msg")
+          scribe.info(s"<-- $msg")
           msg
         //TODO: streamed?
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, ConnectedClient.Stop))
@@ -73,7 +72,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
         }.map {
           //TODO no any, proper serialize map
           case msg: ServerMessage =>
-            logger.info(s"--> $msg")
+            scribe.info(s"--> $msg")
             Serializer.serialize(msg)
           case other: Message => other
         }
@@ -84,7 +83,7 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
   protected def websocketHandler = handleWebSocketMessages(newConnectedClient)
 
   def emit(channel: CHANNEL, event: EVENT): Unit = Future {
-    logger.info(s"-[$channel]-> event: $event")
+    scribe.info(s"-[$channel]-> event: $event")
     val payload = Serializer.serialize[ServerMessage](Notification(event))
     dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
   }

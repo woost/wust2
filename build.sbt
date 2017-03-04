@@ -3,7 +3,7 @@ version in ThisBuild := "0.1.0-SNAPSHOT"
 
 //TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
-scalaVersion in ThisBuild := "2.11.8" //TODO: 2.12 (quill is blocking)
+scalaVersion in ThisBuild := "2.11.8" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
 
 lazy val commonSettings = Seq(
   resolvers ++= (
@@ -96,7 +96,7 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
-      "com.outr" %%% "scribe" % "1.3.2" ::
+      "com.outr" %% "scribe" % "1.4.1" ::
       // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
       // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
       Nil
