@@ -15,11 +15,18 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val collapsedPostIds = RxVar[Set[AtomId]](Set.empty)
 
-  //TODO: eliminate flatmap because of leaking observers and too many invocations
-  val currentView = RxVar[View](View())
-    .flatMap(v => collapsedPostIds.map(collapsed => v.union(View(collapsed = Selector.IdSet(collapsed)))))
+  val currentView = {
+    val v = RxVar[View](View())
+    RxVar(v.write, Rx {
+      v().union(View(collapsed = Selector.IdSet(collapsedPostIds())))
+    })
+  }
 
-  val graph = rawGraph.flatMap(g => currentView.map(View(_, g)))
+  val graph = {
+    RxVar(rawGraph.write, Rx {
+      View(currentView(), rawGraph())
+    })
+  }
 
   val focusedPostId = RxVar[Option[AtomId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
