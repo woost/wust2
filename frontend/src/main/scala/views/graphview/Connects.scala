@@ -41,7 +41,7 @@ object ConnectionElementSelection extends DataSelection[SimConnects] {
       .style("margin-left", "-0.5ex")
       .style("margin-top", "-0.5em")
       .text("\u00d7")
-      .style("pointer-events", "auto") // reenable
+      .style("pointer-events", "auto") // parent has pointer-events disabled, enable explicitly for the x button.
       .style("cursor", "pointer")
       .on("click", { (e: SimConnects) =>
         import autowire._
