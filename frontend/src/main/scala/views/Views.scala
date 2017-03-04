@@ -25,7 +25,8 @@ object Views {
     borderRadius := "3px"
   )
 
-  def parents(containsIds: Seq[AtomId], graph: Graph) =
+  def parents(postId: AtomId, graph: Graph) = {
+    val containsIds = graph.incidentParentContains(postId).toSeq
     div(
       display.flex,
       containsIds.map { containsId =>
@@ -42,4 +43,5 @@ object Views {
         )
       }
     )
+  }
 }

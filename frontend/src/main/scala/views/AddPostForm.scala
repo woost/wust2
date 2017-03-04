@@ -1,78 +1,90 @@
-// package frontend.views
+package frontend.views
 
-// import org.scalajs.dom._
-// import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom
+import org.scalajs.dom.ext.KeyCode
+import dom.raw.HTMLInputElement
+import dom.Event
+import dom.document
+import dom.KeyboardEvent
+import concurrent.Future
 
-// import autowire._
-// import boopickle.Default._
-// import scalajs.concurrent.JSExecutionContext.Implicits.queue
+import autowire._
+import boopickle.Default._
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-// import graph._
-// import org.scalajs.d3v4
-// import frontend._
-// import frontend.Color._
-// import rx._
+import scalatags.JsDom.all._
+import scalatags.rx.all._
+import graph._
+import org.scalajs.d3v4
+import frontend._
+import frontend.Color._
+import rx._
 
-// object AddPostForm {
-//   def editLabel(graph: Graph, editedPostId: WriteVar[Option[AtomId]], postId: AtomId) = {
-//     <div>
-//       Edit Post:<button onclick={ (_: Event) => editedPostId := None }>×</button>
-//       { responseLabel(graph, postId) }
-//     </div>
-//   }
+object AddPostForm {
+  def editLabel(graph: Rx[Graph], editedPostId: WriteVar[Option[AtomId]], postId: AtomId)(implicit ctx: Ctx.Owner) = {
+    div(
+      "Edit Post:",
+      button("×", onclick := { (_: Event) => editedPostId := None }),
+      responseLabel(graph, postId)
+    )
+  }
 
-//   def responseLabel(graph: Graph, postId: AtomId) = {
-//     val post = graph.posts(postId)
-//     <div>
-//       { Views.parents(graph.incidentParentContains(post.id).toSeq, graph) }
-//       { Views.post(post) }
-//     </div>
-//   }
+  def responseLabel(graph: Rx[Graph], postId: AtomId)(implicit ctx: Ctx.Owner) = {
+    div(
+      Rx { Views.parents(postId, graph()).render },
+      Rx { Views.post(graph().posts(postId)).render }
+    )
+  }
 
-//   val newLabel = <div>New Post:</div>
+  val newLabel = div("New Post:")
 
-//   def component(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-//     import state._
+  def component(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    import state.{graph => rxGraph, mode => rxMode, editedPostId => rxEditedPostId}
 
-//     //TODO: onattached -> store domnode -> focus
-//     mode.foreach { mode =>
-//       val input = document.getElementById("addpostfield").asInstanceOf[raw.HTMLInputElement]
-//       if (input != null) {
-//         mode match {
-//           case EditMode(postId) => input.value = graph.value.posts(postId).title
-//           case _ =>
-//         }
-//         input.focus()
-//       }
-//     }
+    //TODO: onattached -> store domnode -> focus
+    rxMode.foreach { mode =>
+      val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
+      if (input != null) {
+        mode match {
+          case EditMode(postId) => input.value = rxGraph.now.posts(postId).title
+          case _ =>
+        }
+        input.focus()
+      }
+    }
 
-//     <div>
-//       {
-//         mode.map {
-//           case EditMode(postId) => editLabel(graph.value, editedPostId, postId)
-//           case FocusMode(postId) => responseLabel(graph.value, postId)
-//           case _ => newLabel
-//         }
-//       }
-//       <input type="text" id="addpostfield" onkeyup={ (e: KeyboardEvent) =>
-//         val input = e.target.asInstanceOf[raw.HTMLInputElement]
-//         val text = input.value
-//         if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-//           val fut = mode.value match {
-//             case EditMode(postId) => Client.api.updatePost(graph.value.posts(postId).copy(title = text)).call()
-//             case FocusMode(postId) => Client.api.respond(postId, text).call().map(_.isDefined)
-//             case _ => Client.api.addPost(text).call().map(_ => true)
-//           }
-
-//           fut.foreach { success =>
-//             if (success) {
-//               input.value = ""
-//               editedPostId := None
-//             }
-//           }
-//         }
-//         ()
-//       }/>
-//     </div>
-//   }
-// }
+    div(
+      {
+        val label: InteractionMode => dom.html.Div = {
+          case EditMode(postId) => editLabel(rxGraph, rxEditedPostId, postId).render
+          case FocusMode(postId) => responseLabel(rxGraph, postId).render
+          case _ => newLabel.render
+        }
+        rxMode.map(label(_))
+      },
+      {
+        //TODO: pattern matching is broken inside Rx
+        def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+          case EditMode(postId) => Client.api.updatePost(graph.posts(postId).copy(title = text)).call()
+          case FocusMode(postId) => Client.api.respond(postId, text).call().map(_.isDefined)
+          case _ => Client.api.addPost(text).call().map(_ => true)
+        }
+        Rx {
+          input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
+            val input = e.target.asInstanceOf[HTMLInputElement]
+            val text = input.value
+            if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
+              action(text, rxGraph.now, rxMode.now).foreach { success =>
+                if (success) {
+                  input.value = ""
+                  rxEditedPostId := None
+                }
+              }
+            }
+            ()
+          }).render
+        }
+      }
+    )
+  }
+}

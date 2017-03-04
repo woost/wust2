@@ -8,6 +8,7 @@ import rx._
 import scalatags.rx.all._
 import scalatags.JsDom.all._
 import math._
+import util.Pipe
 
 import frontend.GlobalState
 import graph._
@@ -141,8 +142,6 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
 
 object GraphView {
   def component(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    val container = div().render
-    new GraphView(state, container)
-    container
+    div().render ||> (new GraphView(state, _))
   }
 }

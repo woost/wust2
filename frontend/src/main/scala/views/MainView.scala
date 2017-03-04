@@ -39,7 +39,7 @@ object MainView {
       ),
       div(position.fixed, width := "100%", bottom := 0, left := 0,
         padding := "5px", background := "#f7f7f7", borderTop := "1px solid #DDD")(
-          "AddPostForm"
+          AddPostForm.component(state)
         )
     )
 }
