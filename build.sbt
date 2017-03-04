@@ -43,7 +43,9 @@ lazy val root = project.in(file("."))
     watchSources ++= (watchSources in workbench).value
   )
 
-val akkaVersion = "2.4.16"
+val akkaVersion = "2.4.17"
+val akkaHttpVersion = "10.0.4"
+val specs2Version = "3.8.8"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -92,7 +94,7 @@ lazy val framework = crossProject
   )
   .jvmSettings(
     libraryDependencies ++= (
-      "com.typesafe.akka" %% "akka-http" % "10.0.3" ::
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
       // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
       // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
@@ -117,11 +119,10 @@ lazy val frontend = project
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
     libraryDependencies ++= (
       "com.timushev" %%% "scalatags-rx" % "0.3.0" ::
-      "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
-      // "org.specs2" %% "specs2-core" % "3.8.7" % "test" :: // TODO: switch to specs2 when it is available for scalajs: https://github.com/etorreborre/specs2/issues/465
+      // "org.specs2" %% "specs2-core" % specs2Version % "test" :: // TODO: switch to specs2 when it is available for scalajs: https://github.com/etorreborre/specs2/issues/465
       Nil
     ),
     // scalacOptions in Test ++= Seq("-Yrangepos"), // for specs2
@@ -185,10 +186,10 @@ lazy val backend = project
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
-      "org.mindrot" % "jbcrypt" % "0.3m" :: //TODO version 0.4?
-      "org.specs2" %% "specs2-core" % "3.8.7" % "test" ::
+      "org.mindrot" % "jbcrypt" % "0.4" ::
+      "org.specs2" %% "specs2-core" % specs2Version % "test" ::
       Nil,
-    scalacOptions in Test ++= Seq("-Yrangepos")
+    scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
 
 lazy val test = project
@@ -197,9 +198,9 @@ lazy val test = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      "com.typesafe.akka" %% "akka-http" % "10.0.3" % "it" ::
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion % "it" ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion % "it" ::
-      "org.specs2" %% "specs2-core" % "3.8.7" % "it" ::
+      "org.specs2" %% "specs2-core" % specs2Version % "it" ::
       "org.seleniumhq.selenium" % "selenium-java" % "3.2.0" % "it" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
