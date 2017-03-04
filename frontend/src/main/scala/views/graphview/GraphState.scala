@@ -120,10 +120,10 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  rxSimPosts.debug(v => s"  simPosts: ${v.map(_.id).toSeq.sorted}")
-  rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.keys.toSeq.sorted}")
-  rxSimConnects.debug(v => s"  simConnects: ${v.map(_.id).toSeq.sorted}")
-  rxSimContains.debug(v => s"  simContains: ${v.map(_.id).toSeq.sorted}")
-  rxContainmentCluster.debug(v => s"  containmentCluster: ${v.map(_.id).toSeq.sorted}")
+  rxSimPosts.debug(v => s"  simPosts: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+  rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.keys.toSeq.sorted.mkString(",")}")
+  rxSimConnects.debug(v => s"  simConnects: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+  rxSimContains.debug(v => s"  simContains: ${v.map(_.id).toSeq.sorted.mkString(",")}")
+  rxContainmentCluster.debug(v => s"  containmentCluster: ${v.map(_.id).toSeq.sorted.mkString(",")}")
   rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}")
 }
