@@ -2,6 +2,7 @@ package frontend
 
 import graph._, api._
 import rx._
+import RxVar._
 
 case class InteractionMode(edit: Option[AtomId], focus: Option[AtomId])
 object FocusMode {
@@ -35,9 +36,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val mode: Rx[InteractionMode] = editedPostId
     .flatMap(e => focusedPostId.map(f => InteractionMode(edit = e, focus = f)))
 
-  // collapsedPostIds.debug("collapsed")
-  // rawGraph.debug("rawGraph")
-  // graph.debug("graph")
+  rawGraph.rx.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+  collapsedPostIds.rx.debug("collapsedPostIds")
+  currentView.rx.debug("currentView")
+  graph.rx.debug(v => s"graph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+  focusedPostId.rx.debug("focusedPostId")
+  editedPostId.rx.debug("editedPostId")
+  mode.rx.debug("mode")
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)

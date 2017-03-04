@@ -18,7 +18,7 @@ import util.collection._
 import Color._
 
 class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSelection[SimPost] {
-  import postDrag._, graphState.focusedPost
+  import postDrag._, graphState.rxFocusedSimPost
 
   override val tag = "div"
   override def enter(post: Enter[SimPost]) {
@@ -30,7 +30,7 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
     ).render)
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
-        focusedPost.update(_.setOrToggle(p.id))
+        rxFocusedSimPost.update(_.setOrToggle(p.id))
       })
       .call(d3.drag[SimPost]()
         .on("start", postDragStarted _)

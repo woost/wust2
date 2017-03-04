@@ -50,8 +50,8 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
   def draggingPosts: Rx[js.Array[SimPost]] = _draggingPosts
   def closestPosts: Rx[js.Array[SimPost]] = _closestPosts
 
-  private def graph = graphState.rxGraph.now //TODO: avoid now
-  private def postIdToSimPost = graphState.postIdToSimPost.now
+  private def graph = graphState.rxGraph.now //TODO: avoid now, this will probably crash when dragging during an update
+  private def postIdToSimPost = graphState.rxPostIdToSimPost.now
 
   private val dragHitDetectRadius = 100
 
@@ -97,28 +97,30 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     onPostDragged()
   }
 
-  def postDragEnded(p: SimPost) {
+  def postDragEnded(dragging: SimPost) {
     import DropMenu.dropActions
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-    val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
+    val transformedEventPos = dragging.dragStart + (eventPos - dragging.dragStart) / transform.k
 
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
     closest match {
-      case Some(target) if target != p =>
+      case Some(target) if target != dragging =>
         import autowire._
         import boopickle.Default._
 
-        dropActions(target.dropIndex(dropActions.size)).action(p, target)
+        val dropAction = dropActions(target.dropIndex(dropActions.size))
+        println(s"\nDropped ${dropAction.name}: [${dragging.id}]${dragging.title} -> [${target.id}]${target.title}")
+        dropAction.action(dragging, target)
 
         target.isClosest = false
-        p.fixedPos = js.undefined
+        dragging.fixedPos = js.undefined
       case _ =>
-        p.pos = transformedEventPos
-        p.fixedPos = transformedEventPos
+        dragging.pos = transformedEventPos
+        dragging.fixedPos = transformedEventPos
     }
     updateClosestPosts()
 
-    p.draggingPost = None
+    dragging.draggingPost = None
     updateDraggingPosts()
 
     simulation.alpha(1).restart()

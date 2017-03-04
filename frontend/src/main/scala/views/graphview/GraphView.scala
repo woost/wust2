@@ -26,34 +26,54 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
   val graphState = new GraphState(state)
   val d3State = new D3State
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state._
+  import state.{graph => rxGraph, _}
+  import graphState._
 
   // prepare containers where we will append elements depending on the data
   // order is important
   import KeyImplicits._
   val container = d3.select(element)
   val svg = container.append("svg")
-  val containmentHullSelection = SelectData.rx(ContainmentHullSelection, graphState.rxContainmentCluster)(svg.append("g"))
-  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, graphState.rxSimConnects)(svg.append("g"))
+  val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
+  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
 
   val html = container.append("div")
-  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, graphState.rxSimConnects)(html.append("div"))
-  val postSelection = SelectData.rx(new PostSelection(graphState, postDrag), graphState.rxSimPosts)(html.append("div"))
+  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
+  val postSelection = SelectData.rx(new PostSelection(graphState, postDrag), rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
   val menuSvg = container.append("svg")
   val postMenuLayer = menuSvg.append("g")
-  val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), graphState.focusedPost.map(_.toJSArray))(postMenuLayer.append("g"))
+  val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
   val dropMenuSelection = SelectData.rxDraw(DropMenuSelection, postDrag.closestPosts)(dropMenuLayer.append("g"))
 
   initContainerDimensionsAndPositions()
   initEvents()
-  graph.foreach(update)
+  rxGraph.foreach(update) // TODO
 
-  graphState.rxSimConnects.foreach { simConnects => d3State.forces.connection.links(simConnects) }
-  graphState.rxSimContains.foreach { simContains => d3State.forces.containment.links(simContains) }
-  graphState.rxSimPosts.foreach { simPosts => d3State.simulation.nodes(simPosts) }
+  Rx { rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
+    val simPosts = rxSimPosts.now
+    val simConnects = rxSimConnects.now
+    val simContains = rxSimContains.now
+    println("    updating graph simulation")
+    d3State.simulation.nodes(simPosts)
+    d3State.forces.connection.links(simConnects)
+    d3State.forces.containment.links(simContains)
+
+    //TODO: this can be removed after implementing link force which supports hyperedges
+    // d3State.forces.connection.strength { (e: SimConnects) =>
+    //   val targetDeg = e.target match {
+    //     case p: SimPost => graph.fullDegree(p.post.id)
+    //     case _: SimConnects => 2
+    //   }
+    //   1.0 / math.min(graph.fullDegree(e.source.post.id), targetDeg)
+    // }
+
+    // d3State.forces.containment.strength { (e: SimContains) =>
+    //   1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
+    // }
+  }
 
   private def onPostDrag() {
     draggingPostSelection.draw()
@@ -63,7 +83,7 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
-    //TODO: currently produces NaNs: graphState.rxSimConnects.foreach { data => d3State.forces.connection.links = data }
+    //TODO: currently produces NaNs: rxSimConnects.foreach { data => d3State.forces.connection.links = data }
   }
 
   private def zoomed() {
@@ -114,19 +134,6 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
 
   private def update(newGraph: Graph) {
     import d3State._, graphState._
-
-    //TODO: this can be removed after implementing link force which supports hyperedges
-    forces.connection.strength { (e: SimConnects) =>
-      val targetDeg = e.target match {
-        case p: SimPost => newGraph.fullDegree(p.post.id)
-        case _: SimConnects => 2
-      }
-      1.0 / math.min(newGraph.fullDegree(e.source.post.id), targetDeg)
-    }
-
-    forces.containment.strength { (e: SimContains) =>
-      1.0 / math.min(newGraph.fullDegree(e.source.post.id), newGraph.fullDegree(e.target.post.id))
-    }
 
     simulation.alpha(1).restart()
   }

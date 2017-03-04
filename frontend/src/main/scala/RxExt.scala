@@ -21,8 +21,7 @@ object WriteProjection {
   }
 }
 
-//TODO: new methods from new release
-class RxVar[S, A](write: WriteVar[S], val rx: Rx[A]) extends WriteVar[S] {
+class RxVar[S, A](val write: WriteVar[S], val rx: Rx[A]) extends WriteVar[S] {
   import RxVar.RichRx
 
   override def :=(newValue: S) = write := newValue
@@ -33,6 +32,7 @@ class RxVar[S, A](write: WriteVar[S], val rx: Rx[A]) extends WriteVar[S] {
   def foreach(f: A => Unit)(implicit ctx: Ctx.Owner) = rx.foreach(f)
   def map[B](f: A => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.map(f))
   def flatMap[B](f: A => Rx[B])(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.flatMap(f))
+  // def combine[B](f: A => Ctx.Owner => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, Rx { f(rx())(ctx) }) //TODO
 }
 
 object RxVar {
@@ -48,10 +48,13 @@ object RxVar {
   }
 
   implicit class RichRx[A](val rx: Rx[A]) extends AnyVal {
+    // def combine[B](f: A => Rx[B])(implicit ctx: Ctx.Owner): Rx[B] = Rx{ rx.map(f)) }
     def debug(implicit ctx: Ctx.Owner): Rx[A] = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Rx[A] = {
-      rx.foreach(x => println(s"$name: $x"))
-      rx
+      rx ||> (_.foreach(x => println(s"$name: $x")))
+    }
+    def debug(print: A => String)(implicit ctx: Ctx.Owner): Rx[A] = {
+      rx ||> (_.foreach(x => println(print(x))))
     }
   }
 }

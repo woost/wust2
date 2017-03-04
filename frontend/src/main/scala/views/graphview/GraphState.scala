@@ -5,6 +5,7 @@ import js.JSConverters._
 import util.collection._
 import collection.breakOut
 import rx._
+import frontend.RxVar
 import frontend.RxVar._
 
 import frontend.GlobalState
@@ -14,13 +15,13 @@ import util.Pipe
 
 class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxGraph = state.graph
-  val editedPostId = state.editedPostId
-  val collapsedPostIds = state.collapsedPostIds
+  val rxEditedPostId = state.editedPostId
+  val rxCollapsedPostIds = state.collapsedPostIds
 
-  val rxSimPosts: Rx[js.Array[SimPost]] = for {
-    graph <- rxGraph
-    collapsedPostIds <- collapsedPostIds
-  } yield {
+  val rxSimPosts: Rx[js.Array[SimPost]] = Rx {
+    val graph = rxGraph()
+    val collapsedPostIds = rxCollapsedPostIds()
+
     graph.posts.values.map { p =>
       val sp = new SimPost(p)
 
@@ -52,7 +53,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  val postIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.fold(Map.empty[AtomId, SimPost]) {
+  val rxPostIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.fold(Map.empty[AtomId, SimPost]) {
     (previousMap, simPosts) =>
       (simPosts: js.ArrayOps[SimPost]).by(_.id) ||> (_.foreach {
         case (id, simPost) =>
@@ -69,15 +70,13 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   //TODO: multiple menus for multi-user multi-touch interface?
-  val focusedPost = for {
-    idOpt <- state.focusedPostId
-    map <- postIdToSimPost
-  } yield idOpt.flatMap(map.get)
+  val rxFocusedSimPost = RxVar(state.focusedPostId, Rx { state.focusedPostId().flatMap(rxPostIdToSimPost().get) })
+  // val rxFocusedSimPost = state.focusedPostId.combine { fp => fp.flatMap(postIdToSimPost().get) } // TODO: Possible? See RxExt
 
-  val rxSimConnects = for {
-    graph <- rxGraph
-    postIdToSimPost <- postIdToSimPost
-  } yield {
+  val rxSimConnects = Rx {
+    val graph = rxGraph()
+    val postIdToSimPost = rxPostIdToSimPost()
+
     val newData = graph.connections.values.map { c =>
       new SimConnects(c, postIdToSimPost(c.sourceId))
     }.toJSArray
@@ -92,19 +91,19 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     newData
   }
 
-  val rxSimContains = for {
-    newGraph <- rxGraph
-    postIdToSimPost <- postIdToSimPost
-  } yield {
-    newGraph.containments.values.map { c =>
+  val rxSimContains = Rx {
+    val graph = rxGraph()
+    val postIdToSimPost = rxPostIdToSimPost()
+
+    graph.containments.values.map { c =>
       new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
     }.toJSArray
   }
 
-  val rxContainmentCluster = for {
-    graph <- rxGraph
-    postIdToSimPost <- postIdToSimPost
-  } yield {
+  val rxContainmentCluster = Rx {
+    val graph = rxGraph()
+    val postIdToSimPost = rxPostIdToSimPost()
+
     val containments = graph.containments.values
     val parents: Seq[AtomId] = containments.map(c => c.parentId)(breakOut).distinct
 
@@ -121,7 +120,10 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  rxSimPosts.foreach(v => println(s"simPosts update"))
-  postIdToSimPost.foreach(v => println(s"postIdToSimPost update"))
-  for (v <- focusedPost) { println(s"focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}") }
+  rxSimPosts.debug(v => s"  simPosts: ${v.map(_.id).toSeq.sorted}")
+  rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.keys.toSeq.sorted}")
+  rxSimConnects.debug(v => s"  simConnects: ${v.map(_.id).toSeq.sorted}")
+  rxSimContains.debug(v => s"  simContains: ${v.map(_.id).toSeq.sorted}")
+  rxContainmentCluster.debug(v => s"  containmentCluster: ${v.map(_.id).toSeq.sorted}")
+  rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}")
 }

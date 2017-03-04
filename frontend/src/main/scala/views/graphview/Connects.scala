@@ -47,6 +47,7 @@ object ConnectionElementSelection extends DataSelection[SimConnects] {
         import autowire._
         import boopickle.Default._
 
+        println(s"\nDelete Connection: ${e.id}")
         Client.api.deleteConnection(e.id).call()
       })
   }

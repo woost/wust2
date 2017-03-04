@@ -12,6 +12,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom
 import org.scalajs.dom.console
 import org.scalajs.dom.raw.HTMLElement
+import scalatags.JsDom.all._
 import vectory._
 import org.scalajs.d3v4._
 import util.collection._
@@ -27,8 +28,8 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
 
   val menuActions = (
     // TODO indication for toggle button? switch string/appearance on basis of value?
-    MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.collapsedPostIds.update(_.toggle(p.id)) }) ::
-    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.editedPostId := Some(p.id) }) ::
+    MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxCollapsedPostIds.update(_.toggle(p.id)) }) ::
+    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxEditedPostId := Some(p.id) }) ::
     // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
@@ -36,45 +37,53 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
   )
 
   override val tag = "g"
-  override def enterAppend(menu: Selection[SimPost]) {
-    import graphState.focusedPost
-    import d3State.simulation
+  override def enter(menu: Enter[SimPost]) {
+    menu.append { (simPost: SimPost) =>
+      import graphState.rxFocusedSimPost
+      import d3State.simulation
+      import scalatags.JsDom.svgTags._
 
-    val pie = d3.pie()
-      .value(1)
-      .padAngle(menuPaddingAngle)
+      val menu = d3.select(g().render)
 
-    val arc = d3.arc()
-      .innerRadius(menuInnerRadius)
-      .outerRadius(menuOuterRadius)
-      .cornerRadius(menuCornerRadius)
+      val pie = d3.pie()
+        .value(1)
+        .padAngle(menuPaddingAngle)
 
-    val pieData = menuActions.toJSArray
-    val ringMenuArc = menu.selectAll("path")
-      .data(pie(pieData))
-    val ringMenuLabels = menu.selectAll("text")
-      .data(pie(pieData))
+      val pieData = menuActions.toJSArray
+      val ringMenuArc = menu.selectAll("path")
+        .data(pie(pieData))
+      val ringMenuLabels = menu.selectAll("text")
+        .data(pie(pieData))
 
-    ringMenuArc.enter()
-      .append("path")
-      .attr("d", (d: PieArcDatum[MenuAction]) => arc(d))
-      .attr("fill", "rgba(0,0,0,0.7)")
-      .style("cursor", "pointer")
-      .style("pointer-events", "all")
-      .on("click", { (d: PieArcDatum[MenuAction]) =>
-        println(s"${d.data.name}: ${focusedPost.now.map(sp => s"${sp.id}: ${sp.title}")}")
-        focusedPost.now.foreach(d.data.action(_, simulation)) //TODO: avoid now
-        focusedPost := None
-      })
-      .on("mousedown", (d: PieArcDatum[MenuAction]) => d3.event.asInstanceOf[org.scalajs.dom.Event].preventDefault()) // disable selecting text in menu
+      val arc = d3.arc()
+        .innerRadius(menuInnerRadius)
+        .outerRadius(menuOuterRadius)
+        .cornerRadius(menuCornerRadius)
 
-    ringMenuLabels.enter()
-      .append("text")
-      .text((d: PieArcDatum[MenuAction]) => d.data.name)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("x", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(0))
-      .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
+      ringMenuArc.enter()
+        .append("path")
+        .attr("d", (d: PieArcDatum[MenuAction]) => arc(d))
+        .attr("fill", "rgba(0,0,0,0.7)")
+        .style("cursor", "pointer")
+        .style("pointer-events", "all")
+        .on("click", { (d: PieArcDatum[MenuAction]) =>
+          println(s"\nMenu ${d.data.name}: [${simPost.id}]${simPost.title}")
+          d.data.action(simPost, simulation)
+          rxFocusedSimPost := None
+        })
+        .on("mousedown", (d: PieArcDatum[MenuAction]) => d3.event.asInstanceOf[org.scalajs.dom.Event].preventDefault()) // disable selecting text in menu
+
+      ringMenuLabels.enter()
+        .append("text")
+        .text((d: PieArcDatum[MenuAction]) => d.data.name)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("x", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(0))
+        .attr("y", (d: PieArcDatum[MenuAction]) => arc.centroid(d)(1))
+
+      menu.node()
+    }
+
   }
 
   override def draw(menu: Selection[SimPost]) {

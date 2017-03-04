@@ -56,7 +56,13 @@ package object graph {
     private val postDefaultDegree = posts.mapValues(_ => 0)
     lazy val connectionDegree = postDefaultDegree ++ degreeSequence[AtomId, Connects](connections.values, _.targetId, _.sourceId)
     lazy val containmentDegree = postDefaultDegree ++ degreeSequence[AtomId, Contains](containments.values, _.parentId, _.childId)
-    def fullDegree(post: AtomId) = connectionDegree(post) + containmentDegree(post)
+    def fullDegree(post: AtomId) = {
+      println(post)
+      println(connectionDegree.keys.toSeq.sorted.toString)
+      println(containmentDegree.keys.toSeq.sorted.toString)
+      println(posts.keys.toSeq.sorted.toString)
+      connectionDegree(post) + containmentDegree(post)
+    }
     def fullDegree(connection: Connects) = 2
 
     def removePosts(atomIds: Iterable[AtomId]) = atomIds.foldLeft(this)((g, p) => g removePost p) //TODO: more efficient
