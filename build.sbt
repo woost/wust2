@@ -46,6 +46,7 @@ lazy val root = project.in(file("."))
 val akkaVersion = "2.4.17"
 val akkaHttpVersion = "10.0.4"
 val specs2Version = "3.8.8"
+val scalaTestVersion = "3.0.1"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -62,7 +63,7 @@ lazy val graph = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     )
   )
@@ -74,7 +75,7 @@ lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     )
   )
@@ -121,7 +122,7 @@ lazy val frontend = project
       "com.timushev" %%% "scalatags-rx" % "0.3.0" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
-      "org.scalatest" %%% "scalatest" % "3.0.1" % "test" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       // "org.specs2" %% "specs2-core" % specs2Version % "test" :: // TODO: switch to specs2 when it is available for scalajs: https://github.com/etorreborre/specs2/issues/465
       Nil
     ),
