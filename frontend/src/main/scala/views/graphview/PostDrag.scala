@@ -17,7 +17,6 @@ import org.scalajs.d3v4._
 import util.collection._
 import autowire._
 import boopickle.Default._
-import com.outr.scribe._
 import scalatags.JsDom.all._
 import util.Pipe
 

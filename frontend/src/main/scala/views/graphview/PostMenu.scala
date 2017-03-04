@@ -18,7 +18,6 @@ import org.scalajs.d3v4._
 import util.collection._
 import autowire._
 import boopickle.Default._
-import com.outr.scribe._
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0

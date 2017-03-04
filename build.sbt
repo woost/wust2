@@ -88,7 +88,6 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % "1.2.6" ::
-      "com.outr" %%% "scribe" % "1.3.2" ::
       Nil
     )
   )
@@ -96,6 +95,7 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
+      "com.outr" %%% "scribe" % "1.3.2" ::
       // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
       // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
       Nil

@@ -4,10 +4,10 @@ import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import java.util.{Timer, TimerTask}
+import org.scalajs.dom.console
 
 import framework.message._
 import util.time.StopWatch
-import com.outr.scribe._
 
 case object TimeoutException extends Exception
 
@@ -39,7 +39,7 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
     openRequests += seqId -> promise
     promise.future onComplete { _ =>
       openRequests -= seqId
-      logger.info(s"$seqId: ${stopwatch.readMillis}ms")
+      console.log(s"Request $seqId: ${stopwatch.readMillis}ms")
     }
     seqId -> promise
   }
