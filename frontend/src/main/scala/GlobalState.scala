@@ -4,17 +4,10 @@ import graph._, api._
 import rx._
 import RxVar._
 
-case class InteractionMode(edit: Option[AtomId], focus: Option[AtomId])
-object FocusMode {
-  def unapply(mode: InteractionMode): Option[AtomId] = Some(mode) collect {
-    case InteractionMode(None, Some(f)) => f
-  }
-}
-object EditMode {
-  def unapply(mode: InteractionMode): Option[AtomId] = Some(mode) collect {
-    case InteractionMode(Some(e), _) => e
-  }
-}
+sealed trait InteractionMode
+case class FocusMode(postId: AtomId) extends InteractionMode
+case class EditMode(postId: AtomId) extends InteractionMode
+case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
   val rawGraph = RxVar(Graph.empty)
@@ -22,6 +15,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val collapsedPostIds = RxVar[Set[AtomId]](Set.empty)
 
+  //TODO: eliminate flatmap because of leaking observers and too many invocations
   val currentView = RxVar[View](View())
     .flatMap(v => collapsedPostIds.map(collapsed => v.union(View(collapsed = Selector.IdSet(collapsed)))))
 
@@ -33,8 +27,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val editedPostId = RxVar[Option[AtomId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
-  val mode: Rx[InteractionMode] = editedPostId
-    .flatMap(e => focusedPostId.map(f => InteractionMode(edit = e, focus = f)))
+  val mode: Rx[InteractionMode] = Rx {
+    (focusedPostId(), editedPostId()) match {
+      case (_, Some(id)) => EditMode(id)
+      case (Some(id), None) => FocusMode(id)
+      case _ => DefaultMode
+    }
+  }
 
   rawGraph.rx.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
   collapsedPostIds.rx.debug("collapsedPostIds")
