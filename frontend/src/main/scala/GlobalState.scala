@@ -42,13 +42,15 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   }
 
-  rawGraph.rx.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
-  collapsedPostIds.rx.debug("collapsedPostIds")
-  currentView.rx.debug("currentView")
-  graph.rx.debug(v => s"graph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
-  focusedPostId.rx.debug("focusedPostId")
-  editedPostId.rx.debug("editedPostId")
-  mode.rx.debug("mode")
+  DevOnly {
+    rawGraph.rx.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+    collapsedPostIds.rx.debug("collapsedPostIds")
+    currentView.rx.debug("currentView")
+    graph.rx.debug(v => s"graph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+    focusedPostId.rx.debug("focusedPostId")
+    editedPostId.rx.debug("editedPostId")
+    mode.rx.debug("mode")
+  }
 
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)
