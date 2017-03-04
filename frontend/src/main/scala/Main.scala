@@ -16,12 +16,13 @@ import collection.breakOut
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 import rx._
-import rx.Ctx.Owner.Unsafe._ //TODO: is this correct?
 
 @JSExport
 object Main extends js.JSApp {
   @JSExport
   def main(): Unit = {
+    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
+
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
     val port = if (location.port == "12345") "8080" else location.port
