@@ -9,7 +9,7 @@ addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.0.3")
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.8.0")
 addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.0")
 
-addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.0")
+addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.1")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.3")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.0")
 addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.1.0")
