@@ -51,7 +51,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
-  val rxPostIdToSimPost: Rx[Map[AtomId, SimPost]] = rxSimPosts.fold(Map.empty[AtomId, SimPost]) {
+  val rxPostIdToSimPost: Rx[Map[PostId, SimPost]] = rxSimPosts.fold(Map.empty[PostId, SimPost]) {
     (previousMap, simPosts) =>
       (simPosts: js.ArrayOps[SimPost]).by(_.id) ||> (_.foreach {
         case (id, simPost) =>
@@ -79,11 +79,14 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       new SimConnects(c, postIdToSimPost(c.sourceId))
     }.toJSArray
 
-    val connIdToSimConnects: Map[AtomId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
+    val connIdToSimConnects: Map[ConnectsId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
 
     // set hyperedge targets, goes away with custom linkforce
     newData.foreach { e =>
-      e.target = postIdToSimPost.getOrElse(e.targetId, connIdToSimConnects(e.targetId))
+      e.target = e.targetId match {
+        case id:PostId => postIdToSimPost(id)
+        case id:ConnectsId => connIdToSimConnects(id)
+      }
     }
 
     newData
@@ -103,7 +106,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val postIdToSimPost = rxPostIdToSimPost()
 
     val containments = graph.containments.values
-    val parents: Seq[AtomId] = containments.map(c => c.parentId)(breakOut).distinct
+    val parents: Seq[PostId] = containments.map(c => c.parentId)(breakOut).distinct
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.

@@ -6,6 +6,9 @@ import rx.Ctx.Owner.Unsafe._
 
 class GlobalStateSpec extends FreeSpec with MustMatchers {
 
+  implicit def tuplePosts(t:(Long, Post)): (PostId, Post) = (PostId(t._1), t._2)
+  implicit def tupleConnects(t:(Long, Connects)): (ConnectsId, Connects) = (ConnectsId(t._1), t._2)
+  implicit def tupleContains(t:(Long, Contains)): (ContainsId, Contains) = (ContainsId(t._1), t._2)
   //TODO: test the number of rx updates
 
   "raw graph" - {
@@ -13,7 +16,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       val state = new GlobalState
       state.rawGraph := Graph(
         posts = Map(1L -> Post(1, "title")),
-        connections = Map(2L -> Connects(2, 1, 11)),
+        connections = Map(2L -> Connects(2, 1, ConnectsId(11))),
         containments = Map(3L -> Contains(3, 1, 12))
       )
 
@@ -26,7 +29,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       val state = new GlobalState
       state.rawGraph := Graph(
         posts = Map(1L -> Post(1, "title"), 11L -> Post(11, "title2")),
-        connections = Map(2L -> Connects(2, 1, 11)),
+        connections = Map(2L -> Connects(2, 1, PostId(11))),
         containments = Map(3L -> Contains(3, 11, 1))
       )
 
@@ -39,7 +42,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.focusedPostId.now mustEqual None
 
       state.rawGraph := Graph(posts = Map(1L -> Post(1, "title")))
-      state.focusedPostId.now mustEqual Some(1L)
+      state.focusedPostId.now mustEqual Some(PostId(1L))
 
       state.rawGraph := Graph.empty
       state.focusedPostId.now mustEqual None
@@ -51,7 +54,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.editedPostId.now mustEqual None
 
       state.rawGraph := Graph(posts = Map(1L -> Post(1, "title")))
-      state.editedPostId.now mustEqual Some(1L)
+      state.editedPostId.now mustEqual Some(PostId(1L))
 
       state.rawGraph := Graph.empty
       state.editedPostId.now mustEqual None

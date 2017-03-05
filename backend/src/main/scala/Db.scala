@@ -8,10 +8,23 @@ import util.collection._
 import graph._
 
 object Db {
-  import io.getquill._
+  import io.getquill.{PostgresAsyncContext, LowerCase}
 
-  private lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
+  lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
   import ctx._
+
+  implicit val encodePostId = MappedEncoding[PostId, IdType](_.id)
+  implicit val decodePostId = MappedEncoding[IdType, PostId](PostId(_))
+  implicit val encodeConnectsId = MappedEncoding[ConnectsId, IdType](_.id)
+  implicit val decodeConnectsId = MappedEncoding[IdType, ConnectsId](ConnectsId(_))
+  implicit val encodeContainsId = MappedEncoding[ContainsId, IdType](_.id)
+  implicit val decodeContainsId = MappedEncoding[IdType, ContainsId](ContainsId(_))
+  implicit val encodeConnectableId = MappedEncoding[ConnectableId, IdType](_.id)
+  implicit val decodeConnectableId = MappedEncoding[IdType, ConnectableId](UnknownConnectableId(_))
+
+  implicit val postInsertMeta = insertMeta[Post](_.id)
+  implicit val connectsInsertMeta = insertMeta[Connects](_.id)
+  implicit val containsInsertMeta = insertMeta[Contains](_.id)
 
   object post {
     def apply(title: String): Future[Post] = {
@@ -20,7 +33,7 @@ object Db {
       ctx.run(q).map(id => post.copy(id = id))
     }
 
-    def get(id: AtomId): Future[Option[Post]] = {
+    def get(id: PostId): Future[Option[Post]] = {
       val q = quote { query[Post].filter(_.id == lift(id)).take(1) }
       ctx.run(q).map(_.headOption)
     }
@@ -30,14 +43,14 @@ object Db {
       ctx.run(q).map(_ == 1)
     }
 
-    def delete(id: AtomId): Future[Boolean] = {
+    def delete(id: PostId): Future[Boolean] = {
       val q = quote { query[Post].filter(_.id == lift(id)).delete }
       ctx.run(q).map(_ => true)
     }
   }
 
   object connects {
-    def apply(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]] = {
+    def apply(sourceId: PostId, targetId: ConnectableId): Future[Option[Connects]] = {
       val connects = Connects(sourceId, targetId)
       val q = quote {
         query[Connects].insert(lift(connects)).returning(x => x.id)
@@ -49,14 +62,14 @@ object Db {
       newId.map(_.map(id => connects.copy(id = id)))
     }
 
-    def delete(id: AtomId): Future[Boolean] = {
+    def delete(id: ConnectsId): Future[Boolean] = {
       val q = quote { query[Connects].filter(_.id == lift(id)).delete }
       ctx.run(q).map(_ => true)
     }
   }
 
   object contains {
-    def apply(childId: AtomId, parentId: AtomId): Future[Option[Contains]] = {
+    def apply(childId: PostId, parentId: PostId): Future[Option[Contains]] = {
       val contains = Contains(childId, parentId)
       val q = quote {
         query[Contains].insert(lift(contains)).returning(x => x.id)
@@ -68,7 +81,7 @@ object Db {
       newId.map(_.map(id => contains.copy(id = id)))
     }
 
-    def delete(id: AtomId): Future[Boolean] = {
+    def delete(id: ContainsId): Future[Boolean] = {
       val q = quote { query[Contains].filter(_.id == lift(id)).delete }
       ctx.run(q).map(_ => true)
     }
@@ -89,7 +102,7 @@ object Db {
       ctx.run(q).map(id => Some(User(id, name))).recover { case _: Exception => None }
     }
 
-    def get(id: AtomId): Future[Option[User]] = {
+    def get(id: Long): Future[Option[User]] = {
       val q = quote(querySchema[User]("\"user\"").filter(_.id == lift(id)).take(1))
       ctx.run(q).map(_.headOption)
     }

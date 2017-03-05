@@ -10,16 +10,16 @@ trait AuthApi {
 }
 
 trait Api {
-  def getPost(id: AtomId): Future[Option[Post]]
-  def deletePost(id: AtomId): Future[Boolean]
+  def getPost(id: PostId): Future[Option[Post]]
+  def deletePost(id: PostId): Future[Boolean]
   def getGraph(): Future[Graph]
   def addPost(msg: String): Future[Post]
   def updatePost(post: Post): Future[Boolean]
-  def connect(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]]
-  def contain(childId: AtomId, parentId: AtomId): Future[Option[Contains]]
-  def deleteConnection(id: AtomId): Future[Boolean]
-  def deleteContainment(id: AtomId): Future[Boolean]
-  def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]]
+  def connect(sourceId: PostId, targetId: ConnectableId): Future[Option[Connects]]
+  def contain(childId: PostId, parentId: PostId): Future[Option[Contains]]
+  def deleteConnection(id: ConnectsId): Future[Boolean]
+  def deleteContainment(id: ContainsId): Future[Boolean]
+  def respond(to: PostId, msg: String): Future[Option[(Post, Connects)]]
   // def getComponent(id: Id): Future[Graph]
 }
 
@@ -48,9 +48,9 @@ case class NewPost(post: Post) extends ApiEvent
 case class UpdatedPost(post: Post) extends ApiEvent
 case class NewConnection(edge: Connects) extends ApiEvent
 case class NewContainment(edge: Contains) extends ApiEvent
-case class DeletePost(id: AtomId) extends ApiEvent
-case class DeleteConnection(id: AtomId) extends ApiEvent
-case class DeleteContainment(id: AtomId) extends ApiEvent
+case class DeletePost(id: PostId) extends ApiEvent
+case class DeleteConnection(id: ConnectsId) extends ApiEvent
+case class DeleteContainment(id: ContainsId) extends ApiEvent
 
 sealed trait Authorize
 case class PasswordAuth(name: String, password: String) extends Authorize

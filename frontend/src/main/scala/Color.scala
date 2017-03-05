@@ -5,9 +5,9 @@ import graph._
 object Color {
   val postDefaultColor = d3.lab("#f8f8f8")
 
-  def baseHue(id: AtomId) = (id * 137) % 360
-  def baseColor(id: AtomId) = d3.hcl(baseHue(id), 50, 75)
-  def baseColorMixedWithDefault(id: AtomId) = mixColors(d3.hcl(baseHue(id), 50, 75), postDefaultColor)
+  def baseHue(id: PostId) = (id.id * 137) % 360
+  def baseColor(id: PostId) = d3.hcl(baseHue(id), 50, 75)
+  def baseColorMixedWithDefault(id: PostId) = mixColors(d3.hcl(baseHue(id), 50, 75), postDefaultColor)
 
   //TODO: implicit color conversions in d3 facade
   def mixColors(a: Color, b: Color): Color = {

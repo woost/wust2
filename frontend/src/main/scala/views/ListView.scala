@@ -16,12 +16,12 @@ import util.algorithm.{Tree, redundantSpanningTree}
 object ListView {
   //TODO: report bug about pattern matching in rx.map:
   //scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (_)
-  def modeToColor(id: AtomId): InteractionMode => d3v4.Color = {
+  def modeToColor(id: PostId): InteractionMode => d3v4.Color = {
     case FocusMode(`id`) => d3v4.d3.lab("#AAFFAA")
     case EditMode(`id`) => d3v4.d3.lab("#AAAAFF")
     case _ => Color.postDefaultColor
   }
-  def postColor(id: AtomId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map(modeToColor(id))
+  def postColor(id: PostId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map(modeToColor(id))
 
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Frag = {
     import state._
@@ -42,7 +42,7 @@ object ListView {
     )
   }
 
-  def postTreeItem(tree: Tree[AtomId], showPost: AtomId => Frag, indent: Int = 0)(implicit ctx: Ctx.Owner): Frag = div(
+  def postTreeItem(tree: Tree[PostId], showPost: PostId => Frag, indent: Int = 0)(implicit ctx: Ctx.Owner): Frag = div(
     marginLeft := indent * 10,
     showPost(tree.element),
     tree.children.map(postTreeItem(_, showPost, indent + 1))

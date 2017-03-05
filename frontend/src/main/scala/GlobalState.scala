@@ -5,15 +5,15 @@ import rx._
 import RxVar._
 
 sealed trait InteractionMode
-case class FocusMode(postId: AtomId) extends InteractionMode
-case class EditMode(postId: AtomId) extends InteractionMode
+case class FocusMode(postId: PostId) extends InteractionMode
+case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
 
-  val collapsedPostIds = RxVar[Set[AtomId]](Set.empty)
+  val collapsedPostIds = RxVar[Set[PostId]](Set.empty)
 
   val currentView = {
     val v = RxVar[View](View())
@@ -28,10 +28,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     })
   }
 
-  val focusedPostId = RxVar[Option[AtomId]](None)
+  val focusedPostId = RxVar[Option[PostId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
-  val editedPostId = RxVar[Option[AtomId]](None)
+  val editedPostId = RxVar[Option[PostId]](None)
     .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
 
   val mode: Rx[InteractionMode] = Rx {
@@ -58,8 +58,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case NewConnection(connects) => graph.update(_ + connects)
     case NewContainment(contains) => graph.update(_ + contains)
 
-    case DeletePost(postId) => graph.update(_.removePost(postId))
-    case DeleteConnection(connectsId) => graph.update(_.removeConnection(connectsId))
-    case DeleteContainment(containsId) => graph.update(_.removeContainment(containsId))
+    case DeletePost(postId) => graph.update(_ - postId)
+    case DeleteConnection(connectsId) => graph.update(_ - connectsId)
+    case DeleteContainment(containsId) => graph.update(_ - containsId)
   }
 }

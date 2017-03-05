@@ -21,7 +21,7 @@ import frontend.Color._
 import rx._
 
 object AddPostForm {
-  def editLabel(graph: Rx[Graph], editedPostId: WriteVar[Option[AtomId]], postId: AtomId)(implicit ctx: Ctx.Owner) = {
+  def editLabel(graph: Rx[Graph], editedPostId: WriteVar[Option[PostId]], postId: PostId)(implicit ctx: Ctx.Owner) = {
     div(
       "Edit Post:",
       button("×", onclick := { (_: Event) => editedPostId := None }),
@@ -29,7 +29,7 @@ object AddPostForm {
     )
   }
 
-  def responseLabel(graph: Rx[Graph], postId: AtomId)(implicit ctx: Ctx.Owner) = {
+  def responseLabel(graph: Rx[Graph], postId: PostId)(implicit ctx: Ctx.Owner) = {
     div(
       Rx { Views.parents(postId, graph()).render },
       Rx { Views.post(graph().posts(postId)).render }

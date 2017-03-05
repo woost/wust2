@@ -5,13 +5,17 @@ import org.scalatest._
 import util.collection._
 
 class PageTest extends FreeSpec with MustMatchers {
+  implicit def tuplePosts(t:(Long, Post)): (PostId, Post) = (PostId(t._1), t._2)
+  implicit def tupleConnects(t:(Long, Connects)): (ConnectsId, Connects) = (ConnectsId(t._1), t._2)
+  implicit def tupleContains(t:(Long, Contains)): (ContainsId, Contains) = (ContainsId(t._1), t._2)
+
   "view" - {
     "collapse graph" in {
       val selector = Selector.IdSet(Set(1L))
       val graph = Graph(
         posts = Map(1L -> Post(1, "title"), 11L -> Post(11, "title2")),
         connections = Map.empty,
-        containments = Map(3L -> Contains(3, 1, 11)))
+        containments = Map(3L -> Contains(3, 1, PostId(11))))
       val collapsed = View.collapse(selector, graph)
 
       collapsed mustEqual Graph(posts = Map(1L -> Post(1, "title")))

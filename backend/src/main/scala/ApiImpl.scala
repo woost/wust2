@@ -23,7 +23,7 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
 
   private def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
 
-  def getPost(id: AtomId): Future[Option[Post]] = Db.post.get(id)
+  def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id)
 
   def addPost(msg: String): Future[Post] = withUser {
     Db.post(msg) ||> (_.foreach(NewPost(_) |> emit))
@@ -33,23 +33,23 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     Db.post.update(post) ||> (_.foreach(if (_) UpdatedPost(post) |> emit))
   }
 
-  def deletePost(id: AtomId): Future[Boolean] = withUser {
+  def deletePost(id: PostId): Future[Boolean] = withUser {
     Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emit))
   }
 
-  def connect(sourceId: AtomId, targetId: AtomId): Future[Option[Connects]] = withUser {
+  def connect(sourceId: PostId, targetId: ConnectableId): Future[Option[Connects]] = withUser {
     Db.connects(sourceId, targetId) ||> (_.foreach(_.foreach(NewConnection(_) |> emit)))
   }
 
-  def deleteConnection(id: AtomId): Future[Boolean] = withUser {
+  def deleteConnection(id: ConnectsId): Future[Boolean] = withUser {
     Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emit))
   }
 
-  def contain(childId: AtomId, parentId: AtomId): Future[Option[Contains]] = withUser {
+  def contain(childId: PostId, parentId: PostId): Future[Option[Contains]] = withUser {
     Db.contains(childId, parentId) ||> (_.foreach(_.foreach(NewContainment(_) |> emit)))
   }
 
-  def deleteContainment(id: AtomId): Future[Boolean] = withUser {
+  def deleteContainment(id: ContainsId): Future[Boolean] = withUser {
     Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emit))
   }
 
@@ -57,7 +57,7 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  def respond(to: AtomId, msg: String): Future[Option[(Post, Connects)]] = withUser {
+  def respond(to: PostId, msg: String): Future[Option[(Post, Connects)]] = withUser {
     //TODO do in one request, does currently not handle errors, then no get
     for {
       post <- addPost(msg)
