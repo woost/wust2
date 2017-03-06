@@ -47,6 +47,22 @@ object Db {
   }
 
   object connects {
+    val createPostAndConnects = quote { (title: String, targetId: ConnectableId) =>
+      infix"""with ins as (
+        insert into post(id, title) values(DEFAULT, $title) returning id
+      ) insert into connects(id, sourceId, targetId) select 0, id, ${targetId.id} from ins""".as[Insert[Connects]]
+    }
+
+    def newPost(title: String, targetId: ConnectableId): Future[(Post, Connects)] = {
+      // TODO
+      // val q = quote { createPostAndConnects(lift(title), lift(targetId)) }
+      // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
+      for {
+        post <- post(title)
+        connects <- apply(post.id, targetId)
+      } yield (post, connects)
+    }
+
     def apply(sourceId: PostId, targetId: ConnectableId): Future[Connects] = {
       val connects = Connects(sourceId, targetId)
       val q = quote { query[Connects].insert(lift(connects)).returning(x => x.id) }
@@ -78,7 +94,7 @@ object Db {
     val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
       infix"""with ins as (
         insert into "user"(id, name) values(DEFAULT, $name) returning id
-      ) insert into password(id, digest) select id, $digest from ins returning id;""".as[Insert[Long]]
+      ) insert into password(id, digest) select id, $digest from ins returning id;""".as[ActionReturning[User,Long]]
     }
 
     def apply(name: String, password: String): Future[Option[User]] = {

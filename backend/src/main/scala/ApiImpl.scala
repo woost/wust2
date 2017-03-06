@@ -53,17 +53,16 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emit))
   }
 
+  def respond(to: PostId, msg: String): Future[(Post, Connects)] = withUser {
+    Db.connects.newPost(msg, to) ||> (_.foreach { case (post, connects) =>
+      NewPost(post) |> emit
+      NewConnection(connects) |> emit
+    })
+  }
+
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
-
-  def respond(to: PostId, msg: String): Future[(Post, Connects)] = withUser {
-    //TODO do in one request, does currently not handle errors, then no get
-    for {
-      post <- addPost(msg)
-      edge <- connect(post.id, to)
-    } yield (post, edge)
-  }
 
   def getGraph(): Future[Graph] = Db.graph.get()
 }
