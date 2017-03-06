@@ -1,15 +1,14 @@
 package backend
 
+import util.collection._
+import graph._
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.roundeights.hasher.Hasher
-import util.collection._
-
-import graph._
+import io.getquill._
 
 object Db {
-  import io.getquill.{PostgresAsyncContext, LowerCase}
-
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
   import ctx._
 
@@ -22,9 +21,7 @@ object Db {
   implicit val encodeConnectableId = MappedEncoding[ConnectableId, IdType](_.id)
   implicit val decodeConnectableId = MappedEncoding[IdType, ConnectableId](UnknownConnectableId(_))
 
-  implicit val postInsertMeta = insertMeta[Post](_.id)
-  implicit val connectsInsertMeta = insertMeta[Connects](_.id)
-  implicit val containsInsertMeta = insertMeta[Contains](_.id)
+  implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
   object post {
     def apply(title: String): Future[Post] = {
@@ -50,16 +47,10 @@ object Db {
   }
 
   object connects {
-    def apply(sourceId: PostId, targetId: ConnectableId): Future[Option[Connects]] = {
+    def apply(sourceId: PostId, targetId: ConnectableId): Future[Connects] = {
       val connects = Connects(sourceId, targetId)
-      val q = quote {
-        query[Connects].insert(lift(connects)).returning(x => x.id)
-      }
-      val newId = ctx.run(q).map(Some(_)).recover {
-        case e: /*GenericDatabaseException*/ Exception => None
-      }
-
-      newId.map(_.map(id => connects.copy(id = id)))
+      val q = quote { query[Connects].insert(lift(connects)).returning(x => x.id) }
+      ctx.run(q).map(id => connects.copy(id = id))
     }
 
     def delete(id: ConnectsId): Future[Boolean] = {
@@ -69,16 +60,10 @@ object Db {
   }
 
   object contains {
-    def apply(childId: PostId, parentId: PostId): Future[Option[Contains]] = {
+    def apply(childId: PostId, parentId: PostId): Future[Contains] = {
       val contains = Contains(childId, parentId)
-      val q = quote {
-        query[Contains].insert(lift(contains)).returning(x => x.id)
-      }
-      val newId = ctx.run(q).map(Some(_)).recover {
-        case e: /*GenericDatabaseException*/ Exception => None
-      }
-
-      newId.map(_.map(id => contains.copy(id = id)))
+      val q = quote { query[Contains].insert(lift(contains)).returning(x => x.id) }
+      ctx.run(q).map(id => contains.copy(id = id))
     }
 
     def delete(id: ContainsId): Future[Boolean] = {
@@ -90,7 +75,7 @@ object Db {
   object user {
     private def passwordDigest(password: String) = Hasher(password).bcrypt
 
-    private val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
+    val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
       infix"""with ins as (
         insert into "user"(id, name) values(DEFAULT, $name) returning id
       ) insert into password(id, digest) select id, $digest from ins returning id;""".as[Insert[Long]]
@@ -98,34 +83,38 @@ object Db {
 
     def apply(name: String, password: String): Future[Option[User]] = {
       val digest = passwordDigest(password)
-      val q = quote(createUserAndPassword(lift(name), lift(digest)))
-      ctx.run(q).map(id => Some(User(id, name))).recover { case _: Exception => None }
+      val q = quote { createUserAndPassword(lift(name), lift(digest)) }
+      ctx.run(q)
+        .map(id => Some(User(id, name)))
+        .recover { case _: Exception => None }
     }
 
     def get(id: Long): Future[Option[User]] = {
-      val q = quote(querySchema[User]("\"user\"").filter(_.id == lift(id)).take(1))
+      val q = quote(query[User].filter(_.id == lift(id)).take(1))
       ctx.run(q).map(_.headOption)
     }
 
     def get(name: String, password: String): Future[Option[User]] = {
       val q = quote {
-        querySchema[User]("\"user\"").filter(_.name == lift(name)).join(query[Password]).on((u, p) => u.id == p.id).take(1)
+        query[User].filter(_.name == lift(name)).join(query[Password]).on((u, p) => u.id == p.id).take(1)
       }
 
-      ctx.run(q).map(_.headOption.filter {
-        case (user, pw) =>
-          passwordDigest(password) hash = pw.digest
-      }.map(_._1))
+      ctx.run(q).map(_.headOption.collect {
+        case (user, pw) if (passwordDigest(password) hash= pw.digest) => user
+      })
     }
   }
 
   object graph {
     def get(): Future[Graph] = {
-      for (
-        posts <- ctx.run(query[Post]);
-        connects <- ctx.run(query[Connects]);
-        contains <- ctx.run(query[Contains])
-      ) yield Graph(
+      val postFut = ctx.run(query[Post])
+      val connectsFut = ctx.run(query[Connects])
+      val containsFut = ctx.run(query[Contains])
+      for {
+        posts <- postFut
+        connects <- connectsFut
+        contains <- containsFut
+      } yield Graph(
         posts.by(_.id),
         connects.by(_.id),
         contains.by(_.id)

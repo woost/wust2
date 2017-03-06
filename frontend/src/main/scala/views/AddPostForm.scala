@@ -66,7 +66,7 @@ object AddPostForm {
         //TODO: pattern matching is broken inside Rx
         def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
           case EditMode(postId) => Client.api.updatePost(graph.posts(postId).copy(title = text)).call()
-          case FocusMode(postId) => Client.api.respond(postId, text).call().map(_.isDefined)
+          case FocusMode(postId) => Client.api.respond(postId, text).call().map(_ => true)
           case _ => Client.api.addPost(text).call().map(_ => true)
         }
         Rx {

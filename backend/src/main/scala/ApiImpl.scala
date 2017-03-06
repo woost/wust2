@@ -37,16 +37,16 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
     Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emit))
   }
 
-  def connect(sourceId: PostId, targetId: ConnectableId): Future[Option[Connects]] = withUser {
-    Db.connects(sourceId, targetId) ||> (_.foreach(_.foreach(NewConnection(_) |> emit)))
+  def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects] = withUser {
+    Db.connects(sourceId, targetId) ||> (_.foreach(NewConnection(_) |> emit))
   }
 
   def deleteConnection(id: ConnectsId): Future[Boolean] = withUser {
     Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emit))
   }
 
-  def contain(childId: PostId, parentId: PostId): Future[Option[Contains]] = withUser {
-    Db.contains(childId, parentId) ||> (_.foreach(_.foreach(NewContainment(_) |> emit)))
+  def contain(childId: PostId, parentId: PostId): Future[Contains] = withUser {
+    Db.contains(childId, parentId) ||> (_.foreach(NewContainment(_) |> emit))
   }
 
   def deleteContainment(id: ContainsId): Future[Boolean] = withUser {
@@ -57,12 +57,12 @@ class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  def respond(to: PostId, msg: String): Future[Option[(Post, Connects)]] = withUser {
+  def respond(to: PostId, msg: String): Future[(Post, Connects)] = withUser {
     //TODO do in one request, does currently not handle errors, then no get
     for {
       post <- addPost(msg)
       edge <- connect(post.id, to)
-    } yield edge.map((post, _))
+    } yield (post, edge)
   }
 
   def getGraph(): Future[Graph] = Db.graph.get()
