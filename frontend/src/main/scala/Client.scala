@@ -14,7 +14,7 @@ object TypePicklers {
 }
 import TypePicklers._
 
-case class BadRequestException(error: ApiError) extends Exception
+case class ApiException(error: ApiError) extends Exception
 
 object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
   val api = wire[Api]
@@ -26,6 +26,6 @@ object Client extends WebsocketClient[Channel, ApiEvent, ApiError, Authorize] {
     listeners += handler
   }
 
-  override def fromError(error: ApiError) = BadRequestException(error)
+  override def fromError(error: ApiError) = ApiException(error)
   override def receive(event: ApiEvent) = listeners.foreach(_(event))
 }

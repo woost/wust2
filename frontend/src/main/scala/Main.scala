@@ -39,7 +39,7 @@ object Main extends js.JSApp {
     }
 
     document.getElementById("container").appendChild(
-      views.MainView.component(state).render
+      views.MainView(state).render
     )
   }
 }

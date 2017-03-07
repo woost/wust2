@@ -5,7 +5,6 @@ import graph._
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.roundeights.hasher.Hasher
 import io.getquill._
 
 object Db {
@@ -89,7 +88,9 @@ object Db {
   }
 
   object user {
-    private def passwordDigest(password: String) = Hasher(password).bcrypt
+    import com.roundeights.hasher.Hasher
+
+    def passwordDigest(password: String) = Hasher(password).bcrypt
 
     val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
       infix"""with ins as (

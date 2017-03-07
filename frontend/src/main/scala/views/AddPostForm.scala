@@ -38,7 +38,7 @@ object AddPostForm {
 
   val newLabel = div("New Post:")
 
-  def component(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import state.{graph => rxGraph, mode => rxMode, editedPostId => rxEditedPostId}
 
     //TODO: onattached -> store domnode -> focus
