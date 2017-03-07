@@ -20,7 +20,7 @@ import org.scalajs.dom.console
 
 object DropMenu {
   val dropActions = (
-    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) ::
+    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id : ConnectableId).call() }) :: //TODO: better solution for pickling trait parameters in autowire?
     DropAction("insert into", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
     // DropAction("Merge", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
     Nil
