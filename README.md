@@ -11,7 +11,7 @@ This project is in an early stage of development. You can already play around wi
 Contributions very welcome. Please ask questions and share ideas.
 
 # Rough Architecture
-A hypergraph stored in postgres accessed via rpc-calls over websockets and binary serialization, visualized using reactive programming and a fore-directed graph layout.
+A hypergraph stored in postgres accessed via rpc-calls over websockets and binary serialization, visualized using reactive programming and a force-directed graph layout.
 
 # Building blocks
 * [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js)
