@@ -1,5 +1,4 @@
-package frontend
-import rx._
+package rx
 
 import util.Pipe
 

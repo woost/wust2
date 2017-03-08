@@ -9,7 +9,7 @@ import autowire._
 import org.scalajs.dom._
 import boopickle.Default._
 
-import api.Channel
+import api.{User, Channel}
 import graph._
 import collection.breakOut
 
@@ -32,7 +32,10 @@ object Main extends js.JSApp {
     Client.listen(state.onApiEvent)
     Client.run(s"$protocol://${location.hostname}:$port/ws")
     Client.subscribe(Channel.Graph)
-    Client.login(api.PasswordAuth("hans", "***"))
+    Client.login(api.PasswordAuth("hans", "***")).foreach { success =>
+      val newUser = if (success) Some(User(0, "hans")) else None
+      state.currentUser := newUser //TODO should get user from backend
+    }
 
     Client.api.getGraph().call().foreach { graph =>
       state.graph := graph

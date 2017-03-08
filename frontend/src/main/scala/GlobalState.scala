@@ -10,6 +10,8 @@ case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
+  val currentUser = RxVar(None : Option[User])
+
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
 

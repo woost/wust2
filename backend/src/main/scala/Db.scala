@@ -2,6 +2,7 @@ package backend
 
 import util.collection._
 import graph._
+import api.User
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -89,6 +90,8 @@ object Db {
 
   object user {
     import com.roundeights.hasher.Hasher
+
+    case class Password(id: Long, digest: Array[Byte])
 
     def passwordDigest(password: String) = Hasher(password).bcrypt
 

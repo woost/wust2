@@ -54,3 +54,5 @@ case class DeleteContainment(id: ContainsId) extends ApiEvent
 
 sealed trait Authorize
 case class PasswordAuth(name: String, password: String) extends Authorize
+
+case class User(id: Long, name: String)

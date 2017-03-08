@@ -5,9 +5,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import api._, graph._
 
-case class User(id: Long, name: String)
-case class Password(id: Long, digest: Array[Byte])
-
 class AuthApiImpl extends AuthApi {
   def register(name: String, password: String): Future[Boolean] = {
     Db.user(name, password).map(_.isDefined)

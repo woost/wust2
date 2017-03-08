@@ -4,9 +4,7 @@ import scalajs.js
 import js.JSConverters._
 import util.collection._
 import collection.breakOut
-import rx._
-import frontend.RxVar
-import frontend.RxVar._
+import rx._, RxVar._
 
 import frontend.{ DevOnly, GlobalState }
 import graph._
