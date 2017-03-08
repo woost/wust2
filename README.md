@@ -3,16 +3,35 @@
 [![Coverage Status](https://coveralls.io/repos/github/woost/wust2/badge.svg)](https://coveralls.io/github/woost/wust2)
 [![Join the chat at https://gitter.im/wust2/Lobby](https://badges.gitter.im/wust2/Lobby.svg)](https://gitter.im/wust2/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-# development
+Goal: Scale communication and collaboration within large groups.
+The core idea can be imagined as a mix of the expressiveness of mind-mapping, Wiki and realtime collaborative editing.
 
+This project is in an early stage of development. You can already play around with the online version: https://wust.space
+
+Contributions very welcome. Please ask questions and share ideas.
+
+# Rough Architecture
+A hypergraph stored in postgres accessed via rpc-calls over websockets and binary serialization, visualized using reactive programming and a fore-directed graph layout.
+
+# Building blocks
+* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js)
+* [nginx](https://github.com/nginx/nginx)
+* [postgres](https://github.com/postgres/postgres)
+* [flyway](https://github.com/flyway/flyway)
+* [quill](https://github.com/getquill/quill)
+* [akka](https://github.com/akka/akka)
+* [autowire](https://github.com/lihaoyi/autowire)
+* [boopickle](https://github.com/suzaku-io/boopickle)
+* [scalatags-rx](https://github.com/rtimush/scalatags-rx)
+* [d3](https://github.com/d3/d3)
+
+# Development
 Requirements:
 * sbt
-* docker
-* docker-compose
-* node
-* npm
+* docker, docker-compose
+* node, npm, yarn
 
-Start all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
+Starting all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
 ```
 $ ./start dev
 ```
@@ -29,15 +48,13 @@ If you are only developing the frontend, you can also skip recompilation of the 
 
 Access wust via http://localhost:12345/workbench/index.html
 
-# build docker images
-
+# Building docker images
 Build all docker images in project:
 ```
 $ sbt docker
 ```
 
-# production
-
+# Production
 Requirements:
 * docker
 * docker-compose
@@ -68,15 +85,5 @@ Example:
 HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
 ```
 
-# building blocks
 
-* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js)
-* [nginx](https://github.com/nginx/nginx)
-* [postgres](https://github.com/postgres/postgres)
-* [flyway](https://github.com/flyway/flyway)
-* [quill](https://github.com/getquill/quill)
-* [akka](https://github.com/akka/akka)
-* [autowire](https://github.com/lihaoyi/autowire)
-* [boopickle](https://github.com/suzaku-io/boopickle)
-* [monadic-html](https://github.com/OlivierBlanvillain/monadic-html)
-* [d3](https://github.com/d3/d3)
+
