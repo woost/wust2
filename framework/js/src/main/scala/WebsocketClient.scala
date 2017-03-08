@@ -7,18 +7,16 @@ import boopickle.Default._
 
 import framework.message._
 
-class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[ByteBuffer]) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
-  override def doCall(req: Request): Future[ByteBuffer] = send(req.path, req.args)
-  def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
-  def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
+trait IncidentHandler[Event, Error] {
+  def receive(event: Event): Unit
+  def fromError(error: Error): Throwable
 }
 
-abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler] {
-  def receive(event: EVENT): Unit
-  def fromError(error: ERROR): Throwable
+class WebsocketClient[Channel, Event, Error, AuthToken](
+  val messages: Messages[Channel, Event, Error, AuthToken],
+  handler: IncidentHandler[Event, Error]) {
 
-  private val messages = new Messages[CHANNEL, EVENT, ERROR, AUTH]
-  import messages._
+  import messages._, handler._
 
   private val controlRequests = new OpenRequests[Boolean]
   private val callRequests = new OpenRequests[ByteBuffer]
@@ -38,23 +36,17 @@ abstract class WebsocketClient[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
     ws.send(Pickle.intoBytes(msg))
   }
 
-  private def call(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
-    val (id, promise) = callRequests.open()
-    send(CallRequest(id, path, args))
-    promise.future
-  }
-
-  private def control(control: Control): Future[Boolean] = {
+  def control(control: Control): Future[Boolean] = {
     val (id, promise) = controlRequests.open()
     send(ControlRequest(id, control))
     promise.future
   }
 
-  def login(auth: AUTH): Future[Boolean] = control(Login(auth))
-  def logout(): Future[Boolean] = control(Logout())
-  def subscribe(channel: CHANNEL): Unit = send(Subscription(channel))
-
-  val wire = new AutowireClient(call)
+  def call(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
+    val (id, promise) = callRequests.open()
+    send(CallRequest(id, path, args))
+    promise.future
+  }
 
   def run(location: String): Unit = ws.run(location) { bytes =>
     acknowledgeTraffic()

@@ -17,14 +17,9 @@ object UserView {
 
   val userField = inputText(placeholder := "user name").render
   val passwordField = inputPassword(placeholder := "password").render
-  val registerButton = buttonClick("register", Client.auth.register(userField.value, passwordField.value).call())
-  def loginButton(currentUser: WriteVar[Option[User]]) = buttonClick("login", Client.login(api.PasswordAuth(userField.value, passwordField.value)).foreach { success =>
-    val newUser = if (success) Some(User(0, passwordField.value)) else None
-    currentUser := newUser //TODO should get user from backend
-  })
-  def logoutButton(currentUser: WriteVar[Option[User]]) = buttonClick("logout", Client.logout().foreach { success =>
-    if (success) currentUser := None //TODO
-  })
+  val registerButton = buttonClick("register", Client.auth.register(userField.value, passwordField.value))
+  def loginButton(currentUser: WriteVar[Option[User]]) = buttonClick("login", Client.auth.login(userField.value, passwordField.value))
+  def logoutButton(currentUser: WriteVar[Option[User]]) = buttonClick("logout", Client.auth.logout())
 
   def loginMask(currentUser: WriteVar[Option[User]]) = div(userField, passwordField, loginButton(currentUser), registerButton)
   def userProfile(currentUser: WriteVar[Option[User]], user: User) = div(user.toString, logoutButton(currentUser))

@@ -7,61 +7,56 @@ import java.nio.ByteBuffer
 
 import akka.actor._
 import akka.pattern.pipe
-import autowire.Core.{Request, Router}
+import autowire.Core.{ Request, Router }
 
 import framework.message._
 import util.time.StopWatch
 import util.Pipe
 
-//TODO decouple. channel dependency, then subscribe, signal => action!
-class ConnectedClient[CHANNEL, AUTH, ERROR, USER](
-  messages: Messages[CHANNEL, _, ERROR, AUTH],
-  dispatcher: Dispatcher[CHANNEL, _],
-  router: Option[USER] => Router[ByteBuffer],
-  pathNotFound: Seq[String] => ERROR,
-  toError: PartialFunction[Throwable, ERROR],
-  authorize: AUTH => Future[Option[USER]]
-) extends Actor {
-  import messages._, ConnectedClient._
+trait RequestHandler[Channel, Event, Error, AuthToken, User] {
+  val dispatcher: Dispatcher[Channel, Event]
+  def router(user: Option[User]): AutowireServer.Router
+  def pathNotFound(path: Seq[String]): Error
+  def toError: PartialFunction[Throwable, Error]
+  def authenticate(auth: AuthToken): Option[User]
+}
 
-  val notAuthenticated: Future[Option[USER]] = Future.successful(None)
+class ConnectedClient[Channel, Event, Error, AuthToken, User](
+    messages: Messages[Channel, Event, Error, AuthToken],
+    handler: RequestHandler[Channel, Event, Error, AuthToken, User]) extends Actor {
 
-  def connected(outgoing: ActorRef, user: Future[Option[USER]]): Receive = {
+  import ConnectedClient._
+  import messages._, handler._
+
+  def connected(outgoing: ActorRef, user: Option[User] = None): Receive = {
     case Ping() => outgoing ! Pong()
     case CallRequest(seqId, path, args) =>
       val timer = StopWatch.started
-
-      router(user.value.flatMap(_.toOption.flatten)).lift(Request(path, args))
+      router(user).lift(Request(path, args))
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
         .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
         .pipeTo(outgoing)
     case ControlRequest(seqId, control) => control match {
-      case Login(auth) =>
-        val timer = StopWatch.started
-
-        val nextUser = authorize(auth)
-        nextUser.map(_.isDefined)
-          .recover { case NonFatal(_) => false }
-          .map(ControlResponse(seqId, _))
-          .||>(_.onComplete { _ => scribe.info(f"Login($seqId): ${timer.readMicros}us") })
-          .pipeTo(outgoing)
-
-        context.become(connected(outgoing, nextUser))
+      case Login(token) =>
+        val user = authenticate(token)
+        outgoing ! ControlResponse(seqId, user.isDefined)
+        context.become(connected(outgoing, user))
       case Logout() =>
         outgoing ! ControlResponse(seqId, true)
-        context.become(connected(outgoing, notAuthenticated))
+        context.become(connected(outgoing))
+      case Subscribe(channel) => dispatcher.subscribe(outgoing, channel)
+      case Unsubscribe(channel) => dispatcher.unsubscribe(outgoing, channel)
     }
-    case Subscription(channel) => dispatcher.subscribe(outgoing, channel)
     case Stop =>
       dispatcher.unsubscribe(outgoing)
       context.stop(self)
   }
 
   def receive = {
-    case Connect(outgoing) => context.become(connected(outgoing, notAuthenticated))
-    case Stop => context.stop(self)
+    case Connect(outgoing) => context.become(connected(outgoing))
+    case Stop              => context.stop(self)
   }
 }
 object ConnectedClient {

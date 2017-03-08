@@ -14,7 +14,7 @@ psql)
     PGPASSWORD=test psql -h localhost -U wust
     ;;
 dev)
-    sbt dbMigration/docker
+    # sbt dbMigration/docker
     $compose up -d
     POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt
     ;;

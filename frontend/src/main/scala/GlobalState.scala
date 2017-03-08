@@ -62,6 +62,11 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     mode.rx.debug("mode")
   }
 
+  val onAuthEvent: AuthEvent => Unit = _ match {
+    case LoggedIn(user) => currentUser := Some(user)
+    case LoggedOut => currentUser := None
+  }
+
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => graph.update(_ + post)
     case UpdatedPost(post) => graph.update(_ + post)

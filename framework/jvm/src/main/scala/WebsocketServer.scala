@@ -10,21 +10,16 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.ws.{Message, BinaryMessage}
-import akka.stream.{ActorMaterializer, OverflowStrategy}
+import akka.http.scaladsl.model.ws.{ Message, BinaryMessage }
+import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import autowire.Core.{Request, Router}
+import autowire.Core.{ Request, Router }
 import boopickle.Default._
 
 import framework.message._
 
-object AutowireServer extends autowire.Server[ByteBuffer, Pickler, Pickler] {
-  def read[Result: Pickler](p: ByteBuffer) = Unpickle[Result].fromBytes(p)
-  def write[Result: Pickler](r: Result) = Pickle.intoBytes(r)
-}
-
-object Serializer {
+object WebsocketSerializer {
   def serialize[T: Pickler](msg: T): Message = {
     val bytes = Pickle.intoBytes(msg)
     BinaryMessage(ByteString(bytes))
@@ -37,28 +32,20 @@ object Serializer {
   }
 }
 
-abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler, AUTH: Pickler, USER] {
-  def route: Route
-  def router(user: Option[USER]): AutowireServer.Router
-  def pathNotFound(path: Seq[String]): ERROR
-  def toError: PartialFunction[Throwable, ERROR]
-  def authorize(auth: AUTH): Future[Option[USER]]
+object WebsocketFlow {
+  def apply[Channel, Event, Error, AuthToken, User](
+    messages: Messages[Channel, Event, Error, AuthToken],
+    handler: RequestHandler[Channel, Event, Error, AuthToken, User])(implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
 
-  private lazy val messages = new Messages[CHANNEL, EVENT, ERROR, AUTH]
-  import messages._
+    import WebsocketSerializer._
+    import messages._
 
-  private implicit val system = ActorSystem()
-  private implicit val materializer = ActorMaterializer()
-
-  private val dispatcher = new Dispatcher[CHANNEL, Message]
-
-  private def newConnectedClient: Flow[Message, Message, NotUsed] = {
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, dispatcher, router, pathNotFound, toError, authorize)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, handler)))
 
     val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
         case bm: BinaryMessage.Strict =>
-          val msg = Serializer.deserialize[ClientMessage](bm)
+          val msg = deserialize[ClientMessage](bm)
           scribe.info(s"<-- $msg")
           msg
         //TODO: streamed?
@@ -73,24 +60,24 @@ abstract class WebsocketServer[CHANNEL: Pickler, EVENT: Pickler, ERROR: Pickler,
           //TODO no any, proper serialize map
           case msg: ServerMessage =>
             scribe.info(s"--> $msg")
-            Serializer.serialize(msg)
+            WebsocketSerializer.serialize(msg)
           case other: Message => other
         }
 
     Flow.fromSinkAndSource(incoming, outgoing)
   }
+}
 
-  protected def websocketHandler = handleWebSocketMessages(newConnectedClient)
+class WebsocketServer[Channel, Event, Error, AuthToken, User](
+    val messages: Messages[Channel, Event, Error, AuthToken],
+    handler:      RequestHandler[Channel, Event, Error, AuthToken, User]) {
 
-  def emit(channel: CHANNEL, event: EVENT): Unit = Future {
-    scribe.info(s"-[$channel]-> event: $event")
-    val payload = Serializer.serialize[ServerMessage](Notification(event))
-    dispatcher.publish(Dispatcher.ChannelEvent(channel, payload))
-  }
+  private implicit val system = ActorSystem()
+  private implicit val materializer = ActorMaterializer()
 
-  val wire = AutowireServer
+  def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler))
 
-  def run(interface: String, port: Int): Future[ServerBinding] = {
+  def run(route: Route, interface: String, port: Int): Future[ServerBinding] = {
     Http().bindAndHandle(route, interface = interface, port = port)
   }
 }

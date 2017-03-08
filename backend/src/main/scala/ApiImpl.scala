@@ -2,17 +2,14 @@ package backend
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import util.Pipe
 
 import api._, graph._
+import auth.JWTOps
 
-class AuthApiImpl extends AuthApi {
-  def register(name: String, password: String): Future[Boolean] = {
-    Db.user(name, password).map(_.isDefined)
-  }
-}
+class ApiImpl(authentication: Option[Authentication], emit: ApiEvent => Unit) extends Api {
 
-class ApiImpl(userOpt: Option[User], emit: ApiEvent => Unit) extends Api {
-  import util.Pipe
+  private def userOpt = authentication.filter(u => !JWTOps.isExpired(u.token)).map(_.user)
 
   private def withUser[T](f: User => Future[T]): Future[T] = userOpt.map(f).getOrElse {
     Future.failed(UserError(Unauthorized))

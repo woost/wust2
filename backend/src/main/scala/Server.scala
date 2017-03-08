@@ -3,45 +3,53 @@ package backend
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
+import java.nio.ByteBuffer
 
 import akka.http.scaladsl.server.Directives._
+import akka.actor.ActorRef
 import boopickle.Default._
 
-import api._, framework._
-
-object TypePicklers {
-  implicit val channelPickler = implicitly[Pickler[Channel]]
-  implicit val eventPickler = implicitly[Pickler[ApiEvent]]
-  implicit val authPickler = implicitly[Pickler[Authorize]]
-  implicit val errorPickler = implicitly[Pickler[ApiError]]
-}
-import TypePicklers._
+import api._
+import framework._, message._
+import auth.JWTOps
 
 case class UserError(error: ApiError) extends Exception
 
-object Server extends WebsocketServer[Channel, ApiEvent, ApiError, Authorize, User] with App {
-  override def router(user: Option[User]) =
+class ApiRequestHandler(
+    messages: Messages[Channel, ApiEvent, ApiError, JWT.Token],
+    wire: autowire.Server[ByteBuffer, Pickler, Pickler]) extends RequestHandler[Channel, ApiEvent, ApiError, JWT.Token, Authentication] {
+
+  def emit(event: ApiEvent): Unit = dispatcher.emit(Channel.fromEvent(event), event)
+
+  override val dispatcher = new EventDispatcher(messages)
+
+  override def router(user: Option[Authentication]) =
     wire.route[Api](new ApiImpl(user, emit)) orElse wire.route[AuthApi](new AuthApiImpl)
 
   override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
-  override def toError: PartialFunction[Throwable, ApiError] = {
+  override val toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
     case NonFatal(e) =>
       scribe.error("request handler threw exception", e)
       InternalServerError
   }
 
-  override def authorize(auth: Authorize): Future[Option[User]] = auth match {
-    case PasswordAuth(name, pw) => Db.user.get(name, pw).map(_.headOption)
+  override def authenticate(token: JWT.Token): Option[Authentication] =
+    Some(token).filter(JWTOps.isValid).map { token =>
+      val user = JWTOps.userFromToken(token)
+      Authentication(user, token)
+    }
+}
+
+object Server {
+  private val wire = AutowireServer
+  private val messages = new Messages[Channel, ApiEvent, ApiError, JWT.Token]
+  private val handler = new ApiRequestHandler(messages, wire)
+  private val ws = new WebsocketServer(messages, handler)
+
+  private val route = (path("ws") & get) {
+    ws.websocketHandler
   }
 
-  override val route = (path("ws") & get) {
-    websocketHandler
-  }
-
-  def emit(event: ApiEvent): Unit = emit(Channel.fromEvent(event), event)
-
-  run("0.0.0.0", 8080) foreach { binding =>
-    scribe.info(s"Server online at ${binding.localAddress}")
-  }
+  def run(port: Int) = ws.run(route, "0.0.0.0", port)
 }
