@@ -12,7 +12,7 @@ case object DefaultMode extends InteractionMode
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar(None: Option[User])
 
-  private val rawGraph = RxVar(Graph.empty)
+  val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
 
   val collapsedPostIds = RxVar[Set[PostId]](Set.empty)

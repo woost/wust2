@@ -6,9 +6,9 @@ import rx.Ctx.Owner.Unsafe._
 
 class GlobalStateSpec extends FreeSpec with MustMatchers {
 
-  implicit def tuplePosts(t:(Long, Post)): (PostId, Post) = (PostId(t._1), t._2)
-  implicit def tupleConnects(t:(Long, Connects)): (ConnectsId, Connects) = (ConnectsId(t._1), t._2)
-  implicit def tupleContains(t:(Long, Contains)): (ContainsId, Contains) = (ContainsId(t._1), t._2)
+  implicit def tuplePosts(t: (Long, Post)): (PostId, Post) = (PostId(t._1), t._2)
+  implicit def tupleConnects(t: (Long, Connects)): (ConnectsId, Connects) = (ConnectsId(t._1), t._2)
+  implicit def tupleContains(t: (Long, Contains)): (ContainsId, Contains) = (ContainsId(t._1), t._2)
   //TODO: test the number of rx updates
 
   "raw graph" - {
