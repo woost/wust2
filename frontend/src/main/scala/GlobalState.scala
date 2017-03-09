@@ -10,9 +10,9 @@ case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
-  val currentUser = RxVar(None : Option[User])
+  val currentUser = RxVar(None: Option[User])
 
-  val rawGraph = RxVar(Graph.empty)
+  private val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
 
   val collapsedPostIds = RxVar[Set[PostId]](Set.empty)
@@ -30,11 +30,19 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     })
   }
 
-  val focusedPostId = RxVar[Option[PostId]](None)
-    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
+  val focusedPostId = {
+    val fp = RxVar[Option[PostId]](None)
+    RxVar(fp.write, Rx {
+      fp().filter(graph().posts.isDefinedAt)
+    })
+  }
 
-  val editedPostId = RxVar[Option[PostId]](None)
-    .flatMap(source => graph.map(g => source.filter(g.posts.isDefinedAt)))
+  val editedPostId = {
+    val ep = RxVar[Option[PostId]](None)
+    RxVar(ep.write, Rx {
+      ep().filter(graph().posts.isDefinedAt)
+    })
+  }
 
   val mode: Rx[InteractionMode] = Rx {
     (focusedPostId(), editedPostId()) match {
