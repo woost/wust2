@@ -5,7 +5,11 @@ import math._
 import org.scalajs.d3v4._
 import util.Pipe
 
-class SimPost(val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
+trait SimConnectable {
+  def id: graph.ConnectableId
+}
+
+class SimPost(val post: Post) extends SimConnectable with ExtendedD3Node with SimulationNodeImpl {
   //TODO: delegert!
   def id = post.id
   def title = post.title

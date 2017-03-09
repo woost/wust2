@@ -5,14 +5,14 @@ import org.scalajs.d3v4._
 import scalajs.js
 
 class SimConnects(val connects: Connects, val source: SimPost)
-  extends SimulationLink[SimPost, ExtendedD3Node] with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {
+  extends SimulationLink[SimPost, ExtendedD3Node] with SimConnectable with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {
   //TODO: delegert!
   def id = connects.id
   def sourceId = connects.sourceId
   def targetId = connects.targetId
 
   // this is necessary because target can be a SimConnects itself
-  var target: ExtendedD3Node = _
+  var target: SimConnectable with ExtendedD3Node = _
 
   // propagate d3 gets/sets to incident posts
   def x = for (sx <- source.x; tx <- target.x) yield (sx + tx) / 2

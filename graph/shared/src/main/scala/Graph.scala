@@ -1,7 +1,6 @@
-
 package object graph {
   import collection.mutable
-  import util.{ algorithm, Pipe }
+  import util.{algorithm, Pipe}
   import algorithm._
   //TODO: this also needs to be done as database contstraint
   type IdType = Long
@@ -23,9 +22,10 @@ package object graph {
   object ContainsId { implicit def fromIdType(id: IdType) = ContainsId(id) }
 
   final case class Graph(
-      posts:        Map[PostId, Post]         = Map.empty, // TODO: accept List and generate Map lazily
-      connections:  Map[ConnectsId, Connects] = Map.empty,
-      containments: Map[ContainsId, Contains] = Map.empty) {
+    posts: Map[PostId, Post] = Map.empty, // TODO: accept List and generate Map lazily
+    connections: Map[ConnectsId, Connects] = Map.empty,
+    containments: Map[ContainsId, Contains] = Map.empty
+  ) {
     override def toString = s"Graph(${posts.values.toList}.by(_.id),${connections.values.toList}.by(_.id), ${containments.values.toList}.by(_.id))"
 
     private val postDefaultNeighbourhood = posts.mapValues(_ => Set.empty[PostId])
@@ -77,7 +77,7 @@ package object graph {
     lazy val containmentDegree = postDefaultDegree ++ degreeSequence[PostId, Contains](containments.values, _.parentId, _.childId)
 
     val fullDegree: ConnectableId => Int = {
-      case p: PostId     => connectionDegree(p) + containmentDegree(p)
+      case p: PostId => connectionDegree(p) + containmentDegree(p)
       case c: ConnectsId => 2
     }
 
@@ -89,14 +89,17 @@ package object graph {
         copy(
           posts = posts -- removedPosts,
           connections = connections -- removedConnections,
-          containments = containments -- removedContains)
+          containments = containments -- removedContains
+        )
       case id: ConnectsId =>
         val removedConnections = incidentConnectionsDeep(id)
         copy(
-          connections = connections -- removedConnections - id)
+          connections = connections -- removedConnections - id
+        )
       case id: ContainsId =>
         copy(
-          containments = containments - id)
+          containments = containments - id
+        )
     }
 
     def --(ids: Iterable[AtomId]) = ids.foldLeft(this)((g, p) => g - p) //TODO: more efficient
@@ -118,16 +121,17 @@ package object graph {
       connections = connections.flatMap {
         case (cid, c) if posts.get(c.sourceId).isDefined =>
           val newTarget = (c.targetId match {
-            case t: PostId     => posts.get(t).map(_.id)
+            case t: PostId => posts.get(t).map(_.id)
             case c: ConnectsId => connections.get(c).map(_.id)
             case u: UnknownConnectableId => posts.get(PostId(u.id)).map(_.id) orElse connections.get(ConnectsId(u.id)).map(_.id)
           })
-        newTarget.map(target => cid -> c.copy(targetId = target))
+          newTarget.map(target => cid -> c.copy(targetId = target))
         case _ => None
       },
       containments = containments.filter {
         case (cid, c) => posts.get(c.childId).isDefined && posts.get(c.parentId).isDefined
-      })
+      }
+    )
 
     lazy val depth: collection.Map[PostId, Int] = {
       val tmpDepths = mutable.HashMap[PostId, Int]()
@@ -141,8 +145,7 @@ package object graph {
             val d = if (c.isEmpty) 0 else c.map(getDepth).max + 1
             tmpDepths(id) = d
             d
-          }
-          else 0 // cycle
+          } else 0 // cycle
         })
       }
 

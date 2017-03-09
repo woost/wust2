@@ -52,31 +52,30 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
   initContainerDimensionsAndPositions()
   initEvents()
 
-  Rx { rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
+  Rx { rxGraph(); rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
     val simPosts = rxSimPosts.now
     val simConnects = rxSimConnects.now
     val simContains = rxSimContains.now
+    val graph = rxGraph.now
 
     DevOnly {
       println("    updating graph simulation")
     }
 
+    //TODO: this can be removed after implementing link force which supports hyperedges
+    // the strength functions depend on the latest graph and are called
+    // when setting nodes and links. Therefore they need to be set before.
+    d3State.forces.connection.strength { (e: SimConnects) =>
+      1.0 / math.min(graph.fullDegree(e.source.id), graph.fullDegree(e.target.id))
+    }
+
+    d3State.forces.containment.strength { (e: SimContains) =>
+      1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
+    }
+
     d3State.simulation.nodes(simPosts)
     d3State.forces.connection.links(simConnects)
     d3State.forces.containment.links(simContains)
-
-    //TODO: this can be removed after implementing link force which supports hyperedges
-    // d3State.forces.connection.strength { (e: SimConnects) =>
-    //   val targetDeg = e.target match {
-    //     case p: SimPost => graph.fullDegree(p.post.id)
-    //     case _: SimConnects => 2
-    //   }
-    //   1.0 / math.min(graph.fullDegree(e.source.post.id), targetDeg)
-    // }
-
-    // d3State.forces.containment.strength { (e: SimContains) =>
-    //   1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
-    // }
 
     d3State.simulation.alpha(1).restart()
   }
