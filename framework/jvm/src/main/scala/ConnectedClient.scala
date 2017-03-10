@@ -14,7 +14,6 @@ import wust.util.Pipe
 import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, User] {
-  val dispatcher: Dispatcher[Channel, Event]
   def router(user: Option[User]): AutowireServer.Router
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
@@ -23,7 +22,9 @@ trait RequestHandler[Channel, Event, Error, AuthToken, User] {
 
 class ConnectedClient[Channel, Event, Error, AuthToken, User](
     messages: Messages[Channel, Event, Error, AuthToken],
-    handler: RequestHandler[Channel, Event, Error, AuthToken, User]) extends Actor {
+    handler: RequestHandler[Channel, Event, Error, AuthToken, User],
+    dispatcher: Dispatcher[Channel, Event]
+  ) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._

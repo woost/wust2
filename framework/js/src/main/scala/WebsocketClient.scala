@@ -12,9 +12,9 @@ trait IncidentHandler[Event, Error] {
   def fromError(error: Error): Throwable
 }
 
-class WebsocketClient[Channel, Event, Error, AuthToken](
-  val messages: Messages[Channel, Event, Error, AuthToken],
-  handler: IncidentHandler[Event, Error]) {
+class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler](
+    handler: IncidentHandler[Event, Error]) {
+  val messages = new Messages[Channel, Event, Error, AuthToken]
 
   import messages._, handler._
 
@@ -36,17 +36,24 @@ class WebsocketClient[Channel, Event, Error, AuthToken](
     ws.send(Pickle.intoBytes(msg))
   }
 
-  def control(control: Control): Future[Boolean] = {
+  private def call(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
+    val (id, promise) = callRequests.open()
+    send(CallRequest(id, path, args))
+    promise.future
+  }
+
+  private def control(control: Control): Future[Boolean] = {
     val (id, promise) = controlRequests.open()
     send(ControlRequest(id, control))
     promise.future
   }
 
-  def call(path: Seq[String], args: Map[String, ByteBuffer]): Future[ByteBuffer] = {
-    val (id, promise) = callRequests.open()
-    send(CallRequest(id, path, args))
-    promise.future
-  }
+  def login(auth: AuthToken): Future[Boolean] = control(Login(auth))
+  def logout(): Future[Boolean] = control(Logout())
+  def subscribe(channel: Channel): Future[Boolean] = control(Subscribe(channel))
+  def unsubscribe(channel: Channel): Future[Boolean] = control(Unsubscribe(channel))
+
+  val wire = new AutowireClient(call)
 
   def run(location: String): Unit = ws.run(location) { bytes =>
     acknowledgeTraffic()

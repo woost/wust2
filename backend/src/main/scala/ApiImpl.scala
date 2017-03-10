@@ -8,7 +8,8 @@ import wust.api._
 import wust.graph._
 import auth.JWTOps
 
-class ApiImpl(authentication: Option[Authentication], emit: ApiEvent => Unit) extends Api {
+class ApiImpl(authentication: Option[Authentication]) extends Api {
+  import Server.emit
 
   private def userOpt = authentication.filter(u => !JWTOps.isExpired(u.token)).map(_.user)
 

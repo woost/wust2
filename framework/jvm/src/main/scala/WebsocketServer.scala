@@ -35,12 +35,13 @@ object WebsocketSerializer {
 object WebsocketFlow {
   def apply[Channel, Event, Error, AuthToken, User](
     messages: Messages[Channel, Event, Error, AuthToken],
-    handler: RequestHandler[Channel, Event, Error, AuthToken, User])(implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
+    handler: RequestHandler[Channel, Event, Error, AuthToken, User],
+    dispatcher: Dispatcher[Channel, Event])(implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
 
     import WebsocketSerializer._
     import messages._
 
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, handler)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, handler, dispatcher)))
 
     val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
@@ -68,14 +69,17 @@ object WebsocketFlow {
   }
 }
 
-class WebsocketServer[Channel, Event, Error, AuthToken, User](
-    val messages: Messages[Channel, Event, Error, AuthToken],
-    handler:      RequestHandler[Channel, Event, Error, AuthToken, User]) {
+class WebsocketServer[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler, User](
+    handler: RequestHandler[Channel, Event, Error, AuthToken, User]) {
 
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
-  def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler))
+  val messages = new Messages[Channel, Event, Error, AuthToken]
+  private val dispatcher = new EventDispatcher(messages)
+
+  val emit = dispatcher.emit _
+  def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler, dispatcher))
 
   def run(route: Route, interface: String, port: Int): Future[ServerBinding] = {
     Http().bindAndHandle(route, interface = interface, port = port)
