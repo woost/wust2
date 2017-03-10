@@ -65,13 +65,15 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
     //TODO: this can be removed after implementing link force which supports hyperedges
     // the strength functions depend on the latest graph and are called
     // when setting nodes and links. Therefore they need to be set before.
-    d3State.forces.connection.strength { (e: SimConnects) =>
-      1.0 / math.min(graph.fullDegree(e.source.id), graph.fullDegree(e.target.id))
-    }
+    // even when updating the force.initialize method is called,
+    // trying to access all posts which could not exist anymore
+    // d3State.forces.connection.strength { (e: SimConnects) =>
+    //   1.0 / math.min(graph.fullDegree(e.source.id), graph.fullDegree(e.target.id))
+    // }
 
-    d3State.forces.containment.strength { (e: SimContains) =>
-      1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
-    }
+    // d3State.forces.containment.strength { (e: SimContains) =>
+    //   1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
+    // }
 
     d3State.simulation.nodes(simPosts)
     d3State.forces.connection.links(simConnects)
