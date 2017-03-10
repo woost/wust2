@@ -13,24 +13,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.ws.{ Message, BinaryMessage }
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.stream.scaladsl._
-import akka.util.ByteString
 import autowire.Core.{ Request, Router }
 import boopickle.Default._
 
 import message._
-
-object WebsocketSerializer {
-  def serialize[T: Pickler](msg: T): Message = {
-    val bytes = Pickle.intoBytes(msg)
-    BinaryMessage(ByteString(bytes))
-  }
-
-  def deserialize[T: Pickler](bm: BinaryMessage.Strict): T = {
-    val bytes = bm.getStrictData.asByteBuffer
-    val msg = Unpickle[T].fromBytes(bytes)
-    msg
-  }
-}
 
 object WebsocketFlow {
   def apply[Channel, Event, Error, AuthToken, User](

@@ -93,6 +93,7 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % "1.2.6" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     )
   )
