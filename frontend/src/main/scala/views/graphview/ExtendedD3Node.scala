@@ -37,9 +37,9 @@ trait ExtendedD3Node extends SimulationNode {
     }
   }
 
-  def recalculateSize(node: HTMLElement) {
+  def recalculateSize(node: HTMLElement, scale:Double) {
     val rect = node.getBoundingClientRect
-    size = Vec2(rect.width, rect.height)
+    size = Vec2(rect.width, rect.height) / scale
     centerOffset = size / -2
     radius = size.length / 2
     collisionRadius = radius

@@ -40,7 +40,7 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
 
   val html = container.append("div")
   val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
-  val postSelection = SelectData.rx(new PostSelection(graphState, postDrag), rxSimPosts)(html.append("div"))
+  val postSelection = SelectData.rx(new PostSelection(graphState, d3State, postDrag), rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
   val menuSvg = container.append("svg")

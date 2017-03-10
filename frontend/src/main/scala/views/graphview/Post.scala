@@ -17,7 +17,7 @@ import org.scalajs.d3v4._
 import util.collection._
 import Color._
 
-class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSelection[SimPost] {
+class PostSelection(graphState: GraphState, d3State:D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
   import postDrag._, graphState.rxFocusedSimPost
 
   override val tag = "div"
@@ -45,7 +45,7 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
       .text((p: SimPost) => p.title)
 
     post.each({ (node: HTMLElement, p: SimPost) =>
-      p.recalculateSize(node)
+      p.recalculateSize(node, d3State.transform.k)
     })
   }
 
@@ -53,13 +53,12 @@ class PostSelection(graphState: GraphState, postDrag: PostDrag) extends DataSele
 
     // lazily recalculate rendered size to center posts
     // TODO: sometimes some elements still have size 0
-    post.data().headOption.foreach { p =>
-      post.each({ (node: HTMLElement, p: SimPost) =>
-        if (p.size.width == 0) {
-          p.recalculateSize(node)
-        }
-      })
-    }
+    // on different zoom levels -> different(wrong) size calculations
+    post.each({ (node: HTMLElement, p: SimPost) =>
+      if (p.size.width == 0) {
+        p.recalculateSize(node, d3State.transform.k)
+      }
+    })
 
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
