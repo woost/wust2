@@ -19,10 +19,9 @@ package object graph {
   object PostId { implicit def fromIdType(id: IdType) = PostId(id) }
   case class ConnectsId(id: IdType) extends ConnectableId
   object ConnectsId { implicit def fromIdType(id: IdType) = ConnectsId(id) }
-  case class UnknownConnectableId(id: IdType) extends ConnectableId
-  object UnknownConnectableId { implicit def fromIdType(id: IdType) = UnknownConnectableId(id) }
   case class ContainsId(id: IdType) extends AtomId
   object ContainsId { implicit def fromIdType(id: IdType) = ContainsId(id) }
+  case class UnknownConnectableId(id: IdType) extends ConnectableId
 
   final case class Graph(
     posts: Map[PostId, Post] = Map.empty, // TODO: accept List and generate Map lazily
