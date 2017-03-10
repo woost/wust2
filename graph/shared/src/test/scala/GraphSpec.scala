@@ -29,6 +29,11 @@ class GraphSpec extends FreeSpec with MustMatchers {
   }
 
   "graph" - {
+    "empty is empty" in {
+      Graph.empty mustEqual Graph(Map.empty, Map.empty, Map.empty)
+      Graph() mustEqual Graph(Map.empty, Map.empty, Map.empty)
+    }
+
     "directed cycle" in {
       val graph = Graph(
         posts = List(Post(1, "title"), Post(11, "title2"), Post(12, "test3")).by(_.id),
