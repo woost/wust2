@@ -11,11 +11,11 @@ import boopickle.Default._
 
 import wust.api._
 import wust.framework._, message._
-import auth.JWTOps
+import auth.JWT
 
 case class UserError(error: ApiError) extends Exception
 
-class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, JWT.Token, Authentication] {
+class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Authentication.Token, Authentication] {
   override def router(user: Option[Authentication]) =
     AutowireServer.route[Api](new ApiImpl(user)) orElse AutowireServer.route[AuthApi](new AuthApiImpl)
 
@@ -27,15 +27,11 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, JWT.
       InternalServerError
   }
 
-  override def authenticate(token: JWT.Token): Option[Authentication] =
-    Some(token).filter(JWTOps.isValid).map { token =>
-      val user = JWTOps.userFromToken(token)
-      Authentication(user, token)
-    }
+  override def authenticate(token: Authentication.Token): Option[Authentication] = Some(token).flatMap(JWT.authenticationFromToken)
 }
 
 object Server {
-  private val ws = new WebsocketServer[Channel, ApiEvent, ApiError, JWT.Token, Authentication](new ApiRequestHandler)
+  private val ws = new WebsocketServer[Channel, ApiEvent, ApiError, Authentication.Token, Authentication](new ApiRequestHandler)
 
   private val route = (path("ws") & get) {
     ws.websocketHandler

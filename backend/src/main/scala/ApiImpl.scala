@@ -6,12 +6,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import wust.util.Pipe
 import wust.api._
 import wust.graph._
-import auth.JWTOps
+import auth.JWT
 
 class ApiImpl(authentication: Option[Authentication]) extends Api {
   import Server.emit
 
-  private def userOpt = authentication.filter(u => !JWTOps.isExpired(u.token)).map(_.user)
+  private def userOpt = authentication.filterNot(JWT.isExpired).map(_.user)
 
   private def withUser[T](f: User => Future[T]): Future[T] = userOpt.map(f).getOrElse {
     Future.failed(UserError(Unauthorized))

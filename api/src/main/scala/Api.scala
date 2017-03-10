@@ -53,8 +53,8 @@ trait AuthApi {
   def login(name: String, password: String): Future[Option[Authentication]]
 }
 
-object JWT {
+case class User(id: Long, name: String)
+case class Authentication(user: User, expires: Long, token: Authentication.Token)
+object Authentication {
   type Token = String
 }
-case class User(id: Long, name: String)
-case class Authentication(user: User, token: JWT.Token)

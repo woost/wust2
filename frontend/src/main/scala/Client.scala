@@ -19,7 +19,7 @@ class ApiIncidentHandler(sendEvent: ApiEvent => Unit) extends IncidentHandler[Ap
 
 object Client extends WithEvents[ApiEvent] {
   private val handler = new ApiIncidentHandler(sendEvent)
-  private val ws = new WebsocketClient[Channel, ApiEvent, ApiError, JWT.Token](handler)
+  private val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token](handler)
 
   val api = ws.wire[Api]
   val auth = new AuthClient(ws)
@@ -32,11 +32,11 @@ trait AuthEvent
 case class LoggedIn(user: User) extends AuthEvent
 case object LoggedOut extends AuthEvent
 
-class AuthClient(ws: WebsocketClient[Channel, ApiEvent, ApiError, JWT.Token]) extends WithEvents[AuthEvent] {
+class AuthClient(ws: WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token]) extends WithEvents[AuthEvent] {
   import ws.messages._
 
   private val auth = ws.wire[AuthApi]
-  private var currentTokenFut: Future[Option[JWT.Token]] = Future.successful(None)
+  private var currentTokenFut: Future[Option[Authentication.Token]] = Future.successful(None)
   private def storeToken(auth: Future[Option[Authentication]]) = currentTokenFut = auth.map(_.map(_.token))
   private def currentToken = currentTokenFut.value.flatMap(_.toOption).flatten
 

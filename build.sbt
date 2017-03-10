@@ -188,6 +188,7 @@ lazy val backend = project
       "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
+      "io.igl" %% "jwt" % "1.2.0" ::
       "org.specs2" %% "specs2-core" % specs2Version % "test" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
