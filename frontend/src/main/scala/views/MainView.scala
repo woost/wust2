@@ -1,4 +1,5 @@
 package frontend.views
+import frontend.DevOnly
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom._
@@ -30,9 +31,9 @@ object MainView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(fontFamily := "sans-serif")(
-      button(onclick := { (_:Event) => tabMode() = Tab.Graph })("graph"),
-      button(onclick := { (_:Event) => tabMode() = Tab.List })("list"),
-      button(onclick := { (_:Event) => tabMode() = Tab.User })("user"),
+      button(onclick := { (_: Event) => tabMode() = Tab.Graph })("graph"),
+      button(onclick := { (_: Event) => tabMode() = Tab.List })("list"),
+      button(onclick := { (_: Event) => tabMode() = Tab.User })("user"),
       div(display := graphDisplay)(
         GraphView(state)
       ),
@@ -45,6 +46,9 @@ object MainView {
       div(position.fixed, width := "100%", bottom := 0, left := 0, display := postFormDisplay,
         padding := "5px", background := "#f7f7f7", borderTop := "1px solid #DDD")(
           AddPostForm(state)
-        )
+        ),
+      DevOnly(div(position.fixed, right := 0, top := 0, button("create random post", onclick := {
+        () => for (_ <- 0 until 1) Client.api.addPost(scala.util.Random.nextString(1 + scala.util.Random.nextInt(20))).call().map(_ => true)
+      })))
     )
 }

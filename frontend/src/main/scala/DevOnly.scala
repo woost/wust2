@@ -2,8 +2,10 @@ package frontend
 
 import scala.scalajs.LinkingInfo
 object DevOnly {
-  def apply(code: => Any) {
+  def apply[T](code: => T): Option[T] = {
     if (LinkingInfo.developmentMode)
-      code
+      Some(code)
+    else
+      None
   }
 }
