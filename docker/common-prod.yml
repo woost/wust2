@@ -1,5 +1,6 @@
 version: '2'
 
+# TODO: fix to versions
 services:
   postgres:
     image: postgres:9.6.2-alpine
@@ -11,16 +12,16 @@ services:
     volumes:
       - /pg_data/:/var/lib/postgresql/data
   db-migration:
-    image: woost/wust2.db-migration:0.1.0-SNAPSHOT
+    image: woost/wust2.db-migration
     command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=wust -password=${POSTGRES_PASSWORD} migrate
   wust:
-    image: woost/wust2:0.1.0-SNAPSHOT
+    image: woost/wust2
     restart: always
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
   nginx:
-    image: woost/wust2.nginx:0.1.0-SNAPSHOT
+    image: woost/wust2.nginx
     restart: always
     environment:
       HOST_DOMAIN: ${HOST_DOMAIN}
@@ -29,7 +30,7 @@ services:
     volumes:
       - ${CERT_DIR}:/cert_dir/:ro
   nginx-http:
-    image: woost/wust2.nginx:http-0.1.0-SNAPSHOT
+    image: woost/wust2.nginx:http
     restart: always
     environment:
       HOST_DOMAIN: ${HOST_DOMAIN}
