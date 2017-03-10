@@ -56,5 +56,5 @@ class AuthClient(ws: WebsocketClient[Channel, ApiEvent, ApiError, JWT.Token]) ex
     auth.login(name, pw).call() ||> storeToken |> withClientLogin ||> sendAuthEvent |> (_.map(_.isDefined))
 
   def logout(): Future[Boolean] =
-    ws.logout() |> (_ => Future.successful(None)) ||> storeToken ||> sendAuthEvent |> (_.map(_.isDefined))
+    ws.logout() ||> (_ => (Future.successful(None) ||> storeToken ||> sendAuthEvent))
 }
