@@ -11,9 +11,7 @@ install:
 
 script:
     - set -e
-    - sbt docker
-    - sbt testJS
-    - sbt clean coverage testJVM coverageReport && sbt coverageAggregate
+    - .travis/build
     - .travis/integration-tests
     - set +e
 
