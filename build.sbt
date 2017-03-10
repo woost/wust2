@@ -128,10 +128,8 @@ lazy val frontend = project
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      // "org.specs2" %% "specs2-core" % specs2Version % "test" :: // TODO: switch to specs2 when it is available for scalajs: https://github.com/etorreborre/specs2/issues/465
       Nil
     ),
-    // scalacOptions in Test ++= Seq("-Yrangepos"), // for specs2
     testFrameworks += new TestFramework("utest.runner.Framework"),
 
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
@@ -194,7 +192,7 @@ lazy val backend = project
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::
-      "org.specs2" %% "specs2-core" % specs2Version % "test" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
