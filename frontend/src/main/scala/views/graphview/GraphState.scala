@@ -6,7 +6,7 @@ import util.collection._
 import collection.breakOut
 import rx._, RxVar._
 
-import frontend.{ DevOnly, GlobalState }
+import frontend.{DevOnly, GlobalState}
 import graph._
 import frontend.Color._
 import util.Pipe
@@ -33,7 +33,8 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
           "2px solid rgba(0,0,0,0.4)"
         else { // no children
           "2px solid rgba(0,0,0,0.2)"
-        }).toString()
+        }
+      ).toString()
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
         if (hasChildren || collapsedPostIds(p.id))
@@ -43,7 +44,8 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
             mixColors(mixedDirectParentColors, postDefaultColor)
           else
             postDefaultColor
-        }).toString()
+        }
+      ).toString()
       sp
 
     }.toJSArray
@@ -82,8 +84,9 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     // set hyperedge targets, goes away with custom linkforce
     newData.foreach { e =>
       e.target = e.targetId match {
-        case id:PostId => postIdToSimPost(id)
-        case id:ConnectsId => connIdToSimConnects(id)
+        case id: PostId => postIdToSimPost(id)
+        case id: ConnectsId => connIdToSimConnects(id)
+        case id: ConnectableId => throw new Exception("Unresolved ConnectableId found. Should not happen in consistent graph.")
       }
     }
 
@@ -114,7 +117,8 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       new ContainmentCluster(
         parent = postIdToSimPost(p),
         children = graph.transitiveChildren(p).map(p => postIdToSimPost(p))(breakOut),
-        depth = graph.depth(p))
+        depth = graph.depth(p)
+      )
     }.toJSArray
   }
 
