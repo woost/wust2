@@ -47,18 +47,27 @@ object MainView {
           AddPostForm(state)
         ),
       DevOnly {
-        import scala.util.Random.{nextInt => rInt, nextString => rStr}
-
-        div(position.fixed, right := 0, top := 0,
-          button("create random post", onclick := {
-            () => for (_ <- 0 until 1) Client.api.addPost(rStr(1 + rInt(20))).call().map(_ => true)
-          }),
-          Rx {
-            button("delete random post", onclick := {
-              val posts = state.graph().posts.keys.toArray
-              () => for (_ <- 0 until 1) Client.api.deletePost(posts(rInt(posts.size))).call().map(_ => true)
+        Rx {
+          import scala.util.Random.{nextInt => rInt, nextString => rStr}
+          div(position.fixed, right := 0, top := 0, display.flex, flexDirection.column,
+            {
+              def addRandomPost() { Client.api.addPost(rStr(1 + rInt(20))).call() }
+              div(
+                button("create random post", onclick := { () => addRandomPost() }),
+                button("10", onclick := { () => for (_ <- 0 until 10) addRandomPost() }),
+                button("100", onclick := { () => for (_ <- 0 until 100) addRandomPost() })
+              )
+            },
+            {
+              val posts = scala.util.Random.shuffle(state.graph().posts.keys.toSeq)
+              def deletePost(id: PostId) { Client.api.deletePost(id).call() }
+              div(
+                button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),
+                button("10", onclick := { () => posts.take(10) foreach deletePost }),
+                button("100", onclick := { () => posts.take(100) foreach deletePost })
+              )
             }).render
-          })
+        }
       }
     )
 }
