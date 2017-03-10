@@ -17,7 +17,7 @@ import org.scalajs.d3v4._
 import util.collection._
 import Color._
 
-class PostSelection(graphState: GraphState, d3State:D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
+class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
   import postDrag._, graphState.rxFocusedSimPost
 
   override val tag = "div"
@@ -49,19 +49,31 @@ class PostSelection(graphState: GraphState, d3State:D3State, postDrag: PostDrag)
     })
   }
 
+  var draw = 0
   override def draw(post: Selection[SimPost]) {
 
-    // lazily recalculate rendered size to center posts
-    // TODO: sometimes some elements still have size 0
-    // on different zoom levels -> different(wrong) size calculations
-    post.each({ (node: HTMLElement, p: SimPost) =>
-      if (p.size.width == 0) {
+    // DevOnly {
+    //   assert(post.data().forall(_.size.width == 0) || post.data().forall(_.size.width != 0))
+    // }
+    val onePostHasSizeZero = {
+      // every drawcall exactly one different post is checked
+      val simPosts = post.data()
+      if (simPosts.isEmpty) false
+      else simPosts(draw % simPosts.size).size.width == 0
+
+    }
+    if (onePostHasSizeZero) {
+      // if one post has size zero => all posts have size zero
+      // --> recalculate all visible sizes
+      post.each({ (node: HTMLElement, p: SimPost) =>
         p.recalculateSize(node, d3State.transform.k)
-      }
-    })
+      })
+    }
 
     post
       .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
       .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+
+    draw += 1
   }
 }
