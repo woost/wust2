@@ -75,9 +75,37 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "consistent on inconsistent graph" in {
       val connects: Map[ConnectsId, Connects] = List(1 -> 2, 2 -> 3)
+      val newConnects = Connects(100, 2, PostId(1))
       val contains: Map[ContainsId, Contains] = List(1 -> 2, 2 -> 3)
-      val graph = Graph(List(1, 2, 3), connects + (100L -> Connects(100, 4, PostId(1))), contains + (101L -> Contains(101, 3, 5)))
+      val graph = Graph(
+        List(1, 2, 3),
+        connects ++ Seq(newConnects, Connects(101, 4, newConnects.id)).by(_.id),
+        contains + (102L -> Contains(101, 3, 5)))
+      println(graph.consistent)
+      graph.consistent mustEqual Graph(List(1, 2, 3), connects + (newConnects.id -> newConnects), contains)
+    }
+
+    "consistent on inconsistent graph (reverse)" ignore { //TODO
+      val connects: Map[ConnectsId, Connects] = List(1 -> 2, 2 -> 3)
+      val contains: Map[ContainsId, Contains] = List(1 -> 2, 2 -> 3)
+      val graph = Graph(
+        List(1, 2, 3),
+        connects ++ Seq(Connects(100, 4, PostId(1)), Connects(101, 1, ConnectsId(100))).by(_.id),
+        contains + (102L -> Contains(101, 3, 5)))
+      println(graph.consistent)
       graph.consistent mustEqual Graph(List(1, 2, 3), connects, contains)
+    }
+
+    "post without id" in {
+      Post("title").id mustEqual PostId(0)
+    }
+
+    "connects without id" in {
+      Connects(1, ConnectsId(2)).id mustEqual ConnectsId(0)
+    }
+
+    "contains without id" in {
+      Contains(1, 2).id mustEqual ContainsId(0)
     }
 
     "add post" in {
