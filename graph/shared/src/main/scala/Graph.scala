@@ -2,8 +2,9 @@ package wust
 
 package object graph {
   import collection.mutable
-  import util.{algorithm, Pipe}
-  import algorithm._
+  import wust.util.Pipe
+  import wust.util.collection._
+  import wust.util.algorithm._
   //TODO: this also needs to be done as database contstraint
   type IdType = Long
   //TODO anyval
@@ -83,6 +84,13 @@ package object graph {
       case c: ConnectsId => 2
     }
 
+    def involvedInCycle(id: PostId): Boolean = {
+      children(id).exists(child => depthFirstSearch(child, children).exists(_ == id))
+    }
+
+    def transitiveChildren(postId: PostId) = depthFirstSearch(postId, children) |> { children => if (involvedInCycle(postId)) children else children.drop(1) } //TODO better?
+    def transitiveParents(postId: PostId) = depthFirstSearch(postId, parents) |> { parents => if (involvedInCycle(postId)) parents else parents.drop(1) } //TODO better?
+
     val `-`: AtomId => Graph = {
       case id: PostId =>
         val removedPosts = posts.get(id).map(_.id)
@@ -106,18 +114,13 @@ package object graph {
 
     def --(ids: Iterable[AtomId]) = ids.foldLeft(this)((g, p) => g - p) //TODO: more efficient
 
-    def involvedInCycle(id: PostId): Boolean = {
-      children(id).exists(child => depthFirstSearch(child, children).exists(_ == id))
+    val `+`: Atom => Graph = {
+      case p: Post => copy(posts = posts + (p.id -> p))
+      case c: Connects => copy(connections = connections + (c.id -> c))
+      case c: Contains=> copy(containments = containments + (c.id -> c))
     }
 
-    def transitiveChildren(postId: PostId) = depthFirstSearch(postId, children) |> { children => if (involvedInCycle(postId)) children else children.drop(1) } //TODO better?
-    def transitiveParents(postId: PostId) = depthFirstSearch(postId, parents) |> { parents => if (involvedInCycle(postId)) parents else parents.drop(1) } //TODO better?
-
-    def +(p: Post) = copy(posts = posts + (p.id -> p))
-    def +(c: Connects) = copy(connections = connections + (c.id -> c))
-    def +(c: Contains) = copy(containments = containments + (c.id -> c))
-
-    def ++(cs: Iterable[Connects]) = copy(connections = connections ++ cs.map(c => c.id -> c))
+    def ++(atoms: Iterable[Atom]) = atoms.foldLeft(this)((g, a) => g + a)
 
     def consistent = copy(
       connections = connections.flatMap {
@@ -163,11 +166,12 @@ package object graph {
   }
 
   //TODO: rename Post -> ???
-  final case class Post(id: PostId, title: String)
+  sealed trait Atom
+  final case class Post(id: PostId, title: String) extends Atom
   object Post { def apply(title: String): Post = Post(0L, title) }
-  final case class Connects(id: ConnectsId, sourceId: PostId, targetId: ConnectableId)
+  final case class Connects(id: ConnectsId, sourceId: PostId, targetId: ConnectableId) extends Atom
   object Connects { def apply(in: PostId, out: ConnectableId): Connects = Connects(0L, in, out) }
   //TODO: reverse direction of contains?
-  final case class Contains(id: ContainsId, parentId: PostId, childId: PostId)
+  final case class Contains(id: ContainsId, parentId: PostId, childId: PostId) extends Atom
   object Contains { def apply(parentId: PostId, childId: PostId): Contains = Contains(0L, parentId, childId) }
 }

@@ -21,6 +21,13 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit def tupleIsConnects(t: (Int, Int)): Connects = Connects(edgeId(), PostId(t._1), PostId(t._2))
   implicit def connectsListIsMap(contains: List[(Int, Int)]): Map[ConnectsId, Connects] = contains.map(tupleIsConnects).by(_.id)
 
+  "atom id" - {
+    "ordering" in {
+      val list = Seq(PostId(3), ConnectsId(1), ContainsId(2), UnknownConnectableId(0))
+      list.sorted mustEqual Seq(UnknownConnectableId(0), ConnectsId(1), ContainsId(2), PostId(3))
+    }
+  }
+
   "graph" - {
     "directed cycle" in {
       val graph = Graph(
@@ -89,6 +96,18 @@ class GraphSpec extends FreeSpec with MustMatchers {
       (graph + newContains) mustEqual Graph(graph.posts, graph.connections, contains + (newContains.id -> newContains))
     }
 
+    "add multiple atoms" in {
+      val newPost = Post(99, "hans")
+      val newConnects = Connects(99, 3, PostId(1))
+      val newContains = Contains(99, 3, 1)
+      val newAtoms = Seq(newPost, newConnects, newContains)
+      val graph = Graph(List(1, 2, 3), List(1 -> 2, 2 -> 3), List(1 -> 2, 2 -> 3))
+      (graph ++ newAtoms) mustEqual Graph(
+        graph.posts + (newPost.id -> newPost),
+        graph.connections + (newConnects.id -> newConnects),
+        graph.containments + (newContains.id -> newContains))
+    }
+
     "remove post" in {
       val connects: Map[ConnectsId, Connects] = Map(10L -> Connects(10, 1, PostId(2)), 11L -> Connects(11, 2, PostId(3)))
       val contains: Map[ContainsId, Contains] = Map(20L -> Contains(20, 1, 2), 21L -> Contains(21, 2, 3))
@@ -129,6 +148,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val contains: Map[ContainsId, Contains] = Map(20L -> Contains(20, 1, 2), 21L -> Contains(21, 2, 3))
       val graph = Graph(List(1, 2, 3), connects, contains)
       (graph - ContainsId(30)) mustEqual graph
+    }
+
+    "remove multiple atoms" in {
+      val connects: Map[ConnectsId, Connects] = Map(10L -> Connects(10, 1, PostId(2)), 11L -> Connects(11, 2, PostId(3)))
+      val contains: Map[ContainsId, Contains] = Map(20L -> Contains(20, 1, 2), 21L -> Contains(21, 2, 3))
+      val delAtoms = Seq(PostId(1), ConnectsId(11), ContainsId(21))
+      val graph = Graph(List(1, 2, 3), connects, contains)
+      (graph -- delAtoms) mustEqual Graph(List(2, 3))
     }
   }
 }
