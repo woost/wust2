@@ -1,8 +1,8 @@
 package wust.frontend
 
-import graph._
+import wust.graph._
 import org.scalatest._
-import util.collection._
+import wust.util.collection._
 
 class PageTest extends FreeSpec with MustMatchers {
   implicit def tuplePosts(t:(Long, Post)): (PostId, Post) = (PostId(t._1), t._2)

@@ -47,8 +47,7 @@ object MainView {
           AddPostForm(state)
         ),
       DevOnly {
-        val rInt: Int => Int = scala.util.Random.nextInt _
-        val rStr: Int => String = scala.util.Random.nextString _
+        import scala.util.Random.{nextInt => rInt, nextString => rStr}
 
         div(position.fixed, right := 0, top := 0,
           button("create random post", onclick := {
