@@ -47,8 +47,20 @@ object MainView {
         padding := "5px", background := "#f7f7f7", borderTop := "1px solid #DDD")(
           AddPostForm(state)
         ),
-      DevOnly(div(position.fixed, right := 0, top := 0, button("create random post", onclick := {
-        () => for (_ <- 0 until 1) Client.api.addPost(scala.util.Random.nextString(1 + scala.util.Random.nextInt(20))).call().map(_ => true)
-      })))
+      DevOnly {
+        val rInt = scala.util.Random.nextInt _
+        val rStr = scala.util.Random.nextString _
+
+        div(position.fixed, right := 0, top := 0,
+          button("create random post", onclick := {
+            () => for (_ <- 0 until 1) Client.api.addPost(rStr(1 + rInt(20))).call().map(_ => true)
+          }),
+          Rx {
+            button("delete random post", onclick := {
+              val posts = state.graph().posts.keys.toArray
+              () => for (_ <- 0 until 1) Client.api.deletePost(posts(rInt(posts.size))).call().map(_ => true)
+            }).render
+          })
+      }
     )
 }
