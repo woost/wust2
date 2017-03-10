@@ -51,7 +51,7 @@ object ListView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(state.graph.rx.map { graph =>
       div( //TODO: avoid this nesting by passing Rx[Seq[Element]] to the outer div?
-        (graph.posts.keys.map { postId =>
+        (graph.posts.keys.filter(p => graph.parents(p).isEmpty).map { postId =>
           val tree = redundantSpanningTree(postId, graph.children)
           postTreeItem(tree, id => postItem(state, graph.posts(id)))
         }).toList
