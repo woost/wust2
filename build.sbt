@@ -3,6 +3,7 @@ name := "wust"
 enablePlugins(GitVersioning)
 git.useGitDescribe := true
 git.baseVersion := "0.1.0"
+git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is always(!) active.
 
 //TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
