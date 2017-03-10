@@ -19,6 +19,7 @@ object Views {
   def post(post: Post) = div(
     post.title,
     maxWidth := "10em",
+    wordWrap := "break-word",
     margin := 3,
     padding := "3px 5px",
     border := "1px solid #444",
