@@ -94,6 +94,13 @@ class GraphSpec extends FreeSpec with MustMatchers {
       (graph + newConnects) mustEqual Graph(graph.posts, connects + (newConnects.id -> newConnects), graph.containments)
     }
 
+    "add hyper connects" in {
+      val connects = Seq(Connects(99, 3, PostId(1))).by(_.id)
+      val hyper = Connects(100, 1, ConnectsId(99))
+      val graph = Graph(List(1, 2, 3), connects, List(1 -> 2, 2 -> 3))
+      (graph + hyper) mustEqual Graph(graph.posts, connects + (hyper.id -> hyper), graph.containments)
+    }
+
     "add contains" in {
       val contains: Map[ContainsId, Contains] = List(1 -> 2, 2 -> 3)
       val newContains = Contains(99, 3, 1)
