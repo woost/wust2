@@ -17,27 +17,27 @@ object MainView {
   sealed trait Tab
   object Tab {
     case object Graph extends Tab
-    case object List extends Tab
+    case object Tree extends Tab
     case object User extends Tab
   }
 
   private val tabMode: Var[Tab] = Var(Tab.Graph)
   def toggleDisplay(f: Tab => Boolean)(implicit ctx: Ctx.Owner) = tabMode.map(m => if (f(m)) "block" else "none")
   val graphDisplay = toggleDisplay(_ == Tab.Graph)
-  val listDisplay = toggleDisplay(_ == Tab.List)
+  val listDisplay = toggleDisplay(_ == Tab.Tree)
   val userDisplay = toggleDisplay(_ == Tab.User)
-  val postFormDisplay = toggleDisplay(m => m == Tab.Graph || m == Tab.List)
+  val postFormDisplay = toggleDisplay(m => m == Tab.Graph || m == Tab.Tree)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(fontFamily := "sans-serif")(
       button(onclick := { (_: Event) => tabMode() = Tab.Graph })("graph"),
-      button(onclick := { (_: Event) => tabMode() = Tab.List })("list"),
+      button(onclick := { (_: Event) => tabMode() = Tab.Tree })("tree"),
       button(onclick := { (_: Event) => tabMode() = Tab.User })("user"),
       div(display := graphDisplay)(
         GraphView(state)
       ),
       div(display := listDisplay)(
-        ListView(state)
+        TreeView(state)
       ),
       div(display := userDisplay)(
         UserView(state)

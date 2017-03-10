@@ -12,8 +12,7 @@ import wust.frontend._
 import wust.util.algorithm.{Tree, redundantSpanningTree}
 import wust.util.collection._
 
-//TODO: rename to TreeView?
-object ListView {
+object TreeView {
   //TODO: report bug about pattern matching in rx.map:
   //scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (_)
   def modeToColor(id: PostId): InteractionMode => d3v4.Color = {
