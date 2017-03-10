@@ -37,18 +37,15 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
       .style("opacity", "0.8")
   }
 
+  // https://codeplea.com/introduction-to-splines
+  // https://github.com/d3/d3-shape#curves
+  // val curve = d3.curveCardinalClosed
+  val curve = d3.curveCatmullRomClosed.alpha(0.5)
+  // val curve = d3.curveNatural
+
   override def draw(hull: Selection[ContainmentCluster]) {
     hull
-      .attr("d", { (cluster: ContainmentCluster) =>
-        // https://codeplea.com/introduction-to-splines
-        // https://github.com/d3/d3-shape#curves
-        val points = cluster.convexHull
-        // val curve = d3.curveCardinalClosed
-        val curve = d3.curveCatmullRomClosed.alpha(0.5)
-        // val curve = d3.curveNatural
-
-        d3.line().curve(curve)(points)
-      })
-      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px")
+      .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
   }
 }
