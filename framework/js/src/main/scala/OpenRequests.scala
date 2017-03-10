@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -6,8 +6,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import java.util.{Timer, TimerTask}
 import org.scalajs.dom.console
 
-import framework.message._
-import util.time.StopWatch
+import wust.framework.message._
+import wust.util.time.StopWatch
 
 case object TimeoutException extends Exception
 

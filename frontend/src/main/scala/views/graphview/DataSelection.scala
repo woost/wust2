@@ -1,4 +1,4 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
 import org.scalajs.dom.console
 import scalajs.js

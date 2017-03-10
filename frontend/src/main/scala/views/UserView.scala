@@ -1,14 +1,15 @@
-package frontend.views
+package wust.frontend.views
 
 import org.scalajs.dom._
 import rx._
 import scalatags.rx.all._
 import scalatags.JsDom.all._
-import frontend.{ Client, GlobalState }
-import api.User
 import boopickle.Default._
 import autowire._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
+
+import wust.frontend.{ Client, GlobalState }
+import wust.api.User
 
 object UserView {
   val inputText = input(`type` := "text")

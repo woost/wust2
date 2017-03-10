@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import akka.event.{LookupClassification, EventBus}
 import akka.actor._

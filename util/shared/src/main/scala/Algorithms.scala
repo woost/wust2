@@ -1,4 +1,4 @@
-package util
+package wust.util
 
 object algorithm {
   import scala.collection.mutable

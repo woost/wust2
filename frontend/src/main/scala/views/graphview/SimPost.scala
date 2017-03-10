@@ -1,12 +1,13 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
-import graph.Post
 import math._
 import org.scalajs.d3v4._
-import util.Pipe
+
+import wust.util.Pipe
+import wust.graph.{ ConnectableId, Post }
 
 trait SimConnectable {
-  def id: graph.ConnectableId
+  def id: ConnectableId
 }
 
 class SimPost(val post: Post) extends SimConnectable with ExtendedD3Node with SimulationNodeImpl {

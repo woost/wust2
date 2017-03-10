@@ -1,4 +1,4 @@
-package util
+package wust.util
 package object time {
   def time[T](name: String)(code: => T): T = {
     val start = System.nanoTime

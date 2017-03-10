@@ -1,3 +1,5 @@
+package wust
+
 package object graph {
   import collection.mutable
   import util.{algorithm, Pipe}

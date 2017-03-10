@@ -1,5 +1,4 @@
-package frontend.views
-import frontend.DevOnly
+package wust.frontend.views
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom._
@@ -10,8 +9,8 @@ import scalatags.JsDom.all._
 import autowire._
 import boopickle.Default._
 
-import frontend.{GlobalState, Client}
-import graph._
+import wust.frontend.{GlobalState, Client, DevOnly}
+import wust.graph._
 import graphview.GraphView
 
 object MainView {

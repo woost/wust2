@@ -1,4 +1,4 @@
-package frontend
+package wust.frontend
 
 import org.scalatest._
 import graph._

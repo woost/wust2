@@ -1,16 +1,16 @@
-package frontend.views
+package wust.frontend.views
 
 import org.scalajs.dom._
 import org.scalajs.d3v4
-import util.collection._
 import rx._
 import scalatags.rx.all._
 import scalatags.JsDom.all._
 import collection.breakOut
 
-import graph._
-import frontend._
-import util.algorithm.{Tree, redundantSpanningTree}
+import wust.graph._
+import wust.frontend._
+import wust.util.algorithm.{Tree, redundantSpanningTree}
+import wust.util.collection._
 
 //TODO: rename to TreeView?
 object ListView {

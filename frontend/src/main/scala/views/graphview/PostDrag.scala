@@ -1,11 +1,7 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
-import frontend._
-
-import graph._
 import math._
 import rx._
-
 import scalajs.js
 import js.JSConverters._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -14,17 +10,21 @@ import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.console
 import vectory._
 import org.scalajs.d3v4._
-import util.collection._
 import autowire._
 import boopickle.Default._
 import scalatags.JsDom.all._
-import util.Pipe
+
+import wust.frontend._
+import wust.frontend.views.Views
+import wust.graph._
+import wust.util.collection._
+import wust.util.Pipe
 
 object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
   override def enter(post: Enter[SimPost]) {
     post.append { (simPost: SimPost) =>
-      frontend.views.Views.post(simPost.post)(
+      Views.post(simPost.post)(
         position.absolute,
         cursor.move,
         opacity := 0.5,

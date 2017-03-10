@@ -1,8 +1,8 @@
-package backend
+package wust.backend
 
-import util.collection._
-import graph._
-import api.User
+import wust.util.collection._
+import wust.graph._
+import wust.api.User
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global

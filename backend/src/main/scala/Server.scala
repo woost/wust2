@@ -1,4 +1,4 @@
-package backend
+package wust.backend
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -9,8 +9,8 @@ import akka.http.scaladsl.server.Directives._
 import akka.actor.ActorRef
 import boopickle.Default._
 
-import api._
-import framework._, message._
+import wust.api._
+import wust.framework._, message._
 import auth.JWTOps
 
 case class UserError(error: ApiError) extends Exception

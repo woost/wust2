@@ -1,4 +1,4 @@
-package util
+package wust.util
 
 import scala.collection.{ IterableLike, breakOut }
 

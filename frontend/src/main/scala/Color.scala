@@ -1,6 +1,8 @@
-package frontend
+package wust.frontend
+
 import org.scalajs.d3v4._
-import graph._
+
+import wust.graph._
 
 object Color {
   val postDefaultColor = d3.lab("#f8f8f8")

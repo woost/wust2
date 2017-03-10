@@ -1,13 +1,14 @@
-package frontend
+package wust.frontend
 
 import concurrent.Future
 import concurrent.ExecutionContext.Implicits.global
 import boopickle.Default._
 import autowire._
 
-import framework._, message._
-import api._, graph._
-import util.Pipe
+import wust.framework._, message._
+import wust.api._
+import wust.graph._
+import wust.util.Pipe
 
 case class ApiException(error: ApiError) extends Exception
 

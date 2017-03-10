@@ -1,8 +1,8 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 
-import frontend._
+import wust.frontend._
 
 class Forces {
   val gravityX = d3.forceX[SimPost]()

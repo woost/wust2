@@ -1,8 +1,9 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
-import graph.Connects
 import org.scalajs.d3v4._
 import scalajs.js
+
+import wust.graph.Connects
 
 class SimConnects(val connects: Connects, val source: SimPost)
   extends SimulationLink[SimPost, ExtendedD3Node] with SimConnectable with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {

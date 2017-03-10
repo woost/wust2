@@ -1,18 +1,18 @@
-package frontend
+package wust.frontend
 
-import scala.scalajs.js
-import scala.scalajs.js.annotation.JSExport
-import scala.concurrent.Future
+import scalajs.js
+import scalajs.js.annotation.JSExport
+import concurrent.Future
+import collection.breakOut
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
 
 import org.scalajs.dom._
 import boopickle.Default._
 
-import api._
-import util.Pipe
-import graph._
-import collection.breakOut
+import wust.api._
+import wust.graph._
+import wust.util.Pipe
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -35,6 +35,8 @@ object Main extends js.JSApp {
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
     Client.subscribe(Channel.Graph)
+
+    Client.auth.login("hans", "***")
 
     Client.api.getGraph().call().foreach { graph =>
       state.graph := graph

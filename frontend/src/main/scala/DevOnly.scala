@@ -1,4 +1,4 @@
-package frontend
+package wust.frontend
 
 import scala.scalajs.LinkingInfo
 object DevOnly {

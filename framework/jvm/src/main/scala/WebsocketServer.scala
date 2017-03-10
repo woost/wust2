@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import akka.util.ByteString
 import autowire.Core.{ Request, Router }
 import boopickle.Default._
 
-import framework.message._
+import message._
 
 object WebsocketSerializer {
   def serialize[T: Pickler](msg: T): Message = {

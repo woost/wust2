@@ -1,4 +1,4 @@
-package util
+package wust.util
 
 import org.scalatest._
 import algorithm._

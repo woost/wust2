@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import java.nio.ByteBuffer
 

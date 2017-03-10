@@ -1,6 +1,6 @@
 package rx
 
-import util.Pipe
+import wust.util.Pipe
 
 trait WriteVar[A] {
   def :=(newValue: A): Unit

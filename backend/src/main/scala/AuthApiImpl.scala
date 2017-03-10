@@ -1,9 +1,10 @@
-package backend
+package wust.backend
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import api._, auth._
+import wust.api._
+import auth._
 
 class AuthApiImpl extends AuthApi {
   private def authentication(user: User) = Authentication(user, JWTOps.generateToken(user))

@@ -1,11 +1,11 @@
-package framework
+package wust.framework
 
 import scala.concurrent.Future
 import java.nio.ByteBuffer
 
 import boopickle.Default._
 
-import framework.message._
+import message._
 
 trait IncidentHandler[Event, Error] {
   def receive(event: Event): Unit

@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import scala.concurrent.Future
 import java.nio.ByteBuffer

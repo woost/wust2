@@ -1,8 +1,5 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
-import frontend._
-
-import graph._
 import math._
 import rx._
 
@@ -14,15 +11,18 @@ import org.scalajs.dom.raw.HTMLElement
 import scalatags.JsDom.all._
 import vectory._
 import org.scalajs.d3v4._
-import util.collection._
-import Color._
+
+import wust.frontend._, Color._
+import wust.frontend.views.Views
+import wust.graph._
+import wust.util.collection._
 
 class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
   import postDrag._, graphState.rxFocusedSimPost
 
   override val tag = "div"
   override def enter(post: Enter[SimPost]) {
-    post.append((simPost: SimPost) => frontend.views.Views.post(simPost.post)(
+    post.append((simPost: SimPost) => Views.post(simPost.post)(
       title := simPost.title,
       position.absolute,
       pointerEvents.auto, // reenable

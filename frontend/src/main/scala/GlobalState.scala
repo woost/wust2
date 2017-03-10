@@ -1,8 +1,9 @@
-package frontend
+package wust.frontend
 
-import graph._, api._
-import rx._
-import RxVar._
+import rx._, RxVar._
+
+import wust.api._
+import wust.graph._
 
 sealed trait InteractionMode
 case class FocusMode(postId: PostId) extends InteractionMode

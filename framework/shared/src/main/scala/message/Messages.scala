@@ -1,4 +1,4 @@
-package framework.message
+package wust.framework.message
 
 import boopickle.Default._
 import java.nio.ByteBuffer

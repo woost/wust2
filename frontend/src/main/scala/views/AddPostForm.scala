@@ -1,4 +1,4 @@
-package frontend.views
+package wust.frontend.views
 
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
@@ -14,11 +14,11 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
-import graph._
 import org.scalajs.d3v4
-import frontend._
-import frontend.Color._
 import rx._
+
+import wust.graph._
+import wust.frontend._, Color._
 
 object AddPostForm {
   def editLabel(graph: Rx[Graph], editedPostId: WriteVar[Option[PostId]], postId: PostId)(implicit ctx: Ctx.Owner) = {

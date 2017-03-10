@@ -1,19 +1,17 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
-import frontend._
-
-import graph._
 import math._
-
 import scalajs.js
 import js.JSConverters._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
-
 import vectory._
-import util.collection._
+
+import wust.frontend._
+import wust.graph._
+import wust.util.collection._
 
 object ConnectionLineSelection extends DataSelection[SimConnects] {
   override val tag = "line"

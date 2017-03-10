@@ -1,15 +1,15 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
 import scalajs.js
 import js.JSConverters._
-import util.collection._
 import collection.breakOut
 import rx._, RxVar._
 
-import frontend.{DevOnly, GlobalState}
-import graph._
-import frontend.Color._
-import util.Pipe
+import wust.frontend.{ DevOnly, GlobalState }
+import wust.graph._
+import wust.frontend.Color._
+import wust.util.collection._
+import wust.util.Pipe
 
 class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxGraph = state.graph

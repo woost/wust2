@@ -1,4 +1,4 @@
-package frontend.views.graphview
+package wust.frontend.views.graphview
 
 import scalajs.js
 import org.scalajs.dom
@@ -8,11 +8,11 @@ import rx._
 import scalatags.rx.all._
 import scalatags.JsDom.all._
 import math._
-import util.Pipe
 
-import frontend.{DevOnly, GlobalState}
-import graph._
-import frontend.Color._
+import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.Color._
+import wust.graph._
+import wust.util.Pipe
 
 case class MenuAction(name: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(name: String, action: (SimPost, SimPost) => Unit)

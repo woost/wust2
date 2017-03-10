@@ -1,10 +1,11 @@
-package backend
+package wust.backend
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import util.Pipe
 
-import api._, graph._
+import wust.util.Pipe
+import wust.api._
+import wust.graph._
 import auth.JWTOps
 
 class ApiImpl(authentication: Option[Authentication], emit: ApiEvent => Unit) extends Api {

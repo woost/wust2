@@ -1,4 +1,4 @@
-package graph
+package wust.graph
 
 import org.scalatest._
 import util.collection._

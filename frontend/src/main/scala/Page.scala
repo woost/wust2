@@ -1,7 +1,8 @@
-package frontend
+package wust.frontend
 
-import graph._
 import collection.breakOut
+
+import wust.graph._
 
 // views immutable, dass urls nicht kaputt gehen
 // wust.space/view/$viewitd

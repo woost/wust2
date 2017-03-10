@@ -1,9 +1,9 @@
-package backend.auth
+package wust.backend.auth
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import api._
+import wust.api._
 
 object JWTOps {
   def generateToken(user: User): JWT.Token = user.name

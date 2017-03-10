@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import scala.concurrent.{Promise, Future}
 import scala.concurrent.ExecutionContext.Implicits.global

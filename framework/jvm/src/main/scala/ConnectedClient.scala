@@ -1,4 +1,4 @@
-package framework
+package wust.framework
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -9,9 +9,9 @@ import akka.actor._
 import akka.pattern.pipe
 import autowire.Core.{ Request, Router }
 
-import framework.message._
-import util.time.StopWatch
-import util.Pipe
+import wust.util.time.StopWatch
+import wust.util.Pipe
+import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, User] {
   val dispatcher: Dispatcher[Channel, Event]
