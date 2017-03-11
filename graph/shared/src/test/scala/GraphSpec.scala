@@ -248,14 +248,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.parents(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
     }
 
-    "containment neighbours of post" ignore { //TODO
+    "containment neighbours of post" in {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(2, 1, PostId(14))).by(_.id),
         containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
 
-      graph.parents(PostId(1)) mustEqual Set(11, 12).map(PostId(_))
-      graph.parents(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
+      graph.containmentNeighbours(PostId(1)) mustEqual Set(11, 12).map(PostId(_))
+      graph.containmentNeighbours(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
     }
   }
 }
