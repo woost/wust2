@@ -197,5 +197,65 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(List(1, 2, 3), connects, contains)
       (graph -- delAtoms) mustEqual Graph(List(2, 3))
     }
+
+    "successors of post" in {
+      val graph = Graph(
+        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
+        connections = List(Connects(3, 1, PostId(11)), Connects(4, 11, PostId(12)), Connects(5, 12, PostId(1)), Connects(6, 12, PostId(13))).by(_.id),
+        containments = List(Contains(3, 12, 14)).by(_.id))
+
+      graph.successors(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
+      graph.successors(PostId(13)) mustEqual Set.empty
+    }
+
+    "predecessors of post" in {
+      val graph = Graph(
+        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
+        connections = List(Connects(3, 1, PostId(11)), Connects(4, 11, PostId(12)), Connects(5, 12, PostId(1)), Connects(6, 12, PostId(13))).by(_.id),
+        containments = List(Contains(3, 12, 14)).by(_.id))
+
+      graph.predecessors(PostId(12)) mustEqual Set(11).map(PostId(_))
+      graph.predecessors(PostId(13)) mustEqual Set(12).map(PostId(_))
+    }
+
+    "neighbours of post" in {
+      val graph = Graph(
+        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
+        connections = List(Connects(3, 1, PostId(11)), Connects(4, 11, PostId(12)), Connects(5, 12, PostId(1)), Connects(6, 12, PostId(13))).by(_.id),
+        containments = List(Contains(3, 12, 14)).by(_.id))
+
+      graph.neighbours(PostId(12)) mustEqual Set(1, 11, 13).map(PostId(_))
+      graph.neighbours(PostId(13)) mustEqual Set(12).map(PostId(_))
+    }
+
+    "children of post" in {
+      val graph = Graph(
+        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
+        connections = List(Connects(2, 1, PostId(14))).by(_.id),
+        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
+
+      graph.children(PostId(1)) mustEqual Set(11, 12).map(PostId(_))
+      graph.children(PostId(12)) mustEqual Set.empty
+    }
+
+    "parents of post" in {
+      val graph = Graph(
+        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
+        connections = List(Connects(2, 1, PostId(14))).by(_.id),
+        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
+
+      graph.parents(PostId(1)) mustEqual Set.empty
+      graph.parents(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
+    }
+
+    "containment neighbours of post" ignore { //TODO
+      val graph = Graph(
+        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
+        connections = List(Connects(2, 1, PostId(14))).by(_.id),
+        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
+
+      graph.parents(PostId(1)) mustEqual Set(11, 12).map(PostId(_))
+      graph.parents(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
+    }
   }
 }
