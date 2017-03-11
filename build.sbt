@@ -29,7 +29,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, test, nginxHttps, nginxHttp, dbMigration)
+  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginxHttps, nginxHttp, dbMigration)
   .settings(
     publish := {},
     publishLocal := {},
@@ -195,7 +195,7 @@ lazy val backend = project
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
 
-lazy val test = project
+lazy val systemTest = project
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(commonSettings)

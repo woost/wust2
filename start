@@ -44,14 +44,14 @@ test.prod.http)
     export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
     $compose_stage prod.http down
     $compose_stage prod.http up -d
-    sbt test/it:test
+    sbt systemTest/it:test
     $compose_stage prod.http down
     ;;
 test.prod)
     export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
-    #TODO sbt test/it:test
+    #TODO sbt systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
     $compose_stage prod down
     ;;
