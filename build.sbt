@@ -15,6 +15,10 @@ lazy val commonSettings = Seq(
     ("RoundEights" at "http://maven.spikemark.net/roundeights") ::
     Nil
   ),
+
+  // do not run tests in assembly command
+  test in assembly := {},
+
   // watch managed library dependencies (only works with scala 2.11 currently)
   watchSources ++= (managedClasspath in Compile).map(_.files).value,
   scalacOptions ++=
@@ -191,8 +195,7 @@ lazy val backend = project
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      Nil,
-    scalacOptions in Test ++= Seq("-Yrangepos") // specs2
+      Nil
   )
 
 lazy val systemTest = project
