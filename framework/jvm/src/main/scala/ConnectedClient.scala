@@ -39,17 +39,24 @@ class ConnectedClient[Channel, Event, Error, AuthToken, User](
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
         .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
         .pipeTo(outgoing)
-    case ControlRequest(seqId, control) => control match {
-      case Login(token) =>
-        val user = authenticate(token)
-        outgoing ! ControlResponse(seqId, user.isDefined)
-        context.become(connected(outgoing, user))
-      case Logout() =>
-        outgoing ! ControlResponse(seqId, true)
-        context.become(connected(outgoing))
-      case Subscribe(channel) => dispatcher.subscribe(outgoing, channel)
-      case Unsubscribe(channel) => dispatcher.unsubscribe(outgoing, channel)
-    }
+    case ControlRequest(seqId, control) =>
+      val response = control match {
+        case Login(token) =>
+          val user = authenticate(token)
+          context.become(connected(outgoing, user))
+          user.isDefined
+        case Logout() =>
+          context.become(connected(outgoing))
+          true
+        case Subscribe(channel) =>
+          dispatcher.subscribe(outgoing, channel)
+          true
+        case Unsubscribe(channel) =>
+          dispatcher.unsubscribe(outgoing, channel)
+          true
+      }
+
+      outgoing ! ControlResponse(seqId, response)
     case Stop =>
       dispatcher.unsubscribe(outgoing)
       context.stop(self)
