@@ -23,12 +23,13 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
   private val callRequests = new OpenRequests[ByteBuffer]
   private val ws = new WebsocketConnection(onConnect)
 
+  private val pingIdleMillis = 115 * 1000
   private val acknowledgeTraffic: () => Unit = {
     import scala.scalajs.js.timers._
     var timeoutHandle: Option[SetTimeoutHandle] = None
     () => {
       timeoutHandle.foreach(clearTimeout)
-      timeoutHandle = Some(setTimeout(50000)(send(Ping())))
+      timeoutHandle = Some(setTimeout(pingIdleMillis)(send(Ping())))
     }
   }
 
