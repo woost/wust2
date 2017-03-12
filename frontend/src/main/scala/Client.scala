@@ -45,26 +45,31 @@ class AuthClient(
 
   private val authApi = ws.wire[AuthApi]
 
-  private var currentTokenFut: Future[Option[Authentication.Token]] =
-    Future.successful(storage.getAuth) ||> sendAuthEvent |> (_.map(_.map(_.token)))
+  private var currentAuth: Future[Option[Authentication]] =
+    Future.successful(storage.getAuth)
 
-  private def storeToken(auth: Future[Option[Authentication]]) =
-    auth ||> (_.foreach(storage.setAuth)) |> (_.map(_.map(_.token))) |> (currentTokenFut = _)
+  private def storeToken(auth: Future[Option[Authentication]]) {
+    auth.foreach(storage.setAuth)
+    currentAuth = auth
+  }
 
-  private def withClientLogin(auth: Future[Option[Authentication]]) =
-    auth.flatMap(_.map (auth => ws.login(auth.token).map(if (_) Some(auth) else None)).getOrElse(Future.successful(None)))
-
-  private def sendAuthEvent(auth: Future[Option[Authentication]]) =
+  private def sendAuthEvent(auth: Future[Option[Authentication]]): Unit =
     auth.foreach(_.map(_.user |> LoggedIn).getOrElse(LoggedOut) |> sendEvent)
 
+  private def withClientLogin(auth: Future[Option[Authentication]]): Future[Option[Authentication]] =
+    auth.flatMap(_.map(auth => ws.login(auth.token).map(if (_) Some(auth) else None)).getOrElse(Future.successful(None)))
+
+  private def loginFlow(auth: Future[Option[Authentication]]): Future[Boolean] =
+    auth |> withClientLogin ||> storeToken ||> sendAuthEvent |> (_.map(_.isDefined))
+
   def reauthenticate(): Future[Boolean] =
-    currentTokenFut.flatMap(_.map(ws.login).getOrElse(Future.successful(false)))
+    currentAuth |> loginFlow
 
   def register(name: String, pw: String): Future[Boolean] =
-    authApi.register(name, pw).call() ||> storeToken |> withClientLogin ||> sendAuthEvent |> (_.map(_.isDefined))
+    authApi.register(name, pw).call() |> loginFlow
 
   def login(name: String, pw: String): Future[Boolean] =
-    authApi.login(name, pw).call() ||> storeToken |> withClientLogin ||> sendAuthEvent |> (_.map(_.isDefined))
+    authApi.login(name, pw).call() |> loginFlow
 
   def logout(): Future[Boolean] =
     ws.logout() ||> (_ => (Future.successful(None) ||> storeToken ||> sendAuthEvent))
