@@ -9,11 +9,11 @@ class GraphSpec extends FreeSpec with MustMatchers {
     () => { id += 1; id } // die kollidieren mit posts. wir brauchen für jeden typ ne eigene range
   }
 
-  implicit def tupleConnects(t:(Long, Connects)): (ConnectsId, Connects) = (ConnectsId(t._1), t._2)
-  implicit def tupleContains(t:(Long, Contains)): (ContainsId, Contains) = (ContainsId(t._1), t._2)
-  implicit def intToPostId(id:Int):PostId = PostId(id)
-  implicit def intToConnectsId(id:Int):ConnectsId = ConnectsId(id)
-  implicit def intToContainsId(id:Int):ContainsId = ContainsId(id)
+  implicit def tupleConnects(t: (Long, Connects)): (ConnectsId, Connects) = (ConnectsId(t._1), t._2)
+  implicit def tupleContains(t: (Long, Contains)): (ContainsId, Contains) = (ContainsId(t._1), t._2)
+  implicit def intToPostId(id: Int): PostId = PostId(id)
+  implicit def intToConnectsId(id: Int): ConnectsId = ConnectsId(id)
+  implicit def intToContainsId(id: Int): ContainsId = ContainsId(id)
   implicit def idToPost(id: Int): Post = Post(id, "")
   implicit def postListToMap(posts: List[Int]) = posts.map(idToPost).by(_.id)
   implicit def tupleIsContains(t: (Int, Int)): Contains = Contains(edgeId(), PostId(t._1), PostId(t._2))
@@ -80,19 +80,19 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         List(1, 2, 3),
         connects ++ Seq(newConnects, Connects(101, 4, newConnects.id)).by(_.id),
-        contains + (102L -> Contains(101, 3, 5)))
-      println(graph.consistent)
+        contains + (102L -> Contains(102, 3, 5))
+      )
       graph.consistent mustEqual Graph(List(1, 2, 3), connects + (newConnects.id -> newConnects), contains)
     }
 
-    "consistent on inconsistent graph (reverse)" ignore { //TODO
+    "consistent on inconsistent graph (reverse)" in {
       val connects: Map[ConnectsId, Connects] = List(1 -> 2, 2 -> 3)
       val contains: Map[ContainsId, Contains] = List(1 -> 2, 2 -> 3)
       val graph = Graph(
         List(1, 2, 3),
         connects ++ Seq(Connects(100, 4, PostId(1)), Connects(101, 1, ConnectsId(100))).by(_.id),
-        contains + (102L -> Contains(101, 3, 5)))
-      println(graph.consistent)
+        contains + (102L -> Contains(102, 3, 5))
+      )
       graph.consistent mustEqual Graph(List(1, 2, 3), connects, contains)
     }
 
@@ -145,7 +145,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       (graph ++ newAtoms) mustEqual Graph(
         graph.posts + (newPost.id -> newPost),
         graph.connections + (newConnects.id -> newConnects),
-        graph.containments + (newContains.id -> newContains))
+        graph.containments + (newContains.id -> newContains)
+      )
     }
 
     "remove post" in {
@@ -202,7 +203,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(3, 1, PostId(11)), Connects(4, 11, PostId(12)), Connects(5, 12, PostId(1)), Connects(6, 12, PostId(13))).by(_.id),
-        containments = List(Contains(3, 12, 14)).by(_.id))
+        containments = List(Contains(3, 12, 14)).by(_.id)
+      )
 
       graph.successors(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
       graph.successors(PostId(13)) mustEqual Set.empty
@@ -212,7 +214,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(3, 1, PostId(11)), Connects(4, 11, PostId(12)), Connects(5, 12, PostId(1)), Connects(6, 12, PostId(13))).by(_.id),
-        containments = List(Contains(3, 12, 14)).by(_.id))
+        containments = List(Contains(3, 12, 14)).by(_.id)
+      )
 
       graph.predecessors(PostId(12)) mustEqual Set(11).map(PostId(_))
       graph.predecessors(PostId(13)) mustEqual Set(12).map(PostId(_))
@@ -222,7 +225,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(3, 1, PostId(11)), Connects(4, 11, PostId(12)), Connects(5, 12, PostId(1)), Connects(6, 12, PostId(13))).by(_.id),
-        containments = List(Contains(3, 12, 14)).by(_.id))
+        containments = List(Contains(3, 12, 14)).by(_.id)
+      )
 
       graph.neighbours(PostId(12)) mustEqual Set(1, 11, 13).map(PostId(_))
       graph.neighbours(PostId(13)) mustEqual Set(12).map(PostId(_))
@@ -232,7 +236,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(2, 1, PostId(14))).by(_.id),
-        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
+        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id)
+      )
 
       graph.children(PostId(1)) mustEqual Set(11, 12).map(PostId(_))
       graph.children(PostId(12)) mustEqual Set.empty
@@ -242,7 +247,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(2, 1, PostId(14))).by(_.id),
-        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
+        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id)
+      )
 
       graph.parents(PostId(1)) mustEqual Set.empty
       graph.parents(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
@@ -252,7 +258,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val graph = Graph(
         posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")).by(_.id),
         connections = List(Connects(2, 1, PostId(14))).by(_.id),
-        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id))
+        containments = List(Contains(3, 1, 11), Contains(4, 1, 12), Contains(5, 13, 12)).by(_.id)
+      )
 
       graph.containmentNeighbours(PostId(1)) mustEqual Set(11, 12).map(PostId(_))
       graph.containmentNeighbours(PostId(12)) mustEqual Set(1, 13).map(PostId(_))

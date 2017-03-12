@@ -28,7 +28,7 @@ package object graph {
     connections: Map[ConnectsId, Connects] = Map.empty,
     containments: Map[ContainsId, Contains] = Map.empty
   ) {
-    override def toString = s"Graph(${posts.values.toList}.by(_.id),${connections.values.toList}.by(_.id), ${containments.values.toList}.by(_.id))"
+    override def toString = s"Graph(${posts.values.map(_.id.id).mkString(" ")},${connections.values.map(c => s"${c.sourceId.id} -> ${c.targetId.id}[${c.id.id}]").mkString(", ")}, ${containments.values.map(c => s"${c.parentId.id} ⊂ ${c.childId.id}[${c.id.id}]").mkString(", ")})"
 
     private val postDefaultNeighbourhood = posts.mapValues(_ => Set.empty[PostId])
     lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId)](connections.values.collect { case Connects(_, in, out: PostId) => (in, out) }, _._1, _._2)
@@ -116,26 +116,30 @@ package object graph {
     val `+`: Atom => Graph = {
       case p: Post => copy(posts = posts + (p.id -> p))
       case c: Connects => copy(connections = connections + (c.id -> c))
-      case c: Contains=> copy(containments = containments + (c.id -> c))
+      case c: Contains => copy(containments = containments + (c.id -> c))
     }
 
     def ++(atoms: Iterable[Atom]) = atoms.foldLeft(this)((g, a) => g + a)
 
-    def consistent = copy(
-      connections = connections.flatMap {
-        case (cid, c) if posts.get(c.sourceId).isDefined =>
-          val newTarget = (c.targetId match {
-            case t: PostId => posts.get(t).map(_.id)
-            case c: ConnectsId => connections.get(c).map(_.id)
-            case u: UnknownConnectableId => posts.get(PostId(u.id)).map(_.id) orElse connections.get(ConnectsId(u.id)).map(_.id)
-          })
-          newTarget.map(target => cid -> c.copy(targetId = target))
-        case _ => None
-      },
-      containments = containments.filter {
-        case (cid, c) => posts.get(c.childId).isDefined && posts.get(c.parentId).isDefined
-      }
-    )
+    def consistent = {
+      val invalidConnects = connections.values.filter { c =>
+        !posts.isDefinedAt(c.sourceId) || !(c.targetId match {
+          case t: PostId => posts.isDefinedAt(t)
+          case c: ConnectsId => connections.isDefinedAt(c)
+          case u: UnknownConnectableId => (posts.isDefinedAt(PostId(u.id)) || connections.isDefinedAt(ConnectsId(u.id)))
+        })
+      }.map(_.id).flatMap(c => incidentConnectionsDeep(c) ++ List(c))
+
+      val invalidContainments = containments.values.filter {
+        c => !posts.isDefinedAt(c.childId) || !posts.isDefinedAt(c.parentId)
+      }.map(_.id)
+
+      val g = this -- invalidConnects -- invalidContainments
+      g.copy(connections = g.connections.mapValues {
+        case c @ Connects(_, _, u: UnknownConnectableId) => c.copy(targetId = g.posts.get(PostId(u.id)).map(_.id).getOrElse(g.connections(ConnectsId(u.id)).id))
+        case valid => valid
+      })
+    }
 
     lazy val depth: collection.Map[PostId, Int] = {
       val tmpDepths = mutable.HashMap[PostId, Int]()
