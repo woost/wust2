@@ -39,7 +39,7 @@ object WebsocketFlow {
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, ConnectedClient.Stop))
 
     val outgoing: Source[Message, NotUsed] =
-      Source.actorRef[Any](10, OverflowStrategy.fail) //TODO why 10?
+      Source.actorRef[Any](bufferSize = 10, overflowStrategy = OverflowStrategy.dropNew)
         .mapMaterializedValue { outActor =>
           connectedClientActor ! ConnectedClient.Connect(outActor)
           NotUsed
