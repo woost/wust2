@@ -48,7 +48,7 @@ test.prod.http)
     $compose_stage prod.http down
     ;;
 test.prod)
-    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
     #TODO sbt systemTest/it:test
@@ -61,7 +61,7 @@ local.prod.http)
     $compose_stage prod.http up -d
     ;;
 local.prod)
-    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/test SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
     ;;
