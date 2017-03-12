@@ -98,12 +98,12 @@ object Db {
     val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
       infix"""with ins as (
         insert into "user"(id, name) values(DEFAULT, $name) returning id
-      ) insert into password(id, digest) select id, $digest from ins returning id;""".as[ActionReturning[User,Long]]
+      ) insert into password(id, digest) select id, $digest from ins""".as[Insert[User]]
     }
 
     def apply(name: String, password: String): Future[Option[User]] = {
       val digest = passwordDigest(password)
-      val q = quote { createUserAndPassword(lift(name), lift(digest)) }
+      val q = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
       ctx.run(q)
         .map(id => Some(User(id, name)))
         .recover { case _: Exception => None }
