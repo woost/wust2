@@ -8,8 +8,9 @@ import boopickle.Default._
 import message._
 
 trait IncidentHandler[Event, Error] {
-  def receive(event: Event): Unit
   def fromError(error: Error): Throwable
+  def onConnect(location: String): Unit
+  def receive(event: Event): Unit
 }
 
 class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler](
@@ -20,7 +21,7 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
 
   private val controlRequests = new OpenRequests[Boolean]
   private val callRequests = new OpenRequests[ByteBuffer]
-  private lazy val ws = new WebsocketConnection
+  private val ws = new WebsocketConnection(onConnect)
 
   private val acknowledgeTraffic: () => Unit = {
     import scala.scalajs.js.timers._

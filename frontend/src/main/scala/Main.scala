@@ -30,15 +30,15 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
-    Client.listen(state.onApiEvent)
     Client.auth.listen(state.onAuthEvent)
+    Client.listen {
+      case Left(ConnectEvent(_)) =>
+        Client.subscribe(Channel.Graph)
+        Client.auth.reauthenticate()
+      case Right(apiEvent) => state.onApiEvent(apiEvent)
+    }
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
-    Client.subscribe(Channel.Graph)
-
-    DevOnly {
-      Client.auth.login("hans", "***")
-    }
 
     Client.api.getGraph().call().foreach { graph =>
       state.graph := graph
