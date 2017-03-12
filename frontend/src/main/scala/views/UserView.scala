@@ -1,6 +1,7 @@
 package wust.frontend.views
 
 import org.scalajs.dom._
+import concurrent.Future
 import rx._
 import scalatags.rx.all._
 import scalatags.JsDom.all._
@@ -10,6 +11,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import wust.frontend.{ Client, GlobalState }
 import wust.api.User
+import wust.util.Pipe
 
 object UserView {
   val inputText = input(`type` := "text")
@@ -18,12 +20,22 @@ object UserView {
 
   val userField = inputText(placeholder := "user name").render
   val passwordField = inputPassword(placeholder := "password").render
-  val registerButton = buttonClick("register", Client.auth.register(userField.value, passwordField.value))
-  def loginButton(currentUser: WriteVar[Option[User]]) = buttonClick("login", Client.auth.login(userField.value, passwordField.value))
-  def logoutButton(currentUser: WriteVar[Option[User]]) = buttonClick("logout", Client.auth.logout())
+  def clearOnSuccess(success: Future[Boolean]) = success.foreach(if (_) {
+    userField.value = ""
+    passwordField.value = ""
+  })
 
-  def loginMask(currentUser: WriteVar[Option[User]]) = div(userField, passwordField, loginButton(currentUser), registerButton)
-  def userProfile(currentUser: WriteVar[Option[User]], user: User) = div(user.toString, logoutButton(currentUser))
+  val registerButton =
+    buttonClick("register", Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess)
+  def loginButton(currentUser: WriteVar[Option[User]]) =
+    buttonClick("login", Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess)
+  def logoutButton(currentUser: WriteVar[Option[User]]) =
+    buttonClick("logout", Client.auth.logout())
+
+  def loginMask(currentUser: WriteVar[Option[User]]) =
+    div(userField, passwordField, loginButton(currentUser), registerButton)
+  def userProfile(currentUser: WriteVar[Option[User]], user: User) =
+    div(user.toString, logoutButton(currentUser))
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     state.currentUser.rx.map {
