@@ -1,20 +1,22 @@
 package wust.framework
 
-import org.scalatest.concurrent.ScalaFutures
-import concurrent.Promise
+import scala.concurrent.Promise
 import org.scalatest._
 
-class OpenRequestsSpec extends FreeSpec with MustMatchers with ScalaFutures {
+class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {
+  implicit override def executionContext = scala.concurrent.ExecutionContext.Implicits.global
+
   "timeout promise" - {
-    "timeouts after some time" ignore { // TODO
+    //TODO: why does it need executionContext = global? also breaks grouping of tests in output
+    "timeouts after some time" in {
       val promise = TimeoutPromise[Int](10)
-      whenReady(promise.future.failed)(_ mustEqual TimeoutException)
+      promise.future.failed.map(_ mustEqual TimeoutException)
     }
 
     "not timeout directly" in {
       val promise = TimeoutPromise[Int](10)
       promise success 1
-      promise.future.value.flatMap(_.toOption) mustEqual Some(1)
+      promise.future.map(_ mustEqual 1)
     }
   }
 

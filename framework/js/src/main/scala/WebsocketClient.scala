@@ -1,6 +1,7 @@
 package wust.framework
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import java.nio.ByteBuffer
 
 import boopickle.Default._

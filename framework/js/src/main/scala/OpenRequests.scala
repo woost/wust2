@@ -1,7 +1,6 @@
 package wust.framework
 
-import scala.concurrent.{Promise, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Promise, Future, ExecutionContext}
 
 import org.scalajs.dom.console
 
@@ -13,7 +12,7 @@ case object TimeoutException extends Exception
 object TimeoutPromise {
   import scala.scalajs.js.timers._
 
-  def apply[T](timeoutMillis: Int): Promise[T] = {
+  def apply[T](timeoutMillis: Int)(implicit ctx: ExecutionContext): Promise[T] = {
     val promise = Promise[T]()
 
     val timeout = setTimeout(timeoutMillis)(promise tryFailure TimeoutException)
@@ -33,7 +32,7 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
     () => { seqId += 1; seqId }
   }
 
-  def open(): (SequenceId, Promise[T]) = {
+  def open()(implicit ctx: ExecutionContext): (SequenceId, Promise[T]) = {
     val stopwatch = StopWatch.started
     val promise = TimeoutPromise[T](timeoutMillis)
     val seqId = nextSeqId()
