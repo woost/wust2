@@ -24,7 +24,7 @@ object MainView {
   private val tabMode: Var[Tab] = Var(Tab.Graph)
   def toggleDisplay(f: Tab => Boolean)(implicit ctx: Ctx.Owner) = tabMode.map(m => if (f(m)) "block" else "none")
   val graphDisplay = toggleDisplay(_ == Tab.Graph)
-  val listDisplay = toggleDisplay(_ == Tab.Tree)
+  val treeDisplay = toggleDisplay(_ == Tab.Tree)
   val userDisplay = toggleDisplay(_ == Tab.User)
   val postFormDisplay = toggleDisplay(m => m == Tab.Graph || m == Tab.Tree)
 
@@ -33,15 +33,9 @@ object MainView {
       button(onclick := { (_: Event) => tabMode() = Tab.Graph })("graph"),
       button(onclick := { (_: Event) => tabMode() = Tab.Tree })("tree"),
       button(onclick := { (_: Event) => tabMode() = Tab.User })("user"),
-      div(display := graphDisplay)(
-        GraphView(state)
-      ),
-      div(display := listDisplay)(
-        TreeView(state)
-      ),
-      div(display := userDisplay)(
-        UserView(state)
-      ),
+      div(display := graphDisplay)(GraphView(state)),
+      div(display := treeDisplay)(TreeView(state)),
+      div(display := userDisplay)(UserView(state)),
       div(position.fixed, width := "100%", bottom := 0, left := 0, display := postFormDisplay,
         padding := "5px", background := "#f7f7f7", borderTop := "1px solid #DDD")(
           AddPostForm(state)
