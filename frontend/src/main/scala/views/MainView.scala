@@ -9,30 +9,24 @@ import scalatags.JsDom.all._
 import autowire._
 import boopickle.Default._
 
-import wust.frontend.{GlobalState, Client, DevOnly}
+import wust.frontend.{GlobalState, Client, DevOnly, ViewPage}
 import wust.graph._
 import graphview.GraphView
 
 object MainView {
-  sealed trait Tab
-  object Tab {
-    case object Graph extends Tab
-    case object Tree extends Tab
-    case object User extends Tab
-  }
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
 
-  private val tabMode: Var[Tab] = Var(Tab.Graph)
-  def toggleDisplay(f: Tab => Boolean)(implicit ctx: Ctx.Owner) = tabMode.map(m => if (f(m)) "block" else "none")
-  val graphDisplay = toggleDisplay(_ == Tab.Graph)
-  val treeDisplay = toggleDisplay(_ == Tab.Tree)
-  val userDisplay = toggleDisplay(_ == Tab.User)
-  val postFormDisplay = toggleDisplay(m => m == Tab.Graph || m == Tab.Tree)
+    def toggleDisplay(f: ViewPage => Boolean)(implicit ctx: Ctx.Owner) =
+      state.viewPage.map(m => if (f(m)) "block" else "none")
+    val graphDisplay = toggleDisplay(_ == ViewPage.Graph)
+    val treeDisplay = toggleDisplay(_ == ViewPage.Tree)
+    val userDisplay = toggleDisplay(_ == ViewPage.User)
+    val postFormDisplay = toggleDisplay(m => m == ViewPage.Graph || m == ViewPage.Tree)
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(fontFamily := "sans-serif")(
-      button(onclick := { (_: Event) => tabMode() = Tab.Graph })("graph"),
-      button(onclick := { (_: Event) => tabMode() = Tab.Tree })("tree"),
-      button(onclick := { (_: Event) => tabMode() = Tab.User })("user"),
+      button(onclick := { (_: Event) => state.viewPage() = ViewPage.Graph })("graph"),
+      button(onclick := { (_: Event) => state.viewPage() = ViewPage.Tree })("tree"),
+      button(onclick := { (_: Event) => state.viewPage() = ViewPage.User })("user"),
       div(display := graphDisplay)(GraphView(state)),
       div(display := treeDisplay)(TreeView(state)),
       div(display := userDisplay)(UserView(state)),
@@ -64,4 +58,5 @@ object MainView {
         }
       }
     )
+  }
 }
