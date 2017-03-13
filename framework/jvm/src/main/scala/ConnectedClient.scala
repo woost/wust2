@@ -7,14 +7,14 @@ import java.nio.ByteBuffer
 
 import akka.actor._
 import akka.pattern.pipe
-import autowire.Core.{ Request, Router }
+import autowire.Core.Request
 
 import wust.util.time.StopWatch
 import wust.util.Pipe
 import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, User] {
-  def router(user: Option[User]): AutowireServer.Router
+  def router(user: Option[User]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
   def authenticate(auth: AuthToken): Option[User]

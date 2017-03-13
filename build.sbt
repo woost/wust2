@@ -55,6 +55,7 @@ val akkaVersion = "2.4.17"
 val akkaHttpVersion = "10.0.4"
 val specs2Version = "3.8.8"
 val scalaTestVersion = "3.0.1"
+val mockitoVersion = "2.7.14"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -97,6 +98,7 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % "1.2.6" ::
+      "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     )
@@ -105,6 +107,7 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
+      "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test" ::
       "com.outr" %% "scribe" % "1.4.1" ::
       // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
       // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO

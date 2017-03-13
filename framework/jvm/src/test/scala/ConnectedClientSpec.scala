@@ -1,0 +1,149 @@
+package wust.framework
+
+import akka.actor._
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import java.nio.ByteBuffer
+import org.scalatest._
+import org.scalatest.mockito.MockitoSugar
+import org.mockito.Mockito.verify
+import akka.testkit.{TestKit, TestActorRef, ImplicitSender}
+import boopickle.Default._
+import autowire.Core.Request
+
+import message._
+
+object TestRequestHandler extends RequestHandler[Int, String, String, String, String] {
+  def router(user: Option[String]) = {
+    case Request("api" :: Nil, args) => Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get)
+    case Request("user" :: Nil, _) => Future.successful(Pickle.intoBytes(user))
+    case Request("broken" :: Nil, _) => Future.failed(new Exception("an error"))
+  }
+
+  def pathNotFound(path: Seq[String]) = "path not found"
+  def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
+  def authenticate(auth: String): Option[String] = if (auth.isEmpty) None else Some(auth)
+}
+
+class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {
+
+  val messages = new Messages[Int, String, String, String]
+  import messages._
+
+  val dispatcher = mock[Dispatcher[Int, String]]
+
+  def newActor = TestActorRef(new ConnectedClient(messages, TestRequestHandler, dispatcher))
+  def connectActor(actor: ActorRef) = actor ! ConnectedClient.Connect(self)
+
+  "unconnected" - {
+    val actor = newActor
+
+    "no pong" in {
+      actor ! Ping()
+      expectNoMsg
+    }
+
+    "no call request" in {
+      actor ! CallRequest(2, Seq("invalid", "path"), Map.empty)
+      expectNoMsg
+    }
+
+    "no control request" in {
+      actor ! ControlRequest(2, Login(""))
+      expectNoMsg
+    }
+
+    "stop" in {
+      actor ! ConnectedClient.Stop
+      connectActor(actor)
+      actor ! Ping()
+      expectNoMsg
+    }
+  }
+
+  "ping" - {
+    val actor = newActor
+    connectActor(actor)
+
+    "expect pong" in {
+      actor ! Ping()
+      expectMsg(Pong())
+    }
+  }
+
+  "call request" - {
+    val actor = newActor
+    connectActor(actor)
+
+    "invalid path" in {
+      actor ! CallRequest(2, Seq("invalid", "path"), Map.empty)
+      expectMsg(CallResponse(2, Left("path not found")))
+    }
+
+    "exception in api" in {
+      actor ! CallRequest(2, Seq("broken"), Map.empty)
+      expectMsg(CallResponse(2, Left("an error")))
+    }
+
+    "call api" in {
+      actor ! CallRequest(2, Seq("api"),
+        Map("s" -> AutowireServer.write[String]("hans")))
+
+      val pickledResponse = AutowireServer.write[String]("snah")
+      expectMsg(CallResponse(2, Right(pickledResponse)))
+    }
+  }
+
+  "control request" - {
+    val actor = newActor
+    connectActor(actor)
+
+    "invalid login" in {
+      actor ! ControlRequest(2, Login(""))
+      expectMsg(ControlResponse(2, false))
+
+      actor ! CallRequest(2, Seq("user"), Map.empty)
+      val pickledResponse = AutowireServer.write[Option[String]](None)
+      expectMsg(CallResponse(2, Right(pickledResponse)))
+    }
+
+    "valid login" in {
+      val userName = "pete"
+      actor ! ControlRequest(2, Login(userName))
+      expectMsg(ControlResponse(2, true))
+
+      actor ! CallRequest(2, Seq("user"), Map.empty)
+      val pickledResponse = AutowireServer.write[Option[String]](Some(userName))
+      expectMsg(CallResponse(2, Right(pickledResponse)))
+    }
+
+    "logout" in {
+      actor ! ControlRequest(2, Logout())
+      expectMsg(ControlResponse(2, true))
+    }
+
+    "subscribe" in {
+      actor ! ControlRequest(2, Subscribe(1))
+      expectMsg(ControlResponse(2, true))
+      verify(dispatcher).subscribe(self, 1)
+    }
+
+    "unsubscribe" in {
+      actor ! ControlRequest(2, Unsubscribe(1))
+      expectMsg(ControlResponse(2, true))
+      verify(dispatcher).unsubscribe(self, 1)
+    }
+  }
+
+  "stop" - {
+    val actor = newActor
+    connectActor(actor)
+
+    "stops actor" in {
+      actor ! ConnectedClient.Stop
+      actor ! Ping()
+      expectNoMsg
+      verify(dispatcher).unsubscribe(self)
+    }
+  }
+}
