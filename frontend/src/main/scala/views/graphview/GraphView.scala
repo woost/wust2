@@ -142,6 +142,6 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
 
 object GraphView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    div().render ||> (new GraphView(state, _))
+    div(div().render ||> (new GraphView(state, _)))
   }
 }

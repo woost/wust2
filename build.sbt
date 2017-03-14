@@ -137,6 +137,7 @@ lazy val frontend = project
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     ),
+    jsDependencies += RuntimeDOM,
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     scalaJSOptimizerOptions in fullOptJS ~= { _.withDisableOptimizer(true) }, // TODO: issue with fullOpt: https://github.com/scala-js/scala-js/issues/2786
     useYarn := true, // instead of npm
