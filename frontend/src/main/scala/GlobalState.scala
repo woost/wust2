@@ -10,8 +10,29 @@ case class FocusMode(postId: PostId) extends InteractionMode
 case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
+sealed trait ViewPage
+object ViewPage {
+  case object Graph extends ViewPage
+  case object Tree extends ViewPage
+  case object User extends ViewPage
+}
+
+object RouteablePage extends Routeable[ViewPage] {
+  override val default = ViewPage.Graph
+
+  override val fromRoute: PartialFunction[String, ViewPage] = {
+    case "graph" => ViewPage.Graph
+    case "tree" => ViewPage.Tree
+    case "user" => ViewPage.User
+  }
+
+  override def toRoute(page: ViewPage) = page.toString.toLowerCase
+}
+
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar(None: Option[User])
+
+  val viewPage: Var[ViewPage] = Var(ViewPage.Graph)
 
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)

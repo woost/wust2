@@ -20,9 +20,11 @@ import rx._
 
 @JSExport
 object Main extends js.JSApp {
+
   @JSExport
   def main(): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
+    implicit val routeablePage = RouteablePage
 
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
@@ -30,6 +32,7 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
+    UrlRouter.route(state.viewPage)
     Client.auth.listen(state.onAuthEvent)
     Client.listen {
       case Left(ConnectEvent(_)) =>
