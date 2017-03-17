@@ -45,7 +45,10 @@ object Simulation {
     .force("containment", forces.containment)
 }
 
-class D3State {
+// TODO: run simulation in tests. jsdom timer bug?
+// When running tests with d3-force in jsdom, the d3-timer does not stop itself.
+// It should stop when alpha < alphaMin, but is running infinitely, causing a jsdom timeout.
+class D3State(disableSimulation:Boolean = false) {
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   private val width = 640
   private val height = 480
@@ -53,4 +56,5 @@ class D3State {
   var transform: Transform = d3.zoomIdentity // stores current pan and zoom
   val forces = Forces(height, width)
   val simulation = Simulation(forces)
+  if(disableSimulation) simulation.stop()
 }

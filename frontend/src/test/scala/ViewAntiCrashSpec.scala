@@ -10,7 +10,7 @@ import scala.collection.immutable._
 import graphview.GraphView
 
 class ViewsExamples extends Tables {
-  def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_), MainView(_))
+  def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_:GlobalState, true), MainView(_:GlobalState, true))
 }
 
 class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers {

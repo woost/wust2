@@ -23,9 +23,9 @@ object KeyImplicits {
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }
 
-class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx.Owner) {
+class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation:Boolean = false)(implicit ctx: Ctx.Owner) {
   val graphState = new GraphState(state)
-  val d3State = new D3State
+  val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
   import state.{graph => rxGraph, _}
   import graphState._
@@ -90,6 +90,7 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId := None)
     d3State.simulation.on("tick", draw _)
+    d3State.simulation.on("end", {() => println("simulation ended")})
     //TODO: currently produces NaNs: rxSimConnects.foreach { data => d3State.forces.connection.links = data }
   }
 
@@ -141,7 +142,7 @@ class GraphView(state: GlobalState, element: dom.html.Element)(implicit ctx: Ctx
 }
 
 object GraphView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    div(div().render ||> (new GraphView(state, _)))
+  def apply(state: GlobalState, disableSimulation:Boolean = false)(implicit ctx: Ctx.Owner) = {
+    div(div().render ||> (new GraphView(state, _, disableSimulation)))
   }
 }
