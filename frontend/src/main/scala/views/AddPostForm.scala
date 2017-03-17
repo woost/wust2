@@ -21,7 +21,7 @@ import wust.graph._
 import wust.frontend._, Color._
 
 object AddPostForm {
-  def editLabel(graph: Rx[Graph], editedPostId: WriteVar[Option[PostId]], postId: PostId)(implicit ctx: Ctx.Owner) = {
+  def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:",
       button("×", onclick := { (_: Event) => editedPostId := None }),
@@ -29,10 +29,10 @@ object AddPostForm {
     )
   }
 
-  def responseLabel(graph: Rx[Graph], postId: PostId)(implicit ctx: Ctx.Owner) = {
+  def responseLabel(graph: Graph, postId: PostId) = {
     div(
-      Rx { Views.parents(postId, graph()).render },
-      Rx { Views.post(graph().posts(postId)).render }
+      Views.parents(postId, graph),
+      Views.post(graph.posts(postId))
     )
   }
 
@@ -53,22 +53,22 @@ object AddPostForm {
       }
     }
 
+    def label(mode: InteractionMode, graph: Graph) = mode match {
+      case EditMode(postId) => editLabel(graph, rxEditedPostId, postId)
+      case FocusMode(postId) => responseLabel(graph, postId)
+      case _ => newLabel
+    }
+
+    def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+      case EditMode(postId) => Client.api.updatePost(graph.posts(postId).copy(title = text)).call()
+      case FocusMode(postId) => Client.api.respond(postId, text).call().map(_ => true)
+      case _ => Client.api.addPost(text).call().map(_ => true)
+    }
+
     div(
-      {
-        val label: InteractionMode => dom.html.Div = {
-          case EditMode(postId) => editLabel(rxGraph, rxEditedPostId, postId).render
-          case FocusMode(postId) => responseLabel(rxGraph, postId).render
-          case _ => newLabel.render
-        }
-        rxMode.map(label(_))
-      },
+      Rx { label(rxMode(), rxGraph()).render },
       {
         //TODO: pattern matching is broken inside Rx
-        def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
-          case EditMode(postId) => Client.api.updatePost(graph.posts(postId).copy(title = text)).call()
-          case FocusMode(postId) => Client.api.respond(postId, text).call().map(_ => true)
-          case _ => Client.api.addPost(text).call().map(_ => true)
-        }
         Rx {
           input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
             val input = e.target.asInstanceOf[HTMLInputElement]
