@@ -131,7 +131,8 @@ lazy val frontend = project
   .settings(
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
     libraryDependencies ++= (
-      "com.timushev" %%% "scalatags-rx" % "0.3.0" ::
+      ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll (ExclusionRule(artifact = "scalarx"))) ::
+      "com.github.fdietze" %%% "scalarx" %  "0.3.3-SNAPSHOT" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::

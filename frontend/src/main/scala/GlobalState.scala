@@ -1,6 +1,6 @@
 package wust.frontend
 
-import rx._, RxVar._
+import rx._, rxext._
 
 import wust.api._
 import wust.graph._
@@ -30,7 +30,7 @@ object RouteablePage extends Routeable[ViewPage] {
 }
 
 class GlobalState(implicit ctx: Ctx.Owner) {
-  val currentUser = RxVar(None: Option[User])
+  val currentUser = RxVar[Option[User]](None)
 
   val viewPage: Var[ViewPage] = Var(ViewPage.Graph)
 
@@ -47,9 +47,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val graph = {
-    RxVar(rawGraph.write, Rx {
-      View(currentView(), rawGraph())
-    })
+    RxVar(rawGraph.write, Rx { View(currentView(), rawGraph()) })
   }
 
   val focusedPostId = {
@@ -85,18 +83,18 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val onAuthEvent: AuthEvent => Unit = _ match {
-    case LoggedIn(user) => currentUser := Some(user)
-    case LoggedOut => currentUser := None
+    case LoggedIn(user) => currentUser() = Some(user)
+    case LoggedOut => currentUser() = None
   }
 
   val onApiEvent: ApiEvent => Unit = _ match {
-    case NewPost(post) => graph.update(_ + post)
-    case UpdatedPost(post) => graph.update(_ + post)
-    case NewConnection(connects) => graph.update(_ + connects)
-    case NewContainment(contains) => graph.update(_ + contains)
+    case NewPost(post) => graph.updatef(_ + post)
+    case UpdatedPost(post) => graph.updatef(_ + post)
+    case NewConnection(connects) => graph.updatef(_ + connects)
+    case NewContainment(contains) => graph.updatef(_ + contains)
 
-    case DeletePost(postId) => graph.update(_ - postId)
-    case DeleteConnection(connectsId) => graph.update(_ - connectsId)
-    case DeleteContainment(containsId) => graph.update(_ - containsId)
+    case DeletePost(postId) => graph.updatef(_ - postId)
+    case DeleteConnection(connectsId) => graph.updatef(_ - connectsId)
+    case DeleteContainment(containsId) => graph.updatef(_ - containsId)
   }
 }

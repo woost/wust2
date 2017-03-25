@@ -1,7 +1,7 @@
 package wust.frontend.views.graphview
 
 import math._
-import rx._
+import rx._, rxext._
 import scalajs.js
 import js.JSConverters._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -26,8 +26,8 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
 
   val menuActions = (
     // TODO indication for toggle button? switch string/appearance on basis of value?
-    MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxCollapsedPostIds.update(_.toggle(p.id)) }) ::
-    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxEditedPostId := Some(p.id) }) ::
+    MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxCollapsedPostIds.updatef(_.toggle(p.id)) }) ::
+    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxEditedPostId() = Some(p.id) }) ::
     // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
@@ -68,7 +68,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
             println(s"\nMenu ${d.data.name}: [${simPost.id}]${simPost.title}")
           }
           d.data.action(simPost, simulation)
-          rxFocusedSimPost := None
+          rxFocusedSimPost() = None
         })
         .on("mousedown", (d: PieArcDatum[MenuAction]) => d3.event.asInstanceOf[org.scalajs.dom.Event].preventDefault()) // disable selecting text in menu
 

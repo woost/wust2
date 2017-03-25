@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import org.scalajs.dom._
 import org.scalajs.d3v4
-import rx._
+import rx._, rxext._
 import scalatags.rx.all._
 import scalatags.JsDom.all._
 import collection.breakOut
@@ -28,12 +28,12 @@ object TreeView {
       post
     )(
       backgroundColor := postColor(post.id, mode).map(_.toString),
-      onclick := { () => focusedPostId.update(_.setOrToggle(post.id)) },
+      onclick := { () => focusedPostId.updatef(_.setOrToggle(post.id)) },
       div(
-        span(onclick := { () => editedPostId.update(_.setOrToggle(post.id)) }, "[edit]"),
+        span(onclick := { () => editedPostId.updatef(_.setOrToggle(post.id)) }, "[edit]"),
         collapsedPostIds.rx.map { collapsed =>
           span(
-            onclick := { () => collapsedPostIds.update(_.toggle(post.id)) },
+            onclick := { () => collapsedPostIds.updatef(_.toggle(post.id)) },
             if (collapsed(post.id)) "+" else "-"
           ).render
         }

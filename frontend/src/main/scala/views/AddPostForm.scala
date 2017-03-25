@@ -24,7 +24,7 @@ object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:",
-      button("×", onclick := { (_: Event) => editedPostId := None }),
+      button("×", onclick := { (_: Event) => editedPostId() = None }),
       responseLabel(graph, postId)
     )
   }
@@ -77,7 +77,7 @@ object AddPostForm {
               action(text, rxGraph.now, rxMode.now).foreach { success =>
                 if (success) {
                   input.value = ""
-                  rxEditedPostId := None
+                  rxEditedPostId() = None
                 }
               }
             }

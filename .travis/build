@@ -2,6 +2,13 @@
 set -e
 set -o pipefail
 
+(
+    cd /tmp
+    git clone http://github.com/fdietze/scala.rx --depth=1
+    cd scala.rx
+    sbt ++2.11.8 pl
+)
+
 sbt docker \
  testJS \
  coverage testJVM coverageReport

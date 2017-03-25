@@ -1,49 +1,23 @@
-package rx
+package object rxext {
 
-import wust.util.Pipe
+  import wust.util.Pipe
+  import rx._
 
-trait WriteVar[A] {
-  def :=(newValue: A): Unit
-  def update(f: A => A): Unit
-  def writeProjection[B](to: B => A, from: PartialFunction[A, B] = PartialFunction.empty): WriteVar[B] = WriteProjection(this, to, from)
-}
-object WriteVar {
-  implicit def VarIsWriteVar[A](v: Var[A]) = new WriteVar[A] {
-    def :=(newValue: A) = v() = newValue
-    def update(f: A => A) = v() = f(v.now) //TODO: v.update(f)
+  // implicit class RichWriteVar[A](val writeVar:WriteVar[A]) extends AnyVal {
+  //   def writeProjection[B](to: B => A, from: PartialFunction[A, B] = PartialFunction.empty): WriteVar[B] = WriteProjection(writeVar, to, from)
+  // }
+
+  implicit class RichRxVar[S,A](val rxVar:RxVar[S,A]) extends AnyVal {
+    def writeProjection[T](to: T => S, from: PartialFunction[S, T])(implicit ctx: Ctx.Owner): RxVar[T, A] = RxVar(WriteProjection(rxVar.write, to, from), rxVar.rx)
+    def map[T](to: A => T)(implicit ctx: Ctx.Owner):RxVar[S,T] = RxVar(rxVar.write, rxVar.rx.map(to))
+    def updatef(f: A => S) = rxVar() = f(rxVar.rx.now)
   }
-}
-object WriteProjection {
-  def apply[S, A](v: WriteVar[S], to: A => S, from: PartialFunction[S, A]): WriteVar[A] = new WriteVar[A] {
-    def :=(newValue: A) = v := to(newValue)
-    def update(f: A => A) = v.update((from andThen f andThen to) orElse { case i => i })
+
+  implicit class RichWriteVar[A](val writeVar:WriteVar[A]) extends AnyVal {
   }
-}
-
-class RxVar[S, A](val write: WriteVar[S], val rx: Rx[A]) extends WriteVar[S] {
-  import RxVar.RichRx
-
-  override def :=(newValue: S) = write := newValue
-  override def update(f: S => S) = write.update(f)
-  override def writeProjection[T](to: T => S, from: PartialFunction[S, T]): RxVar[T, A] = RxVar(write.writeProjection(to, from), rx)
-
-  def now = rx.now
-  def foreach(f: A => Unit)(implicit ctx: Ctx.Owner) = rx.foreach(f)
-  def map[B](f: A => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.map(f))
-  def flatMap[B](f: A => Rx[B])(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, rx.flatMap(f))
-  // def combine[B](f: A => Ctx.Owner => B)(implicit ctx: Ctx.Owner): RxVar[S, B] = RxVar(write, Rx { f(rx())(ctx) }) //TODO
-}
-
-object RxVar {
-  def apply[S, A](write: WriteVar[S], rx: Rx[A]): RxVar[S, A] = new RxVar(write, rx)
-  def apply[S](value: S): RxVar[S, S] = VarIsRxVar(Var(value))
-
-  implicit def VarIsRxVar[A](v: Var[A]) = new RxVar(v, v)
-
-  implicit def RxVarToRx[S, A](rxVar: RxVar[S, A]): Rx[A] = rxVar.rx
 
   implicit class SymmetricRxVar[A](val rxVar: RxVar[A, A]) extends AnyVal {
-    def projection[B](to: B => A, from: A => B)(implicit ctx: Ctx.Owner) = rxVar.map(from).writeProjection(to, { case v => from(v) })
+    def projection[B](to: B => A, from: A => B)(implicit ctx: Ctx.Owner, data: Ctx.Data) = rxVar.map(from).writeProjection(to, { case v => from(v) })
   }
 
   implicit class RichRx[A](val rx: Rx[A]) extends AnyVal {
@@ -56,4 +30,15 @@ object RxVar {
       rx ||> (_.foreach(x => println(print(x))))
     }
   }
+
+
+  object WriteProjection {
+    def apply[S, A](v: WriteVar[S], to: A => S, from: PartialFunction[S, A])(implicit ctx: Ctx.Owner): WriteVar[A] = new WriteVar[A] {
+      def update(newValue: A) = v() = to(newValue)
+      def kill(): Unit = v.kill()
+      def recalc(): Unit = v.recalc()
+      // def update(f: A => A) = v.update((from andThen f andThen to) orElse { case i => i })
+    }
+  }
+
 }

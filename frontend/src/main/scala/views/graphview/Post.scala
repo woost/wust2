@@ -1,7 +1,7 @@
 package wust.frontend.views.graphview
 
 import math._
-import rx._
+import rx._, rxext._
 
 import scalajs.js
 import js.JSConverters._
@@ -30,7 +30,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     ).render)
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
-        rxFocusedSimPost.update(_.setOrToggle(p.id))
+        rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
       })
       .call(d3.drag[SimPost]()
         .on("start", postDragStarted _)

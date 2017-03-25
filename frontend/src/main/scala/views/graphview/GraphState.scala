@@ -3,7 +3,7 @@ package wust.frontend.views.graphview
 import scalajs.js
 import js.JSConverters._
 import collection.breakOut
-import rx._, RxVar._
+import rx._, rxext._
 
 import wust.frontend.{ DevOnly, GlobalState }
 import wust.graph._
