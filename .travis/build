@@ -6,7 +6,7 @@ set -o pipefail
     cd /tmp
     git clone http://github.com/fdietze/scala.rx --depth=1
     cd scala.rx
-    sbt ++2.11.8 pl
+    sbt ++2.11.8 publish-local
 )
 
 sbt docker \
