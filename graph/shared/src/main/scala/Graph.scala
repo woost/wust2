@@ -81,6 +81,7 @@ package object graph {
     val fullDegree: ConnectableId => Int = {
       case p: PostId => connectionDegree(p) + containmentDegree(p)
       case c: ConnectsId => 2
+      case _ => ???
     }
 
     def involvedInCycle(id: PostId): Boolean = {
@@ -109,6 +110,7 @@ package object graph {
         copy(
           containments = containments - id
         )
+      case _ => ???
     }
 
     def --(ids: Iterable[AtomId]) = ids.foldLeft(this)((g, p) => g - p) //TODO: more efficient
