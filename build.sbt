@@ -52,10 +52,10 @@ lazy val root = project.in(file("."))
   )
 
 val akkaVersion = "2.4.17"
-val akkaHttpVersion = "10.0.4"
-val specs2Version = "3.8.8"
+val akkaHttpVersion = "10.0.5"
+val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.1"
-val mockitoVersion = "2.7.14"
+val mockitoVersion = "2.7.19"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -212,7 +212,7 @@ lazy val systemTest = project
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion % "it" ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion % "it" ::
       "org.specs2" %% "specs2-core" % specs2Version % "it" ::
-      "org.seleniumhq.selenium" % "selenium-java" % "3.2.0" % "it" ::
+      "org.seleniumhq.selenium" % "selenium-java" % "3.3.1" % "it" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )

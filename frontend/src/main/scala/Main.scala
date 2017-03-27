@@ -18,10 +18,8 @@ import scalatags.JsDom.all._
 import scalatags.rx.all._
 import rx._
 
-@JSExport
 object Main extends js.JSApp {
 
-  @JSExport
   def main(): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     implicit val routeablePage = RouteablePage
