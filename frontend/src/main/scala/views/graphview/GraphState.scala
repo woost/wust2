@@ -5,7 +5,7 @@ import js.JSConverters._
 import collection.breakOut
 import rx._, rxext._
 
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.{DevOnly, GlobalState}
 import wust.graph._
 import wust.frontend.Color._
 import wust.util.collection._
@@ -20,7 +20,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxGraph()
     val collapsedPostIds = rxCollapsedPostIds()
 
-    graph.posts.values.map { p =>
+    graph.posts.map { p =>
       val sp = new SimPost(p)
 
       def parents = graph.parents(p.id)
@@ -75,7 +75,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxGraph()
     val postIdToSimPost = rxPostIdToSimPost()
 
-    val newData = graph.connections.values.map { c =>
+    val newData = graph.connections.map { c =>
       new SimConnects(c, postIdToSimPost(c.sourceId))
     }.toJSArray
 
@@ -97,7 +97,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxGraph()
     val postIdToSimPost = rxPostIdToSimPost()
 
-    graph.containments.values.map { c =>
+    graph.containments.map { c =>
       new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
     }.toJSArray
   }
@@ -106,8 +106,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxGraph()
     val postIdToSimPost = rxPostIdToSimPost()
 
-    val containments = graph.containments.values
-    val parents: Seq[PostId] = containments.map(c => c.parentId)(breakOut).distinct
+    val parents: Seq[PostId] = graph.containments.map(c => c.parentId)(breakOut).distinct
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.

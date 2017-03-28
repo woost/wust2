@@ -42,7 +42,7 @@ case class View(
 object View {
   def collapse(selector: Selector, graph: Graph): Graph = {
     //TODO: currently only top-level-parents can be collapsed
-    val toCollapse: Iterable[PostId] = graph.posts.keys.filter(selector.apply)
+    val toCollapse: Iterable[PostId] = graph.postsById.keys.filter(selector.apply)
       //TODO: only the cycle should not be collapsed, but we should still collapse other children (not in the cycle)
       .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).exists(selector.apply))
 
@@ -63,7 +63,7 @@ object View {
       }(breakOut)
 
     def edgesToParents(addEdges: Map[ConnectsId, Connects], parent: PostId, child: PostId): Map[ConnectsId, Connects] = {
-      val connectionMap = graph.connections ++ addEdges
+      val connectionMap = graph.connectionsById ++ addEdges
       addEdges ++ removeEdges(child).map(connectionMap).map {
         case edge @ Connects(id, `child`, _) => id -> edge.copy(sourceId = parent)
         case edge @ Connects(id, _, `child`) => id -> edge.copy(targetId = parent)

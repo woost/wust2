@@ -14,7 +14,7 @@ import wust.graph._
 import graphview.GraphView
 
 object MainView {
-  def apply(state: GlobalState, disableSimulation:Boolean = false)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
 
     def toggleDisplay(f: ViewPage => Boolean)(implicit ctx: Ctx.Owner) =
       state.viewPage.map(m => if (f(m)) "block" else "none")
@@ -47,7 +47,7 @@ object MainView {
               )
             },
             {
-              val posts = scala.util.Random.shuffle(state.graph().posts.keys.toSeq)
+              val posts = scala.util.Random.shuffle(state.graph().postsById.keys.toSeq)
               def deletePost(id: PostId) { Client.api.deletePost(id).call() }
               div(
                 button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),

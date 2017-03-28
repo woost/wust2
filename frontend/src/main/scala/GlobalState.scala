@@ -53,14 +53,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val focusedPostId = {
     val fp = RxVar[Option[PostId]](None)
     RxVar(fp.write, Rx {
-      fp().filter(graph().posts.isDefinedAt)
+      fp().filter(graph().postsById.isDefinedAt)
     })
   }
 
   val editedPostId = {
     val ep = RxVar[Option[PostId]](None)
     RxVar(ep.write, Rx {
-      ep().filter(graph().posts.isDefinedAt)
+      ep().filter(graph().postsById.isDefinedAt)
     })
   }
 

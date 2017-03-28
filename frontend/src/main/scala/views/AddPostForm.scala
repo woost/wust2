@@ -32,7 +32,7 @@ object AddPostForm {
   def responseLabel(graph: Graph, postId: PostId) = {
     div(
       Views.parents(postId, graph),
-      Views.post(graph.posts(postId))
+      Views.post(graph.postsById(postId))
     )
   }
 
@@ -46,7 +46,7 @@ object AddPostForm {
       val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
       if (input != null) {
         mode match {
-          case EditMode(postId) => input.value = rxGraph.now.posts(postId).title
+          case EditMode(postId) => input.value = rxGraph.now.postsById(postId).title
           case _ =>
         }
         input.focus()
@@ -60,7 +60,7 @@ object AddPostForm {
     }
 
     def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
-      case EditMode(postId) => Client.api.updatePost(graph.posts(postId).copy(title = text)).call()
+      case EditMode(postId) => Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
       case FocusMode(postId) => Client.api.respond(postId, text).call().map(_ => true)
       case _ => Client.api.addPost(text).call().map(_ => true)
     }

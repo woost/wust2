@@ -31,8 +31,8 @@ object Views {
     div(
       display.flex,
       containsIds.map { containsId =>
-        val contains = graph.containments(containsId)
-        val parent = graph.posts(contains.parentId)
+        val contains = graph.containmentsById(containsId)
+        val parent = graph.postsById(contains.parentId)
         post(parent)(
           backgroundColor := baseColor(parent.id).toString,
           span(

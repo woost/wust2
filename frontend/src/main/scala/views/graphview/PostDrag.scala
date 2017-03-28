@@ -55,7 +55,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
   private val dragHitDetectRadius = 100
 
   def updateDraggingPosts() {
-    val posts = graph.posts.values
+    val posts = graph.posts
     _draggingPosts() = posts.flatMap(p => postIdToSimPost(p.id).draggingPost).toJSArray
   }
 

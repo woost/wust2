@@ -15,12 +15,12 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
     "be consistent" in {
       val state = new GlobalState
       state.rawGraph() = Graph(
-        posts = Map(1L -> Post(1, "title")),
-        connections = Map(2L -> Connects(2, 1, ConnectsId(11))),
-        containments = Map(3L -> Contains(3, 1, 12))
+        posts = List(Post(1, "title")),
+        connections = List(Connects(2, 1, ConnectsId(11))),
+        containments = List(Contains(3, 1, 12))
       )
 
-      state.rawGraph.now mustEqual Graph(posts = Map(1L -> Post(1, "title")))
+      state.rawGraph.now mustEqual Graph(posts = List(Post(1, "title")))
     }
   }
 
@@ -28,9 +28,9 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
     "be complete with empty view" in {
       val state = new GlobalState
       state.rawGraph() = Graph(
-        posts = Map(1L -> Post(1, "title"), 11L -> Post(11, "title2")),
-        connections = Map(2L -> Connects(2, 1, PostId(11))),
-        containments = Map(3L -> Contains(3, 11, 1))
+        posts = List(Post(1, "title"), Post(11, "title2")),
+        connections = List(Connects(2, 1, PostId(11))),
+        containments = List(Contains(3, 11, 1))
       )
 
       state.rawGraph.now mustEqual state.graph.now
@@ -41,7 +41,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.focusedPostId() = Some(1L)
       state.focusedPostId.now mustEqual None
 
-      state.rawGraph() = Graph(posts = Map(1L -> Post(1, "title")))
+      state.rawGraph() = Graph(posts = List(Post(1, "title")))
       state.focusedPostId.now mustEqual Some(PostId(1L))
 
       state.rawGraph() = Graph.empty
@@ -53,7 +53,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.editedPostId() = Some(1L)
       state.editedPostId.now mustEqual None
 
-      state.rawGraph() = Graph(posts = Map(1L -> Post(1, "title")))
+      state.rawGraph() = Graph(posts = List(Post(1, "title")))
       state.editedPostId.now mustEqual Some(PostId(1L))
 
       state.rawGraph() = Graph.empty
@@ -66,20 +66,20 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.focusedPostId() = Some(1L)
       state.mode.now mustEqual DefaultMode
 
-      state.rawGraph() = Graph(posts = Map(1L -> Post(1, "title")))
+      state.rawGraph() = Graph(posts = List(Post(1, "title")))
       state.mode.now mustEqual EditMode(1L)
     }
 
     "have view" in {
       val state = new GlobalState
       state.rawGraph() = Graph(
-        posts = Map(1L -> Post(1, "title"), 11L -> Post(11, "title2")),
-        connections = Map.empty,
-        containments = Map(3L -> Contains(3, 1, 11))
+        posts = List(Post(1, "title"), Post(11, "title2")),
+        connections = Nil,
+        containments = List(Contains(3, 1, 11))
       )
       state.currentView() = View(collapsed = Selector.IdSet(Set(1L)))
 
-      state.graph.now mustEqual Graph(posts = Map(1L -> Post(1, "title")))
+      state.graph.now mustEqual Graph(posts = List(Post(1, "title")))
     }
 
   }
