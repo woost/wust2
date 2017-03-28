@@ -32,6 +32,7 @@ object Selector {
   }
 }
 
+//TODO: rename -> Perspective ?
 case class View(
   collapsed: Selector = Selector.Nothing
 ) {
