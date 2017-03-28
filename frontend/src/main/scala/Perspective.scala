@@ -32,15 +32,14 @@ object Selector {
   }
 }
 
-//TODO: rename -> Perspective ?
-case class View(
+case class Perspective(
   collapsed: Selector = Selector.Nothing
 ) {
-  def intersect(that: View) = copy(collapsed = this.collapsed intersect that.collapsed)
-  def union(that: View) = copy(collapsed = this.collapsed union that.collapsed)
+  def intersect(that: Perspective) = copy(collapsed = this.collapsed intersect that.collapsed)
+  def union(that: Perspective) = copy(collapsed = this.collapsed union that.collapsed)
 }
 
-object View {
+object Perspective {
   def collapse(selector: Selector, graph: Graph): Graph = {
     //TODO: currently only top-level-parents can be collapsed
     val toCollapse: Iterable[PostId] = graph.postsById.keys.filter(selector.apply)
@@ -80,7 +79,7 @@ object View {
       .--(removePosts.values.flatten)
   }
 
-  def apply(view: View, graph: Graph): Graph = {
+  def apply(view: Perspective, graph: Graph): Graph = {
     val collapsed = collapse(view.collapsed, graph)
     collapsed
   }

@@ -5,7 +5,7 @@ import org.scalatest._
 import wust.graph._
 import wust.util.collection._
 
-class PageSpec extends FreeSpec with MustMatchers {
+class PerspectiveSpec extends FreeSpec with MustMatchers {
   val edgeId: () => Long = {
     var id = 1000
     () => { id += 1; id } // die kollidieren mit posts. wir brauchen für jeden typ ne eigene range
@@ -17,7 +17,7 @@ class PageSpec extends FreeSpec with MustMatchers {
   implicit def intSetToSelectorIdSet(set: Set[Int]) = Selector.IdSet(set.map(PostId(_)))
   def PostIds(ids: Int*) = ids.map(PostId(_))
 
-  "view" - {
+  "perspective" - {
     "collapse parent" in {
       val graph = Graph(
         posts = List(1, 11),

@@ -40,14 +40,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val collapsedPostIds = RxVar[Set[PostId]](Set.empty)
 
   val currentView = {
-    val v = RxVar[View](View())
+    val v = RxVar[Perspective](Perspective())
     RxVar(v.write, Rx {
-      v().union(View(collapsed = Selector.IdSet(collapsedPostIds())))
+      v().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
     })
   }
 
   val graph = {
-    RxVar(rawGraph.write, Rx { View(currentView(), rawGraph()) })
+    RxVar(rawGraph.write, Rx { Perspective(currentView(), rawGraph()) })
   }
 
   val focusedPostId = {
