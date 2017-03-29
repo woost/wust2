@@ -42,7 +42,7 @@ package object graph {
 
   final case class Graph( //TODO: private constructor and costom picklers over lists instead of maps
     postsById: Map[PostId, Post],
-    connectionsById: Map[ConnectsId, Connects],
+    connectionsById: Map[ConnectsId, Connects], //TODO: rename to connectionIdsById and also provide connectionsById?
     containmentsById: Map[ContainsId, Contains]
   ) {
 
@@ -50,7 +50,7 @@ package object graph {
     lazy val connections: Iterable[Connects] = connectionsById.values
     lazy val containments: Iterable[Contains] = containmentsById.values
 
-    override def toString = s"Graph(${posts.map(_.id.id).mkString(" ")},${connections.map(c => s"${c.sourceId.id} -> ${c.targetId.id}[${c.id.id}]").mkString(", ")}, ${containments.map(c => s"${c.parentId.id} ⊂ ${c.childId.id}[${c.id.id}]").mkString(", ")})"
+    override def toString = s"Graph(${posts.map(_.id.id).mkString(" ")},${connections.map(c => s"[${c.id.id}]${c.sourceId.id} -> ${c.targetId.id}").mkString(", ")}, ${containments.map(c => s"[${c.id.id}]${c.parentId.id} ⊂ ${c.childId.id}").mkString(", ")})"
 
     private val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
     lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId)](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._1, _._2)
@@ -106,12 +106,17 @@ package object graph {
       case _ => ???
     }
 
-    def involvedInCycle(id: PostId): Boolean = {
+    def involvedInContainmentCycle(id: PostId): Boolean = {
       children(id).exists(child => depthFirstSearch(child, children).exists(_ == id))
     }
+    // TODO: maybe fast involved-in-cycle-algorithm?
+    // breadth-first-search starting at successors and another one starting at predecessors in different direction.
+    // When both queues contain the same elements, we can stop, because we found a cycle
 
-    def transitiveChildren(postId: PostId) = depthFirstSearch(postId, children) |> { children => if (involvedInCycle(postId)) children else children.drop(1) } //TODO better?
-    def transitiveParents(postId: PostId) = depthFirstSearch(postId, parents) |> { parents => if (involvedInCycle(postId)) parents else parents.drop(1) } //TODO better?
+    def transitiveChildren(postId: PostId) = depthFirstSearch(postId, children) |> { children => if (involvedInContainmentCycle(postId)) children else children.drop(1) } //TODO better?
+    //TODO: rename to transitiveParentsIds:Iterable[PostId]
+    // Also provide transitiveParents:Iterable[Post]?
+    def transitiveParents(postId: PostId): Iterable[PostId] = depthFirstSearch(postId, parents) |> { parents => if (involvedInContainmentCycle(postId)) parents else parents.drop(1) } //TODO better?
 
     val `-`: AtomId => Graph = {
       case id: PostId =>

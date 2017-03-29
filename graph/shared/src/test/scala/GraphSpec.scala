@@ -54,12 +54,12 @@ class GraphSpec extends FreeSpec with MustMatchers {
         containments = List(Contains(3, 1, 11), Contains(4, 11, 12), Contains(5, 12, 1))
       )
 
-      graph.involvedInCycle(1L) mustEqual true
+      graph.involvedInContainmentCycle(1L) mustEqual true
     }
 
     "one contain" in {
       val graph = Graph(List(Post(1, "title"), Post(11, "title2")), Nil, List(Contains(3, 1, 11)))
-      graph.involvedInCycle(1) mustEqual false
+      graph.involvedInContainmentCycle(1) mustEqual false
     }
 
     "have transitive parents in cycle" in {

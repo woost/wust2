@@ -3,6 +3,8 @@ package wust.frontend
 import collection.breakOut
 
 import wust.graph._
+import wust.util._
+import wust.util.collection._
 
 // views immutable, dass urls nicht kaputt gehen
 // wust.space/view/$viewitd
@@ -41,40 +43,53 @@ case class Perspective(
 
 object Perspective {
   def collapse(selector: Selector, graph: Graph): Graph = {
+    val nextId = AutoId(start = -1, delta = -1)
+
     val toCollapse: Iterable[PostId] = graph.postsById.keys.filter(selector.apply)
-      .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).exists(selector.apply))
 
-    val collapseChildren: Map[PostId, Iterable[PostId]] = toCollapse
-      .map { collapsedId =>
-        collapsedId -> graph.transitiveChildren(collapsedId)
-      }(breakOut)
+    val hiddenPosts: Set[PostId] = toCollapse.flatMap { collapsedId =>
+      graph.transitiveChildren(collapsedId)
+        .filterNot { child =>
+          involvedInCycleWithCollapsedPost(graph, child, selector.apply) ||
+            hasNotCollapsedParents(graph, child, selector.apply)
+        }
+    }(breakOut)
 
-    val removableChildren: Set[PostId] = collapseChildren.values.flatten
-      .filter(id => graph.transitiveParents(id).toList.diff(collapseChildren.flatMap { case (k, v) => k :: v.toList }.toList).isEmpty)
-      .toSet
+    val alternativePosts: Map[PostId, Seq[PostId]] = (hiddenPosts.map { post =>
+      post -> graph.parents(post).flatMap { parent =>
+        if (hiddenPosts(parent))
+          highestCollapsedParent(graph, parent, selector.apply)
+        else
+          Some(parent) // parent is probably involven in cycle and therefore not hidden
+      }(breakOut).distinct
+    }(breakOut): Map[PostId, Seq[PostId]]).withDefault(post => Seq(post))
 
-    val removePosts: Map[PostId, Iterable[PostId]] = collapseChildren.mapValues(_.filter(removableChildren))
-
-    val removeEdges: Map[PostId, Set[ConnectsId]] = removePosts.values.flatten // TODO: use adjacency lists of graph directly
-      .map { p =>
-        p -> graph.incidentConnections(p)
-      }(breakOut)
-
-    def edgesToParents(addEdges: Map[ConnectsId, Connects], parent: PostId, child: PostId): Map[ConnectsId, Connects] = {
-      val connectionMap = graph.connectionsById ++ addEdges
-      addEdges ++ removeEdges(child).map(connectionMap).map {
-        case edge @ Connects(id, `child`, _) => id -> edge.copy(sourceId = parent)
-        case edge @ Connects(id, _, `child`) => id -> edge.copy(targetId = parent)
+    val redirectedEdges: Seq[Connects] = (hiddenPosts.flatMap { post =>
+      graph.incidentConnections(post).flatMap { cid =>
+        val c = graph.connectionsById(cid)
+        //TODO: assert(c.targetId is PostId) => this will be different for hyperedges
+        for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(PostId(c.targetId.id))) yield {
+          c.copy(sourceId = altSource, targetId = altTarget)
+        }
       }
+    }(breakOut): Seq[Connects])
+      .distinctBy(c => (c.sourceId, c.targetId))
+      .map(_.copy(id = nextId()))
+
+    graph -- hiddenPosts ++ redirectedEdges
+  }
+
+  def involvedInCycleWithCollapsedPost(graph: Graph, child: PostId, collapsed: PostId => Boolean): Boolean = (graph.involvedInContainmentCycle(child) && graph.transitiveChildren(child).exists(collapsed))
+
+  def hasNotCollapsedParents(graph: Graph, child: PostId, collapsed: PostId => Boolean): Boolean = {
+    graph.parents(child).exists { parent =>
+      val transitiveParents = parent :: graph.transitiveParents(parent).toList
+      transitiveParents.nonEmpty && transitiveParents.forall(!collapsed(_))
     }
+  }
 
-    val addEdges = removePosts.toList.flatMap { case (parent, children) => children.map(child => parent -> child) }
-      .foldLeft(Map.empty[ConnectsId, Connects])((edges, pc) => edgesToParents(edges, pc._1, pc._2))
-
-    graph
-      .--(removeEdges.values.flatten)
-      .++(addEdges.values)
-      .--(removePosts.values.flatten)
+  def highestCollapsedParent(graph: Graph, parent: PostId, collapsed: PostId => Boolean): Option[PostId] = {
+    (parent :: graph.transitiveParents(parent).toList).filter(collapsed).lastOption
   }
 
   def apply(view: Perspective, graph: Graph): Graph = {
