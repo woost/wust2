@@ -77,7 +77,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
         connections = Nil,
         containments = List(Contains(3, 1, 11))
       )
-      state.currentView() = View(collapsed = Selector.IdSet(Set(1L)))
+      state.currentView() = Perspective(collapsed = Selector.IdSet(Set(1L)))
 
       state.graph.now mustEqual Graph(posts = List(Post(1, "title")))
     }
@@ -88,10 +88,10 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
     "be consistent with collapsed" in {
       val state = new GlobalState
       state.collapsedPostIds() = Set(1L)
-      state.currentView.now mustEqual View().union(View(collapsed = Selector.IdSet(Set(1L))))
+      state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set(1L))))
 
       state.collapsedPostIds() = Set.empty
-      state.currentView.now mustEqual View().union(View(collapsed = Selector.IdSet(Set.empty)))
+      state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set.empty)))
     }
   }
 }

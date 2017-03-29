@@ -41,9 +41,7 @@ case class Perspective(
 
 object Perspective {
   def collapse(selector: Selector, graph: Graph): Graph = {
-    //TODO: currently only top-level-parents can be collapsed
     val toCollapse: Iterable[PostId] = graph.postsById.keys.filter(selector.apply)
-      //TODO: only the cycle should not be collapsed, but we should still collapse other children (not in the cycle)
       .filterNot(id => graph.involvedInCycle(id) && graph.transitiveParents(id).exists(selector.apply))
 
     val collapseChildren: Map[PostId, Iterable[PostId]] = toCollapse
