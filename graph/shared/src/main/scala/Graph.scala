@@ -112,6 +112,8 @@ package object graph {
     // TODO: maybe fast involved-in-cycle-algorithm?
     // breadth-first-search starting at successors and another one starting at predecessors in different direction.
     // When both queues contain the same elements, we can stop, because we found a cycle
+    // Even better:
+    // lazy val involvedInContainmentCycle:Set[PostId] = all posts involved in a cycle
 
     def transitiveChildren(postId: PostId) = depthFirstSearch(postId, children) |> { children => if (involvedInContainmentCycle(postId)) children else children.drop(1) } //TODO better?
     //TODO: rename to transitiveParentsIds:Iterable[PostId]
