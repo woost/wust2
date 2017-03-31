@@ -42,13 +42,15 @@ object JWT {
       token, secret, algorithm, Set(Typ),
       Set(Iss, Aud, Exp, Sub, UserId),
       iss = Some(wustIss), aud = Some(wustAud)
-    ).toOption.map { decoded =>
-      val expires = decoded.getClaim[Exp].get
-      val userName = decoded.getClaim[Sub].get
-      val userId = decoded.getClaim[UserId].get
-      val user = User(userId.value, userName.value)
-
-      Authentication(user, expires.value, token)
+    ).toOption.flatMap { decoded =>
+      for {
+        expires <- decoded.getClaim[Exp]
+        userName <- decoded.getClaim[Sub]
+        userId <- decoded.getClaim[UserId]
+      } yield {
+        val user = User(userId.value, userName.value)
+        Authentication(user, expires.value, token)
+      }
     }
   }
 
