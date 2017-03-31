@@ -7,7 +7,7 @@ git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is al
 
 //TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
-scalaVersion in ThisBuild := "2.11.8" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
+scalaVersion in ThisBuild := "2.11.9" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
 
 lazy val commonSettings = Seq(
   resolvers ++= (
