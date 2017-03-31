@@ -33,7 +33,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
         containments = List(Contains(3, 11, 1))
       )
 
-      state.rawGraph.now mustEqual state.graph.now
+      state.rawGraph.now mustEqual state.displayGraph.now.graph
     }
 
     "be consistent with focused" in {
@@ -79,7 +79,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       )
       state.currentView() = Perspective(collapsed = Selector.IdSet(Set(1L)))
 
-      state.graph.now mustEqual Graph(posts = List(Post(1, "title")))
+      state.displayGraph.now.graph mustEqual Graph(posts = List(Post(1, "title")))
     }
 
   }

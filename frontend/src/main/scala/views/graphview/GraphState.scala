@@ -12,12 +12,12 @@ import wust.util.collection._
 import wust.util.Pipe
 
 class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
-  val rxGraph = state.graph
+  val rxDisplayGraph = state.displayGraph
   val rxEditedPostId = state.editedPostId
   val rxCollapsedPostIds = state.collapsedPostIds
 
   val rxSimPosts: Rx[js.Array[SimPost]] = Rx {
-    val graph = rxGraph()
+    val graph = rxDisplayGraph().graph
     val collapsedPostIds = rxCollapsedPostIds()
 
     graph.posts.map { p =>
@@ -72,7 +72,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   // val rxFocusedSimPost = state.focusedPostId.combine { fp => fp.flatMap(postIdToSimPost().get) } // TODO: Possible? See RxExt
 
   val rxSimConnects = Rx {
-    val graph = rxGraph()
+    val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
     val newData = graph.connections.map { c =>
@@ -94,7 +94,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   val rxSimContains = Rx {
-    val graph = rxGraph()
+    val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
     graph.containments.map { c =>
@@ -103,7 +103,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   val rxContainmentCluster = Rx {
-    val graph = rxGraph()
+    val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
     val parents: Seq[PostId] = graph.containments.map(c => c.parentId)(breakOut).distinct

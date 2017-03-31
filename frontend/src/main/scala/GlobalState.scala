@@ -46,21 +46,21 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     })
   }
 
-  val graph = {
+  val displayGraph = {
     RxVar(rawGraph.write, Rx { Perspective(currentView(), rawGraph()) })
   }
 
   val focusedPostId = {
     val fp = RxVar[Option[PostId]](None)
     RxVar(fp.write, Rx {
-      fp().filter(graph().postsById.isDefinedAt)
+      fp().filter(displayGraph().graph.postsById.isDefinedAt)
     })
   }
 
   val editedPostId = {
     val ep = RxVar[Option[PostId]](None)
     RxVar(ep.write, Rx {
-      ep().filter(graph().postsById.isDefinedAt)
+      ep().filter(displayGraph().graph.postsById.isDefinedAt)
     })
   }
 
@@ -76,7 +76,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     rawGraph.rx.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
     collapsedPostIds.rx.debug("collapsedPostIds")
     currentView.rx.debug("currentView")
-    graph.rx.debug(v => s"graph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+    displayGraph.rx.debug { dg => import dg.graph; s"graph: ${graph.posts.size} posts, ${graph.connections.size} connections, ${graph.containments.size} containments" }
     focusedPostId.rx.debug("focusedPostId")
     editedPostId.rx.debug("editedPostId")
     mode.rx.debug("mode")
@@ -88,13 +88,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val onApiEvent: ApiEvent => Unit = _ match {
-    case NewPost(post) => graph.updatef(_ + post)
-    case UpdatedPost(post) => graph.updatef(_ + post)
-    case NewConnection(connects) => graph.updatef(_ + connects)
-    case NewContainment(contains) => graph.updatef(_ + contains)
+    case NewPost(post) => rawGraph.updatef(_ + post)
+    case UpdatedPost(post) => rawGraph.updatef(_ + post)
+    case NewConnection(connects) => rawGraph.updatef(_ + connects)
+    case NewContainment(contains) => rawGraph.updatef(_ + contains)
 
-    case DeletePost(postId) => graph.updatef(_ - postId)
-    case DeleteConnection(connectsId) => graph.updatef(_ - connectsId)
-    case DeleteContainment(containsId) => graph.updatef(_ - containsId)
+    case DeletePost(postId) => rawGraph.updatef(_ - postId)
+    case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
+    case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
   }
 }

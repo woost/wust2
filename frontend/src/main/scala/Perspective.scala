@@ -35,6 +35,9 @@ object Selector {
   }
 }
 
+case class LocalConnection(sourceId: PostId, targetId: PostId)
+case class DisplayGraph(graph: Graph, localConnections: List[LocalConnection] = Nil)
+
 case class Perspective(
   collapsed: Selector = Selector.Nothing
 ) {
@@ -43,8 +46,7 @@ case class Perspective(
 }
 
 object Perspective {
-  def apply(view: Perspective, graph: Graph): Graph = {
-    val collapsed = Collapse(view.collapsed, graph)
-    collapsed
+  def apply(view: Perspective, graph: Graph): DisplayGraph = {
+    DisplayGraph(graph) |> Collapse(view.collapsed)
   }
 }

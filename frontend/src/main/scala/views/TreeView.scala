@@ -48,7 +48,8 @@ object TreeView {
   )
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    div(state.graph.rx.map { graph =>
+    div(state.displayGraph.map { dg =>
+      import dg.graph
       div( //TODO: avoid this nesting by passing Rx[Seq[Element]] to the outer div?
         (graph.posts.filter(p => graph.parents(p.id).isEmpty).map {
           p =>

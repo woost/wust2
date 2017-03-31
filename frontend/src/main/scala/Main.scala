@@ -41,8 +41,8 @@ object Main extends js.JSApp {
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
 
-    Client.api.getGraph().call().foreach { graph =>
-      state.graph() = graph
+    Client.api.getGraph().call().foreach { newGraph =>
+      state.rawGraph() = newGraph
     }
 
     document.getElementById("container").appendChild(

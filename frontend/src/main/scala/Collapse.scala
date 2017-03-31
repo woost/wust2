@@ -7,7 +7,8 @@ import wust.util._
 import wust.util.collection._
 
 object Collapse {
-  def apply(collapsing: Selector, graph: Graph): Graph = {
+  def apply(collapsing: Selector)(displayGraph: DisplayGraph): DisplayGraph = {
+    import displayGraph.graph
     val collapsingPosts: Iterable[PostId] = graph.postsById.keys.filter(collapsing)
 
     val hiddenPosts: Set[PostId] = collapsingPosts.flatMap { collapsedId =>
@@ -28,7 +29,7 @@ object Collapse {
     }(breakOut): Map[PostId, Seq[PostId]]).withDefault(post => Seq(post))
 
     val nextId = AutoId(start = -1, delta = -1)
-    val redirectedEdges: Seq[Connects] = (hiddenPosts.flatMap { post =>
+    val redirectedConnections: Seq[Connects] = (hiddenPosts.flatMap { post =>
       graph.incidentConnections(post).flatMap { cid =>
         val c = graph.connectionsById(cid)
         //TODO: assert(c.targetId is PostId) => this will be different for hyperedges
@@ -40,7 +41,9 @@ object Collapse {
       .distinctBy(c => (c.sourceId, c.targetId)) // edge bundling
       .map(_.copy(id = nextId()))
 
-    graph -- hiddenPosts ++ redirectedEdges
+    displayGraph.copy(
+      graph = graph -- hiddenPosts ++ redirectedConnections
+    )
   }
 
   def involvedInCycleWithCollapsedPost(graph: Graph, child: PostId, collapsing: PostId => Boolean): Boolean = {

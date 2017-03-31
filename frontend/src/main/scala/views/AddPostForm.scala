@@ -39,14 +39,14 @@ object AddPostForm {
   val newLabel = div("New Post:")
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    import state.{graph => rxGraph, mode => rxMode, editedPostId => rxEditedPostId}
+    import state.{displayGraph => rxDisplayGraph, mode => rxMode, editedPostId => rxEditedPostId}
 
     //TODO: onattached -> store domnode -> focus
     rxMode.foreach { mode =>
       val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
       if (input != null) {
         mode match {
-          case EditMode(postId) => input.value = rxGraph.now.postsById(postId).title
+          case EditMode(postId) => input.value = rxDisplayGraph.now.graph.postsById(postId).title
           case _ =>
         }
         input.focus()
@@ -66,7 +66,7 @@ object AddPostForm {
     }
 
     div(
-      Rx { label(rxMode(), rxGraph()).render },
+      Rx { label(rxMode(), rxDisplayGraph().graph).render },
       {
         //TODO: pattern matching is broken inside Rx
         Rx {
@@ -74,7 +74,7 @@ object AddPostForm {
             val input = e.target.asInstanceOf[HTMLInputElement]
             val text = input.value
             if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-              action(text, rxGraph.now, rxMode.now).foreach { success =>
+              action(text, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
                 if (success) {
                   input.value = ""
                   rxEditedPostId() = None

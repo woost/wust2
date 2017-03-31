@@ -47,7 +47,7 @@ object MainView {
               )
             },
             {
-              val posts = scala.util.Random.shuffle(state.graph().postsById.keys.toSeq)
+              val posts = scala.util.Random.shuffle(state.displayGraph().graph.postsById.keys.toSeq)
               def deletePost(id: PostId) { Client.api.deletePost(id).call() }
               div(
                 button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),

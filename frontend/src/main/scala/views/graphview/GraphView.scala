@@ -27,7 +27,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{graph => rxGraph, _}
+  import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -52,11 +52,11 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   initContainerDimensionsAndPositions()
   initEvents()
 
-  Rx { rxGraph(); rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
+  Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
     val simPosts = rxSimPosts.now
     val simConnects = rxSimConnects.now
     val simContains = rxSimContains.now
-    // val graph = rxGraph.now
+    // val graph = rxDisplayGraph.now.graph
 
     DevOnly {
       println("    updating graph simulation")
