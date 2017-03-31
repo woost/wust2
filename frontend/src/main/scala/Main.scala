@@ -33,10 +33,11 @@ object Main extends js.JSApp {
     UrlRouter.route(state.viewPage)
     Client.auth.listen(state.onAuthEvent)
     Client.listen {
-      case Left(ConnectEvent(_)) =>
+      case ConnectEvent(_) =>
         Client.subscribe(Channel.Graph)
         Client.auth.reauthenticate()
-      case Right(apiEvent) => state.onApiEvent(apiEvent)
+      case ConnectionEvent(apiEvent) =>
+        state.onApiEvent(apiEvent)
     }
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")

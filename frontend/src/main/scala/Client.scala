@@ -13,12 +13,14 @@ import wust.util.Pipe
 
 case class ApiException(error: ApiError) extends Exception
 
-case class ConnectEvent(location: String)
+sealed trait IncidentEvent
+case class ConnectEvent(location: String) extends IncidentEvent
+case class ConnectionEvent(event: ApiEvent) extends IncidentEvent
 
-class ApiIncidentHandler extends IncidentHandler[ApiEvent, ApiError] with WithEvents[Either[ConnectEvent, ApiEvent]] {
+class ApiIncidentHandler extends IncidentHandler[ApiEvent, ApiError] with WithEvents[IncidentEvent] {
   override def fromError(error: ApiError) = ApiException(error)
-  override def onConnect(location: String) = sendEvent(Left(ConnectEvent(location)))
-  override def receive(event: ApiEvent) = sendEvent(Right(event))
+  override def onConnect(location: String) = sendEvent(ConnectEvent(location))
+  override def receive(event: ApiEvent) = sendEvent(ConnectionEvent(event))
 }
 
 object Client {
