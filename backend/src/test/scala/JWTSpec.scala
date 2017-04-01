@@ -7,7 +7,7 @@ import auth.JWT
 
 class JWTSpec extends FreeSpec with MustMatchers {
   "generate token for user" in {
-    val user = User(12, "Biermann")
+    val user = User(12, "Biermann", 0)
     val auth = JWT.generateAuthentication(user)
 
     auth.user mustEqual user
@@ -16,14 +16,14 @@ class JWTSpec extends FreeSpec with MustMatchers {
   }
 
   "generated token is not expired" in {
-    val user = User(0, "Frau Mahlzahn")
+    val user = User(0, "Frau Mahlzahn", 1)
     val auth = JWT.generateAuthentication(user)
 
     JWT.isExpired(auth) mustEqual false
   }
 
   "authentication from token" in {
-    val user = User(1, "Pumuckl")
+    val user = User(1, "Pumuckl", 0)
     val genAuth = JWT.generateAuthentication(user)
     val auth = JWT.authenticationFromToken(genAuth.token)
 
