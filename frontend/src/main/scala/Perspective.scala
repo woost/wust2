@@ -36,7 +36,7 @@ object Selector {
 }
 
 case class LocalConnection(sourceId: PostId, targetId: PostId)
-case class DisplayGraph(graph: Graph, localConnections: List[LocalConnection] = Nil)
+case class DisplayGraph(graph: Graph, redirectedConnections: Set[LocalConnection] = Set.empty)
 
 case class Perspective(
   collapsed: Selector = Selector.Nothing

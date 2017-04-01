@@ -28,21 +28,20 @@ object Collapse {
       }(breakOut).distinct
     }(breakOut): Map[PostId, Seq[PostId]]).withDefault(post => Seq(post))
 
-    val nextId = AutoId(start = -1, delta = -1)
-    val redirectedConnections: Seq[Connects] = (hiddenPosts.flatMap { post =>
+    val redirectedConnections: Set[LocalConnection] = (hiddenPosts.flatMap { post =>
       graph.incidentConnections(post).flatMap { cid =>
         val c = graph.connectionsById(cid)
         //TODO: assert(c.targetId is PostId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(PostId(c.targetId.id))) yield {
-          c.copy(sourceId = altSource, targetId = altTarget)
+          LocalConnection(sourceId = altSource, targetId = altTarget)
         }
       }
-    }(breakOut): Seq[Connects])
-      .distinctBy(c => (c.sourceId, c.targetId)) // edge bundling
-      .map(_.copy(id = nextId()))
+    }(breakOut): Set[LocalConnection])
+      .filterNot(c => graph.successors(c.sourceId) contains c.targetId) // drop already existing connections
 
     displayGraph.copy(
-      graph = graph -- hiddenPosts ++ redirectedConnections
+      graph = graph -- hiddenPosts,
+      redirectedConnections = redirectedConnections
     )
   }
 

@@ -19,7 +19,13 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
 
   "perspective" - {
     "collapse" - {
-      def collapse(collapsing: Selector, graph: Graph): Graph = Collapse(collapsing)(DisplayGraph(graph)).graph
+      def collapse(collapsing: Selector, graph: Graph): DisplayGraph = Collapse(collapsing)(DisplayGraph(graph))
+      def dg(graph: Graph, redirected: Set[(Int, Int)] = Set.empty) = {
+        DisplayGraph(
+          graph,
+          redirectedConnections = redirected.map { case (source, target) => LocalConnection(source, target) }
+        )
+      }
 
       "helpers" - {
         "hasNotCollapsedParents" in {
@@ -38,7 +44,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 11),
             containments = List(1 -> 11)
           )
-          collapse(Set(1), graph) mustEqual (graph - PostId(11))
+          collapse(Set(1), graph) mustEqual dg(graph - PostId(11))
         }
 
         "collapse child" in {
@@ -46,7 +52,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 11),
             containments = List(1 -> 11)
           )
-          collapse(Set(11), graph) mustEqual graph
+          collapse(Set(11), graph) mustEqual dg(graph)
         }
 
         "collapse transitive children" in {
@@ -54,7 +60,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 11, 12),
             containments = List(1 -> 11, 11 -> 12)
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(11, 12))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12))
         }
 
         "collapse multiple, transitive parents" in {
@@ -62,9 +68,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 2, 3),
             containments = List(1 -> 2, 2 -> 3)
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(2, 3))
-          collapse(Set(2), graph) mustEqual (graph - PostId(3))
-          collapse(Set(1, 2), graph) mustEqual (graph -- PostIds(2, 3))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3))
+          collapse(Set(2), graph) mustEqual dg(graph - PostId(3))
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3))
         }
 
         "collapse children while having parent" in {
@@ -72,7 +78,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 11, 12),
             containments = List(1 -> 11, 11 -> 12)
           )
-          collapse(Set(11), graph) mustEqual (graph - PostId(12))
+          collapse(Set(11), graph) mustEqual dg(graph - PostId(12))
         }
 
         "collapse two parents" in {
@@ -80,9 +86,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 2, 11),
             containments = List(1 -> 11, 2 -> 11)
           )
-          collapse(Set(1), graph) mustEqual graph
-          collapse(Set(2), graph) mustEqual graph
-          collapse(Set(1, 2), graph) mustEqual (graph - PostId(11))
+          collapse(Set(1), graph) mustEqual dg(graph)
+          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11))
         }
 
         "diamond-shape containment" in {
@@ -90,10 +96,10 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 2, 3, 11),
             containments = List(1 -> 2, 1 -> 3, 2 -> 11, 3 -> 11)
           )
-          collapse(Set(1), graph) mustEqual graph -- PostIds(2, 3, 11)
-          collapse(Set(2), graph) mustEqual graph
-          collapse(Set(1, 2), graph) mustEqual graph -- PostIds(2, 3, 11)
-          collapse(Set(1, 2, 3), graph) mustEqual graph -- PostIds(2, 3, 11)
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
+          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
+          collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
         }
       }
 
@@ -103,7 +109,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(11, 12, 13),
             containments = List(11 -> 12, 12 -> 13, 13 -> 11) // containment cycle
           )
-          collapse(Set(11), graph) mustEqual graph // nothing to collapse because of cycle
+          collapse(Set(11), graph) mustEqual dg(graph) // nothing to collapse because of cycle
         }
 
         "not collapse cycle with child" in {
@@ -111,7 +117,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(11, 12, 13, 20),
             containments = List(11 -> 12, 12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
           )
-          collapse(Set(11), graph) mustEqual (graph - PostId(20)) // cycle stays
+          collapse(Set(11), graph) mustEqual dg(graph - PostId(20)) // cycle stays
         }
 
         "collapse parent with child-cycle" in {
@@ -119,7 +125,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             posts = List(1, 11, 12, 13),
             containments = List(1 -> 11, 11 -> 12, 12 -> 13, 13 -> 11) // 1 -> containment cycle
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(11, 12, 13))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12, 13))
         }
       }
 
@@ -131,7 +137,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual (graph - PostId(11) + connection.copy(id = -1, sourceId = 1))
+          collapse(Set(1), graph) mustEqual dg(graph - PostId(11), Set(1 -> 2))
         }
 
         "redirect collapsed connection to target" in {
@@ -141,7 +147,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual (graph - PostId(11) + connection.copy(id = -1, targetId = PostId(1)))
+          collapse(Set(1), graph) mustEqual dg(graph - PostId(11), Set(2 -> 1))
         }
 
         "redirect edge source to earliest collapsed transitive parent" in {
@@ -151,9 +157,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 2, 2 -> 3),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(2, 3) + connection.copy(id = -1, sourceId = 1))
-          collapse(Set(2), graph) mustEqual (graph - PostId(3) + connection.copy(id = -1, sourceId = 2))
-          collapse(Set(1, 2), graph) mustEqual (graph -- PostIds(2, 3) + connection.copy(id = -1, sourceId = 1))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3), Set(1 -> 11))
+          collapse(Set(2), graph) mustEqual dg(graph - PostId(3), Set(2 -> 11))
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3), Set(1 -> 11))
         }
 
         "redirect edge target to earliest collapsed transitive parent" in {
@@ -163,9 +169,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 2, 2 -> 3),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(2, 3) + connection.copy(id = -1, targetId = PostId(1)))
-          collapse(Set(2), graph) mustEqual (graph - PostId(3) + connection.copy(id = -1, targetId = PostId(2)))
-          collapse(Set(1, 2), graph) mustEqual (graph -- PostIds(2, 3) + connection.copy(id = -1, targetId = PostId(1)))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3), Set(11 -> 1))
+          collapse(Set(2), graph) mustEqual dg(graph - PostId(3), Set(11 -> 2))
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3), Set(11 -> 1))
         }
 
         "redirect and split outgoing edge while collapsing two parents" in {
@@ -175,9 +181,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 2 -> 11),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual graph
-          collapse(Set(2), graph) mustEqual graph
-          collapse(Set(1, 2), graph) mustEqual (graph - PostId(11) + connection.copy(id = -1, sourceId = 1) + connection.copy(id = -2, sourceId = 2))
+          collapse(Set(1), graph) mustEqual dg(graph)
+          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(1 -> 20, 2 -> 20))
         }
 
         "redirect and split incoming edge while collapsing two parents" in {
@@ -187,9 +193,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 2 -> 11),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual graph
-          collapse(Set(2), graph) mustEqual graph
-          collapse(Set(1, 2), graph) mustEqual (graph - PostId(11) + connection.copy(id = -1, targetId = PostId(1)) + connection.copy(id = -2, targetId = PostId(2)))
+          collapse(Set(1), graph) mustEqual dg(graph)
+          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(20 -> 1, 20 -> 2))
         }
 
         "redirect connection between children while collapsing two parents" in {
@@ -199,9 +205,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 2 -> 12),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual (graph - PostId(11) + connection.copy(id = -1, sourceId = 1))
-          collapse(Set(2), graph) mustEqual (graph - PostId(12) + connection.copy(id = -1, targetId = PostId(2)))
-          collapse(Set(1, 2), graph) mustEqual (graph -- PostIds(11, 12) + connection.copy(id = -1, sourceId = 1, targetId = PostId(2)))
+          collapse(Set(1), graph) mustEqual dg(graph - PostId(11), Set(1 -> 12))
+          collapse(Set(2), graph) mustEqual dg(graph - PostId(12), Set(11 -> 2))
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(11, 12), Set(1 -> 2))
         }
 
         "redirect and bundle edges to target" in {
@@ -212,7 +218,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 1 -> 12),
             connections = List(connection1, connection2)
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(11, 12) + connection1.copy(id = -1, sourceId = PostId(1)))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12), Set(1 -> 2))
         }
 
         "redirect and bundle edges to source" in {
@@ -223,7 +229,18 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 1 -> 12),
             connections = List(connection1, connection2)
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(11, 12) + connection1.copy(id = -1, targetId = PostId(1)))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12), Set(2 -> 1))
+        }
+
+        "drop redirected, because of existing connection" in {
+          val connection1 = Connects(5, 1, PostId(2))
+          val connection2 = Connects(6, 11, PostId(2))
+          val graph = Graph(
+            posts = List(1, 11, 2),
+            containments = List(1 -> 11),
+            connections = List(connection1, connection2)
+          )
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11))
         }
 
         "redirect mixed edges" in {
@@ -234,10 +251,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 1 -> 12),
             connections = List(connection1, connection2)
           )
-          collapse(Set(1), graph) must (
-            equal(graph -- PostIds(11, 12) + connection1.copy(id = -1, targetId = PostId(1)) + connection2.copy(id = -2, sourceId = PostId(1))) or
-            equal(graph -- PostIds(11, 12) + connection1.copy(id = -2, targetId = PostId(1)) + connection2.copy(id = -1, sourceId = PostId(1)))
-          )
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12), Set(2 -> 1, 1 -> 2))
         }
 
         "redirect in diamond-shape containment" in {
@@ -248,11 +262,11 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             connections = List(connection)
           )
 
-          collapse(Set(1), graph) mustEqual graph -- PostIds(2, 3, 11) + connection.copy(id = -1, sourceId = 1)
-          collapse(Set(2), graph) mustEqual graph
-          collapse(Set(1, 2), graph) mustEqual graph -- PostIds(2, 3, 11) + connection.copy(id = -1, sourceId = 1)
-          collapse(Set(2, 3), graph) mustEqual graph -- PostIds(11) + connection.copy(id = -1, sourceId = 2) + connection.copy(id = -2, sourceId = 3)
-          collapse(Set(1, 2, 3), graph) mustEqual graph -- PostIds(2, 3, 11) + connection.copy(id = -1, sourceId = 1)
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
+          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
+          collapse(Set(2, 3), graph) mustEqual dg(graph -- PostIds(11), Set(2 -> 20, 3 -> 20))
+          collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
         }
 
         "redirect into cycle" in {
@@ -262,7 +276,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 2, 2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
             connections = List(connection) // 11 -> 20
           )
-          collapse(Set(1), graph) mustEqual (graph - PostId(11) + connection.copy(id = -1, sourceId = 2)) // cycle stays
+          collapse(Set(1), graph) mustEqual dg(graph - PostId(11), Set(2 -> 20)) // cycle stays
         }
 
         "redirect out of cycle" in {
@@ -272,7 +286,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(1 -> 11, 11 -> 12, 12 -> 13, 13 -> 11), // 1 -> containment cycle(11,12,13)
             connections = List(connection) // 13 -> 20
           )
-          collapse(Set(1), graph) mustEqual (graph -- PostIds(11, 12, 13) + connection.copy(id = -1, sourceId = 1))
+          collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12, 13), Set(1 -> 20))
         }
       }
     }
