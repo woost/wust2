@@ -3,33 +3,35 @@ package wust.backend.auth
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import io.igl.jwt._
-import play.api.libs.json.{JsNumber, JsArray, JsString, JsValue}
 
 import wust.api._
 
-case class UserId(value: Long) extends ClaimValue {
-  override val field: ClaimField = UserId
-  override val jsValue: JsValue = JsNumber(value)
-}
-object UserId extends ClaimField {
-  override def attemptApply(value: JsValue): Option[ClaimValue] =
-    value.asOpt[Long].map(apply)
+object Claims {
+  import play.api.libs.json._
+  import play.api.libs.functional.syntax._
 
-  override val name = "userid"
-}
+  implicit val userFormat = (
+    (__ \ "id").format[Long] ~
+    (__ \ "name").format[String] ~
+    (__ \ "isImplicit").format[Boolean] ~
+    (__ \ "revision").format[Int]
+  )(User.apply, unlift(User.unapply))
 
-case class UserRevision(value: Int) extends ClaimValue {
-  override val field: ClaimField = UserRevision
-  override val jsValue: JsValue = JsNumber(value)
-}
-object UserRevision extends ClaimField {
-  override def attemptApply(value: JsValue): Option[ClaimValue] =
-    value.asOpt[Int].map(apply)
+  case class UserClaim(value: User) extends ClaimValue {
+    override val field: ClaimField = UserClaim
+    override val jsValue: JsValue = Json.toJson(value)
+  }
+  object UserClaim extends ClaimField {
+    override def attemptApply(value: JsValue): Option[ClaimValue] =
+      value.asOpt[User].map(apply)
 
-  override val name = "userrev"
+    override val name = "user"
+  }
 }
 
 object JWT {
+  import Claims.UserClaim
+
   private val secret = "Gordon Shumway" //TODO
   private val algorithm = Algorithm.HS256
   private val wustIss = Iss("wust")
@@ -40,7 +42,7 @@ object JWT {
 
   private def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
     Seq(Alg(algorithm), Typ("JWT")),
-    Seq(wustIss, wustAud, Exp(expires), Sub(user.name), UserId(user.id), UserRevision(user.revision))
+    Seq(wustIss, wustAud, Exp(expires), UserClaim(user))
   )
 
   def generateAuthentication(user: User): Authentication = {
@@ -52,17 +54,14 @@ object JWT {
   def authenticationFromToken(token: Authentication.Token): Option[Authentication] = {
     DecodedJwt.validateEncodedJwt(
       token, secret, algorithm, Set(Typ),
-      Set(Iss, Aud, Exp, Sub, UserId, UserRevision),
+      Set(Iss, Aud, Exp, UserClaim),
       iss = Some(wustIss), aud = Some(wustAud)
     ).toOption.flatMap { decoded =>
       for {
         expires <- decoded.getClaim[Exp]
-        userName <- decoded.getClaim[Sub]
-        userId <- decoded.getClaim[UserId]
-        revision <- decoded.getClaim[UserRevision]
+        user <- decoded.getClaim[UserClaim]
       } yield {
-        val user = User(userId.value, userName.value, revision.value)
-        Authentication(user, expires.value, token)
+        Authentication(user.value, expires.value, token)
       }
     }
   }

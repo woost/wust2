@@ -95,31 +95,57 @@ object Db {
 
     def passwordDigest(password: String) = Hasher(password).bcrypt
 
-    val createUserAndPassword = quote { (name: String, digest: Array[Byte], revision: Int) =>
+    val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
+      val revision = lift(User.initialRevision)
       infix"""with ins as (
-        insert into "user"(id, name, revision) values(DEFAULT, $name, $revision) returning id
+        insert into "user"(id, name, isImplicit, revision) values(DEFAULT, $name, false, $revision) returning id
       ) insert into password(id, digest) select id, $digest from ins""".as[Insert[User]]
     }
 
+    val createPasswordAndUpdateUser = quote { (id: Long, name: String, digest: Array[Byte]) =>
+      infix"""with ins as (
+        insert into password(id, digest) values($id, $digest)
+      ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision""".as[Query[Int]] //TODO update? but does not support returning?
+    }
+
     def apply(name: String, password: String): Future[Option[User]] = {
+      val user = User(name)
       val digest = passwordDigest(password)
-      val revision = 0;
-      val q = quote { createUserAndPassword(lift(name), lift(digest), lift(revision)).returning(_.id) }
+      val q = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
       ctx.run(q)
-        .map(id => Some(User(id, name, revision)))
+        .map(id => Some(user.copy(id = id)))
         .recover { case _: Exception => None }
     }
+
+    def createImplicitUser(): Future[User] = {
+      val user = User()
+      val q = quote { query[User].insert(lift(user)).returning(_.id) }
+      ctx.run(q).map(id => user.copy(id = id))
+    }
+
+    def activateImplicitUser(id: Long, name: String, password: String): Future[Option[User]] = {
+      val digest = passwordDigest(password)
+      //TODO
+      // val user = User(id, name)
+      // val q = quote { createPasswordAndUpdateUser(lift(id), lift(name), lift(digest)) }
+      // ctx.run(q).map(revision => Some(user.copy(revision = revision)))
+      println("update id: " + id)
+      ctx.run(query[User].filter(_.id == lift(id))).flatMap(_.headOption.map { user =>
+        val updatedUser = user.copy(name = name, isImplicit = false, revision = user.revision + 1)
+        for {
+          newUser <- ctx.run(query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
+          pw <- ctx.run(query[Password].insert(lift(Password(id, digest))))
+        } yield Some(updatedUser)
+      }.getOrElse(Future.successful(None)))
+      .recover { case e: Exception => None }
+    }
+
+    //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
+    // def mergeImplicitUser(id: Long, userId: Long): Future[Boolean]
 
     def get(id: Long): Future[Option[User]] = {
       val q = quote(query[User].filter(_.id == lift(id)).take(1))
       ctx.run(q).map(_.headOption)
-    }
-
-    def check(user: User): Future[Boolean] = {
-      // TODO: in query
-      get(user.id).map(_.map { dbUser =>
-        dbUser.revision == user.revision && dbUser.name == user.name
-      }.getOrElse(false))
     }
 
     def get(name: String, password: String): Future[Option[User]] = {
@@ -130,6 +156,13 @@ object Db {
       ctx.run(q).map(_.headOption.collect {
         case (user, pw) if (passwordDigest(password) hash= pw.digest) => user
       })
+    }
+
+    def check(user: User): Future[Boolean] = {
+      // TODO: in query
+      get(user.id).map(_.map { dbUser =>
+        dbUser.revision == user.revision && dbUser.isImplicit == user.isImplicit && dbUser.name == user.name
+      }.getOrElse(false))
     }
   }
 

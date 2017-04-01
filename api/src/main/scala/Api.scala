@@ -49,11 +49,18 @@ case class DeleteConnection(id: ConnectsId) extends ApiEvent
 case class DeleteContainment(id: ContainsId) extends ApiEvent
 
 trait AuthApi {
+  def registerImplicit(name: String, password: String, token: Authentication.Token): Future[Option[Authentication]]
   def register(name: String, password: String): Future[Option[Authentication]]
   def login(name: String, password: String): Future[Option[Authentication]]
 }
 
-case class User(id: Long, name: String, revision: Int)
+case class User(id: Long, name: String, isImplicit: Boolean, revision: Int)
+object User {
+  private def implicitUserName() = "anon-" + java.util.UUID.randomUUID.toString
+  val initialRevision = 0
+  def apply(name: String): User = User(0L, name, false, initialRevision)
+  def apply(): User = User(0L, implicitUserName(), true, initialRevision)
+}
 case class Authentication(user: User, expires: Long, token: Authentication.Token)
 object Authentication {
   type Token = String

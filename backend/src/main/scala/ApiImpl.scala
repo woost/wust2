@@ -8,14 +8,14 @@ import wust.api._
 import wust.graph._
 import auth.JWT
 
-class ApiImpl(authentication: Option[Authentication]) extends Api {
+class ApiImpl(authentication: () => Future[Authentication]) extends Api {
   import Server.emit
 
-  private def userOpt = authentication.filterNot(JWT.isExpired).map(_.user)
+  lazy val userOpt: Future[Option[User]] = authentication().map(Some(_)).map(_.filterNot(JWT.isExpired).map(_.user))
 
-  private def withUser[T](f: User => Future[T]): Future[T] = userOpt.map(f).getOrElse {
+  private def withUser[T](f: User => Future[T]): Future[T] = userOpt.flatMap(_.map(f).getOrElse(
     Future.failed(UserError(Unauthorized))
-  }
+  ))
 
   private def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
 

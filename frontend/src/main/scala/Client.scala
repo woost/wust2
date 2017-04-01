@@ -17,20 +17,19 @@ sealed trait IncidentEvent
 case class ConnectEvent(location: String) extends IncidentEvent
 case class ConnectionEvent(event: ApiEvent) extends IncidentEvent
 
-class ApiIncidentHandler extends IncidentHandler[ApiEvent, ApiError] with WithEvents[IncidentEvent] {
+class ApiIncidentHandler extends IncidentHandler[ApiEvent, ApiError] {
   override def fromError(error: ApiError) = ApiException(error)
-  override def onConnect(location: String) = sendEvent(ConnectEvent(location))
-  override def receive(event: ApiEvent) = sendEvent(ConnectionEvent(event))
 }
 
 object Client {
   private val handler = new ApiIncidentHandler
-  private val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token](handler)
   private val storage = new ClientStorage(LocalStorage)
+  val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication](handler)
 
   val api = ws.wire[Api]
   val auth = new AuthClient(ws, storage)
-  val listen = handler.listen _
+  val onConnect = ws.onConnect _
+  val onEvent = ws.onEvent _
   val subscribe = ws.subscribe _
   val unsubscribe = ws.unsubscribe _
   val run = ws.run _
@@ -41,9 +40,14 @@ case class LoggedIn(user: User) extends AuthEvent
 case object LoggedOut extends AuthEvent
 
 class AuthClient(
-    ws:      WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token],
-    storage: ClientStorage) extends WithEvents[AuthEvent] {
+    ws:      WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication],
+    storage: ClientStorage) {
   import ws.messages._
+
+  ws.onControlEvent {
+    case ImplicitLogin(auth) =>
+      Future.successful(Some(auth)) ||> storeToken ||> sendAuthEvent
+  }
 
   private val authApi = ws.wire[AuthApi]
 
@@ -56,7 +60,7 @@ class AuthClient(
   }
 
   private def sendAuthEvent(auth: Future[Option[Authentication]]): Unit =
-    auth.foreach(_.map(_.user |> LoggedIn).getOrElse(LoggedOut) |> sendEvent)
+    auth.foreach(_.map(_.user |> LoggedIn).getOrElse(LoggedOut) |> (x => eventHandler.foreach(_(x))))
 
   private def withClientLogin(auth: Future[Option[Authentication]]): Future[Option[Authentication]] =
     auth.flatMap(_.map(auth => ws.login(auth.token).map(if (_) Some(auth) else None)).getOrElse(Future.successful(None)))
@@ -64,11 +68,16 @@ class AuthClient(
   private def loginFlow(auth: Future[Option[Authentication]]): Future[Boolean] =
     auth |> withClientLogin ||> storeToken ||> sendAuthEvent |> (_.map(_.isDefined))
 
+  private var eventHandler: Option[AuthEvent => Any] = None
+  def onEvent(handler: AuthEvent => Any): Unit = eventHandler = Some(handler)
+
   def reauthenticate(): Future[Boolean] =
     currentAuth |> loginFlow
 
-  def register(name: String, pw: String): Future[Boolean] =
-    authApi.register(name, pw).call() |> loginFlow
+  def register(name: String, pw: String): Future[Boolean] = currentAuth.map(_.filter(_.user.isImplicit)).flatMap {
+    case Some(auth) => authApi.registerImplicit(name, pw, auth.token).call()
+    case None => authApi.register(name, pw).call()
+  } |> loginFlow
 
   def login(name: String, pw: String): Future[Boolean] =
     authApi.login(name, pw).call() |> loginFlow

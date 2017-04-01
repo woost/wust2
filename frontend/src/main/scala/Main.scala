@@ -31,13 +31,13 @@ object Main extends js.JSApp {
     val state = new GlobalState
 
     UrlRouter.route(state.viewPage)
-    Client.auth.listen(state.onAuthEvent)
-    Client.listen {
-      case ConnectEvent(_) =>
-        Client.subscribe(Channel.Graph)
-        Client.auth.reauthenticate()
-      case ConnectionEvent(apiEvent) =>
-        state.onApiEvent(apiEvent)
+
+    Client.auth.onEvent(state.onAuthEvent)
+    Client.onEvent(state.onApiEvent)
+
+    Client.onConnect { _ =>
+      Client.subscribe(Channel.Graph)
+      Client.auth.reauthenticate()
     }
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")

@@ -32,15 +32,14 @@ object UserView {
   def logoutButton(currentUser: WriteVar[Option[User]]) =
     buttonClick("logout", Client.auth.logout())
 
-  def loginMask(currentUser: WriteVar[Option[User]]) =
-    div(userField, passwordField, loginButton(currentUser), registerButton)
+  val registerMask = div(userField, passwordField, registerButton)
   def userProfile(currentUser: WriteVar[Option[User]], user: User) =
     div(user.toString, logoutButton(currentUser))
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     state.currentUser.rx.map {
-      case Some(user) => userProfile(state.currentUser, user).render
-      case None       => loginMask(state.currentUser).render
+      case Some(user) => userProfile(state.currentUser, user)(if (user.isImplicit) registerMask else div()).render
+      case None       => registerMask(loginButton(state.currentUser)).render
     }
   }
 }

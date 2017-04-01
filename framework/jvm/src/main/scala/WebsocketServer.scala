@@ -19,9 +19,9 @@ import boopickle.Default._
 import message._
 
 object WebsocketFlow {
-  def apply[Channel, Event, Error, AuthToken, User](
-    messages: Messages[Channel, Event, Error, AuthToken],
-    handler: RequestHandler[Channel, Event, Error, AuthToken, User],
+  def apply[Channel, Event, Error, AuthToken, Auth](
+    messages: Messages[Channel, Event, Error, AuthToken, Auth],
+    handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
     dispatcher: Dispatcher[Channel, Event])(implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
 
     import WebsocketSerializer._
@@ -55,13 +55,13 @@ object WebsocketFlow {
   }
 }
 
-class WebsocketServer[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler, User](
-    handler: RequestHandler[Channel, Event, Error, AuthToken, User]) {
+class WebsocketServer[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler, Auth: Pickler](
+    handler: RequestHandler[Channel, Event, Error, AuthToken, Auth]) {
 
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
-  val messages = new Messages[Channel, Event, Error, AuthToken]
+  val messages = new Messages[Channel, Event, Error, AuthToken, Auth]
   private val dispatcher = new EventDispatcher(messages)
 
   val emit = dispatcher.emit _

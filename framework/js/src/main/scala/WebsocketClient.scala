@@ -10,19 +10,17 @@ import message._
 
 trait IncidentHandler[Event, Error] {
   def fromError(error: Error): Throwable
-  def onConnect(location: String): Unit
-  def receive(event: Event): Unit
 }
 
-class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler](
+class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler, Auth: Pickler](
     handler: IncidentHandler[Event, Error]) {
-  val messages = new Messages[Channel, Event, Error, AuthToken]
+  val messages = new Messages[Channel, Event, Error, AuthToken, Auth]
 
   import messages._, handler._
 
   private val controlRequests = new OpenRequests[Boolean]
   private val callRequests = new OpenRequests[ByteBuffer]
-  private val ws = new WebsocketConnection(onConnect)
+  private val ws = new WebsocketConnection(s => connectHandler.foreach(_(s)))
 
   private val pingIdleMillis = 115 * 1000
   private val acknowledgeTraffic: () => Unit = {
@@ -51,6 +49,13 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
     promise.future
   }
 
+  private var connectHandler: Option[String => Any] = None
+  def onConnect(handler: String => Any): Unit = connectHandler = Some(handler)
+  private var eventHandler: Option[Event => Any] = None
+  def onEvent(handler: Event => Any): Unit = eventHandler = Some(handler)
+  private var controlEventHandler: Option[ControlEvent => Any] = None
+  def onControlEvent(handler: ControlEvent => Any): Unit = controlEventHandler = Some(handler)
+
   def login(auth: AuthToken): Future[Boolean] = control(Login(auth))
   def logout(): Future[Boolean] = control(Logout())
   def subscribe(channel: Channel): Future[Boolean] = control(Subscribe(channel))
@@ -65,7 +70,8 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
         result.fold(req tryFailure fromError(_), req trySuccess _)
       }
       case ControlResponse(seqId, success) => controlRequests.get(seqId).foreach(_ trySuccess success)
-      case Notification(event) => receive(event)
+      case ControlNotification(event) => controlEventHandler.foreach(_(event))
+      case Notification(event) => eventHandler.foreach(_(event))
       case Pong() =>
     }
   }

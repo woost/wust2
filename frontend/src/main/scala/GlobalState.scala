@@ -92,7 +92,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
     case NewConnection(connects) => rawGraph.updatef(_ + connects)
     case NewContainment(contains) => rawGraph.updatef(_ + contains)
-
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)

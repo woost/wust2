@@ -7,6 +7,11 @@ import wust.api._
 import auth._
 
 class AuthApiImpl extends AuthApi {
+  def registerImplicit(name: String, password: String, token: Authentication.Token): Future[Option[Authentication]] =
+    JWT.authenticationFromToken(token)
+      .map(auth => Db.user.activateImplicitUser(auth.user.id, name, password).map(_.map(JWT.generateAuthentication)))
+      .getOrElse(Future.successful(None))
+
   def register(name: String, password: String): Future[Option[Authentication]] =
     Db.user(name, password).map(_.map(JWT.generateAuthentication))
 

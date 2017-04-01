@@ -14,51 +14,66 @@ import wust.util.Pipe
 import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
-  def router(currentAuth: Option[Auth]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
+  def router(currentAuth: () => Future[Auth]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
+  def createImplicitAuth(): Future[Auth]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
   def authenticate(auth: AuthToken): Future[Option[Auth]]
 }
 
+class CachedFunction[T](fun: () => T) extends Function0[T] {
+  var cached: Option[T] = None
+  def apply(): T = cached.getOrElse {
+    val newVal = fun()
+    cached = Some(newVal)
+    newVal
+  }
+}
+
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
-    messages: Messages[Channel, Event, Error, AuthToken],
-    handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
-    dispatcher: Dispatcher[Channel, Event]
-  ) extends Actor {
+    messages:   Messages[Channel, Event, Error, AuthToken, Auth],
+    handler:    RequestHandler[Channel, Event, Error, AuthToken, Auth],
+    dispatcher: Dispatcher[Channel, Event]) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._
 
-  def connected(outgoing: ActorRef, currentAuth: Future[Option[Auth]] = Future.successful(None)): Receive = {
-    case Ping() => outgoing ! Pong()
-    case CallRequest(seqId, path, args) =>
-      val timer = StopWatch.started
-      router(currentAuth.value.flatMap(_.toOption).flatten).lift(Request(path, args))
-        .map(_.map(resp => CallResponse(seqId, Right(resp))))
-        .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
-        .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
-        .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
-        .pipeTo(outgoing)
-    case ControlRequest(seqId, control) => control match {
-      case Login(token) =>
-        val currentAuth = authenticate(token)
-        context.become(connected(outgoing, currentAuth))
-        currentAuth
-          .map(auth => ControlResponse(seqId, auth.isDefined))
+  def connected(outgoing: ActorRef, auth: Future[Option[Auth]] = Future.successful(None)): Receive = {
+    def sendImplicitLogin(auth: Future[Auth]) = auth.map(a => ControlNotification(ImplicitLogin(a))).pipeTo(outgoing)
+    lazy val implicitAuth: Future[Auth] = handler.createImplicitAuth() ||> sendImplicitLogin
+    val currentAuth: () => Future[Auth] = new CachedFunction(() => auth.flatMap(_.map(Future.successful(_)).getOrElse(implicitAuth)))
+
+    {
+      case Ping() => outgoing ! Pong()
+      case CallRequest(seqId, path, args) =>
+        val timer = StopWatch.started
+        router(currentAuth).lift(Request(path, args))
+          .map(_.map(resp => CallResponse(seqId, Right(resp))))
+          .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
+          .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
+          .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
           .pipeTo(outgoing)
-      case Logout() =>
-        context.become(connected(outgoing))
-        outgoing ! ControlResponse(seqId, true)
-      case Subscribe(channel) =>
-        dispatcher.subscribe(outgoing, channel)
-        outgoing ! ControlResponse(seqId, true)
-      case Unsubscribe(channel) =>
-        dispatcher.unsubscribe(outgoing, channel)
-        outgoing ! ControlResponse(seqId, true)
+      case ControlRequest(seqId, control) => control match {
+        case Login(token) =>
+          val currentAuth = authenticate(token)
+          context.become(connected(outgoing, currentAuth))
+          currentAuth
+            .map(auth => ControlResponse(seqId, auth.isDefined))
+            .pipeTo(outgoing)
+        case Logout() =>
+          context.become(connected(outgoing))
+          outgoing ! ControlResponse(seqId, true)
+        case Subscribe(channel) =>
+          dispatcher.subscribe(outgoing, channel)
+          outgoing ! ControlResponse(seqId, true)
+        case Unsubscribe(channel) =>
+          dispatcher.unsubscribe(outgoing, channel)
+          outgoing ! ControlResponse(seqId, true)
+      }
+      case Stop =>
+        dispatcher.unsubscribe(outgoing)
+        context.stop(self)
     }
-    case Stop =>
-      dispatcher.unsubscribe(outgoing)
-      context.stop(self)
   }
 
   def receive = {

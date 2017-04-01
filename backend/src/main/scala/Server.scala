@@ -16,8 +16,10 @@ import auth.JWT
 case class UserError(error: ApiError) extends Exception
 
 class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Authentication.Token, Authentication] {
-  override def router(user: Option[Authentication]) =
+  override def router(user: () => Future[Authentication]) =
     AutowireServer.route[Api](new ApiImpl(user)) orElse AutowireServer.route[AuthApi](new AuthApiImpl)
+
+  override def createImplicitAuth: Future[Authentication] = Db.user.createImplicitUser().map(JWT.generateAuthentication)
 
   override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
   override val toError: PartialFunction[Throwable, ApiError] = {
