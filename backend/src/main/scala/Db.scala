@@ -95,23 +95,31 @@ object Db {
 
     def passwordDigest(password: String) = Hasher(password).bcrypt
 
-    val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
+    val createUserAndPassword = quote { (name: String, digest: Array[Byte], revision: Int) =>
       infix"""with ins as (
-        insert into "user"(id, name) values(DEFAULT, $name) returning id
+        insert into "user"(id, name, revision) values(DEFAULT, $name, $revision) returning id
       ) insert into password(id, digest) select id, $digest from ins""".as[Insert[User]]
     }
 
     def apply(name: String, password: String): Future[Option[User]] = {
       val digest = passwordDigest(password)
-      val q = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
+      val revision = 0;
+      val q = quote { createUserAndPassword(lift(name), lift(digest), lift(revision)).returning(_.id) }
       ctx.run(q)
-        .map(id => Some(User(id, name)))
+        .map(id => Some(User(id, name, revision)))
         .recover { case _: Exception => None }
     }
 
     def get(id: Long): Future[Option[User]] = {
       val q = quote(query[User].filter(_.id == lift(id)).take(1))
       ctx.run(q).map(_.headOption)
+    }
+
+    def check(user: User): Future[Boolean] = {
+      // TODO: in query
+      get(user.id).map(_.map { dbUser =>
+        dbUser.revision == user.revision && dbUser.name == user.name
+      }.getOrElse(false))
     }
 
     def get(name: String, password: String): Future[Option[User]] = {

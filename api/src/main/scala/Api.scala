@@ -53,7 +53,7 @@ trait AuthApi {
   def login(name: String, password: String): Future[Option[Authentication]]
 }
 
-case class User(id: Long, name: String)
+case class User(id: Long, name: String, revision: Int)
 case class Authentication(user: User, expires: Long, token: Authentication.Token)
 object Authentication {
   type Token = String

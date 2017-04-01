@@ -13,50 +13,49 @@ import wust.util.time.StopWatch
 import wust.util.Pipe
 import message._
 
-trait RequestHandler[Channel, Event, Error, AuthToken, User] {
-  def router(user: Option[User]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
+trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
+  def router(currentAuth: Option[Auth]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
-  def authenticate(auth: AuthToken): Option[User]
+  def authenticate(auth: AuthToken): Future[Option[Auth]]
 }
 
-class ConnectedClient[Channel, Event, Error, AuthToken, User](
+class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
     messages: Messages[Channel, Event, Error, AuthToken],
-    handler: RequestHandler[Channel, Event, Error, AuthToken, User],
+    handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
     dispatcher: Dispatcher[Channel, Event]
   ) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._
 
-  def connected(outgoing: ActorRef, user: Option[User] = None): Receive = {
+  def connected(outgoing: ActorRef, currentAuth: Future[Option[Auth]] = Future.successful(None)): Receive = {
     case Ping() => outgoing ! Pong()
     case CallRequest(seqId, path, args) =>
       val timer = StopWatch.started
-      router(user).lift(Request(path, args))
+      router(currentAuth.value.flatMap(_.toOption).flatten).lift(Request(path, args))
         .map(_.map(resp => CallResponse(seqId, Right(resp))))
         .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
         .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
         .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
         .pipeTo(outgoing)
-    case ControlRequest(seqId, control) =>
-      val response = control match {
-        case Login(token) =>
-          val user = authenticate(token)
-          context.become(connected(outgoing, user))
-          user.isDefined
-        case Logout() =>
-          context.become(connected(outgoing))
-          true
-        case Subscribe(channel) =>
-          dispatcher.subscribe(outgoing, channel)
-          true
-        case Unsubscribe(channel) =>
-          dispatcher.unsubscribe(outgoing, channel)
-          true
-      }
-
-      outgoing ! ControlResponse(seqId, response)
+    case ControlRequest(seqId, control) => control match {
+      case Login(token) =>
+        val currentAuth = authenticate(token)
+        context.become(connected(outgoing, currentAuth))
+        currentAuth
+          .map(auth => ControlResponse(seqId, auth.isDefined))
+          .pipeTo(outgoing)
+      case Logout() =>
+        context.become(connected(outgoing))
+        outgoing ! ControlResponse(seqId, true)
+      case Subscribe(channel) =>
+        dispatcher.subscribe(outgoing, channel)
+        outgoing ! ControlResponse(seqId, true)
+      case Unsubscribe(channel) =>
+        dispatcher.unsubscribe(outgoing, channel)
+        outgoing ! ControlResponse(seqId, true)
+    }
     case Stop =>
       dispatcher.unsubscribe(outgoing)
       context.stop(self)

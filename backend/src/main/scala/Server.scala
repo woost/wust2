@@ -27,7 +27,10 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
       InternalServerError
   }
 
-  override def authenticate(token: Authentication.Token): Option[Authentication] = Some(token).flatMap(JWT.authenticationFromToken)
+  override def authenticate(token: Authentication.Token): Future[Option[Authentication]] =
+    JWT.authenticationFromToken(token)
+      .map(auth => Db.user.check(auth.user).map(s => Some(auth).filter(_ => s)))
+      .getOrElse(Future.successful(None))
 }
 
 object Server {
