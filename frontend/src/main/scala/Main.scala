@@ -22,14 +22,12 @@ object Main extends js.JSApp {
 
   def main(): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
-    implicit val routeablePage = RouteablePage
 
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
     val port = if (location.port == "12345") "8080" else location.port
 
     val state = new GlobalState
-    UrlRouter.route(state.viewPage)
 
     Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
