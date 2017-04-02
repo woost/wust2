@@ -10,6 +10,7 @@ class Forces {
   val repel = d3.forceManyBody[SimPost]()
   val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
   val connection = d3.forceLink[ExtendedD3Node, SimConnects]()
+  val redirectedConnection = d3.forceLink[SimPost, SimRedirectedConnects]()
   // val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
   val containment = d3.forceLink[SimPost, SimContains]()
   //TODO: push posts out of containment clusters they don't belong to
@@ -25,6 +26,7 @@ object Forces {
     forces.collision.radius((p: SimPost) => p.collisionRadius)
 
     forces.connection.distance(130)
+    forces.redirectedConnection.distance(150)
     forces.containment.distance(100)
 
     forces.gravityX.strength(0.1)
@@ -41,6 +43,7 @@ object Simulation {
     .force("repel", forces.repel)
     .force("collision", forces.collision)
     .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+    .force("redirectedConnection", forces.redirectedConnection)
     // .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
     .force("containment", forces.containment)
 }
@@ -48,7 +51,7 @@ object Simulation {
 // TODO: run simulation in tests. jsdom timer bug?
 // When running tests with d3-force in jsdom, the d3-timer does not stop itself.
 // It should stop when alpha < alphaMin, but is running infinitely, causing a jsdom timeout.
-class D3State(disableSimulation:Boolean = false) {
+class D3State(disableSimulation: Boolean = false) {
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   private val width = 640
   private val height = 480
@@ -56,5 +59,5 @@ class D3State(disableSimulation:Boolean = false) {
   var transform: Transform = d3.zoomIdentity // stores current pan and zoom
   val forces = Forces(height, width)
   val simulation = Simulation(forces)
-  if(disableSimulation) simulation.stop()
+  if (disableSimulation) simulation.stop()
 }

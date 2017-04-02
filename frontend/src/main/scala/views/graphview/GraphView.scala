@@ -38,7 +38,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
   val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
-  val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxRedirectedSimConnects)(svg.append("g"))
+  val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxSimRedirectedConnects)(svg.append("g"))
 
   val html = container.append("div")
   val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
@@ -57,6 +57,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
     val simPosts = rxSimPosts.now
     val simConnects = rxSimConnects.now
+    val simRedirectedConnects = rxSimRedirectedConnects.now
     val simContains = rxSimContains.now
     // val graph = rxDisplayGraph.now.graph
 
@@ -79,6 +80,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
     d3State.simulation.nodes(simPosts)
     d3State.forces.connection.links(simConnects)
+    d3State.forces.redirectedConnection.links(simRedirectedConnects)
     d3State.forces.containment.links(simContains)
 
     d3State.simulation.alpha(1).restart()

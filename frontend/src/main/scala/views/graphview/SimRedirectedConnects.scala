@@ -6,7 +6,7 @@ import scalajs.js
 import wust.frontend.LocalConnection
 
 class SimRedirectedConnects(val connects: LocalConnection, val source: SimPost, val target: SimPost)
-  extends SimulationLink[SimPost, ExtendedD3Node] with SimulationLinkImpl[SimPost, ExtendedD3Node] {
+  extends SimulationLinkImpl[SimPost, SimPost] {
   //TODO: delegert!
   def sourceId = connects.sourceId
   def targetId = connects.targetId
