@@ -20,6 +20,7 @@ case class DropAction(name: String, action: (SimPost, SimPost) => Unit)
 object KeyImplicits {
   implicit val SimPostWithKey = new WithKey[SimPost](_.id)
   implicit val SimConnectsWithKey = new WithKey[SimConnects](_.id)
+  implicit val SimRedirectedConnectsWithKey = new WithKey[SimRedirectedConnects](c => s"${c.sourceId} ${c.targetId}")
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }
 
@@ -37,6 +38,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
   val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
+  val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxRedirectedSimConnects)(svg.append("g"))
 
   val html = container.append("div")
   val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
@@ -107,6 +109,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     postSelection.draw()
     postMenuSelection.draw()
     connectionLineSelection.draw()
+    redirectedConnectionLineSelection.draw()
     connectionElementSelection.draw()
     containmentHullSelection.draw()
   }
