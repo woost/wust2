@@ -17,7 +17,7 @@ package object rxext {
   }
 
   implicit class SymmetricRxVar[A](val rxVar: RxVar[A, A]) extends AnyVal {
-    def projection[B](to: B => A, from: A => B)(implicit ctx: Ctx.Owner, data: Ctx.Data) = rxVar.map(from).writeProjection(to, { case v => from(v) })
+    def projection[B](to: B => A, from: A => B)(implicit ctx: Ctx.Owner) = rxVar.map(from).writeProjection(to, { case v => from(v) })
   }
 
   implicit class RichRx[A](val rx: Rx[A]) extends AnyVal {
