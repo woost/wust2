@@ -29,12 +29,10 @@ object Main extends js.JSApp {
     val port = if (location.port == "12345") "8080" else location.port
 
     val state = new GlobalState
-
     UrlRouter.route(state.viewPage)
 
     Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
-
     Client.onConnect { _ =>
       Client.subscribe(Channel.Graph)
       Client.auth.reauthenticate()

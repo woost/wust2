@@ -24,7 +24,7 @@ class ApiIncidentHandler extends IncidentHandler[ApiEvent, ApiError] {
 object Client {
   private val handler = new ApiIncidentHandler
   private val storage = new ClientStorage(LocalStorage)
-  val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication](handler)
+  private val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication](handler)
 
   val api = ws.wire[Api]
   val auth = new AuthClient(ws, storage)
