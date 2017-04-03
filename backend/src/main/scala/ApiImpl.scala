@@ -41,8 +41,8 @@ class ApiImpl(authentication: () => Future[Authentication]) extends Api {
     Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emit))
   }
 
-  def contain(childId: PostId, parentId: PostId): Future[Contains] = withUser {
-    Db.contains(childId, parentId) ||> (_.foreach(NewContainment(_) |> emit))
+  def contain(parentId: PostId, childId: PostId): Future[Contains] = withUser {
+    Db.contains(parentId, childId) ||> (_.foreach(NewContainment(_) |> emit))
   }
 
   def deleteContainment(id: ContainsId): Future[Boolean] = withUser {

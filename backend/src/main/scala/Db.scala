@@ -76,8 +76,8 @@ object Db {
   }
 
   object contains {
-    def apply(childId: PostId, parentId: PostId): Future[Contains] = {
-      val contains = Contains(childId, parentId)
+    def apply(parentId: PostId, childId: PostId): Future[Contains] = {
+      val contains = Contains(parentId, childId)
       val q = quote { query[Contains].insert(lift(contains)).returning(x => x.id) }
       ctx.run(q).map(id => contains.copy(id = id))
     }

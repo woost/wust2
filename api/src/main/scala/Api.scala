@@ -12,7 +12,7 @@ trait Api {
   def addPost(msg: String): Future[Post]
   def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects]
-  def contain(childId: PostId, parentId: PostId): Future[Contains]
+  def contain(parentId: PostId, childId: PostId): Future[Contains]
   def deleteConnection(id: ConnectsId): Future[Boolean]
   def deleteContainment(id: ContainsId): Future[Boolean]
   def respond(to: PostId, msg: String): Future[(Post, Connects)]

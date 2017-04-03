@@ -5,6 +5,8 @@ services:
     extends:
       file: common-test.yml
       service: postgres
+    ports:
+      - "5432:5432"
   db-migration:
     extends:
       file: common-test.yml

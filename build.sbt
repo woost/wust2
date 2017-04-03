@@ -190,6 +190,8 @@ lazy val assets = project
 
 lazy val backend = project
   .enablePlugins(DockerPlugin)
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
   .settings(dockerBackend)
   .settings(commonSettings)
   .dependsOn(frameworkJVM, apiJVM)
@@ -199,7 +201,7 @@ lazy val backend = project
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
   )
 
