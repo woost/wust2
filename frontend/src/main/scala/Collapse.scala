@@ -19,6 +19,8 @@ object Collapse {
         }
     }(breakOut)
 
+    val hiddenContainments:Set[ContainsId] = collapsingPosts.flatMap(graph.incidentChildContains)(breakOut)
+
     val alternativePosts: Map[PostId, Seq[PostId]] = (hiddenPosts.map { post =>
       post -> graph.parents(post).flatMap { parent =>
         if (hiddenPosts(parent))
@@ -40,7 +42,7 @@ object Collapse {
       .filterNot(c => graph.successors(c.sourceId) contains c.targetId) // drop already existing connections
 
     displayGraph.copy(
-      graph = graph -- hiddenPosts,
+      graph = graph -- hiddenPosts -- hiddenContainments,
       redirectedConnections = redirectedConnections
     )
   }

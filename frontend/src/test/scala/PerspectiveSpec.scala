@@ -82,42 +82,49 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "collapse two parents" in {
+          val containment1 = Contains(5, 1, 11)
+          val containment2 = Contains(6, 2, 11)
           val graph = Graph(
             posts = List(1, 2, 11),
-            containments = List(1 -> 11, 2 -> 11)
+            containments = List(containment1, containment2)
           )
-          collapse(Set(1), graph) mustEqual dg(graph)
-          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1), graph) mustEqual dg(graph - containment1.id)
+          collapse(Set(2), graph) mustEqual dg(graph - containment2.id)
           collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11))
         }
 
         "diamond-shape containment" in {
+          val containment1 = Contains(5, 2, 11)
+          val containment2 = Contains(6, 3, 11)
           val graph = Graph(
             posts = List(1, 2, 3, 11),
-            containments = List(1 -> 2, 1 -> 3, 2 -> 11, 3 -> 11)
+            containments = List[Contains](1 -> 2, 1 -> 3) ++ List(containment1, containment2)
           )
           collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
-          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(2), graph) mustEqual dg(graph - containment1.id)
+          collapse(Set(3), graph) mustEqual dg(graph - containment2.id)
           collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
           collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
         }
       }
 
       "cycles" - {
-        "not collapse cycle" in {
+        "partially collapse cycle" in {
+          val containment = Contains(5, 11, 12)
           val graph = Graph(
             posts = List(11, 12, 13),
-            containments = List(11 -> 12, 12 -> 13, 13 -> 11) // containment cycle
+            containments = containment :: List[Contains](12 -> 13, 13 -> 11) // containment cycle
           )
-          collapse(Set(11), graph) mustEqual dg(graph) // nothing to collapse because of cycle
+          collapse(Set(11), graph) mustEqual dg(graph - containment.id) // nothing to collapse because of cycle
         }
 
-        "not collapse cycle with child" in {
+        "partially collapse cycle with child" in {
+          val containment = Contains(5, 11, 12)
           val graph = Graph(
             posts = List(11, 12, 13, 20),
-            containments = List(11 -> 12, 12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
+            containments = containment :: List[Contains](12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
           )
-          collapse(Set(11), graph) mustEqual dg(graph - PostId(20)) // cycle stays
+          collapse(Set(11), graph) mustEqual dg(graph - PostId(20) - containment.id) // cycle stays
         }
 
         "collapse parent with child-cycle" in {
@@ -175,26 +182,30 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect and split outgoing edge while collapsing two parents" in {
+          val containment1 = Contains(5, 1, 11)
+          val containment2 = Contains(6, 2, 11)
           val connection = Connects(5, 11, PostId(20))
           val graph = Graph(
             posts = List(1, 2, 11, 20),
-            containments = List(1 -> 11, 2 -> 11),
+            containments = List(containment1, containment2),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual dg(graph)
-          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1), graph) mustEqual dg(graph - containment1.id)
+          collapse(Set(2), graph) mustEqual dg(graph - containment2.id)
           collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(1 -> 20, 2 -> 20))
         }
 
         "redirect and split incoming edge while collapsing two parents" in {
+          val containment1 = Contains(5, 1, 11)
+          val containment2 = Contains(6, 2, 11)
           val connection = Connects(5, 20, PostId(11))
           val graph = Graph(
             posts = List(1, 2, 11, 20),
-            containments = List(1 -> 11, 2 -> 11),
+            containments = List(containment1, containment2),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual dg(graph)
-          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(1), graph) mustEqual dg(graph - containment1.id)
+          collapse(Set(2), graph) mustEqual dg(graph - containment2.id)
           collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(20 -> 1, 20 -> 2))
         }
 
@@ -255,15 +266,18 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect in diamond-shape containment" in {
+          val containment1 = Contains(5, 2, 11)
+          val containment2 = Contains(6, 3, 11)
           val connection = Connects(5, 11, PostId(20))
           val graph = Graph(
             posts = List(1, 2, 3, 11, 20),
-            containments = List(1 -> 2, 1 -> 3, 2 -> 11, 3 -> 11),
+            containments = List[Contains](1 -> 2, 1 -> 3) ++ List(containment1, containment2),
             connections = List(connection)
           )
 
           collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
-          collapse(Set(2), graph) mustEqual dg(graph)
+          collapse(Set(2), graph) mustEqual dg(graph - containment1.id)
+          collapse(Set(3), graph) mustEqual dg(graph - containment2.id)
           collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
           collapse(Set(2, 3), graph) mustEqual dg(graph -- PostIds(11), Set(2 -> 20, 3 -> 20))
           collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
@@ -271,12 +285,13 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
 
         "redirect into cycle" in {
           val connection = Connects(5, 11, PostId(20))
+          val containment = Contains(6, 1, 2)
           val graph = Graph(
             posts = List(1, 2, 3, 11, 20),
-            containments = List(1 -> 2, 2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
+            containments = containment :: List[Contains](2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
             connections = List(connection) // 11 -> 20
           )
-          collapse(Set(1), graph) mustEqual dg(graph - PostId(11), Set(2 -> 20)) // cycle stays
+          collapse(Set(1), graph) mustEqual dg(graph - PostId(11) - containment.id, Set(2 -> 20)) // cycle stays
         }
 
         "redirect out of cycle" in {
