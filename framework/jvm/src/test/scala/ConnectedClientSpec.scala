@@ -14,20 +14,22 @@ import autowire.Core.Request
 import message._
 
 object TestRequestHandler extends RequestHandler[Int, String, String, String, String] {
-  def router(user: Option[String]) = {
+  override def router(user: () => Future[String]) = {
     case Request("api" :: Nil, args) => Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get)
-    case Request("user" :: Nil, _) => Future.successful(Pickle.intoBytes(user))
+    case Request("user" :: Nil, _) => user().map(Pickle.intoBytes[String] _)
     case Request("broken" :: Nil, _) => Future.failed(new Exception("an error"))
   }
 
-  def pathNotFound(path: Seq[String]) = "path not found"
-  def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
-  def authenticate(auth: String): Future[Option[String]] = Future.successful(if (auth.isEmpty) None else Some(auth))
+  override def createImplicitAuth(): Future[String] = Future.successful("anon")
+
+  override def pathNotFound(path: Seq[String]) = "path not found"
+  override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
+  override def authenticate(auth: String): Future[Option[String]] = Future.successful(if (auth.isEmpty) None else Some(auth))
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {
 
-  val messages = new Messages[Int, String, String, String]
+  val messages = new Messages[Int, String, String, String, String]
   import messages._
 
   val dispatcher = mock[Dispatcher[Int, String]]
@@ -94,6 +96,18 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     }
   }
 
+  "control notification" - {
+    val actor = newActor
+    connectActor(actor)
+
+    "anon login" in {
+      actor ! CallRequest(2, Seq("user"), Map.empty)
+      val pickledResponse = AutowireServer.write[String]("anon")
+      expectMsg(ControlNotification(ImplicitLogin("anon")))
+      expectMsg(CallResponse(2, Right(pickledResponse)))
+    }
+  }
+
   "control request" - {
     val actor = newActor
     connectActor(actor)
@@ -103,7 +117,8 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsg(ControlResponse(2, false))
 
       actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[Option[String]](None)
+      val pickledResponse = AutowireServer.write[String]("anon")
+      expectMsg(ControlNotification(ImplicitLogin("anon")))
       expectMsg(CallResponse(2, Right(pickledResponse)))
     }
 
@@ -113,7 +128,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsg(ControlResponse(2, true))
 
       actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[Option[String]](Some(userName))
+      val pickledResponse = AutowireServer.write[String](userName)
       expectMsg(CallResponse(2, Right(pickledResponse)))
     }
 
