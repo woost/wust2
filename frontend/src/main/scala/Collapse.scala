@@ -15,22 +15,25 @@ object Collapse {
       graph.transitiveChildren(collapsedId)
         .filterNot { child =>
           involvedInCycleWithCollapsedPost(graph, child, collapsing) ||
-            hasUncollapsedParent(graph, child, collapsing) // only collapsing post if all parents are collapsing
+            hasUncollapsedParent(graph, child, collapsing) // only hide post if all parents are collapsing
         }
     }(breakOut)
 
-    val hiddenContainments:Set[ContainsId] = collapsingPosts.flatMap(graph.incidentChildContains)(breakOut)
+    val hiddenContainments: Set[ContainsId] = (collapsingPosts.flatMap(graph.incidentChildContains)(breakOut): Set[ContainsId]) ++
+      (hiddenPosts.flatMap(graph.incidentContains)(breakOut): Set[ContainsId])
 
-    val alternativePosts: Map[PostId, Seq[PostId]] = (hiddenPosts.map { post =>
-      post -> graph.parents(post).flatMap { parent =>
-        if (hiddenPosts(parent))
-          highestCollapsedParent(graph, parent, collapsing)
-        else
-          Some(parent) // parent is probably involved in cycle and therefore not hidden
-      }(breakOut).distinct
-    }(breakOut): Map[PostId, Seq[PostId]]).withDefault(post => Seq(post))
+    val alternativePosts: Map[PostId, Set[PostId]] = {
+      hiddenContainments
+        .map(graph.containmentsById)
+        .groupBy(_.childId)
+        .mapValues(_.flatMap { c =>
+          if (hiddenPosts(c.parentId)) highestCollapsedParent(graph, c.parentId, collapsing)
+          else Some(c.parentId)
+        }(breakOut): Set[PostId])
+        .withDefault(post => Set(post))
+    }
 
-    val redirectedConnections: Set[LocalConnection] = (hiddenPosts.flatMap { post =>
+    val redirectedConnections: Set[LocalConnection] = (alternativePosts.keys.flatMap { post =>
       graph.incidentConnections(post).flatMap { cid =>
         val c = graph.connectionsById(cid)
         //TODO: assert(c.targetId is PostId) => this will be different for hyperedges

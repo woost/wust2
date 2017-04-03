@@ -190,8 +190,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(containment1, containment2),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual dg(graph - containment1.id)
-          collapse(Set(2), graph) mustEqual dg(graph - containment2.id)
+          collapse(Set(1), graph) mustEqual dg(graph - containment1.id, Set(1 -> 20))
+          collapse(Set(2), graph) mustEqual dg(graph - containment2.id, Set(2 -> 20))
           collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(1 -> 20, 2 -> 20))
         }
 
@@ -204,8 +204,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
             containments = List(containment1, containment2),
             connections = List(connection)
           )
-          collapse(Set(1), graph) mustEqual dg(graph - containment1.id)
-          collapse(Set(2), graph) mustEqual dg(graph - containment2.id)
+          collapse(Set(1), graph) mustEqual dg(graph - containment1.id, Set(20 -> 1))
+          collapse(Set(2), graph) mustEqual dg(graph - containment2.id, Set(20 -> 2))
           collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(20 -> 1, 20 -> 2))
         }
 
@@ -276,8 +276,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
           )
 
           collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
-          collapse(Set(2), graph) mustEqual dg(graph - containment1.id)
-          collapse(Set(3), graph) mustEqual dg(graph - containment2.id)
+          collapse(Set(2), graph) mustEqual dg(graph - containment1.id, Set(2 -> 20))
+          collapse(Set(3), graph) mustEqual dg(graph - containment2.id, Set(3 -> 20))
           collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
           collapse(Set(2, 3), graph) mustEqual dg(graph -- PostIds(11), Set(2 -> 20, 3 -> 20))
           collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
