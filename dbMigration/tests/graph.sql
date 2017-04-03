@@ -116,7 +116,7 @@ select is_empty(
 
 select is_empty(
   'select * from contains',
-  'connects is empty after post collapse'
+  'contains is empty after post collapse'
 );
 
 select is_empty(
