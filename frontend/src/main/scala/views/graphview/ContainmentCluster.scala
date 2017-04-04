@@ -48,3 +48,26 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
       .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
   }
 }
+
+object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluster] {
+  override val tag = "path"
+  override def enterAppend(hull: Selection[ContainmentCluster]) {
+    hull
+      .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
+      .style("stroke-linejoin", "round")
+      .style("opacity", "0.4")
+      // .style("stroke-dasharray", "10 5")
+  }
+
+  // https://codeplea.com/introduction-to-splines
+  // https://github.com/d3/d3-shape#curves
+  // val curve = d3.curveCardinalClosed
+  val curve = d3.curveCatmullRomClosed.alpha(0.5)
+  // val curve = d3.curveNatural
+
+  override def draw(hull: Selection[ContainmentCluster]) {
+    hull
+      .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
+  }
+}

@@ -19,11 +19,12 @@ object Collapse {
         }
     }(breakOut)
 
-    val hiddenContainments: Set[ContainsId] = (collapsingPosts.flatMap(graph.incidentChildContains)(breakOut): Set[ContainsId]) ++
-      (hiddenPosts.flatMap(graph.incidentContains)(breakOut): Set[ContainsId])
+    val hiddenContainments: Set[ContainsId] = (collapsingPosts.flatMap(graph.incidentChildContains)(breakOut): Set[ContainsId])
+
+    val collapsedLocalContainments = hiddenContainments.map { cid => val c = graph.containmentsById(cid); LocalContainment(c.parentId, c.childId) }.filterNot(c => hiddenPosts(c.parentId) || hiddenPosts(c.childId))
 
     val alternativePosts: Map[PostId, Set[PostId]] = {
-      hiddenContainments
+      hiddenPosts.flatMap(graph.incidentContains)
         .map(graph.containmentsById)
         .groupBy(_.childId)
         .mapValues(_.flatMap { c =>
@@ -46,7 +47,8 @@ object Collapse {
 
     displayGraph.copy(
       graph = graph -- hiddenPosts -- hiddenContainments,
-      redirectedConnections = redirectedConnections
+      redirectedConnections = redirectedConnections,
+      collapsedContainments = collapsedLocalContainments
     )
   }
 

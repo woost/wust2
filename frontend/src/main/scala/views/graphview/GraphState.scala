@@ -30,7 +30,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       //TODO: move border and color to views.post()
       sp.border = (
         if (hasChildren)
-          "2px solid rgba(0,0,0,0.4)"
+          "none"
         else { // no children
           "2px solid rgba(0,0,0,0.2)"
         }
@@ -115,7 +115,7 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
-    val parents: Seq[PostId] = graph.containments.map(c => c.parentId)(breakOut).distinct
+    val parents: Seq[PostId] = graph.containments.map(_.parentId)(breakOut).distinct
 
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.
@@ -125,6 +125,22 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       new ContainmentCluster(
         parent = postIdToSimPost(p),
         children = graph.transitiveChildren(p).map(p => postIdToSimPost(p))(breakOut),
+        depth = graph.depth(p)
+      )
+    }.toJSArray
+  }
+
+  val rxCollapsedContainmentCluster = Rx {
+    val graph = rxDisplayGraph().graph
+    val postIdToSimPost = rxPostIdToSimPost()
+
+    val children: Map[PostId, Seq[PostId]] = rxDisplayGraph().collapsedContainments.groupBy(_.parentId).mapValues(_.map(_.childId)(breakOut))
+    val parents: Iterable[PostId] = children.keys
+
+    parents.map { p =>
+      new ContainmentCluster(
+        parent = postIdToSimPost(p),
+        children = children(p).map(p => postIdToSimPost(p))(breakOut),
         depth = graph.depth(p)
       )
     }.toJSArray

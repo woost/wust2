@@ -37,6 +37,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val container = d3.select(element)
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
+  val collapsedContainmentHullSelection = SelectData.rx(CollapsedContainmentHullSelection, rxCollapsedContainmentCluster)(svg.append("g"))
   val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
   val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxSimRedirectedConnects)(svg.append("g"))
 
@@ -94,8 +95,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId() = None)
     d3State.simulation.on("tick", draw _)
-    d3State.simulation.on("end", { () => println("simulation ended") })
-    //TODO: currently produces NaNs: rxSimConnects.foreach { data => d3State.forces.connection.links = data }
+    DevOnly { d3State.simulation.on("end", { () => println("simulation ended") }) }
   }
 
   private def zoomed() {
@@ -114,6 +114,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     redirectedConnectionLineSelection.draw()
     connectionElementSelection.draw()
     containmentHullSelection.draw()
+    collapsedContainmentHullSelection.draw()
   }
 
   private def initContainerDimensionsAndPositions() {

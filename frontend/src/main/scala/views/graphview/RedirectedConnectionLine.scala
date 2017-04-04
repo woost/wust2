@@ -17,7 +17,8 @@ object RedirectedConnectionLineSelection extends DataSelection[SimRedirectedConn
   override val tag = "line"
   override def enterAppend(line: Selection[SimRedirectedConnects]) {
     line
-      .style("stroke", "#e4e4e4")
+      .style("stroke", "#8F8F8F")
+      .style("stroke-dasharray", "10 5")
   }
 
   override def draw(line: Selection[SimRedirectedConnects]) {
