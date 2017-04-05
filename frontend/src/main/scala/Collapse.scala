@@ -10,6 +10,7 @@ object Collapse {
   def apply(collapsing: Selector)(displayGraph: DisplayGraph): DisplayGraph = {
     import displayGraph.graph
     val collapsingPosts: Iterable[PostId] = graph.postsById.keys.filter(collapsing)
+    // println("collapsingPosts: " + collapsingPosts)
 
     val hiddenPosts: Set[PostId] = collapsingPosts.flatMap { collapsedId =>
       graph.transitiveChildren(collapsedId)
@@ -18,21 +19,22 @@ object Collapse {
             hasUncollapsedParent(graph, child, collapsing) // only hide post if all parents are collapsing
         }
     }(breakOut)
-
-    val hiddenContainments: Set[ContainsId] = (collapsingPosts.flatMap(graph.incidentChildContains)(breakOut): Set[ContainsId])
-
-    val collapsedLocalContainments = hiddenContainments.map { cid => val c = graph.containmentsById(cid); LocalContainment(c.parentId, c.childId) }.filterNot(c => hiddenPosts(c.parentId) || hiddenPosts(c.childId))
+    // println("hiddenPosts: " + hiddenPosts)
 
     val alternativePosts: Map[PostId, Set[PostId]] = {
       hiddenPosts.flatMap(graph.incidentContains)
         .map(graph.containmentsById)
         .groupBy(_.childId)
         .mapValues(_.flatMap { c =>
-          if (hiddenPosts(c.parentId)) highestCollapsedParent(graph, c.parentId, collapsing)
-          else Some(c.parentId)
+          // println(s"  highestHidden(${c.parentId}): " + highestParent(graph, c.parentId, hiddenPosts))
+          if (hiddenPosts(c.childId)) {
+            if (hiddenPosts(c.parentId)) highestParent(graph, c.parentId, collapsing)
+            else Some(c.parentId)
+          } else None
         }(breakOut): Set[PostId])
         .withDefault(post => Set(post))
     }
+    // println("alternativePosts: " + alternativePosts)
 
     val redirectedConnections: Set[LocalConnection] = (alternativePosts.keys.flatMap { post =>
       graph.incidentConnections(post).flatMap { cid =>
@@ -44,6 +46,18 @@ object Collapse {
       }
     }(breakOut): Set[LocalConnection])
       .filterNot(c => graph.successors(c.sourceId) contains c.targetId) // drop already existing connections
+    // println("redirectedConnections: " + redirectedConnections)
+
+    val hiddenContainments: Set[ContainsId] = collapsingPosts.flatMap(graph.incidentChildContains)(breakOut)
+    // println("hiddenContainments: " + hiddenContainments.map(graph.containmentsById))
+
+    val collapsedLocalContainments = hiddenContainments.flatMap { cid =>
+      val c = graph.containmentsById(cid)
+      val nonCollapsedIntersection = graph.transitiveChildren(c.parentId).filter(hasUncollapsedParent(graph, _, collapsing))
+      if(nonCollapsedIntersection.nonEmpty) nonCollapsedIntersection.map(LocalContainment(c.parentId, _))
+      else List(LocalContainment(c.parentId, c.childId))
+    }.filterNot(c => c.parentId == c.childId || hiddenPosts(c.parentId) || hiddenPosts(c.childId))
+    // println("collapsedLocalContainments: " + collapsedLocalContainments)
 
     displayGraph.copy(
       graph = graph -- hiddenPosts -- hiddenContainments,
@@ -63,8 +77,7 @@ object Collapse {
     }
   }
 
-  def highestCollapsedParent(graph: Graph, parent: PostId, collapsing: PostId => Boolean): Option[PostId] = {
-    (parent :: graph.transitiveParents(parent).toList).filter(collapsing).lastOption
+  def highestParent(graph: Graph, parent: PostId, predicate: PostId => Boolean): Option[PostId] = {
+    (parent :: graph.transitiveParents(parent).toList).filter(predicate).lastOption
   }
-
 }

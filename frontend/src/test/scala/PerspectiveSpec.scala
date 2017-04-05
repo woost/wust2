@@ -4,21 +4,21 @@ import org.scalatest._
 
 import wust.graph._
 import wust.util.collection._
+import wust.util._
 
 class PerspectiveSpec extends FreeSpec with MustMatchers {
-  val edgeId: () => Long = {
-    var id = 1000
-    () => { id += 1; id } // die kollidieren mit posts. wir brauchen für jeden typ ne eigene range
-  }
+  val edgeId = AutoId(-1, delta = -1)
 
   implicit def intToPost(id: Int): Post = Post(id, "title")
-  implicit def intTupleToConnects(ts: (Int, Int)): Connects = Connects(edgeId(), ts._1, PostId(ts._2))
-  implicit def intTupleToContains(ts: (Int, Int)): Contains = Contains(edgeId(), ts._1, ts._2)
+  implicit def intTupleToConnects(ts: (Int, Int)): Connects = Connects(ts)
+  implicit def intTupleToContains(ts: (Int, Int)): Contains = Contains(ts)
   implicit def intSetToSelectorIdSet(set: Set[Int]) = Selector.IdSet(set.map(PostId(_)))
   def PostIds(ids: Int*) = ids.map(PostId(_))
   implicit class RichContains(con: Contains) {
     def toLocal = LocalContainment(con.parentId, con.childId)
   }
+  def Contains(ts: (Int, Int)):Contains = new Contains(edgeId(), ts._1, ts._2)
+  def Connects(ts: (Int, Int)):Connects = new Connects(edgeId(), ts._1, PostId(ts._2))
 
   "perspective" - {
     "collapse" - {
@@ -86,8 +86,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "collapse two parents" in {
-          val containment1 = Contains(5, 1, 11)
-          val containment2 = Contains(6, 2, 11)
+          val containment1 = Contains(1 -> 11)
+          val containment2 = Contains(2 -> 11)
           val graph = Graph(
             posts = List(1, 2, 11),
             containments = List(containment1, containment2)
@@ -98,8 +98,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "diamond-shape containment" in {
-          val containment1 = Contains(5, 2, 11)
-          val containment2 = Contains(6, 3, 11)
+          val containment1 = Contains(2 -> 11)
+          val containment2 = Contains(3 -> 11)
           val graph = Graph(
             posts = List(1, 2, 3, 11),
             containments = List[Contains](1 -> 2, 1 -> 3) ++ List(containment1, containment2)
@@ -114,7 +114,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
 
       "cycles" - {
         "partially collapse cycle" in {
-          val containment = Contains(5, 11, 12)
+          val containment = Contains(11 -> 12)
           val graph = Graph(
             posts = List(11, 12, 13),
             containments = containment :: List[Contains](12 -> 13, 13 -> 11) // containment cycle
@@ -123,7 +123,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "partially collapse cycle with child" in {
-          val containment = Contains(5, 11, 12)
+          val containment = Contains(11 -> 12)
           val graph = Graph(
             posts = List(11, 12, 13, 20),
             containments = containment :: List[Contains](12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
@@ -142,7 +142,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
 
       "connection redirection" - {
         "redirect collapsed connection to source" in {
-          val connection = Connects(5, 11, PostId(2))
+          val connection = Connects(11 -> 2)
           val graph = Graph(
             posts = List(1, 11, 2),
             containments = List(1 -> 11),
@@ -152,7 +152,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect collapsed connection to target" in {
-          val connection = Connects(5, 2, PostId(11))
+          val connection = Connects(2 -> 11)
           val graph = Graph(
             posts = List(1, 11, 2),
             containments = List(1 -> 11),
@@ -162,7 +162,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect edge source to earliest collapsed transitive parent" in {
-          val connection = Connects(5, 3, PostId(11))
+          val connection = Connects(3 -> 11)
           val graph = Graph(
             posts = List(1, 2, 3, 11),
             containments = List(1 -> 2, 2 -> 3),
@@ -174,7 +174,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect edge target to earliest collapsed transitive parent" in {
-          val connection = Connects(5, 11, PostId(3))
+          val connection = Connects(11 -> 3)
           val graph = Graph(
             posts = List(1, 2, 3, 11),
             containments = List(1 -> 2, 2 -> 3),
@@ -186,9 +186,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect and split outgoing edge while collapsing two parents" in {
-          val containment1 = Contains(5, 1, 11)
-          val containment2 = Contains(6, 2, 11)
-          val connection = Connects(7, 11, PostId(20))
+          val containment1 = Contains(1 -> 11)
+          val containment2 = Contains(2 -> 11)
+          val connection = Connects(11 -> 20)
           val graph = Graph(
             posts = List(1, 2, 11, 20),
             containments = List(containment1, containment2),
@@ -200,9 +200,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect and split incoming edge while collapsing two parents" in {
-          val containment1 = Contains(5, 1, 11)
-          val containment2 = Contains(6, 2, 11)
-          val connection = Connects(7, 20, PostId(11))
+          val containment1 = Contains(1 -> 11)
+          val containment2 = Contains(2 -> 11)
+          val connection = Connects(20 -> 11)
           val graph = Graph(
             posts = List(1, 2, 11, 20),
             containments = List(containment1, containment2),
@@ -214,10 +214,10 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect and split outgoing edge while collapsing two parents with other connected child" in {
-          val containment1 = Contains(5, 1, 11)
-          val containment2 = Contains(6, 2, 11)
-          val connection1 = Connects(7, 11, PostId(20))
-          val connection2 = Connects(8, 3, PostId(20))
+          val containment1 = Contains(1 -> 11)
+          val containment2 = Contains(2 -> 11)
+          val connection1 = Connects(11 -> 20)
+          val connection2 = Connects(3 -> 20)
           val graph = Graph(
             posts = List(1, 2, 3, 11, 20),
             containments = List(containment1, containment2) ++ List[Contains](1 -> 3),
@@ -228,8 +228,25 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
           collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(11, 3), Set(1 -> 20, 2 -> 20))
         }
 
+        "redirect and split incoming edge while collapsing two parents (one transitive)" in {
+          val containment1 = Contains(1 -> 11)
+          val containment2 = Contains(2 -> 3)
+          val containment3 = Contains(3 -> 11)
+          val connection = Connects(20 -> 11)
+          val graph = Graph(
+            posts = List(1, 2, 3, 11, 20),
+            containments = List(containment1, containment2, containment3),
+            connections = List(connection)
+          )
+          // collapse(Set(1), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
+          collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalContainment(2, 11)))
+          collapse(Set(3), graph) mustEqual dg(graph - containment3.id, collapsedContainments = Set(containment3.toLocal))
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(3,11), Set(20 -> 1, 20 -> 2))
+          collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(3,11), Set(20 -> 1, 20 -> 2))
+        }
+
         "redirect connection between children while collapsing two parents" in {
-          val connection = Connects(5, 11, PostId(12))
+          val connection = Connects(11 -> 12)
           val graph = Graph(
             posts = List(1, 2, 11, 12),
             containments = List(1 -> 11, 2 -> 12),
@@ -241,8 +258,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect and bundle edges to target" in {
-          val connection1 = Connects(5, 11, PostId(2))
-          val connection2 = Connects(6, 12, PostId(2))
+          val connection1 = Connects(11 -> 2)
+          val connection2 = Connects(12 -> 2)
           val graph = Graph(
             posts = List(1, 11, 12, 2),
             containments = List(1 -> 11, 1 -> 12),
@@ -252,8 +269,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect and bundle edges to source" in {
-          val connection1 = Connects(5, 2, PostId(11))
-          val connection2 = Connects(6, 2, PostId(12))
+          val connection1 = Connects(2 -> 11)
+          val connection2 = Connects(2 -> 12)
           val graph = Graph(
             posts = List(1, 11, 12, 2),
             containments = List(1 -> 11, 1 -> 12),
@@ -263,8 +280,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "drop redirected, because of existing connection" in {
-          val connection1 = Connects(5, 1, PostId(2))
-          val connection2 = Connects(6, 11, PostId(2))
+          val connection1 = Connects(1 -> 2)
+          val connection2 = Connects(11 -> 2)
           val graph = Graph(
             posts = List(1, 11, 2),
             containments = List(1 -> 11),
@@ -274,8 +291,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect mixed edges" in {
-          val connection1 = Connects(5, 2, PostId(11))
-          val connection2 = Connects(6, 12, PostId(2))
+          val connection1 = Connects(2 -> 11)
+          val connection2 = Connects(12 -> 2)
           val graph = Graph(
             posts = List(1, 11, 12, 2),
             containments = List(1 -> 11, 1 -> 12),
@@ -285,9 +302,9 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect in diamond-shape containment" in {
-          val containment1 = Contains(5, 2, 11)
-          val containment2 = Contains(6, 3, 11)
-          val connection = Connects(7, 11, PostId(20))
+          val containment1 = Contains(2 -> 11)
+          val containment2 = Contains(3 -> 11)
+          val connection = Connects(11 -> 20)
           val graph = Graph(
             posts = List(1, 2, 3, 11, 20),
             containments = List[Contains](1 -> 2, 1 -> 3) ++ List(containment1, containment2),
@@ -303,8 +320,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect into cycle" in {
-          val connection = Connects(5, 11, PostId(20))
-          val containment = Contains(6, 1, 2)
+          val connection = Connects(11 -> 20)
+          val containment = Contains(1 -> 2)
           val graph = Graph(
             posts = List(1, 2, 3, 11, 20),
             containments = containment :: List[Contains](2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
@@ -314,7 +331,7 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
         }
 
         "redirect out of cycle" in {
-          val connection = Connects(5, 13, PostId(20))
+          val connection = Connects(13 -> 20)
           val graph = Graph(
             posts = List(1, 11, 12, 13, 20),
             containments = List(1 -> 11, 11 -> 12, 12 -> 13, 13 -> 11), // 1 -> containment cycle(11,12,13)
