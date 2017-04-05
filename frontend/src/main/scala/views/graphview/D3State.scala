@@ -22,7 +22,7 @@ object Forces {
     forces.gravityX.x(width / 2)
     forces.gravityY.y(height / 2)
 
-    forces.repel.strength(-1000)
+    forces.repel.strength(-1500)
     forces.collision.radius((p: SimPost) => p.collisionRadius)
 
     forces.connection.distance(130)
