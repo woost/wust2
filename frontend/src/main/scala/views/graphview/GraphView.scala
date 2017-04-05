@@ -60,6 +60,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     val simConnects = rxSimConnects.now
     val simRedirectedConnects = rxSimRedirectedConnects.now
     val simContains = rxSimContains.now
+    val simCollapsedContains = rxSimCollapsedContains.now
     // val graph = rxDisplayGraph.now.graph
 
     DevOnly {
@@ -83,6 +84,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     d3State.forces.connection.links(simConnects)
     d3State.forces.redirectedConnection.links(simRedirectedConnects)
     d3State.forces.containment.links(simContains)
+    d3State.forces.collapsedContainment.links(simCollapsedContains)
 
     d3State.simulation.alpha(1).restart()
   }

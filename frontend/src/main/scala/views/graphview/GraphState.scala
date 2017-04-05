@@ -111,6 +111,14 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }.toJSArray
   }
 
+  val rxSimCollapsedContains = Rx {
+    val postIdToSimPost = rxPostIdToSimPost()
+
+    rxDisplayGraph().collapsedContainments.map { c =>
+      new SimCollapsedContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
+    }.toJSArray
+  }
+
   val rxContainmentCluster = Rx {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()

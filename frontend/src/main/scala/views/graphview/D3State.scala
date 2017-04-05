@@ -13,6 +13,7 @@ class Forces {
   val redirectedConnection = d3.forceLink[SimPost, SimRedirectedConnects]()
   // val connection = new CustomLinkForce[ExtendedD3Node, SimConnects]
   val containment = d3.forceLink[SimPost, SimContains]()
+  val collapsedContainment = d3.forceLink[SimPost, SimCollapsedContains]()
   //TODO: push posts out of containment clusters they don't belong to
 }
 object Forces {
@@ -28,6 +29,7 @@ object Forces {
     forces.connection.distance(130)
     forces.redirectedConnection.distance(150)
     forces.containment.distance(100)
+    forces.collapsedContainment.distance(100)
 
     forces.gravityX.strength(0.1)
     forces.gravityY.strength(0.1)
@@ -46,6 +48,7 @@ object Simulation {
     .force("redirectedConnection", forces.redirectedConnection)
     // .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
     .force("containment", forces.containment)
+    .force("collapsedContainment", forces.collapsedContainment)
 }
 
 // TODO: run simulation in tests. jsdom timer bug?
