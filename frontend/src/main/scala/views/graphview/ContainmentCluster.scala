@@ -33,7 +33,9 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
       .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke-linejoin", "round")
+      .style("stroke-linecap", "round")
       .style("opacity", "0.8")
+      // .style("mix-blend-mode", "overlay")
   }
 
   // https://codeplea.com/introduction-to-splines
@@ -55,6 +57,7 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
     hull
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke-linejoin", "round")
+      .style("stroke-linecap", "round")
       .style("opacity", "0.4")
       // .style("stroke-dasharray", "10 5")
   }
