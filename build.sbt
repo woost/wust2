@@ -32,6 +32,8 @@ lazy val commonSettings = Seq(
     Nil
 )
 
+lazy val isCI = sys.env.get("CI").isDefined
+
 lazy val root = project.in(file("."))
   .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginxHttps, nginxHttp, dbMigration)
   .settings(
@@ -153,8 +155,17 @@ lazy val frontend = project
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
 
+
+lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)
+lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
+  //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
+  refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
+)
+
 lazy val workbench = project.in(file("workbench"))
-  .enablePlugins(WorkbenchPlugin, SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
+  .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
+  .enablePlugins(DevWorkbenchPlugins: _*)
+  .settings(DevWorkbenchSettings: _*)
   .settings(
     // we have a symbolic link from src -> ../frontend/src
     // to correct the paths in the source-map
@@ -167,9 +178,7 @@ lazy val workbench = project.in(file("workbench"))
     pipelineStages in Assets := Seq(scalaJSPipeline),
 
     watchSources += baseDirectory.value / "index.html",
-    watchSources ++= (watchSources in assets).value,
-    //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
-    refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
+    watchSources ++= (watchSources in assets).value
   )
 
 lazy val assets = project
