@@ -7,6 +7,8 @@ import wust.api._
 import auth._
 
 class AuthApiImpl extends AuthApi {
+  //TODO: get token from router function of request handler. we have the current user in the connected client, which is passed on.
+  //      BUT currently this would create a new anon user.
   def registerImplicit(name: String, password: String, token: Authentication.Token): Future[Option[Authentication]] =
     JWT.authenticationFromToken(token)
       .map(auth => Db.user.activateImplicitUser(auth.user.id, name, password).map(_.map(JWT.generateAuthentication)))

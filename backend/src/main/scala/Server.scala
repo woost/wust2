@@ -11,7 +11,7 @@ import boopickle.Default._
 
 import wust.api._
 import wust.framework._, message._
-import auth.JWT
+import wust.backend.auth.JWT
 
 case class UserError(error: ApiError) extends Exception
 
