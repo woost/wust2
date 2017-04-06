@@ -56,6 +56,8 @@ class ApiImpl(authentication: () => Future[Authentication]) extends Api {
     })
   }
 
+  def getUser(id: Long): Future[Option[User]] = Db.user.get(id)
+
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }

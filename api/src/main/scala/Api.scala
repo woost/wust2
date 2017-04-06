@@ -16,6 +16,7 @@ trait Api {
   def deleteConnection(id: ConnectsId): Future[Boolean]
   def deleteContainment(id: ContainsId): Future[Boolean]
   def respond(to: PostId, msg: String): Future[(Post, Connects)]
+  def getUser(user: Long): Future[Option[User]]
   // def getComponent(id: Id): Future[Graph]
 }
 
