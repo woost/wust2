@@ -5,16 +5,21 @@ import collection.breakOut
 import wust.graph._
 import wust.util._
 import wust.util.collection._
-import wust.util.algorithm._
 
 object Collapse {
   def apply(collapsing: Selector)(displayGraph: DisplayGraph): DisplayGraph = {
     import displayGraph.graph
-    val collapsingPosts: Set[PostId] = graph.postsById.keySet.filter(collapsing)
+    val collapsingPosts: Iterable[PostId] = graph.postsById.keys.filter(collapsing)
     // println("collapsingPosts: " + collapsingPosts)
 
-    val hiddenPosts = getHiddenPosts(graph, collapsingPosts)
-    println("hiddenPosts: " + hiddenPosts)
+    val hiddenPosts: Set[PostId] = collapsingPosts.flatMap { collapsedId =>
+      graph.transitiveChildren(collapsedId)
+        .filterNot { child =>
+          involvedInCycleWithCollapsedPost(graph, child, collapsing) ||
+            hasUncollapsedParent(graph, child, collapsing) // only hide post if all parents are collapsing
+        }
+    }(breakOut)
+    // println("hiddenPosts: " + hiddenPosts)
 
     val alternativePosts: Map[PostId, Set[PostId]] = {
       hiddenPosts.flatMap(graph.incidentContains)
@@ -29,7 +34,7 @@ object Collapse {
         }(breakOut): Set[PostId])
         .withDefault(post => Set(post))
     }
-    println("alternativePosts: " + alternativePosts)
+    // println("alternativePosts: " + alternativePosts)
 
     val redirectedConnections: Set[LocalConnection] = (alternativePosts.keys.flatMap { post =>
       graph.incidentConnections(post).flatMap { cid =>
@@ -48,8 +53,8 @@ object Collapse {
 
     val collapsedLocalContainments = hiddenContainments.flatMap { cid =>
       val c = graph.containmentsById(cid)
-      val nonCollapsedIntersection = graph.transitiveChildren(c.parentId).filterNot(hiddenPosts)
-      if (nonCollapsedIntersection.nonEmpty) nonCollapsedIntersection.map(LocalContainment(c.parentId, _))
+      val nonCollapsedIntersection = graph.transitiveChildren(c.parentId).filter(hasUncollapsedParent(graph, _, collapsing))
+      if(nonCollapsedIntersection.nonEmpty) nonCollapsedIntersection.map(LocalContainment(c.parentId, _))
       else List(LocalContainment(c.parentId, c.childId))
     }.filterNot(c => c.parentId == c.childId || hiddenPosts(c.parentId) || hiddenPosts(c.childId))
     // println("collapsedLocalContainments: " + collapsedLocalContainments)
@@ -61,33 +66,15 @@ object Collapse {
     )
   }
 
-  def getHiddenPosts(graph: Graph, collapsingPosts: Set[PostId]): Set[PostId] = {
-    val candidates = collapsingPosts.flatMap(graph.transitiveChildren)
-    candidates
-      .filterNot { child =>
-        involvedInCycleWithCollapsedPost(graph, child, collapsingPosts) ||
-          hasOneUncollapsedTransitiveParent(graph, child, collapsingPosts) // only hide post if all parents are collapsing
-      }
-  }
-
   def involvedInCycleWithCollapsedPost(graph: Graph, child: PostId, collapsing: PostId => Boolean): Boolean = {
     (graph.involvedInContainmentCycle(child) && graph.transitiveChildren(child).exists(collapsing))
   }
 
-  // def hasOnlyUncollapsedTransitiveParents(graph: Graph, child: PostId, collapsing: PostId => Boolean): Boolean = {
-  //   graph.parents(child).exists { parent =>
-  //     val transitiveParents = parent :: graph.transitiveParents(parent).toList
-  //     transitiveParents.nonEmpty && transitiveParents.forall(!collapsing(_))
-  //   }
-  // }
-
-  def hasOneUncollapsedTransitiveParent(graph: Graph, child: PostId, collapsing: Set[PostId]): Boolean = {
-    graph.transitiveParents(child).exists(parent => graph.parents(parent).isEmpty && !collapsing(parent) && reachableByUncollapsedPath(child, parent, graph, collapsing))
-  }
-
-  def reachableByUncollapsedPath(child: PostId, parent: PostId, graph: Graph, collapsing: Set[PostId]): Boolean = {
-    val space = graph -- (collapsing - child)
-    depthFirstSearch(child, space.parents).iterator contains parent
+  def hasUncollapsedParent(graph: Graph, child: PostId, collapsing: PostId => Boolean): Boolean = {
+    graph.parents(child).exists { parent =>
+      val transitiveParents = parent :: graph.transitiveParents(parent).toList
+      transitiveParents.nonEmpty && transitiveParents.forall(!collapsing(_))
+    }
   }
 
   def highestParent(graph: Graph, parent: PostId, predicate: PostId => Boolean): Option[PostId] = {

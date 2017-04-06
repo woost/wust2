@@ -55,7 +55,6 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
   override val tag = "path"
   override def enterAppend(hull: Selection[ContainmentCluster]) {
     hull
-      .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
       .style("stroke-linejoin", "round")
       .style("stroke-linecap", "round")

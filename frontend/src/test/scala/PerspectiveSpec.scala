@@ -1,7 +1,6 @@
 package wust.frontend
 
 import org.scalatest._
-import collection.breakOut
 
 import wust.graph._
 import wust.util.collection._
@@ -14,16 +13,15 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
   implicit def intTupleToConnects(ts: (Int, Int)): Connects = Connects(ts)
   implicit def intTupleToContains(ts: (Int, Int)): Contains = Contains(ts)
   implicit def intSetToSelectorIdSet(set: Set[Int]) = Selector.IdSet(set.map(PostId(_)))
-  def PostIds(ids: Int*): Set[PostId] = (ids.map(PostId(_)))(breakOut)
+  def PostIds(ids: Int*) = ids.map(PostId(_))
   implicit class RichContains(con: Contains) {
     def toLocal = LocalContainment(con.parentId, con.childId)
   }
-  def Contains(ts: (Int, Int)): Contains = new Contains(edgeId(), ts._1, ts._2)
-  def Connects(ts: (Int, Int)): Connects = new Connects(edgeId(), ts._1, PostId(ts._2))
+  def Contains(ts: (Int, Int)):Contains = new Contains(edgeId(), ts._1, ts._2)
+  def Connects(ts: (Int, Int)):Connects = new Connects(edgeId(), ts._1, PostId(ts._2))
 
   "perspective" - {
     "collapse" - {
-
       def collapse(collapsing: Selector, graph: Graph): DisplayGraph = Collapse(collapsing)(DisplayGraph(graph))
       def dg(graph: Graph, redirected: Set[(Int, Int)] = Set.empty, collapsedContainments: Set[LocalContainment] = Set.empty) = {
         DisplayGraph(
@@ -34,163 +32,13 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
       }
 
       "helpers" - {
-        // "hasUncollapsedTransitiveParent" in {
-        //   val graph = Graph(
-        //     posts = List(1, 2, 3),
-        //     containments = List(1 -> 2, 2 -> 3)
-        //   )
-        //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = _ => false) must be(true)
-        //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = _.id == 1) must be(false)
-        //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = _.id == 2) must be(false)
-        //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = (p => p.id == 1 || p.id == 2)) must be(false)
-
-        //   Collapse.hasOneUncollapsedTransitiveParent(graph, 3, collapsing = _ => false) must be(true)
-        //   Collapse.hasOneUncollapsedTransitiveParent(graph, 3, collapsing = _.id == 1) must be(false)
-        //   Collapse.hasOneUncollapsedTransitiveParent(graph, 3, collapsing = _.id == 2) must be(true)
-        // }
-
-        // "hasUncollapsedTransitiveParent 2" in {
-        //   val graph = Graph(
-        //     posts = List(1, 2, 3, 4, 11),
-        //     containments = List(1 -> 11, 3 -> 11, 2 -> 3, 4 -> 3)
-        //   )
-        //   Collapse.hasOneUncollapsedTransitiveParent(
-        //     graph,
-        //     11,
-        //     collapsing = (p => p.id == 1 || p.id == 2)
-        //   ) must be(true)
-        // }
-        "getHiddenPosts" - {
-          import Collapse.{getHiddenPosts => hidden}
-          "one parent" in {
-            val graph = Graph(
-              posts = List(1, 11),
-              containments = List(1 -> 11)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(11)
-          }
-
-          "two parents" in {
-            val graph = Graph(
-              posts = List(1, 2, 11),
-              containments = List(1 -> 11, 2 -> 11)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds()
-            hidden(graph, Set(2)) mustEqual PostIds()
-            hidden(graph, Set(1, 2)) mustEqual PostIds(11)
-          }
-
-          "one transitive parent" in {
-            val graph = Graph(
-              posts = List(1, 2, 11),
-              containments = List(1 -> 2, 2 -> 11)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(2, 11)
-            hidden(graph, Set(2)) mustEqual PostIds(11)
-            hidden(graph, Set(1, 2)) mustEqual PostIds(2, 11)
-          }
-
-          "two transitive parents" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 4, 11),
-              containments = List(1 -> 2, 2 -> 11, 3 -> 4, 4 -> 11)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(2)
-            hidden(graph, Set(2)) mustEqual PostIds()
-            hidden(graph, Set(1, 2)) mustEqual PostIds(2)
-            hidden(graph, Set(1, 3)) mustEqual PostIds(2, 4, 11)
-            hidden(graph, Set(1, 4)) mustEqual PostIds(2, 11)
-          }
-
-          "two parents, one has two other parents" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 4, 11),
-              containments = List(1 -> 11, 3 -> 11, 2 -> 3, 4 -> 3)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds()
-            hidden(graph, Set(2)) mustEqual PostIds()
-            hidden(graph, Set(1, 2)) mustEqual PostIds()
-            hidden(graph, Set(1, 2, 4)) mustEqual PostIds(3, 11)
-            hidden(graph, Set(1, 2, 3)) mustEqual PostIds(11)
-          }
-
-          "two parents, one has 2 transitive parents" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 4, 11),
-              containments = List(1 -> 2, 2 -> 3, 3 -> 11, 4 -> 11)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(2, 3)
-            hidden(graph, Set(2)) mustEqual PostIds(3)
-            hidden(graph, Set(3)) mustEqual PostIds()
-            hidden(graph, Set(1, 2)) mustEqual PostIds(2, 3)
-            hidden(graph, Set(2, 3)) mustEqual PostIds(3)
-            hidden(graph, Set(1, 2, 3)) mustEqual PostIds(2, 3)
-            hidden(graph, Set(1, 4)) mustEqual PostIds(2, 3, 11)
-            hidden(graph, Set(2, 4)) mustEqual PostIds(3, 11)
-            hidden(graph, Set(3, 4)) mustEqual PostIds(11)
-          }
-
-          "cycle" in {
-            val graph = Graph(
-              posts = List(1, 2, 3),
-              containments = List(1 -> 2, 2 -> 3, 3 -> 1)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds()
-          }
-
-          "cycle with child" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 4),
-              containments = List(1 -> 2, 2 -> 3, 3 -> 1, 3 -> 4)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(4)
-            hidden(graph, Set(2)) mustEqual PostIds(4)
-            hidden(graph, Set(3)) mustEqual PostIds(4)
-          }
-
-          "cycle with parent" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 4),
-              containments = List(4 -> 1, 1 -> 2, 2 -> 3, 3 -> 1)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds()
-            hidden(graph, Set(2)) mustEqual PostIds()
-            hidden(graph, Set(3)) mustEqual PostIds()
-            hidden(graph, Set(4)) mustEqual PostIds(1, 2, 3)
-          }
-
-          "cycle with child and parent" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 4, 5),
-              containments = List(4 -> 1, 1 -> 2, 2 -> 3, 3 -> 1, 3 -> 1, 3 -> 5) // 4 -> cycle -> 5
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(5)
-            hidden(graph, Set(2)) mustEqual PostIds(5)
-            hidden(graph, Set(3)) mustEqual PostIds(5)
-            hidden(graph, Set(4)) mustEqual PostIds(1, 2, 3, 5)
-          }
-
-          "diamond" in {
-            val graph = Graph(
-              posts = List(1, 2, 3, 11),
-              containments = List(1 -> 2, 1 -> 3, 2 -> 11, 3 -> 11)
-            )
-            hidden(graph, Set()) mustEqual PostIds()
-            hidden(graph, Set(1)) mustEqual PostIds(2, 3, 11)
-            hidden(graph, Set(2)) mustEqual PostIds()
-            hidden(graph, Set(1, 2)) mustEqual PostIds(2, 3, 11)
-            hidden(graph, Set(2, 3)) mustEqual PostIds(11)
-          }
+        "hasNotCollapsedParents" in {
+          val graph = Graph(
+            posts = List(1, 2, 3),
+            containments = List(1 -> 2, 2 -> 3)
+          )
+          Collapse.hasUncollapsedParent(graph, 3, collapsing = _.id == 1) must be(false)
+          Collapse.hasUncollapsedParent(graph, 3, collapsing = _.id == 2) must be(false)
         }
       }
 
@@ -393,24 +241,8 @@ class PerspectiveSpec extends FreeSpec with MustMatchers {
           // collapse(Set(1), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
           collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalContainment(2, 11)))
           collapse(Set(3), graph) mustEqual dg(graph - containment3.id, collapsedContainments = Set(containment3.toLocal))
-          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(3, 11), Set(20 -> 1, 20 -> 2))
-          collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(3, 11), Set(20 -> 1, 20 -> 2))
-        }
-
-        "redirect and split incoming edge while collapsing two parents (one transitive with other parent)" in {
-          val containment1 = Contains(1 -> 11)
-          val containment2 = Contains(2 -> 3)
-          val containment3 = Contains(3 -> 11)
-          val containment4 = Contains(4 -> 3)
-          val connection = Connects(20 -> 11)
-          val graph = Graph(
-            posts = List(1, 2, 3, 4, 11, 20),
-            containments = List(containment1, containment2, containment3, containment4),
-            connections = List(connection)
-          )
-          "\n0" + collapse(Set(1, 2), graph) mustEqual "\n1" + dg(graph - containment1.id - containment2.id, collapsedContainments = Set(containment1.toLocal, containment2.toLocal))
-          collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(11) - containment2.id, Set(20 -> 1, 20 -> 3), collapsedContainments = Set(containment2.toLocal))
-          collapse(Set(1, 3), graph) mustEqual dg(graph -- PostIds(11), Set(20 -> 1, 20 -> 3))
+          collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(3,11), Set(20 -> 1, 20 -> 2))
+          collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(3,11), Set(20 -> 1, 20 -> 2))
         }
 
         "redirect connection between children while collapsing two parents" in {
