@@ -1,4 +1,4 @@
-package wust.frontend
+package wust.graph
 
 import collection.breakOut
 

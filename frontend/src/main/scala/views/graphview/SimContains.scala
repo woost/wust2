@@ -6,7 +6,7 @@ import org.scalajs.d3v4._
 import vectory._
 
 import wust.graph._
-import wust.frontend.LocalContainment
+import wust.graph.LocalContainment
 
 class SimContains(val contains: Contains, val parent: SimPost, val child: SimPost) extends SimulationLinkImpl[SimPost, SimPost] {
   //TODO: delegert!

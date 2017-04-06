@@ -50,7 +50,7 @@ package object graph {
     lazy val connections: Iterable[Connects] = connectionsById.values
     lazy val containments: Iterable[Contains] = containmentsById.values
 
-    override def toString = s"Graph(${posts.map(_.id.id).mkString(" ")},${connections.map(c => s"[${c.id.id}]${c.sourceId.id} -> ${c.targetId.id}").mkString(", ")}, ${containments.map(c => s"[${c.id.id}]${c.parentId.id} ⊂ ${c.childId.id}").mkString(", ")})"
+    override def toString = s"Graph(${posts.map(_.id.id).mkString(" ")},${connections.map(c => s"${c.id.id}:${c.sourceId.id}->${c.targetId.id}").mkString(", ")}, ${containments.map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}").mkString(", ")})"
 
     private val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
     lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId)](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._1, _._2)
