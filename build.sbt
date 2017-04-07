@@ -5,7 +5,6 @@ git.useGitDescribe := true
 git.baseVersion := "0.1.0"
 git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is always(!) active.
 
-//TODO: report bug that this project does not compile with 2.12.1
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
 scalaVersion in ThisBuild := "2.11.9" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
 
@@ -28,7 +27,20 @@ lazy val commonSettings = Seq(
     "-feature" ::
     "-language:_" ::
     "-Ywarn-unused" ::
+    Nil,
+
+  wartremoverErrors ++= (
+    // http://www.wartremover.org/doc/warts.html
+    // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
+    // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
+    // Wart.LeakingSealed ::
+    // TODO: Wart.SomeApply :: // currently requires wartremover-contrib
+    // Wart.OldTime ::
+    // Wart.AsInstanceOf ::
+    // Wart.Null ::
     Nil
+  )
+
 )
 
 lazy val isCI = sys.env.get("CI").isDefined
@@ -50,6 +62,7 @@ lazy val root = project.in(file("."))
     addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; backend/test"),
 
     watchSources ++= (watchSources in workbench).value
+
   )
 
 val akkaVersion = "2.4.17"
@@ -154,8 +167,7 @@ lazy val frontend = project
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
 
-
-lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)
+lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin) //TODO: revolver
 lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
   //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
   refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
@@ -184,9 +196,9 @@ lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
     resourceGenerators in Assets <+= Def.task {
-        val file = (resourceManaged in Assets).value / "version"
-        IO.write(file, version.value)
-        Seq(file)
+      val file = (resourceManaged in Assets).value / "version"
+      IO.write(file, version.value)
+      Seq(file)
     },
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
@@ -216,6 +228,7 @@ lazy val backend = project
       "io.igl" %% "jwt" % "1.2.0" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
+
   )
 
 lazy val systemTest = project
