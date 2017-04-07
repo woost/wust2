@@ -167,7 +167,7 @@ lazy val frontend = project
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
 
-lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin) //TODO: revolver
+lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)
 lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
   //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
   refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed

@@ -103,8 +103,11 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     "anon login" in {
       actor ! CallRequest(2, Seq("user"), Map.empty)
       val pickledResponse = AutowireServer.write[String]("anon")
-      expectMsg(ControlNotification(ImplicitLogin("anon")))
-      expectMsg(CallResponse(2, Right(pickledResponse)))
+      expectMsgAllOf(
+        10 seconds,
+        ControlNotification(ImplicitLogin("anon")),
+        CallResponse(2, Right(pickledResponse))
+      )
     }
   }
 
@@ -118,8 +121,11 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
       actor ! CallRequest(2, Seq("user"), Map.empty)
       val pickledResponse = AutowireServer.write[String]("anon")
-      expectMsg(ControlNotification(ImplicitLogin("anon")))
-      expectMsg(CallResponse(2, Right(pickledResponse)))
+      expectMsgAllOf(
+        10 seconds,
+        ControlNotification(ImplicitLogin("anon")),
+        CallResponse(2, Right(pickledResponse))
+      )
     }
 
     "valid login" in {
