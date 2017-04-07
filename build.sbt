@@ -184,6 +184,11 @@ lazy val workbench = project.in(file("workbench"))
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
+    resourceGenerators in Assets <+= Def.task {
+        val file = (resourceManaged in Assets).value / "version"
+        IO.write(file, version.value)
+        Seq(file)
+    },
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
     npmAssets ++= {
