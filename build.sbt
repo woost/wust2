@@ -12,7 +12,6 @@ scalaVersion in ThisBuild := "2.11.9" //TODO: migrate to 2.12 when this PR is me
 lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
-    ("RoundEights" at "http://maven.spikemark.net/roundeights") ::
     Nil
   ),
 
