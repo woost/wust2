@@ -9,26 +9,27 @@ git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is al
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
 scalaVersion in ThisBuild := "2.11.9" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
 
-resolvers in ThisBuild ++= (
-  ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
-  Nil
+lazy val commonSettings = Seq(
+  resolvers ++= (
+    ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
+    Nil
+  ),
+
+  // do not run tests in assembly command
+  test in assembly := {},
+
+  // watch managed library dependencies (only works with scala 2.11 currently)
+  watchSources ++= (managedClasspath in Compile).map(_.files).value,
+  scalacOptions ++=
+    "-encoding" :: "UTF-8" ::
+    "-unchecked" ::
+    "-deprecation" ::
+    "-explaintypes" ::
+    "-feature" ::
+    "-language:_" ::
+    "-Ywarn-unused" ::
+    Nil
 )
-
-// do not run tests in assembly command
-test in assembly in ThisBuild := {}
-
-// watch managed library dependencies (only works with scala 2.11 currently)
-watchSources in ThisBuild ++= (managedClasspath in Compile).map(_.files).value
-
-scalacOptions in ThisBuild ++=
-  "-encoding" :: "UTF-8" ::
-  "-unchecked" ::
-  "-deprecation" ::
-  "-explaintypes" ::
-  "-feature" ::
-  "-language:_" ::
-  "-Ywarn-unused" ::
-  Nil
 
 lazy val isCI = sys.env.get("CI").isDefined
 
@@ -59,6 +60,7 @@ val mockitoVersion = "2.7.19"
 
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       Nil
@@ -68,6 +70,7 @@ lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
 lazy val graph = crossProject
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
@@ -79,6 +82,7 @@ lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
 lazy val util = crossProject
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
@@ -90,6 +94,7 @@ lazy val utilJVM = util.jvm
 
 lazy val framework = crossProject
   .dependsOn(util)
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
@@ -123,6 +128,7 @@ lazy val frameworkJVM = framework.jvm
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(frameworkJS, apiJS, utilJS)
+  .settings(commonSettings)
   .settings(
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
     libraryDependencies ++= (
@@ -147,6 +153,7 @@ lazy val frontend = project
     ),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
   )
+
 
 lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)
 lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
@@ -177,9 +184,9 @@ lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
     resourceGenerators in Assets <+= Def.task {
-      val file = (resourceManaged in Assets).value / "version"
-      IO.write(file, version.value)
-      Seq(file)
+        val file = (resourceManaged in Assets).value / "version"
+        IO.write(file, version.value)
+        Seq(file)
     },
     unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
     scalaJSProjects := Seq(frontend),
@@ -199,6 +206,7 @@ lazy val backend = project
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(dockerBackend)
+  .settings(commonSettings)
   .dependsOn(frameworkJVM, apiJVM)
   .settings(
     libraryDependencies ++=
@@ -213,6 +221,7 @@ lazy val backend = project
 lazy val systemTest = project
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
+  .settings(commonSettings)
   .settings(
     libraryDependencies ++=
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion % "it" ::
