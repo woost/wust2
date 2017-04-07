@@ -10,6 +10,7 @@ import org.mockito.Mockito.verify
 import akka.testkit.{TestKit, TestActorRef, ImplicitSender}
 import boopickle.Default._
 import autowire.Core.Request
+import scala.concurrent.duration._
 
 import message._
 
