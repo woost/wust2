@@ -25,7 +25,7 @@ object TestRequestHandler extends RequestHandler[Int, String, String, String, St
 
   override def pathNotFound(path: Seq[String]) = "path not found"
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
-  override def authenticate(auth: String): Future[Option[String]] = Future.successful(if (auth.isEmpty) None else Some(auth))
+  override def authenticate(auth: String): Future[Option[String]] = Future.successful(if (auth.isEmpty) None else Option(auth))
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {

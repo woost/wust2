@@ -20,7 +20,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "wust")))
       view(state).render
-      state.focusedPostId() = Some(1)
+      state.focusedPostId() = Option(1)
     }
   }
 
@@ -28,7 +28,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "wust")))
-      state.focusedPostId() = Some(1)
+      state.focusedPostId() = Option(1)
       view(state).render
       state.focusedPostId() = None
     }
@@ -39,7 +39,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "wust")))
       view(state).render
-      state.editedPostId() = Some(1)
+      state.editedPostId() = Option(1)
     }
   }
 
@@ -47,7 +47,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "wust")))
-      state.editedPostId() = Some(1)
+      state.editedPostId() = Option(1)
       view(state).render
       state.editedPostId() = None
     }
@@ -120,7 +120,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.focusedPostId() = Some(1)
+      state.focusedPostId() = Option(1)
       view(state).render
       state.rawGraph.updatef(_ - PostId(1))
     }
@@ -130,7 +130,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.editedPostId() = Some(1)
+      state.editedPostId() = Option(1)
       view(state).render
       state.rawGraph.updatef(_ - PostId(1))
     }
@@ -140,7 +140,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.focusedPostId() = Some(1)
+      state.focusedPostId() = Option(1)
       view(state).render
       state.rawGraph.updatef(_ + Post(1, "wurst"))
     }
@@ -150,7 +150,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.editedPostId() = Some(1)
+      state.editedPostId() = Option(1)
       view(state).render
       state.rawGraph.updatef(_ + Post(1, "wurst"))
     }

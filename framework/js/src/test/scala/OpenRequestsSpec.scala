@@ -31,7 +31,7 @@ class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {
     "get by id" in {
       val requests = new OpenRequests[Int](10)
       val (id, promise) = requests.open()
-      requests.get(id) mustEqual Some(promise)
+      requests.get(id) mustEqual Option(promise)
     }
 
     "get with non-existing" in {
@@ -43,7 +43,7 @@ class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {
       val requests = new OpenRequests[Int](10)
       val (_, promise) = requests.open()
       promise success 1
-      promise.future.value.flatMap(_.toOption) mustEqual Some(1)
+      promise.future.value.flatMap(_.toOption) mustEqual Option(1)
     }
   }
 }

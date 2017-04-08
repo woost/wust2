@@ -32,9 +32,9 @@ class CollectionSpec extends FreeSpec with MustMatchers {
 
   "RichOption" - {
     "setOrToggle" in {
-      Some(1).setOrToggle(1) mustEqual None
-      Some(2).setOrToggle(1) mustEqual Some(1)
-      (None: Option[Int]).setOrToggle(1) mustEqual Some(1)
+      Option(1).setOrToggle(1) mustEqual None
+      Option(2).setOrToggle(1) mustEqual Option(1)
+      (None: Option[Int]).setOrToggle(1) mustEqual Option(1)
     }
   }
 }
