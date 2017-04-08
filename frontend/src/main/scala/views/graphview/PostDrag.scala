@@ -36,8 +36,9 @@ object DraggingPostSelection extends DataSelection[SimPost] {
 
   override def draw(post: Selection[SimPost]) {
     post
-      .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
-      .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+      // .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
+      // .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+      .style("transform", (p: SimPost) => s"translate(${p.x.get + p.centerOffset.x}px,${p.y.get + p.centerOffset.y}px)")
   }
 }
 

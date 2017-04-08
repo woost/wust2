@@ -52,7 +52,8 @@ object ConnectionElementSelection extends DataSelection[SimConnects] {
 
   override def draw(element: Selection[SimConnects]) {
     element
-      .style("left", (e: SimConnects) => s"${e.x.get}px")
-      .style("top", (e: SimConnects) => s"${e.y.get}px")
+      // .style("left", (e: SimConnects) => s"${e.x.get}px")
+      // .style("top", (e: SimConnects) => s"${e.y.get}px")
+      .style("transform", (e: SimConnects) => s"translate(${e.x.get}px,${e.y.get}px)")
   }
 }

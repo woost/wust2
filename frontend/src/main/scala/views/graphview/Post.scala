@@ -71,8 +71,9 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     }
 
     post
-      .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
-      .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+      // .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
+      // .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
+      .style("transform", (p: SimPost) => s"translate(${p.x.get + p.centerOffset.x}px,${p.y.get + p.centerOffset.y}px)")
 
     draw += 1
   }
