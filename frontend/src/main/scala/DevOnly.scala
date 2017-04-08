@@ -9,3 +9,9 @@ object DevOnly {
       None
   }
 }
+
+object DevPrintln {
+  def apply(code: => String) {
+    DevOnly { println(code) }
+  }
+}

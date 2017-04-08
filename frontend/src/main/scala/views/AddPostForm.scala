@@ -61,8 +61,12 @@ object AddPostForm {
     }
 
     def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
-      case EditMode(postId) => Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
-      case FocusMode(postId) => Client.api.respond(postId, text).call().map(_ => true)
+      case EditMode(postId) =>
+        DevPrintln(s"\nUpdating Post $postId: $text")
+        Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
+      case FocusMode(postId) =>
+        DevPrintln(s"\nRepsonding to $postId: $text")
+        Client.api.respond(postId, text).call().map(_ => true)
       case _ => Client.api.addPost(text).call().map(_ => true)
     }
 

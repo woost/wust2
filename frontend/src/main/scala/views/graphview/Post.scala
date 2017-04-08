@@ -30,6 +30,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     ).render)
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
+        DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
         rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
       })
       .call(d3.drag[SimPost]()

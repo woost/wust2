@@ -155,11 +155,11 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   DevOnly {
-    rxSimPosts.debug(v => s"  simPosts: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-    rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.keys.toSeq.sorted.mkString(",")}")
-    rxSimConnects.debug(v => s"  simConnects: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-    rxSimContains.debug(v => s"  simContains: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-    rxContainmentCluster.debug(v => s"  containmentCluster: ${v.map(_.id).toSeq.sorted.mkString(",")}")
-    rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.map(sp => s"${sp.id}: ${sp.title}")}")
+    rxSimPosts.debug(v => s"  simPosts: ${v.size}")
+    rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.size}")
+    rxSimConnects.debug(v => s"  simConnects: ${v.size}")
+    rxSimContains.debug(v => s"  simContains: ${v.size}")
+    rxContainmentCluster.debug(v => s"  containmentCluster: ${v.size}")
+    rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.size}")
   }
 }
