@@ -14,11 +14,10 @@ import wust.util.Pipe
 import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
-  def router(currentAuth: () => Future[Auth]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
-  def createImplicitAuth(): Future[Auth]
+  def router(currentAuth: Future[Option[Auth]], setAuth: Future[Option[Auth]] => Any): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
-  def authenticate(auth: AuthToken): Future[Option[Auth]]
+  def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
 }
 
 class CachedFunction[T](fun: () => T) extends Function0[T] {
@@ -39,16 +38,19 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
   import ConnectedClient._
   import messages._, handler._
 
-  def connected(outgoing: ActorRef, auth: Future[Option[Auth]] = Future.successful(None)): Receive = {
-    def sendImplicitLogin(auth: Future[Auth]) = auth.map(a => ControlNotification(ImplicitLogin(a))).pipeTo(outgoing)
-    lazy val implicitAuth: Future[Auth] = handler.createImplicitAuth() ||> sendImplicitLogin
-    val currentAuth: () => Future[Auth] = new CachedFunction(() => auth.flatMap(_.map(Future.successful(_)).getOrElse(implicitAuth)))
+  def connected(outgoing: ActorRef, currentAuth: Future[Option[Auth]] = Future.successful(None)): Receive = {
+    //TODO is this even ok to expose this with closure of a possibly old context?
+    def setAuth(auth: Future[Option[Auth]]) = {
+        context.become(connected(outgoing, auth))
+        auth
+          .foreach(_.foreach(auth => outgoing ! ControlNotification(ImplicitLogin(auth))))
+    }
 
     {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
         val timer = StopWatch.started
-        router(currentAuth).lift(Request(path, args))
+        router(currentAuth, setAuth _).lift(Request(path, args))
           .map(_.map(resp => CallResponse(seqId, Right(resp))))
           .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
           .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
@@ -56,9 +58,9 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
           .pipeTo(outgoing)
       case ControlRequest(seqId, control) => control match {
         case Login(token) =>
-          val currentAuth = authenticate(token)
-          context.become(connected(outgoing, currentAuth))
-          currentAuth
+          val auth = authenticate(token)
+          context.become(connected(outgoing, auth))
+          auth
             .map(auth => ControlResponse(seqId, auth.isDefined))
             .pipeTo(outgoing)
         case Logout() =>

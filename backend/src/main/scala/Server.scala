@@ -10,16 +10,20 @@ import akka.actor.ActorRef
 import boopickle.Default._
 
 import wust.api._
+import wust.util.Pipe
 import wust.framework._, message._
 import wust.backend.auth.JWT
 
 case class UserError(error: ApiError) extends Exception
 
 class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Authentication.Token, Authentication] {
-  override def router(user: () => Future[Authentication]) =
-    AutowireServer.route[Api](new ApiImpl(user)) orElse AutowireServer.route[AuthApi](new AuthApiImpl)
 
-  override def createImplicitAuth: Future[Authentication] = Db.user.createImplicitUser().map(JWT.generateAuthentication)
+  override def router(auth: Future[Option[Authentication]], setAuth: Future[Option[Authentication]] => Any) = {
+    val apiAuth = new ApiAuthentication(auth, setAuth)
+
+    AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
+      AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
+  }
 
   override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
   override val toError: PartialFunction[Throwable, ApiError] = {

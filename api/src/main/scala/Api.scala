@@ -9,13 +9,13 @@ trait Api {
   def getPost(id: PostId): Future[Option[Post]]
   def deletePost(id: PostId): Future[Boolean]
   def getGraph(): Future[Graph]
-  def addPost(msg: String): Future[Post]
+  def addPost(msg: String, isPrivate: Boolean): Future[Post]
+  def respond(to: PostId, msg: String, isPrivate: Boolean): Future[(Post, Connects)]
   def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects]
   def contain(parentId: PostId, childId: PostId): Future[Contains]
   def deleteConnection(id: ConnectsId): Future[Boolean]
   def deleteContainment(id: ContainsId): Future[Boolean]
-  def respond(to: PostId, msg: String): Future[(Post, Connects)]
   def getUser(user: Long): Future[Option[User]]
   // def getComponent(id: Id): Future[Graph]
 }
@@ -50,7 +50,6 @@ case class DeleteConnection(id: ConnectsId) extends ApiEvent
 case class DeleteContainment(id: ContainsId) extends ApiEvent
 
 trait AuthApi {
-  def registerImplicit(name: String, password: String, token: Authentication.Token): Future[Option[Authentication]]
   def register(name: String, password: String): Future[Option[Authentication]]
   def login(name: String, password: String): Future[Option[Authentication]]
 }

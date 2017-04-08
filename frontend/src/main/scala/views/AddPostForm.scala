@@ -21,6 +21,10 @@ import wust.graph._
 import wust.frontend._, Color._
 
 object AddPostForm {
+  val privateButton = input(
+      `type` := "checkbox"
+    ).render
+
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:",
@@ -66,8 +70,9 @@ object AddPostForm {
         Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        Client.api.respond(postId, text).call().map(_ => true)
-      case _ => Client.api.addPost(text).call().map(_ => true)
+        Client.api.respond(postId, text, privateButton.checked).call().map(_ => true)
+      case _ =>
+        Client.api.addPost(text, privateButton.checked).call().map(_ => true)
     }
 
     div(
@@ -90,6 +95,6 @@ object AddPostForm {
           }).render
         }
       }
-    )
+    )(privateButton)
   }
 }

@@ -13,8 +13,14 @@ class WebsocketConnection(onConnect: String => Unit) {
   private var wsPromise = Promise[WebSocket]()
   private var initialized = false
 
+  val messages = collection.mutable.ArrayBuffer.empty[ByteBuffer]
   def send(bytes: ByteBuffer) {
-    for (ws <- wsPromise.future) ws.send(bytes.arrayBuffer())
+    if (ws == null) 
+    {
+      messages += bytes
+    } else {
+      for (ws <- wsPromise.future) ws.send(bytes.arrayBuffer())
+    }
   }
 
   def run(location: String)(receive: ByteBuffer => Unit) {
@@ -27,6 +33,7 @@ class WebsocketConnection(onConnect: String => Unit) {
       console.log("websocket is open")
       onConnect(location)
       wsPromise success wsRaw
+    ws = wsRaw
     }
     wsRaw.onclose = { (_: Event) =>
       console.log(s"websocket is closed, will attempt to reconnect in ${reconnectMillis / 1000.0} seconds")

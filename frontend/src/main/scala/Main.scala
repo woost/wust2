@@ -29,14 +29,13 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
+    Client.run(s"$protocol://${location.hostname}:$port/ws")
+
     Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
-    Client.onConnect { _ =>
-      Client.subscribe(Channel.Graph)
-      Client.auth.reauthenticate()
-    }
-
-    Client.run(s"$protocol://${location.hostname}:$port/ws")
+    Client.subscribe(Channel.Graph)
+    Client.ws.login("PEBNSD")
+    Client.auth.reauthenticate()
 
     Client.api.getGraph().call().foreach { newGraph =>
       state.rawGraph() = newGraph
