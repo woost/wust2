@@ -6,7 +6,7 @@ git.baseVersion := "0.1.0"
 git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is always(!) active.
 
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
-scalaVersion in ThisBuild := "2.11.9" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
+scalaVersion in ThisBuild := "2.11.8" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
 
 lazy val commonSettings = Seq(
   resolvers ++= (
@@ -44,6 +44,7 @@ lazy val commonSettings = Seq(
     //TODO: these files are ignored because scribe uses Some
     baseDirectory.value / "src" / "main" / "scala" / "Dispatcher.scala" ::
     baseDirectory.value / "src" / "main" / "scala" / "Server.scala" ::
+    baseDirectory.value / "src" / "main" / "scala" / "WebsocketConnection.scala" ::
     Nil
   )
 )
