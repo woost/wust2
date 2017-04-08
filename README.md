@@ -29,7 +29,7 @@ A hypergraph stored in postgres accessed via rpc-calls over websockets and binar
 Requirements:
 * sbt
 * docker, docker-compose
-* node, npm, yarn
+* node, yarn
 
 Starting all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
 ```
