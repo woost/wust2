@@ -90,7 +90,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val onApiEvent: ApiEvent => Unit = _ match {
     case NewPost(post) => rawGraph.updatef(_ + post)
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
-    case NewConnection(connects) => rawGraph.updatef(_ + connects)
+    case NewConnection(connects) =>
+      rawGraph.updatef(_ + connects)
+      if (focusedPostId.now contains connects.targetId)
+        focusedPostId() = Option(connects.sourceId)
     case NewContainment(contains) => rawGraph.updatef(_ + contains)
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)

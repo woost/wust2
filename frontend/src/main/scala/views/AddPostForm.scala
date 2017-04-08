@@ -32,7 +32,8 @@ object AddPostForm {
   def responseLabel(graph: Graph, postId: PostId) = {
     div(
       Views.parents(postId, graph),
-      Views.post(graph.postsById(postId))
+      Views.post(graph.postsById(postId)),
+      "respond: "
     )
   }
 
