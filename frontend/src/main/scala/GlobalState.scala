@@ -32,7 +32,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
 
   val viewPage = UrlRouter.variable
-    .projection[ViewPage](_ |> ViewPage.toHash |> (Some(_)), _.flatMap(ViewPage.fromHash.lift).getOrElse(ViewPage.default))
+    .projection[ViewPage](_ |> ViewPage.toHash |> (Option(_)), _.flatMap(ViewPage.fromHash.lift).getOrElse(ViewPage.default))
 
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
@@ -83,7 +83,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val onAuthEvent: AuthEvent => Unit = _ match {
-    case LoggedIn(user) => currentUser() = Some(user)
+    case LoggedIn(user) => currentUser() = Option(user)
     case LoggedOut => currentUser() = None
   }
 

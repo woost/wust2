@@ -48,7 +48,7 @@ object Collapse {
       .mapValues(_.flatMap { c =>
         if (hiddenPosts(c.parentId))
           highestParents(graph, c.childId, collapsingPosts)
-        else Some(c.parentId)
+        else Option(c.parentId)
       }(breakOut): Set[PostId])
       .withDefault(post => Set(post))
   }

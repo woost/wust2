@@ -27,11 +27,12 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
   val menuActions = (
     // TODO indication for toggle button? switch string/appearance on basis of value?
     MenuAction("Collapse", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxCollapsedPostIds.updatef(_.toggle(p.id)) }) ::
-    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxEditedPostId() = Some(p.id) }) ::
+    MenuAction("Edit", { (p: SimPost, s: Simulation[SimPost]) => graphState.rxEditedPostId() = Option(p.id) }) ::
     // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
-    Nil)
+    Nil
+  )
 
   override val tag = "g"
   override def enter(menu: Enter[SimPost]) {

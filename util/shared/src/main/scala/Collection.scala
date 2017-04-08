@@ -24,7 +24,7 @@ package object collection {
   implicit class RichOption[A](val o: Option[A]) extends AnyVal {
     def setOrToggle(a: A) = o match {
       case Some(`a`) => None
-      case _ => Some(a)
+      case _ => Option(a)
     }
   }
 }

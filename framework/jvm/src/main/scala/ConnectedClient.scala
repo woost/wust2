@@ -25,15 +25,16 @@ class CachedFunction[T](fun: () => T) extends Function0[T] {
   var cached: Option[T] = None
   def apply(): T = cached.getOrElse {
     val newVal = fun()
-    cached = Some(newVal)
+    cached = Option(newVal)
     newVal
   }
 }
 
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
-    messages:   Messages[Channel, Event, Error, AuthToken, Auth],
-    handler:    RequestHandler[Channel, Event, Error, AuthToken, Auth],
-    dispatcher: Dispatcher[Channel, Event]) extends Actor {
+  messages: Messages[Channel, Event, Error, AuthToken, Auth],
+  handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
+  dispatcher: Dispatcher[Channel, Event]
+) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._
@@ -78,7 +79,7 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
 
   def receive = {
     case Connect(outgoing) => context.become(connected(outgoing))
-    case Stop              => context.stop(self)
+    case Stop => context.stop(self)
   }
 }
 object ConnectedClient {

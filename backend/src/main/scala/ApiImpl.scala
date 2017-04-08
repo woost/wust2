@@ -11,7 +11,7 @@ import auth.JWT
 class ApiImpl(authentication: () => Future[Authentication]) extends Api {
   import Server.emit
 
-  lazy val userOpt: Future[Option[User]] = authentication().map(Some(_)).map(_.filterNot(JWT.isExpired).map(_.user))
+  lazy val userOpt: Future[Option[User]] = authentication().map(Option(_)).map(_.filterNot(JWT.isExpired).map(_.user))
 
   private def withUser[T](f: User => Future[T]): Future[T] = userOpt.flatMap(_.map(f).getOrElse(
     Future.failed(UserError(Unauthorized))
@@ -50,9 +50,10 @@ class ApiImpl(authentication: () => Future[Authentication]) extends Api {
   }
 
   def respond(to: PostId, msg: String): Future[(Post, Connects)] = withUser {
-    Db.connects.newPost(msg, to) ||> (_.foreach { case (post, connects) =>
-      NewPost(post) |> emit
-      NewConnection(connects) |> emit
+    Db.connects.newPost(msg, to) ||> (_.foreach {
+      case (post, connects) =>
+        NewPost(post) |> emit
+        NewConnection(connects) |> emit
     })
   }
 

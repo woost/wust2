@@ -13,7 +13,8 @@ trait IncidentHandler[Event, Error] {
 }
 
 class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler, Auth: Pickler](
-    handler: IncidentHandler[Event, Error]) {
+  handler: IncidentHandler[Event, Error]
+) {
   val messages = new Messages[Channel, Event, Error, AuthToken, Auth]
 
   import messages._, handler._
@@ -28,7 +29,7 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
     var timeoutHandle: Option[SetTimeoutHandle] = None
     () => {
       timeoutHandle.foreach(clearTimeout)
-      timeoutHandle = Some(setTimeout(pingIdleMillis)(send(Ping())))
+      timeoutHandle = Option(setTimeout(pingIdleMillis)(send(Ping())))
     }
   }
 
@@ -50,11 +51,11 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
   }
 
   private var connectHandler: Option[String => Any] = None
-  def onConnect(handler: String => Any): Unit = connectHandler = Some(handler)
+  def onConnect(handler: String => Any): Unit = connectHandler = Option(handler)
   private var eventHandler: Option[Event => Any] = None
-  def onEvent(handler: Event => Any): Unit = eventHandler = Some(handler)
+  def onEvent(handler: Event => Any): Unit = eventHandler = Option(handler)
   private var controlEventHandler: Option[ControlEvent => Any] = None
-  def onControlEvent(handler: ControlEvent => Any): Unit = controlEventHandler = Some(handler)
+  def onControlEvent(handler: ControlEvent => Any): Unit = controlEventHandler = Option(handler)
 
   def login(auth: AuthToken): Future[Boolean] = control(Login(auth))
   def logout(): Future[Boolean] = control(Logout())

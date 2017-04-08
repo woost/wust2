@@ -34,13 +34,18 @@ lazy val commonSettings = Seq(
     // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
     // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
     // Wart.LeakingSealed ::
-    // TODO: Wart.SomeApply :: // currently requires wartremover-contrib
+    ContribWart.SomeApply ::
     // Wart.OldTime ::
     // Wart.AsInstanceOf ::
-    // Wart.Null ::
+    Wart.Null ::
+    Nil
+  ),
+  wartremoverExcluded ++= (
+    //TODO: these files are ignored because scribe uses Some
+    baseDirectory.value / "src" / "main" / "scala" / "Dispatcher.scala" ::
+    baseDirectory.value / "src" / "main" / "scala" / "Server.scala" ::
     Nil
   )
-
 )
 
 lazy val isCI = sys.env.get("CI").isDefined

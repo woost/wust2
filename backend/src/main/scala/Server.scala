@@ -31,7 +31,7 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
 
   override def authenticate(token: Authentication.Token): Future[Option[Authentication]] =
     JWT.authenticationFromToken(token)
-      .map(auth => Db.user.check(auth.user).map(s => Some(auth).filter(_ => s)))
+      .map(auth => Db.user.check(auth.user).map(s => Option(auth).filter(_ => s)))
       .getOrElse(Future.successful(None))
 }
 

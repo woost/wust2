@@ -66,7 +66,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
 
   def postDragStarted(p: SimPost) {
     val draggingPost = p.newDraggingPost
-    p.draggingPost = Some(draggingPost)
+    p.draggingPost = Option(draggingPost)
     updateDraggingPosts()
 
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)

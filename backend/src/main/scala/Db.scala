@@ -113,7 +113,7 @@ object Db {
       val digest = passwordDigest(password)
       val q = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
       ctx.run(q)
-        .map(id => Some(user.copy(id = id)))
+        .map(id => Option(user.copy(id = id)))
         .recover { case _: Exception => None }
     }
 
@@ -135,9 +135,9 @@ object Db {
         for {
           newUser <- ctx.run(query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
           pw <- ctx.run(query[Password].insert(lift(Password(id, digest))))
-        } yield Some(updatedUser)
+        } yield Option(updatedUser)
       }.getOrElse(Future.successful(None)))
-      .recover { case e: Exception => None }
+        .recover { case e: Exception => None }
     }
 
     //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
@@ -154,7 +154,7 @@ object Db {
       }
 
       ctx.run(q).map(_.headOption.collect {
-        case (user, pw) if (passwordDigest(password) hash= pw.digest) => user
+        case (user, pw) if (passwordDigest(password) hash = pw.digest) => user
       })
     }
 

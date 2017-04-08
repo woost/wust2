@@ -55,15 +55,15 @@ object JWT {
     DecodedJwt.validateEncodedJwt(
       token, secret, algorithm, Set(Typ),
       Set(Iss, Aud, Exp, UserClaim),
-      iss = Some(wustIss), aud = Some(wustAud)
+      iss = Option(wustIss), aud = Option(wustAud)
     ).toOption.flatMap { decoded =>
-      for {
-        expires <- decoded.getClaim[Exp]
-        user <- decoded.getClaim[UserClaim]
-      } yield {
-        Authentication(user.value, expires.value, token)
+        for {
+          expires <- decoded.getClaim[Exp]
+          user <- decoded.getClaim[UserClaim]
+        } yield {
+          Authentication(user.value, expires.value, token)
+        }
       }
-    }
   }
 
   def isExpired(auth: Authentication): Boolean = auth.expires <= currentTimestamp

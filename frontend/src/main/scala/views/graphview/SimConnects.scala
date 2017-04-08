@@ -13,6 +13,7 @@ class SimConnects(val connects: Connects, val source: SimPost)
   def targetId = connects.targetId
 
   // this is necessary because target can be a SimConnects itself
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   var target: SimConnectable with ExtendedD3Node = _
 
   // propagate d3 gets/sets to incident posts
