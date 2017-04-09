@@ -29,24 +29,23 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused" ::
     Nil,
 
-  wartremoverErrors ++= (
-    // http://www.wartremover.org/doc/warts.html
-    // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
-    // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
-    // Wart.LeakingSealed ::
-    ContribWart.SomeApply ::
-    // Wart.OldTime ::
-    // Wart.AsInstanceOf ::
-    Wart.Null ::
-    Nil
-  ),
-  wartremoverExcluded ++= (
-    //TODO: these files are ignored because scribe uses Some
-    baseDirectory.value / "src" / "main" / "scala" / "Dispatcher.scala" ::
-    baseDirectory.value / "src" / "main" / "scala" / "Server.scala" ::
-    baseDirectory.value / "src" / "main" / "scala" / "WebsocketConnection.scala" ::
-    Nil
-  )
+  // wartremoverErrors ++= (
+  //   // http://www.wartremover.org/doc/warts.html
+  //   // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
+  //   // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
+  //   // Wart.LeakingSealed ::
+  //   ContribWart.SomeApply ::
+  //   // Wart.OldTime ::
+  //   // Wart.AsInstanceOf ::
+  //   Wart.Null ::
+  //   Nil
+  // ),
+  // wartremoverExcluded ++= (
+  //   //TODO: these files are ignored because scribe uses Some
+  //   baseDirectory.value / "src" / "main" / "scala" / "Dispatcher.scala" ::
+  //   baseDirectory.value / "src" / "main" / "scala" / "Server.scala" ::
+  //   Nil
+  // )
 )
 
 lazy val isCI = sys.env.get("CI").isDefined

@@ -7,8 +7,8 @@ addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.0.3")
 // workflow
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.8.0")
 addSbtPlugin("com.lihaoyi" % "workbench" % "0.3.0")
-addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.0.0")
-addSbtPlugin("org.wartremover" % "sbt-wartremover-contrib" % "1.0.0")
+// addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.0.0")
+// addSbtPlugin("org.wartremover" % "sbt-wartremover-contrib" % "1.0.0")
 
 // deployment
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.8.5")
