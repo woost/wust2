@@ -27,7 +27,7 @@ lazy val commonSettings = Seq(
     "-feature" ::
     "-language:_" ::
     "-Ywarn-unused" ::
-    Nil,
+    Nil
 
   // wartremoverErrors ++= (
   //   // http://www.wartremover.org/doc/warts.html
