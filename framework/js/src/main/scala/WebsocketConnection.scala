@@ -10,7 +10,12 @@ import java.nio.ByteBuffer
 import collection.mutable
 
 class WebsocketConnection(onConnect: String => Unit) {
-  private val reconnectMillis = 2000 // TODO exponential backoff
+  private var connectionAttempts = 1
+  private def backoffInterval = {
+    val maxInterval = (math.pow(2, connectionAttempts) - 1) * 1000.0
+    val truncated = maxInterval.min(60 * 1000).toInt
+    scala.util.Random.nextDouble * truncated
+  }
   private var wsOpt: Option[WebSocket] = None
 
   val messages = mutable.Queue.empty[ByteBuffer]
@@ -41,15 +46,17 @@ class WebsocketConnection(onConnect: String => Unit) {
 
     wsRaw.onopen = { (_: Event) =>
       console.log("websocket is open")
+      connectionAttempts = 1
       onConnect(location)
       wsOpt = Option(wsRaw)
       flush()
     }
 
     wsRaw.onclose = { (_: Event) =>
-      console.log(s"websocket is closed, will attempt to reconnect in ${reconnectMillis / 1000.0} seconds")
+      connectionAttempts += 1
+      console.log(s"websocket is closed, will attempt to reconnect in ${(backoffInterval / 1000.0).ceil} seconds")
       wsOpt = None
-      setTimeout(reconnectMillis)(run(location)(receive))
+      setTimeout(backoffInterval)(run(location)(receive))
     }
 
     wsRaw.onmessage = { (e: MessageEvent) =>
