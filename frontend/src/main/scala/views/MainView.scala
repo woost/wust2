@@ -13,15 +13,16 @@ import wust.frontend.{GlobalState, Client, DevOnly, ViewPage}
 import wust.graph._
 import graphview.GraphView
 
+//TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
 
-    def toggleDisplay(f: ViewPage => Boolean)(implicit ctx: Ctx.Owner) =
+    def toggleDisplay(f: ViewPage => Boolean)(implicit ctx: Ctx.Owner): Rx[String] =
       state.viewPage.map(m => if (f(m)) "block" else "none")
     val graphDisplay = toggleDisplay(_ == ViewPage.Graph)
     val treeDisplay = toggleDisplay(_ == ViewPage.Tree)
     val userDisplay = toggleDisplay(_ == ViewPage.User)
-    val postFormDisplay = toggleDisplay(m => m == ViewPage.Graph || m == ViewPage.Tree)
+    val postFormDisplay = Rx { toggleDisplay(m => (m == ViewPage.Graph || m == ViewPage.Tree) && state.currentUser().isDefined) }
 
     div(fontFamily := "sans-serif")(
       button(onclick := { (_: Event) => state.viewPage() = ViewPage.Graph })("graph"),
