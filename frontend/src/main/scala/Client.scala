@@ -40,9 +40,10 @@ case class LoggedIn(user: User) extends AuthEvent
 case object LoggedOut extends AuthEvent
 
 class AuthClient(
-    ws:      WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication],
-    storage: ClientStorage,
-    getUser: Long => Future[Option[User]]) {
+  ws: WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication],
+  storage: ClientStorage,
+  getUser: Long => Future[Option[User]]
+) {
   import ws.messages._
 
   private val authApi = ws.wire[AuthApi]
@@ -70,7 +71,7 @@ class AuthClient(
     val previousAuth = currentAuth
     auth.flatMap {
       case Some(auth) => Future.successful(Option(auth))
-      case None       => previousAuth.map(_.filter(_.user.isImplicit))
+      case None => previousAuth.map(_.filter(_.user.isImplicit))
     } ||> storeToken ||> sendAuthEvent
   }
 
@@ -84,13 +85,9 @@ class AuthClient(
   def onEvent(handler: AuthEvent => Any): Unit = eventHandler = Option(handler)
 
   def reauthenticate(): Future[Boolean] = {
-    println("HWELAD")
     storage.token.map { token =>
-      println("dartok")
       val success = ws.login(token)
-      success.foreach{ success =>
-        println("juyura")
-        println(success)
+      success.foreach { success =>
         if (success)
           storageAuth ||> acknowledgeToken //TODO double login
       }

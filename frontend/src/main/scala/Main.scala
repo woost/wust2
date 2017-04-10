@@ -29,13 +29,15 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
-    Client.run(s"$protocol://${location.hostname}:$port/ws")
+    Client.run(s"$protocol://${location.hostname}:$port/ws") // ist doch wie vorher, oder? ja aber wenn ich dioe seite lade, passiert erstmal gar nix. kein request geht raus. graph leer. wenn ic mich einogge, werden alle requests gefeuert.
 
     Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
     Client.subscribe(Channel.Graph)
-    Client.ws.login("PEBNSD")
     Client.auth.reauthenticate()
+    Client.onConnect { loc =>
+      //TODO reauth and get graph again and sub
+    }
 
     Client.api.getGraph().call().foreach { newGraph =>
       state.rawGraph() = newGraph
