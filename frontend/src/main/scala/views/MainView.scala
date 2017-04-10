@@ -27,6 +27,7 @@ object MainView {
       button(onclick := { (_: Event) => state.viewPage() = ViewPage.Graph })("graph"),
       button(onclick := { (_: Event) => state.viewPage() = ViewPage.Tree })("tree"),
       button(onclick := { (_: Event) => state.viewPage() = ViewPage.User })("user"),
+      span(" user: ", state.currentUser.map(_.map(_.name).getOrElse(""))), //TODO: make scalatagst-rx accept Rx[Option[T]]
       div(display := graphDisplay)(GraphView(state, disableSimulation)),
       div(display := treeDisplay)(TreeView(state)),
       div(display := userDisplay)(UserView(state)),
