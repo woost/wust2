@@ -12,15 +12,16 @@ import boopickle.Default._
 import wust.api._
 import wust.util.Pipe
 import wust.framework._, message._
-import wust.backend.auth.JWT
+import wust.backend.auth._
 
 case class UserError(error: ApiError) extends Exception
 
 class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Authentication.Token, Authentication] {
 
-  override def router(auth: Future[Option[Authentication]], setAuth: Future[Option[Authentication]] => Any) = {
-    val apiAuth = new ApiAuthentication(auth, setAuth)
+  private val enableImplicitAuth: Boolean = true //TODO config
 
+  override def router(currentAuth: ConnectionAuth[Authentication]) = {
+    val apiAuth = new ApiAuthentication(currentAuth, UserError(Unauthorized))
     AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
       AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
   }
@@ -31,6 +32,11 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
     case NonFatal(e) =>
       scribe.error("request handler threw exception", e)
       InternalServerError
+  }
+
+  override def implicitAuth(): Future[Option[Authentication]] = {
+    if (enableImplicitAuth) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
+    else Future.successful(None)
   }
 
   override def authenticate(token: Authentication.Token): Future[Option[Authentication]] =

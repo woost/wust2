@@ -137,11 +137,8 @@ object Db {
       //TODO
       // val q = quote(query[Usergroup].insert(lift(Usergroup())).returning(_.id))
       val q = quote(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[Usergroup]].returning(_.id))
-      println("i am creating group for da user " + id)
       val runned = ctx.run(q)
-      runned.onComplete(println _)
       runned.foreach { group =>
-        println("it is done: " + group)
         val q = quote(query[UsergroupMember].insert(lift(UsergroupMember(group, Option(id)))))
         ctx.run(q).foreach(println _)
       }
@@ -228,7 +225,6 @@ object Db {
 
   object graph {
     def get(user: Option[User]): Future[Graph] = {
-      println(user)
       val postQuery = quote(query[Post]
         .join(query[Ownership])
         .on((p, o) => p.id == o.postId) //: (Post, Ownership)
@@ -245,7 +241,6 @@ object Db {
         connects <- connectsFut
         contains <- containsFut
       } yield {
-        println(posts)
         Graph(
         posts.by(_.id),
         connects.by(_.id),

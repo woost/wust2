@@ -105,7 +105,7 @@ class AuthClient(
     authApi.login(name, pw).call() |> loginFlow
 
   def logout(): Future[Boolean] =
-    ws.logout() ||> (_ => (Future.successful(None) ||> acknowledgeToken))
+    currentAuth.flatMap(_.filterNot(_.user.isImplicit).map(_ => ws.logout() ||> (_ => (Future.successful(None) ||> acknowledgeToken))).getOrElse(Future.successful(false)))
 
   ws.onControlEvent {
     case ImplicitLogin(auth) =>

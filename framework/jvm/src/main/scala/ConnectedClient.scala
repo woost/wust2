@@ -14,9 +14,10 @@ import wust.util.Pipe
 import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
-  def router(currentAuth: Future[Option[Auth]], setAuth: Future[Option[Auth]] => Any): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
+  def router(currentAuth: ConnectionAuth[Auth]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
+  def implicitAuth(): Future[Option[Auth]]
   def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
 }
 
@@ -29,28 +30,37 @@ class CachedFunction[T](fun: () => T) extends Function0[T] {
   }
 }
 
+case class ConnectionAuth[Auth] private (auth: Future[Option[Auth]])(implicitAuth: () => Future[Option[Auth]]) {
+  lazy val withImplicitAuth: Future[Option[Auth]] = auth.flatMap {
+    case Some(auth) => Future.successful(Option(auth))
+    case None       => implicitAuth()
+  }
+}
+object ConnectionAuth {
+  def unauthenticated[Auth] = ConnectionAuth[Auth](Future.successful(None)) _
+  def authenticated[Auth](auth: Future[Option[Auth]]) = ConnectionAuth[Auth](auth)(() => auth)
+}
+
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
-  messages: Messages[Channel, Event, Error, AuthToken, Auth],
-  handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
-  dispatcher: Dispatcher[Channel, Event]
-) extends Actor {
+    messages:   Messages[Channel, Event, Error, AuthToken, Auth],
+    handler:    RequestHandler[Channel, Event, Error, AuthToken, Auth],
+    dispatcher: Dispatcher[Channel, Event]) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._
 
-  def connected(outgoing: ActorRef, currentAuth: Future[Option[Auth]] = Future.successful(None)): Receive = {
-    //TODO is this even ok to expose this with closure of a possibly old context?
-    def setAuth(auth: Future[Option[Auth]]) = {
-        context.become(connected(outgoing, auth))
-        auth
-          .foreach(_.foreach(auth => outgoing ! ControlNotification(ImplicitLogin(auth))))
+  def connected(outgoing: ActorRef, currentAuthOpt: Option[ConnectionAuth[Auth]] = None): Receive = {
+    def sendImplicitAuth(auth: Auth) = outgoing ! ControlNotification(ImplicitLogin(auth))
+    val currentAuth = currentAuthOpt.getOrElse {
+      ConnectionAuth.unauthenticated[Auth](() =>
+          handler.implicitAuth ||> (_.foreach(_.foreach(sendImplicitAuth))))
     }
 
     {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
         val timer = StopWatch.started
-        router(currentAuth, setAuth _).lift(Request(path, args))
+        router(currentAuth).lift(Request(path, args))
           .map(_.map(resp => CallResponse(seqId, Right(resp))))
           .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
           .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
@@ -59,7 +69,7 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
       case ControlRequest(seqId, control) => control match {
         case Login(token) =>
           val auth = authenticate(token)
-          context.become(connected(outgoing, auth))
+          context.become(connected(outgoing, Some(ConnectionAuth.authenticated(auth))))
           auth
             .map(auth => ControlResponse(seqId, auth.isDefined))
             .pipeTo(outgoing)
@@ -81,7 +91,7 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
 
   def receive = {
     case Connect(outgoing) => context.become(connected(outgoing))
-    case Stop => context.stop(self)
+    case Stop              => context.stop(self)
   }
 }
 object ConnectedClient {

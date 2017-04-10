@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import wust.util.Pipe
 import wust.api._
 import wust.graph._
-import auth.JWT
+import auth._
 
 class ApiImpl(apiAuth: ApiAuthentication) extends Api {
   import Server.emit, apiAuth._
