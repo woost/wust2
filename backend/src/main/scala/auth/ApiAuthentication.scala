@@ -17,6 +17,7 @@ class ApiAuthentication(connectionAuth: ConnectionAuth[Authentication], toError:
   def userAuthOrFail[T](auth: Future[Option[Authentication]])(f: User => Future[T]): Future[T] =
     auth.flatMap(_.map(_.user |> f).getOrElse(Future.failed(toError)))
 
+  //TODO: actualAuth does not include implicit auth.
   def withUserOpt[T](f: Option[User] => Future[T]): Future[T] =
     actualAuth.flatMap(_.map(_.user) |> f)
 

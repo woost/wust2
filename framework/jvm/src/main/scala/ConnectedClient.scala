@@ -31,6 +31,7 @@ class CachedFunction[T](fun: () => T) extends Function0[T] {
 }
 
 case class ConnectionAuth[Auth] private (auth: Future[Option[Auth]])(implicitAuth: () => Future[Option[Auth]]) {
+  //TODO needs to know when lazy is completed. promise?
   lazy val withImplicitAuth: Future[Option[Auth]] = auth.flatMap {
     case Some(auth) => Future.successful(Option(auth))
     case None       => implicitAuth()
