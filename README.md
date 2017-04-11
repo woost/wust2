@@ -14,16 +14,16 @@ Contributions very welcome. Please ask questions and share ideas.
 A hypergraph stored in postgres accessed via rpc-calls over websockets and binary serialization, visualized using reactive programming and a force-directed graph layout.
 
 # Building blocks
-* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js)
-* [nginx](https://github.com/nginx/nginx)
-* [postgres](https://github.com/postgres/postgres)
-* [flyway](https://github.com/flyway/flyway)
-* [quill](https://github.com/getquill/quill)
-* [akka](https://github.com/akka/akka)
-* [autowire](https://github.com/lihaoyi/autowire)
-* [boopickle](https://github.com/suzaku-io/boopickle)
-* [scalatags-rx](https://github.com/rtimush/scalatags-rx)
-* [d3](https://github.com/d3/d3)
+* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js) (scala for backend, scala-js is scala compiled to javascript for the frontend. Allows to share code between both.)
+* [nginx](https://github.com/nginx/nginx) (serving static assets, https, forwarding websocket connections to backend)
+* [postgres](https://github.com/postgres/postgres) (relational database with views and stored procedures for graph traversal)
+* [flyway](https://github.com/flyway/flyway) (database migrations)
+* [quill](https://github.com/getquill/quill) (compile-time language integrated database queries for Scala)
+* [akka](https://github.com/akka/akka) (message passing in backend, websocket server)
+* [autowire](https://github.com/lihaoyi/autowire) (type safe rpc calls for implementing frontend-to-backend api)
+* [boopickle](https://github.com/suzaku-io/boopickle) (fast and boilerplate-free binary serialization, similar to protobuf. Used for frontend/backend communication)
+* [scalatags-rx](https://github.com/rtimush/scalatags-rx) (UI-library for reactive programming bindings to DOM-Nodes)
+* [d3](https://github.com/d3/d3) (visualization library, used for graph visualization and drag&drop)
 
 # Development
 Requirements:
