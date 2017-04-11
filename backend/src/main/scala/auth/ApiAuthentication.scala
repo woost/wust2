@@ -8,22 +8,20 @@ import wust.framework.ConnectionAuth
 import wust.util.Pipe
 
 class ApiAuthentication(connectionAuth: ConnectionAuth[Authentication], toError: => Exception) {
-
   def actualAuth: Future[Option[Authentication]] =
     connectionAuth.auth.map(_.filterNot(JWT.isExpired))
-  def actualOrAnonAuth: Future[Option[Authentication]] =
-    connectionAuth.withImplicitAuth.map(_.filterNot(JWT.isExpired))
 
-  def userAuthOrFail[T](auth: Future[Option[Authentication]])(f: User => Future[T]): Future[T] =
-    auth.flatMap(_.map(_.user |> f).getOrElse(Future.failed(toError)))
+  def actualOrImplicitAuth: Future[Option[Authentication]] =
+    connectionAuth.authOrImplicit.map(_.filterNot(JWT.isExpired))
 
-  //TODO: actualAuth does not include implicit auth.
   def withUserOpt[T](f: Option[User] => Future[T]): Future[T] =
     actualAuth.flatMap(_.map(_.user) |> f)
 
-  def withUser[T](f: User => Future[T]): Future[T] = userAuthOrFail(actualAuth)(f)
-  def withUserOrAnon[T](f: User => Future[T]): Future[T] = userAuthOrFail(actualOrAnonAuth)(f)
+  private def userAuthOrFail[T](auth: Future[Option[Authentication]])(f: User => Future[T]): Future[T] =
+    auth.flatMap(_.map(_.user |> f).getOrElse(Future.failed(toError)))
 
+  def withUser[T](f: User => Future[T]): Future[T] = userAuthOrFail(actualAuth)(f)
+  def withUserOrImplicit[T](f: User => Future[T]): Future[T] = userAuthOrFail(actualOrImplicitAuth)(f)
   def withUser[T](f: => Future[T]): Future[T] = withUser(_ => f)
-  def withUserOrAnon[T](f: => Future[T]): Future[T] = withUserOrAnon(_ => f)
+  def withUserOrImplicit[T](f: => Future[T]): Future[T] = withUserOrImplicit(_ => f)
 }

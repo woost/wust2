@@ -21,25 +21,30 @@ trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
   def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
 }
 
-class CachedFunction[T](fun: () => T) extends Function0[T] {
-  var cached: Option[T] = None
-  def apply(): T = cached.getOrElse {
-    val newVal = fun()
-    cached = Option(newVal)
-    newVal
-  }
-}
+class ConnectionAuth[Auth] private (actualAuth: Future[Option[Auth]])(newImplicitAuth: () => Future[Option[Auth]]) {
+  import scala.concurrent.Promise
 
-case class ConnectionAuth[Auth] private (auth: Future[Option[Auth]])(implicitAuth: () => Future[Option[Auth]]) {
-  //TODO needs to know when lazy is completed. promise?
-  lazy val withImplicitAuth: Future[Option[Auth]] = auth.flatMap {
+  private lazy val implicitAuth = newImplicitAuth()
+  private val implicitAuthPromise = Promise[Future[Option[Auth]]]()
+  private val implicitAuthFuture = implicitAuthPromise.future.flatMap(f => f)
+
+  def auth: Future[Option[Auth]] = actualAuth.flatMap {
     case Some(auth) => Future.successful(Option(auth))
-    case None       => implicitAuth()
+    case None       =>
+      if (implicitAuthPromise.isCompleted) implicitAuthFuture
+      else Future.successful(None)
+  }
+
+  def authOrImplicit: Future[Option[Auth]] = actualAuth.flatMap {
+    case Some(auth) => Future.successful(Option(auth))
+    case None       =>
+      implicitAuthPromise trySuccess implicitAuth
+      implicitAuthFuture
   }
 }
 object ConnectionAuth {
-  def unauthenticated[Auth] = ConnectionAuth[Auth](Future.successful(None)) _
-  def authenticated[Auth](auth: Future[Option[Auth]]) = ConnectionAuth[Auth](auth)(() => auth)
+  def unauthenticated[Auth](implicitAuth: () => Future[Option[Auth]]) = new ConnectionAuth[Auth](Future.successful(None))(implicitAuth)
+  def authenticated[Auth](auth: Future[Option[Auth]]) = new ConnectionAuth[Auth](auth)(() => auth)
 }
 
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](

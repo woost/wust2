@@ -132,17 +132,14 @@ object Db {
       ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision""".as[Query[Int]] //TODO update? but does not support returning?
     }
 
-    //TODO in user create transaction with one query?
-    private def createUsergroupForUser(id: Long): Unit = ctx.transaction { ev =>
+    private def createUsergroupForUser(id: Long): Future[Usergroup] = ctx.transaction { ev =>
       //TODO
       // val q = quote(query[Usergroup].insert(lift(Usergroup())).returning(_.id))
       val q = quote(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[Usergroup]].returning(_.id))
-      val runned = ctx.run(q)
-      runned.foreach { group =>
+      ctx.run(q).flatMap { group =>
         val q = quote(query[UsergroupMember].insert(lift(UsergroupMember(group, Option(id)))))
-        ctx.run(q).foreach(println _)
+        ctx.run(q).map(_ => Usergroup(group))
       }
-      runned
     }
 
     def apply(name: String, password: String): Future[Option[User]] = {
@@ -153,8 +150,11 @@ object Db {
         .map(id => Option(user.copy(id = id)))
         .recover { case _: Exception => None }
 
-      dbUser.foreach(_.foreach(u => createUsergroupForUser(u.id)))
-      dbUser
+      //TODO in user create transaction with one query?
+      dbUser.flatMap {
+        case Some(user) => createUsergroupForUser(user.id).map(_ => Option(user))
+        case None => Future.successful(None)
+      }
     }
 
     def createImplicitUser(): Future[User] = {
@@ -162,8 +162,8 @@ object Db {
       val q = quote { query[User].insert(lift(user)).returning(_.id) }
       val dbUser = ctx.run(q).map(id => user.copy(id = id))
 
-      dbUser.foreach(u => createUsergroupForUser(u.id))
-      dbUser
+      //TODO in user create transaction with one query?
+      dbUser.flatMap(user => createUsergroupForUser(user.id).map(_ => user))
     }
 
     def activateImplicitUser(id: Long, name: String, password: String): Future[Option[User]] = {
