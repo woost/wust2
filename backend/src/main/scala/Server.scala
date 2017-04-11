@@ -13,6 +13,7 @@ import wust.api._
 import wust.util.Pipe
 import wust.framework._, message._
 import wust.backend.auth._
+import java.io.{StringWriter, PrintWriter}
 
 case class UserError(error: ApiError) extends Exception
 
@@ -30,7 +31,9 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
   override val toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
     case NonFatal(e) =>
-      scribe.error("request handler threw exception", e)
+      val sw = new StringWriter
+      e.printStackTrace(new PrintWriter(sw))
+      scribe.error("request handler threw exception:\n" + sw.toString)
       InternalServerError
   }
 
