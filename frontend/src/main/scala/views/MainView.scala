@@ -22,7 +22,7 @@ object MainView {
     val graphDisplay = toggleDisplay(_ == ViewPage.Graph)
     val treeDisplay = toggleDisplay(_ == ViewPage.Tree)
     val userDisplay = toggleDisplay(_ == ViewPage.User)
-    val postFormDisplay = Rx { toggleDisplay(m => (m == ViewPage.Graph || m == ViewPage.Tree) && state.currentUser().isDefined) }
+    val postFormDisplay = Rx { toggleDisplay(m => m == ViewPage.Graph || m == ViewPage.Tree) }
 
     div(fontFamily := "sans-serif")(
       button(onclick := { (_: Event) => state.viewPage() = ViewPage.Graph })("graph"),
