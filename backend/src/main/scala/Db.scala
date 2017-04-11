@@ -40,7 +40,7 @@ object Db {
       ) insert into ownership(postId, groupId) select id, ${groupId} from ins""".as[Insert[Ownership]]
     }
 
-    def apply(title: String, groupOpt: Option[Usergroup]): Future[Post] = {
+    def apply(title: String, groupOpt: Option[Usergroup] = None): Future[Post] = {
       val post = Post(title)
       val group = groupOpt.getOrElse(Usergroup.default)
 
@@ -78,7 +78,7 @@ object Db {
       ) insert into connects(id, sourceId, targetId) select 0, id, ${targetId.id} from ins""".as[Insert[Connects]]
     }
 
-    def newPost(title: String, targetId: ConnectableId, group: Option[Usergroup]): Future[(Post, Connects)] = {
+    def newPost(title: String, targetId: ConnectableId, group: Option[Usergroup] = None): Future[(Post, Connects)] = {
       // TODO
       // val q = quote { createPostAndConnects(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
