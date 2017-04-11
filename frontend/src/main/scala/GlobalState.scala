@@ -6,6 +6,10 @@ import wust.api._
 import wust.graph._
 import wust.util.Pipe
 
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
+import autowire._
+import boopickle.Default._
+
 sealed trait InteractionMode
 case class FocusMode(postId: PostId) extends InteractionMode
 case class EditMode(postId: PostId) extends InteractionMode
@@ -30,6 +34,15 @@ object ViewPage {
 
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
+  val currentGroups = RxVar[Seq[UserGroup]](Seq.empty)
+  val selectedGroup = {
+    val s = RxVar[Long](1)
+    RxVar(s.write, Rx {
+      val newId = if (currentGroups().exists(_.id == s())) s() else 1
+      Client.api.getGraph(newId).call().foreach { newGraph => rawGraph() = newGraph }
+      newId
+    })
+  }
 
   val viewPage = UrlRouter.variable
     .projection[ViewPage](_ |> ViewPage.toHash |> (Option(_)), _.flatMap(ViewPage.fromHash.lift).getOrElse(ViewPage.default))
@@ -84,7 +97,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val onAuthEvent: AuthEvent => Unit = _ match {
     case LoggedIn(user) => currentUser() = Option(user)
-    case LoggedOut => currentUser() = None
+    case LoggedOut =>
+      //TODO: on logout, get new graph from server directly per event instead of requesting here
+      //TODO: public group id from config
+      Client.api.getGraph(1).call().foreach { newGraph =>
+        rawGraph() = newGraph
+      }
+      currentUser() = None
+      currentGroups() = Nil
   }
 
   val onApiEvent: ApiEvent => Unit = _ match {
@@ -98,5 +118,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
+    case ReplaceGraph(newGraph) => rawGraph() = newGraph
+    case ReplaceUserGroups(newGroups) => currentGroups() = newGroups
   }
 }

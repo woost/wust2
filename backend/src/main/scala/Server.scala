@@ -46,6 +46,12 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
     JWT.authenticationFromToken(token)
       .map(auth => Db.user.check(auth.user).map(s => Option(auth).filter(_ => s)))
       .getOrElse(Future.successful(None))
+
+  override def onLogin(auth: Authentication) = {
+    import auth.user.{id => userId}
+    Db.graph.get(Option(userId)).map(ReplaceGraph(_)).foreach(Server.emit)
+    Db.user.allGroups(userId).map(ReplaceUserGroups(_)).foreach(Server.emit)
+  }
 }
 
 object Server {

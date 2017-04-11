@@ -21,10 +21,6 @@ import wust.graph._
 import wust.frontend._, Color._
 
 object AddPostForm {
-  val privateButton = input(
-      `type` := "checkbox"
-    ).render
-
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:",
@@ -64,15 +60,15 @@ object AddPostForm {
       case _ => newLabel
     }
 
-    def action(text: String, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+    def action(text: String, groupId: Long, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
         Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        Client.api.respond(postId, text, privateButton.checked).call().map(_ => true)
+        Client.api.respond(postId, text, groupId).call().map(_ => true)
       case _ =>
-        Client.api.addPost(text, privateButton.checked).call().map(_ => true)
+        Client.api.addPost(text, groupId).call().map(_ => true)
     }
 
     div(
@@ -83,8 +79,9 @@ object AddPostForm {
           input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
             val input = e.target.asInstanceOf[HTMLInputElement]
             val text = input.value
+            val groupId = state.selectedGroup()
             if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-              action(text, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
+              action(text, groupId, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
                 if (success) {
                   input.value = ""
                   rxEditedPostId() = None
@@ -95,6 +92,6 @@ object AddPostForm {
           }).render
         }
       }
-    )(privateButton)
+    )
   }
 }

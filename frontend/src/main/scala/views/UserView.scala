@@ -9,7 +9,7 @@ import boopickle.Default._
 import autowire._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-import wust.frontend.{ Client, GlobalState }
+import wust.frontend.{Client, GlobalState}
 import wust.api.User
 import wust.util.Pipe
 
@@ -27,9 +27,9 @@ object UserView {
 
   val registerButton =
     buttonClick("register", Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess)
-  def loginButton(currentUser: WriteVar[Option[User]]) =
+  def loginButton(currentUser: WriteVar[Option[User]]) = //TODO: does not need currentUser?
     buttonClick("login", Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess)
-  def logoutButton(currentUser: WriteVar[Option[User]]) =
+  def logoutButton(currentUser: WriteVar[Option[User]]) = //TODO: does not need currentUser?
     buttonClick("logout", Client.auth.logout())
 
   val registerMask = div(userField, passwordField, registerButton)
@@ -39,7 +39,7 @@ object UserView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     state.currentUser.rx.map {
       case Some(user) => userProfile(state.currentUser, user)(if (user.isImplicit) registerMask else div()).render
-      case None       => registerMask(loginButton(state.currentUser)).render
+      case None => registerMask(loginButton(state.currentUser)).render
     }
   }
 }

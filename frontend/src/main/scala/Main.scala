@@ -6,9 +6,9 @@ import concurrent.Future
 import collection.breakOut
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
+import boopickle.Default._
 
 import org.scalajs.dom._
-import boopickle.Default._
 
 import wust.api._
 import wust.graph._
@@ -29,18 +29,21 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
-    Client.run(s"$protocol://${location.hostname}:$port/ws") // ist doch wie vorher, oder? ja aber wenn ich dioe seite lade, passiert erstmal gar nix. kein request geht raus. graph leer. wenn ic mich einogge, werden alle requests gefeuert.
+    Client.run(s"$protocol://${location.hostname}:$port/ws")
 
     Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
     Client.subscribe(Channel.Graph)
-    Client.auth.reauthenticate()
-    Client.onConnect { loc =>
-      //TODO reauth and get graph again and sub
+    Client.auth.reauthenticate().foreach { success =>
+      if (!success)
+        //TODO: public group id from config
+        Client.api.getGraph(1).call().foreach { newGraph =>
+          state.rawGraph() = newGraph
+        }
     }
 
-    Client.api.getGraph().call().foreach { newGraph =>
-      state.rawGraph() = newGraph
+    Client.onConnect { loc =>
+      //TODO reauth and get graph again and sub
     }
 
     document.getElementById("container").appendChild(

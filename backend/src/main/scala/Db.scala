@@ -2,11 +2,13 @@ package wust.backend
 
 import wust.util.collection._
 import wust.graph._
+import wust.api
 import wust.api.User
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import io.getquill._
+import collection.breakOut
 
 object Db {
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
@@ -25,8 +27,8 @@ object Db {
 
   case class Password(id: Long, digest: Array[Byte]) //TODO id: User, encoder: _.id and for the others
   case class Ownership(postId: PostId, groupId: Long)
-  case class UsergroupMember(groupId: Long, userId: Option[Long])
-  case class Usergroup(id: Long)
+  case class UsergroupMember(groupId: Long, userId: Option[Long]) //TODO: rename to UserGroupMember
+  case class Usergroup(id: Long) //TODO: rename to UserGroup
   object Usergroup {
     def apply(): Usergroup = Usergroup(0L)
     //TODO this should be a setting, it corresponds to the id of the public user group (V6__user_ownership.sql)
@@ -40,9 +42,8 @@ object Db {
       ) insert into ownership(postId, groupId) select id, ${groupId} from ins""".as[Insert[Ownership]]
     }
 
-    def apply(title: String, groupOpt: Option[Usergroup] = None): Future[Post] = {
+    def apply(title: String, groupId: Long): Future[Post] = {
       val post = Post(title)
-      val group = groupOpt.getOrElse(Usergroup.default)
 
       //TODO
       //     val q = quote { createOwnedPost(lift(title), lift(group.id))).returning(_.postId) }
@@ -50,7 +51,7 @@ object Db {
       ctx.transaction { ev =>
         for {
           postId <- ctx.run(query[Post].insert(lift(post)).returning(_.id))
-          ownershipId <- ctx.run(query[Ownership].insert(lift(Ownership(postId, group.id))))
+          ownershipId <- ctx.run(query[Ownership].insert(lift(Ownership(postId, groupId))))
         } yield post.copy(id = postId)
       }
     }
@@ -78,13 +79,13 @@ object Db {
       ) insert into connects(id, sourceId, targetId) select 0, id, ${targetId.id} from ins""".as[Insert[Connects]]
     }
 
-    def newPost(title: String, targetId: ConnectableId, group: Option[Usergroup] = None): Future[(Post, Connects)] = {
+    def newPost(title: String, targetId: ConnectableId, groupId: Long): Future[(Post, Connects)] = {
       // TODO
       // val q = quote { createPostAndConnects(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
 
       for {
-        post <- post(title, group)
+        post <- post(title, groupId)
         connects <- apply(post.id, targetId)
       } yield (post, connects)
     }
@@ -200,9 +201,9 @@ object Db {
       })
     }
 
-    def group(user: User): Future[Usergroup] = {
+    def group(user: User): Future[Usergroup] = { //TODO: Long
       //TODO: this is faking it, just take one group for user.
-      //really need to know the private usergroup of the user!
+      //really need to know the private usergroup of the user! --> column in user-table referencing group?
       val q = quote {
         query[UsergroupMember]
           .filter(_.userId == lift(Option(user.id)))
@@ -215,7 +216,28 @@ object Db {
       ctx.run(q).map(_.head)
     }
 
-    def check(user: User): Future[Boolean] = {
+    //TODO we need some concept for ids...long/user/postid
+    def allGroups(userId: Long): Future[Seq[api.UserGroup]] = {
+      // all groups where user is explicitly a member
+
+      val q = quote {
+        for {
+          m <- query[UsergroupMember].filter(m => m.userId == lift(Option(userId)))
+          m1 <- query[UsergroupMember].filter(m1 => m1.groupId == m.groupId)
+          u <- query[User].join(u => u.id == infix"m1.userId".as[Long]) //TODO: this is a workaround
+        } yield (m.groupId, u.id, u.name)
+      }
+
+      ctx.run(q).map {
+        _.groupBy(_._1).map {
+          case (groupId, users) => api.UserGroup(groupId, users.map {
+            case (_, uid, uname) => api.ClientUser(uid, uname)
+          })
+        }.toSeq
+      }
+    }
+
+    def check(user: User): Future[Boolean] = { //TODO: Option[Long]
       // TODO: in query
       get(user.id).map(_.map { dbUser =>
         dbUser.revision == user.revision && dbUser.isImplicit == user.isImplicit && dbUser.name == user.name
@@ -224,13 +246,14 @@ object Db {
   }
 
   object graph {
-    def get(user: Option[User]): Future[Graph] = {
-      val postQuery = quote(query[Post]
-        .join(query[Ownership])
-        .on((p, o) => p.id == o.postId) //: (Post, Ownership)
-        .join(query[UsergroupMember].filter(s => s.userId == lift(user.map(_.id)) || s.userId.isEmpty))
-        .on((po, u) => po._2.groupId == u.groupId)
-        .map { case (po, u) => po._1 })
+    def get(userId: Option[Long], groupId: Long = 1): Future[Graph] = { // TODO: store currently selected group in ConnectedClient?
+      val postQuery = quote {
+        for {
+          m <- query[UsergroupMember].filter(m => (m.userId == lift(userId) || m.userId.isEmpty) && m.groupId == lift(groupId))
+          o <- query[Ownership].join(o => o.groupId == m.groupId)
+          p <- query[Post].join(p => p.id == o.postId)
+        } yield p
+      }
 
       //TODO: we get more edges than needed, because some posts are filtered out by ownership
       val postFut = ctx.run(postQuery)
@@ -242,10 +265,11 @@ object Db {
         contains <- containsFut
       } yield {
         Graph(
-        posts.by(_.id),
-        connects.by(_.id),
-        contains.by(_.id)
-      )}
+          posts.by(_.id),
+          connects.by(_.id),
+          contains.by(_.id)
+        ).consistent // TODO: consistent should not be necessary here
+      }
     }
   }
 }

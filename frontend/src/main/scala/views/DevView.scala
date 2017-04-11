@@ -28,7 +28,7 @@ object DevView {
           )
         },
         {
-          def addRandomPost() { Client.api.addPost(rStr(1 + rInt(20)), isPrivate = true).call() }
+          def addRandomPost() { Client.api.addPost(rStr(1 + rInt(20)), state.selectedGroup()).call() }
           div(
             button("create random post", onclick := { () => addRandomPost() }),
             button("10", onclick := { () => for (_ <- 0 until 10) addRandomPost() }),

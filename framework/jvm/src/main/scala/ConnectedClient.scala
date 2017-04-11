@@ -19,6 +19,7 @@ trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
   def toError: PartialFunction[Throwable, Error]
   def implicitAuth(): Future[Option[Auth]]
   def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
+  def onLogin(authOpt: Auth): Any = {}
 }
 
 class ConnectionAuth[Auth] private (actualAuth: Future[Option[Auth]])(newImplicitAuth: () => Future[Option[Auth]]) {
@@ -30,14 +31,14 @@ class ConnectionAuth[Auth] private (actualAuth: Future[Option[Auth]])(newImplici
 
   def auth: Future[Option[Auth]] = actualAuth.flatMap {
     case Some(auth) => Future.successful(Option(auth))
-    case None       =>
+    case None =>
       if (implicitAuthPromise.isCompleted) implicitAuthFuture
       else Future.successful(None)
   }
 
   def authOrImplicit: Future[Option[Auth]] = actualAuth.flatMap {
     case Some(auth) => Future.successful(Option(auth))
-    case None       =>
+    case None =>
       implicitAuthPromise trySuccess implicitAuth
       implicitAuthFuture
   }
@@ -48,9 +49,10 @@ object ConnectionAuth {
 }
 
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
-    messages:   Messages[Channel, Event, Error, AuthToken, Auth],
-    handler:    RequestHandler[Channel, Event, Error, AuthToken, Auth],
-    dispatcher: Dispatcher[Channel, Event]) extends Actor {
+  messages: Messages[Channel, Event, Error, AuthToken, Auth],
+  handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
+  dispatcher: Dispatcher[Channel, Event]
+) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._
@@ -59,7 +61,7 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
     def sendImplicitAuth(auth: Auth) = outgoing ! ControlNotification(ImplicitLogin(auth))
     val currentAuth = currentAuthOpt.getOrElse {
       ConnectionAuth.unauthenticated[Auth](() =>
-          handler.implicitAuth ||> (_.foreach(_.foreach(sendImplicitAuth))))
+        handler.implicitAuth ||> (_.foreach(_.foreach(sendImplicitAuth))))
     }
 
     {
@@ -79,6 +81,9 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
           auth
             .map(auth => ControlResponse(seqId, auth.isDefined))
             .pipeTo(outgoing)
+
+          auth
+            .foreach(_.foreach(onLogin))
         case Logout() =>
           context.become(connected(outgoing))
           outgoing ! ControlResponse(seqId, true)
@@ -97,7 +102,7 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
 
   def receive = {
     case Connect(outgoing) => context.become(connected(outgoing))
-    case Stop              => context.stop(self)
+    case Stop => context.stop(self)
   }
 }
 object ConnectedClient {
