@@ -4,15 +4,23 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import wust.api._
-import wust.framework.ConnectionAuth
 import wust.util.Pipe
 
-class ApiAuthentication(connectionAuth: ConnectionAuth[Authentication], toError: => Exception) {
-  def actualAuth: Future[Option[Authentication]] =
-    connectionAuth.auth.map(_.filterNot(JWT.isExpired))
+class ApiAuthentication(auth: Future[Option[Authentication]], createImplicitAuth: () => Future[Option[Authentication]], toError: => Exception) {
 
-  def actualOrImplicitAuth: Future[Option[Authentication]] =
-    connectionAuth.authOrImplicit.map(_.filterNot(JWT.isExpired))
+  private var createdAuth: Option[Future[Option[Authentication]]] = None
+
+  val actualAuth: Future[Option[Authentication]] =
+    auth.map(_.filterNot(JWT.isExpired))
+
+  def createdOrActualAuth = createdAuth.getOrElse(actualAuth)
+
+  lazy val actualOrImplicitAuth: Future[Option[Authentication]] = auth.flatMap {
+    case Some(auth) => Future.successful(Option(auth))
+    case None => createImplicitAuth()
+  }
+    .map(_.filterNot(JWT.isExpired))
+    .||>(auth => createdAuth = Option(auth))
 
   def withUserOpt[T](f: Option[User] => Future[T]): Future[T] =
     actualAuth.flatMap(_.map(_.user) |> f)

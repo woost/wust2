@@ -21,7 +21,7 @@ class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, AuthToken: Pi
 
   sealed trait ServerMessage
   case class Pong() extends ServerMessage
-  case class CallResponse(seqId: SequenceId, result: Either[Error,ByteBuffer]) extends ServerMessage
+  case class CallResponse(seqId: SequenceId, result: Either[Error, ByteBuffer]) extends ServerMessage
   case class ControlResponse(seqId: SequenceId, success: Boolean) extends ServerMessage
   case class ControlNotification(event: ControlEvent) extends ServerMessage
   case class Notification(event: Event) extends ServerMessage

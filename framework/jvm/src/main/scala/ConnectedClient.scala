@@ -14,38 +14,11 @@ import wust.util.Pipe
 import message._
 
 trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
-  def router(currentAuth: ConnectionAuth[Auth]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
+  def router(currentAuth: Future[Option[Auth]]): PartialFunction[Request[ByteBuffer], (Future[Option[Auth]], Future[ByteBuffer])]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
-  def implicitAuth(): Future[Option[Auth]]
   def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
   def onLogin(authOpt: Auth): Any = {}
-}
-
-class ConnectionAuth[Auth] private (actualAuth: Future[Option[Auth]])(newImplicitAuth: () => Future[Option[Auth]]) {
-  import scala.concurrent.Promise
-
-  private lazy val implicitAuth = newImplicitAuth()
-  private val implicitAuthPromise = Promise[Future[Option[Auth]]]()
-  private val implicitAuthFuture = implicitAuthPromise.future.flatMap(f => f)
-
-  def auth: Future[Option[Auth]] = actualAuth.flatMap {
-    case Some(auth) => Future.successful(Option(auth))
-    case None =>
-      if (implicitAuthPromise.isCompleted) implicitAuthFuture
-      else Future.successful(None)
-  }
-
-  def authOrImplicit: Future[Option[Auth]] = actualAuth.flatMap {
-    case Some(auth) => Future.successful(Option(auth))
-    case None =>
-      implicitAuthPromise trySuccess implicitAuth
-      implicitAuthFuture
-  }
-}
-object ConnectionAuth {
-  def unauthenticated[Auth](implicitAuth: () => Future[Option[Auth]]) = new ConnectionAuth[Auth](Future.successful(None))(implicitAuth)
-  def authenticated[Auth](auth: Future[Option[Auth]]) = new ConnectionAuth[Auth](auth)(() => auth)
 }
 
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
@@ -57,36 +30,43 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
   import ConnectedClient._
   import messages._, handler._
 
-  def connected(outgoing: ActorRef, currentAuthOpt: Option[ConnectionAuth[Auth]] = None): Receive = {
-    def sendImplicitAuth(auth: Auth) = outgoing ! ControlNotification(ImplicitLogin(auth))
-    val currentAuth = currentAuthOpt.getOrElse {
-      ConnectionAuth.unauthenticated[Auth](() =>
-        handler.implicitAuth ||> (_.foreach(_.foreach(sendImplicitAuth))))
-    }
-
-    {
+  def connected(outgoing: ActorRef, currentAuth: Future[Option[Auth]] = Future.successful(None)): Receive = {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
-        val timer = StopWatch.started
-        router(currentAuth).lift(Request(path, args))
-          .map(_.map(resp => CallResponse(seqId, Right(resp))))
-          .getOrElse(Future.successful(CallResponse(seqId, Left(pathNotFound(path)))))
-          .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
-          .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
-          .pipeTo(outgoing)
+        router(currentAuth).lift(Request(path, args)) match {
+          case Some((newAuth, response)) =>
+            val timer = StopWatch.started
+            response
+              //TODO: transform = map + recover?
+              .map(resp => CallResponse(seqId, Right(resp)))
+              .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
+              .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
+              .pipeTo(outgoing)
+
+            for {
+              currentAuth <- currentAuth
+              newAuth <- newAuth
+            } newAuth.filterNot(currentAuth.toSet).foreach { auth =>
+              outgoing ! ControlNotification(ImplicitLogin(auth))
+              onLogin(auth)
+            }
+
+            context.become(connected(outgoing, newAuth))
+          case None =>
+            outgoing ! CallResponse(seqId, Left(pathNotFound(path)))
+        }
       case ControlRequest(seqId, control) => control match {
         case Login(token) =>
           val auth = authenticate(token)
-          context.become(connected(outgoing, Some(ConnectionAuth.authenticated(auth))))
           auth
             .map(auth => ControlResponse(seqId, auth.isDefined))
             .pipeTo(outgoing)
 
-          auth
-            .foreach(_.foreach(onLogin))
+          auth.foreach(_.foreach(onLogin))
+          context.become(connected(outgoing, auth))
         case Logout() =>
-          context.become(connected(outgoing))
           outgoing ! ControlResponse(seqId, true)
+          context.become(connected(outgoing))
         case Subscribe(channel) =>
           dispatcher.subscribe(outgoing, channel)
           outgoing ! ControlResponse(seqId, true)
@@ -97,7 +77,6 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
       case Stop =>
         dispatcher.unsubscribe(outgoing)
         context.stop(self)
-    }
   }
 
   def receive = {

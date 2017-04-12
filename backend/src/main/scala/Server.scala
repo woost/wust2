@@ -21,10 +21,19 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
 
   private val enableImplicitAuth: Boolean = true //TODO config
 
-  override def router(currentAuth: ConnectionAuth[Authentication]) = {
-    val apiAuth = new ApiAuthentication(currentAuth, UserError(Unauthorized))
-    AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
+  private def createImplicitAuth(): Future[Option[Authentication]] = {
+    if (enableImplicitAuth) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
+    else Future.successful(None)
+  }
+
+  override def router(currentAuth: Future[Option[Authentication]]) = {
+    val apiAuth = new ApiAuthentication(currentAuth, createImplicitAuth _, UserError(Unauthorized))
+
+    (AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
       AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
+      ) andThen {
+        case res => (apiAuth.createdOrActualAuth, res)
+      }
   }
 
   override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
@@ -35,11 +44,6 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
       e.printStackTrace(new PrintWriter(sw))
       scribe.error("request handler threw exception:\n" + sw.toString)
       InternalServerError
-  }
-
-  override def implicitAuth(): Future[Option[Authentication]] = {
-    if (enableImplicitAuth) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
-    else Future.successful(None)
   }
 
   override def authenticate(token: Authentication.Token): Future[Option[Authentication]] =

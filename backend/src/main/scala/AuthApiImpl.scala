@@ -9,9 +9,9 @@ import auth._
 class AuthApiImpl(apiAuth: ApiAuthentication) extends AuthApi {
   import apiAuth._
 
-  def register(name: String, password: String): Future[Option[Authentication]] = actualAuth.flatMap {
-    case Some(auth) if auth.user.isImplicit =>
-      Db.user.activateImplicitUser(auth.user.id, name, password)
+  def register(name: String, password: String): Future[Option[Authentication]] = withUserOpt {
+    case Some(user) if user.isImplicit =>
+      Db.user.activateImplicitUser(user.id, name, password)
         .map(_.map(JWT.generateAuthentication))
     case _ =>
       Db.user(name, password)
