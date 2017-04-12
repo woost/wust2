@@ -201,7 +201,7 @@ lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
     resourceGenerators in Assets <+= Def.task {
-      val file = (resourceManaged in Assets).value / "version"
+      val file = (resourceManaged in Assets).value / "version.txt"
       IO.write(file, version.value)
       Seq(file)
     },
