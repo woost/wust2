@@ -63,6 +63,8 @@ object Server {
 
   private val route = (path("ws") & get) {
     ws.websocketHandler
+  } ~ (path("health") & get) {
+    complete("ok")
   }
 
   def emit(event: ApiEvent) = ws.emit(Channel.fromEvent(event), event)

@@ -250,11 +250,14 @@ lazy val systemTest = project
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
 
+
 def dockerImageName(name: String, version: String) = ImageName(
   namespace = Some("woost"),
   repository = name,
   tag = Some(version)
 )
+
+import sbtdocker.Instructions.Raw
 
 val dockerBackend = Seq(
   dockerfile in docker := {
@@ -263,9 +266,11 @@ val dockerBackend = Seq(
 
     new Dockerfile {
       from("openjdk:8-jre-alpine")
+      runRaw("apk update && apk add curl")
       run("adduser", "user", "-D", "-u", "1000")
       user("user")
       copy(artifact, artifactPath)
+      addInstruction(Raw("healthcheck", "--interval=30s --timeout=10s --retries=2 CMD curl -f -X GET localhost:8080/health"))
       entryPoint("java", "-jar", artifactPath)
     }
   },
