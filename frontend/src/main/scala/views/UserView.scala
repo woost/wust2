@@ -37,7 +37,7 @@ object UserView {
     div(user.toString, logoutButton(currentUser))
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    state.currentUser.rx.map {
+    state.currentUser.map {
       case Some(user) => userProfile(state.currentUser, user)(if (user.isImplicit) registerMask else div()).render
       case None => registerMask(loginButton(state.currentUser)).render
     }

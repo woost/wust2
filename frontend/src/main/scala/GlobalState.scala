@@ -37,7 +37,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val currentGroups = RxVar[Seq[UserGroup]](Seq.empty)
   val selectedGroup = {
     val s = RxVar[Long](1)
-    RxVar(s.write, Rx {
+    RxVar(s, Rx {
       if (currentGroups().exists(_.id == s())) s() else 1
     })
   }
@@ -52,25 +52,25 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val currentView = {
     val v = RxVar[Perspective](Perspective())
-    RxVar(v.write, Rx {
+    RxVar(v, Rx {
       v().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
     })
   }
 
   val displayGraph = {
-    RxVar(rawGraph.write, Rx { Perspective(currentView(), rawGraph()) })
+    RxVar(rawGraph, Rx { Perspective(currentView(), rawGraph()) })
   }
 
   val focusedPostId = {
     val fp = RxVar[Option[PostId]](None)
-    RxVar(fp.write, Rx {
+    RxVar(fp, Rx {
       fp().filter(displayGraph().graph.postsById.isDefinedAt)
     })
   }
 
   val editedPostId = {
     val ep = RxVar[Option[PostId]](None)
-    RxVar(ep.write, Rx {
+    RxVar(ep, Rx {
       ep().filter(displayGraph().graph.postsById.isDefinedAt)
     })
   }
@@ -84,13 +84,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   DevOnly {
-    rawGraph.rx.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
-    collapsedPostIds.rx.debug("collapsedPostIds")
-    currentView.rx.debug("currentView")
-    displayGraph.rx.debug { dg => import dg.graph; s"graph: ${graph.posts.size} posts, ${graph.connections.size} connections, ${graph.containments.size} containments" }
-    focusedPostId.rx.debug("focusedPostId")
-    editedPostId.rx.debug("editedPostId")
-    mode.rx.debug("mode")
+    rawGraph.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+    collapsedPostIds.debug("collapsedPostIds")
+    currentView.debug("currentView")
+    displayGraph.debug { dg => import dg.graph; s"graph: ${graph.posts.size} posts, ${graph.connections.size} connections, ${graph.containments.size} containments" }
+    focusedPostId.debug("focusedPostId")
+    editedPostId.debug("editedPostId")
+    mode.debug("mode")
   }
 
   val onAuthEvent: AuthEvent => Unit = _ match {

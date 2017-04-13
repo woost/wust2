@@ -8,8 +8,8 @@ package object rxext {
   // }
 
   implicit class RichRxVar[S,A](val rxVar:RxVar[S,A]) extends AnyVal {
-    def writeProjection[T](to: T => S, from: PartialFunction[S, T])(implicit ctx: Ctx.Owner): RxVar[T, A] = RxVar(WriteProjection(rxVar.write, to, from), rxVar.rx)
-    def map[T](to: A => T)(implicit ctx: Ctx.Owner):RxVar[S,T] = RxVar(rxVar.write, rxVar.rx.map(to))
+    def writeProjection[T](to: T => S, from: PartialFunction[S, T])(implicit ctx: Ctx.Owner): RxVar[T, A] = RxVar(WriteProjection(rxVar, to, from), rxVar.rx)
+    def map[T](to: A => T)(implicit ctx: Ctx.Owner):RxVar[S,T] = RxVar(rxVar, rxVar.rx.map(to))
     def updatef(f: A => S) = rxVar() = f(rxVar.rx.now)
   }
 
