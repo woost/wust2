@@ -90,13 +90,14 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsg(CallResponse(2, Left("an error")))
     }
 
-    "call api" in pendingUntilFixed {
-      actor ! CallRequest(2, Seq("api"),
-        Map("s" -> AutowireServer.write[String]("hans")))
+    // "call api" in pendingUntilFixed {
+    //   //TODO: This test is nondeterministic
+    //   actor ! CallRequest(2, Seq("api"),
+    //     Map("s" -> AutowireServer.write[String]("hans")))
 
-      val pickledResponse = AutowireServer.write[String]("snah")
-      expectMsg(CallResponse(2, Right(pickledResponse)))
-    }
+    //   val pickledResponse = AutowireServer.write[String]("snah")
+    //   expectMsg(CallResponse(2, Right(pickledResponse)))
+    // }
   }
 
   "control notification" - {
