@@ -22,6 +22,7 @@ class WebsocketConnection(onConnect: String => Unit) {
   private def flush(): Unit = {
     wsOpt.foreach { ws =>
       var sending = true
+      //TODO: on flush, remove ping/pong from messages
       while (sending && messages.nonEmpty) {
         try {
           val bytes = messages.front
