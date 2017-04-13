@@ -15,12 +15,15 @@ class ApiAuthentication(auth: Future[Option[Authentication]], createImplicitAuth
 
   def createdOrActualAuth = createdAuth.getOrElse(actualAuth)
 
-  lazy val actualOrImplicitAuth: Future[Option[Authentication]] = auth.flatMap {
-    case Some(auth) => Future.successful(Option(auth))
-    case None => createImplicitAuth()
+  lazy val actualOrImplicitAuth: Future[Option[Authentication]] = {
+    val newAuth = auth.flatMap {
+      case Some(auth) => Future.successful(Option(auth))
+      case None => createImplicitAuth()
+    }.map(_.filterNot(JWT.isExpired))
+
+    createdAuth = Option(newAuth)
+    newAuth
   }
-    .map(_.filterNot(JWT.isExpired))
-    .||>(auth => createdAuth = Option(auth))
 
   def withUserOpt[T](f: Option[User] => Future[T]): Future[T] =
     actualAuth.flatMap(_.map(_.user) |> f)
