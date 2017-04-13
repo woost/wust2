@@ -49,11 +49,13 @@ If you are only developing the frontend, you can also skip recompilation of the 
 
 Access wust via http://localhost:12345/workbench/index.html
 
-# Building docker images
+# Docker images
 Build all docker images in project:
 ```
 $ sbt docker
 ```
+
+The images are automatically published to [dockerhub](https://hub.docker.com/r/woost/) in each travis build on `master`.
 
 # Production
 Requirements:
@@ -85,6 +87,3 @@ Example:
 ```bash
 HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
 ```
-
-
-
