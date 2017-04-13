@@ -224,7 +224,7 @@ object Db {
         for {
           m <- query[UsergroupMember].filter(m => m.userId == lift(Option(userId)))
           m1 <- query[UsergroupMember].filter(m1 => m1.groupId == m.groupId)
-          u <- query[User].join(u => u.id == infix"m1.userId".as[Long]) //TODO: this is a workaround
+          u <- query[User].join(u => m1.userId.forall(_ == u.id))
         } yield (m.groupId, u.id, u.name)
       }
 
