@@ -1,9 +1,8 @@
-package wust.backend
+package wust.backend.auth
 
 import org.scalatest._
 
 import wust.api.User
-import auth.JWT
 
 class JWTSpec extends FreeSpec with MustMatchers {
   "generate token for user" in {
