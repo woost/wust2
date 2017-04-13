@@ -49,5 +49,10 @@ object Main extends js.JSApp {
     document.getElementById("container").appendChild(
       views.MainView(state).render
     )
+
+    DevOnly {
+      import scala.meta._
+      println("val x = 2".tokenize.get.syntax)
+    }
   }
 }

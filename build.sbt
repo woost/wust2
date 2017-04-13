@@ -29,23 +29,23 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused" ::
     Nil
 
-  // wartremoverErrors ++= (
-  //   // http://www.wartremover.org/doc/warts.html
-  //   // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
-  //   // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
-  //   // Wart.LeakingSealed ::
-  //   ContribWart.SomeApply ::
-  //   // Wart.OldTime ::
-  //   // Wart.AsInstanceOf ::
-  //   Wart.Null ::
-  //   Nil
-  // ),
-  // wartremoverExcluded ++= (
-  //   //TODO: these files are ignored because scribe uses Some
-  //   baseDirectory.value / "src" / "main" / "scala" / "Dispatcher.scala" ::
-  //   baseDirectory.value / "src" / "main" / "scala" / "Server.scala" ::
-  //   Nil
-  // )
+// wartremoverErrors ++= (
+//   // http://www.wartremover.org/doc/warts.html
+//   // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
+//   // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
+//   // Wart.LeakingSealed ::
+//   ContribWart.SomeApply ::
+//   // Wart.OldTime ::
+//   // Wart.AsInstanceOf ::
+//   Wart.Null ::
+//   Nil
+// ),
+// wartremoverExcluded ++= (
+//   //TODO: these files are ignored because scribe uses Some
+//   baseDirectory.value / "src" / "main" / "scala" / "Dispatcher.scala" ::
+//   baseDirectory.value / "src" / "main" / "scala" / "Server.scala" ::
+//   Nil
+// )
 )
 
 lazy val isCI = sys.env.get("CI").isDefined
@@ -155,6 +155,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
+      "org.scalameta" %%% "scalameta" % "1.7.0" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     ),
@@ -250,7 +251,6 @@ lazy val systemTest = project
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
-
 
 def dockerImageName(name: String, version: String) = ImageName(
   namespace = Some("woost"),
