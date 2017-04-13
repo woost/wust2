@@ -3,9 +3,18 @@ set -e
 set -o pipefail
 
 script_dir="$(dirname $(readlink -f '$0'))"
+
 stage="$1"
-compose_stage="$(dirname $0)/docker/compose"
+compose_stage="$script_dir/docker/compose"
 compose="$compose_stage $stage"
+
+override_sbt_arg="$2"
+function sbt_arg() {
+    arg="$override_sbt_arg"
+    [ -z "$arg" ] && arg="$1"
+
+    sbt "$arg"
+}
 
 case $stage in
 psql)
@@ -16,7 +25,7 @@ psql)
 dev)
     sbt dbMigration/docker
     $compose up -d
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt
+    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt_arg
     ;;
 prod.http)
     $compose pull
@@ -37,21 +46,21 @@ test.postgres)
 test.integration)
     $compose down
     $compose up -d
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 sbt it:test
+    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 sbt_arg it:test
     $compose down
     ;;
 test.prod.http)
     export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
     $compose_stage prod.http down
     $compose_stage prod.http up -d
-    sbt systemTest/it:test
+    sbt_arg systemTest/it:test
     $compose_stage prod.http down
     ;;
 test.prod)
     export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
-    #TODO sbt systemTest/it:test
+    #TODO sbt_arg systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
     $compose_stage prod down
     ;;
