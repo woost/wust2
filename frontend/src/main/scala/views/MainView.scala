@@ -38,7 +38,12 @@ object MainView {
             case (groupId, name) => option(name, value := groupId)
           }
         }(
-          onchange := { (e: Event) => state.selectedGroup() = e.target.asInstanceOf[HTMLSelectElement].value.toLong }
+          onchange := { (e: Event) =>
+            val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
+            state.selectedGroup() = groupId
+            //TODO: where to automatically request new graph on group change? Globalstate?
+            Client.api.getGraph(groupId).call().foreach { newGraph => state.rawGraph() = newGraph }
+          }
         ).render
       }),
       span(" seleced group: ", state.selectedGroup.map(_.toString)), // TODO: make scalatags-rx accept primitive datatypes as strings

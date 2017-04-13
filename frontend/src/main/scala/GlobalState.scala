@@ -38,9 +38,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val selectedGroup = {
     val s = RxVar[Long](1)
     RxVar(s.write, Rx {
-      val newId = if (currentGroups().exists(_.id == s())) s() else 1
-      Client.api.getGraph(newId).call().foreach { newGraph => rawGraph() = newGraph }
-      newId
+      if (currentGroups().exists(_.id == s())) s() else 1
     })
   }
 
