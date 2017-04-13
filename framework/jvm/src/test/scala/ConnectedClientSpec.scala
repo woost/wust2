@@ -14,8 +14,8 @@ import scala.concurrent.duration._
 
 import message._
 
-object TestRequestHandler extends RequestHandler[Int, String, String, String, String] {
-  val otherUser = Future.successful(Option("anon"))
+class TestRequestHandler(onLoginHandler: String => Any) extends RequestHandler[Int, String, String, String, String] {
+  private val otherUser = Future.successful(Option("anon"))
 
   override def router(user: Future[Option[String]]): PartialFunction[Request[ByteBuffer], (Future[Option[String]], Future[ByteBuffer])] = {
     case Request("api" :: Nil, args) => (user, Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
@@ -27,6 +27,9 @@ object TestRequestHandler extends RequestHandler[Int, String, String, String, St
   override def pathNotFound(path: Seq[String]) = "path not found"
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
   override def authenticate(auth: String): Future[Option[String]] = Future.successful(if (auth.isEmpty) None else Option(auth))
+
+  var logins = Seq.empty[String]
+  override def onLogin(auth: String): Any = onLoginHandler(auth)
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {
@@ -36,7 +39,8 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
   val dispatcher = mock[Dispatcher[Int, String]]
 
-  def newActor = TestActorRef(new ConnectedClient(messages, TestRequestHandler, dispatcher))
+  def newActor: ActorRef = newActor(_ => ())
+  def newActor(onLogin: String => Any): ActorRef = TestActorRef(new ConnectedClient(messages, new TestRequestHandler(onLogin), dispatcher))
   def connectActor(actor: ActorRef) = actor ! ConnectedClient.Connect(self)
 
   "unconnected" - {
@@ -100,7 +104,8 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   }
 
   "control notification" - {
-    val actor = newActor
+    var logins = Seq.empty[String]
+    val actor = newActor(auth => logins = logins :+ auth)
     connectActor(actor)
 
     "implicit login" in {
@@ -111,11 +116,14 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
         ControlNotification(ImplicitLogin("anon")),
         CallResponse(2, Right(pickledResponse))
       )
+
+      logins mustEqual Seq("anon")
     }
   }
 
   "control request" - {
-    val actor = newActor
+    var logins = Seq.empty[String]
+    val actor = newActor(auth => logins = logins :+ auth)
     connectActor(actor)
 
     "unauthenticated at start" in {
@@ -141,6 +149,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       actor ! CallRequest(2, Seq("user"), Map.empty)
       val pickledResponse = AutowireServer.write[Option[String]](Option(userName))
       expectMsg(CallResponse(2, Right(pickledResponse)))
+      logins mustEqual Seq(userName)
     }
 
     "logout" in {

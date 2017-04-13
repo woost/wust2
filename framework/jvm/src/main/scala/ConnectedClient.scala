@@ -18,7 +18,7 @@ trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
   def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
-  def onLogin(authOpt: Auth): Any = {}
+  def onLogin(auth: Auth): Any = {}
 }
 
 class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
