@@ -15,15 +15,14 @@ import scala.concurrent.duration._
 import message._
 
 object TestRequestHandler extends RequestHandler[Int, String, String, String, String] {
-  //TODO: cornerman: is this fix correct? See the diff of this commit.
-  def fakeAuth = Future.successful(Option(""))
-  override def router(user: Future[Option[String]]): PartialFunction[Request[ByteBuffer], (Future[Option[String]], Future[ByteBuffer])] = {
-    case Request("api" :: Nil, args) => (fakeAuth, Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
-    case Request("user" :: Nil, _) => (fakeAuth, user.map(u => Pickle.intoBytes[String](u.get)))
-    case Request("broken" :: Nil, _) => (fakeAuth, Future.failed(new Exception("an error")))
-  }
+  val otherUser = Future.successful(Option("anon"))
 
-  // override def createImplicitAuth(): Future[String] = Future.successful("anon")
+  override def router(user: Future[Option[String]]): PartialFunction[Request[ByteBuffer], (Future[Option[String]], Future[ByteBuffer])] = {
+    case Request("api" :: Nil, args) => (user, Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
+    case Request("user" :: Nil, _) => (user, user.map(u => Pickle.intoBytes[Option[String]](u)))
+    case Request("user" :: "change" :: Nil, _) => (otherUser, otherUser.map(u => Pickle.intoBytes[Option[String]](u)))
+    case Request("broken" :: Nil, _) => (user, Future.failed(new Exception("an error")))
+  }
 
   override def pathNotFound(path: Seq[String]) = "path not found"
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
@@ -90,23 +89,23 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsg(CallResponse(2, Left("an error")))
     }
 
-    // "call api" in pendingUntilFixed {
-    //   //TODO: This test is nondeterministic
-    //   actor ! CallRequest(2, Seq("api"),
-    //     Map("s" -> AutowireServer.write[String]("hans")))
+    "call api" in {
+      //TODO: This test is nondeterministic
+      actor ! CallRequest(2, Seq("api"),
+        Map("s" -> AutowireServer.write[String]("hans")))
 
-    //   val pickledResponse = AutowireServer.write[String]("snah")
-    //   expectMsg(CallResponse(2, Right(pickledResponse)))
-    // }
+      val pickledResponse = AutowireServer.write[String]("snah")
+      expectMsg(CallResponse(2, Right(pickledResponse)))
+    }
   }
 
   "control notification" - {
     val actor = newActor
     connectActor(actor)
 
-    "anon login" in pendingUntilFixed {
-      actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[String]("anon")
+    "implicit login" in {
+      actor ! CallRequest(2, Seq("user", "change"), Map.empty)
+      val pickledResponse = AutowireServer.write[Option[String]](Option("anon"))
       expectMsgAllOf(
         10 seconds,
         ControlNotification(ImplicitLogin("anon")),
@@ -119,26 +118,28 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     val actor = newActor
     connectActor(actor)
 
-    "invalid login" in pendingUntilFixed {
+    "unauthenticated at start" in {
+      actor ! CallRequest(2, Seq("user"), Map.empty)
+      val pickledResponse = AutowireServer.write[Option[String]](None)
+      expectMsg(CallResponse(2, Right(pickledResponse)))
+    }
+
+    "invalid login" in {
       actor ! ControlRequest(2, Login(""))
       expectMsg(ControlResponse(2, false))
 
       actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[String]("anon")
-      expectMsgAllOf(
-        10 seconds,
-        ControlNotification(ImplicitLogin("anon")),
-        CallResponse(2, Right(pickledResponse))
-      )
+      val pickledResponse = AutowireServer.write[Option[String]](None)
+      expectMsg(CallResponse(2, Right(pickledResponse)))
     }
 
-    "valid login" in pendingUntilFixed {
+    "valid login" in {
       val userName = "pete"
       actor ! ControlRequest(2, Login(userName))
       expectMsg(ControlResponse(2, true))
 
       actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[String](userName)
+      val pickledResponse = AutowireServer.write[Option[String]](Option(userName))
       expectMsg(CallResponse(2, Right(pickledResponse)))
     }
 
@@ -164,7 +165,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     val actor = newActor
     connectActor(actor)
 
-    "stops actor" in pendingUntilFixed {
+    "stops actor" in {
       actor ! ConnectedClient.Stop
       actor ! Ping()
       expectNoMsg
