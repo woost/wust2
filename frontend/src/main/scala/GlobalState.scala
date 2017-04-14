@@ -15,10 +15,10 @@ case class FocusMode(postId: PostId) extends InteractionMode
 case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
-sealed abstract class ViewPage(val isEditable: Boolean = false)
+sealed trait ViewPage
 object ViewPage {
-  case object Graph extends ViewPage(isEditable = true)
-  case object Tree extends ViewPage(isEditable = true)
+  case object Graph extends ViewPage
+  case object Tree extends ViewPage
   case object User extends ViewPage
 
   val default = ViewPage.Graph

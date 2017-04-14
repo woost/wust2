@@ -71,7 +71,7 @@ object MainView {
         Nil
       ),
 
-      router.showOn(_.isEditable)(
+      router.showOn(page => page == ViewPage.Graph || page == ViewPage.Tree)(
         div(position.fixed, width := "100%", bottom := 0, left := 0,
           padding := "5px", background := "#f7f7f7", borderTop := "1px solid #DDD")(
             AddPostForm(state)
