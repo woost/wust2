@@ -8,14 +8,14 @@ import boopickle.Default._
 
 import message._
 
-trait IncidentHandler[Event, Error] {
+trait IncidentHandler[Error] {
   def fromError(error: Error): Throwable
 }
 
-class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToken: Pickler, Auth: Pickler](
-  handler: IncidentHandler[Event, Error]
+class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, Token: Pickler](
+  handler: IncidentHandler[Error]
 ) {
-  val messages = new Messages[Channel, Event, Error, AuthToken, Auth]
+  val messages = new Messages[Channel, Event, Error, Token]
 
   import messages._, handler._
 
@@ -54,10 +54,8 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
   def onConnect(handler: String => Any): Unit = connectHandler = Option(handler)
   private var eventHandler: Option[Event => Any] = None
   def onEvent(handler: Event => Any): Unit = eventHandler = Option(handler)
-  private var controlEventHandler: Option[ControlEvent => Any] = None
-  def onControlEvent(handler: ControlEvent => Any): Unit = controlEventHandler = Option(handler)
 
-  def login(auth: AuthToken): Future[Boolean] = control(Login(auth))
+  def login(token: Token): Future[Boolean] = control(Login(token))
   def logout(): Future[Boolean] = control(Logout())
   def subscribe(channel: Channel): Future[Boolean] = control(Subscribe(channel))
   def unsubscribe(channel: Channel): Future[Boolean] = control(Unsubscribe(channel))
@@ -71,7 +69,6 @@ class WebsocketClient[Channel: Pickler, Event: Pickler, Error: Pickler, AuthToke
         result.fold(req tryFailure fromError(_), req trySuccess _)
       }
       case ControlResponse(seqId, success) => controlRequests.get(seqId).foreach(_ trySuccess success)
-      case ControlNotification(event) => controlEventHandler.foreach(_(event))
       case Notification(event) => eventHandler.foreach(_(event))
       case Pong() =>
     }

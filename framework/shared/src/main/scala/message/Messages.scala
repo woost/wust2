@@ -3,15 +3,12 @@ package wust.framework.message
 import boopickle.Default._
 import java.nio.ByteBuffer
 
-class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, AuthToken: Pickler, Auth: Pickler] {
+class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, Token: Pickler] {
   sealed trait Control
-  case class Login(auth: AuthToken) extends Control
+  case class Login(token: Token) extends Control
   case class Logout() extends Control
   case class Subscribe(channel: Channel) extends Control
   case class Unsubscribe(channel: Channel) extends Control
-
-  sealed trait ControlEvent
-  case class ImplicitLogin(auth: Auth) extends ControlEvent
 
   //TODO: fix double serialization of request/response through autowire
   // the map corresponds to the arguments for the called api method
@@ -25,7 +22,6 @@ class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, AuthToken: Pi
   case class Pong() extends ServerMessage
   case class CallResponse(seqId: SequenceId, result: Either[Error, ByteBuffer]) extends ServerMessage
   case class ControlResponse(seqId: SequenceId, success: Boolean) extends ServerMessage
-  case class ControlNotification(event: ControlEvent) extends ServerMessage
   case class Notification(event: Event) extends ServerMessage
 
   //TODO: case objects?
@@ -34,8 +30,6 @@ class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, AuthToken: Pi
     .addConcreteType[Logout]
     .addConcreteType[Subscribe]
     .addConcreteType[Unsubscribe]
-  implicit def controlEventPickler = compositePickler[ControlEvent]
-    .addConcreteType[ImplicitLogin]
   implicit def clientMessagePickler = compositePickler[ClientMessage]
     .addConcreteType[Ping]
     .addConcreteType[CallRequest]
@@ -44,6 +38,5 @@ class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, AuthToken: Pi
     .addConcreteType[Pong]
     .addConcreteType[CallResponse]
     .addConcreteType[ControlResponse]
-    .addConcreteType[ControlNotification]
     .addConcreteType[Notification]
 }

@@ -13,28 +13,30 @@ import wust.util.time.StopWatch
 import wust.util.Pipe
 import message._
 
-trait RequestHandler[Channel, Event, Error, AuthToken, Auth] {
-  def router(currentAuth: Future[Option[Auth]]): PartialFunction[Request[ByteBuffer], (Future[Option[Auth]], Future[ByteBuffer])]
+trait RequestHandler[Event, Error, Token, State] {
+  def router(state: Future[State]): PartialFunction[Request[ByteBuffer], (Future[State], Future[ByteBuffer])]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
-  def authenticate(currentAuth: AuthToken): Future[Option[Auth]]
-  def onLogin(auth: Auth): Any = {}
+
+  def initialState: Future[State]
+  def authenticate(state: Future[State], token: Token): Future[Option[State]]
+  def onStateChange(state: State): Seq[Future[Event]]
 }
 
-class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
-  messages: Messages[Channel, Event, Error, AuthToken, Auth],
-  handler: RequestHandler[Channel, Event, Error, AuthToken, Auth],
+class ConnectedClient[Channel, Event, Error, Token, State](
+  messages: Messages[Channel, Event, Error, Token],
+  handler: RequestHandler[Event, Error, Token, State],
   dispatcher: Dispatcher[Channel, Event]
 ) extends Actor {
 
   import ConnectedClient._
   import messages._, handler._
 
-  def connected(outgoing: ActorRef, currentAuth: Future[Option[Auth]] = Future.successful(None)): Receive = {
+  def connected(outgoing: ActorRef, state: Future[State] = initialState): Receive = {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
-        router(currentAuth).lift(Request(path, args)) match {
-          case Some((newAuth, response)) =>
+        router(state).lift(Request(path, args)) match {
+          case Some((newState, response)) =>
             val timer = StopWatch.started
             response
               //TODO: transform = map + recover?
@@ -44,32 +46,35 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
               .pipeTo(outgoing)
 
             for {
-              currentAuth <- currentAuth
-              Some(auth) <- newAuth
-              // this assumes equality on the auth type or auth being the same instance
-              if currentAuth.forall(_ != auth)
-            } {
-              // only done if the auth actually changed in this request
-              outgoing ! ControlNotification(ImplicitLogin(auth))
-              onLogin(auth)
-            }
+              state <- state
+              newState <- newState
+              // this assumes equality on the state type or state being the same instance
+              // only notify if the state actually changed in this request
+              if state != newState
+            } onStateChange(newState).foreach(_.map(Notification.apply).pipeTo(outgoing))
 
-            context.become(connected(outgoing, newAuth))
+            context.become(connected(outgoing, newState))
           case None =>
             outgoing ! CallResponse(seqId, Left(pathNotFound(path)))
         }
       case ControlRequest(seqId, control) => control match {
         case Login(token) =>
-          val auth = authenticate(token)
-          auth
-            .map(auth => ControlResponse(seqId, auth.isDefined))
+          val newState = authenticate(state, token)
+          newState
+            .map(newState => ControlResponse(seqId, newState.isDefined))
             .pipeTo(outgoing)
 
-          auth.foreach(_.foreach(onLogin))
-          context.become(connected(outgoing, auth))
+          newState.foreach(_.foreach(onStateChange _))
+
+          val currentState = for {
+            state <- state
+            newState <- newState
+          } yield newState.getOrElse(state)
+
+          context.become(connected(outgoing, currentState))
         case Logout() =>
           outgoing ! ControlResponse(seqId, true)
-          context.become(connected(outgoing))
+          context.become(connected(outgoing, initialState))
         case Subscribe(channel) =>
           dispatcher.subscribe(outgoing, channel)
           outgoing ! ControlResponse(seqId, true)
@@ -83,7 +88,7 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
   }
 
   def receive = {
-    case Connect(outgoing) => context.become(connected(outgoing))
+    case Connect(outgoing) => context.become(connected(outgoing, initialState))
     case Stop => context.stop(self)
   }
 }

@@ -119,5 +119,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
     case ReplaceGraph(newGraph) => rawGraph() = newGraph
     case ReplaceUserGroups(newGroups) => currentGroups() = newGroups
+    case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
   }
 }

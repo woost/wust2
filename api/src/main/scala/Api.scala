@@ -26,7 +26,7 @@ object Channel {
   case object Graph extends Channel
 
   //TODO: this is boilerplate
-  def fromEvent(event: ApiEvent): Channel = event match {
+  def fromEvent: PartialFunction[ApiEvent, Channel] = {
     case _: NewPost => Graph
     case _: UpdatedPost => Graph
     case _: NewConnection => Graph
@@ -34,9 +34,11 @@ object Channel {
     case _: DeletePost => Graph
     case _: DeleteConnection => Graph
     case _: DeleteContainment => Graph
-    case _: ReplaceGraph => Graph
 
-    case _: ReplaceUserGroups => Graph //TODO: different channel?
+    // //TODO: different channel?
+    // case _: ReplaceGraph => Graph
+    // case _: ReplaceUserGroups => Graph
+    // case _: ImplicitLogin => Graph
   }
 }
 
@@ -55,6 +57,7 @@ case class DeleteConnection(id: ConnectsId) extends ApiEvent
 case class DeleteContainment(id: ContainsId) extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent
 case class ReplaceUserGroups(groups: Seq[UserGroup]) extends ApiEvent
+case class ImplicitLogin(auth: Authentication) extends ApiEvent
 
 trait AuthApi {
   def register(name: String, password: String): Future[Option[Authentication]]

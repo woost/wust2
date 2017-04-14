@@ -17,7 +17,9 @@ import java.io.{StringWriter, PrintWriter}
 
 case class UserError(error: ApiError) extends Exception
 
-class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Authentication.Token, Authentication] {
+case class State(auth: Option[Authentication])
+
+class ApiRequestHandler extends RequestHandler[ApiEvent, ApiError, Authentication.Token, State] {
 
   private val enableImplicitAuth: Boolean = true //TODO config
 
@@ -26,13 +28,18 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
     else Future.successful(None)
   }
 
-  override def router(currentAuth: Future[Option[Authentication]]) = {
-    val apiAuth = new ApiAuthentication(currentAuth, createImplicitAuth _, UserError(Unauthorized))
+  override def router(state: Future[State]) = {
+    val apiAuth = new ApiAuthentication(state.map(_.auth), createImplicitAuth _, UserError(Unauthorized))
 
     (AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
       AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
-      ) andThen {
-        case res => (apiAuth.createdOrActualAuth, res)
+      ) andThen { case res =>
+        val newState = for {
+          state <- state
+          auth <- apiAuth.createdOrActualAuth
+        } yield state.copy(auth = auth)
+
+        (newState, res)
       }
   }
 
@@ -46,20 +53,31 @@ class ApiRequestHandler extends RequestHandler[Channel, ApiEvent, ApiError, Auth
       InternalServerError
   }
 
-  override def authenticate(token: Authentication.Token): Future[Option[Authentication]] =
-    JWT.authenticationFromToken(token)
-      .map(auth => Db.user.check(auth.user).map(s => Option(auth).filter(_ => s)))
-      .getOrElse(Future.successful(None))
+  override val initialState = Future.successful(State(None))
+  override def authenticate(state: Future[State], token: Authentication.Token): Future[Option[State]] =
+    JWT.authenticationFromToken(token).map { auth =>
+      for {
+        valid <- Db.user.check(auth.user)
+        state <- state
+      } yield {
+        if (valid) Option(state.copy(auth = Option(auth)))
+        else None
+      }
+    }.getOrElse(Future.successful(None))
 
-  override def onLogin(auth: Authentication) = {
+  override def onStateChange(state: State) = state.auth.toSeq.flatMap { auth =>
     import auth.user.{id => userId}
-    Db.graph.get(Option(userId)).map(ReplaceGraph(_)).foreach(Server.emit)
-    Db.user.allGroups(userId).map(ReplaceUserGroups(_)).foreach(Server.emit)
+    val loginEvent = if (auth.user.isImplicit) Option(ImplicitLogin(auth)) else None
+
+    loginEvent.toSeq.map(Future.successful) ++ Seq(
+      Db.graph.get(Option(userId)).map(ReplaceGraph(_)),
+      Db.user.allGroups(userId).map(ReplaceUserGroups(_))
+    )
   }
 }
 
 object Server {
-  private val ws = new WebsocketServer[Channel, ApiEvent, ApiError, Authentication.Token, Authentication](new ApiRequestHandler)
+  private val ws = new WebsocketServer[Channel, ApiEvent, ApiError, Authentication.Token, State](new ApiRequestHandler)
 
   private val route = (path("ws") & get) {
     ws.websocketHandler
@@ -67,6 +85,11 @@ object Server {
     complete("ok")
   }
 
-  def emit(event: ApiEvent) = ws.emit(Channel.fromEvent(event), event)
+  //TODO: this is weird, we are actually only emitting if there is a corresponding channel
+  // because some apievent are not meant as channel-events but only used for the currently logged in user
+  // idea: have an apievent for channel user(id) instead?
+  // this would be consistent with the other eventhandling
+  def emit(event: ApiEvent) = Channel.fromEvent.lift(event).foreach(ws.emit(_, event))
+
   def run(port: Int) = ws.run(route, "0.0.0.0", port)
 }

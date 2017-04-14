@@ -17,14 +17,14 @@ sealed trait IncidentEvent
 case class ConnectEvent(location: String) extends IncidentEvent
 case class ConnectionEvent(event: ApiEvent) extends IncidentEvent
 
-class ApiIncidentHandler extends IncidentHandler[ApiEvent, ApiError] {
+class ApiIncidentHandler extends IncidentHandler[ApiError] {
   override def fromError(error: ApiError) = ApiException(error)
 }
 
 object Client {
   private val handler = new ApiIncidentHandler
   private val storage = new ClientStorage(LocalStorage)
-  val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication](handler)
+  val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token](handler)
 
   val api = ws.wire[Api]
   val auth = new AuthClient(ws, storage, id => api.getUser(id).call())
@@ -40,7 +40,7 @@ case class LoggedIn(user: User) extends AuthEvent
 case object LoggedOut extends AuthEvent
 
 class AuthClient(
-  ws: WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token, Authentication],
+  ws: WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token],
   storage: ClientStorage,
   getUser: Long => Future[Option[User]]
 ) {
@@ -67,7 +67,7 @@ class AuthClient(
   private def sendAuthEvent(auth: Future[Option[Authentication]]): Unit =
     auth.foreach(_.map(_.user |> LoggedIn).getOrElse(LoggedOut) |> (x => eventHandler.foreach(_(x))))
 
-  private def acknowledgeToken(auth: Future[Option[Authentication]]): Unit = {
+  private def acknowledgeNewAuth(auth: Future[Option[Authentication]]): Unit = {
     val previousAuth = currentAuth
     auth.flatMap {
       case Some(auth) => Future.successful(Option(auth))
@@ -79,7 +79,7 @@ class AuthClient(
     auth.flatMap(_.map(auth => ws.login(auth.token).map(if (_) Option(auth) else None)).getOrElse(Future.successful(None)))
 
   private def loginFlow(auth: Future[Option[Authentication]]): Future[Boolean] =
-    auth |> withClientLogin ||> acknowledgeToken |> (_.map(_.isDefined))
+    auth |> withClientLogin ||> acknowledgeNewAuth |> (_.map(_.isDefined))
 
   private var eventHandler: Option[AuthEvent => Any] = None
   def onEvent(handler: AuthEvent => Any): Unit = eventHandler = Option(handler)
@@ -89,7 +89,7 @@ class AuthClient(
       val success = ws.login(token)
       success.foreach { success =>
         if (success)
-          storageAuth ||> acknowledgeToken //TODO double login
+          storageAuth ||> acknowledgeNewAuth //TODO double login
       }
       success
     }.getOrElse(Future.successful(false))
@@ -102,10 +102,8 @@ class AuthClient(
     authApi.login(name, pw).call() |> loginFlow
 
   def logout(): Future[Boolean] =
-    currentAuth.flatMap(_.filterNot(_.user.isImplicit).map(_ => ws.logout() ||> (_ => (Future.successful(None) ||> acknowledgeToken))).getOrElse(Future.successful(false)))
+    currentAuth.flatMap(_.filterNot(_.user.isImplicit).map(_ => ws.logout() ||> (_ => (Future.successful(None) ||> acknowledgeNewAuth))).getOrElse(Future.successful(false)))
 
-  ws.onControlEvent {
-    case ImplicitLogin(auth) =>
-      Future.successful(Option(auth)) ||> acknowledgeToken
-  }
+  def acknowledgeAuth(auth: Authentication): Unit =
+    acknowledgeNewAuth(Future.successful(Option(auth)))
 }

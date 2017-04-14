@@ -13,7 +13,7 @@ trait Dispatcher[Channel, Event] {
   def emit(channel: Channel, event: Event): Unit
 }
 
-class EventDispatcher[Channel, Event](messages: Messages[Channel, Event, _, _, _]) extends Dispatcher[Channel, Event] {
+class EventDispatcher[Channel, Event](messages: Messages[Channel, Event, _, _]) extends Dispatcher[Channel, Event] {
   import messages._
   import WebsocketSerializer.serialize
 
