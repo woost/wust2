@@ -14,6 +14,8 @@ class Messages[Channel : Pickler, Event : Pickler, Error: Pickler, AuthToken: Pi
   case class ImplicitLogin(auth: Auth) extends ControlEvent
 
   //TODO: fix double serialization of request/response through autowire
+  // the map corresponds to the arguments for the called api method
+  // maybe generic over h-list like autowire?
   sealed trait ClientMessage
   case class Ping() extends ClientMessage
   case class CallRequest(seqId: SequenceId, path: Seq[String], args: Map[String, ByteBuffer]) extends ClientMessage

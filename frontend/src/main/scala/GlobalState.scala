@@ -36,6 +36,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
   val currentGroups = RxVar[Seq[UserGroup]](Seq.empty)
   val selectedGroup = {
+    //TODO: magic number for public group!
     val s = RxVar[Long](1)
     RxVar(s, Rx {
       if (currentGroups().exists(_.id == s())) s() else 1
