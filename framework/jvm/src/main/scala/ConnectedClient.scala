@@ -45,8 +45,11 @@ class ConnectedClient[Channel, Event, Error, AuthToken, Auth](
 
             for {
               currentAuth <- currentAuth
-              newAuth <- newAuth
-            } newAuth.filterNot(currentAuth.toSet).foreach { auth =>
+              Some(auth) <- newAuth
+              // this assumes equality on the auth type or auth being the same instance
+              if currentAuth.forall(_ != auth)
+            } {
+              // only done if the auth actually changed in this request
               outgoing ! ControlNotification(ImplicitLogin(auth))
               onLogin(auth)
             }

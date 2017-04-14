@@ -6,14 +6,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import wust.api._
 import wust.util.Pipe
 
+// api authentication wraps the authentication and is instantiated with the current auth on each request
 class ApiAuthentication(auth: Future[Option[Authentication]], createImplicitAuth: () => Future[Option[Authentication]], toError: => Exception) {
-
-  private var createdAuth: Option[Future[Option[Authentication]]] = None
-
   val actualAuth: Future[Option[Authentication]] =
     auth.map(_.filterNot(JWT.isExpired))
 
-  def createdOrActualAuth = createdAuth.getOrElse(actualAuth)
+  private var _createdOrActualAuth: Future[Option[Authentication]] = actualAuth
+  def createdOrActualAuth = _createdOrActualAuth
 
   lazy val actualOrImplicitAuth: Future[Option[Authentication]] = {
     val newAuth = auth.flatMap {
@@ -21,7 +20,7 @@ class ApiAuthentication(auth: Future[Option[Authentication]], createImplicitAuth
       case None => createImplicitAuth()
     }.map(_.filterNot(JWT.isExpired))
 
-    createdAuth = Option(newAuth)
+    _createdOrActualAuth = newAuth
     newAuth
   }
 
