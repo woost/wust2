@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
 //   // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
 //   // Wart.FinalCaseClass :: //TODO: rather have a compiler plugin to add "final"
 //   // Wart.LeakingSealed ::
-//   ContribWart.SomeApply ::
+//   ContribWart.SomeApply :: //TODO: rather have a compiler plugin to transform Some(..) to Option(..) ?
 //   // Wart.OldTime ::
 //   // Wart.AsInstanceOf ::
 //   Wart.Null ::

@@ -237,6 +237,7 @@ object Db {
       }
     }
 
+    //TODO: need better name. What does it check?
     def check(user: User): Future[Boolean] = { //TODO: Option[Long]
       // TODO: in query
       get(user.id).map(_.map { dbUser =>
