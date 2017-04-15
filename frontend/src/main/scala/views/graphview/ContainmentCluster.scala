@@ -8,6 +8,7 @@ import js.JSConverters._
 import org.scalajs.dom
 import vectory._
 import org.scalajs.d3v4._
+import wust.frontend.Color._
 
 import wust.util.Pipe
 import wust.graph._
@@ -30,12 +31,12 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   override val tag = "path"
   override def enterAppend(hull: Selection[ContainmentCluster]) {
     hull
-      .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
-      .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
+      .style("fill", (cluster: ContainmentCluster) => baseColor(cluster.parent.id))
+      .style("stroke", (cluster: ContainmentCluster) => baseColor(cluster.parent.id))
       .style("stroke-linejoin", "round")
       .style("stroke-linecap", "round")
       .style("opacity", "0.8")
-      // .style("mix-blend-mode", "overlay")
+    // .style("mix-blend-mode", "overlay")
   }
 
   // https://codeplea.com/introduction-to-splines
@@ -55,12 +56,12 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
   override val tag = "path"
   override def enterAppend(hull: Selection[ContainmentCluster]) {
     hull
-      .style("fill", (cluster: ContainmentCluster) => cluster.parent.color)
-      .style("stroke", (cluster: ContainmentCluster) => cluster.parent.color)
+      .style("fill", (cluster: ContainmentCluster) => baseColor(cluster.parent.id))
+      .style("stroke", (cluster: ContainmentCluster) => baseColor(cluster.parent.id))
       .style("stroke-linejoin", "round")
       .style("stroke-linecap", "round")
       .style("opacity", "0.4")
-      // .style("stroke-dasharray", "10 5")
+    // .style("stroke-dasharray", "10 5")
   }
 
   // https://codeplea.com/introduction-to-splines

@@ -37,9 +37,12 @@ class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
       ).toString()
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
-        if (hasChildren || collapsedPostIds(p.id))
-          baseColor(p.id)
-        else { // no children
+        if (hasChildren) {
+          if (collapsedPostIds(p.id))
+            postDefaultColor
+          else
+            "transparent" // convex hull shows the color instead
+        } else { // no children
           if (hasParents)
             mixColors(mixedDirectParentColors, postDefaultColor)
           else

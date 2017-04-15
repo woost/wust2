@@ -30,6 +30,7 @@ object Forces {
     forces.redirectedConnection.distance(150)
     forces.containment.distance(100)
     forces.collapsedContainment.distance(100)
+    forces.collapsedContainment.strength(0.01)
 
     forces.gravityX.strength(0.1)
     forces.gravityY.strength(0.1)
