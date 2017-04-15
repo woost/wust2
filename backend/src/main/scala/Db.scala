@@ -36,10 +36,14 @@ object Db {
   }
 
   object post {
-    val createOwnedPost = quote { (title: String, groupId: Long) =>
+    val createOwnedPostQuote = quote { (title: String, groupId: Long) =>
       infix"""with ins as (
         insert into post(id, title) values(DEFAULT, $title) returning id
-      ) insert into ownership(postId, groupId) select id, ${groupId} from ins""".as[Insert[Ownership]]
+      ) insert into ownership(postId, groupId) select id, $groupId from ins""".as[Insert[Ownership]]
+    }
+
+    def createOwnedPost(title: String, groupId: Long): Future[PostId] = {
+      ctx.run(createOwnedPostQuote(lift(title), lift(groupId)).returning(_.postId))
     }
 
     def apply(title: String, groupId: Long): Future[Post] = {
@@ -133,26 +137,44 @@ object Db {
       ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision""".as[Query[Int]] //TODO update? but does not support returning?
     }
 
-    private def createUsergroupForUser(id: Long): Future[Usergroup] = ctx.transaction { ev =>
-      //TODO
+    def createUserGroup(): Future[Long] = {
+      val q = quote(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[Usergroup]].returning(_.id))
+      ctx.run(q)
+    }
+
+    def createUsergroupForUser(userId: Long): Future[Usergroup] = ctx.transaction { ev =>
+      //TODO report quill bug:
       // val q = quote(query[Usergroup].insert(lift(Usergroup())).returning(_.id))
+      // --> produces: "INSERT INTO usergroup () VALUES ()"
+      // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
       val q = quote(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[Usergroup]].returning(_.id))
       ctx.run(q).flatMap { group =>
-        val q = quote(query[UsergroupMember].insert(lift(UsergroupMember(group, Option(id)))))
+        val q = quote(query[UsergroupMember].insert(lift(UsergroupMember(group, Option(userId)))))
         ctx.run(q).map(_ => Usergroup(group))
       }
+    }
+
+    def hasAccessToPost(userId: Long, postId: PostId): Future[Boolean] = {
+      val q = quote {
+        query[Ownership].filter(o => o.postId == lift(postId))
+          .join(query[UsergroupMember].filter(m => m.userId.forall(_ == lift(userId)) || m.userId.isEmpty))
+          .on((o, m) => o.groupId == m.groupId)
+          .nonEmpty
+      }
+
+      ctx.run(q)
     }
 
     def apply(name: String, password: String): Future[Option[User]] = {
       val user = User(name)
       val digest = passwordDigest(password)
-      val q = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
-      val dbUser = ctx.run(q)
+      val userIdQuote = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
+      val userId = ctx.run(userIdQuote)
         .map(id => Option(user.copy(id = id)))
         .recover { case _: Exception => None }
 
       //TODO in user create transaction with one query?
-      dbUser.flatMap {
+      userId.flatMap {
         case Some(user) => createUsergroupForUser(user.id).map(_ => Option(user))
         case None => Future.successful(None)
       }

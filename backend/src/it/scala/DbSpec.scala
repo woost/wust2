@@ -7,6 +7,7 @@ import org.scalatest._
 
 class DbSpec extends AsyncFreeSpec with MustMatchers {
   val publicGroup = 1 //TODO: load from config
+  def await[T](future: Future[T]) = Await.result(future, 10.seconds)
   "post" - {
     "add" in Db.post("t", publicGroup).map { post =>
       post.title mustEqual "t"
@@ -41,7 +42,7 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
 
   //TODO: check if actually in db
   "connects" - {
-    val post = Await.result(Db.post("t", publicGroup), 10.seconds)
+    val post = await(Db.post("t", publicGroup))
 
     "newPost" in Db.connects.newPost("nu", post.id, publicGroup).map {
       case (newPost, connects) =>
@@ -75,7 +76,7 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
 
   //TODO: check if actually in db
   "contains" - {
-    val post = Await.result(Db.post("t", publicGroup), 10.seconds)
+    val post = await(Db.post("t", publicGroup))
 
     "add" in Db.post("nu", publicGroup).flatMap { newPost =>
       Db.contains(newPost.id, post.id).map { contains =>
@@ -89,6 +90,31 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
         Db.contains.delete(contains.id).map { success =>
           success mustEqual true
         }
+      }
+    }
+  }
+
+  "user" - {
+    "hasAccessToPost" - {
+      import Db.user.hasAccessToPost
+      "post in pubic group" in {
+        val Some(user) = await(Db.user("u", "123456"))
+        val post = await(Db.post("p", publicGroup))
+        hasAccessToPost(user.id, post.id).map(_ must be(true))
+      }
+
+      "post in private group (user not member)" in {
+        val Some(user) = await(Db.user("u2", "123456"))
+        val groupId = await(Db.user.createUserGroup())
+        val post = await(Db.post.createOwnedPost("p", groupId))
+        hasAccessToPost(user.id, post.id).map(_ must be(false))
+      }
+
+      "post in private group (user is member)" in {
+        val Some(user) = await(Db.user("u3", "123456"))
+        val group = await(Db.user.createUsergroupForUser(user.id))
+        val post = await(Db.post.createOwnedPost("p", group.id))
+        hasAccessToPost(user.id, post.id).map(_ must be(true))
       }
     }
   }
