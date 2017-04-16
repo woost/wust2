@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 import message._
 
-class TestRequestHandler(onLoginHandler: String => Any) extends RequestHandler[Int, String, String, String, String] {
+object TestRequestHandler extends RequestHandler[Option[String], String, String, Option[String]] {
   private val otherUser = Future.successful(Option("anon"))
 
   override def router(user: Future[Option[String]]): PartialFunction[Request[ByteBuffer], (Future[Option[String]], Future[ByteBuffer])] = {
@@ -26,21 +26,19 @@ class TestRequestHandler(onLoginHandler: String => Any) extends RequestHandler[I
 
   override def pathNotFound(path: Seq[String]) = "path not found"
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
-  override def authenticate(auth: String): Future[Option[String]] = Future.successful(if (auth.isEmpty) None else Option(auth))
-
-  var logins = Seq.empty[String]
-  override def onLogin(auth: String): Any = onLoginHandler(auth)
+  override def initialState = Future.successful(None)
+  override def authenticate(state: Future[Option[String]], auth: String) = Future.successful(if (auth.isEmpty) None else Option(Option(auth)))
+  override def onStateChange(state: Option[String]): Seq[Future[Option[String]]] = Seq(Future.successful(state))
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {
 
-  val messages = new Messages[Int, String, String, String, String]
+  val messages = new Messages[Int, Option[String], String, String]
   import messages._
 
-  val dispatcher = mock[Dispatcher[Int, String]]
+  val dispatcher = mock[Dispatcher[Int, Option[String]]]
 
-  def newActor: ActorRef = newActor(_ => ())
-  def newActor(onLogin: String => Any): ActorRef = TestActorRef(new ConnectedClient(messages, new TestRequestHandler(onLogin), dispatcher))
+  def newActor = TestActorRef(new ConnectedClient(messages, TestRequestHandler, dispatcher))
   def connectActor(actor: ActorRef) = actor ! ConnectedClient.Connect(self)
 
   "unconnected" - {
@@ -104,8 +102,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   }
 
   "control notification" - {
-    var logins = Seq.empty[String]
-    val actor = newActor(auth => logins = logins :+ auth)
+    val actor = newActor
     connectActor(actor)
 
     "implicit login" in {
@@ -113,17 +110,14 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       val pickledResponse = AutowireServer.write[Option[String]](Option("anon"))
       expectMsgAllOf(
         10 seconds,
-        ControlNotification(ImplicitLogin("anon")),
+        Notification(Option("anon")),
         CallResponse(2, Right(pickledResponse))
       )
-
-      logins mustEqual Seq("anon")
     }
   }
 
   "control request" - {
-    var logins = Seq.empty[String]
-    val actor = newActor(auth => logins = logins :+ auth)
+    val actor = newActor
     connectActor(actor)
 
     "unauthenticated at start" in {
@@ -148,13 +142,20 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
       actor ! CallRequest(2, Seq("user"), Map.empty)
       val pickledResponse = AutowireServer.write[Option[String]](Option(userName))
-      expectMsg(CallResponse(2, Right(pickledResponse)))
-      logins mustEqual Seq(userName)
+      expectMsgAllOf(
+        10 seconds,
+        Notification(Option(userName)),
+        CallResponse(2, Right(pickledResponse))
+      )
     }
 
     "logout" in {
       actor ! ControlRequest(2, Logout())
-      expectMsg(ControlResponse(2, true))
+      expectMsgAllOf(
+        10 seconds,
+        Notification(None),
+        ControlResponse(2, true)
+      )
     }
 
     "subscribe" in {

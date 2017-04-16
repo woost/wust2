@@ -32,6 +32,11 @@ class ConnectedClient[Channel, Event, Error, Token, State](
   import ConnectedClient._
   import messages._, handler._
 
+  def notifyStateChange(outgoing: ActorRef, state: State) {
+    val events = onStateChange(state)
+    events.foreach(_.map(Notification.apply).pipeTo(outgoing))
+  }
+
   def connected(outgoing: ActorRef, state: Future[State] = initialState): Receive = {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
@@ -51,7 +56,7 @@ class ConnectedClient[Channel, Event, Error, Token, State](
               // this assumes equality on the state type or state being the same instance
               // only notify if the state actually changed in this request
               if state != newState
-            } onStateChange(newState).foreach(_.map(Notification.apply).pipeTo(outgoing))
+            } notifyStateChange(outgoing, newState)
 
             context.become(connected(outgoing, newState))
           case None =>
@@ -64,8 +69,7 @@ class ConnectedClient[Channel, Event, Error, Token, State](
             .map(newState => ControlResponse(seqId, newState.isDefined))
             .pipeTo(outgoing)
 
-          newState.foreach(_.foreach(onStateChange _))
-
+          newState.foreach(_.foreach(notifyStateChange(outgoing, _)))
           val currentState = for {
             state <- state
             newState <- newState
@@ -73,8 +77,10 @@ class ConnectedClient[Channel, Event, Error, Token, State](
 
           context.become(connected(outgoing, currentState))
         case Logout() =>
+          val newState = initialState
           outgoing ! ControlResponse(seqId, true)
-          context.become(connected(outgoing, initialState))
+          newState.foreach(notifyStateChange(outgoing, _))
+          context.become(connected(outgoing, newState))
         case Subscribe(channel) =>
           dispatcher.subscribe(outgoing, channel)
           outgoing ! ControlResponse(seqId, true)
