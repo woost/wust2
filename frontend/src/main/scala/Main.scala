@@ -16,7 +16,7 @@ import wust.util.Pipe
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
-import rx._
+import rx._, rxext._
 
 object Main extends js.JSApp {
 
@@ -51,6 +51,15 @@ object Main extends js.JSApp {
     )
 
     DevOnly {
+      import state._
+      rawGraph.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+      collapsedPostIds.debug("collapsedPostIds")
+      currentView.debug("currentView")
+      displayGraph.debug { dg => import dg.graph; s"graph: ${graph.posts.size} posts, ${graph.connections.size} connections, ${graph.containments.size} containments" }
+      focusedPostId.debug("focusedPostId")
+      editedPostId.debug("editedPostId")
+      mode.debug("mode")
+
       import scala.meta._
       println("val x = 2".tokenize.get.syntax)
     }

@@ -84,16 +84,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   }
 
-  DevOnly {
-    rawGraph.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
-    collapsedPostIds.debug("collapsedPostIds")
-    currentView.debug("currentView")
-    displayGraph.debug { dg => import dg.graph; s"graph: ${graph.posts.size} posts, ${graph.connections.size} connections, ${graph.containments.size} containments" }
-    focusedPostId.debug("focusedPostId")
-    editedPostId.debug("editedPostId")
-    mode.debug("mode")
-  }
-
   val onAuthEvent: AuthEvent => Unit = _ match {
     case LoggedIn(user) => currentUser() = Option(user)
     case LoggedOut =>
