@@ -1,14 +1,5 @@
 package wust.graph
 
-import collection.breakOut
-
-import wust.graph._
-import wust.util._
-import wust.util.collection._
-
-// views immutable, dass urls nicht kaputt gehen
-// wust.space/view/$viewitd
-
 trait Selector extends (PostId => Boolean) {
   import Selector._
   def intersect(that: Selector): Selector = new Intersect(this, that)
@@ -42,17 +33,3 @@ case class DisplayGraph(
   redirectedConnections: Set[LocalConnection] = Set.empty,
   collapsedContainments: Set[LocalContainment] = Set.empty
 )
-
-
-case class Perspective(
-  collapsed: Selector = Selector.Nothing
-) {
-  def intersect(that: Perspective) = copy(collapsed = this.collapsed intersect that.collapsed)
-  def union(that: Perspective) = copy(collapsed = this.collapsed union that.collapsed)
-}
-
-object Perspective {
-  def apply(view: Perspective, graph: Graph): DisplayGraph = {
-    DisplayGraph(graph) |> Collapse(view.collapsed)
-  }
-}
