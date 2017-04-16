@@ -10,10 +10,10 @@ compose="$compose_stage $stage"
 
 override_sbt_arg="$2"
 function sbt_arg() {
-    arg="$override_sbt_arg"
-    [ -z "$arg" ] && arg="$1"
+    arg=$1
+    [ -n "$override_sbt_arg" ] && arg="$override_sbt_arg"
 
-    sbt "$arg"
+    sbt $arg
 }
 
 case $stage in
