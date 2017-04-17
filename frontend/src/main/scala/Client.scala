@@ -50,10 +50,9 @@ class AuthClient(
 
   private def storageAuth: Future[Option[Authentication]] = (for {
     userId <- storage.userId
-    expires <- storage.expires
     token <- storage.token
   } yield {
-    getUser(userId).map(_.map(Authentication(_, expires, token)))
+    getUser(userId).map(_.map(Authentication(_, token)))
   }).getOrElse(Future.successful(None))
 
   private var currentAuth: Future[Option[Authentication]] =

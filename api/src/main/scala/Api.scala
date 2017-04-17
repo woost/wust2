@@ -75,8 +75,8 @@ object User {
 }
 case class ClientUser(id: Long, name: String)
 case class UserGroup(id: Long, users: Seq[ClientUser])
-//TODO expires does not belong into the client, separate like user
-case class Authentication(user: User, expires: Long, token: Authentication.Token)
+
+case class Authentication(user: User, token: Authentication.Token)
 object Authentication {
   type Token = String
 }

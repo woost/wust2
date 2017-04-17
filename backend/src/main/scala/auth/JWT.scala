@@ -29,8 +29,14 @@ object Claims {
   }
 }
 
+case class JWTAuthentication(user: User, expires: Long, token: Authentication.Token) {
+  def toAuthentication = Authentication(user, token)
+}
+
 object JWT {
   import Claims.UserClaim
+
+  type Token = String
 
   private val secret = "Gordon Shumway" //TODO
   private val algorithm = Algorithm.HS256
@@ -45,13 +51,13 @@ object JWT {
     Seq(wustIss, wustAud, Exp(expires), UserClaim(user))
   )
 
-  def generateAuthentication(user: User): Authentication = {
+  def generateAuthentication(user: User): JWTAuthentication = {
     val expires = expirationTimestamp
     val jwt = generateToken(user, expires)
-    Authentication(user, expires, jwt.encodedAndSigned(secret))
+    JWTAuthentication(user, expires, jwt.encodedAndSigned(secret))
   }
 
-  def authenticationFromToken(token: Authentication.Token): Option[Authentication] = {
+  def authenticationFromToken(token: Authentication.Token): Option[JWTAuthentication] = {
     DecodedJwt.validateEncodedJwt(
       token, secret, algorithm, Set(Typ),
       Set(Iss, Aud, Exp, UserClaim),
@@ -61,10 +67,10 @@ object JWT {
           expires <- decoded.getClaim[Exp]
           user <- decoded.getClaim[UserClaim]
         } yield {
-          Authentication(user.value, expires.value, token)
+          JWTAuthentication(user.value, expires.value, token)
         }
       }
   }
 
-  def isExpired(auth: Authentication): Boolean = auth.expires <= currentTimestamp
+  def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp
 }

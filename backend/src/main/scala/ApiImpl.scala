@@ -8,7 +8,7 @@ import wust.api._
 import wust.graph._
 import auth._
 
-class ApiImpl(apiAuth: ApiAuthentication) extends Api {
+class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   import Server.emit, apiAuth._
 
   private def ownerGroup(user: User, isPrivate: Boolean) =

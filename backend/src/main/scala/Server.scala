@@ -17,19 +17,19 @@ import java.io.{StringWriter, PrintWriter}
 
 case class UserError(error: ApiError) extends Exception
 
-case class State(auth: Option[Authentication])
+case class State(auth: Option[JWTAuthentication])
 
 class ApiRequestHandler extends RequestHandler[ApiEvent, ApiError, Authentication.Token, State] {
 
   private val enableImplicitAuth: Boolean = true //TODO config
 
-  private def createImplicitAuth(): Future[Option[Authentication]] = {
+  private def createImplicitAuth(): Future[Option[JWTAuthentication]] = {
     if (enableImplicitAuth) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
     else Future.successful(None)
   }
 
   override def router(state: Future[State]) = {
-    val apiAuth = new ApiAuthentication(state.map(_.auth), createImplicitAuth _, UserError(Unauthorized))
+    val apiAuth = new AuthenticatedAccess(state.map(_.auth), createImplicitAuth _, UserError(Unauthorized))
 
     (AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
       AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
@@ -67,7 +67,7 @@ class ApiRequestHandler extends RequestHandler[ApiEvent, ApiError, Authenticatio
 
   override def onStateChange(state: State) = state.auth.toSeq.flatMap { auth =>
     import auth.user.{id => userId}
-    val loginEvent = if (auth.user.isImplicit) Option(ImplicitLogin(auth)) else None
+    val loginEvent = if (auth.user.isImplicit) Option(ImplicitLogin(auth.toAuthentication)) else None
 
     loginEvent.toSeq.map(Future.successful) ++ Seq(
       Db.graph.get(Option(userId)).map(ReplaceGraph(_)),

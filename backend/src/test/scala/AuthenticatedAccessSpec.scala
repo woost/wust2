@@ -3,16 +3,16 @@ package wust.backend.auth
 import org.scalatest._
 import scala.concurrent.Future
 
-import wust.api.{Authentication, User}
+import wust.api.User
 
-class ApiAuthenticationSpec extends AsyncFreeSpec with MustMatchers {
+class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
 
-  def validAuth(user: User) = Authentication(user, Long.MaxValue, "abc")
-  def expiredAuth(user: User) = Authentication(user, 123L, "abc")
+  def validAuth(user: User) = JWTAuthentication(user, Long.MaxValue, "abc")
+  def expiredAuth(user: User) = JWTAuthentication(user, 123L, "abc")
   class ErrorEx extends Exception("meh")
 
-  def ApiAuth(auth: Option[Authentication], createImplicitAuth: () => Option[Authentication], toError: => Exception = new ErrorEx) =
-    new ApiAuthentication(Future.successful(auth), () => Future.successful(createImplicitAuth()), toError)
+  def ApiAuth(auth: Option[JWTAuthentication], createImplicitAuth: () => Option[JWTAuthentication], toError: => Exception = new ErrorEx) =
+    new AuthenticatedAccess(Future.successful(auth), () => Future.successful(createImplicitAuth()), toError)
 
   "no user, no implicit" - {
     val api = ApiAuth(None, () => None)
