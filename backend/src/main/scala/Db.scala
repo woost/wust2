@@ -25,7 +25,7 @@ object Db {
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
-  case class Password(id: Long, digest: Array[Byte]) //TODO id: User, encoder: _.id and for the others
+  case class Password(id: Long, digest: Array[Byte])
   case class Ownership(postId: PostId, groupId: Long)
   case class UsergroupMember(groupId: Long, userId: Option[Long]) //TODO: rename to UserGroupMember
   case class Usergroup(id: Long) //TODO: rename to UserGroup

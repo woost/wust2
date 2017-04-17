@@ -44,7 +44,6 @@ class ConnectedClient[Channel, Event, Error, Token, State](
           case Some((newState, response)) =>
             val timer = StopWatch.started
             response
-              //TODO: transform = map + recover?
               .map(resp => CallResponse(seqId, Right(resp)))
               .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
               .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
