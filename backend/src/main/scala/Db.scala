@@ -259,12 +259,12 @@ object Db {
       }
     }
 
-    //TODO: need better name. What does it check?
-    def check(user: User): Future[Boolean] = { //TODO: Option[Long]
-      // TODO: in query
-      get(user.id).map(_.map { dbUser =>
-        dbUser.revision == user.revision && dbUser.isImplicit == user.isImplicit && dbUser.name == user.name
-      }.getOrElse(false))
+    def checkEqualUserExists(user: User): Future[Boolean] = {
+      import user._
+      val q = quote(query[User].filter(
+        u => u.id == lift(id) && u.revision == lift(revision) && u.isImplicit == lift(isImplicit) && u.name == lift(name)
+      ).take(1))
+      ctx.run(q).map(_.nonEmpty)
     }
   }
 

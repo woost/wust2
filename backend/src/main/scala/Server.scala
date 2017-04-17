@@ -57,7 +57,7 @@ class ApiRequestHandler extends RequestHandler[ApiEvent, ApiError, Authenticatio
   override def authenticate(state: Future[State], token: Authentication.Token): Future[Option[State]] =
     JWT.authenticationFromToken(token).map { auth =>
       for {
-        valid <- Db.user.check(auth.user)
+        valid <- Db.user.checkEqualUserExists(auth.user)
         state <- state
       } yield {
         if (valid) Option(state.copy(auth = Option(auth)))
