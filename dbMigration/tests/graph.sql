@@ -1,10 +1,8 @@
 BEGIN;
-SELECT plan(20);
+SELECT plan(19);
 
 /* structure */
 SELECT col_not_null('_post', 'title');
-SELECT has_column('post', 'title');
-
 SELECT col_not_null('_incidence', 'sourceid');
 SELECT col_not_null('_incidence', 'targetid');
 

@@ -1,7 +1,9 @@
 BEGIN;
-SELECT plan(2);
+SELECT plan(4);
 
--- TODO: count?
+SELECT col_is_pk('usergroup', 'id');
+SELECT col_not_null('usergroup', 'id');
+
 SELECT isnt_empty(
     'select * from usergroup where id = 1'
 );
