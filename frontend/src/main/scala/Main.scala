@@ -31,17 +31,15 @@ object Main extends js.JSApp {
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
 
-    Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
+    Client.auth.onEvent(state.onAuthEvent)
+    Client.auth.loadFromStorage()
 
     Client.onConnect { loc =>
+      Client.auth.reauthenticate()
       Client.subscribe(Channel.Graph)
-      Client.auth.reauthenticate().foreach { success =>
-        if (!success)
-          //TODO: public group id from config
-          Client.api.getGraph(1).call().foreach { newGraph =>
-            state.rawGraph() = newGraph
-          }
+      Client.api.getGraph(1).call().foreach { newGraph =>
+        state.rawGraph() = newGraph
       }
     }
 

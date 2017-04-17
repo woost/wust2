@@ -83,16 +83,11 @@ class AuthClient(
   private var eventHandler: Option[AuthEvent => Any] = None
   def onEvent(handler: AuthEvent => Any): Unit = eventHandler = Option(handler)
 
-  def reauthenticate(): Future[Boolean] = {
-    storage.token.map { token =>
-      val success = ws.login(token)
-      success.foreach { success =>
-        if (success)
-          storageAuth ||> acknowledgeNewAuth
-      }
-      success
-    }.getOrElse(Future.successful(false))
-  }
+  def loadFromStorage(): Unit =
+    currentAuth = storageAuth
+
+  def reauthenticate(): Future[Boolean] =
+    currentAuth |> loginFlow
 
   def register(name: String, pw: String): Future[Boolean] =
     authApi.register(name, pw).call() |> loginFlow
