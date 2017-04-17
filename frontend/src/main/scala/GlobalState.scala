@@ -5,6 +5,7 @@ import rx._, rxext._
 import wust.api._
 import wust.graph._
 import wust.util.Pipe
+import wust.frontend.views.{GraphSelection, ViewPage, ViewConfig}
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
@@ -14,23 +15,6 @@ sealed trait InteractionMode
 case class FocusMode(postId: PostId) extends InteractionMode
 case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
-
-sealed trait ViewPage
-object ViewPage {
-  case object Graph extends ViewPage
-  case object Tree extends ViewPage
-  case object User extends ViewPage
-
-  val default = ViewPage.Graph
-
-  val fromHash: PartialFunction[String, ViewPage] = {
-    case "graph" => ViewPage.Graph
-    case "tree" => ViewPage.Tree
-    case "user" => ViewPage.User
-  }
-
-  def toHash(page: ViewPage) = page.toString.toLowerCase
-}
 
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
@@ -43,8 +27,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     })
   }
 
-  val viewPage = UrlRouter.variable
-    .projection[ViewPage](_ |> ViewPage.toHash |> (Option(_)), _.flatMap(ViewPage.fromHash.lift).getOrElse(ViewPage.default))
+  val viewConfig = UrlRouter.variable
+    .projection[ViewConfig](ViewConfig.toHash andThen Option.apply, ViewConfig.fromHash)
+
+  val viewPage = viewConfig
+    .projection[ViewPage](page => viewConfig.now.copy(page = page), _.page)
+
+  val graphSelection = viewConfig
+    .projection[GraphSelection](selection => viewConfig.now.copy(selection = selection), _.selection)
 
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)

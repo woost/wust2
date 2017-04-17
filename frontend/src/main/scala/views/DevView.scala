@@ -9,7 +9,7 @@ import scalatags.JsDom.all._
 import autowire._
 import boopickle.Default._
 
-import wust.frontend.{GlobalState, Client, DevOnly, ViewPage}
+import wust.frontend.{GlobalState, Client, DevOnly}
 import wust.graph._
 import graphview.GraphView
 

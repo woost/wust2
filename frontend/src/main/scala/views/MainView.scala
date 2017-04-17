@@ -11,21 +11,10 @@ import scalatags.JsDom.all._
 import autowire._
 import boopickle.Default._
 
-import wust.frontend.{GlobalState, Client, DevOnly, ViewPage}
+import wust.frontend.{GlobalState, Client, DevOnly}
 import wust.graph._
 import graphview.GraphView
 import wust.api.UserGroup
-
-class ViewPageRouter(page: Rx[ViewPage])(implicit ctx: Ctx.Owner) {
-    def toggleDisplay(f: ViewPage => Boolean): Rx[String] =
-      page.map(m => if (f(m)) "block" else "none")
-
-    def showOn(predicate: ViewPage => Boolean)(elem: TypedTag[Element]) =
-      elem(display := toggleDisplay(predicate))
-
-    def map(mappings: Seq[(ViewPage, TypedTag[Element])]) =
-      div(mappings.map { case (page, elem) => showOn(_ == page)(elem) }: _*)
-}
 
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
@@ -71,7 +60,7 @@ object MainView {
         Nil
       ),
 
-      router.showOn(page => page == ViewPage.Graph || page == ViewPage.Tree)(
+      router.showOn(ViewPage.Graph, ViewPage.Tree)(
         div(position.fixed, width := "100%", bottom := 0, left := 0,
           padding := "5px", background := "#f7f7f7", borderTop := "1px solid #DDD")(
             AddPostForm(state)
