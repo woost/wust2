@@ -33,17 +33,16 @@ object Main extends js.JSApp {
 
     Client.auth.onEvent(state.onAuthEvent)
     Client.onEvent(state.onApiEvent)
-    Client.subscribe(Channel.Graph)
-    Client.auth.reauthenticate().foreach { success =>
-      if (!success)
-        //TODO: public group id from config
-        Client.api.getGraph(1).call().foreach { newGraph =>
-          state.rawGraph() = newGraph
-        }
-    }
 
     Client.onConnect { loc =>
-      //TODO reauth and get graph again and sub
+      Client.subscribe(Channel.Graph)
+      Client.auth.reauthenticate().foreach { success =>
+        if (!success)
+          //TODO: public group id from config
+          Client.api.getGraph(1).call().foreach { newGraph =>
+            state.rawGraph() = newGraph
+          }
+      }
     }
 
     document.getElementById("container").appendChild(
