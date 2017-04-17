@@ -92,7 +92,6 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     }
 
     "call api" in {
-      //TODO: This test is nondeterministic
       actor ! CallRequest(2, Seq("api"),
         Map("s" -> AutowireServer.write[String]("hans")))
 

@@ -88,7 +88,7 @@ class AuthClient(
       val success = ws.login(token)
       success.foreach { success =>
         if (success)
-          storageAuth ||> acknowledgeNewAuth //TODO double login
+          storageAuth ||> acknowledgeNewAuth
       }
       success
     }.getOrElse(Future.successful(false))

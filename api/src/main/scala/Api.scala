@@ -34,11 +34,6 @@ object Channel {
     case _: DeletePost => Graph
     case _: DeleteConnection => Graph
     case _: DeleteContainment => Graph
-
-    // //TODO: different channel?
-    // case _: ReplaceGraph => Graph
-    // case _: ReplaceUserGroups => Graph
-    // case _: ImplicitLogin => Graph
   }
 }
 
