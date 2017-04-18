@@ -7,7 +7,8 @@ import org.scalajs.dom._
 import org.scalajs.dom.raw.HTMLSelectElement
 import scalatags.JsDom.TypedTag
 import scalatags.JsDom.all._
-import scala.util.{ Try, Success, Failure }
+import scala.util.{Try, Success, Failure}
+import collection.breakOut
 
 import wust.api._
 import wust.graph._
@@ -17,12 +18,6 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
 import boopickle.Default._
 
-sealed trait GraphSelection
-object GraphSelection {
-  case object Root extends GraphSelection {}
-  case class Union(ids: Seq[Long]) extends GraphSelection
-}
-
 sealed trait ViewPage
 object ViewPage {
   case object Graph extends ViewPage
@@ -31,12 +26,16 @@ object ViewPage {
 }
 
 object Path {
-  def unapply(str: String): Option[ViewConfig] = Try(URI.create(str)) match {
-    case Success(uri) => parsePage.lift(uri.getPath).map { page =>
-      val map = Option(uri.getQuery).map(queryToMap _).getOrElse(Map.empty)
-      ViewConfig(page, mapToSelection(map))
+  //TODO: parsing crashes on: "http://localhost:12345/workbench/index.html#graph?"
+  def unapply(str: String): Option[ViewConfig] = {
+    println("unapply! " + str)
+    Try(URI.create(str)) match {
+      case Success(uri) => parsePage.lift(uri.getPath).map { page =>
+        val map = Option(uri.getQuery).map(queryToMap _).getOrElse(Map.empty)
+        ViewConfig(page, mapToSelection(map))
+      }
+      case Failure(_) => None
     }
-    case Failure(_) => None
   }
 
   def apply(config: ViewConfig): String = {
@@ -49,8 +48,8 @@ object Path {
 
   private val parsePage: PartialFunction[String, ViewPage] = {
     case "graph" => ViewPage.Graph
-    case "tree"  => ViewPage.Tree
-    case "user"  => ViewPage.User
+    case "tree" => ViewPage.Tree
+    case "user" => ViewPage.User
   }
 
   private def queryToMap(query: String): Map[String, String] =
@@ -64,12 +63,12 @@ object Path {
 
   private def mapToSelection(map: Map[String, String]): GraphSelection =
     map.get("select").flatMap { ids =>
-      Try(ids.split(",").map(_.toLong).toSeq).toOption
+      Try(ids.split(",").map(id => PostId(id.toLong))(breakOut): Set[PostId]).toOption
     }.map(GraphSelection.Union.apply) getOrElse GraphSelection.Root
 
   private val selectionToMap: GraphSelection => Map[String, String] = {
-    case GraphSelection.Root       => Map.empty
-    case GraphSelection.Union(ids) => Map("select" -> ids.mkString(","))
+    case GraphSelection.Root => Map.empty
+    case GraphSelection.Union(ids) => Map("select" -> ids.map(_.id).mkString(","))
   }
 }
 
@@ -77,7 +76,7 @@ case class ViewConfig(page: ViewPage, selection: GraphSelection)
 object ViewConfig {
   val fromHash: Option[String] => ViewConfig = {
     case Some(Path(config)) => config
-    case _                  => ViewConfig(ViewPage.Graph, GraphSelection.Root)
+    case _ => ViewConfig(ViewPage.Graph, GraphSelection.Root)
   }
 
   def toHash: ViewConfig => String = Path.apply _

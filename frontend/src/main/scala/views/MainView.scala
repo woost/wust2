@@ -31,33 +31,17 @@ object MainView {
         span(
           s"user: ${user.name}",
           UserView.logoutButton(state.currentUser)
-        ).render
-      }.getOrElse(span.render))),
-
-      span(" groups: ", state.currentGroups.map { gs =>
-        select { //TODO: use public groupid constant from config
-          val groupsIdsWithNames = (1L, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
-          groupsIdsWithNames.map {
-            case (groupId, name) => option(name, value := groupId)
-          }
-        }(
-          onchange := { (e: Event) =>
-            val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
-            state.selectedGroup() = groupId
-            //TODO: where to automatically request new graph on group change? Globalstate?
-            Client.api.getGraph(groupId).call().foreach { newGraph => state.rawGraph() = newGraph }
-          }
-        ).render
-      }),
+        )
+      }.getOrElse(span()).render)),
 
       // TODO: make scalatags-rx accept primitive datatypes as strings
       span(" selected group: ", state.selectedGroup.map(_.toString)),
 
-      router.map (
+      router.map(
         ViewPage.Graph -> GraphView(state, disableSimulation) ::
-        ViewPage.Tree -> TreeView(state) ::
-        ViewPage.User -> UserView(state) ::
-        Nil
+          ViewPage.Tree -> TreeView(state) ::
+          ViewPage.User -> UserView(state) ::
+          Nil
       ),
 
       router.showOn(ViewPage.Graph, ViewPage.Tree)(

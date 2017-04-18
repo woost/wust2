@@ -76,6 +76,23 @@ object AddPostForm {
       {
         //TODO: pattern matching is broken inside Rx
         Rx {
+
+          // span(" groups: ", state.currentGroups.map { gs =>
+          //   select { //TODO: use public groupid constant from config
+          //     val groupsIdsWithNames = (1L, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
+          //     groupsIdsWithNames.map {
+          //       case (groupId, name) => option(name, value := groupId)
+          //     }
+          //   }(
+          //     onchange := { (e: Event) =>
+          //       val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
+          //       state.selectedGroup() = groupId
+          //       //TODO: where to automatically request new graph on group change? Globalstate?
+          //       // Client.api.getGraph(groupId).call().foreach { newGraph => state.rawGraph() = newGraph }
+          //     }
+          //   ).render
+          // }),
+
           input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
             val input = e.target.asInstanceOf[HTMLInputElement]
             val text = input.value

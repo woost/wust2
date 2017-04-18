@@ -31,6 +31,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
     // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
     MenuAction("Delete", { (p: SimPost, s: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
     MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
+    MenuAction("Focus", { (p: SimPost, s: Simulation[SimPost]) => graphState.state.graphSelection.updatef(_.add(p.id)) }) ::
     Nil
   )
 

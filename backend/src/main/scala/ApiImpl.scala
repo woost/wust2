@@ -65,5 +65,10 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  def getGraph(groupId: Long): Future[Graph] = withUserOpt(uOpt => Db.graph.get(uOpt.map(_.id), groupId))
+  def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt { uOpt =>
+    selection match {
+      case GraphSelection.Root => Db.graph.getAllVisiblePosts(uOpt.map(_.id))
+      case _ => Future.successful(Graph.empty)
+    }
+  }
 }

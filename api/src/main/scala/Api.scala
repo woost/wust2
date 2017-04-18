@@ -8,7 +8,7 @@ import wust.graph._
 trait Api {
   def getPost(id: PostId): Future[Option[Post]]
   def deletePost(id: PostId): Future[Boolean]
-  def getGraph(groupId: Long): Future[Graph]
+  def getGraph(selection: GraphSelection): Future[Graph]
   def addPost(msg: String, groupId: Long): Future[Post]
   def respond(to: PostId, msg: String, groupId: Long): Future[(Post, Connects)]
   def updatePost(post: Post): Future[Boolean]

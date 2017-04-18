@@ -11,7 +11,7 @@ import wust.frontend.Color._
 import wust.util.collection._
 import wust.util.Pipe
 
-class GraphState(state: GlobalState)(implicit ctx: Ctx.Owner) {
+class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxDisplayGraph = state.displayGraph
   val rxEditedPostId = state.editedPostId
   val rxCollapsedPostIds = state.collapsedPostIds

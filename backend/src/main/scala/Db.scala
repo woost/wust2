@@ -269,10 +269,12 @@ object Db {
   }
 
   object graph {
-    def get(userId: Option[Long], groupId: Long = 1): Future[Graph] = { // TODO: store currently selected group in ConnectedClient?
+    // def getUnion(userId: Option[Long], parentIds: Seq[Long]): Future[Graph] = { // TODO: store currently selected parents in ConnectedClient?
+    // }
+    def getAllVisiblePosts(userId: Option[Long]): Future[Graph] = {
       val postQuery = quote {
         for {
-          m <- query[UsergroupMember].filter(m => (m.userId == lift(userId) || m.userId.isEmpty) && m.groupId == lift(groupId))
+          m <- query[UsergroupMember].filter(m => (m.userId == lift(userId) || m.userId.isEmpty))
           o <- query[Ownership].join(o => o.groupId == m.groupId)
           p <- query[Post].join(p => p.id == o.postId)
         } yield p

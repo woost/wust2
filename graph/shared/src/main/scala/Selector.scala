@@ -1,5 +1,18 @@
 package wust.graph
 
+sealed trait GraphSelection {
+  def add(parentId: PostId): GraphSelection
+}
+
+object GraphSelection {
+  case object Root extends GraphSelection {
+    def add(parentId: PostId) = Union(Set(parentId))
+  }
+  case class Union(parentIds: Set[PostId]) extends GraphSelection {
+    def add(parentId: PostId) = copy(parentIds + parentId)
+  }
+}
+
 trait Selector extends (PostId => Boolean) {
   import Selector._
   def intersect(that: Selector): Selector = new Intersect(this, that)

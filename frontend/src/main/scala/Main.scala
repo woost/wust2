@@ -38,7 +38,7 @@ object Main extends js.JSApp {
     Client.onConnect { loc =>
       Client.auth.reauthenticate()
       Client.subscribe(Channel.Graph)
-      Client.api.getGraph(1).call().foreach { newGraph =>
+      Client.api.getGraph(state.graphSelection.now).call().foreach { newGraph =>
         state.rawGraph() = newGraph
       }
     }
@@ -46,6 +46,13 @@ object Main extends js.JSApp {
     document.getElementById("container").appendChild(
       views.MainView(state).render
     )
+
+    Rx {
+      val selection = state.graphSelection()
+      Client.api.getGraph(selection).call().foreach { newGraph =>
+        state.rawGraph() = newGraph
+      }
+    }
 
     DevOnly {
       import state._
@@ -56,6 +63,8 @@ object Main extends js.JSApp {
       focusedPostId.debug("focusedPostId")
       editedPostId.debug("editedPostId")
       mode.debug("mode")
+      graphSelection.debug("graphSelection")
+      viewConfig.debug("viewConfig")
 
       import scala.meta._
       println("val x = 2".tokenize.get.syntax)

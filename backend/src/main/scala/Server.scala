@@ -32,14 +32,14 @@ class ApiRequestHandler extends RequestHandler[ApiEvent, ApiError, Authenticatio
     val apiAuth = new AuthenticatedAccess(state.map(_.auth), createImplicitAuth _, UserError(Unauthorized))
 
     (AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
-      ) andThen { case res =>
-        val newState = for {
-          state <- state
-          auth <- apiAuth.createdOrActualAuth
-        } yield state.copy(auth = auth)
+      AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))) andThen {
+        case res =>
+          val newState = for {
+            state <- state
+            auth <- apiAuth.createdOrActualAuth
+          } yield state.copy(auth = auth)
 
-        (newState, res)
+          (newState, res)
       }
   }
 
@@ -70,7 +70,7 @@ class ApiRequestHandler extends RequestHandler[ApiEvent, ApiError, Authenticatio
     val loginEvent = if (auth.user.isImplicit) Option(ImplicitLogin(auth.toAuthentication)) else None
 
     loginEvent.toSeq.map(Future.successful) ++ Seq(
-      Db.graph.get(Option(userId)).map(ReplaceGraph(_)),
+      Db.graph.getAllVisiblePosts(Option(userId)).map(ReplaceGraph(_)),
       Db.user.allGroups(userId).map(ReplaceUserGroups(_))
     )
   }

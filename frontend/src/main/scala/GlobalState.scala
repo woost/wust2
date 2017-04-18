@@ -5,7 +5,7 @@ import rx._, rxext._
 import wust.api._
 import wust.graph._
 import wust.util.Pipe
-import wust.frontend.views.{GraphSelection, ViewPage, ViewConfig}
+import wust.frontend.views.{ViewPage, ViewConfig}
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
@@ -33,6 +33,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val viewPage = viewConfig
     .projection[ViewPage](page => viewConfig.now.copy(page = page), _.page)
 
+  //TODO: ".now" is bad here. Maybe we need:
+  // projection[B](to: (A,B) => A, from: A => B)
   val graphSelection = viewConfig
     .projection[GraphSelection](selection => viewConfig.now.copy(selection = selection), _.selection)
 
@@ -78,8 +80,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case LoggedIn(user) => currentUser() = Option(user)
     case LoggedOut =>
       //TODO: on logout, get new graph from server directly per event instead of requesting here
-      //TODO: public group id from config
-      Client.api.getGraph(1).call().foreach { newGraph =>
+      Client.api.getGraph(graphSelection.now).call().foreach { newGraph =>
         rawGraph() = newGraph
       }
       currentUser() = None
