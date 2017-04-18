@@ -68,7 +68,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt { uOpt =>
     selection match {
       case GraphSelection.Root => Db.graph.getAllVisiblePosts(uOpt.map(_.id))
-      case _ => Future.successful(Graph.empty)
+      case GraphSelection.Union(parentIds) => Db.graph.getUnion(uOpt.map(_.id), parentIds)
     }
   }
 }

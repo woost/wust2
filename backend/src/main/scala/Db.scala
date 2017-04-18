@@ -269,8 +269,14 @@ object Db {
   }
 
   object graph {
-    // def getUnion(userId: Option[Long], parentIds: Seq[Long]): Future[Graph] = { // TODO: store currently selected parents in ConnectedClient?
-    // }
+    def getUnion(userId: Option[Long], parentIds: Set[PostId]): Future[Graph] = {
+      //TODO: in stored procedure
+      getAllVisiblePosts(userId).map { graph =>
+        val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
+        (graph -- graph.postsById.keys.filterNot(transitiveChildren))
+      }
+    }
+
     def getAllVisiblePosts(userId: Option[Long]): Future[Graph] = {
       val postQuery = quote {
         for {
