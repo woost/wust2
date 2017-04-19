@@ -18,15 +18,14 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
   def addPost(msg: String, selection: GraphSelection, groupId: Long): Future[Post] = withUserOrImplicit { user =>
     //TODO: check if user is allowed to create post in group
-    Db.post(msg, groupId) ||> { postFut =>
-      postFut.foreach { post =>
-        NewPost(post) |> emit
-        selection match {
-          case GraphSelection.Union(parentIds) => parentIds.foreach { parentId => contain(parentId, post.id) }
-          case _ =>
-        }
+    Db.post(msg, groupId) ||> (_.foreach { post =>
+      NewPost(post) |> emit
+      selection match {
+        case GraphSelection.Union(parentIds) =>
+          parentIds.foreach(contain(_, post.id))
+        case _ =>
       }
-    }
+    })
   }
 
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit {
@@ -57,12 +56,17 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emit))
   }
 
-  def respond(to: PostId, msg: String, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit { user =>
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit { user =>
     //TODO: check if user is allowed to create post in group
     Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
       case (post, connects) =>
         NewPost(post) |> emit
         NewConnection(connects) |> emit
+        selection match {
+          case GraphSelection.Union(parentIds) =>
+            parentIds.foreach(contain(_, post.id))
+          case _ =>
+        }
     })
   }
 

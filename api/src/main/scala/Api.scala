@@ -10,7 +10,7 @@ trait Api {
   def deletePost(id: PostId): Future[Boolean]
   def getGraph(selection: GraphSelection): Future[Graph]
   def addPost(msg: String, selection: GraphSelection, groupId: Long): Future[Post]
-  def respond(to: PostId, msg: String, groupId: Long): Future[(Post, Connects)]
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)]
   def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects]
   def contain(parentId: PostId, childId: PostId): Future[Contains]

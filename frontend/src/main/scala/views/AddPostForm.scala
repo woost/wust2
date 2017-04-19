@@ -67,7 +67,7 @@ object AddPostForm {
         Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        Client.api.respond(postId, text, groupId).call().map(_ => true)
+        Client.api.respond(postId, text, selection, groupId).call().map(_ => true)
       case _ =>
         Client.api.addPost(text, selection, groupId).call().map(_ => true)
     }
