@@ -2,14 +2,21 @@ package wust.graph
 
 sealed trait GraphSelection {
   def add(parentId: PostId): GraphSelection
+  def remove(parentId: PostId): GraphSelection
 }
 
 object GraphSelection {
   case object Root extends GraphSelection {
     def add(parentId: PostId) = Union(Set(parentId))
+    def remove(parentId: PostId) = Root
   }
   case class Union(parentIds: Set[PostId]) extends GraphSelection {
     def add(parentId: PostId) = copy(parentIds + parentId)
+    def remove(parentId: PostId) = {
+      val newParentIds = parentIds - parentId
+      if (newParentIds.nonEmpty) copy(newParentIds)
+      else Root
+    }
   }
 }
 

@@ -55,6 +55,19 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   initContainerDimensionsAndPositions()
   initEvents()
 
+  // set the background according to focused parents
+  Rx {
+    val selection = state.graphSelection()
+    val focusedParents = selection match {
+      case GraphSelection.Root => Set.empty
+      case GraphSelection.Union(parentIds) => parentIds
+    }
+    val mixedDirectParentColors = mixColors(focusedParents.map(baseColor))
+    container
+      .style("background-color", mixedDirectParentColors.toString())
+      .style("opacity", "0.8")
+  }
+
   Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
     val simPosts = rxSimPosts.now
     val simConnects = rxSimConnects.now

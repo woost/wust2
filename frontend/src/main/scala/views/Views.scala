@@ -39,7 +39,7 @@ object Views {
             "×",
             padding := "0 0 0 3px",
             cursor.pointer,
-            onclick := { () => Client.api.deleteContainment(contains.id).call(); () }
+            onclick := { () => Client.api.deleteContainment(contains.id).call(); }
           )
         )
       }

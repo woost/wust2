@@ -51,7 +51,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val displayGraph = {
-    RxVar(rawGraph, Rx { Perspective(currentView(), rawGraph()) })
+    RxVar(rawGraph, Rx {
+      val selection = graphSelection()
+      val focusedParents = selection match {
+        case GraphSelection.Root => Set.empty
+        case GraphSelection.Union(parentIds) => parentIds
+      }
+      Perspective(currentView(), rawGraph() -- focusedParents)
+    })
   }
 
   val focusedPostId = {

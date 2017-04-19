@@ -20,6 +20,7 @@ object Color {
     d3.lab((al + bl) / 2, (aa + ba) / 2, (ab + bb) / 2)
   }
   def mixColors(colors: Iterable[Color]): Color = {
+    if (colors.isEmpty) return d3.lab("#FFFFFF")
     val colorSum = colors.map(d3.lab).reduce((c1, c2) => d3.lab(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b))
     val colorCount = colors.size
     d3.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
