@@ -16,9 +16,17 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
   def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id)
 
-  def addPost(msg: String, groupId: Long): Future[Post] = withUserOrImplicit { user =>
+  def addPost(msg: String, selection: GraphSelection, groupId: Long): Future[Post] = withUserOrImplicit { user =>
     //TODO: check if user is allowed to create post in group
-    Db.post(msg, groupId) ||> (_.foreach(NewPost(_) |> emit))
+    Db.post(msg, groupId) ||> { postFut =>
+      postFut.foreach { post =>
+        NewPost(post) |> emit
+        selection match {
+          case GraphSelection.Union(parentIds) => parentIds.foreach { parentId => contain(parentId, post.id) }
+          case _ =>
+        }
+      }
+    }
   }
 
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit {

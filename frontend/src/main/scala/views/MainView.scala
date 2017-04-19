@@ -2,7 +2,6 @@ package wust.frontend.views
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom._
-import org.scalajs.dom.raw.HTMLSelectElement
 
 import rx._, rxext._
 import scalatags.rx.all._

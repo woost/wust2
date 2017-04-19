@@ -3,6 +3,7 @@ package wust.frontend.views
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import dom.raw.HTMLInputElement
+import dom.raw.HTMLSelectElement
 import dom.Event
 import dom.document
 import dom.KeyboardEvent
@@ -60,7 +61,7 @@ object AddPostForm {
       case _ => newLabel
     }
 
-    def action(text: String, groupId: Long, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+    def action(text: String, selection: GraphSelection, groupId: Long, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
         Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
@@ -68,7 +69,7 @@ object AddPostForm {
         DevPrintln(s"\nRepsonding to $postId: $text")
         Client.api.respond(postId, text, groupId).call().map(_ => true)
       case _ =>
-        Client.api.addPost(text, groupId).call().map(_ => true)
+        Client.api.addPost(text, selection, groupId).call().map(_ => true)
     }
 
     div(
@@ -76,37 +77,39 @@ object AddPostForm {
       {
         //TODO: pattern matching is broken inside Rx
         Rx {
+          div(
 
-          // span(" groups: ", state.currentGroups.map { gs =>
-          //   select { //TODO: use public groupid constant from config
-          //     val groupsIdsWithNames = (1L, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
-          //     groupsIdsWithNames.map {
-          //       case (groupId, name) => option(name, value := groupId)
-          //     }
-          //   }(
-          //     onchange := { (e: Event) =>
-          //       val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
-          //       state.selectedGroup() = groupId
-          //       //TODO: where to automatically request new graph on group change? Globalstate?
-          //       // Client.api.getGraph(groupId).call().foreach { newGraph => state.rawGraph() = newGraph }
-          //     }
-          //   ).render
-          // }),
-
-          input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
-            val input = e.target.asInstanceOf[HTMLInputElement]
-            val text = input.value
-            val groupId = state.selectedGroup()
-            if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-              action(text, groupId, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
-                if (success) {
-                  input.value = ""
-                  rxEditedPostId() = None
+            input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
+              val input = e.target.asInstanceOf[HTMLInputElement]
+              val text = input.value
+              val groupId = state.selectedGroup()
+              if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
+                action(text, state.graphSelection(), groupId, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
+                  if (success) {
+                    input.value = ""
+                    rxEditedPostId() = None
+                  }
                 }
               }
-            }
-            ()
-          }).render
+              ()
+            }),
+
+            span(" in group: ", state.currentGroups.map { gs =>
+              select { //TODO: use public groupid constant from config
+                val groupsIdsWithNames = (1L, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
+                groupsIdsWithNames.map {
+                  case (groupId, name) => option(name, value := groupId)
+                }
+              }(
+                onchange := { (e: Event) =>
+                  val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
+                  state.selectedGroup() = groupId
+                  //TODO: where to automatically request new graph on group change? Globalstate?
+                  // Client.api.getGraph(groupId).call().foreach { newGraph => state.rawGraph() = newGraph }
+                }
+              ).render
+            })
+          ).render
         }
       }
     )
