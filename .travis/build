@@ -10,7 +10,7 @@ set -o pipefail
 )
 
 sbt docker \
- testJS testJSOpt \
+ testJS \
  coverage testJVM coverageReport
 
 sbt coverageAggregate
