@@ -17,13 +17,15 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxCollapsedPostIds = state.collapsedPostIds
 
   val rxSimPosts: Rx[js.Array[SimPost]] = Rx {
+    val rawGraph = state.rawGraph()
     val graph = rxDisplayGraph().graph
     val collapsedPostIds = rxCollapsedPostIds()
+    val selection = state.graphSelection()
 
     graph.posts.map { p =>
       val sp = new SimPost(p)
 
-      def parents = graph.parents(p.id)
+      def parents = rawGraph.parents(p.id)
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map(baseColor))
       def hasChildren = graph.children(p.id).nonEmpty
