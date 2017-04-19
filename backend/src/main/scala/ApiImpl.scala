@@ -78,10 +78,13 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     })
   }
   def addMember(groupId: Long, userId: Long): Future[Boolean] = withUserOrImplicit { user =>
-    //TODO: check if user has access to group
-    Db.user.addMember(groupId, userId).map(_ => true) ||> (_.foreach { _ =>
-      Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
-    })
+    if (groupId == 1L) Future.failed(new Exception("adding members to public group is not allowed"))
+    else {
+      //TODO: check if user has access to group
+      Db.user.addMember(groupId, userId).map(_ => true) ||> (_.foreach { _ =>
+        Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
+      })
+    }
   }
 
   // def getComponent(id: Id): Graph = {

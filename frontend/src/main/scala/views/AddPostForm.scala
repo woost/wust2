@@ -23,6 +23,8 @@ import wust.graph._
 import wust.frontend._, Color._
 
 object AddPostForm {
+  //TODO: use public groupid constant from config
+  val publicGroupId = 1L
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:",
@@ -96,10 +98,13 @@ object AddPostForm {
             ),
 
             div(" in group: ", state.currentGroups.map { gs =>
-              select { //TODO: use public groupid constant from config
-                val groupsIdsWithNames = (1L, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
+              select {
+                val groupsIdsWithNames = (publicGroupId, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
                 groupsIdsWithNames.map {
-                  case (groupId, name) => option(name, value := groupId, selected := (if (groupId == state.selectedGroup()) "selected" else "a"))
+                  case (groupId, name) =>
+                    val opt = option(name, value := groupId)
+                    if (groupId == state.selectedGroup()) opt(selected)
+                    else opt
                 }
               }(
                 onchange := { (e: Event) =>
@@ -114,7 +119,7 @@ object AddPostForm {
                 state.selectedGroup() = userGroup.id
               }
             }),
-            {
+            if (state.selectedGroup() != publicGroupId) {
               val field = input(placeholder := "invite user by id").render
               div(field, button("invite", onclick := { () =>
                 Try(field.value.toLong).foreach { userId =>
@@ -124,7 +129,7 @@ object AddPostForm {
                   }
                 }
               }))
-            }
+            } else div()
           ).render
         }
       }
