@@ -12,6 +12,7 @@ import concurrent.Future
 import autowire._
 import boopickle.Default._
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.util.Try
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -43,7 +44,6 @@ object AddPostForm {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import state.{displayGraph => rxDisplayGraph, mode => rxMode, editedPostId => rxEditedPostId}
 
-    //TODO: onattached -> store domnode -> focus
     rxMode.foreach { mode =>
       val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
       if (input != null) {
@@ -73,42 +73,58 @@ object AddPostForm {
     }
 
     div(
-      Rx { label(rxMode(), rxDisplayGraph().graph).render },
       {
-        //TODO: pattern matching is broken inside Rx
         Rx {
           div(
-
-            input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
-              val input = e.target.asInstanceOf[HTMLInputElement]
-              val text = input.value
-              val groupId = state.selectedGroup()
-              if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-                action(text, state.graphSelection(), groupId, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
-                  if (success) {
-                    input.value = ""
-                    rxEditedPostId() = None
+            display.flex,
+            div(
+              label(rxMode(), rxDisplayGraph().graph),
+              input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
+                val input = e.target.asInstanceOf[HTMLInputElement]
+                val text = input.value
+                val groupId = state.selectedGroup()
+                if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
+                  action(text, state.graphSelection(), groupId, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
+                    if (success) {
+                      input.value = ""
+                      rxEditedPostId() = None
+                    }
                   }
                 }
-              }
-              ()
-            }),
+                ()
+              })
+            ),
 
-            span(" in group: ", state.currentGroups.map { gs =>
+            div(" in group: ", state.currentGroups.map { gs =>
               select { //TODO: use public groupid constant from config
                 val groupsIdsWithNames = (1L, "public") +: gs.map(g => (g.id, g.users.map(_.name).mkString(", ")))
                 groupsIdsWithNames.map {
-                  case (groupId, name) => option(name, value := groupId)
+                  case (groupId, name) => option(name, value := groupId, selected := (if (groupId == state.selectedGroup()) "selected" else "a"))
                 }
               }(
                 onchange := { (e: Event) =>
                   val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
                   state.selectedGroup() = groupId
-                  //TODO: where to automatically request new graph on group change? Globalstate?
-                  // Client.api.getGraph(groupId).call().foreach { newGraph => state.rawGraph() = newGraph }
                 }
               ).render
-            })
+            }),
+
+            button("new group", onclick := { () =>
+              Client.api.addUserGroup().call().foreach { userGroup =>
+                state.selectedGroup() = userGroup.id
+              }
+            }),
+            {
+              val field = input(placeholder := "invite user by id").render
+              div(field, button("invite", onclick := { () =>
+                Try(field.value.toLong).foreach { userId =>
+                  println(s"group: ${state.selectedGroup()}, user: ${userId}")
+                  Client.api.addMember(state.selectedGroup(), userId).call().foreach { _ =>
+                    field.value = ""
+                  }
+                }
+              }))
+            }
           ).render
         }
       }

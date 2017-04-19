@@ -72,6 +72,17 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
   def getUser(id: Long): Future[Option[User]] = Db.user.get(id)
   def getUserGroups(id: Long): Future[Seq[UserGroup]] = Db.user.allGroups(id)
+  def addUserGroup(): Future[UserGroup] = withUserOrImplicit { user =>
+    Db.user.createUsergroupForUser(user.id).map(group => UserGroup(group.id, Seq(user.toClientUser))) ||> (_.foreach { _ =>
+      Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
+    })
+  }
+  def addMember(groupId: Long, userId: Long): Future[Boolean] = withUserOrImplicit { user =>
+    //TODO: check if user has access to group
+    Db.user.addMember(groupId, userId).map(_ => true) ||> (_.foreach { _ =>
+      Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
+    })
+  }
 
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)

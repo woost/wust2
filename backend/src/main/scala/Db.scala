@@ -154,6 +154,11 @@ object Db {
       }
     }
 
+    def addMember(groupId: Long, userId: Long): Future[Long] = {
+      val q = quote(infix"""insert into usergroupmember(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[UsergroupMember]])
+      ctx.run(q)
+    }
+
     def hasAccessToPost(userId: Long, postId: PostId): Future[Boolean] = {
       val q = quote {
         query[Ownership].filter(o => o.postId == lift(postId))

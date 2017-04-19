@@ -16,8 +16,10 @@ trait Api {
   def contain(parentId: PostId, childId: PostId): Future[Contains]
   def deleteConnection(id: ConnectsId): Future[Boolean]
   def deleteContainment(id: ContainsId): Future[Boolean]
-  def getUser(user: Long): Future[Option[User]]
-  def getUserGroups(user: Long): Future[Seq[UserGroup]]
+  def getUser(userId: Long): Future[Option[User]]
+  def getUserGroups(userId: Long): Future[Seq[UserGroup]]
+  def addUserGroup(): Future[UserGroup]
+  def addMember(groupId: Long, userId: Long): Future[Boolean]
   // def getComponent(id: Id): Future[Graph]
 }
 
@@ -34,6 +36,8 @@ object Channel {
     case _: DeletePost => Graph
     case _: DeleteConnection => Graph
     case _: DeleteContainment => Graph
+
+    case _: ReplaceUserGroups => Graph
   }
 }
 
