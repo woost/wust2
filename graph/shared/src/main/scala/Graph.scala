@@ -160,6 +160,7 @@ package object graph {
 
     def --(ids: Iterable[AtomId]) = ids.foldLeft(this)((g, p) => g - p) //TODO: more efficient
 
+    //TODO: also accept Ownerships and Groups -> should ownerships and groups have atomids?
     val `+`: Atom => Graph = {
       case p: Post => copy(postsById = postsById + (p.id -> p))
       case c: Connects => copy(connectionsById = connectionsById + (c.id -> c))

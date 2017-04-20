@@ -102,6 +102,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       if (focusedPostId.now contains connects.targetId)
         focusedPostId() = Option(connects.sourceId)
     case NewContainment(contains) => rawGraph.updatef(_ + contains)
+    case NewOwnership(ownership) => rawGraph.updatef(g => g.copy(ownerships = g.ownerships + ownership))
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)

@@ -45,7 +45,7 @@ object Db {
       ctx.run(createOwnedPostQuote(lift(title), lift(groupId)).returning(_.postId))
     }
 
-    def apply(title: String, groupId: Long): Future[Post] = {
+    def apply(title: String, groupId: Long): Future[(Post, Ownership)] = {
       val post = Post(title)
 
       //TODO
@@ -54,8 +54,8 @@ object Db {
       ctx.transaction { ev =>
         for {
           postId <- ctx.run(query[Post].insert(lift(post)).returning(_.id))
-          ownershipId <- ctx.run(query[Ownership].insert(lift(Ownership(postId, groupId))))
-        } yield post.copy(id = postId)
+          _ <- ctx.run(query[Ownership].insert(lift(Ownership(postId, groupId))))
+        } yield (post.copy(id = postId), Ownership(postId, groupId))
       }
     }
 
@@ -82,15 +82,15 @@ object Db {
       ) insert into connects(id, sourceId, targetId) select 0, id, ${targetId.id} from ins""".as[Insert[Connects]]
     }
 
-    def newPost(title: String, targetId: ConnectableId, groupId: Long): Future[(Post, Connects)] = {
+    def newPost(title: String, targetId: ConnectableId, groupId: Long): Future[(Post, Connects, Ownership)] = {
       // TODO
       // val q = quote { createPostAndConnects(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
 
       for {
-        post <- post(title, groupId)
+        (post, ownership) <- post(title, groupId)
         connects <- apply(post.id, targetId)
-      } yield (post, connects)
+      } yield (post, connects, ownership)
     }
 
     def apply(sourceId: PostId, targetId: ConnectableId): Future[Connects] = {

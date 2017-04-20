@@ -16,16 +16,20 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
   def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id)
 
+  //TODO: return Future[Boolean]
   def addPost(msg: String, selection: GraphSelection, groupId: Long): Future[Post] = withUserOrImplicit { user =>
     //TODO: check if user is allowed to create post in group
-    Db.post(msg, groupId) ||> (_.foreach { post =>
-      NewPost(post) |> emit
-      selection match {
-        case GraphSelection.Union(parentIds) =>
-          parentIds.foreach(contain(_, post.id))
-        case _ =>
-      }
-    })
+    (Db.post(msg, groupId) ||> (_.foreach {
+      case (post, ownership) =>
+        NewPost(post) |> emit
+        NewOwnership(ownership) |> emit
+
+        selection match {
+          case GraphSelection.Union(parentIds) =>
+            parentIds.foreach(contain(_, post.id))
+          case _ =>
+        }
+    })) map { case (post, _) => post }
   }
 
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit {
@@ -56,18 +60,21 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emit))
   }
 
+  //TODO: return Future[Boolean]
   def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit { user =>
     //TODO: check if user is allowed to create post in group
-    Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
-      case (post, connects) =>
+    (Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
+      case (post, connects, ownership) =>
         NewPost(post) |> emit
         NewConnection(connects) |> emit
+        NewOwnership(ownership) |> emit
+
         selection match {
           case GraphSelection.Union(parentIds) =>
             parentIds.foreach(contain(_, post.id))
           case _ =>
         }
-    })
+    })).map { case (post, connects, _) => (post, connects) }
   }
 
   def getUser(id: Long): Future[Option[User]] = Db.user.get(id)
