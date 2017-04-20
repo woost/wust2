@@ -27,9 +27,8 @@ object AddPostForm {
   val publicGroupId = 1L
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
-      "Edit Post:",
-      button("×", onclick := { (_: Event) => editedPostId() = None }),
-      responseLabel(graph, postId)
+      "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None }),
+      Views.parents(postId, graph)
     )
   }
 
@@ -71,6 +70,7 @@ object AddPostForm {
         DevPrintln(s"\nRepsonding to $postId: $text")
         Client.api.respond(postId, text, selection, groupId).call().map(_ => true)
       case _ =>
+        DevPrintln(s"\nCreating Post: $text")
         Client.api.addPost(text, selection, groupId).call().map(_ => true)
     }
 
