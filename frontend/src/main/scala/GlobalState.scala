@@ -105,7 +105,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
-    case ReplaceGraph(newGraph) => rawGraph() = newGraph
+    case ReplaceGraph(newGraph) => {
+      rawGraph() = newGraph
+      DevOnly {
+        assert(newGraph.consistent == newGraph)
+      }
+    }
     case ReplaceUserGroups(newGroups) => currentGroups() = newGroups
     case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
   }

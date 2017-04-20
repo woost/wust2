@@ -33,32 +33,6 @@ class CollapseSpec extends FreeSpec with MustMatchers {
     }
 
     "helpers" - {
-      // "hasUncollapsedTransitiveParent" in {
-      //   val graph = Graph(
-      //     posts = List(1, 2, 3),
-      //     containments = List(1 -> 2, 2 -> 3)
-      //   )
-      //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = _ => false) must be(true)
-      //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = _.id == 1) must be(false)
-      //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = _.id == 2) must be(false)
-      //   Collapse.hasOnlyUncollapsedTransitiveParents(graph, 3, collapsing = (p => p.id == 1 || p.id == 2)) must be(false)
-
-      //   Collapse.hasOneUncollapsedTransitiveParent(graph, 3, collapsing = _ => false) must be(true)
-      //   Collapse.hasOneUncollapsedTransitiveParent(graph, 3, collapsing = _.id == 1) must be(false)
-      //   Collapse.hasOneUncollapsedTransitiveParent(graph, 3, collapsing = _.id == 2) must be(true)
-      // }
-
-      // "hasUncollapsedTransitiveParent 2" in {
-      //   val graph = Graph(
-      //     posts = List(1, 2, 3, 4, 11),
-      //     containments = List(1 -> 11, 3 -> 11, 2 -> 3, 4 -> 3)
-      //   )
-      //   Collapse.hasOneUncollapsedTransitiveParent(
-      //     graph,
-      //     11,
-      //     collapsing = (p => p.id == 1 || p.id == 2)
-      //   ) must be(true)
-      // }
       "getHiddenPosts" - {
         import Collapse.{getHiddenPosts => hidden}
         "one parent" in {

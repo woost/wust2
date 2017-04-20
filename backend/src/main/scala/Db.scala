@@ -26,7 +26,6 @@ object Db {
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
   case class Password(id: Long, digest: Array[Byte])
-  case class Ownership(postId: PostId, groupId: Long)
   case class UsergroupMember(groupId: Long, userId: Option[Long]) //TODO: rename to UserGroupMember
   case class Usergroup(id: Long) //TODO: rename to UserGroup
   object Usergroup {
@@ -283,27 +282,40 @@ object Db {
     }
 
     def getAllVisiblePosts(userId: Option[Long]): Future[Graph] = {
-      val postQuery = quote {
+      val myMemberships = quote { query[UsergroupMember].filter(m => (m.userId == lift(userId) || m.userId.isEmpty)) }
+      val visibleOwnerships = quote {
         for {
-          m <- query[UsergroupMember].filter(m => (m.userId == lift(userId) || m.userId.isEmpty))
+          m <- myMemberships
           o <- query[Ownership].join(o => o.groupId == m.groupId)
+        } yield o
+      }
+
+      val visiblePosts = quote {
+        for {
+          o <- visibleOwnerships
           p <- query[Post].join(p => p.id == o.postId)
         } yield p
       }
 
       //TODO: we get more edges than needed, because some posts are filtered out by ownership
-      val postFut = ctx.run(postQuery)
+      val postFut = ctx.run(visiblePosts)
       val connectsFut = ctx.run(query[Connects])
       val containsFut = ctx.run(query[Contains])
+      val myGroupsFut = ctx.run(myMemberships.map(_.groupId))
+      val ownershipsFut = ctx.run(visibleOwnerships)
       for {
         posts <- postFut
         connects <- connectsFut
         contains <- containsFut
+        myGroups <- myGroupsFut
+        ownerships <- ownershipsFut
       } yield {
         Graph(
-          posts.by(_.id),
-          connects.by(_.id),
-          contains.by(_.id)
+          posts,
+          connects,
+          contains,
+          myGroups,
+          ownerships
         ).consistent // TODO: consistent should not be necessary here
       }
     }

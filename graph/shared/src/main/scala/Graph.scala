@@ -2,6 +2,7 @@ package wust
 
 package object graph {
   import collection.mutable
+  import collection.breakOut
   import wust.util.Pipe
   import wust.util.collection._
   import wust.util.algorithm._
@@ -24,18 +25,26 @@ package object graph {
   object ContainsId { implicit def fromIdType(id: IdType) = ContainsId(id) }
   case class UnknownConnectableId(id: IdType) extends ConnectableId
 
+  //TODO: wrap GroupId like PostId -> also in db.scala
+  type GroupId = Long
+  case class Ownership(postId: PostId, groupId: Long)
+
   object Graph {
-    def empty = new Graph(Map.empty, Map.empty, Map.empty)
+    def empty = new Graph(Map.empty, Map.empty, Map.empty, Set.empty, Set.empty)
 
     def apply(
       posts: Iterable[Post] = Nil,
       connections: Iterable[Connects] = Nil,
-      containments: Iterable[Contains] = Nil
+      containments: Iterable[Contains] = Nil,
+      groupIds: Iterable[GroupId] = Nil,
+      ownerships: Iterable[Ownership] = Nil
     ): Graph = {
       new Graph(
         posts.by(_.id),
         connections.by(_.id),
-        containments.by(_.id)
+        containments.by(_.id),
+        groupIds.toSet,
+        ownerships.toSet
       )
     }
   }
@@ -43,23 +52,25 @@ package object graph {
   final case class Graph( //TODO: private constructor and costom picklers over lists instead of maps
     postsById: Map[PostId, Post],
     connectionsById: Map[ConnectsId, Connects], //TODO: rename to connectionIdsById and also provide connectionsById?
-    containmentsById: Map[ContainsId, Contains]
+    containmentsById: Map[ContainsId, Contains],
+    groupIds: Set[GroupId],
+    ownerships: Set[Ownership]
   ) {
 
     lazy val posts: Iterable[Post] = postsById.values
     lazy val connections: Iterable[Connects] = connectionsById.values
     lazy val containments: Iterable[Contains] = containmentsById.values
 
-    override def toString = s"Graph(${posts.map(_.id.id).mkString(" ")},${connections.map(c => s"${c.id.id}:${c.sourceId.id}->${c.targetId.id}").mkString(", ")}, ${containments.map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}").mkString(", ")})"
+    override def toString = s"Graph(${posts.map(_.id.id).mkString(" ")},${connections.map(c => s"${c.id.id}:${c.sourceId.id}->${c.targetId.id}").mkString(", ")}, ${containments.map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}").mkString(", ")},groups:${groupIds}, ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")})"
 
     private val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
-    lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId)](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._1, _._2)
-    lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId)](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._2, _._1)
+    lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId), PostId](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._1, _._2)
+    lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId), PostId](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._2, _._1)
     lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, (PostId, PostId)](connections.collect { case Connects(_, in, out: PostId) => (in, out) }, _._2, _._1)
     // TODO: lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connects](connections, _.targetId, _.sourceId)
 
-    lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains](containments, _.parentId, _.childId)
-    lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains](containments, _.childId, _.parentId)
+    lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains, PostId](containments, _.parentId, _.childId)
+    lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains, PostId](containments, _.childId, _.parentId)
     lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Contains](containments, _.parentId, _.childId)
 
     //TODO: remove .mapValues(_.map(_.id))
@@ -95,6 +106,11 @@ package object graph {
       }
       result
     }
+
+    private val groupDefaultPosts: Map[GroupId, Set[PostId]] = groupIds.map(groupId => groupId -> Set.empty[PostId])(breakOut)
+    private val postDefaultGroups = postsById.mapValues(_ => Set.empty[GroupId])
+    lazy val postsByGroupId: Map[GroupId, Set[PostId]] = groupDefaultPosts ++ directedAdjacencyList[GroupId, Ownership, PostId](ownerships, _.groupId, _.postId)
+    lazy val groupsByPostId: Map[PostId, Set[GroupId]] = postDefaultGroups ++ directedAdjacencyList[PostId, Ownership, GroupId](ownerships, _.postId, _.groupId)
 
     private val postDefaultDegree = postsById.mapValues(_ => 0)
     lazy val connectionDegree = postDefaultDegree ++ degreeSequence[ConnectableId, Connects](connections, _.targetId, _.sourceId)
@@ -165,11 +181,18 @@ package object graph {
         c => !postsById.isDefinedAt(c.childId) || !postsById.isDefinedAt(c.parentId)
       }.map(_.id)
 
+      val validOwnerships = ownerships.filter {
+        o => postsById.isDefinedAt(o.postId) && groupIds(o.groupId)
+      }
+
       val g = this -- invalidConnects -- invalidContainments
-      g.copy(connectionsById = g.connectionsById.mapValues {
-        case c @ Connects(_, _, u: UnknownConnectableId) => c.copy(targetId = g.postsById.get(PostId(u.id)).map(_.id).getOrElse(g.connectionsById(ConnectsId(u.id)).id))
-        case valid => valid
-      })
+      g.copy(
+        connectionsById = g.connectionsById.mapValues {
+          case c @ Connects(_, _, u: UnknownConnectableId) => c.copy(targetId = g.postsById.get(PostId(u.id)).map(_.id).getOrElse(g.connectionsById(ConnectsId(u.id)).id))
+          case valid => valid
+        },
+        ownerships = validOwnerships
+      )
     }
 
     lazy val depth: collection.Map[PostId, Int] = {

@@ -4,7 +4,7 @@ import math._
 import org.scalajs.d3v4._
 
 import wust.util.Pipe
-import wust.graph.{ ConnectableId, Post }
+import wust.graph.{ConnectableId, Post}
 
 trait SimConnectable {
   def id: ConnectableId
@@ -17,6 +17,7 @@ class SimPost(val post: Post) extends SimConnectable with ExtendedD3Node with Si
 
   var color = "red"
   var border = "none"
+  var opacity = 1.0
 
   var dragClosest: Option[SimPost] = None
   var isClosest = false

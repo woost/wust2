@@ -35,7 +35,6 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
       .style("stroke", (cluster: ContainmentCluster) => baseColor(cluster.parent.id))
       .style("stroke-linejoin", "round")
       .style("stroke-linecap", "round")
-      .style("opacity", "0.8")
     // .style("mix-blend-mode", "overlay")
   }
 
@@ -49,6 +48,7 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
     hull
       .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
       .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
+      .style("opacity", (cluster: ContainmentCluster) => cluster.parent.opacity * 0.8)
   }
 }
 
@@ -60,7 +60,6 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
       .style("stroke", (cluster: ContainmentCluster) => baseColor(cluster.parent.id))
       .style("stroke-linejoin", "round")
       .style("stroke-linecap", "round")
-      .style("opacity", "0.4")
     // .style("stroke-dasharray", "10 5")
   }
 
@@ -74,5 +73,6 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
     hull
       .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
       .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
+      .style("opacity", (cluster: ContainmentCluster) => cluster.parent.opacity * 0.4)
   }
 }

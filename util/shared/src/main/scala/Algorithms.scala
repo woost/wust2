@@ -5,9 +5,9 @@ object algorithm {
   import scala.collection.breakOut
   import scala.collection.IterableLike
 
-  def directedAdjacencyList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): Map[V, Set[V]] = { // TODO: Multimap
+  def directedAdjacencyList[V1, E, V2](edges: Iterable[E], inf: E => V1, outf: E => V2): Map[V1, Set[V2]] = { // TODO: Multimap
     edges
-      .foldLeft(Map.empty[V, Set[V]].withDefaultValue(Set.empty[V])) {
+      .foldLeft(Map.empty[V1, Set[V2]].withDefaultValue(Set.empty[V2])) {
         (acc, e) =>
           val in = inf(e)
           val out = outf(e)

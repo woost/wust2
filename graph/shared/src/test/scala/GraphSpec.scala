@@ -97,6 +97,17 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.consistent mustEqual Graph(List(1, 2, 3), connects :+ newConnects, contains)
     }
 
+    "consistent on inconsistent graph with ownership" in {
+      val graph = Graph(
+        List(1, 2, 3),
+        groupIds = List(1),
+        ownerships = List(Ownership(postId = 4, groupId = 1), Ownership(postId = 1, groupId = 2))
+      )
+      graph.consistent mustEqual graph.copy(ownerships = Set.empty)
+      (graph + 4).consistent mustEqual (graph + 4).copy(ownerships = Set(Ownership(postId = 4, groupId = 1)))
+      graph.copy(groupIds = Set(1, 2)).consistent mustEqual graph.copy(groupIds = Set(1, 2), ownerships = Set(Ownership(postId = 1, groupId = 2)))
+    }
+
     "consistent on inconsistent graph (reverse)" in {
       val connects: List[Connects] = List(1 -> 2, 2 -> 3)
       val contains: List[Contains] = List(1 -> 2, 2 -> 3)

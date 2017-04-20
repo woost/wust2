@@ -20,7 +20,6 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val rawGraph = state.rawGraph()
     val graph = rxDisplayGraph().graph
     val collapsedPostIds = rxCollapsedPostIds()
-    val selection = state.graphSelection()
 
     graph.posts.map { p =>
       val sp = new SimPost(p)
@@ -29,6 +28,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map(baseColor))
       def hasChildren = graph.children(p.id).nonEmpty
+
       //TODO: move border and color to views.post()
       sp.border = (
         if (hasChildren)
@@ -37,6 +37,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
           "2px solid rgba(0,0,0,0.2)"
         }
       ).toString()
+
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
         if (hasChildren) {
@@ -51,6 +52,9 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
             postDefaultColor
         }
       ).toString()
+
+      sp.opacity = if (graph.groupsByPostId(p.id) contains state.selectedGroup()) 1.0 else 0.3
+
       sp
 
     }.toJSArray

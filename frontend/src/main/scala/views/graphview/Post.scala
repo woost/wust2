@@ -43,6 +43,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     post
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
+      .style("opacity", (p: SimPost) => p.opacity)
       .text((p: SimPost) => p.title)
 
     post.each({ (node: HTMLElement, p: SimPost) =>
