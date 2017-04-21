@@ -7,17 +7,18 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
 
   "indexing" - {
     val edges = List(
-      1 -> 2, 2 -> 3,
+      1 -> 2,
+      2 -> 3,
       1 -> 3
     )
     "directed adjacency list" - {
       "empty" in {
-        directedAdjacencyList[Int, Int](Nil, identity, identity) mustEqual
+        directedAdjacencyList[Int, Int, Int](Nil, identity, identity) mustEqual
           Map.empty
       }
 
       "successors" in {
-        directedAdjacencyList[Int, (Int, Int)](edges, _._1, _._2) mustEqual
+        directedAdjacencyList[Int, (Int, Int), Int](edges, _._1, _._2) mustEqual
           Map(1 -> Set(2, 3), 2 -> Set(3))
       }
     }
@@ -50,7 +51,9 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
 
       "incident edges" in {
         incidenceList[Int, (Int, Int)](edges, _._1, _._2) mustEqual
-          Map(1 -> Set(1 -> 2, 1 -> 3), 2 -> Set(1 -> 2, 2 -> 3), 3 -> Set(1 -> 3, 2 -> 3))
+          Map(1 -> Set(1 -> 2, 1 -> 3),
+              2 -> Set(1 -> 2, 2 -> 3),
+              3 -> Set(1 -> 3, 2 -> 3))
       }
     }
 
@@ -145,8 +148,11 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
 
     "same children" in {
       val tree = redundantSpanningTree(1, (_: Int) => List(2, 3))
-      assert(tree ==
-        Tree(1, List(Tree(2, List(Tree(3, List.empty))), Tree(3, List(Tree(2, List.empty))))))
+      assert(
+        tree ==
+          Tree(1,
+               List(Tree(2, List(Tree(3, List.empty))),
+                    Tree(3, List(Tree(2, List.empty))))))
     }
 
     "directed cycle" in {
@@ -158,8 +164,9 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       )
 
       val tree = redundantSpanningTree(0, edges)
-      assert(tree ==
-        Tree(0, List(Tree(1, List(Tree(2, List(Tree(3, List.empty))))))))
+      assert(
+        tree ==
+          Tree(0, List(Tree(1, List(Tree(2, List(Tree(3, List.empty))))))))
     }
   }
 }
