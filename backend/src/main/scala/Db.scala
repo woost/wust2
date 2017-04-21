@@ -17,11 +17,15 @@ object Db {
   implicit val encodePostId = MappedEncoding[PostId, IdType](_.id)
   implicit val decodePostId = MappedEncoding[IdType, PostId](PostId(_))
   implicit val encodeConnectsId = MappedEncoding[ConnectsId, IdType](_.id)
-  implicit val decodeConnectsId = MappedEncoding[IdType, ConnectsId](ConnectsId(_))
+  implicit val decodeConnectsId =
+    MappedEncoding[IdType, ConnectsId](ConnectsId(_))
   implicit val encodeContainsId = MappedEncoding[ContainsId, IdType](_.id)
-  implicit val decodeContainsId = MappedEncoding[IdType, ContainsId](ContainsId(_))
-  implicit val encodeConnectableId = MappedEncoding[ConnectableId, IdType](_.id)
-  implicit val decodeConnectableId = MappedEncoding[IdType, ConnectableId](UnknownConnectableId(_))
+  implicit val decodeContainsId =
+    MappedEncoding[IdType, ContainsId](ContainsId(_))
+  implicit val encodeConnectableId =
+    MappedEncoding[ConnectableId, IdType](_.id)
+  implicit val decodeConnectableId =
+    MappedEncoding[IdType, ConnectableId](UnknownConnectableId(_))
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
@@ -38,11 +42,14 @@ object Db {
     val createOwnedPostQuote = quote { (title: String, groupId: Long) =>
       infix"""with ins as (
         insert into post(id, title) values(DEFAULT, $title) returning id
-      ) insert into ownership(postId, groupId) select id, $groupId from ins""".as[Insert[Ownership]]
+      ) insert into ownership(postId, groupId) select id, $groupId from ins"""
+        .as[Insert[Ownership]]
     }
 
+    //TODO: this is a duplicate for apply -> merge
     def createOwnedPost(title: String, groupId: Long): Future[PostId] = {
-      ctx.run(createOwnedPostQuote(lift(title), lift(groupId)).returning(_.postId))
+      ctx.run(
+        createOwnedPostQuote(lift(title), lift(groupId)).returning(_.postId))
     }
 
     def apply(title: String, groupId: Long): Future[(Post, Ownership)] = {
@@ -54,7 +61,8 @@ object Db {
       ctx.transaction { ev =>
         for {
           postId <- ctx.run(query[Post].insert(lift(post)).returning(_.id))
-          _ <- ctx.run(query[Ownership].insert(lift(Ownership(postId, groupId))))
+          _ <- ctx.run(
+            query[Ownership].insert(lift(Ownership(postId, groupId))))
         } yield (post.copy(id = postId), Ownership(postId, groupId))
       }
     }
@@ -65,7 +73,9 @@ object Db {
     }
 
     def update(post: Post): Future[Boolean] = {
-      val q = quote { query[Post].filter(_.id == lift(post.id)).update(lift(post)) }
+      val q = quote {
+        query[Post].filter(_.id == lift(post.id)).update(lift(post))
+      }
       ctx.run(q).map(_ == 1)
     }
 
@@ -76,13 +86,17 @@ object Db {
   }
 
   object connects {
-    val createPostAndConnects = quote { (title: String, targetId: ConnectableId) =>
-      infix"""with ins as (
+    val createPostAndConnects = quote {
+      (title: String, targetId: ConnectableId) =>
+        infix"""with ins as (
         insert into post(id, title) values(DEFAULT, $title) returning id
-      ) insert into connects(id, sourceId, targetId) select 0, id, ${targetId.id} from ins""".as[Insert[Connects]]
+      ) insert into connects(id, sourceId, targetId) select 0, id, ${targetId.id} from ins"""
+          .as[Insert[Connects]]
     }
 
-    def newPost(title: String, targetId: ConnectableId, groupId: Long): Future[(Post, Connects, Ownership)] = {
+    def newPost(title: String,
+                targetId: ConnectableId,
+                groupId: Long): Future[(Post, Connects, Ownership)] = {
       // TODO
       // val q = quote { createPostAndConnects(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
@@ -95,7 +109,9 @@ object Db {
 
     def apply(sourceId: PostId, targetId: ConnectableId): Future[Connects] = {
       val connects = Connects(sourceId, targetId)
-      val q = quote { query[Connects].insert(lift(connects)).returning(x => x.id) }
+      val q = quote {
+        query[Connects].insert(lift(connects)).returning(x => x.id)
+      }
       ctx.run(q).map(id => connects.copy(id = id))
     }
 
@@ -108,7 +124,9 @@ object Db {
   object contains {
     def apply(parentId: PostId, childId: PostId): Future[Contains] = {
       val contains = Contains(parentId, childId)
-      val q = quote { query[Contains].insert(lift(contains)).returning(x => x.id) }
+      val q = quote {
+        query[Contains].insert(lift(contains)).returning(x => x.id)
+      }
       ctx.run(q).map(id => contains.copy(id = id))
     }
 
@@ -127,41 +145,57 @@ object Db {
       val revision = lift(User.initialRevision)
       infix"""with ins as (
         insert into "user"(id, name, isImplicit, revision) values(DEFAULT, $name, false, $revision) returning id
-      ) insert into password(id, digest) select id, $digest from ins""".as[Insert[User]]
+      ) insert into password(id, digest) select id, $digest from ins"""
+        .as[Insert[User]]
     }
 
-    val createPasswordAndUpdateUser = quote { (id: Long, name: String, digest: Array[Byte]) =>
-      infix"""with ins as (
+    val createPasswordAndUpdateUser = quote {
+      (id: Long, name: String, digest: Array[Byte]) =>
+        infix"""with ins as (
         insert into password(id, digest) values($id, $digest)
-      ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision""".as[Query[Int]] //TODO update? but does not support returning?
+      ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision"""
+          .as[Query[Int]] //TODO update? but does not support returning?
     }
 
     def createUserGroup(): Future[Long] = {
-      val q = quote(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[Usergroup]].returning(_.id))
+      val q = quote(
+        infix"insert into usergroup(id) values(DEFAULT)"
+          .as[Insert[Usergroup]]
+          .returning(_.id))
       ctx.run(q)
     }
 
-    def createUsergroupForUser(userId: Long): Future[Usergroup] = ctx.transaction { ev =>
-      //TODO report quill bug:
-      // val q = quote(query[Usergroup].insert(lift(Usergroup())).returning(_.id))
-      // --> produces: "INSERT INTO usergroup () VALUES ()"
-      // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
-      val q = quote(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[Usergroup]].returning(_.id))
-      ctx.run(q).flatMap { group =>
-        val q = quote(query[UsergroupMember].insert(lift(UsergroupMember(group, Option(userId)))))
-        ctx.run(q).map(_ => Usergroup(group))
+    def createUsergroupForUser(userId: Long): Future[Usergroup] =
+      ctx.transaction { ev =>
+        //TODO report quill bug:
+        // val q = quote(query[Usergroup].insert(lift(Usergroup())).returning(_.id))
+        // --> produces: "INSERT INTO usergroup () VALUES ()"
+        // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
+        val q = quote(
+          infix"insert into usergroup(id) values(DEFAULT)"
+            .as[Insert[Usergroup]]
+            .returning(_.id))
+        ctx.run(q).flatMap { group =>
+          val q = quote(
+            query[UsergroupMember].insert(
+              lift(UsergroupMember(group, Option(userId)))))
+          ctx.run(q).map(_ => Usergroup(group))
+        }
       }
-    }
 
     def addMember(groupId: Long, userId: Long): Future[Long] = {
-      val q = quote(infix"""insert into usergroupmember(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[UsergroupMember]])
+      val q = quote(
+        infix"""insert into usergroupmember(groupId, userId) values (${lift(
+          groupId)}, ${lift(userId)})""".as[Insert[UsergroupMember]])
       ctx.run(q)
     }
 
     def hasAccessToPost(userId: Long, postId: PostId): Future[Boolean] = {
       val q = quote {
-        query[Ownership].filter(o => o.postId == lift(postId))
-          .join(query[UsergroupMember].filter(m => m.userId.forall(_ == lift(userId)) || m.userId.isEmpty))
+        query[Ownership]
+          .filter(o => o.postId == lift(postId))
+          .join(query[UsergroupMember].filter(m =>
+            m.userId.forall(_ == lift(userId)) || m.userId.isEmpty))
           .on((o, m) => o.groupId == m.groupId)
           .nonEmpty
       }
@@ -172,14 +206,18 @@ object Db {
     def apply(name: String, password: String): Future[Option[User]] = {
       val user = User(name)
       val digest = passwordDigest(password)
-      val userIdQuote = quote { createUserAndPassword(lift(name), lift(digest)).returning(_.id) }
-      val userId = ctx.run(userIdQuote)
+      val userIdQuote = quote {
+        createUserAndPassword(lift(name), lift(digest)).returning(_.id)
+      }
+      val userId = ctx
+        .run(userIdQuote)
         .map(id => Option(user.copy(id = id)))
         .recover { case _: Exception => None }
 
       //TODO in user create transaction with one query?
       userId.flatMap {
-        case Some(user) => createUsergroupForUser(user.id).map(_ => Option(user))
+        case Some(user) =>
+          createUsergroupForUser(user.id).map(_ => Option(user))
         case None => Future.successful(None)
       }
     }
@@ -193,19 +231,28 @@ object Db {
       dbUser.flatMap(user => createUsergroupForUser(user.id).map(_ => user))
     }
 
-    def activateImplicitUser(id: Long, name: String, password: String): Future[Option[User]] = {
+    def activateImplicitUser(id: Long,
+                             name: String,
+                             password: String): Future[Option[User]] = {
       val digest = passwordDigest(password)
       //TODO
       // val user = User(id, name)
       // val q = quote { createPasswordAndUpdateUser(lift(id), lift(name), lift(digest)) }
       // ctx.run(q).map(revision => Some(user.copy(revision = revision)))
-      ctx.run(query[User].filter(_.id == lift(id))).flatMap(_.headOption.map { user =>
-        val updatedUser = user.copy(name = name, isImplicit = false, revision = user.revision + 1)
-        for {
-          newUser <- ctx.run(query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
-          pw <- ctx.run(query[Password].insert(lift(Password(id, digest))))
-        } yield Option(updatedUser)
-      }.getOrElse(Future.successful(None)))
+      ctx
+        .run(query[User].filter(_.id == lift(id)))
+        .flatMap(_.headOption
+          .map { user =>
+            val updatedUser = user.copy(name = name,
+                                        isImplicit = false,
+                                        revision = user.revision + 1)
+            for {
+              newUser <- ctx.run(
+                query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
+              pw <- ctx.run(query[Password].insert(lift(Password(id, digest))))
+            } yield Option(updatedUser)
+          }
+          .getOrElse(Future.successful(None)))
         .recover { case e: Exception => None }
     }
 
@@ -219,12 +266,19 @@ object Db {
 
     def get(name: String, password: String): Future[Option[User]] = {
       val q = quote {
-        query[User].filter(_.name == lift(name)).join(query[Password]).on((u, p) => u.id == p.id).take(1)
+        query[User]
+          .filter(_.name == lift(name))
+          .join(query[Password])
+          .on((u, p) => u.id == p.id)
+          .take(1)
       }
 
-      ctx.run(q).map(_.headOption.collect {
-        case (user, pw) if (passwordDigest(password) hash = pw.digest) => user
-      })
+      ctx
+        .run(q)
+        .map(_.headOption.collect {
+          case (user, pw) if (passwordDigest(password) hash = pw.digest) =>
+            user
+        })
     }
 
     def group(user: User): Future[Usergroup] = { //TODO: Long
@@ -248,7 +302,8 @@ object Db {
 
       val q = quote {
         for {
-          m <- query[UsergroupMember].filter(m => m.userId == lift(Option(userId)))
+          m <- query[UsergroupMember].filter(m =>
+            m.userId == lift(Option(userId)))
           m1 <- query[UsergroupMember].filter(m1 => m1.groupId == m.groupId)
           u <- query[User].join(u => m1.userId.forall(_ == u.id))
         } yield (m.groupId, u.id, u.name)
@@ -256,18 +311,23 @@ object Db {
 
       ctx.run(q).map {
         _.groupBy(_._1).map {
-          case (groupId, users) => api.UserGroup(groupId, users.map {
-            case (_, uid, uname) => api.ClientUser(uid, uname)
-          })
+          case (groupId, users) =>
+            api.UserGroup(groupId, users.map {
+              case (_, uid, uname) => api.ClientUser(uid, uname)
+            })
         }.toSeq
       }
     }
 
     def checkEqualUserExists(user: User): Future[Boolean] = {
       import user._
-      val q = quote(query[User].filter(
-        u => u.id == lift(id) && u.revision == lift(revision) && u.isImplicit == lift(isImplicit) && u.name == lift(name)
-      ).take(1))
+      val q = quote(query[User]
+        .filter(
+          u =>
+            u.id == lift(id) && u.revision == lift(revision) && u.isImplicit == lift(
+              isImplicit) && u.name == lift(name)
+        )
+        .take(1))
       ctx.run(q).map(_.nonEmpty)
     }
   }
@@ -282,7 +342,10 @@ object Db {
     }
 
     def getAllVisiblePosts(userId: Option[Long]): Future[Graph] = {
-      val myMemberships = quote { query[UsergroupMember].filter(m => (m.userId == lift(userId) || m.userId.isEmpty)) }
+      val myMemberships = quote {
+        query[UsergroupMember].filter(m =>
+          (m.userId == lift(userId) || m.userId.isEmpty))
+      }
       val visibleOwnerships = quote {
         for {
           m <- myMemberships
