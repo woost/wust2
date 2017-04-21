@@ -12,12 +12,15 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   import Server.emit, apiAuth._
 
   private def ownerGroup(user: User, isPrivate: Boolean) =
-    if (isPrivate) Db.user.group(user).map(Option.apply) else Future.successful(None)
+    if (isPrivate) Db.user.group(user).map(Option.apply)
+    else Future.successful(None)
 
   def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id)
 
   //TODO: return Future[Boolean]
-  def addPost(msg: String, selection: GraphSelection, groupId: Long): Future[Post] = withUserOrImplicit { user =>
+  def addPost(msg: String,
+              selection: GraphSelection,
+              groupId: Long): Future[Post] = withUserOrImplicit { user =>
     //TODO: check if user is allowed to create post in group
     (Db.post(msg, groupId) ||> (_.foreach {
       case (post, ownership) =>
@@ -42,66 +45,81 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emit))
   }
 
-  def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects] = withUserOrImplicit {
-    Db.connects(sourceId, targetId) ||> (_.foreach(NewConnection(_) |> emit))
-  }
+  def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects] =
+    withUserOrImplicit {
+      Db.connects(sourceId, targetId) ||> (_.foreach(NewConnection(_) |> emit))
+    }
 
   def deleteConnection(id: ConnectsId): Future[Boolean] = withUserOrImplicit {
     //TODO: check if user is allowed to delete connection
     Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emit))
   }
 
-  def contain(parentId: PostId, childId: PostId): Future[Contains] = withUserOrImplicit {
-    Db.contains(parentId, childId) ||> (_.foreach(NewContainment(_) |> emit))
-  }
+  def contain(parentId: PostId, childId: PostId): Future[Contains] =
+    withUserOrImplicit {
+      Db.contains(parentId, childId) ||> (_.foreach(NewContainment(_) |> emit))
+    }
 
   def deleteContainment(id: ContainsId): Future[Boolean] = withUserOrImplicit {
     //TODO: check if user is allowed to delete containment
-    Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emit))
+    Db.contains.delete(id) ||> (_.foreach(
+      if (_) DeleteContainment(id) |> emit))
   }
 
   //TODO: return Future[Boolean]
-  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit { user =>
-    //TODO: check if user is allowed to create post in group
-    (Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
-      case (post, connects, ownership) =>
-        NewPost(post) |> emit
-        NewConnection(connects) |> emit
-        NewOwnership(ownership) |> emit
+  def respond(to: PostId,
+              msg: String,
+              selection: GraphSelection,
+              groupId: Long): Future[(Post, Connects)] = withUserOrImplicit {
+    user =>
+      //TODO: check if user is allowed to create post in group
+      (Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
+        case (post, connects, ownership) =>
+          NewPost(post) |> emit
+          NewConnection(connects) |> emit
+          NewOwnership(ownership) |> emit
 
-        selection match {
-          case GraphSelection.Union(parentIds) =>
-            parentIds.foreach(contain(_, post.id))
-          case _ =>
-        }
-    })).map { case (post, connects, _) => (post, connects) }
+          selection match {
+            case GraphSelection.Union(parentIds) =>
+              parentIds.foreach(contain(_, post.id))
+            case _ =>
+          }
+      })).map { case (post, connects, _) => (post, connects) }
   }
 
   def getUser(id: Long): Future[Option[User]] = Db.user.get(id)
   def getUserGroups(id: Long): Future[Seq[UserGroup]] = Db.user.allGroups(id)
   def addUserGroup(): Future[UserGroup] = withUserOrImplicit { user =>
-    Db.user.createUsergroupForUser(user.id).map(group => UserGroup(group.id, Seq(user.toClientUser))) ||> (_.foreach { _ =>
-      Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
+    Db.user
+      .createUsergroupForUser(user.id)
+      .map(group => UserGroup(group.id, Seq(user.toClientUser))) ||> (_.foreach {
+      _ =>
+        Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
     })
   }
-  def addMember(groupId: Long, userId: Long): Future[Boolean] = withUserOrImplicit { user =>
-    if (groupId == 1L) Future.failed(new Exception("adding members to public group is not allowed"))
-    else {
-      //TODO: check if user has access to group
-      Db.user.addMember(groupId, userId).map(_ => true) ||> (_.foreach { _ =>
-        Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
-      })
+  def addMember(groupId: Long, userId: Long): Future[Boolean] =
+    withUserOrImplicit { user =>
+      if (groupId == 1L)
+        Future.failed(
+          new Exception("adding members to public group is not allowed"))
+      else {
+        //TODO: check if user has access to group
+        Db.user.addMember(groupId, userId).map(_ => true) ||> (_.foreach { _ =>
+          Db.user.allGroups(user.id).map(ReplaceUserGroups(_)).foreach(emit)
+        })
+      }
     }
-  }
 
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt { uOpt =>
-    selection match {
-      case GraphSelection.Root => Db.graph.getAllVisiblePosts(uOpt.map(_.id))
-      case GraphSelection.Union(parentIds) => Db.graph.getUnion(uOpt.map(_.id), parentIds)
-    }
+  def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt {
+    uOpt =>
+      selection match {
+        case GraphSelection.Root => Db.graph.getAllVisiblePosts(uOpt.map(_.id))
+        case GraphSelection.Union(parentIds) =>
+          Db.graph.getUnion(uOpt.map(_.id), parentIds)
+      }
   }
 }

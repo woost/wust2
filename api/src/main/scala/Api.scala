@@ -74,7 +74,7 @@ object User {
   def apply(name: String): User = User(0L, name, false, initialRevision)
   def apply(): User = User(0L, implicitUserName(), true, initialRevision)
 }
-case class ClientUser(id: Long, name: String) //TODO: derive: identify only by id
+case class ClientUser(id: Long, name: String) //TODO: derive: identify only by id //TODO: rename to User (the db-user should be DbUser or db.User)
 case class UserGroup(id: Long, users: Seq[ClientUser])
 
 case class Authentication(user: User, token: Authentication.Token)
