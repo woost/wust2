@@ -112,8 +112,9 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
 
       "post in private group (user not member)" in {
         val Some(user) = await(Db.user("u2", "123456"))
-        val groupId = await(Db.user.createUserGroup())
-        val post = await(Db.post.createOwnedPost("p", groupId))
+        val Some(user2) = await(Db.user("other", "123456"))
+        val group = await(Db.user.createUsergroupForUser(user2.id))
+        val post = await(Db.post.createOwnedPost("p", group.id))
         hasAccessToPost(user.id, post.id).map(_ must be(false))
       }
 

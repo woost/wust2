@@ -19,15 +19,15 @@ import boopickle.Default._
 import message._
 
 object WebsocketFlow {
-  def apply[Channel, Event, Error, Token, State](
-    messages: Messages[Channel, Event, Error, Token],
-    handler: RequestHandler[Event, Error, Token, State],
-    dispatcher: Dispatcher[Channel, Event])(implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
+  def apply[Event, Error, State](
+    messages: Messages[Event, Error],
+    handler: RequestHandler[Event, Error, State])
+    (implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
 
     import WebsocketSerializer._
     import messages._
 
-    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, handler, dispatcher)))
+    val connectedClientActor = system.actorOf(Props(new ConnectedClient(messages, handler)))
 
     val incoming: Sink[Message, NotUsed] =
       Flow[Message].map {
@@ -48,26 +48,26 @@ object WebsocketFlow {
           case msg: ServerMessage =>
             scribe.info(s"--> $msg")
             WebsocketSerializer.serialize(msg)
-          case other: Message => other
+          case other: Message =>
+            //we pass through already serialized websocket messages
+            //in order to allow serializing once and sending to multiple clients
+            other
         }
 
     Flow.fromSinkAndSource(incoming, outgoing)
   }
 }
 
-class WebsocketServer[Channel: Pickler, Event: Pickler, Error: Pickler, Token: Pickler, State](
-    handler: RequestHandler[Event, Error, Token, State]) {
-
+class WebsocketServer[Event: Pickler, Error: Pickler, State](handler: RequestHandler[Event, Error, State]) {
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
-  val messages = new Messages[Channel, Event, Error, Token]
-  private val dispatcher = new EventDispatcher(messages)
+  val messages = new Messages[Event, Error]
+  import messages._
 
-  val emit = dispatcher.emit _
-  def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler, dispatcher))
+  def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler))
+  def serializedEvent(event: Event): Message = WebsocketSerializer.serialize[ServerMessage](Notification(event))
 
-  def run(route: Route, interface: String, port: Int): Future[ServerBinding] = {
+  def run(route: Route, interface: String, port: Int): Future[ServerBinding] =
     Http().bindAndHandle(route, interface = interface, port = port)
-  }
 }

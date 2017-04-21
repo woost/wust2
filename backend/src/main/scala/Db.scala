@@ -157,14 +157,6 @@ object Db {
           .as[Query[Int]] //TODO update? but does not support returning?
     }
 
-    def createUserGroup(): Future[Long] = {
-      val q = quote(
-        infix"insert into usergroup(id) values(DEFAULT)"
-          .as[Insert[Usergroup]]
-          .returning(_.id))
-      ctx.run(q)
-    }
-
     def createUsergroupForUser(userId: Long): Future[Usergroup] =
       ctx.transaction { ev =>
         //TODO report quill bug:

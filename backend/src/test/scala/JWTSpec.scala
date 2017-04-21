@@ -5,7 +5,7 @@ import org.scalatest._
 import wust.api.User
 
 class JWTSpec extends FreeSpec with MustMatchers {
-  "generate token for user" in {
+  "generate auth for user" in {
     val user = User("Biermann")
     val auth = JWT.generateAuthentication(user)
 
@@ -14,11 +14,17 @@ class JWTSpec extends FreeSpec with MustMatchers {
     auth.token.length must be > 0
   }
 
-  "generated token is not expired" in {
+  "generated auth is not expired" in {
     val user = User("Frau Mahlzahn")
     val auth = JWT.generateAuthentication(user)
 
     JWT.isExpired(auth) mustEqual false
+  }
+
+  "expired auth is expired" in {
+    val user = User("Frau Mahlzahn")
+    val auth = JWT.generateAuthentication(user).copy(expires = 0)
+    JWT.isExpired(auth) mustEqual true
   }
 
   "authentication from token" in {

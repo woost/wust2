@@ -14,31 +14,36 @@ import scala.concurrent.duration._
 
 import message._
 
-object TestRequestHandler extends RequestHandler[Option[String], String, String, Option[String]] {
+object TestRequestHandler extends RequestHandler[String, String, Option[String]] {
   private val otherUser = Future.successful(Option("anon"))
 
-  override def router(user: Future[Option[String]]): PartialFunction[Request[ByteBuffer], (Future[Option[String]], Future[ByteBuffer])] = {
-    case Request("api" :: Nil, args) => (user, Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
-    case Request("user" :: Nil, _) => (user, user.map(u => Pickle.intoBytes[Option[String]](u)))
-    case Request("user" :: "change" :: Nil, _) => (otherUser, otherUser.map(u => Pickle.intoBytes[Option[String]](u)))
-    case Request("broken" :: Nil, _) => (user, Future.failed(new Exception("an error")))
+  override def router(sender: EventSender[String], state: Future[Option[String]]): PartialFunction[Request[ByteBuffer], RequestResult[Option[String]]] = {
+    case Request("api" :: Nil, args) =>
+      RequestResult(state, Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
+    case Request("event" :: Nil, _) =>
+      sender.send("event")
+      RequestResult(state, Future.successful(Pickle.intoBytes[Boolean](true)))
+    case Request("state" :: Nil, _) =>
+      RequestResult(state, state.map(u => Pickle.intoBytes[Option[String]](u)))
+    case Request("state" :: "change" :: Nil, _) =>
+      RequestResult(otherUser, Future.successful(Pickle.intoBytes[Boolean](true)))
+    case Request("broken" :: Nil, _) =>
+      RequestResult(state, Future.failed(new Exception("an error")))
   }
+
+  override def initialState = Future.successful(None)
+  override def onClientStop(sender: EventSender[String], state: Option[String]) = sender.send("stopped")
 
   override def pathNotFound(path: Seq[String]) = "path not found"
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
-  override def initialState = Future.successful(None)
-  override def authenticate(state: Future[Option[String]], auth: String) = Future.successful(if (auth.isEmpty) None else Option(Option(auth)))
-  override def onStateChange(state: Option[String]): Seq[Future[Option[String]]] = Seq(Future.successful(state))
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {
 
-  val messages = new Messages[Int, Option[String], String, String]
+  val messages = new Messages[String, String]
   import messages._
 
-  val dispatcher = mock[Dispatcher[Int, Option[String]]]
-
-  def newActor = TestActorRef(new ConnectedClient(messages, TestRequestHandler, dispatcher))
+  def newActor = TestActorRef(new ConnectedClient(messages, TestRequestHandler))
   def connectActor(actor: ActorRef) = actor ! ConnectedClient.Connect(self)
 
   "unconnected" - {
@@ -51,11 +56,6 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
     "no call request" in {
       actor ! CallRequest(2, Seq("invalid", "path"), Map.empty)
-      expectNoMsg
-    }
-
-    "no control request" in {
-      actor ! ControlRequest(2, Login(""))
       expectNoMsg
     }
 
@@ -98,75 +98,32 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       val pickledResponse = AutowireServer.write[String]("snah")
       expectMsg(CallResponse(2, Right(pickledResponse)))
     }
-  }
 
-  "control notification" - {
-    val actor = newActor
-    connectActor(actor)
+    "switch state" in {
+      actor ! CallRequest(1, Seq("state"), Map.empty)
+      actor ! CallRequest(2, Seq("state", "change"), Map.empty)
+      actor ! CallRequest(3, Seq("state"), Map.empty)
 
-    "implicit login" in {
-      actor ! CallRequest(2, Seq("user", "change"), Map.empty)
-      val pickledResponse = AutowireServer.write[Option[String]](Option("anon"))
+      val pickledResponse1 = AutowireServer.write[Option[String]](None)
+      val pickledResponse2 = AutowireServer.write[Boolean](true)
+      val pickledResponse3 = AutowireServer.write[Option[String]](Option("anon"))
       expectMsgAllOf(
         10 seconds,
-        Notification(Option("anon")),
+        CallResponse(1, Right(pickledResponse1)),
+        CallResponse(2, Right(pickledResponse2)),
+        CallResponse(3, Right(pickledResponse3))
+      )
+    }
+
+    "send event" in {
+      actor ! CallRequest(2, Seq("event"), Map.empty)
+
+      val pickledResponse = AutowireServer.write[Boolean](true)
+      expectMsgAllOf(
+        10 seconds,
+        Notification("event"),
         CallResponse(2, Right(pickledResponse))
       )
-    }
-  }
-
-  "control request" - {
-    val actor = newActor
-    connectActor(actor)
-
-    "unauthenticated at start" in {
-      actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[Option[String]](None)
-      expectMsg(CallResponse(2, Right(pickledResponse)))
-    }
-
-    "invalid login" in {
-      actor ! ControlRequest(2, Login(""))
-      expectMsg(ControlResponse(2, false))
-
-      actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[Option[String]](None)
-      expectMsg(CallResponse(2, Right(pickledResponse)))
-    }
-
-    "valid login" in {
-      val userName = "pete"
-      actor ! ControlRequest(2, Login(userName))
-      expectMsg(ControlResponse(2, true))
-
-      actor ! CallRequest(2, Seq("user"), Map.empty)
-      val pickledResponse = AutowireServer.write[Option[String]](Option(userName))
-      expectMsgAllOf(
-        10 seconds,
-        Notification(Option(userName)),
-        CallResponse(2, Right(pickledResponse))
-      )
-    }
-
-    "logout" in {
-      actor ! ControlRequest(2, Logout())
-      expectMsgAllOf(
-        10 seconds,
-        Notification(None),
-        ControlResponse(2, true)
-      )
-    }
-
-    "subscribe" in {
-      actor ! ControlRequest(2, Subscribe(1))
-      expectMsg(ControlResponse(2, true))
-      verify(dispatcher).subscribe(self, 1)
-    }
-
-    "unsubscribe" in {
-      actor ! ControlRequest(2, Unsubscribe(1))
-      expectMsg(ControlResponse(2, true))
-      verify(dispatcher).unsubscribe(self, 1)
     }
   }
 
@@ -177,8 +134,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     "stops actor" in {
       actor ! ConnectedClient.Stop
       actor ! Ping()
-      expectNoMsg
-      verify(dispatcher).unsubscribe(self)
+      expectMsg(Notification("stopped"))
     }
   }
 }

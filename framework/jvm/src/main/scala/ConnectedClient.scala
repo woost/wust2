@@ -7,89 +7,70 @@ import java.nio.ByteBuffer
 
 import akka.actor._
 import akka.pattern.pipe
+import akka.http.scaladsl.model.ws.Message
 import autowire.Core.Request
 
 import wust.util.time.StopWatch
 import wust.util.Pipe
 import message._
 
-trait RequestHandler[Event, Error, Token, State] {
-  def router(state: Future[State]): PartialFunction[Request[ByteBuffer], (Future[State], Future[ByteBuffer])]
-  def pathNotFound(path: Seq[String]): Error
-  def toError: PartialFunction[Throwable, Error]
+class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) extends Comparable[EventSender[Event]] {
+  import messages._
 
-  def initialState: Future[State]
-  def authenticate(state: Future[State], token: Token): Future[Option[State]]
-  def onStateChange(state: State): Seq[Future[Event]]
+  def compareTo(other: EventSender[Event]) = actor.compareTo(other.actor)
+
+  // possibility to send already serialized websocket messages
+  def send(event: Message) = {
+    scribe.info(s"--> serialized event: $event")
+    actor ! event
+  }
+
+  def send(event: Event): Unit = {
+    scribe.info(s"--> event: $event")
+    actor ! Notification(event)
+  }
 }
 
-class ConnectedClient[Channel, Event, Error, Token, State](
-  messages: Messages[Channel, Event, Error, Token],
-  handler: RequestHandler[Event, Error, Token, State],
-  dispatcher: Dispatcher[Channel, Event]
-) extends Actor {
+case class RequestResult[State](state: Future[State], result: Future[ByteBuffer])
 
+trait RequestHandler[Event, Error, State] {
+  def initialState: Future[State]
+  def onClientStop(sender: EventSender[Event], state: State): Any
+
+  def router(sender: EventSender[Event], state: Future[State]): PartialFunction[Request[ByteBuffer], RequestResult[State]]
+  def pathNotFound(path: Seq[String]): Error
+  def toError: PartialFunction[Throwable, Error]
+}
+
+class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
+  handler: RequestHandler[Event, Error, State]
+) extends Actor {
   import ConnectedClient._
   import messages._, handler._
 
-  def notifyStateChange(outgoing: ActorRef, state: State) {
-    val events = onStateChange(state)
-    events.foreach(_.map(Notification.apply).pipeTo(outgoing))
-  }
+  def connected(outgoing: ActorRef, state: Future[State]): Receive = {
+    val sender = new EventSender(messages, outgoing)
 
-  def connected(outgoing: ActorRef, state: Future[State] = initialState): Receive = {
+    {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
-        router(state).lift(Request(path, args)) match {
-          case Some((newState, response)) =>
-            val timer = StopWatch.started
+        val timer = StopWatch.started
+        router(sender, state).lift(Request(path, args)) match {
+          case Some(RequestResult(newState, response)) =>
             response
               .map(resp => CallResponse(seqId, Right(resp)))
               .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
               .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-            for {
-              state <- state
-              newState <- newState
-              // this assumes equality on the state type or state being the same instance
-              // only notify if the state actually changed in this request
-              if state != newState
-            } notifyStateChange(outgoing, newState)
-
             context.become(connected(outgoing, newState))
           case None =>
             outgoing ! CallResponse(seqId, Left(pathNotFound(path)))
         }
-      case ControlRequest(seqId, control) => control match {
-        case Login(token) =>
-          val newState = authenticate(state, token)
-          newState
-            .map(newState => ControlResponse(seqId, newState.isDefined))
-            .pipeTo(outgoing)
-
-          newState.foreach(_.foreach(notifyStateChange(outgoing, _)))
-          val currentState = for {
-            state <- state
-            newState <- newState
-          } yield newState.getOrElse(state)
-
-          context.become(connected(outgoing, currentState))
-        case Logout() =>
-          val newState = initialState
-          outgoing ! ControlResponse(seqId, true)
-          newState.foreach(notifyStateChange(outgoing, _))
-          context.become(connected(outgoing, newState))
-        case Subscribe(channel) =>
-          dispatcher.subscribe(outgoing, channel)
-          outgoing ! ControlResponse(seqId, true)
-        case Unsubscribe(channel) =>
-          dispatcher.unsubscribe(outgoing, channel)
-          outgoing ! ControlResponse(seqId, true)
-      }
       case Stop =>
-        dispatcher.unsubscribe(outgoing)
+        state.foreach(onClientStop(sender, _))
         context.stop(self)
+    }
   }
 
   def receive = {

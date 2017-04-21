@@ -23,25 +23,6 @@ trait Api {
   // def getComponent(id: Id): Future[Graph]
 }
 
-sealed trait Channel
-object Channel {
-  case object Graph extends Channel
-
-  //TODO: this is boilerplate
-  def fromEvent: PartialFunction[ApiEvent, Channel] = {
-    case _: NewPost => Graph
-    case _: UpdatedPost => Graph
-    case _: NewConnection => Graph
-    case _: NewContainment => Graph
-    case _: NewOwnership => Graph
-    case _: DeletePost => Graph
-    case _: DeleteConnection => Graph
-    case _: DeleteContainment => Graph
-
-    case _: ReplaceUserGroups => Graph
-  }
-}
-
 sealed trait ApiError
 case object InternalServerError extends ApiError
 case class NotFound(path: Seq[String]) extends ApiError
@@ -56,13 +37,16 @@ case class NewOwnership(edge: Ownership) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
 case class DeleteConnection(id: ConnectsId) extends ApiEvent
 case class DeleteContainment(id: ContainsId) extends ApiEvent
-case class ReplaceGraph(graph: Graph) extends ApiEvent
-@deprecated("use usergroups stored in graph and updated incrementally", "") case class ReplaceUserGroups(groups: Seq[UserGroup]) extends ApiEvent
 case class ImplicitLogin(auth: Authentication) extends ApiEvent
+case class ReplaceGraph(graph: Graph) extends ApiEvent
+@deprecated("use usergroups stored in graph and updated incrementally", "")
+case class ReplaceUserGroups(groups: Seq[UserGroup]) extends ApiEvent
 
 trait AuthApi {
   def register(name: String, password: String): Future[Option[Authentication]]
   def login(name: String, password: String): Future[Option[Authentication]]
+  def loginToken(token: Authentication.Token): Future[Option[Authentication]]
+  def logout(): Future[Boolean]
 }
 
 case class User(id: Long, name: String, isImplicit: Boolean, revision: Int) {

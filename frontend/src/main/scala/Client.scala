@@ -24,14 +24,12 @@ class ApiIncidentHandler extends IncidentHandler[ApiError] {
 object Client {
   private val handler = new ApiIncidentHandler
   private val storage = new ClientStorage(LocalStorage)
-  val ws = new WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token](handler)
+  val ws = new WebsocketClient[ApiEvent, ApiError](handler)
 
   val api = ws.wire[Api]
   val auth = new AuthClient(ws, storage, id => api.getUser(id).call())
   val onConnect = ws.onConnect _
   val onEvent = ws.onEvent _
-  val subscribe = ws.subscribe _
-  val unsubscribe = ws.unsubscribe _
   val run = ws.run _
 }
 
@@ -40,27 +38,17 @@ case class LoggedIn(user: User) extends AuthEvent
 case object LoggedOut extends AuthEvent
 
 class AuthClient(
-  ws: WebsocketClient[Channel, ApiEvent, ApiError, Authentication.Token],
+  ws: WebsocketClient[ApiEvent, ApiError],
   storage: ClientStorage,
   getUser: Long => Future[Option[User]]
 ) {
-  import ws.messages._
-
   private val authApi = ws.wire[AuthApi]
 
-  private def storageAuth: Future[Option[Authentication]] = (for {
-    userId <- storage.userId
-    token <- storage.token
-  } yield {
-    getUser(userId).map(_.map(Authentication(_, token)))
-  }).getOrElse(Future.successful(None))
-
-  private var currentAuth: Future[Option[Authentication]] =
-    Future.successful(None)
-
+  private var currentAuth: Future[Option[Authentication]] = Future.successful(None)
+  private def storedToken: Option[Authentication.Token] = storage.token
   private def storeToken(auth: Future[Option[Authentication]]) {
     currentAuth = auth
-    currentAuth.foreach(storage.setAuth)
+    currentAuth.foreach(auth => storage.token = auth.map(_.token))
   }
 
   private def sendAuthEvent(auth: Future[Option[Authentication]]): Unit =
@@ -74,20 +62,14 @@ class AuthClient(
     } ||> storeToken ||> sendAuthEvent
   }
 
-  private def withClientLogin(auth: Future[Option[Authentication]]): Future[Option[Authentication]] =
-    auth.flatMap(_.map(auth => ws.login(auth.token).map(if (_) Option(auth) else None)).getOrElse(Future.successful(None)))
-
   private def loginFlow(auth: Future[Option[Authentication]]): Future[Boolean] =
-    auth |> withClientLogin ||> acknowledgeNewAuth |> (_.map(_.isDefined))
+    auth ||> acknowledgeNewAuth |> (_.map(_.isDefined))
 
   private var eventHandler: Option[AuthEvent => Any] = None
   def onEvent(handler: AuthEvent => Any): Unit = eventHandler = Option(handler)
 
-  def loadFromStorage(): Unit =
-    currentAuth = storageAuth
-
   def reauthenticate(): Future[Boolean] =
-    currentAuth |> loginFlow
+    currentAuth.flatMap(authOpt => authOpt.map(_.token).orElse(storedToken).map(token => authApi.loginToken(token).call()).getOrElse(Future.successful(None))) |> loginFlow
 
   def register(name: String, pw: String): Future[Boolean] =
     authApi.register(name, pw).call() |> loginFlow
@@ -96,7 +78,7 @@ class AuthClient(
     authApi.login(name, pw).call() |> loginFlow
 
   def logout(): Future[Boolean] =
-    currentAuth.flatMap(_.filterNot(_.user.isImplicit).map(_ => ws.logout() ||> (_ => (Future.successful(None) ||> acknowledgeNewAuth))).getOrElse(Future.successful(false)))
+    currentAuth.flatMap(_.filterNot(_.user.isImplicit).map(_ => authApi.logout().call() ||> (_ => (Future.successful(None) ||> acknowledgeNewAuth))).getOrElse(Future.successful(false)))
 
   def acknowledgeAuth(auth: Authentication): Unit =
     acknowledgeNewAuth(Future.successful(Option(auth)))

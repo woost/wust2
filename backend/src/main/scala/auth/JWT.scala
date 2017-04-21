@@ -46,7 +46,7 @@ object JWT {
 
   private def expirationTimestamp = currentTimestamp + 86400 // 24h
 
-  private def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
+  def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
     Seq(Alg(algorithm), Typ("JWT")),
     Seq(wustIss, wustAud, Exp(expires), UserClaim(user))
   )
@@ -63,13 +63,13 @@ object JWT {
       Set(Iss, Aud, Exp, UserClaim),
       iss = Option(wustIss), aud = Option(wustAud)
     ).toOption.flatMap { decoded =>
-        for {
-          expires <- decoded.getClaim[Exp]
-          user <- decoded.getClaim[UserClaim]
-        } yield {
-          JWTAuthentication(user.value, expires.value, token)
-        }
+      for {
+        expires <- decoded.getClaim[Exp]
+        user <- decoded.getClaim[UserClaim]
+      } yield {
+        JWTAuthentication(user.value, expires.value, token)
       }
+    }.filterNot(isExpired)
   }
 
   def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp

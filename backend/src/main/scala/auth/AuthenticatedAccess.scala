@@ -14,6 +14,9 @@ class AuthenticatedAccess(auth: Future[Option[JWTAuthentication]], createImplici
   private var _createdOrActualAuth: Future[Option[JWTAuthentication]] = actualAuth
   def createdOrActualAuth = _createdOrActualAuth
 
+  def setAuth(auth: Future[Option[JWTAuthentication]]) =
+    _createdOrActualAuth = auth
+
   lazy val actualOrImplicitAuth: Future[Option[JWTAuthentication]] = {
     val newAuth = auth.flatMap {
       case Some(auth) => Future.successful(Option(auth))

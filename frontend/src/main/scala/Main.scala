@@ -33,12 +33,13 @@ object Main extends js.JSApp {
 
     Client.onEvent(state.onApiEvent)
     Client.auth.onEvent(state.onAuthEvent)
-    Client.auth.loadFromStorage()
 
     Client.onConnect { loc =>
       Client.auth.reauthenticate()
-      Client.subscribe(Channel.Graph)
-      Client.api.getGraph(state.graphSelection.now).call().foreach { newGraph =>
+    }
+
+    state.graphSelection.foreach { selection =>
+      Client.api.getGraph(selection).call().foreach { newGraph =>
         state.rawGraph() = newGraph
       }
     }
@@ -46,13 +47,6 @@ object Main extends js.JSApp {
     document.getElementById("container").appendChild(
       views.MainView(state).render
     )
-
-    Rx {
-      val selection = state.graphSelection()
-      Client.api.getGraph(selection).call().foreach { newGraph =>
-        state.rawGraph() = newGraph
-      }
-    }
 
     DevOnly {
       import state._

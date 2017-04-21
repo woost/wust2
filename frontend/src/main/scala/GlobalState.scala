@@ -86,10 +86,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val onAuthEvent: AuthEvent => Unit = _ match {
     case LoggedIn(user) => currentUser() = Option(user)
     case LoggedOut =>
-      //TODO: on logout, get new graph from server directly per event instead of requesting here
-      Client.api.getGraph(graphSelection.now).call().foreach { newGraph =>
-        rawGraph() = newGraph
-      }
       currentUser() = None
       currentGroups() = Nil
   }
