@@ -25,21 +25,20 @@ object UserView {
     passwordField.value = ""
   })
 
-  val registerButton =
-    buttonClick("register", Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess)
-  def loginButton(currentUser: WriteVar[Option[User]]) = //TODO: does not need currentUser?
-    buttonClick("login", Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess)
-  def logoutButton(currentUser: WriteVar[Option[User]]) = //TODO: does not need currentUser?
-    buttonClick("logout", Client.auth.logout())
+  val registerButton = buttonClick("register",
+    Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess)
+  val loginButton = buttonClick("login",
+    Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess)
+  val logoutButton = buttonClick("logout",
+    Client.auth.logout())
 
   val registerMask = div(userField, passwordField, registerButton)
-  def userProfile(currentUser: WriteVar[Option[User]], user: User) =
-    div(user.toString, logoutButton(currentUser))
+  def userProfile(user: User) = div(user.toString, logoutButton)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div {
     state.currentUser.map {
-      case Some(user) => userProfile(state.currentUser, user)(if (user.isImplicit) registerMask else div()).render
-      case None => registerMask(loginButton(state.currentUser)).render
+      case Some(user) => userProfile(user)(if (user.isImplicit) registerMask else div()).render
+      case None => registerMask(loginButton).render
     }
   }
 }

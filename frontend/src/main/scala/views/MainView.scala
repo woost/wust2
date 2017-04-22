@@ -30,10 +30,7 @@ object MainView {
 
         //TODO: make scalatagst-rx accept Rx[Option[T]], then getOrElse can be dropped
         span(state.currentUser.map(_.map { user =>
-          span(
-            s"user: ${user.name}",
-            UserView.logoutButton(state.currentUser)
-          )
+          span(s"user: ${user.name}", UserView.logoutButton)
         }.getOrElse(span()).render)),
 
         // TODO: make scalatags-rx accept primitive datatypes as strings
