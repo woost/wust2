@@ -18,25 +18,25 @@ class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
     val api = ApiAuth(None, () => None)
 
     "actualAuth" in api.actualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "createOrActualAuth" in api.createdOrActualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "actualOrImplicitAuth" in {
       api.actualOrImplicitAuth.map { auth =>
-        auth must beNone
+        auth mustEqual None
       }
 
       api.createdOrActualAuth.map { auth =>
-        auth must beNone
+        auth mustEqual None
       }
     }
 
     "withUserOpt" in api.withUserOpt { user =>
-      user must beNone
+      user mustEqual None
     }
 
     "withUser" in recoverToSucceededIf[ErrorEx] {
@@ -62,11 +62,11 @@ class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
     val api = ApiAuth(None, () => Option(anonAuth))
 
     "actualAuth" in api.actualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "createOrActualAuth" in api.createdOrActualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "actualOrImplicitAuth" in {
@@ -80,7 +80,7 @@ class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
     }
 
     "withUserOpt" in api.withUserOpt { user =>
-      user must beNone
+      user mustEqual None
     }
 
     "withUser" in recoverToSucceededIf[ErrorEx] {
@@ -106,25 +106,25 @@ class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
     val api = ApiAuth(None, () => Option(anonAuth))
 
     "actualAuth" in api.actualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "createOrActualAuth" in api.createdOrActualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "actualOrImplicitAuth" in {
       api.actualOrImplicitAuth.map { auth =>
-        auth must beNone
+        auth mustEqual None
       }
 
       api.createdOrActualAuth.map { auth =>
-        auth must beNone
+        auth mustEqual None
       }
     }
 
     "withUserOpt" in api.withUserOpt { user =>
-      user must beNone
+      user mustEqual None
     }
 
     "withUser" in recoverToSucceededIf[ErrorEx] {
@@ -194,25 +194,25 @@ class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
     val api = ApiAuth(Option(daAuth), () => Option(daAuth))
 
     "actualAuth" in api.actualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "createOrActualAuth" in api.createdOrActualAuth.map { auth =>
-      auth must beNone
+      auth mustEqual None
     }
 
     "actualOrImplicitAuth" in {
       api.actualOrImplicitAuth.map { auth =>
-        auth must beNone
+        auth mustEqual None
       }
 
       api.createdOrActualAuth.map { auth =>
-        auth must beNone
+        auth mustEqual None
       }
     }
 
     "withUserOpt" in api.withUserOpt { user =>
-      user must beNone
+      user mustEqual None
     }
 
     "withUser" in recoverToSucceededIf[ErrorEx] {

@@ -37,6 +37,6 @@ class JWTSpec extends FreeSpec with MustMatchers {
   "no authentication from invalid token" in {
     val auth = JWT.authenticationFromToken("invalid token")
 
-    auth must beNone
+    auth mustEqual None
   }
 }
