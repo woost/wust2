@@ -43,7 +43,11 @@ object WebsocketFlow {
         }.map {
           //TODO no any, proper serialize map
           case msg: ServerMessage =>
-            scribe.info(s"--> $msg")
+            val logMsg = s"--> $msg"
+            msg match {
+              case n: CallResponse => scribe.info(logMsg)
+              case _ => scribe.debug(logMsg)
+            }
             WebsocketSerializer.serialize(msg)
           case other: Message =>
             //we pass through already serialized websocket messages

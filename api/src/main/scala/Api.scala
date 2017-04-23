@@ -37,7 +37,9 @@ case class DeletePost(id: PostId) extends ApiEvent
 case class DeleteConnection(id: ConnectsId) extends ApiEvent
 case class DeleteContainment(id: ContainsId) extends ApiEvent
 case class ImplicitLogin(auth: Authentication) extends ApiEvent
-case class ReplaceGraph(graph: Graph) extends ApiEvent
+case class ReplaceGraph(graph: Graph) extends ApiEvent {
+  override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
+}
 @deprecated("use usergroups stored in graph and updated incrementally", "")
 case class ReplaceUserGroups(groups: Seq[UserGroup]) extends ApiEvent
 
