@@ -26,7 +26,7 @@ psql)
 dev)
     sbt dbMigration/docker
     $compose up -d
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt_arg
+    WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt_arg
     ;;
 prod.http)
     $compose pull

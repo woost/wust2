@@ -18,9 +18,10 @@ case class UserError(error: ApiError) extends Exception
 case class State(auth: Option[JWTAuthentication])
 
 class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiEvent, ApiError, State] {
-  private val enableImplicitAuth: Boolean = true //TODO config
+  import Config.auth.enableImplicit
+
   private def createImplicitAuth(): Future[Option[JWTAuthentication]] = {
-    if (enableImplicitAuth) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
+    if (enableImplicit) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
     else Future.successful(None)
   }
 

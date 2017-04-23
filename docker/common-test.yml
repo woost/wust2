@@ -15,6 +15,7 @@ services:
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
+      WUST_AUTH_SECRET: "secret"
   nginx:
     image: woost/wust2.nginx
     restart: always
