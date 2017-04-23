@@ -25,16 +25,17 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     else Future.successful(None)
   }
 
-  private def subscribeChannels(auth: Option[JWTAuthentication], groups: Seq[UserGroup], sender: EventSender[ApiEvent]) = {
+  private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Seq[UserGroup], sender: EventSender[ApiEvent]) = {
     dispatcher.unsubscribe(sender)
 
     dispatcher.subscribe(sender, Channel.Graph)
     dispatcher.subscribe(sender, Channel.UserGroup(Db.UserGroup.default.id))
+    extraGroups
+        .map(g => Channel.UserGroup(g.id))
+        .foreach(dispatcher.subscribe(sender, _))
+
     auth.foreach { auth =>
       dispatcher.subscribe(sender, Channel.User(auth.user.id))
-      groups
-          .map(g => Channel.UserGroup(g.id))
-          .foreach(dispatcher.subscribe(sender, _))
     }
   }
 
@@ -53,7 +54,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
         .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
       ReplaceUserGroups(groups) |> send
       newGraph.foreach { graph =>
-        ReplaceGraph(graph) |> sender.send
+        ReplaceGraph(graph) |> send
       }
     }
   }
@@ -79,7 +80,10 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   }
 
   override val initialState = Future.successful(State(None))
-  override def onClientStop(sender: EventSender[ApiEvent], state: State) = dispatcher.unsubscribe(sender)
+  override def onClientStop(sender: EventSender[ApiEvent], state: State) = {
+    scribe.info(s"client stopped: $state")
+    dispatcher.unsubscribe(sender)
+  }
 
   override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
   override val toError: PartialFunction[Throwable, ApiError] = {
