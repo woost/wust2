@@ -6,7 +6,7 @@ set -o pipefail
 
 docker images
 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-# TODO proper versioning
+
 docker push woost/wust2
 docker push woost/wust2.db-migration
 docker push woost/wust2.nginx
