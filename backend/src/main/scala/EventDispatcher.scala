@@ -7,7 +7,7 @@ import wust.framework._
 
 sealed trait Channel
 object Channel {
-  case object Graph extends Channel
+  case object All extends Channel
   case class User(id: Long) extends Channel
   case class UserGroup(id: Long) extends Channel
 }

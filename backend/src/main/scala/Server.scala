@@ -28,7 +28,8 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Seq[UserGroup], sender: EventSender[ApiEvent]) = {
     dispatcher.unsubscribe(sender)
 
-    dispatcher.subscribe(sender, Channel.Graph)
+    dispatcher.subscribe(sender, Channel.All)
+    //TODO: currently updates to a usergroup (via api) are not automatically subscribed!
     dispatcher.subscribe(sender, Channel.UserGroup(Db.UserGroup.default.id))
     extraGroups
         .map(g => Channel.UserGroup(g.id))
@@ -106,7 +107,22 @@ object Server {
     complete("ok")
   }
 
-  def emit(ev: ChannelEvent) = {
+  def emitDynamic(ev: DynamicApiEvent): Unit = {
+    val channel = ev match {
+      //TODO: this is sent to every client, but we need to filter.
+      // two problems:
+      //  - who is allowed to see the event (ownership/usergroup)?
+      //  - who is interested in this specific graph event? which graph is visible in the client?
+      // maybe needs multiple channels for multiple usergroups?
+      // => then how to make batch publish on dispatcher in order to not send events multiple times
+      // to the same client. (if he is in more than one of corresponding UserGroups)
+      case _ => Channel.All
+    }
+
+    emit(ChannelEvent(channel, ev))
+  }
+
+  def emit(ev: ChannelEvent): Unit = {
     // dispatcher.publish(ev)
     //optimiziation to serialize event only once
     scribe.info(s"serializing event: $ev")

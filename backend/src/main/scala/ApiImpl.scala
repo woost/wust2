@@ -9,16 +9,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
-  import Server.emit
+  import Server.{emit, emitDynamic}
   import apiAuth._
-
-  //TODO: this is sent to every client, but we need to filter.
-  // where should filtering be done?
-  // two problems:
-  //  - who is allowed to see the event (ownership/usergroup)?
-  //  - who is interested in this specific graph event? which graph is visible in the client?
-  def emitGraph(event: ApiEvent) =
-    ChannelEvent(Channel.Graph, event) |> emit
 
   def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id)
 
@@ -29,8 +21,8 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     //TODO: check if user is allowed to create post in group
     (Db.post(msg, groupId) ||> (_.foreach {
       case (post, ownership) =>
-        NewPost(post) |> emitGraph
-        NewOwnership(ownership) |> emitGraph
+        NewPost(post) |> emitDynamic
+        NewOwnership(ownership) |> emitDynamic
 
         selection match {
           case GraphSelection.Union(parentIds) =>
@@ -42,30 +34,30 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit {
     //TODO: check if user is allowed to update post
-    Db.post.update(post) ||> (_.foreach(if (_) UpdatedPost(post) |> emitGraph))
+    Db.post.update(post) ||> (_.foreach(if (_) UpdatedPost(post) |> emitDynamic))
   }
 
   def deletePost(id: PostId): Future[Boolean] = withUserOrImplicit {
     //TODO: check if user is allowed to delete post
-    Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emitGraph))
+    Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emitDynamic))
   }
 
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects] = withUserOrImplicit {
-    Db.connects(sourceId, targetId) ||> (_.foreach(NewConnection(_) |> emitGraph))
+    Db.connects(sourceId, targetId) ||> (_.foreach(NewConnection(_) |> emitDynamic))
   }
 
   def deleteConnection(id: ConnectsId): Future[Boolean] = withUserOrImplicit {
     //TODO: check if user is allowed to delete connection
-    Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emitGraph))
+    Db.connects.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emitDynamic))
   }
 
   def contain(parentId: PostId, childId: PostId): Future[Contains] = withUserOrImplicit {
-    Db.contains(parentId, childId) ||> (_.foreach(NewContainment(_) |> emitGraph))
+    Db.contains(parentId, childId) ||> (_.foreach(NewContainment(_) |> emitDynamic))
   }
 
   def deleteContainment(id: ContainsId): Future[Boolean] = withUserOrImplicit {
     //TODO: check if user is allowed to delete containment
-    Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emitGraph))
+    Db.contains.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emitDynamic))
   }
 
   //TODO: return Future[Boolean]
@@ -73,9 +65,9 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     //TODO: check if user is allowed to create post in group
     (Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
       case (post, connects, ownership) =>
-        NewPost(post) |> emitGraph
-        NewConnection(connects) |> emitGraph
-        NewOwnership(ownership) |> emitGraph
+        NewPost(post) |> emitDynamic
+        NewConnection(connects) |> emitDynamic
+        NewOwnership(ownership) |> emitDynamic
 
         selection match {
           case GraphSelection.Union(parentIds) =>
