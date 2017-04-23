@@ -31,13 +31,9 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       def hasChildren = graph.children(p.id).nonEmpty
 
       //TODO: move border and color to views.post()
-      sp.border = (
-        if (hasChildren)
-          "none"
-        else { // no children
-          "2px solid rgba(0,0,0,0.2)"
-        }
-      ).toString()
+      sp.border =
+        if (hasChildren) "none"
+        else "2px solid rgba(0,0,0,0.2)" // no children
 
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
@@ -52,7 +48,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
           else
             postDefaultColor
         }
-      ).toString()
+        ).toString
 
       sp.opacity = if (graph.groupsByPostId(p.id) contains state.selectedGroup()) 1.0 else 0.3
 
@@ -96,7 +92,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       e.target = e.targetId match {
         case id: PostId => postIdToSimPost(id)
         case id: ConnectsId => connIdToSimConnects(id)
-        case id: ConnectableId => throw new Exception("Unresolved ConnectableId found. Should not happen in consistent graph.")
+        case _: ConnectableId => throw new Exception("Unresolved ConnectableId found. Should not happen in consistent graph.")
       }
     }
 

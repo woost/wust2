@@ -25,7 +25,7 @@ object Main extends js.JSApp {
     Client.onEvent(state.onApiEvent)
     Client.auth.onEvent(state.onAuthEvent)
 
-    Client.onConnect { loc =>
+    Client.onConnect { _ =>
       Client.auth.reauthenticate()
     }
 

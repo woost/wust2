@@ -1,8 +1,8 @@
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.ws._
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.{Done, NotUsed}

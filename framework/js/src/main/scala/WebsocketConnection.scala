@@ -28,7 +28,7 @@ class WebsocketConnection(onConnect: String => Unit) {
           val bytes = messages.front
           ws.send(bytes.arrayBuffer())
           messages.dequeue()
-        } catch { case e: Exception => sending = false }
+        } catch { case _: Exception => sending = false }
       }
     }
   }
@@ -64,7 +64,7 @@ class WebsocketConnection(onConnect: String => Unit) {
       e.data match {
         case blob: Blob =>
           val reader = new FileReader()
-          reader.onloadend = (ev: ProgressEvent) => {
+          reader.onloadend = (_: ProgressEvent) => {
             @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
             val buff = reader.result.asInstanceOf[ArrayBuffer]
             val bytes = TypedArrayBuffer.wrap(buff)

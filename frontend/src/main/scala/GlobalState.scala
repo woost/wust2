@@ -78,14 +78,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   }
 
-  val onAuthEvent: AuthEvent => Unit = _ match {
+  val onAuthEvent: AuthEvent => Unit = {
     case LoggedIn(user) => currentUser() = Option(user)
     case LoggedOut =>
       currentUser() = None
       currentGroups() = Nil
   }
 
-  val onApiEvent: ApiEvent => Unit = _ match {
+  val onApiEvent: ApiEvent => Unit = {
     case NewPost(post) => rawGraph.updatef(_ + post)
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
     case NewConnection(connects) =>
@@ -97,12 +97,11 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
-    case ReplaceGraph(newGraph) => {
+    case ReplaceGraph(newGraph) =>
       rawGraph() = newGraph
       DevOnly {
         assert(newGraph.consistent == newGraph)
       }
-    }
     case ReplaceUserGroups(newGroups) => currentGroups() = newGroups
     case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
   }

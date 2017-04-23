@@ -13,7 +13,7 @@ object UrlRouter {
         window.location.hash = current
     }
 
-    window.onhashchange = { ev: HashChangeEvent =>
+    window.onhashchange = { _: HashChangeEvent =>
       val current = Option(window.location.hash).filterNot(_.isEmpty).map(_.drop(1))
       if (hash.now != current)
         hash() = current

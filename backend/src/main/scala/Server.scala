@@ -58,24 +58,23 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   }
 
   override def router(sender: EventSender[ApiEvent], state: Future[State]) = {
-    val apiAuth = new AuthenticatedAccess(state.map(_.auth), createImplicitAuth _, UserError(Unauthorized))
+    val apiAuth = new AuthenticatedAccess(state.map(_.auth), createImplicitAuth, UserError(Unauthorized))
 
     (
       AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
-        AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))) andThen
-        {
-          case res =>
-            val newState = for {
-              state <- state
-              auth <- apiAuth.createdOrActualAuth
-            } yield if (state.auth != auth) {
-              val newState = state.copy(auth = auth)
-              onStateChange(sender, newState)
-              newState
-            } else state
+        AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))) andThen {
+      res =>
+        val newState = for {
+          state <- state
+          auth <- apiAuth.createdOrActualAuth
+        } yield if (state.auth != auth) {
+          val newState = state.copy(auth = auth)
+          onStateChange(sender, newState)
+          newState
+        } else state
 
-            RequestResult(newState, res)
-        }
+        RequestResult(newState, res)
+    }
   }
 
   override val initialState = Future.successful(State(None))

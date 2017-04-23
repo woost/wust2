@@ -77,7 +77,7 @@ object Collapse {
   }
 
   def involvedInCycleWithCollapsedPost(graph: Graph, child: PostId, collapsing: PostId => Boolean): Boolean = {
-    (graph.involvedInContainmentCycle(child) && graph.transitiveChildren(child).exists(collapsing))
+    graph.involvedInContainmentCycle(child) && graph.transitiveChildren(child).exists(collapsing)
   }
 
   def hasOneUncollapsedTransitiveParent(graph: Graph, child: PostId, collapsing: Set[PostId]): Boolean = {

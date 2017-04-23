@@ -39,25 +39,25 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
     "be consistent with focused" in {
       val state = new GlobalState
       state.focusedPostId() = Option(1L)
-      state.focusedPostId.now mustEqual None
+      state.focusedPostId.now must beNone
 
       state.rawGraph() = Graph(posts = List(Post(1, "title")))
       state.focusedPostId.now mustEqual Option(PostId(1L))
 
       state.rawGraph() = Graph.empty
-      state.focusedPostId.now mustEqual None
+      state.focusedPostId.now must beNone
     }
 
     "be consistent with edited" in {
       val state = new GlobalState
       state.editedPostId() = Option(1L)
-      state.editedPostId.now mustEqual None
+      state.editedPostId.now must beNone
 
       state.rawGraph() = Graph(posts = List(Post(1, "title")))
       state.editedPostId.now mustEqual Option(PostId(1L))
 
       state.rawGraph() = Graph.empty
-      state.editedPostId.now mustEqual None
+      state.editedPostId.now must beNone
     }
 
     "be consistent with mode" in {

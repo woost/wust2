@@ -59,7 +59,7 @@ class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
           case Some(RequestResult(newState, response)) =>
             response
               .map(resp => CallResponse(seqId, Right(resp)))
-              .recover(toError andThen { case err => CallResponse(seqId, Left(err)) })
+              .recover(toError andThen (err => CallResponse(seqId, Left(err))))
               .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 

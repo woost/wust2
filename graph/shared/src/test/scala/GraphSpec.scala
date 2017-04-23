@@ -14,7 +14,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToConnectsId(id: Int): ConnectsId = ConnectsId(id)
   implicit def intToContainsId(id: Int): ContainsId = ContainsId(id)
   implicit def idToPost(id: Int): Post = Post(id, "")
-  implicit def postListToMap(posts: List[Int]) = posts.map(idToPost)
+  implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
   implicit def tupleIsContains(t: (Int, Int)): Contains = Contains(edgeId(), PostId(t._1), PostId(t._2))
   implicit def containsListIsMap(contains: List[(Int, Int)]): List[Contains] = contains.map(tupleIsContains)
   implicit def tupleIsConnects(t: (Int, Int)): Connects = Connects(edgeId(), PostId(t._1), PostId(t._2))

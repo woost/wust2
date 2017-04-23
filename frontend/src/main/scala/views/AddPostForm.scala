@@ -117,7 +117,7 @@ object AddPostForm {
               val field = input(placeholder := "invite user by id").render
               div(field, button("invite", onclick := { () =>
                 Try(field.value.toLong).foreach { userId =>
-                  println(s"group: ${state.selectedGroup()}, user: ${userId}")
+                  println(s"group: ${state.selectedGroup()}, user: $userId")
                   Client.api.addMember(state.selectedGroup(), userId).call().foreach { _ =>
                     field.value = ""
                   }

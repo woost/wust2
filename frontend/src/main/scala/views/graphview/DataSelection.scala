@@ -15,7 +15,7 @@ trait DataSelection[T] {
   def draw(selection: Selection[T]) {}
 }
 
-class WithKey[T](f: T => Any) extends Function1[T, Any] {
+class WithKey[T](f: T => Any) extends (T => Any) {
   def apply(o: T) = f(o)
 }
 

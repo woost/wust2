@@ -18,11 +18,11 @@ package object graph {
   }
   sealed trait ConnectableId extends AtomId
   case class PostId(id: IdType) extends ConnectableId
-  object PostId { implicit def fromIdType(id: IdType) = PostId(id) }
+  object PostId { implicit def fromIdType(id: IdType): PostId = PostId(id) }
   case class ConnectsId(id: IdType) extends ConnectableId
-  object ConnectsId { implicit def fromIdType(id: IdType) = ConnectsId(id) }
+  object ConnectsId { implicit def fromIdType(id: IdType): ConnectsId = ConnectsId(id) }
   case class ContainsId(id: IdType) extends AtomId
-  object ContainsId { implicit def fromIdType(id: IdType) = ContainsId(id) }
+  object ContainsId { implicit def fromIdType(id: IdType): ContainsId = ContainsId(id) }
   case class UnknownConnectableId(id: IdType) extends ConnectableId
 
   //TODO: wrap GroupId, UserId like PostId -> also in db.scala
@@ -81,7 +81,7 @@ package object graph {
         .map(c => s"${c.id.id}:${c.sourceId.id}->${c.targetId.id}")
         .mkString(", ")}, ${containments
         .map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}")
-        .mkString(", ")},groups:${groupIds}, ownerships: ${ownerships
+        .mkString(", ")},groups:$groupIds, ownerships: ${ownerships
         .map(o => s"${o.postId} -> ${o.groupId}")
         .mkString(", ")})"
 
@@ -223,7 +223,7 @@ package object graph {
 
     val fullDegree: ConnectableId => Int = {
       case p: PostId => connectionDegree(p) + containmentDegree(p)
-      case c: ConnectsId => 2
+      case _: ConnectsId => 2
       case _ => ???
     }
 
@@ -290,8 +290,8 @@ package object graph {
             case t: PostId => postsById.isDefinedAt(t)
             case c: ConnectsId => connectionsById.isDefinedAt(c)
             case u: UnknownConnectableId =>
-              (postsById.isDefinedAt(PostId(u.id)) || connectionsById
-                .isDefinedAt(ConnectsId(u.id)))
+              postsById.isDefinedAt(PostId(u.id)) || connectionsById
+                .isDefinedAt(ConnectsId(u.id))
           })
         }
         .map(_.id)

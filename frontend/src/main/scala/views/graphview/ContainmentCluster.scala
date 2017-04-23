@@ -8,7 +8,7 @@ import scala.scalajs.js
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
-  val posts = (children :+ parent)
+  val posts = children :+ parent
   def maxRadius = posts.maxBy(_.radius).radius * 2
 
   def positions: js.Array[js.Array[Double]] = posts.map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)

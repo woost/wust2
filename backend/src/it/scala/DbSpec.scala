@@ -25,7 +25,7 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
 
     "update" in Db.post("t", publicGroup).flatMap {
       case (post, _) =>
-        Db.post.update(post.copy(title = "harals")).flatMap { success =>
+        Db.post.update(post.copy(title = "harals")).flatMap { _ =>
           Db.post.get(post.id).map { dbPost =>
             dbPost.isDefined mustEqual true
             dbPost.get.id mustEqual post.id
@@ -36,7 +36,7 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
 
     "delete" in Db.post("t", publicGroup).flatMap {
       case (post, _) =>
-        Db.post.delete(post.id).flatMap { success =>
+        Db.post.delete(post.id).flatMap { _ =>
           Db.post.get(post.id).map { dbPost =>
             dbPost.isDefined mustEqual false
           }

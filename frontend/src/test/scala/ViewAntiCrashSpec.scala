@@ -11,7 +11,7 @@ import wust.graph._
 import scala.collection.immutable._
 
 class ViewsExamples extends Tables {
-  def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_: GlobalState, true), MainView(_: GlobalState, true))
+  def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_: GlobalState, disableSimulation = true), MainView(_: GlobalState, disableSimulation = true))
 }
 
 class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers {

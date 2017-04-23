@@ -22,8 +22,8 @@ object GraphSelection {
 
 trait Selector extends (PostId => Boolean) {
   import Selector._
-  def intersect(that: Selector): Selector = new Intersect(this, that)
-  def union(that: Selector): Selector = new Union(this, that)
+  def intersect(that: Selector): Selector = Intersect(this, that)
+  def union(that: Selector): Selector = Union(this, that)
   def apply(id: PostId): Boolean
 }
 

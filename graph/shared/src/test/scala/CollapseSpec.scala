@@ -11,8 +11,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
   implicit def intToPost(id: Int): Post = Post(id, "title")
   implicit def intTupleToConnects(ts: (Int, Int)): Connects = Connects(ts)
   implicit def intTupleToContains(ts: (Int, Int)): Contains = Contains(ts)
-  implicit def intSetToSelectorIdSet(set: Set[Int]) = Selector.IdSet(set.map(PostId(_)))
-  def PostIds(ids: Int*): Set[PostId] = (ids.map(PostId(_)))(breakOut)
+  implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(PostId(_)))
+  def PostIds(ids: Int*): Set[PostId] = ids.map(PostId(_))(breakOut)
   implicit class RichContains(con: Contains) {
     def toLocal = LocalContainment(con.parentId, con.childId)
   }

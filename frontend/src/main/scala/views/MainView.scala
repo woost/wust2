@@ -43,7 +43,7 @@ object MainView {
             focusedParents.toSeq.map { parentId =>
               val post = graph.postsById(parentId)
               Views.post(post)(
-                backgroundColor := baseColor(post.id).toString(),
+                backgroundColor := baseColor(post.id).toString,
                 span(
                   "×",
                   padding := "0 0 0 3px",

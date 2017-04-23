@@ -96,7 +96,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
       case Some(target) if target != dragging =>
 
 
-        val dropAction = dropActions(target.dropIndex(dropActions.size))
+        val dropAction = dropActions(target.dropIndex(dropActions.length))
         println(s"\nDropped ${dropAction.name}: [${dragging.id}]${dragging.title} -> [${target.id}]${target.title}")
         dropAction.action(dragging, target)
 

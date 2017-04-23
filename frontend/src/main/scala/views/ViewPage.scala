@@ -25,7 +25,7 @@ object Path {
     println("unapply! " + str)
     Try(URI.create(str)) match {
       case Success(uri) => parsePage.lift(uri.getPath).map { page =>
-        val map = Option(uri.getQuery).map(queryToMap _).getOrElse(Map.empty)
+        val map = Option(uri.getQuery).map(queryToMap).getOrElse(Map.empty)
         ViewConfig(page, mapToSelection(map))
       }
       case Failure(_) => None
@@ -73,7 +73,7 @@ object ViewConfig {
     case _ => ViewConfig(ViewPage.Graph, GraphSelection.Root)
   }
 
-  def toHash: ViewConfig => String = Path.apply _
+  def toHash: ViewConfig => String = Path.apply
 }
 
 class ViewPageRouter(page: Rx[ViewPage])(implicit ctx: Ctx.Owner) {

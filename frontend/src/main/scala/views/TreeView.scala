@@ -50,11 +50,11 @@ object TreeView {
     div(state.displayGraph.map { dg =>
       import dg.graph
       div( //TODO: avoid this nesting by passing Rx[Seq[Element]] to the outer div?
-        (graph.posts.filter(p => graph.parents(p.id).isEmpty).map {
+        graph.posts.filter(p => graph.parents(p.id).isEmpty).map {
           p =>
             val tree = redundantSpanningTree(p.id, graph.children)
             postTreeItem(tree, id => postItem(state, graph.postsById(id)))
-        }).toList
+        }.toList
       ).render
     })
   }

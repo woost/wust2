@@ -35,7 +35,7 @@ class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {
 
     "get with non-existing" in {
       val requests = new OpenRequests[Int](10)
-      requests.get(1) mustEqual None
+      requests.get(1) must beNone
     }
 
     "usable promise" in {

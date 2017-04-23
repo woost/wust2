@@ -20,7 +20,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   //TODO: return Future[Boolean]
   def addPost(msg: String,
               selection: GraphSelection,
-              groupId: Long): Future[Post] = withUserOrImplicit { user =>
+              groupId: Long): Future[Post] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
     (Db.post(msg, groupId) ||> (_.foreach {
       case (post, ownership) =>
@@ -64,7 +64,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   }
 
   //TODO: return Future[Boolean]
-  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit { user =>
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
     (Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
       case (post, connects, ownership) =>

@@ -23,7 +23,7 @@ object Db {
   implicit val encodeConnectableId =
     MappedEncoding[ConnectableId, IdType](_.id)
   implicit val decodeConnectableId =
-    MappedEncoding[IdType, ConnectableId](UnknownConnectableId(_))
+    MappedEncoding[IdType, ConnectableId](UnknownConnectableId)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
@@ -56,7 +56,7 @@ object Db {
       //TODO
       //     val q = quote { createOwnedPost(lift(title), lift(group.id))).returning(_.postId) }
       //     ctx.run(q).map(id => post.copy(id = id))
-      ctx.transaction { ev =>
+      ctx.transaction { _ =>
         for {
           postId <- ctx.run(query[Post].insert(lift(post)).returning(_.id))
           _ <- ctx.run(
@@ -156,7 +156,7 @@ object Db {
     }
 
     def createUserGroupForUser(userId: Long): Future[UserGroup] =
-      ctx.transaction { ev =>
+      ctx.transaction { _ =>
         //TODO report quill bug:
         // val q = quote(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         // --> produces: "INSERT INTO usergroup () VALUES ()"
@@ -237,13 +237,13 @@ object Db {
                                         isImplicit = false,
                                         revision = user.revision + 1)
             for {
-              newUser <- ctx.run(
+              _ <- ctx.run(
                 query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
-              pw <- ctx.run(query[Password].insert(lift(Password(id, digest))))
+              _ <- ctx.run(query[Password].insert(lift(Password(id, digest))))
             } yield Option(updatedUser)
           }
           .getOrElse(Future.successful(None)))
-        .recover { case e: Exception => None }
+        .recover { case _: Exception => None }
     }
 
     //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
@@ -266,7 +266,7 @@ object Db {
       ctx
         .run(q)
         .map(_.headOption.collect {
-          case (user, pw) if (passwordDigest(password) hash = pw.digest) =>
+          case (user, pw) if (passwordDigest(password) hash= pw.digest) =>
             user
         })
     }
@@ -327,14 +327,14 @@ object Db {
       //TODO: in stored procedure
       getAllVisiblePosts(userId).map { graph =>
         val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-        (graph -- graph.postsById.keys.filterNot(transitiveChildren))
+        graph -- graph.postsById.keys.filterNot(transitiveChildren)
       }
     }
 
     def getAllVisiblePosts(userId: Option[Long]): Future[Graph] = {
       val myMemberships = quote {
         query[UserGroupMember].filter(m =>
-          (m.userId == lift(userId) || m.userId.isEmpty))
+          m.userId == lift(userId) || m.userId.isEmpty)
       }
       val visibleOwnerships = quote {
         for {

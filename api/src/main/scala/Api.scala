@@ -54,8 +54,8 @@ case class User(id: Long, name: String, isImplicit: Boolean, revision: Int) {
 object User {
   private def implicitUserName() = "anon-" + java.util.UUID.randomUUID.toString
   val initialRevision = 0
-  def apply(name: String): User = User(0L, name, false, initialRevision)
-  def apply(): User = User(0L, implicitUserName(), true, initialRevision)
+  def apply(name: String): User = User(0L, name, isImplicit = false, initialRevision)
+  def apply(): User = User(0L, implicitUserName(), isImplicit = true, initialRevision)
 }
 case class ClientUser(id: Long, name: String) //TODO: derive: identify only by id //TODO: rename to User (the db-user should be DbUser or db.User)
 case class UserGroup(id: Long, users: Seq[ClientUser])

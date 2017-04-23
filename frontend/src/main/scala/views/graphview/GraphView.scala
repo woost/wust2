@@ -62,7 +62,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     }
     val mixedDirectParentColors = mixColors(focusedParents.map(baseColor))
     container
-      .style("background-color", mixedDirectParentColors.toString())
+      .style("background-color", mixedDirectParentColors.toString)
       .style("opacity", "0.8")
   }
 
