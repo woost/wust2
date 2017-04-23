@@ -1,10 +1,10 @@
 package wust.backend.auth
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import wust.api._
 import wust.util.Pipe
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 // this wraps the authentication and is instantiated with the current auth on each request
 class AuthenticatedAccess(auth: Future[Option[JWTAuthentication]], createImplicitAuth: () => Future[Option[JWTAuthentication]], toError: => Exception) {

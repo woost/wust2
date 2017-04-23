@@ -1,7 +1,6 @@
 package wust.util
 
 import org.scalatest._
-import algorithm._
 
 class AutoIdSpec extends FreeSpec with MustMatchers {
   "default behavior" in {

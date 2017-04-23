@@ -1,7 +1,7 @@
 package wust.framework
 
-import org.scalatest._
 import boopickle.Default._
+import org.scalatest._
 
 class WebsocketSerializerSpec extends FreeSpec with MustMatchers {
   case class Something(i: Int)

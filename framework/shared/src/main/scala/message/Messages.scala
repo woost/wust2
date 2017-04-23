@@ -1,7 +1,8 @@
 package wust.framework.message
 
-import boopickle.Default._
 import java.nio.ByteBuffer
+
+import boopickle.Default._
 
 class Messages[Event : Pickler, Error: Pickler] {
   //TODO: fix double serialization of request/response through autowire

@@ -1,19 +1,13 @@
 package wust.frontend.views
 
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-
-import org.scalajs.d3v4
-import org.scalajs.dom
 import autowire._
 import boopickle.Default._
-import rx._
-import scalatags.generic.Modifier
-import scalatags.rx.all._
-import scalatags.JsDom.all._
-
 import wust.frontend.Client
 import wust.frontend.Color._
 import wust.graph._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scalatags.JsDom.all._
 
 object Views {
   def post(post: Post) = div(

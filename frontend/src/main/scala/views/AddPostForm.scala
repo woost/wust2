@@ -1,26 +1,20 @@
 package wust.frontend.views
 
-import org.scalajs.dom
-import org.scalajs.dom.ext.KeyCode
-import dom.raw.HTMLInputElement
-import dom.raw.HTMLSelectElement
-import dom.Event
-import dom.document
-import dom.KeyboardEvent
-import concurrent.Future
-
 import autowire._
 import boopickle.Default._
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scala.util.Try
+import org.scalajs.dom
+import org.scalajs.dom.{Event, KeyboardEvent, document}
+import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import rx._
+import wust.frontend._
+import wust.graph._
 
+import scala.concurrent.Future
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.util.Try
 import scalatags.JsDom.all._
 import scalatags.rx.all._
-import org.scalajs.d3v4
-import rx._
-
-import wust.graph._
-import wust.frontend._, Color._
 
 object AddPostForm {
   //TODO: use public groupid constant from config
@@ -43,7 +37,7 @@ object AddPostForm {
   val newLabel = div("New Post:")
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    import state.{displayGraph => rxDisplayGraph, mode => rxMode, editedPostId => rxEditedPostId}
+    import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
 
     rxMode.foreach { mode =>
       val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]

@@ -1,17 +1,13 @@
 package wust.frontend.views
 
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import org.scalajs.dom._
-
-import rx._
-import scalatags.rx.all._
-import scalatags.JsDom.all._
 import autowire._
 import boopickle.Default._
-
-import wust.frontend.{GlobalState, Client, DevOnly}
+import rx._
+import wust.frontend.{Client, GlobalState}
 import wust.graph._
-import graphview.GraphView
+
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalatags.JsDom.all._
 
 object DevView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {

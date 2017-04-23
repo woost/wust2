@@ -1,12 +1,12 @@
 package wust.framework
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import java.nio.ByteBuffer
 
 import boopickle.Default._
+import wust.framework.message._
 
-import message._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait IncidentHandler[Error] {
   def fromError(error: Error): Throwable
@@ -14,7 +14,8 @@ trait IncidentHandler[Error] {
 
 class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[Error]) {
   val messages = new Messages[Event, Error]
-  import messages._, handler._
+  import handler._
+  import messages._
 
   private val callRequests = new OpenRequests[ByteBuffer]
   private val ws = new WebsocketConnection(s => connectHandler.foreach(_(s)))

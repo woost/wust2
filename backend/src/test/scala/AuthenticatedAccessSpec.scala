@@ -1,9 +1,9 @@
 package wust.backend.auth
 
 import org.scalatest._
-import scala.concurrent.Future
-
 import wust.api.User
+
+import scala.concurrent.Future
 
 class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
 

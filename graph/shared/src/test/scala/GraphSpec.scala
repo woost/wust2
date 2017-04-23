@@ -1,7 +1,6 @@
 package wust.graph
 
 import org.scalatest._
-import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   val edgeId: () => Long = {

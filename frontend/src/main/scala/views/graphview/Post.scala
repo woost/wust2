@@ -1,24 +1,17 @@
 package wust.frontend.views.graphview
 
-import math._
-import rx._, rxext._
-
-import scalajs.js
-import js.JSConverters._
-import org.scalajs.dom
-import org.scalajs.dom.console
-import org.scalajs.dom.raw.HTMLElement
-import scalatags.JsDom.all._
-import vectory._
 import org.scalajs.d3v4._
-
-import wust.frontend._, Color._
+import org.scalajs.dom.raw.HTMLElement
+import rxext._
+import wust.frontend._
 import wust.frontend.views.Views
-import wust.graph._
 import wust.util.collection._
 
+import scalatags.JsDom.all._
+
 class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
-  import postDrag._, graphState.rxFocusedSimPost
+  import graphState.rxFocusedSimPost
+  import postDrag._
 
   override val tag = "div"
   override def enter(post: Enter[SimPost]) {

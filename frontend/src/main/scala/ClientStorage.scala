@@ -1,9 +1,6 @@
 package wust.frontend
 
 import org.scalajs.dom.ext.Storage
-import boopickle.Default._
-import scala.util.Try
-
 import wust.api.Authentication
 
 class ClientStorage(storage: Storage) {

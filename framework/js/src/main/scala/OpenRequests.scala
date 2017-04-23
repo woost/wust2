@@ -1,11 +1,10 @@
 package wust.framework
 
-import scala.concurrent.{Promise, Future, ExecutionContext}
-
 import org.scalajs.dom.console
-
 import wust.framework.message._
 import wust.util.time.StopWatch
+
+import scala.concurrent.{ExecutionContext, Promise}
 
 case object TimeoutException extends Exception
 

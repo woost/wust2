@@ -1,6 +1,6 @@
 package wust.framework
 
-import akka.http.scaladsl.model.ws.{ Message, BinaryMessage }
+import akka.http.scaladsl.model.ws.BinaryMessage
 import akka.util.ByteString
 import boopickle.Default._
 

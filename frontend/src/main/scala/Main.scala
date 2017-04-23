@@ -1,22 +1,13 @@
 package wust.frontend
 
-import scalajs.js
-import scalajs.js.annotation.JSExport
-import concurrent.Future
-import collection.breakOut
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import autowire._
 import boopickle.Default._
-
 import org.scalajs.dom._
+import rx._
+import rxext._
 
-import wust.api._
-import wust.graph._
-import wust.util.Pipe
-
-import scalatags.JsDom.all._
-import scalatags.rx.all._
-import rx._, rxext._
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scala.scalajs.js
 
 object Main extends js.JSApp {
 

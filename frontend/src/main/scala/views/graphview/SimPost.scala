@@ -1,10 +1,10 @@
 package wust.frontend.views.graphview
 
-import math._
 import org.scalajs.d3v4._
-
-import wust.util.Pipe
 import wust.graph.{ConnectableId, Post}
+import wust.util.Pipe
+
+import scala.math._
 
 trait SimConnectable {
   def id: ConnectableId

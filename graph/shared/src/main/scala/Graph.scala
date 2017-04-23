@@ -1,11 +1,11 @@
 package wust
 
 package object graph {
-  import collection.mutable
-  import collection.breakOut
   import wust.util.Pipe
-  import wust.util.collection._
   import wust.util.algorithm._
+  import wust.util.collection._
+
+  import collection.{breakOut, mutable}
 
   //TODO: this also needs to be done as database contstraint
   type IdType = Long

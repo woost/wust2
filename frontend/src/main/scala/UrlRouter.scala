@@ -1,9 +1,8 @@
 package wust.frontend
 
-import rx._
-import scalajs.js
-import org.scalajs.dom.window
 import org.scalajs.dom.raw.HashChangeEvent
+import org.scalajs.dom.window
+import rx._
 
 object UrlRouter {
   val variable: RxVar[Option[String], Option[String]] = {

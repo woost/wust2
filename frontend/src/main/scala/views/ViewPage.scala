@@ -1,22 +1,16 @@
 package wust.frontend.views
 
-import rx._, rxext._
 import java.net.URI
-import scalatags.rx.all._
+
 import org.scalajs.dom._
-import org.scalajs.dom.raw.HTMLSelectElement
+import rx._
+import wust.graph._
+
+import scala.collection.breakOut
+import scala.util.{Failure, Success, Try}
 import scalatags.JsDom.TypedTag
 import scalatags.JsDom.all._
-import scala.util.{Try, Success, Failure}
-import collection.breakOut
-
-import wust.api._
-import wust.graph._
-import wust.util.Pipe
-
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import autowire._
-import boopickle.Default._
+import scalatags.rx.all._
 
 sealed trait ViewPage
 object ViewPage {

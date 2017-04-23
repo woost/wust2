@@ -1,15 +1,10 @@
 package wust.frontend
 
-import rx._, rxext._
-
+import rx._
+import rxext._
 import wust.api._
+import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.graph._
-import wust.util.Pipe
-import wust.frontend.views.{ViewPage, ViewConfig}
-
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import autowire._
-import boopickle.Default._
 
 sealed trait InteractionMode
 case class FocusMode(postId: PostId) extends InteractionMode

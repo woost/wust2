@@ -1,17 +1,10 @@
 package wust.frontend.views.graphview
 
-import math._
-import collection.breakOut
-import rx._
-import scalajs.js
-import js.JSConverters._
-import org.scalajs.dom
-import vectory._
 import org.scalajs.d3v4._
 import wust.frontend.Color._
 
-import wust.util.Pipe
-import wust.graph._
+import scala.collection.breakOut
+import scala.scalajs.js
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id

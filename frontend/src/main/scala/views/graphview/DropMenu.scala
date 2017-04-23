@@ -1,21 +1,15 @@
 package wust.frontend.views.graphview
 
-import math._
-import rx._
-import scalajs.js
-import js.JSConverters._
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
-import vectory._
-import org.scalajs.d3v4._
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.console
-
+import org.scalajs.d3v4._
 import wust.frontend._
 import wust.graph._
-import wust.util.collection._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.math._
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 object DropMenu {
   val dropActions = (

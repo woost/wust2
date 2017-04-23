@@ -1,20 +1,17 @@
-import scala.concurrent.{ Await, Future }
-import scala.concurrent.duration._
-import scala.util.Try
-
 import akka.actor._
-import akka.{ Done, NotUsed }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.model.ws._
-import akka.http.scaladsl.model.{ StatusCode, StatusCodes }
-import akka.stream.scaladsl._
 import akka.stream.ActorMaterializer
-
+import akka.stream.scaladsl._
+import akka.{Done, NotUsed}
+import org.specs2.execute.{AsResult, Failure, Result, ResultExecution}
 import org.specs2.mutable
-import org.specs2.execute.{ AsResult, Result, ResultExecution, Failure }
 import org.specs2.specification.AroundEach
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 object WustConnection {
   private implicit val system = ActorSystem()
@@ -65,9 +62,11 @@ trait WustReady extends mutable.Specification with AroundEach {
 }
 
 trait Browser extends mutable.After {
-  import org.openqa.selenium.phantomjs.PhantomJSDriver
-  import org.openqa.selenium.logging.LogType
   import java.util.logging.Level
+
+  import org.openqa.selenium.logging.LogType
+  import org.openqa.selenium.phantomjs.PhantomJSDriver
+
   import scala.collection.JavaConversions._
 
   val browser = new PhantomJSDriver {

@@ -1,10 +1,8 @@
 package wust.util
 
 import org.scalatest._
-import algorithm._
 
 class PipeSpec extends FreeSpec with MustMatchers {
-  import collection._
 
   "|>" in {
     (5 |> (_ + 1)) mustEqual 6

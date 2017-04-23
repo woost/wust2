@@ -1,16 +1,15 @@
 package wust.frontend.views
 
-import org.scalajs.dom._
 import org.scalajs.d3v4
-import rx._, rxext._
-import scalatags.rx.all._
-import scalatags.JsDom.all._
-import collection.breakOut
-
-import wust.graph._
+import rx._
+import rxext._
 import wust.frontend._
+import wust.graph._
 import wust.util.algorithm.{Tree, redundantSpanningTree}
 import wust.util.collection._
+
+import scalatags.JsDom.all._
+import scalatags.rx.all._
 
 object TreeView {
   //TODO: report bug about pattern matching in rx.map:

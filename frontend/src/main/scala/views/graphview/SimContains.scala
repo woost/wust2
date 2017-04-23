@@ -1,12 +1,7 @@
 package wust.frontend.views.graphview
 
-import math._
-import scalajs.js
 import org.scalajs.d3v4._
-import vectory._
-
-import wust.graph._
-import wust.graph.LocalContainment
+import wust.graph.{LocalContainment, _}
 
 class SimContains(val contains: Contains, val parent: SimPost, val child: SimPost) extends SimulationLinkImpl[SimPost, SimPost] {
   //TODO: delegert!

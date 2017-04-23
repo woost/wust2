@@ -1,9 +1,7 @@
 package wust.util
 
 object algorithm {
-  import scala.collection.mutable
-  import scala.collection.breakOut
-  import scala.collection.IterableLike
+  import scala.collection.{IterableLike, breakOut, mutable}
 
   def directedAdjacencyList[V1, E, V2](edges: Iterable[E], inf: E => V1, outf: E => V2): Map[V1, Set[V2]] = { // TODO: Multimap
     edges

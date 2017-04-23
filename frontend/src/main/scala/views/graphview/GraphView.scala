@@ -1,18 +1,16 @@
 package wust.frontend.views.graphview
 
-import scalajs.js
-import org.scalajs.dom
-import js.JSConverters._
 import org.scalajs.d3v4._
+import org.scalajs.dom
 import rx._
-import scalatags.rx.all._
-import scalatags.JsDom.all._
-import math._
-
-import wust.frontend.{DevOnly, GlobalState}
 import wust.frontend.Color._
+import wust.frontend.{DevOnly, GlobalState}
 import wust.graph._
 import wust.util.Pipe
+
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scalatags.JsDom.all._
 
 case class MenuAction(name: String, action: (SimPost, Simulation[SimPost]) => Unit)
 case class DropAction(name: String, action: (SimPost, SimPost) => Unit)

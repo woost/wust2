@@ -1,13 +1,13 @@
 package wust.framework
 
-import concurrent.{Promise, Future}
-import concurrent.ExecutionContext.Implicits.global
-import scalajs.js.timers.setTimeout
-import scalajs.js.typedarray._, TypedArrayBufferOps._
+import java.nio.ByteBuffer
+
 import org.scalajs.dom._
 
-import java.nio.ByteBuffer
-import collection.mutable
+import scala.collection.mutable
+import scala.scalajs.js.timers.setTimeout
+import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+import scala.scalajs.js.typedarray._
 
 class WebsocketConnection(onConnect: String => Unit) {
   private var connectionAttempts = 1

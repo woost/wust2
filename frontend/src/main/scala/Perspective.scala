@@ -1,7 +1,6 @@
 package wust.frontend
 
 import wust.graph._
-import wust.util.Pipe
 
 case class Perspective(
   collapsed: Selector = Selector.Nothing

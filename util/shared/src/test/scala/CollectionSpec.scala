@@ -1,7 +1,6 @@
 package wust.util
 
 import org.scalatest._
-import algorithm._
 
 class CollectionSpec extends FreeSpec with MustMatchers {
   import collection._

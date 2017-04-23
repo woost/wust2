@@ -1,24 +1,13 @@
 package wust.frontend.views.graphview
 
-import math._
-import rx._
-import scalajs.js
-import js.JSConverters._
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
-import org.scalajs.dom.console
-import vectory._
 import org.scalajs.d3v4._
-import autowire._
-import boopickle.Default._
-import scalatags.JsDom.all._
-
-import wust.frontend._
+import rx._
+import vectory._
 import wust.frontend.views.Views
-import wust.graph._
-import wust.util.collection._
-import wust.util.Pipe
+
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scalatags.JsDom.all._
 
 object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
@@ -105,8 +94,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
     closest match {
       case Some(target) if target != dragging =>
-        import autowire._
-        import boopickle.Default._
+
 
         val dropAction = dropActions(target.dropIndex(dropActions.size))
         println(s"\nDropped ${dropAction.name}: [${dragging.id}]${dragging.title} -> [${target.id}]${target.title}")

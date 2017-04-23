@@ -1,6 +1,5 @@
 package wust.framework
 
-import scala.concurrent.Promise
 import org.scalatest._
 
 class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {

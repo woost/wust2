@@ -1,10 +1,10 @@
 package wust.frontend.views.graphview
 
-import org.scalajs.dom.console
-import scalajs.js
-import org.scalajs.dom
 import org.scalajs.d3v4._
+import org.scalajs.dom
 import rx._
+
+import scala.scalajs.js
 
 trait DataSelection[T] {
   val tag: String

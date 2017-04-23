@@ -2,13 +2,13 @@ package wust.frontend.views
 
 import org.scalatest._
 import org.scalatest.prop._
-import wust.graph._
 import rx.Ctx.Owner.Unsafe._
-import wust.util.collection._
-import wust.frontend._
-import scala.collection.immutable._
-import graphview.GraphView
 import rxext._
+import wust.frontend._
+import wust.frontend.views.graphview.GraphView
+import wust.graph._
+
+import scala.collection.immutable._
 
 class ViewsExamples extends Tables {
   def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_: GlobalState, true), MainView(_: GlobalState, true))

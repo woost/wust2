@@ -1,9 +1,8 @@
 package wust.api
 
-import java.nio.ByteBuffer
-import scala.concurrent.Future
-
 import wust.graph._
+
+import scala.concurrent.Future
 
 trait Api {
   def getPost(id: PostId): Future[Option[Post]]

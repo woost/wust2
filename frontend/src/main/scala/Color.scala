@@ -1,7 +1,6 @@
 package wust.frontend
 
 import org.scalajs.d3v4._
-
 import wust.graph._
 
 object Color {
@@ -15,8 +14,8 @@ object Color {
   def mixColors(a: Color, b: Color): Color = {
     val aLab = d3.lab(a)
     val bLab = d3.lab(b)
-    import aLab.{l => al, a => aa, b => ab}
-    import bLab.{l => bl, a => ba, b => bb}
+    import aLab.{a => aa, b => ab, l => al}
+    import bLab.{a => ba, b => bb, l => bl}
     d3.lab((al + bl) / 2, (aa + ba) / 2, (ab + bb) / 2)
   }
   def mixColors(colors: Iterable[Color]): Color = {

@@ -1,11 +1,9 @@
 package wust.graph
 
 import org.scalatest._
-import collection.breakOut
-
-import wust.graph._
-import wust.util.collection._
 import wust.util._
+
+import scala.collection.breakOut
 
 class CollapseSpec extends FreeSpec with MustMatchers {
   val edgeId = AutoId(-1, delta = -1)

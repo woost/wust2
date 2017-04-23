@@ -1,21 +1,15 @@
 package wust.frontend.views
 
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom._
-
-import rx._, rxext._
-import scalatags.rx.all._
-import scalatags.JsDom.TypedTag
-import scalatags.JsDom.all._
-import autowire._
-import boopickle.Default._
-import collection.breakOut
-
-import wust.frontend.{GlobalState, Client, DevOnly}
-import wust.graph._
-import graphview.GraphView
-import wust.api.UserGroup
+import rx._
+import rxext._
 import wust.frontend.Color._
+import wust.frontend.views.graphview.GraphView
+import wust.frontend.{DevOnly, GlobalState}
+import wust.graph._
+
+import scalatags.JsDom.all._
+import scalatags.rx.all._
 
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {

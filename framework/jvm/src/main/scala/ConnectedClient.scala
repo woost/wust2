@@ -1,18 +1,17 @@
 package wust.framework
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NonFatal
 import java.nio.ByteBuffer
 
 import akka.actor._
-import akka.pattern.pipe
 import akka.http.scaladsl.model.ws.Message
+import akka.pattern.pipe
 import autowire.Core.Request
-
-import wust.util.time.StopWatch
+import wust.framework.message._
 import wust.util.Pipe
-import message._
+import wust.util.time.StopWatch
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) extends Comparable[EventSender[Event]] {
   import messages._
@@ -46,7 +45,8 @@ class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
   handler: RequestHandler[Event, Error, State]
 ) extends Actor {
   import ConnectedClient._
-  import messages._, handler._
+  import handler._
+  import messages._
 
   def connected(outgoing: ActorRef, state: Future[State]): Receive = {
     val sender = new EventSender(messages, outgoing)

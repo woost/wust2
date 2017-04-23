@@ -1,22 +1,19 @@
 package wust.framework
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import java.nio.ByteBuffer
-
 import akka.NotUsed
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.ws.{ Message, BinaryMessage }
-import akka.stream.{ ActorMaterializer, OverflowStrategy }
+import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl._
-import autowire.Core.{ Request, Router }
+import akka.stream.{ActorMaterializer, OverflowStrategy}
 import boopickle.Default._
+import wust.framework.message._
 
-import message._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object WebsocketFlow {
   def apply[Event, Error, State](

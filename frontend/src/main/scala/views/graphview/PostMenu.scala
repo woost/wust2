@@ -1,22 +1,16 @@
 package wust.frontend.views.graphview
 
-import math._
-import rx._, rxext._
-import scalajs.js
-import js.JSConverters._
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-import org.scalajs.dom
-import org.scalajs.dom.console
-import org.scalajs.dom.raw.HTMLElement
-import scalatags.JsDom.all._
-import vectory._
-import org.scalajs.d3v4._
 import autowire._
 import boopickle.Default._
-
+import org.scalajs.d3v4._
+import rxext._
 import wust.frontend._
-import wust.graph._
 import wust.util.collection._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.math._
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
@@ -38,8 +32,9 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
   override val tag = "g"
   override def enter(menu: Enter[SimPost]) {
     menu.append { (simPost: SimPost) =>
-      import graphState.rxFocusedSimPost
       import d3State.simulation
+      import graphState.rxFocusedSimPost
+
       import scalatags.JsDom.svgTags._
 
       val menu = d3.select(g().render)

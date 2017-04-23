@@ -1,15 +1,16 @@
 package wust.backend
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import wust.util.Pipe
 import wust.api._
+import wust.backend.auth._
 import wust.graph._
-import auth._
+import wust.util.Pipe
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
-  import Server.emit, apiAuth._
+  import Server.emit
+  import apiAuth._
 
   def emitGraph(event: ApiEvent) =
     ChannelEvent(Channel.Graph, event) |> emit

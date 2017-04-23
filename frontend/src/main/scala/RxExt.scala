@@ -1,7 +1,7 @@
 package object rxext {
 
-  import wust.util.Pipe
   import rx._
+  import wust.util.Pipe
 
   // implicit class RichWriteVar[A](val writeVar:WriteVar[A]) extends AnyVal {
   //   def writeProjection[B](to: B => A, from: PartialFunction[A, B] = PartialFunction.empty): WriteVar[B] = WriteProjection(writeVar, to, from)

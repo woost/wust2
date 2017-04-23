@@ -1,15 +1,14 @@
 package wust.frontend
 
-import concurrent.Future
-import concurrent.ExecutionContext.Implicits.global
-import org.scalajs.dom.ext.LocalStorage
-import boopickle.Default._
 import autowire._
-
-import wust.framework._, message._
+import boopickle.Default._
+import org.scalajs.dom.ext.LocalStorage
 import wust.api._
-import wust.graph._
+import wust.framework._
 import wust.util.Pipe
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 case class ApiException(error: ApiError) extends Exception
 

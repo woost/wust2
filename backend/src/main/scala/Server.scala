@@ -1,20 +1,17 @@
 package wust.backend
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.NonFatal
-import java.nio.ByteBuffer
+import java.io.{PrintWriter, StringWriter}
 
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.model.ws.Message
-import akka.actor.ActorRef
 import boopickle.Default._
-
 import wust.api._
-import wust.util.Pipe
-import wust.framework._, message._
 import wust.backend.auth._
-import java.io.{StringWriter, PrintWriter}
+import wust.framework._
+import wust.util.Pipe
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.control.NonFatal
 
 case class UserError(error: ApiError) extends Exception
 

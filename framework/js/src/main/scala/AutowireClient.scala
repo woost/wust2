@@ -1,9 +1,10 @@
 package wust.framework
 
-import scala.concurrent.Future
 import java.nio.ByteBuffer
 
 import boopickle.Default._
+
+import scala.concurrent.Future
 
 class AutowireClient(send: (Seq[String], Map[String, ByteBuffer]) => Future[ByteBuffer]) extends autowire.Client[ByteBuffer, Pickler, Pickler] {
   override def doCall(req: Request): Future[ByteBuffer] = send(req.path, req.args)

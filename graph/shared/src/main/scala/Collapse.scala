@@ -1,11 +1,8 @@
 package wust.graph
 
-import collection.breakOut
-
-import wust.graph._
-import wust.util._
-import wust.util.collection._
 import wust.util.algorithm._
+
+import scala.collection.breakOut
 
 object Collapse {
   def apply(collapsing: Selector)(displayGraph: DisplayGraph): DisplayGraph = {

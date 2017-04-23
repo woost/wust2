@@ -1,17 +1,14 @@
 package wust.frontend.views
 
-import org.scalajs.dom._
-import concurrent.Future
 import rx._
-import scalatags.rx.all._
-import scalatags.JsDom.all._
-import boopickle.Default._
-import autowire._
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-
-import wust.frontend.{Client, GlobalState}
 import wust.api.User
+import wust.frontend.{Client, GlobalState}
 import wust.util.Pipe
+
+import scala.concurrent.Future
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalatags.JsDom.all._
+import scalatags.rx.all._
 
 object UserView {
   val inputText = input(`type` := "text")

@@ -1,12 +1,11 @@
 package wust.frontend.views.graphview
 
-import scalajs.js
-import scala.scalajs.js.annotation._
 import org.scalajs.d3v4._
-import js.JSConverters._
-import math._
 
-import wust.graph._
+import scala.math._
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.annotation._
 
 // @ScalaJSDefined
 // trait D3Force[N <: SimulationNode] {

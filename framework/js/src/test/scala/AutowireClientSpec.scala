@@ -1,12 +1,12 @@
 package wust.framework
 
-import org.scalatest._
-import scala.concurrent.Future
 import java.nio.ByteBuffer
-import boopickle.Default._
-import autowire.Core.Request
 
-import message._
+import autowire.Core.Request
+import boopickle.Default._
+import org.scalatest._
+
+import scala.concurrent.Future
 
 class AutowireClientSpec extends AsyncFreeSpec with MustMatchers {
   case class Something(i: Int)

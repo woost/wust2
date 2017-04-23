@@ -1,9 +1,9 @@
 package wust.backend
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-
 import org.scalatest._
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class DbSpec extends AsyncFreeSpec with MustMatchers {
   val publicGroup = 1 //TODO: load from config

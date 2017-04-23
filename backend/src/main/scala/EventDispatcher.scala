@@ -1,12 +1,9 @@
 package wust.backend
 
-import akka.event.{LookupClassification, EventBus}
-import akka.actor._
-
-import wust.framework._
-import wust.framework.message.Messages
-import wust.api._
+import akka.event.{EventBus, LookupClassification}
 import akka.http.scaladsl.model.ws.Message
+import wust.api._
+import wust.framework._
 
 sealed trait Channel
 object Channel {

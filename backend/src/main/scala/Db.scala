@@ -1,14 +1,12 @@
 package wust.backend
 
-import wust.util.collection._
-import wust.graph._
+import io.getquill._
 import wust.api
 import wust.api.User
+import wust.graph._
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import io.getquill._
-import collection.breakOut
+import scala.concurrent.Future
 
 object Db {
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")

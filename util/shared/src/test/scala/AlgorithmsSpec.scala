@@ -1,7 +1,7 @@
 package wust.util
 
 import org.scalatest._
-import algorithm._
+import wust.util.algorithm._
 
 class AlgorithmsSpec extends FreeSpec with MustMatchers {
 

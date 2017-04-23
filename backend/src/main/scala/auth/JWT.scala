@@ -1,14 +1,11 @@
 package wust.backend.auth
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import io.igl.jwt._
-
 import wust.api._
 
 object Claims {
-  import play.api.libs.json._
   import play.api.libs.functional.syntax._
+  import play.api.libs.json._
 
   implicit val userFormat = (
     (__ \ "id").format[Long] ~

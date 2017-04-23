@@ -1,18 +1,18 @@
 package wust.framework
 
-import akka.actor._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import java.nio.ByteBuffer
+
+import akka.actor._
+import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import autowire.Core.Request
+import boopickle.Default._
 import org.scalatest._
 import org.scalatest.mockito.MockitoSugar
-import org.mockito.Mockito.verify
-import akka.testkit.{TestKit, TestActorRef, ImplicitSender}
-import boopickle.Default._
-import autowire.Core.Request
-import scala.concurrent.duration._
+import wust.framework.message._
 
-import message._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object TestRequestHandler extends RequestHandler[String, String, Option[String]] {
   private val otherUser = Future.successful(Option("anon"))
