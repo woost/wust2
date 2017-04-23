@@ -40,7 +40,7 @@ object JWT {
   private val wustAud = Aud("wust")
   private def currentTimestamp: Long = System.currentTimeMillis / 1000
 
-  private def expirationTimestamp = currentTimestamp + tokenLifetime // 24h
+  private def expirationTimestamp = currentTimestamp + tokenLifetime
 
   def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
     Seq(Alg(algorithm), Typ("JWT")),
