@@ -28,15 +28,18 @@ case class NotFound(path: Seq[String]) extends ApiError
 case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
-sealed trait DynamicApiEvent extends ApiEvent
-case class NewPost(post: Post) extends DynamicApiEvent
-case class UpdatedPost(post: Post) extends DynamicApiEvent
-case class NewConnection(edge: Connects) extends DynamicApiEvent
-case class NewContainment(edge: Contains) extends DynamicApiEvent
-case class NewOwnership(edge: Ownership) extends DynamicApiEvent
-case class DeletePost(id: PostId) extends DynamicApiEvent
-case class DeleteConnection(id: ConnectsId) extends DynamicApiEvent
-case class DeleteContainment(id: ContainsId) extends DynamicApiEvent
+//TODO: why does this not compile
+//sealed trait DynamicApiEvent extends ApiEvent
+//[error] knownDirectSubclasses of DynamicApiEvent observed before subclass DeleteConnection registered
+sealed trait DynamicEvent
+case class NewPost(post: Post) extends ApiEvent with DynamicEvent
+case class UpdatedPost(post: Post) extends ApiEvent with DynamicEvent
+case class NewConnection(edge: Connects) extends ApiEvent with DynamicEvent
+case class NewContainment(edge: Contains) extends ApiEvent with DynamicEvent
+case class NewOwnership(edge: Ownership) extends ApiEvent with DynamicEvent
+case class DeletePost(id: PostId) extends ApiEvent with DynamicEvent
+case class DeleteConnection(id: ConnectsId) extends ApiEvent with DynamicEvent
+case class DeleteContainment(id: ContainsId) extends ApiEvent with DynamicEvent
 case class ImplicitLogin(auth: Authentication) extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {
   override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"

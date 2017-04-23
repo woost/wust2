@@ -107,7 +107,7 @@ object Server {
     complete("ok")
   }
 
-  def emitDynamic(ev: DynamicApiEvent): Unit = {
+  def emitDynamic(ev: ApiEvent with DynamicEvent): Unit = {
     val channel = ev match {
       //TODO: this is sent to every client, but we need to filter.
       // two problems:
