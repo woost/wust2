@@ -47,18 +47,19 @@ test.postgres)
 test.integration)
     $compose down
     $compose up -d
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 sbt_arg it:test
+    # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
+    WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 sbt_arg it:test
     $compose down
     ;;
 test.prod.http)
-    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
+    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
     $compose_stage prod.http down
     $compose_stage prod.http up -d
     sbt_arg systemTest/it:test
     $compose_stage prod.http down
     ;;
 test.prod)
-    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
     #TODO sbt_arg systemTest/it:test
@@ -66,12 +67,12 @@ test.prod)
     $compose_stage prod down
     ;;
 local.prod.http)
-    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
+    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
     $compose_stage prod.http down
     $compose_stage prod.http up -d
     ;;
 local.prod)
-    export HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
     ;;

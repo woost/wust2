@@ -9,7 +9,7 @@ set -o pipefail
     sbt ++2.11.8 publish-local
 )
 
-sbt docker \
+WUST_AUTH_SECRET=secret sbt docker \
  testJS \
  coverage testJVM coverageReport
 

@@ -65,6 +65,7 @@ Requirements:
 Set environment variables according to your setup:
 * **HOST_DOMAIN**: domain (example.com)
 * **POSTGRES_PASSWORD**: a password for the postgres application user 'wust'
+* **WUST_AUTH_SECRET**: a secret for signing JWT tokens
 * **CERT_DIR**: directory on docker host containing SSL_CERT and SSL_KEY, is mounted read-only in nginx container
 * **SSL_CERT**: path to tls certificate (relative to CERT_DIR), used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)
 * **SSL_KEY**: path to private tls key (relative to CERT_DIR), used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)
@@ -85,5 +86,5 @@ $ ./start prod.http
 
 Example:
 ```bash
-HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
+HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
 ```
