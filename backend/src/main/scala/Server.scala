@@ -103,6 +103,7 @@ object Server {
   }
 
   def emit(ev: ChannelEvent) = {
+    // dispatcher.publish(ev)
     //optimiziation to serialize event only once
     scribe.info(s"serializing event: $ev")
     val serialized = ws.serializedEvent(ev.event)

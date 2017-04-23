@@ -19,7 +19,7 @@ class EventSender[Event](messages: Messages[Event, _], private val actor: ActorR
   def compareTo(other: EventSender[Event]) = actor.compareTo(other.actor)
 
   // possibility to send already serialized websocket messages
-  def send(event: Message) = {
+  def sendRaw(event: Message) = {
     scribe.info(s"--> serialized event: $event")
     actor ! event
   }
