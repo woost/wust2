@@ -12,6 +12,11 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   import Server.emit
   import apiAuth._
 
+  //TODO: this is sent to every client, but we need to filter.
+  // where should filtering be done?
+  // two problems:
+  //  - who is allowed to see the event (ownership/usergroup)?
+  //  - who is interested in this specific graph event? which graph is visible in the client?
   def emitGraph(event: ApiEvent) =
     ChannelEvent(Channel.Graph, event) |> emit
 
