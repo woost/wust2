@@ -82,7 +82,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def getUser(id: Long): Future[Option[User]] = Db.user.get(id)
   def getUserGroups(id: Long): Future[Seq[UserGroup]] = Db.user.allGroups(id)
   def addUserGroup(): Future[UserGroup] = withUserOrImplicit { user =>
-    val createdGroup = Db.user.createUsergroupForUser(user.id)
+    val createdGroup = Db.user.createUserGroupForUser(user.id)
     createdGroup.foreach { _ =>
       Db.user.allGroups(user.id)
         .map(groups => ChannelEvent(Channel.User(user.id), ReplaceUserGroups(groups)))

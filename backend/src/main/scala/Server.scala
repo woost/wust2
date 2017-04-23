@@ -31,7 +31,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     dispatcher.unsubscribe(sender)
 
     dispatcher.subscribe(sender, Channel.Graph)
-    dispatcher.subscribe(sender, Channel.UserGroup(Db.Usergroup.default.id))
+    dispatcher.subscribe(sender, Channel.UserGroup(Db.UserGroup.default.id))
     auth.foreach { auth =>
       dispatcher.subscribe(sender, Channel.User(auth.user.id))
       groups

@@ -30,12 +30,12 @@ object Db {
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
   case class Password(id: Long, digest: Array[Byte])
-  case class UsergroupMember(groupId: Long, userId: Option[Long]) //TODO: rename to UserGroupMember
-  case class Usergroup(id: Long) //TODO: rename to UserGroup
-  object Usergroup {
-    def apply(): Usergroup = Usergroup(0L)
+  case class UserGroupMember(groupId: Long, userId: Option[Long])
+  case class UserGroup(id: Long)
+  object UserGroup {
+    def apply(): UserGroup = UserGroup(0L)
     //TODO this should be a setting, it corresponds to the id of the public user group (V6__user_ownership.sql)
-    def default = Usergroup(1L)
+    def default = UserGroup(1L)
   }
 
   object post {
@@ -157,28 +157,28 @@ object Db {
           .as[Query[Int]] //TODO update? but does not support returning?
     }
 
-    def createUsergroupForUser(userId: Long): Future[Usergroup] =
+    def createUserGroupForUser(userId: Long): Future[UserGroup] =
       ctx.transaction { ev =>
         //TODO report quill bug:
-        // val q = quote(query[Usergroup].insert(lift(Usergroup())).returning(_.id))
+        // val q = quote(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         // --> produces: "INSERT INTO usergroup () VALUES ()"
         // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
         val q = quote(
           infix"insert into usergroup(id) values(DEFAULT)"
-            .as[Insert[Usergroup]]
+            .as[Insert[UserGroup]]
             .returning(_.id))
         ctx.run(q).flatMap { group =>
           val q = quote(
-            query[UsergroupMember].insert(
-              lift(UsergroupMember(group, Option(userId)))))
-          ctx.run(q).map(_ => Usergroup(group))
+            query[UserGroupMember].insert(
+              lift(UserGroupMember(group, Option(userId)))))
+          ctx.run(q).map(_ => UserGroup(group))
         }
       }
 
     def addMember(groupId: Long, userId: Long): Future[Long] = {
       val q = quote(
         infix"""insert into usergroupmember(groupId, userId) values (${lift(
-          groupId)}, ${lift(userId)})""".as[Insert[UsergroupMember]])
+          groupId)}, ${lift(userId)})""".as[Insert[UserGroupMember]])
       ctx.run(q)
     }
 
@@ -186,7 +186,7 @@ object Db {
       val q = quote {
         query[Ownership]
           .filter(o => o.postId == lift(postId))
-          .join(query[UsergroupMember].filter(m =>
+          .join(query[UserGroupMember].filter(m =>
             m.userId.forall(_ == lift(userId)) || m.userId.isEmpty))
           .on((o, m) => o.groupId == m.groupId)
           .nonEmpty
@@ -209,7 +209,7 @@ object Db {
       //TODO in user create transaction with one query?
       userId.flatMap {
         case Some(user) =>
-          createUsergroupForUser(user.id).map(_ => Option(user))
+          createUserGroupForUser(user.id).map(_ => Option(user))
         case None => Future.successful(None)
       }
     }
@@ -220,7 +220,7 @@ object Db {
       val dbUser = ctx.run(q).map(id => user.copy(id = id))
 
       //TODO in user create transaction with one query?
-      dbUser.flatMap(user => createUsergroupForUser(user.id).map(_ => user))
+      dbUser.flatMap(user => createUserGroupForUser(user.id).map(_ => user))
     }
 
     def activateImplicitUser(id: Long,
@@ -273,13 +273,13 @@ object Db {
         })
     }
 
-    def group(user: User): Future[Usergroup] = { //TODO: Long
+    def group(user: User): Future[UserGroup] = { //TODO: Long
       //TODO: this is faking it, just take one group for user.
       //really need to know the private usergroup of the user! --> column in user-table referencing group?
       val q = quote {
-        query[UsergroupMember]
+        query[UserGroupMember]
           .filter(_.userId == lift(Option(user.id)))
-          .join(query[Usergroup])
+          .join(query[UserGroup])
           .on((m, g) => m.groupId == g.id)
           .map(_._2)
           .take(1)
@@ -294,9 +294,9 @@ object Db {
 
       val q = quote {
         for {
-          m <- query[UsergroupMember].filter(m =>
+          m <- query[UserGroupMember].filter(m =>
             m.userId == lift(Option(userId)))
-          m1 <- query[UsergroupMember].filter(m1 => m1.groupId == m.groupId)
+          m1 <- query[UserGroupMember].filter(m1 => m1.groupId == m.groupId)
           u <- query[User].join(u => m1.userId.forall(_ == u.id))
         } yield (m.groupId, u.id, u.name)
       }
@@ -335,7 +335,7 @@ object Db {
 
     def getAllVisiblePosts(userId: Option[Long]): Future[Graph] = {
       val myMemberships = quote {
-        query[UsergroupMember].filter(m =>
+        query[UserGroupMember].filter(m =>
           (m.userId == lift(userId) || m.userId.isEmpty))
       }
       val visibleOwnerships = quote {
