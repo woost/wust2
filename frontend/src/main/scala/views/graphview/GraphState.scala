@@ -48,9 +48,9 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
           else
             postDefaultColor
         }
-        ).toString
+      ).toString
 
-      sp.opacity = if (graph.groupsByPostId(p.id) contains state.selectedGroup()) 1.0 else 0.3
+      sp.opacity = if (graph.groupsByPostId(p.id) contains state.selectedGroupId()) 1.0 else 0.3
 
       sp
 

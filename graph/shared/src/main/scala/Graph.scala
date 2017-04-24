@@ -30,32 +30,35 @@ package object graph {
   type UserId = Long
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)
-  case class ClientUser(id: UserId, name: String) //TODO: rename to user
+  case class ClientUser(id: UserId, name: String) //TODO: derive: identify only by id //TODO: rename to User (the db-user should be DbUser or db.User)
+  case class ClientGroup(id: GroupId) //TODO: rename to group
 
   object Graph {
     def empty =
-      new Graph(Map.empty,
-                Map.empty,
-                Map.empty,
-                Set.empty,
-                Set.empty,
-                Map.empty,
-                Set.empty)
+      new Graph(
+        Map.empty,
+        Map.empty,
+        Map.empty,
+        Map.empty,
+        Set.empty,
+        Map.empty,
+        Set.empty
+      )
 
     def apply(
-        posts: Iterable[Post] = Nil,
-        connections: Iterable[Connects] = Nil,
-        containments: Iterable[Contains] = Nil,
-        groupIds: Iterable[GroupId] = Nil,
-        ownerships: Iterable[Ownership] = Nil,
-        users: Iterable[ClientUser] = Nil,
-        memberships: Iterable[Membership] = Nil
+      posts: Iterable[Post] = Nil,
+      connections: Iterable[Connects] = Nil,
+      containments: Iterable[Contains] = Nil,
+      groups: Iterable[ClientGroup] = Nil,
+      ownerships: Iterable[Ownership] = Nil,
+      users: Iterable[ClientUser] = Nil,
+      memberships: Iterable[Membership] = Nil
     ): Graph = {
       new Graph(
         posts.by(_.id),
         connections.by(_.id),
         containments.by(_.id),
-        groupIds.toSet,
+        groups.by(_.id),
         ownerships.toSet,
         users.by(_.id),
         memberships.toSet
@@ -64,105 +67,80 @@ package object graph {
   }
 
   final case class Graph( //TODO: costom pickler over lists instead of maps to save traffic
-                         postsById: Map[PostId, Post],
-                         connectionsById: Map[ConnectsId, Connects],
-                         containmentsById: Map[ContainsId, Contains],
-                         groupIds: Set[GroupId],
-                         ownerships: Set[Ownership],
-                         usersById: Map[UserId, ClientUser],
-                         memberships: Set[Membership]) {
+    postsById: Map[PostId, Post],
+    connectionsById: Map[ConnectsId, Connects],
+    containmentsById: Map[ContainsId, Contains],
+    groupsById: Map[GroupId, ClientGroup],
+    ownerships: Set[Ownership],
+    usersById: Map[UserId, ClientUser],
+    memberships: Set[Membership]
+  ) {
 
     lazy val posts: Iterable[Post] = postsById.values
+    lazy val groups: Iterable[ClientGroup] = groupsById.values
+    lazy val users: Iterable[ClientUser] = usersById.values
     lazy val connections: Iterable[Connects] = connectionsById.values
     lazy val containments: Iterable[Contains] = containmentsById.values
 
     override def toString =
-      s"Graph(${posts.map(_.id.id).mkString(" ")},${connections
-        .map(c => s"${c.id.id}:${c.sourceId.id}->${c.targetId.id}")
-        .mkString(", ")}, ${containments
-        .map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}")
-        .mkString(", ")},groups:$groupIds, ownerships: ${ownerships
-        .map(o => s"${o.postId} -> ${o.groupId}")
-        .mkString(", ")})"
+      s"Graph(${posts.map(_.id.id).mkString(" ")},${
+        connections
+          .map(c => s"${c.id.id}:${c.sourceId.id}->${c.targetId.id}")
+          .mkString(", ")
+      }, ${
+        containments
+          .map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}")
+          .mkString(", ")
+      },groups:${groupsById.keys}, ownerships: ${
+        ownerships
+          .map(o => s"${o.postId} -> ${o.groupId}")
+          .mkString(", ")
+      })"
 
     private val postDefaultNeighbourhood =
       postsById.mapValues(_ => Set.empty[PostId])
-    lazy val successors
-      : Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[
-      PostId,
-      (PostId, PostId),
-      PostId](connections.collect {
+    lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId), PostId](connections.collect {
       case Connects(_, in, out: PostId) => (in, out)
     }, _._1, _._2)
-    lazy val predecessors
-      : Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[
-      PostId,
-      (PostId, PostId),
-      PostId](connections.collect {
+    lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId), PostId](connections.collect {
       case Connects(_, in, out: PostId) => (in, out)
     }, _._2, _._1)
-    lazy val neighbours
-      : Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[
-      PostId,
-      (PostId, PostId)](connections.collect {
+    lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, (PostId, PostId)](connections.collect {
       case Connects(_, in, out: PostId) => (in, out)
     }, _._2, _._1)
     // TODO: lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connects](connections, _.targetId, _.sourceId)
 
-    lazy val children
-      : Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[
-      PostId,
-      Contains,
-      PostId](containments, _.parentId, _.childId)
-    lazy val parents
-      : Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[
-      PostId,
-      Contains,
-      PostId](containments, _.childId, _.parentId)
-    lazy val containmentNeighbours
-      : Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[
-      PostId,
-      Contains](containments, _.parentId, _.childId)
+    lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains, PostId](containments, _.parentId, _.childId)
+    lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains, PostId](containments, _.childId, _.parentId)
+    lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Contains](containments, _.parentId, _.childId)
 
     //TODO: remove .mapValues(_.map(_.id))
     // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
     // that's why the need default values from connectionDefaultNeighbourhood
     private val connectionDefaultNeighbourhood =
       postsById.mapValues(_ => Set.empty[ConnectsId])
-    private val hyperConnectionDefaultNeighbourhood: Map[
-      ConnectableId,
-      Set[ConnectsId]] = connectionDefaultNeighbourhood ++ connectionsById
+    private val hyperConnectionDefaultNeighbourhood: Map[ConnectableId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++ connectionsById
       .mapValues(_ => Set.empty[ConnectsId])
     private val containsDefaultNeighbourhood =
       postsById.mapValues(_ => Set.empty[ContainsId])
-    lazy val incomingConnections
-      : Map[PostId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++
+    lazy val incomingConnections: Map[PostId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++
       directedIncidenceList[PostId, Connects](connections.collect {
         case c @ Connects(_, _, _: PostId) => c
       }, _.targetId.asInstanceOf[PostId]).mapValues(_.map(_.id))
-    lazy val outgoingConnections
-      : Map[PostId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++
+    lazy val outgoingConnections: Map[PostId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++
       directedIncidenceList[PostId, Connects](connections, _.sourceId)
-        .mapValues(_.map(_.id))
+      .mapValues(_.map(_.id))
 
-    lazy val incidentConnections
-      : Map[ConnectableId, Set[ConnectsId]] = hyperConnectionDefaultNeighbourhood ++
-      incidenceList[ConnectableId, Connects](connections,
-                                             _.sourceId,
-                                             _.targetId).mapValues(_.map(_.id))
+    lazy val incidentConnections: Map[ConnectableId, Set[ConnectsId]] = hyperConnectionDefaultNeighbourhood ++
+      incidenceList[ConnectableId, Connects](
+        connections,
+        _.sourceId,
+        _.targetId
+      ).mapValues(_.map(_.id))
 
-    lazy val incidentParentContains
-      : Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ directedIncidenceList[
-      PostId,
-      Contains](containments, _.childId).mapValues(_.map(_.id))
-    lazy val incidentChildContains
-      : Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ directedIncidenceList[
-      PostId,
-      Contains](containments, _.parentId).mapValues(_.map(_.id))
-    lazy val incidentContains
-      : Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ incidenceList[
-      PostId,
-      Contains](containments, _.parentId, _.childId).mapValues(_.map(_.id))
+    lazy val incidentParentContains: Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ directedIncidenceList[PostId, Contains](containments, _.childId).mapValues(_.map(_.id))
+    lazy val incidentChildContains: Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ directedIncidenceList[PostId, Contains](containments, _.parentId).mapValues(_.map(_.id))
+    lazy val incidentContains: Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ incidenceList[PostId, Contains](containments, _.parentId, _.childId).mapValues(_.map(_.id))
 
     def incidentConnectionsDeep(id: ConnectableId): Iterable[ConnectsId] = {
       // Currently connects.in must be a Post, so no cycles can occour
@@ -180,46 +158,23 @@ package object graph {
       result
     }
 
-    private val groupDefaultPosts: Map[GroupId, Set[PostId]] =
-      groupIds.map(groupId => groupId -> Set.empty[PostId])(breakOut)
-    private val postDefaultGroups =
-      postsById.mapValues(_ => Set.empty[GroupId])
-    lazy val postsByGroupId
-      : Map[GroupId, Set[PostId]] = groupDefaultPosts ++ directedAdjacencyList[
-      GroupId,
-      Ownership,
-      PostId](ownerships, _.groupId, _.postId)
-    lazy val groupsByPostId
-      : Map[PostId, Set[GroupId]] = postDefaultGroups ++ directedAdjacencyList[
-      PostId,
-      Ownership,
-      GroupId](ownerships, _.postId, _.groupId)
+    private val groupDefaultPosts: Map[GroupId, Set[PostId]] = groupsById.mapValues(_ => Set.empty[PostId])
+    private val postDefaultGroups = postsById.mapValues(_ => Set.empty[GroupId])
+    lazy val postsByGroupId: Map[GroupId, Set[PostId]] = groupDefaultPosts ++ directedAdjacencyList[GroupId, Ownership, PostId](ownerships, _.groupId, _.postId)
+    lazy val groupsByPostId: Map[PostId, Set[GroupId]] = postDefaultGroups ++ directedAdjacencyList[PostId, Ownership, GroupId](ownerships, _.postId, _.groupId)
 
-    private val groupDefaultUsers: Map[GroupId, Set[UserId]] =
-      groupIds.map(groupId => groupId -> Set.empty[UserId])(breakOut)
-    private val userDefaultGroups =
-      usersById.mapValues(_ => Set.empty[GroupId])
-    lazy val usersByGroupId
-      : Map[GroupId, Set[UserId]] = groupDefaultUsers ++ directedAdjacencyList[
-      GroupId,
-      Membership,
-      UserId](memberships, _.groupId, _.userId)
-
-    lazy val groupsByUserId
-      : Map[UserId, Set[GroupId]] = userDefaultGroups ++ directedAdjacencyList[
-      UserId,
-      Membership,
-      GroupId](memberships, _.userId, _.groupId)
+    private val groupDefaultUsers: Map[GroupId, Set[UserId]] = groupsById.mapValues(_ => Set.empty[UserId])
+    private val userDefaultGroups = usersById.mapValues(_ => Set.empty[GroupId])
+    lazy val usersByGroupId: Map[GroupId, Set[UserId]] = groupDefaultUsers ++ directedAdjacencyList[GroupId, Membership, UserId](memberships, _.groupId, _.userId)
+    lazy val groupsByUserId: Map[UserId, Set[GroupId]] = userDefaultGroups ++ directedAdjacencyList[UserId, Membership, GroupId](memberships, _.userId, _.groupId)
 
     private val postDefaultDegree = postsById.mapValues(_ => 0)
-    lazy val connectionDegree = postDefaultDegree ++ degreeSequence[
-      ConnectableId,
-      Connects](connections, _.targetId, _.sourceId)
-    lazy val containmentDegree = postDefaultDegree ++ degreeSequence[PostId,
-                                                                     Contains](
+    lazy val connectionDegree = postDefaultDegree ++ degreeSequence[ConnectableId, Connects](connections, _.targetId, _.sourceId)
+    lazy val containmentDegree = postDefaultDegree ++ degreeSequence[PostId, Contains](
       containments,
       _.parentId,
-      _.childId)
+      _.childId
+    )
 
     val fullDegree: ConnectableId => Int = {
       case p: PostId => connectionDegree(p) + containmentDegree(p)
@@ -248,7 +203,7 @@ package object graph {
         if (involvedInContainmentCycle(postId)) parents else parents.drop(1)
       } //TODO better?
 
-    val `-` : AtomId => Graph = {
+    val `-`: AtomId => Graph = {
       case id: PostId =>
         val removedPosts = postsById.get(id).map(_.id)
         val removedConnections = incidentConnectionsDeep(id)
@@ -273,8 +228,8 @@ package object graph {
     def --(ids: Iterable[AtomId]) =
       ids.foldLeft(this)((g, p) => g - p) //TODO: more efficient
 
-    //TODO: also accept Ownerships and Groups -> should ownerships and groups have atomids?
-    val `+` : Atom => Graph = {
+    //TODO: also accept Ownerships,Groups,Users,Memberships -> should ownerships and groups have atomids?
+    val `+`: Atom => Graph = {
       case p: Post => copy(postsById = postsById + (p.id -> p))
       case c: Connects => copy(connectionsById = connectionsById + (c.id -> c))
       case c: Contains =>
@@ -300,12 +255,17 @@ package object graph {
       val invalidContainments = containments
         .filter { c =>
           !postsById.isDefinedAt(c.childId) || !postsById.isDefinedAt(
-            c.parentId)
+            c.parentId
+          )
         }
         .map(_.id)
 
       val validOwnerships = ownerships.filter { o =>
-        postsById.isDefinedAt(o.postId) && groupIds(o.groupId)
+        postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId)
+      }
+
+      val validMemberships = memberships.filter { m =>
+        usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId)
       }
 
       val g = this -- invalidConnects -- invalidContainments
@@ -316,10 +276,12 @@ package object graph {
               targetId = g.postsById
                 .get(PostId(u.id))
                 .map(_.id)
-                .getOrElse(g.connectionsById(ConnectsId(u.id)).id))
+                .getOrElse(g.connectionsById(ConnectsId(u.id)).id)
+            )
           case valid => valid
         },
-        ownerships = validOwnerships
+        ownerships = validOwnerships,
+        memberships = validMemberships
       )
     }
 
@@ -353,10 +315,12 @@ package object graph {
   object Post { def apply(title: String): Post = Post(0L, title) }
 
   //TODO: rename to Connection
-  final case class Connects(id: ConnectsId,
-                            sourceId: PostId,
-                            targetId: ConnectableId)
-      extends Atom
+  final case class Connects(
+    id: ConnectsId,
+    sourceId: PostId,
+    targetId: ConnectableId
+  )
+    extends Atom
   object Connects {
     def apply(in: PostId, out: ConnectableId): Connects = Connects(0L, in, out)
   }
@@ -364,7 +328,7 @@ package object graph {
   //TODO: rename to Containment
   //TODO: reverse direction of contains?
   final case class Contains(id: ContainsId, parentId: PostId, childId: PostId)
-      extends Atom
+    extends Atom
   object Contains {
     def apply(parentId: PostId, childId: PostId): Contains =
       Contains(0L, parentId, childId)

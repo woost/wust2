@@ -41,26 +41,26 @@ class WebsocketConnection(onConnect: String => Unit) {
   def run(location: String)(receive: ByteBuffer => Unit) {
     if (wsOpt.isDefined) return
 
-    val wsRaw = new WebSocket(location)
+    val websocket = new WebSocket(location)
 
-    wsRaw.onerror = (e: ErrorEvent) => console.log("error", e)
+    websocket.onerror = (e: ErrorEvent) => console.log("error", e)
 
-    wsRaw.onopen = { (_: Event) =>
+    websocket.onopen = { (_: Event) =>
       console.log("websocket is open")
       connectionAttempts = 1
       onConnect(location)
-      wsOpt = Option(wsRaw)
+      wsOpt = Option(websocket)
       flush()
     }
 
-    wsRaw.onclose = { (_: Event) =>
+    websocket.onclose = { (_: Event) =>
       connectionAttempts += 1
       console.log(s"websocket is closed, will attempt to reconnect in ${(backoffInterval / 1000.0).ceil} seconds")
       wsOpt = None
       setTimeout(backoffInterval)(run(location)(receive))
     }
 
-    wsRaw.onmessage = { (e: MessageEvent) =>
+    websocket.onmessage = { (e: MessageEvent) =>
       e.data match {
         case blob: Blob =>
           val reader = new FileReader()

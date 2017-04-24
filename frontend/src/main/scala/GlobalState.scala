@@ -13,15 +13,6 @@ case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
-  val currentGroups = RxVar[Seq[UserGroup]](Seq.empty)
-  val selectedGroup = {
-    //TODO: magic number for public group!
-    val s = RxVar[Long](1)
-    RxVar(s, Rx {
-      if (currentGroups().exists(_.id == s())) s() else 1
-    })
-  }
-
   val viewConfig = UrlRouter.variable
     .projection[ViewConfig](ViewConfig.toHash andThen Option.apply, ViewConfig.fromHash)
 
@@ -35,6 +26,17 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
+
+  val selectedGroupId = {
+    //TODO: magic number for public group!
+    val rawSelectedId = RxVar[GroupId](1)
+    RxVar(rawSelectedId, Rx {
+      if (rawGraph().groupsById.isDefinedAt(rawSelectedId()))
+        rawSelectedId()
+      else
+        1L: GroupId
+    })
+  }
 
   val collapsedPostIds = RxVar[Set[PostId]](Set.empty)
 
@@ -80,13 +82,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val onAuthEvent: AuthEvent => Unit = {
     case LoggedIn(user) => currentUser() = Option(user)
-    case LoggedOut =>
-      currentUser() = None
-      currentGroups() = Nil
+    case LoggedOut => currentUser() = None
   }
 
   val onApiEvent: ApiEvent => Unit = {
-    case NewPost(post) => rawGraph.updatef(_ + post)
+    case NewPost(post) =>
+      println("new post")
+      rawGraph.updatef(_ + post)
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
     case NewConnection(connects) =>
       rawGraph.updatef(_ + connects)
@@ -94,6 +96,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
         focusedPostId() = Option(connects.sourceId)
     case NewContainment(contains) => rawGraph.updatef(_ + contains)
     case NewOwnership(ownership) => rawGraph.updatef(g => g.copy(ownerships = g.ownerships + ownership))
+    case NewMembership(membership) => rawGraph.updatef(g => g.copy(memberships = g.memberships + membership))
+    case NewUser(user) => rawGraph.updatef(g => g.copy(usersById = g.usersById + (user.id -> user)))
+    case NewGroup(group) => rawGraph.updatef(g => g.copy(groupsById = g.groupsById + (group.id -> group)))
+
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
     case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
     case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
@@ -101,8 +107,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       rawGraph() = newGraph
       DevOnly {
         assert(newGraph.consistent == newGraph)
+        assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), "current user is not in Graph")
+        assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.toSet), "User is not member of all groups")
       }
-    case ReplaceUserGroups(newGroups) => currentGroups() = newGroups
     case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
   }
 }

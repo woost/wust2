@@ -48,8 +48,7 @@ object Main extends js.JSApp {
       focusedPostId.debug("focusedPostId")
       editedPostId.debug("editedPostId")
       mode.debug("mode")
-      currentGroups.debug("currentGroups")
-      selectedGroup.debug("selectedGroup")
+      selectedGroupId.debug("selectedGroupId")
       graphSelection.debug("graphSelection")
       viewConfig.debug("viewConfig")
 

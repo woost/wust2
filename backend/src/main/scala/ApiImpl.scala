@@ -15,9 +15,11 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id)
 
   //TODO: return Future[Boolean]
-  def addPost(msg: String,
-              selection: GraphSelection,
-              groupId: Long): Future[Post] = withUserOrImplicit {
+  def addPost(
+    msg: String,
+    selection: GraphSelection,
+    groupId: GroupId
+  ): Future[Post] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
     (Db.post(msg, groupId) ||> (_.foreach {
       case (post, ownership) =>
@@ -61,7 +63,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   }
 
   //TODO: return Future[Boolean]
-  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Long): Future[(Post, Connects)] = withUserOrImplicit {
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: GroupId): Future[(Post, Connects)] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
     (Db.connects.newPost(msg, to, groupId) ||> (_.foreach {
       case (post, connects, ownership) =>
@@ -77,30 +79,31 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     })).map { case (post, connects, _) => (post, connects) }
   }
 
-  def getUser(id: Long): Future[Option[User]] = Db.user.get(id)
-  def getUserGroups(id: Long): Future[Seq[UserGroup]] = Db.user.allGroups(id)
-  def addUserGroup(): Future[UserGroup] = withUserOrImplicit { user =>
+  def getUser(id: UserId): Future[Option[User]] = Db.user.get(id)
+  def addUserGroup(): Future[ClientGroup] = withUserOrImplicit { user =>
     val createdGroup = Db.user.createUserGroupForUser(user.id)
-    createdGroup.foreach { _ =>
-      Db.user.allGroups(user.id)
-        .map(groups => ChannelEvent(Channel.User(user.id), ReplaceUserGroups(groups)))
-        .foreach(emit)
+    createdGroup.map {
+      case (group, usergroupmember) =>
+        emit(ChannelEvent(Channel.User(user.id), NewGroup(ClientGroup(group.id))))
+        emit(ChannelEvent(Channel.User(user.id), NewMembership(Membership(group.id, user.id))))
+
+        ClientGroup(group.id)
     }
-    createdGroup.map(group => UserGroup(group.id, Seq(user.toClientUser)))
   }
-  def addMember(groupId: Long, userId: Long): Future[Boolean] = withUserOrImplicit { user =>
+
+  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { user =>
     //TODO this should be handled in the query, just return false in Db.user.addMember
     //TODO NEVER use bare exception! we have an exception for apierrors: UserError(something)
     if (groupId == 1L) Future.failed(new Exception("adding members to public group is not allowed"))
+
     else {
       //TODO: check if user has access to group
-      val success = Db.user.addMember(groupId, userId).map(_ => true)
-      success.filter(identity).foreach { _ =>
-        Db.user.allGroups(user.id)
-          .map(groups => ChannelEvent(Channel.User(user.id), ReplaceUserGroups(groups)))
-          .foreach(emit)
+      val createdMembership = Db.user.addMember(groupId, userId)
+      createdMembership.map { membership =>
+        emit(ChannelEvent(Channel.User(groupId), NewMembership(Membership(membership.groupId, membership.userId.get))))
+
+        true
       }
-      success
     }
   }
 

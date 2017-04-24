@@ -12,6 +12,8 @@ import wust.util.Pipe
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
+import Db.UserGroup
+import collection.breakOut
 
 case class UserError(error: ApiError) extends Exception
 
@@ -32,8 +34,8 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     //TODO: currently updates to a usergroup (via api) are not automatically subscribed!
     dispatcher.subscribe(sender, Channel.UserGroup(Db.UserGroup.default.id))
     extraGroups
-        .map(g => Channel.UserGroup(g.id))
-        .foreach(dispatcher.subscribe(sender, _))
+      .map(g => Channel.UserGroup(g.id))
+      .foreach(dispatcher.subscribe(sender, _))
 
     auth.foreach { auth =>
       dispatcher.subscribe(sender, Channel.User(auth.user.id))
@@ -43,20 +45,14 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   private def onStateChange(sender: EventSender[ApiEvent], state: State) = {
     //TODO: with current graphselection
     val newGraph = Db.graph.getAllVisiblePosts(state.auth.map(_.user.id))
-    val newGroups = state.auth
-      .map(auth => Db.user.allGroups(auth.user.id))
-      .getOrElse(Future.successful(Seq.empty))
 
     import sender.send
-    newGroups.foreach { groups =>
-      subscribeChannels(state.auth, groups, sender)
+    newGraph.foreach { graph =>
+      subscribeChannels(state.auth, graph.groupsById.keys.map(Db.UserGroup.apply)(breakOut), sender)
       state.auth
         .filter(_.user.isImplicit)
         .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
-      ReplaceUserGroups(groups) |> send
-      newGraph.foreach { graph =>
-        ReplaceGraph(graph) |> send
-      }
+      ReplaceGraph(graph) |> send
     }
   }
 
@@ -65,19 +61,20 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
     (
       AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
-        AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))) andThen {
-      res =>
-        val newState = for {
-          state <- state
-          auth <- apiAuth.createdOrActualAuth
-        } yield if (state.auth != auth) {
-          val newState = state.copy(auth = auth)
-          onStateChange(sender, newState)
-          newState
-        } else state
+      AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
+    ) andThen {
+        res =>
+          val newState = for {
+            state <- state
+            auth <- apiAuth.createdOrActualAuth
+          } yield if (state.auth != auth) {
+            val newState = state.copy(auth = auth)
+            onStateChange(sender, newState)
+            newState
+          } else state
 
-        RequestResult(newState, res)
-    }
+          RequestResult(newState, res)
+      }
   }
 
   override val initialState = Future.successful(State(None))
