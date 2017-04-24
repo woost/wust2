@@ -12,10 +12,6 @@ import scala.concurrent.Future
 
 case class ApiException(error: ApiError) extends Exception
 
-sealed trait IncidentEvent
-case class ConnectEvent(location: String) extends IncidentEvent
-case class ConnectionEvent(event: ApiEvent) extends IncidentEvent
-
 class ApiIncidentHandler extends IncidentHandler[ApiError] {
   override def fromError(error: ApiError) = ApiException(error)
 }
