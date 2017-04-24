@@ -87,9 +87,8 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   override val toError: PartialFunction[Throwable, ApiError] = {
     case UserError(error) => error
     case NonFatal(e) =>
-      val sw = new StringWriter
-      e.printStackTrace(new PrintWriter(sw))
-      scribe.error("request handler threw exception:\n" + sw.toString)
+      scribe.error("request handler threw exception")
+      scribe.error(e)
       InternalServerError
   }
 }
