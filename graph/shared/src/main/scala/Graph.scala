@@ -183,8 +183,9 @@ package object graph {
     }
 
     def involvedInContainmentCycle(id: PostId): Boolean = {
-      children(id).exists(child =>
-        depthFirstSearch(child, children).exists(_ == id))
+      children.get(id)
+        .map(_.exists(child => depthFirstSearch(child, children).exists(_ == id)))
+        .getOrElse(false)
     }
     // TODO: maybe fast involved-in-cycle-algorithm?
     // breadth-first-search starting at successors and another one starting at predecessors in different direction.
@@ -192,16 +193,22 @@ package object graph {
     // Even better:
     // lazy val involvedInContainmentCycle:Set[PostId] = all posts involved in a cycle
 
-    def transitiveChildren(postId: PostId) =
-      depthFirstSearch(postId, children) |> { children =>
-        if (involvedInContainmentCycle(postId)) children else children.drop(1)
-      } //TODO better?
+    def transitiveChildren(postId: PostId) = postsById.keySet.contains(postId) match {
+      case true =>
+        depthFirstSearch(postId, children) |> { children =>
+          if (involvedInContainmentCycle(postId)) children else children.drop(1)
+        } //TODO better?
+      case false => Seq.empty
+    }
     //TODO: rename to transitiveParentsIds:Iterable[PostId]
     // Also provide transitiveParents:Iterable[Post]?
-    def transitiveParents(postId: PostId): Iterable[PostId] =
-      depthFirstSearch(postId, parents) |> { parents =>
-        if (involvedInContainmentCycle(postId)) parents else parents.drop(1)
-      } //TODO better?
+    def transitiveParents(postId: PostId): Iterable[PostId] = postsById.keySet.contains(postId) match {
+      case true => 
+        depthFirstSearch(postId, parents) |> { parents =>
+          if (involvedInContainmentCycle(postId)) parents else parents.drop(1)
+        } //TODO better?
+      case false => Seq.empty
+    }
 
     val `-`: AtomId => Graph = {
       case id: PostId =>
