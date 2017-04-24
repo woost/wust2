@@ -64,9 +64,7 @@ object User {
   def apply(): User = User(0L, implicitUserName, isImplicit = true, initialRevision)
 }
 
-case class Authentication(user: User, token: Authentication.Token) {
-  override def toString = s"Authentication($user, ***)"
-}
+case class Authentication(user: User, token: Authentication.Token)
 object Authentication {
   type Token = String
 }

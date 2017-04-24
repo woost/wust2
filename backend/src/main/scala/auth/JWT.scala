@@ -27,8 +27,9 @@ object Claims {
   }
 }
 
-case class JWTAuthentication(user: User, expires: Long, token: Authentication.Token) {
+case class JWTAuthentication private[auth](user: User, expires: Long, token: Authentication.Token) {
   def toAuthentication = Authentication(user, token)
+  override def toString = s"JWTAuthentication($user, ***)"
 }
 
 object JWT {
@@ -39,7 +40,6 @@ object JWT {
   private val wustIss = Iss("wust")
   private val wustAud = Aud("wust")
   private def currentTimestamp: Long = System.currentTimeMillis / 1000
-
   private def expirationTimestamp = currentTimestamp + tokenLifetime
 
   def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
