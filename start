@@ -18,15 +18,17 @@ function sbt_arg() {
 
 case $stage in
 psql)
-    sbt dbMigration/docker
     $compose_stage dev run db-migration
     # PGPASSWORD=test psql -h localhost -U wust
     docker exec -it wustdev_postgres_1  psql -h localhost -U wust
     ;;
 dev)
-    sbt dbMigration/docker
     $compose up -d
     WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt_arg
+    ;;
+migrate)
+    sbt dbMigration/docker
+    $compose_stage dev run db-migration
     ;;
 prod.http)
     $compose pull
@@ -77,6 +79,6 @@ local.prod)
     $compose_stage prod up -d
     ;;
 *)
-    echo "unknown stage '$1', expected one of [psql,dev,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod,local.prod.http,local.prod]"
+    echo "unknown stage '$1', expected one of [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod,local.prod.http,local.prod]"
     exit 1
 esac
