@@ -3,10 +3,15 @@ sudo: required
 services: docker
 language: scala
 jdk: oraclejdk8
-node_js: 6
+# node_js: 7
 
 install:
     - set -e # https://github.com/travis-ci/travis-ci/issues/1066#issuecomment-32415710
+    - . $HOME/.nvm/nvm.sh
+    - nvm install stable
+    - nvm use stable
+    - npm install
+    - npm install jsdom@9.12.0 # newer version seems to make problems
     - set +e
 
 script:
@@ -32,11 +37,3 @@ before_cache:
   # http://www.scala-sbt.org/0.13/docs/Travis-CI-with-sbt.html
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
-
-# - sbt ++$TRAVIS_SCALA_VERSION clean coverage renescaJVM/test
-# after_success:
-# - sbt ++$TRAVIS_SCALA_VERSION coveralls
-# pin jdk and neo4j version but release for each scala version separately
-# take an arbitrary fixed combination from build matrix for each scala version and publish
-# multi-line script?
-# - test -n "${TRAVIS_TAG}" && test "${TRAVIS_JDK_VERSION}" = 'oraclejdk7' && test "${NEO4J_VERSION}" = '2.3.7' && openssl aes-256-cbc -k "$file_encryption_password" -in credentials.sbt.enc -out local.credentials.sbt -d && openssl aes-256-cbc -k "$file_encryption_password" -in secring.gpg.enc -out local.secring.gpg -d && openssl aes-256-cbc -k "$file_encryption_password" -in pubring.gpg.enc -out local.pubring.gpg -d && sbt ++$TRAVIS_SCALA_VERSION publishSigned sonatypeRelease
