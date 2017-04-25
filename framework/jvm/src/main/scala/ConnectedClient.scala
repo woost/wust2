@@ -33,9 +33,8 @@ class EventSender[Event](messages: Messages[Event, _], private val actor: ActorR
 case class RequestResult[State](state: Future[State], result: Future[ByteBuffer])
 
 trait RequestHandler[Event, Error, State] {
-  def initialState: Future[State]
-  def onClientStart(sender: EventSender[Event], state: State): Any
-  def onClientStop(sender: EventSender[Event], state: State): Any
+  def onClientStart(sender: EventSender[Event]): Future[State]
+  def onClientStop(sender: EventSender[Event], state: State): Unit
 
   def router(sender: EventSender[Event], state: Future[State]): PartialFunction[Request[ByteBuffer], RequestResult[State]]
   def pathNotFound(path: Seq[String]): Error
@@ -73,8 +72,7 @@ class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
         context.stop(self)
     }
 
-    val state = initialState
-    state.foreach(onClientStart(sender, _))
+    val state = onClientStart(sender)
     withState(state)
   }
 

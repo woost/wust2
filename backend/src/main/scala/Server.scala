@@ -83,10 +83,11 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
       }
   }
 
-  override val initialState = Future.successful(State(None))
-  override def onClientStart(sender: EventSender[ApiEvent], state: State) = {
+  override def onClientStart(sender: EventSender[ApiEvent]) = {
+    val state = State(None)
     scribe.info(s"client started: $state")
     onStateChange(sender, state)
+    Future.successful(state)
   }
 
   override def onClientStop(sender: EventSender[ApiEvent], state: State) = {

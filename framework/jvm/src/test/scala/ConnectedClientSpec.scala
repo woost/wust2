@@ -31,8 +31,10 @@ object TestRequestHandler extends RequestHandler[String, String, Option[String]]
       RequestResult(state, Future.failed(new Exception("an error")))
   }
 
-  override def initialState = Future.successful(None)
-  override def onClientStart(sender: EventSender[String], state: Option[String]) = sender.send("started")
+  override def onClientStart(sender: EventSender[String]) = {
+    sender.send("started")
+    Future.successful(None)
+  }
   override def onClientStop(sender: EventSender[String], state: Option[String]) = sender.send("stopped")
 
   override def pathNotFound(path: Seq[String]) = "path not found"
