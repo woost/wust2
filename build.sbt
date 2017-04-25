@@ -144,6 +144,25 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
+lazy val backend = project
+  .enablePlugins(DockerPlugin)
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
+  .settings(dockerBackend)
+  .settings(commonSettings)
+  .dependsOn(frameworkJVM, apiJVM)
+  .settings(
+    libraryDependencies ++=
+      "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
+      "com.roundeights" %% "hasher" % "1.2.0" ::
+      "org.mindrot" % "jbcrypt" % "0.4" ::
+      "io.igl" %% "jwt" % "1.2.0" ::
+      "com.typesafe" % "config" % "1.3.1" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
+      Nil
+
+  )
+
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(frameworkJS, apiJS, utilJS)
@@ -218,25 +237,6 @@ lazy val assets = project
     },
     pipelineStages in Assets := Seq(scalaJSPipeline)
   //TODO: minify html
-  )
-
-lazy val backend = project
-  .enablePlugins(DockerPlugin)
-  .configs(IntegrationTest)
-  .settings(Defaults.itSettings)
-  .settings(dockerBackend)
-  .settings(commonSettings)
-  .dependsOn(frameworkJVM, apiJVM)
-  .settings(
-    libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
-      "com.roundeights" %% "hasher" % "1.2.0" ::
-      "org.mindrot" % "jbcrypt" % "0.4" ::
-      "io.igl" %% "jwt" % "1.2.0" ::
-      "com.typesafe" % "config" % "1.3.1" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
-      Nil
-
   )
 
 lazy val systemTest = project
