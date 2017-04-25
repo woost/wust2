@@ -12,6 +12,7 @@ import wust.util.Pipe
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 import Db.UserGroup
 import collection.breakOut
 
@@ -47,12 +48,17 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     val newGraph = Db.graph.getAllVisiblePosts(state.auth.map(_.user.id))
 
     import sender.send
-    newGraph.foreach { graph =>
-      subscribeChannels(state.auth, graph.groupsById.keys.map(Db.UserGroup.apply)(breakOut), sender)
-      state.auth
-        .filter(_.user.isImplicit)
-        .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
-      ReplaceGraph(graph) |> send
+    //TODO: this future fails on anon users
+    newGraph.onComplete {
+      case Success(graph) =>
+        subscribeChannels(state.auth, graph.groupsById.keys.map(Db.UserGroup.apply)(breakOut), sender)
+        state.auth
+          .filter(_.user.isImplicit)
+          .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
+        ReplaceGraph(graph) |> send
+      case Failure(t) =>
+        scribe.error("failed to get initial graph for state: $state")
+        scribe.error(t)
     }
   }
 
