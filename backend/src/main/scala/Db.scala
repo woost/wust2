@@ -164,7 +164,7 @@ object Db {
         // --> produces: "INSERT INTO usergroup () VALUES ()"
         // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
         for {
-          groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]])
+          groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
           m <- ctx.run(query[UserGroupMember].insert(lift(UserGroupMember(groupId, Option(userId)))))
         } yield (UserGroup(groupId), UserGroupMember(groupId, Option(m)))
       }
