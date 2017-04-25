@@ -34,6 +34,7 @@ case class RequestResult[State](state: Future[State], result: Future[ByteBuffer]
 
 trait RequestHandler[Event, Error, State] {
   def initialState: Future[State]
+  def onClientStart(sender: EventSender[Event], state: State): Any
   def onClientStop(sender: EventSender[Event], state: State): Any
 
   def router(sender: EventSender[Event], state: Future[State]): PartialFunction[Request[ByteBuffer], RequestResult[State]]
@@ -48,10 +49,10 @@ class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
   import handler._
   import messages._
 
-  def connected(outgoing: ActorRef, state: Future[State]): Receive = {
+  def connected(outgoing: ActorRef): Receive = {
     val sender = new EventSender(messages, outgoing)
 
-    {
+    def withState(state: Future[State]): Receive = {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
         val timer = StopWatch.started
@@ -63,7 +64,7 @@ class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
               .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-            context.become(connected(outgoing, newState))
+            context.become(withState(newState))
           case None =>
             outgoing ! CallResponse(seqId, Left(pathNotFound(path)))
         }
@@ -71,10 +72,14 @@ class ConnectedClient[Event, Error, State](messages: Messages[Event, Error],
         state.foreach(onClientStop(sender, _))
         context.stop(self)
     }
+
+    val state = initialState
+    state.foreach(onClientStart(sender, _))
+    withState(state)
   }
 
   def receive = {
-    case Connect(outgoing) => context.become(connected(outgoing, initialState))
+    case Connect(outgoing) => context.become(connected(outgoing))
     case Stop => context.stop(self)
   }
 }

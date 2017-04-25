@@ -32,6 +32,7 @@ object TestRequestHandler extends RequestHandler[String, String, Option[String]]
   }
 
   override def initialState = Future.successful(None)
+  override def onClientStart(sender: EventSender[String], state: Option[String]) = sender.send("started")
   override def onClientStop(sender: EventSender[String], state: Option[String]) = sender.send("stopped")
 
   override def pathNotFound(path: Seq[String]) = "path not found"
@@ -44,7 +45,11 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   import messages._
 
   def newActor = TestActorRef(new ConnectedClient(messages, TestRequestHandler))
-  def connectActor(actor: ActorRef) = actor ! ConnectedClient.Connect(self)
+  def connectActor(actor: ActorRef, shouldConnect: Boolean = true) = {
+    actor ! ConnectedClient.Connect(self)
+    if (shouldConnect) expectMsg(Notification("started"))
+    else expectNoMsg
+  }
 
   "unconnected" - {
     val actor = newActor
@@ -61,7 +66,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
     "stop" in {
       actor ! ConnectedClient.Stop
-      connectActor(actor)
+      connectActor(actor, shouldConnect = false)
       actor ! Ping()
       expectNoMsg
     }
