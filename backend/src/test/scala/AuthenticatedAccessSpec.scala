@@ -1,11 +1,15 @@
 package wust.backend.auth
 
 import org.scalatest._
-import wust.api.User
+import wust.ids._
+import wust.graph.User
 
 import scala.concurrent.Future
 
 class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
+  object User {
+    def apply(name: String): User = new User(0L, name, isImplicit = false, wust.db.User.initialRevision)
+  }
 
   def validAuth(user: User) = JWTAuthentication(user, Long.MaxValue, "abc")
   def expiredAuth(user: User) = JWTAuthentication(user, 123L, "abc")

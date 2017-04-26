@@ -6,6 +6,7 @@ import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{DevOnly, GlobalState}
+import wust.ids._
 import wust.graph._
 
 import scalatags.JsDom.all._

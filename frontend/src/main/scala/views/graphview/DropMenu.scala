@@ -4,6 +4,7 @@ import autowire._
 import boopickle.Default._
 import org.scalajs.d3v4._
 import wust.frontend._
+import wust.ids._
 import wust.graph._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,7 +14,7 @@ import scala.scalajs.js.JSConverters._
 
 object DropMenu {
   val dropActions = (
-    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id : ConnectableId).call() }) :: //TODO: better solution for pickling trait parameters in autowire?
+    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id: ConnectableId).call() }) :: //TODO: better solution for pickling trait parameters in autowire?
     DropAction("insert into", { (dropped: SimPost, target: SimPost) => Client.api.contain(target.id, dropped.id).call() }) ::
     // DropAction("Merge", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
     Nil

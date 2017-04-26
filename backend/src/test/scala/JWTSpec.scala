@@ -1,9 +1,13 @@
 package wust.backend.auth
 
 import org.scalatest._
-import wust.api.User
+import wust.graph.User
 
 class JWTSpec extends FreeSpec with MustMatchers {
+  object User {
+    def apply(name: String): User = new User(0L, name, isImplicit = false, wust.db.User.initialRevision)
+  }
+
   "generate auth for user" in {
     val user = User("Biermann")
     val auth = JWT.generateAuthentication(user)

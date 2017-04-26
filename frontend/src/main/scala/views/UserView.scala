@@ -1,7 +1,8 @@
 package wust.frontend.views
 
 import rx._
-import wust.api.User
+
+import wust.graph.User
 import wust.frontend.{Client, GlobalState}
 import wust.util.Pipe
 
@@ -22,12 +23,18 @@ object UserView {
     passwordField.value = ""
   })
 
-  val registerButton = buttonClick("register",
-    Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess)
-  val loginButton = buttonClick("login",
-    Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess)
-  val logoutButton = buttonClick("logout",
-    Client.auth.logout())
+  val registerButton = buttonClick(
+    "register",
+    Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess
+  )
+  val loginButton = buttonClick(
+    "login",
+    Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess
+  )
+  val logoutButton = buttonClick(
+    "logout",
+    Client.auth.logout()
+  )
 
   val registerMask = div(userField, passwordField, registerButton)
   def userProfile(user: User) = div(user.toString, logoutButton)

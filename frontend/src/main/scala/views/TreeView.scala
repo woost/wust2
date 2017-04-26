@@ -4,6 +4,7 @@ import org.scalajs.d3v4
 import rx._
 import rxext._
 import wust.frontend._
+import wust.ids._
 import wust.graph._
 import wust.util.algorithm.{Tree, redundantSpanningTree}
 import wust.util.collection._

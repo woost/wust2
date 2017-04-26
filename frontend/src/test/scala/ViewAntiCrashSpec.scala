@@ -6,6 +6,7 @@ import rx.Ctx.Owner.Unsafe._
 import rxext._
 import wust.frontend._
 import wust.frontend.views.graphview.GraphView
+import wust.ids._
 import wust.graph._
 
 import scala.collection.immutable._

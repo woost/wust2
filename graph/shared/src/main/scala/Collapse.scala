@@ -1,5 +1,6 @@
 package wust.graph
 
+import wust.ids._
 import wust.util.algorithm._
 
 import scala.collection.breakOut

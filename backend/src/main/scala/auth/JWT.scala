@@ -1,8 +1,10 @@
 package wust.backend.auth
 
+import wust.graph.User
 import io.igl.jwt._
 import wust.api._
 import wust.backend.Config
+import wust.backend.dbConversions._
 
 object Claims {
   import play.api.libs.functional.syntax._
@@ -27,7 +29,7 @@ object Claims {
   }
 }
 
-case class JWTAuthentication private[auth](user: User, expires: Long, token: Authentication.Token) {
+case class JWTAuthentication private[auth] (user: User, expires: Long, token: Authentication.Token) {
   def toAuthentication = Authentication(user, token)
   override def toString = s"JWTAuthentication($user, ***)"
 }
@@ -59,13 +61,13 @@ object JWT {
       Set(Iss, Aud, Exp, UserClaim),
       iss = Option(wustIss), aud = Option(wustAud)
     ).toOption.flatMap { decoded =>
-      for {
-        expires <- decoded.getClaim[Exp]
-        user <- decoded.getClaim[UserClaim]
-      } yield {
-        JWTAuthentication(user.value, expires.value, token)
-      }
-    }.filterNot(isExpired)
+        for {
+          expires <- decoded.getClaim[Exp]
+          user <- decoded.getClaim[UserClaim]
+        } yield {
+          JWTAuthentication(user.value, expires.value, token)
+        }
+      }.filterNot(isExpired)
   }
 
   def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp

@@ -4,6 +4,7 @@ import autowire._
 import boopickle.Default._
 import rx._
 import wust.frontend.{Client, GlobalState}
+import wust.ids._
 import wust.graph._
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue

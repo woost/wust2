@@ -6,6 +6,8 @@ import org.scalajs.dom.ext.LocalStorage
 import wust.api._
 import wust.framework._
 import wust.util.Pipe
+import wust.ids._
+import wust.graph._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -80,7 +82,7 @@ class AuthClient(ws: WebsocketClient[ApiEvent, ApiError], storage: ClientStorage
     }
 
   def reauthenticate(): Future[Boolean] =
-    currentAuth.flatMap{ auth =>
+    currentAuth.flatMap { auth =>
       auth
         .map(_.token)
         .orElse(storage.token)

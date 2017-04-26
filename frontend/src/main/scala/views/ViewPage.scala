@@ -4,6 +4,7 @@ import java.net.URI
 
 import org.scalajs.dom._
 import rx._
+import wust.ids._
 import wust.graph._
 
 import scala.collection.breakOut

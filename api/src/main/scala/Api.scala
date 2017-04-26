@@ -1,5 +1,6 @@
 package wust.api
 
+import wust.ids._
 import wust.graph._
 
 import scala.concurrent.Future
@@ -16,7 +17,7 @@ trait Api {
   def deleteConnection(id: ConnectsId): Future[Boolean]
   def deleteContainment(id: ContainsId): Future[Boolean]
   def getUser(userId: UserId): Future[Option[User]]
-  def addUserGroup(): Future[ClientGroup]
+  def addUserGroup(): Future[Group]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
   // def getComponent(id: Id): Future[Graph]
 }
@@ -36,8 +37,8 @@ case class UpdatedPost(post: Post) extends ApiEvent with DynamicEvent
 case class NewConnection(edge: Connects) extends ApiEvent with DynamicEvent
 case class NewContainment(edge: Contains) extends ApiEvent with DynamicEvent
 case class NewOwnership(edge: Ownership) extends ApiEvent with DynamicEvent
-case class NewUser(edge: ClientUser) extends ApiEvent with DynamicEvent
-case class NewGroup(edge: ClientGroup) extends ApiEvent with DynamicEvent
+case class NewUser(edge: User) extends ApiEvent with DynamicEvent
+case class NewGroup(edge: Group) extends ApiEvent with DynamicEvent
 case class NewMembership(edge: Membership) extends ApiEvent with DynamicEvent
 case class DeletePost(id: PostId) extends ApiEvent with DynamicEvent
 case class DeleteConnection(id: ConnectsId) extends ApiEvent with DynamicEvent
@@ -52,16 +53,6 @@ trait AuthApi {
   def login(name: String, password: String): Future[Option[Authentication]]
   def loginToken(token: Authentication.Token): Future[Option[Authentication]]
   def logout(): Future[Boolean]
-}
-
-case class User(id: Long, name: String, isImplicit: Boolean, revision: Int) {
-  def toClientUser = ClientUser(id, name)
-}
-object User {
-  private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
-  val initialRevision = 0
-  def apply(name: String): User = User(0L, name, isImplicit = false, initialRevision)
-  def apply(): User = User(0L, implicitUserName, isImplicit = true, initialRevision)
 }
 
 case class Authentication(user: User, token: Authentication.Token)

@@ -1,7 +1,8 @@
 package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
-import wust.graph.{ConnectableId, Post}
+import wust.ids._
+import wust.graph.Post
 import wust.util.Pipe
 
 import scala.math._

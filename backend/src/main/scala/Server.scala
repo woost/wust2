@@ -8,12 +8,14 @@ import wust.api._
 import wust.backend.auth._
 import wust.framework._
 import wust.util.Pipe
+import wust.db
+import wust.backend.dbConversions._
+import wust.graph.Group
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
-import Db.UserGroup
 import collection.breakOut
 
 case class UserError(error: ApiError) extends Exception
@@ -24,16 +26,16 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   import Config.auth.enableImplicit
 
   private def createImplicitAuth(): Future[Option[JWTAuthentication]] = {
-    if (enableImplicit) Db.user.createImplicitUser().map(JWT.generateAuthentication).map(Option.apply)
+    if (enableImplicit) db.user.createImplicitUser().map(u => JWT.generateAuthentication(u)).map(Option.apply)
     else Future.successful(None)
   }
 
-  private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Seq[UserGroup], sender: EventSender[ApiEvent]) = {
+  private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Iterable[Group], sender: EventSender[ApiEvent]) = {
     dispatcher.unsubscribe(sender)
 
     dispatcher.subscribe(sender, Channel.All)
     //TODO: currently updates to a usergroup (via api) are not automatically subscribed!
-    dispatcher.subscribe(sender, Channel.UserGroup(Db.UserGroup.default.id))
+    dispatcher.subscribe(sender, Channel.UserGroup(db.UserGroup.default.id))
     extraGroups
       .map(g => Channel.UserGroup(g.id))
       .foreach(dispatcher.subscribe(sender, _))
@@ -45,13 +47,13 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
   private def onStateChange(sender: EventSender[ApiEvent], state: State) = {
     //TODO: with current graphselection
-    val newGraph = Db.graph.getAllVisiblePosts(state.auth.map(_.user.id))
+    val newGraph = db.graph.getAllVisiblePosts(state.auth.map(_.user.id))
 
     import sender.send
     //TODO: this future fails on anon users
     newGraph.onComplete {
       case Success(graph) =>
-        subscribeChannels(state.auth, graph.groupsById.keys.map(Db.UserGroup.apply)(breakOut), sender)
+        subscribeChannels(state.auth, graph.groups, sender)
         state.auth
           .filter(_.user.isImplicit)
           .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)

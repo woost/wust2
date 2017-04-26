@@ -2,6 +2,7 @@ package wust.graph
 
 import org.scalatest._
 import wust.util.collection._
+import wust.ids._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   val edgeId: () => Long = {
@@ -15,7 +16,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToConnectsId(id: Int): ConnectsId = ConnectsId(id)
   implicit def intToContainsId(id: Int): ContainsId = ContainsId(id)
   implicit def idToPost(id: Int): Post = Post(id, "")
-  implicit def idToGroup(id: Int): ClientGroup = ClientGroup(id)
+  implicit def idToGroup(id: Int): Group = Group(id)
   implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
   implicit def tupleIsContains(t: (Int, Int)): Contains = Contains(edgeId(), PostId(t._1), PostId(t._2))
   implicit def containsListIsMap(contains: List[(Int, Int)]): List[Contains] = contains.map(tupleIsContains)
@@ -106,7 +107,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       )
       graph.consistent mustEqual graph.copy(ownerships = Set.empty)
       (graph + 4).consistent mustEqual (graph + 4).copy(ownerships = Set(Ownership(postId = 4, groupId = 1)))
-      graph.copy(groupsById = Seq[ClientGroup](1, 2).by(_.id)).consistent mustEqual graph.copy(groupsById = Seq[ClientGroup](1, 2).by(_.id), ownerships = Set(Ownership(postId = 1, groupId = 2)))
+      graph.copy(groupsById = Seq[Group](1, 2).by(_.id)).consistent mustEqual graph.copy(groupsById = Seq[Group](1, 2).by(_.id), ownerships = Set(Ownership(postId = 1, groupId = 2)))
     }
 
     "consistent on inconsistent graph (reverse)" in {
@@ -118,18 +119,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
         contains :+ Contains(102, 3, 5)
       )
       graph.consistent mustEqual Graph(List(1, 2, 3), connects, contains)
-    }
-
-    "post without id" in {
-      Post("title").id mustEqual PostId(0)
-    }
-
-    "connects without id" in {
-      Connects(1, ConnectsId(2)).id mustEqual ConnectsId(0)
-    }
-
-    "contains without id" in {
-      Contains(1, 2).id mustEqual ContainsId(0)
     }
 
     "add post" in {

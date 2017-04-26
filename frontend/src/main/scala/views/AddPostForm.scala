@@ -8,6 +8,7 @@ import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import rx._
 import wust.frontend._
+import wust.ids._
 import wust.graph._
 
 import scala.concurrent.Future

@@ -1,5 +1,7 @@
 package wust
 
+import ids._
+
 package object graph {
   import wust.util.Pipe
   import wust.util.algorithm._
@@ -7,31 +9,25 @@ package object graph {
 
   import collection.{breakOut, mutable}
 
-  //TODO: this also needs to be done as database contstraint
-  type IdType = Long
-  //TODO anyval
-  sealed trait AtomId {
-    def id: IdType
-  }
-  object AtomId {
-    implicit def ordering[A <: AtomId]: Ordering[A] = Ordering.by(_.id)
-  }
-  sealed trait ConnectableId extends AtomId
-  case class PostId(id: IdType) extends ConnectableId
-  object PostId { implicit def fromIdType(id: IdType): PostId = PostId(id) }
-  case class ConnectsId(id: IdType) extends ConnectableId
-  object ConnectsId { implicit def fromIdType(id: IdType): ConnectsId = ConnectsId(id) }
-  case class ContainsId(id: IdType) extends AtomId
-  object ContainsId { implicit def fromIdType(id: IdType): ContainsId = ContainsId(id) }
-  case class UnknownConnectableId(id: IdType) extends ConnectableId
-
-  //TODO: wrap GroupId, UserId like PostId -> also in db.scala
-  type GroupId = Long
-  type UserId = Long
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)
-  case class ClientUser(id: UserId, name: String) //TODO: derive: identify only by id //TODO: rename to User (the db-user should be DbUser or db.User)
-  case class ClientGroup(id: GroupId) //TODO: rename to group
+  case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int) //TODO: derive: identify only by id
+  case class Group(id: GroupId)
+
+  //TODO: rename Post -> ???
+  sealed trait Atom
+  final case class Post(id: PostId, title: String) extends Atom
+  //TODO: rename to Connection
+  final case class Connects(
+    id: ConnectsId,
+    sourceId: PostId,
+    targetId: ConnectableId
+  ) extends Atom
+
+  //TODO: rename to Containment
+  //TODO: reverse direction of contains?
+  final case class Contains(id: ContainsId, parentId: PostId, childId: PostId)
+    extends Atom
 
   object Graph {
     def empty =
@@ -49,9 +45,9 @@ package object graph {
       posts: Iterable[Post] = Nil,
       connections: Iterable[Connects] = Nil,
       containments: Iterable[Contains] = Nil,
-      groups: Iterable[ClientGroup] = Nil,
+      groups: Iterable[Group] = Nil,
       ownerships: Iterable[Ownership] = Nil,
-      users: Iterable[ClientUser] = Nil,
+      users: Iterable[User] = Nil,
       memberships: Iterable[Membership] = Nil
     ): Graph = {
       new Graph(
@@ -70,15 +66,15 @@ package object graph {
     postsById: Map[PostId, Post],
     connectionsById: Map[ConnectsId, Connects],
     containmentsById: Map[ContainsId, Contains],
-    groupsById: Map[GroupId, ClientGroup],
+    groupsById: Map[GroupId, Group],
     ownerships: Set[Ownership],
-    usersById: Map[UserId, ClientUser],
+    usersById: Map[UserId, User],
     memberships: Set[Membership]
   ) {
 
     lazy val posts: Iterable[Post] = postsById.values
-    lazy val groups: Iterable[ClientGroup] = groupsById.values
-    lazy val users: Iterable[ClientUser] = usersById.values
+    lazy val groups: Iterable[Group] = groupsById.values
+    lazy val users: Iterable[User] = usersById.values
     lazy val connections: Iterable[Connects] = connectionsById.values
     lazy val containments: Iterable[Contains] = containmentsById.values
 
@@ -203,7 +199,7 @@ package object graph {
     //TODO: rename to transitiveParentsIds:Iterable[PostId]
     // Also provide transitiveParents:Iterable[Post]?
     def transitiveParents(postId: PostId): Iterable[PostId] = postsById.keySet.contains(postId) match {
-      case true => 
+      case true =>
         depthFirstSearch(postId, parents) |> { parents =>
           if (involvedInContainmentCycle(postId)) parents else parents.drop(1)
         } //TODO better?
@@ -313,31 +309,5 @@ package object graph {
       }
       tmpDepths
     }
-  }
-
-  //TODO: rename Post -> ???
-  sealed trait Atom
-
-  final case class Post(id: PostId, title: String) extends Atom
-  object Post { def apply(title: String): Post = Post(0L, title) }
-
-  //TODO: rename to Connection
-  final case class Connects(
-    id: ConnectsId,
-    sourceId: PostId,
-    targetId: ConnectableId
-  )
-    extends Atom
-  object Connects {
-    def apply(in: PostId, out: ConnectableId): Connects = Connects(0L, in, out)
-  }
-
-  //TODO: rename to Containment
-  //TODO: reverse direction of contains?
-  final case class Contains(id: ContainsId, parentId: PostId, childId: PostId)
-    extends Atom
-  object Contains {
-    def apply(parentId: PostId, childId: PostId): Contains =
-      Contains(0L, parentId, childId)
   }
 }

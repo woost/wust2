@@ -2,6 +2,7 @@ package wust.backend.auth
 
 import wust.api._
 import wust.util.Pipe
+import wust.graph.User
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

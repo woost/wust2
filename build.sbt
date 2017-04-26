@@ -51,7 +51,7 @@ lazy val commonSettings = Seq(
 lazy val isCI = sys.env.get("CI").isDefined
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginxHttps, nginxHttp, dbMigration)
+  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginxHttps, nginxHttp, dbMigration)
   .settings(
     publish := {},
     publishLocal := {},
@@ -65,7 +65,7 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; frameworkJS/test; apiJS/test; frontend/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"), // TODO: also run optimized tests in productionMode. https://gitter.im/scala-js/scala-js?at=58ef8672ad849bcf427e96ab
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; backend/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test"),
 
     watchSources ++= (watchSources in workbench).value
 
@@ -76,29 +76,6 @@ val akkaHttpVersion = "10.0.5"
 val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
-
-lazy val api = crossProject.crossType(CrossType.Pure)
-  .dependsOn(graph)
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= (
-      Nil
-    )
-  )
-lazy val apiJS = api.js
-lazy val apiJVM = api.jvm
-
-lazy val graph = crossProject
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= (
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      Nil
-    )
-  )
-  .dependsOn(util)
-lazy val graphJS = graph.js
-lazy val graphJVM = graph.jvm
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -144,16 +121,64 @@ lazy val framework = crossProject
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
 
-lazy val backend = project
-  .enablePlugins(DockerPlugin)
+lazy val ids = crossProject
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= (
+      Nil
+    )
+  )
+lazy val idsJS = ids.js
+lazy val idsJVM = ids.jvm
+
+lazy val graph = crossProject
+  .settings(commonSettings)
+  .dependsOn(ids)
+  .settings(
+    libraryDependencies ++= (
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+      Nil
+    )
+  )
+  .dependsOn(util)
+lazy val graphJS = graph.js
+lazy val graphJVM = graph.jvm
+
+lazy val api = crossProject.crossType(CrossType.Pure)
+  .dependsOn(graph)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= (
+      Nil
+    )
+  )
+lazy val apiJS = api.js
+lazy val apiJVM = api.jvm
+
+lazy val database = project
+  .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .settings(dockerBackend)
-  .settings(commonSettings)
-  .dependsOn(frameworkJVM, apiJVM)
+  .dependsOn(idsJVM)
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
+      "com.roundeights" %% "hasher" % "1.2.0" :: //TODO: move to backend
+      "com.typesafe" % "config" % "1.3.1" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
+      Nil
+
+  )
+
+lazy val backend = project
+  .enablePlugins(DockerPlugin)
+  .settings(dockerBackend)
+  .settings(commonSettings)
+  .dependsOn(frameworkJVM, apiJVM, database)
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings)
+  .settings(
+    libraryDependencies ++=
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::

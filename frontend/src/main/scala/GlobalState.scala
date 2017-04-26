@@ -4,6 +4,7 @@ import rx._
 import rxext._
 import wust.api._
 import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.ids._
 import wust.graph._
 
 sealed trait InteractionMode

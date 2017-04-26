@@ -1,14 +1,46 @@
-package wust.backend
+package wust
 
 import io.getquill._
-import wust.api
-import wust.api.User
-import wust.graph._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import wust.ids._
 
-object Db {
+package object db {
+  case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
+  object User {
+    private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
+    val initialRevision = 0
+    def apply(name: String): User = User(0L, name, isImplicit = false, initialRevision)
+    def apply(): User = User(0L, implicitUserName, isImplicit = true, initialRevision)
+  }
+
+  case class Post(id: PostId, title: String)
+  object Post { def apply(title: String): Post = Post(0L, title) }
+
+  case class Connects(id: ConnectsId, sourceId: PostId, targetId: ConnectableId)
+  object Connects {
+    def apply(in: PostId, out: ConnectableId): Connects = Connects(0L, in, out)
+  }
+
+  //TODO: rename to Containment
+  case class Contains(id: ContainsId, parentId: PostId, childId: PostId)
+  object Contains {
+    def apply(parentId: PostId, childId: PostId): Contains =
+      Contains(0L, parentId, childId)
+  }
+
+  type PasswordId = Long
+  case class Password(id: PasswordId, digest: Array[Byte])
+  case class UserGroupMember(groupId: GroupId, userId: Option[UserId])
+  case class UserGroup(id: GroupId)
+  object UserGroup {
+    def apply(): UserGroup = UserGroup(0L)
+    //TODO this should be a setting, it corresponds to the id of the public user group (V6__user_ownership.sql)
+    def default = UserGroup(1L)
+  }
+  case class Ownership(postId: PostId, groupId: GroupId)
+
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
   import ctx._
 
@@ -26,15 +58,6 @@ object Db {
     MappedEncoding[IdType, ConnectableId](UnknownConnectableId)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
-
-  case class Password(id: Long, digest: Array[Byte])
-  case class UserGroupMember(groupId: GroupId, userId: Option[UserId])
-  case class UserGroup(id: GroupId)
-  object UserGroup {
-    def apply(): UserGroup = UserGroup(0L)
-    //TODO this should be a setting, it corresponds to the id of the public user group (V6__user_ownership.sql)
-    def default = UserGroup(1L)
-  }
 
   object post {
     val createOwnedPostQuote = quote { (title: String, groupId: GroupId) =>
@@ -150,7 +173,7 @@ object Db {
     }
 
     val createPasswordAndUpdateUser = quote {
-      (id: Long, name: String, digest: Array[Byte]) =>
+      (id: PasswordId, name: String, digest: Array[Byte]) =>
         infix"""with ins as (
         insert into password(id, digest) values($id, $digest)
       ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision"""
@@ -290,25 +313,14 @@ object Db {
     def checkEqualUserExists(user: User): Future[Boolean] = {
       import user._
       val q = quote(query[User]
-        .filter(
-          u =>
-            u.id == lift(id) && u.revision == lift(revision) && u.isImplicit == lift(
-              isImplicit
-            ) && u.name == lift(name)
-        )
+        .filter(u => u.id == lift(id) && u.revision == lift(revision) && u.isImplicit == lift(isImplicit) && u.name == lift(name))
         .take(1))
       ctx.run(q).map(_.nonEmpty)
     }
   }
 
   object graph {
-    def getUnion(userIdOpt: Option[UserId], parentIds: Set[PostId]): Future[Graph] = {
-      //TODO: in stored procedure
-      getAllVisiblePosts(userIdOpt).map { graph =>
-        val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-        graph -- graph.postsById.keys.filterNot(transitiveChildren)
-      }
-    }
+    type Graph = (Iterable[Post], Iterable[Connects], Iterable[Contains], Iterable[UserGroup], Iterable[Ownership], Iterable[User], Iterable[UserGroupMember])
 
     def getAllVisiblePosts(userIdOpt: Option[UserId]): Future[Graph] = {
       def ownerships(groupIds: Quoted[Query[GroupId]]) = quote {
@@ -361,15 +373,15 @@ object Db {
             users <- myGroupsMembersFut
             memberships <- myGroupsMembershipsFut
           } yield {
-            Graph(
+            (
               posts,
               connects,
               contains,
-              myGroups.map(ClientGroup.apply),
+              myGroups.map(UserGroup.apply),
               ownerships,
-              users.map(_.toClientUser),
-              memberships.map(m => Membership(m.userId.get, m.groupId))
-            ).consistent // TODO: consistent should not be necessary here
+              users,
+              memberships
+            )
           }
 
         case None => // not logged in, can only see posts of public groups
@@ -383,11 +395,12 @@ object Db {
             connects <- connectsFut
             contains <- containsFut
           } yield {
-            Graph(
+            (
               posts,
               connects,
-              contains
-            ).consistent // TODO: consistent should not be necessary here
+              contains,
+              Nil, Nil, Nil, Nil
+            )
           }
       }
     }

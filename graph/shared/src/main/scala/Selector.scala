@@ -1,4 +1,5 @@
 package wust.graph
+import wust.ids._
 
 sealed trait GraphSelection {
   def add(parentId: PostId): GraphSelection
