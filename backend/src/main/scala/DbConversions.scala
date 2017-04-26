@@ -14,7 +14,7 @@ package object dbConversions {
   implicit def forClient(group: db.UserGroup) = Group(group.id)
   implicit def forClient(ownership: db.Ownership) = Ownership(ownership.postId, ownership.groupId)
 
-  implicit def forClient(tuple: db.graph.Graph): Graph = {
+  def forClient(tuple: db.graph.Graph): Graph = {
     val (posts, connects, contains, groups, ownerships, users, memberships) = tuple
     Graph(
       posts.map(forClient),
@@ -23,7 +23,7 @@ package object dbConversions {
       groups.map(g => Group(g.id)),
       ownerships.map(forClient),
       users.map(forClient),
-      memberships.map(m => Membership(m.userId.get, m.groupId))
+      memberships.collect{case db.UserGroupMember(groupId, Some(userId)) => Membership(userId, groupId)}
     )
   }
 

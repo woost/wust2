@@ -350,8 +350,8 @@ package object db {
             for {
               myM <- query[UserGroupMember].filter(myM => myM.userId == lift(Option(userId)))
               otherM <- query[UserGroupMember].filter(otherM => otherM.groupId == myM.groupId)
-              user <- query[User].join(user => otherM.userId.forall(_ == user.id))
-            } yield user
+              u <- query[User].join(u => otherM.userId.forall(_ == u.id))
+            } yield u
           }
 
           val visibleOwnerships = ownerships(myMemberships.map(_.groupId))
@@ -363,6 +363,7 @@ package object db {
           val myGroupsFut = ctx.run(myMemberships.map(_.groupId))
           val myGroupsMembershipsFut = ctx.run(myGroupsMemberships)
           val myGroupsMembersFut = ctx.run(myGroupsMembers)
+
           val ownershipsFut = ctx.run(visibleOwnerships)
           for {
             posts <- postFut

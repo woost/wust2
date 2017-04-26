@@ -47,7 +47,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
   private def onStateChange(sender: EventSender[ApiEvent], state: State) = {
     //TODO: with current graphselection
-    val newGraph = db.graph.getAllVisiblePosts(state.auth.map(_.user.id))
+    val newGraph = db.graph.getAllVisiblePosts(state.auth.map(_.user.id)).map(forClient)
 
     import sender.send
     //TODO: this future fails on anon users
@@ -59,7 +59,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
           .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
         ReplaceGraph(graph) |> send
       case Failure(t) =>
-        scribe.error("failed to get initial graph for state: $state")
+        scribe.error(s"failed to get initial graph for state: $state")
         scribe.error(t)
     }
   }
