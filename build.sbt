@@ -215,7 +215,7 @@ lazy val frontend = project
       "webpack-closure-compiler" -> "2.1.4" ::
       Nil
     ),
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.js")
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "scalajsbundler.config.js") // renamed due to https://github.com/scalacenter/scalajs-bundler/issues/123
   )
 
 lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)

@@ -3,16 +3,7 @@ sudo: required
 services: docker
 language: scala
 jdk: oraclejdk8
-# node_js: 7
-
-install:
-    - set -e # https://github.com/travis-ci/travis-ci/issues/1066#issuecomment-32415710
-    - . $HOME/.nvm/nvm.sh
-    - nvm install stable
-    - nvm use stable
-    - npm install
-    - npm install jsdom@9.12.0 # newer version seems to make problems
-    - set +e
+node_js: 7
 
 script:
     - set -e

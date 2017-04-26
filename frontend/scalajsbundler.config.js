@@ -7,6 +7,7 @@ var ClosureCompilerPlugin = require("webpack-closure-compiler");
 var config = require('./scalajs.webpack.config');
 
 config.plugins = config.plugins || [];
+
 config.plugins.push(new webpack.optimize.UglifyJsPlugin());
 // config.plugins.push(new ClosureCompilerPlugin({
 //   compiler: {
@@ -16,9 +17,11 @@ config.plugins.push(new webpack.optimize.UglifyJsPlugin());
 //   },
 //   concurrency: 3,
 // }));
+
 config.plugins.push(new webpack.DefinePlugin({
   'process.env.NODE_ENV': JSON.stringify('production')
 }));
+
 var compressFiles = /\.js$|\.js.map$/;
 config.plugins.push(new CompressionPlugin({
   asset: "[path].gz[query]",
@@ -26,6 +29,7 @@ config.plugins.push(new CompressionPlugin({
   test: compressFiles,
   minRatio: 0.0
 }));
+
 config.plugins.push(new BrotliPlugin({
   asset: '[path].br[query]',
   test: compressFiles,
