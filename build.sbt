@@ -164,6 +164,7 @@ lazy val database = project
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" :: //TODO: move to backend
+      "org.mindrot" % "jbcrypt" % "0.4" :://TODO: move to backend
       "com.typesafe" % "config" % "1.3.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
