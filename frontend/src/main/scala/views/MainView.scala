@@ -28,6 +28,11 @@ object MainView {
           span(s"user: ${user.name}", UserView.logoutButton)
         }.getOrElse(span()).render)),
 
+        div(float.right,
+        input(placeholder := "your email"),
+        button("get notified when we launch")
+        ),
+
         // TODO: make scalatags-rx accept primitive datatypes as strings
         // span(" selected group: ", state.selectedGroup.map(_.toString))
         Rx {

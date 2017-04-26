@@ -15,7 +15,7 @@ object DevView {
     Rx {
       import scala.util.Random.{nextInt => rInt, nextString => rStr}
       div(
-        position.fixed, right := 0, top := 0, display.flex, flexDirection.column,
+        position.fixed, right := 0, top := 50, display.flex, flexDirection.column,
         {
           val users = List("a", "b", "c", "d")
           div(
