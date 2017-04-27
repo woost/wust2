@@ -81,6 +81,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   }
 
+  val jsError = Var[Option[String]](None)
+
   val onAuthEvent: AuthEvent => Unit = {
     case LoggedIn(user) => currentUser() = Option(user)
     case LoggedOut => currentUser() = None
@@ -107,9 +109,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     case ReplaceGraph(newGraph) =>
       rawGraph() = newGraph
       DevOnly {
-        assert(newGraph.consistent == newGraph)
+        assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
         assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), "current user is not in Graph")
-        assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.toSet), "User is not member of all groups")
+        assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
       }
     case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
   }
