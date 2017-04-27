@@ -191,8 +191,8 @@ package object db {
         // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
         for {
           groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-          userId <- ctx.run(query[UserGroupMember].insert(lift(UserGroupMember(groupId, Option(userId)))).returning(_.userId))
-        } yield (UserGroup(groupId), UserGroupMember(groupId, userId))
+          m <- ctx.run(query[UserGroupMember].insert(lift(UserGroupMember(groupId, Option(userId))))) //TODO: what is m? What does it return?
+        } yield (UserGroup(groupId), UserGroupMember(groupId, Option(UserId(m))))
       }
 
     def addMember(groupId: GroupId, userId: UserId): Future[UserGroupMember] = {
@@ -206,8 +206,7 @@ package object db {
       val q = quote {
         query[Ownership]
           .filter(o => o.postId == lift(postId))
-          .join(query[UserGroupMember].filter(m =>
-            m.userId.forall(_ == lift(userId)) || m.userId.isEmpty))
+          .join(query[UserGroupMember].filter(m => m.userId.forall(_ == lift(userId)) || m.userId.isEmpty))
           .on((o, m) => o.groupId == m.groupId)
           .nonEmpty
       }

@@ -2,10 +2,12 @@ package wust.backend.auth
 
 import org.scalatest._
 import wust.graph.User
+import wust.ids._
 
 class JWTSpec extends FreeSpec with MustMatchers {
+  implicit def intToUserId(id: Int): UserId = UserId(id)
   object User {
-    def apply(name: String): User = new User(0L, name, isImplicit = false, wust.db.User.initialRevision)
+    def apply(name: String): User = new User(0, name, isImplicit = false, wust.db.User.initialRevision)
   }
 
   "generate auth for user" in {

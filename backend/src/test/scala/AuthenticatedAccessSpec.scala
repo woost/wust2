@@ -7,12 +7,13 @@ import wust.graph.User
 import scala.concurrent.Future
 
 class AuthenticatedAccessSpec extends AsyncFreeSpec with MustMatchers {
+  implicit def intToUserId(id: Int): UserId = UserId(id)
   object User {
-    def apply(name: String): User = new User(0L, name, isImplicit = false, wust.db.User.initialRevision)
+    def apply(name: String): User = new User(0, name, isImplicit = false, wust.db.User.initialRevision)
   }
 
   def validAuth(user: User) = JWTAuthentication(user, Long.MaxValue, "abc")
-  def expiredAuth(user: User) = JWTAuthentication(user, 123L, "abc")
+  def expiredAuth(user: User) = JWTAuthentication(user, 123, "abc")
   class ErrorEx extends Exception("meh")
 
   def ApiAuth(auth: Option[JWTAuthentication], createImplicitAuth: () => Option[JWTAuthentication], toError: => Exception = new ErrorEx) =

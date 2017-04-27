@@ -8,7 +8,7 @@ import scala.concurrent.{Await, Future}
 import wust.ids._
 
 class DbSpec extends AsyncFreeSpec with MustMatchers {
-  val publicGroup = 1 //TODO: load from config
+  val publicGroup = GroupId(1) //TODO: load from config
   def await[T](future: Future[T]) = Await.result(future, 10.seconds)
   "post" - {
     "post without id" in {
@@ -127,7 +127,7 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
       "post in private group (user not member)" in {
         val Some(user) = await(db.user("u2", "123456"))
         val Some(user2) = await(db.user("other", "123456"))
-        val (group, _) = await(db.user.createUserGroupForUser(user2.id))
+        val (group, m) = await(db.user.createUserGroupForUser(user2.id))
         val post = await(db.post.createOwnedPost("p", group.id))
         hasAccessToPost(user.id, post.id).map(_ must be(false))
       }

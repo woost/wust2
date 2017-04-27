@@ -23,7 +23,6 @@ object ViewPage {
 object Path {
   //TODO: parsing crashes on: "http://localhost:12345/workbench/index.html#graph?"
   def unapply(str: String): Option[ViewConfig] = {
-    println("unapply! " + str)
     Try(URI.create(str)) match {
       case Success(uri) => parsePage.lift(uri.getPath).map { page =>
         val map = Option(uri.getQuery).map(queryToMap).getOrElse(Map.empty)
