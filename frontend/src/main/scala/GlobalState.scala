@@ -30,12 +30,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val selectedGroupId = {
     //TODO: magic number for public group!
-    val rawSelectedId = RxVar[GroupId](1)
+    val rawSelectedId = RxVar[GroupId](GroupId(1))
     RxVar(rawSelectedId, Rx {
       if (rawGraph().groupsById.isDefinedAt(rawSelectedId()))
         rawSelectedId()
       else
-        1L: GroupId
+        GroupId(1)
     })
   }
 

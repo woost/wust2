@@ -20,7 +20,7 @@ import collection.breakOut
 
 object AddPostForm {
   //TODO: use public groupid constant from config
-  val publicGroupId = 1L
+  val publicGroupId = GroupId(1)
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None }),
@@ -99,13 +99,13 @@ object AddPostForm {
                 val groupsIdsWithNames: Seq[(GroupId, String)] = (graph.usersByGroupId - publicGroupId).mapValues(_.map(userId => graph.usersById(userId).name).mkString(", ")).toSeq
                 ((publicGroupId, "public") +: groupsIdsWithNames).map {
                   case (groupId, name) =>
-                    val opt = option(name, value := groupId)
+                    val opt = option(name, value := groupId.id)
                     if (groupId == state.selectedGroupId()) opt(selected)
                     else opt
                 }
               }(
                 onchange := { (e: Event) =>
-                  val groupId = e.target.asInstanceOf[HTMLSelectElement].value.toLong
+                  val groupId = GroupId(e.target.asInstanceOf[HTMLSelectElement].value.toLong)
                   state.selectedGroupId() = groupId
                 }
               ).render
@@ -119,7 +119,7 @@ object AddPostForm {
             if (state.selectedGroupId() != publicGroupId) {
               val field = input(placeholder := "invite user by id").render
               div(field, button("invite", onclick := { () =>
-                Try(field.value.toLong).foreach { userId =>
+                Try(UserId(field.value.toLong)).foreach { userId =>
                   println(s"group: ${state.selectedGroupId()}, user: $userId")
                   Client.api.addMember(state.selectedGroupId(), userId).call().foreach { _ =>
                     field.value = ""

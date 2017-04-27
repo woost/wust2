@@ -11,8 +11,8 @@ package object db {
   object User {
     private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
     val initialRevision = 0
-    def apply(name: String): User = User(0L, name, isImplicit = false, initialRevision)
-    def apply(): User = User(0L, implicitUserName, isImplicit = true, initialRevision)
+    def apply(name: String): User = User(UserId(0), name, isImplicit = false, initialRevision)
+    def apply(): User = User(UserId(0), implicitUserName, isImplicit = true, initialRevision)
   }
 
   case class Post(id: PostId, title: String)
@@ -30,20 +30,23 @@ package object db {
       Contains(0L, parentId, childId)
   }
 
-  type PasswordId = Long
-  case class Password(id: PasswordId, digest: Array[Byte])
+  case class Password(id: UserId, digest: Array[Byte])
   case class UserGroupMember(groupId: GroupId, userId: Option[UserId])
   case class UserGroup(id: GroupId)
   object UserGroup {
-    def apply(): UserGroup = UserGroup(0L)
+    def apply(): UserGroup = UserGroup(GroupId(0))
     //TODO this should be a setting, it corresponds to the id of the public user group (V6__user_ownership.sql)
-    def default = UserGroup(1L)
+    def default = UserGroup(GroupId(1))
   }
   case class Ownership(postId: PostId, groupId: GroupId)
 
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
   import ctx._
 
+  implicit val encodeGroupId = MappedEncoding[GroupId, IdType](_.id)
+  implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId(_))
+  implicit val encodeUserId = MappedEncoding[UserId, IdType](_.id)
+  implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId(_))
   implicit val encodePostId = MappedEncoding[PostId, IdType](_.id)
   implicit val decodePostId = MappedEncoding[IdType, PostId](PostId(_))
   implicit val encodeConnectsId = MappedEncoding[ConnectsId, IdType](_.id)
@@ -173,7 +176,7 @@ package object db {
     }
 
     val createPasswordAndUpdateUser = quote {
-      (id: PasswordId, name: String, digest: Array[Byte]) =>
+      (id: UserId, name: String, digest: Array[Byte]) =>
         infix"""with ins as (
         insert into password(id, digest) values($id, $digest)
       ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision"""
@@ -188,8 +191,8 @@ package object db {
         // --> should be: "INSERT INTO usergroup (id) VALUES (DEFAULT)"
         for {
           groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-          m <- ctx.run(query[UserGroupMember].insert(lift(UserGroupMember(groupId, Option(userId)))))
-        } yield (UserGroup(groupId), UserGroupMember(groupId, Option(m)))
+          userId <- ctx.run(query[UserGroupMember].insert(lift(UserGroupMember(groupId, Option(userId)))).returning(_.userId))
+        } yield (UserGroup(groupId), UserGroupMember(groupId, userId))
       }
 
     def addMember(groupId: GroupId, userId: UserId): Future[UserGroupMember] = {

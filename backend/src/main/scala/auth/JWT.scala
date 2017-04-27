@@ -2,6 +2,7 @@ package wust.backend.auth
 
 import wust.graph.User
 import io.igl.jwt._
+import wust.ids._
 import wust.api._
 import wust.backend.Config
 import wust.backend.dbConversions._
@@ -10,8 +11,10 @@ object Claims {
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
 
+  implicit val userIdReader = Reads.of[Long].map(new UserId(_))
+  implicit val userIdWriter = Writes { (user: UserId) => JsNumber(user.id) }
   implicit val userFormat = (
-    (__ \ "id").format[Long] ~
+    (__ \ "id").format[UserId] ~
     (__ \ "name").format[String] ~
     (__ \ "isImplicit").format[Boolean] ~
     (__ \ "revision").format[Int]

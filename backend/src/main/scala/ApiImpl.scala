@@ -88,7 +88,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     createdGroup.map {
       case (group, usergroupmember) =>
         emit(ChannelEvent(Channel.User(user.id), NewGroup(Group(group.id))))
-        emit(ChannelEvent(Channel.User(user.id), NewMembership(Membership(group.id, user.id))))
+        emit(ChannelEvent(Channel.User(user.id), NewMembership(Membership(user.id, group.id))))
 
         Group(group.id)
     }
@@ -103,7 +103,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
       //TODO: check if user has access to group
       val createdMembership = db.user.addMember(groupId, userId)
       createdMembership.map { membership =>
-        emit(ChannelEvent(Channel.User(groupId), NewMembership(Membership(membership.groupId, membership.userId.get))))
+        emit(ChannelEvent(Channel.UserGroup(groupId), NewMembership(Membership(membership.userId.get, membership.groupId))))
 
         true
       }

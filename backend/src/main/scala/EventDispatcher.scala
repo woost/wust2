@@ -2,14 +2,15 @@ package wust.backend
 
 import akka.event.{EventBus, LookupClassification}
 import akka.http.scaladsl.model.ws.Message
+import wust.ids._
 import wust.api._
 import wust.framework._
 
 sealed trait Channel
 object Channel {
   case object All extends Channel
-  case class User(id: Long) extends Channel
-  case class UserGroup(id: Long) extends Channel
+  case class User(id: UserId) extends Channel
+  case class UserGroup(id: GroupId) extends Channel
 }
 
 sealed trait BaseChannelEvent { def channel: Channel }
