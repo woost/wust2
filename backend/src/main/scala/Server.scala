@@ -47,7 +47,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
   private def onStateChange(sender: EventSender[ApiEvent], state: State) = {
     //TODO: with current graphselection
-    val newGraph = db.graph.getAllVisiblePosts(state.auth.map(_.user.id)).map(forClient)
+    val newGraph = db.graph.getAllVisiblePosts(state.auth.map(_.user.id)).map(forClient(_).consistent)
 
     import sender.send
     //TODO: this future fails on anon users
