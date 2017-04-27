@@ -126,7 +126,8 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     uOpt =>
       selection match {
         case GraphSelection.Root =>
-          db.graph.getAllVisiblePosts(uOpt.map(_.id)).map(forClient(_).consistent) // TODO: consistent should not be necessary here
+          val userIdOpt = uOpt.map(_.id)
+          db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
         case GraphSelection.Union(parentIds) =>
           getUnion(uOpt.map(_.id), parentIds).map(_.consistent) // TODO: consistent should not be necessary here
       }

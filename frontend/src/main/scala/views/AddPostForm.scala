@@ -96,7 +96,7 @@ object AddPostForm {
             div(" in group: ", state.rawGraph.map { graph =>
               select {
                 // only looking at memberships is sufficient to list groups, because the current user is member of each group
-                val groupsIdsWithNames: Seq[(GroupId, String)] = graph.memberships.groupBy(_.groupId).mapValues(_.map(m => graph.usersById(m.userId).name).mkString(", ")).toSeq
+                val groupsIdsWithNames: Seq[(GroupId, String)] = (graph.usersByGroupId - publicGroupId).mapValues(_.map(userId => graph.usersById(userId).name).mkString(", ")).toSeq
                 ((publicGroupId, "public") +: groupsIdsWithNames).map {
                   case (groupId, name) =>
                     val opt = option(name, value := groupId)

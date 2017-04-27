@@ -23,7 +23,11 @@ package object dbConversions {
       groups.map(g => Group(g.id)),
       ownerships.map(forClient),
       users.map(forClient),
-      memberships.collect{case db.UserGroupMember(groupId, Some(userId)) => Membership(userId, groupId)}
+      memberships.flatMap {
+        case db.UserGroupMember(groupId, Some(userId)) => Set(Membership(userId, groupId))
+        // a membership without user means a membership for all users
+        case db.UserGroupMember(groupId, None) => users.map(user => Membership(user.id, groupId))
+      }
     )
   }
 
