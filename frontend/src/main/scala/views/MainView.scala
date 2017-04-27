@@ -24,13 +24,14 @@ object MainView {
         button(onclick := { (_: Event) => state.viewPage() = ViewPage.User })("user"),
 
         //TODO: make scalatagst-rx accept Rx[Option[T]], then getOrElse can be dropped
-        span(state.currentUser.map(_.map { user =>
+        span(state.currentUser.map(_.filterNot(_.isImplicit).map { user =>
           span(s"user: ${user.name}", UserView.logoutButton)
         }.getOrElse(span()).render)),
 
-        div(float.right,
-        input(placeholder := "your email"),
-        button("get notified when we launch")
+        div(
+          float.right,
+          input(placeholder := "your email"),
+          button("get notified when we launch")
         ),
 
         // TODO: make scalatags-rx accept primitive datatypes as strings
