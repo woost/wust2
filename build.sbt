@@ -13,6 +13,8 @@ lazy val commonSettings = Seq(
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
     Nil
   ),
+  unmanagedResourceDirectories in Compile ++= (unmanagedResourceDirectories in Compile in config).value, // use application.conf
+  unmanagedResourceDirectories in Test ++= (unmanagedResourceDirectories in Test in config).value, // use application.conf
 
   // do not run tests in assembly command
   test in assembly := {},
@@ -47,6 +49,12 @@ lazy val commonSettings = Seq(
 //   Nil
 // )
 )
+
+lazy val config = project // only contains application.conf
+  .settings(
+    resourceDirectory in Compile := baseDirectory.value,
+    resourceDirectory in Test := baseDirectory.value
+  )
 
 lazy val isCI = sys.env.get("CI").isDefined
 
@@ -164,7 +172,7 @@ lazy val database = project
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" :: //TODO: move to backend
-      "org.mindrot" % "jbcrypt" % "0.4" :://TODO: move to backend
+      "org.mindrot" % "jbcrypt" % "0.4" :: //TODO: move to backend
       "com.typesafe" % "config" % "1.3.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
@@ -247,7 +255,7 @@ lazy val workbench = project.in(file("workbench"))
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .settings(
-    resourceGenerators in Assets <+= Def.task {
+    resourceGenerators in Assets += Def.task {
       val file = (resourceManaged in Assets).value / "version.txt"
       IO.write(file, version.value)
       Seq(file)
