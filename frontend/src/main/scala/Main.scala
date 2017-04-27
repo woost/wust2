@@ -41,19 +41,20 @@ object Main extends js.JSApp {
 
     DevOnly {
       import state._
-      rawGraph.debug(v => s"rawGraph: ${v.posts.size} posts, ${v.connections.size} connections, ${v.containments.size} containments")
+      rawGraph.debug(g => s"rawGraph: ${g.toSummaryString}")
       collapsedPostIds.debug("collapsedPostIds")
       currentView.debug("currentView")
-      displayGraph.debug { dg => import dg.graph; s"graph: ${graph.posts.size} posts, ${graph.connections.size} connections, ${graph.containments.size} containments" }
+      displayGraph.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
       focusedPostId.debug("focusedPostId")
       editedPostId.debug("editedPostId")
       mode.debug("mode")
       selectedGroupId.debug("selectedGroupId")
       graphSelection.debug("graphSelection")
       viewConfig.debug("viewConfig")
+      currentUser.debug("\ncurrentUser")
 
       import scala.meta._
-      println("val x = 2".tokenize.get.syntax)
+      println("scala meta: val x = 2".tokenize.get.syntax)
 
       window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
         //TODO: send and log js errors in backend

@@ -6,6 +6,7 @@ import rx._
 import wust.frontend.{Client, GlobalState}
 import wust.ids._
 import wust.graph._
+import wust.frontend.LoggedOut
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalatags.JsDom.all._
@@ -18,11 +19,17 @@ object DevView {
         div(
           position.fixed, right := 0, top := 50, display.flex, flexDirection.column,
           {
-            val users = List("a", "b", "c", "d")
+            val users = List("a", "b", "c", "d", "e", "f", "h")
             div(
               "login: ",
-              //button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),
-              users.map(u => button(u, onclick := { () => Client.auth.register(u, u).filter(_ == false).foreach { _ => Client.auth.login(u, u) } }))
+              users.map(u => button(u, onclick := { () =>
+                Client.auth.register(u, u).filter(_ == false).foreach { _ =>
+                  Client.auth.logout().foreach { _ =>
+                    state.onAuthEvent(LoggedOut) //TODO: this is necessary, since logging out an implicit user does not send a logout event
+                    Client.auth.login(u, u)
+                  }
+                }
+              }))
             )
           },
           {

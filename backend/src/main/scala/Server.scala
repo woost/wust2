@@ -51,7 +51,6 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     val newGraph = db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
 
     import sender.send
-    //TODO: this future fails on anon users
     newGraph.onComplete {
       case Success(graph) =>
         subscribeChannels(state.auth, graph.groups, sender)

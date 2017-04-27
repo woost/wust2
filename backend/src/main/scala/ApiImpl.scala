@@ -122,15 +122,14 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     }
   }
 
-  def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt {
-    uOpt =>
-      selection match {
-        case GraphSelection.Root =>
-          val userIdOpt = uOpt.map(_.id)
-          db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
-        case GraphSelection.Union(parentIds) =>
-          getUnion(uOpt.map(_.id), parentIds).map(_.consistent) // TODO: consistent should not be necessary here
-      }
+  def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt { uOpt =>
+    val userIdOpt = uOpt.map(_.id)
+    selection match {
+      case GraphSelection.Root =>
+        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
+      case GraphSelection.Union(parentIds) =>
+        getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
+    }
 
   }
 }

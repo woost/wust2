@@ -90,7 +90,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val onApiEvent: ApiEvent => Unit = {
     case NewPost(post) =>
-      println("new post")
       rawGraph.updatef(_ + post)
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
     case NewConnection(connects) =>
@@ -110,7 +109,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       rawGraph() = newGraph
       DevOnly {
         assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
-        assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), "current user is not in Graph")
+        assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
         assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
       }
     case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
