@@ -19,6 +19,8 @@ object GraphSelection {
       else Root
     }
   }
+
+  def default = Root
 }
 
 trait Selector extends (PostId => Boolean) {

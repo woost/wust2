@@ -15,7 +15,7 @@ case object DefaultMode extends InteractionMode
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
   val viewConfig = UrlRouter.variable
-    .projection[ViewConfig](ViewConfig.toHash andThen Option.apply, ViewConfig.fromHash)
+    .projection[ViewConfig]((ViewConfig.toHash _) andThen Option.apply, ViewConfig.fromHash)
 
   val viewPage = viewConfig
     .projection[ViewPage](page => viewConfig.now.copy(page = page), _.page)
@@ -24,6 +24,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   // projection[B](to: (A,B) => A, from: A => B)
   val graphSelection = viewConfig
     .projection[GraphSelection](selection => viewConfig.now.copy(selection = selection), _.selection)
+
+  val inviteToken = viewConfig.map(_.invite)
 
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
