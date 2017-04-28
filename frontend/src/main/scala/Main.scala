@@ -35,6 +35,13 @@ object Main extends js.JSApp {
       }
     }
 
+    state.inviteToken.foreach {
+      case Some(token) => Client.api.acceptGroupInvite(token).call().foreach { success =>
+        println(s"accepted group invitation ($token): $success")
+      }
+      case None =>
+    }
+
     document.getElementById("container").appendChild(
       views.MainView(state).render
     )

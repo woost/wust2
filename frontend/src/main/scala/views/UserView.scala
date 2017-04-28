@@ -2,11 +2,14 @@ package wust.frontend.views
 
 import rx._
 
-import wust.graph.User
+import autowire._
+import boopickle.Default._
+import wust.graph.{User, Group}
 import wust.frontend.{Client, GlobalState}
 import wust.util.Pipe
 
 import scala.concurrent.Future
+import scala.collection.mutable
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -36,13 +39,39 @@ object UserView {
     Client.auth.logout()
   )
 
+  //TODO: show existing in backend to revoke?
+  private val createdGroupInvites = Var[Map[Group, String]](Map.empty)
+  def groupInvite(group: Group)(implicit ctx: Ctx.Owner) =
+    div(
+      group.id.toString,
+      Rx {
+        val invites = createdGroupInvites()
+        span(
+          invites.get(group).map(token => span(s"invite: $token")).getOrElse(span()),
+          buttonClick(
+            "invite link",
+            Client.api.createGroupInvite(group.id).call().foreach {
+              case Some(token) => createdGroupInvites() = invites + (group -> token)
+              case None =>
+            }
+          )
+        ).render
+      }
+    )
+
   val registerMask = div(userField, passwordField, registerButton)
   def userProfile(user: User) = div(user.toString, logoutButton)
+  def groupProfile(groups: Seq[Group])(implicit ctx: Ctx.Owner) = div(groups.map(groupInvite): _*)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div {
-    state.currentUser.map {
-      case Some(user) => userProfile(user)(if (user.isImplicit) registerMask else div()).render
-      case None => registerMask(loginButton).render
+    Rx {
+      val userOpt = state.currentUser()
+      val graph = state.rawGraph()
+      userOpt match {
+        case Some(user) =>
+          userProfile(user)(if (user.isImplicit) registerMask else div())(groupProfile(graph.groups.toSeq)).render
+        case None => registerMask(loginButton).render
+      }
     }
   }
 }

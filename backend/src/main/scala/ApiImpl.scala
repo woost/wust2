@@ -11,6 +11,17 @@ import dbConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+object RandomUtil {
+  import java.math.BigInteger
+  import java.security.SecureRandom
+
+  private val random = new SecureRandom()
+
+  def alphanumeric(nrChars: Int = 24): String = {
+    new BigInteger(nrChars * 5, random).toString(32)
+  }
+}
+
 class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   import Server.{emit, emitDynamic}
   import apiAuth._
@@ -107,6 +118,31 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
         true
       }
+    }
+  }
+
+  def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUser { user =>
+    //TODO this should be handled in the query, just return false in db.user.addMember
+    //TODO NEVER use bare exception! we have an exception for apierrors: UserError(something)
+    if (groupId == 1L) Future.failed(new Exception("adding members to public group is not allowed"))
+    else {
+      //TODO: check if user has access to group
+      val token = RandomUtil.alphanumeric()
+      for (success <- db.user.createGroupInvite(groupId, token))
+      yield if (success) Option(token) else None
+    }
+  }
+
+  def acceptGroupInvite(token: String): Future[Boolean] = withUser { user =>
+    //TODO optimize into one request?
+    db.user.groupIdFromInvite(token).flatMap {
+      case Some(groupId) =>
+        val createdMembership = db.user.addMember(groupId, user.id)
+        createdMembership.map { membership =>
+          emit(ChannelEvent(Channel.UserGroup(groupId), NewMembership(Membership(membership.userId.get, membership.groupId))))
+          true
+        }
+      case None => Future.successful(false)
     }
   }
 

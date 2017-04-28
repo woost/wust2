@@ -32,6 +32,7 @@ package object db {
 
   case class Password(id: UserId, digest: Array[Byte])
   case class UserGroupMember(groupId: GroupId, userId: Option[UserId])
+  case class UserGroupInvite(groupId: GroupId, token: String)
   case class UserGroup(id: GroupId)
   object UserGroup {
     def apply(): UserGroup = UserGroup(GroupId(0))
@@ -162,6 +163,7 @@ package object db {
     }
   }
 
+  //TODO object usergroup
   object user {
     import com.roundeights.hasher.Hasher
 
@@ -181,6 +183,18 @@ package object db {
         insert into password(id, digest) values($id, $digest)
       ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision"""
           .as[Query[Int]] //TODO update? but does not support returning?
+    }
+
+    def createGroupInvite(groupId: GroupId, token: String): Future[Boolean] = {
+      val q = quote(infix"""
+        insert into usergroupInvite(groupId, token) values(${lift(groupId)}, ${lift(token)}) on conflict (groupId) do update set token = ${lift(token)}
+      """.as[Insert[UserGroupInvite]])
+      ctx.run(q).map(_ == 1)
+    }
+
+    def groupIdFromInvite(token: String): Future[Option[GroupId]] = {
+      val q = quote { query[UserGroupInvite].filter(_.token == lift(token)).map(_.groupId).take(1) }
+      ctx.run(q).map(_.headOption)
     }
 
     def createUserGroupForUser(userId: UserId): Future[(UserGroup, UserGroupMember)] =

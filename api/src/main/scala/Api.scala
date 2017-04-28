@@ -19,6 +19,8 @@ trait Api {
   def getUser(userId: UserId): Future[Option[User]]
   def addUserGroup(): Future[Group]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
+  def createGroupInvite(groupId: GroupId): Future[Option[String]]
+  def acceptGroupInvite(token: String): Future[Boolean]
   // def getComponent(id: Id): Future[Graph]
 }
 
