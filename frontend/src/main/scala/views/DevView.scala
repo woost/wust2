@@ -71,11 +71,11 @@ object DevView {
               val distribution: List[(Int, () => Option[ApiEvent])] = (
                 (1, () => Option(NewPost(Post(nextAtomId(), rStr(1 + rInt(20)))))) ::
                 (1, () => randomPostId.map(p => UpdatedPost(Post(p, rStr(1 + rInt(20)))))) ::
-                (1, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewConnection(Connects(nextAtomId(), p1, p2))) ::
-                (1, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewContainment(Contains(nextAtomId(), p1, p2))) ::
                 (1, () => randomPostId.map(DeletePost(_))) ::
-                (1, () => randomConnectionId.map(DeleteConnection(_))) ::
-                (1, () => randomContainmentId.map(DeleteContainment(_))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewConnection(Connects(nextAtomId(), p1, p2))) ::
+                (2, () => randomConnectionId.map(DeleteConnection(_))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewContainment(Contains(nextAtomId(), p1, p2))) ::
+                (2, () => randomContainmentId.map(DeleteContainment(_))) ::
                 Nil
               )
               distribution.flatMap { case (count, f) => List.fill(count)(f) }(breakOut)
