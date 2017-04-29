@@ -6,6 +6,8 @@ import wust.api._
 import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.ids._
 import wust.graph._
+import org.scalajs.dom.window
+import org.scalajs.dom.experimental.Notification
 
 sealed trait InteractionMode
 case class FocusMode(postId: PostId) extends InteractionMode
@@ -93,6 +95,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val onApiEvent: ApiEvent => Unit = {
     case NewPost(post) =>
       rawGraph.updatef(_ + post)
+      Notifications.notify("New Post", Option(post.title),
+        onclick = { (notification) =>
+          notification.close()
+          window.focus()
+          focusedPostId() = Option(post.id)
+        })
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
     case NewConnection(connects) =>
       rawGraph.updatef(_ + connects)
