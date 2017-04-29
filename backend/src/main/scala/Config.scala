@@ -25,16 +25,17 @@ object Config {
 
   object email {
     private val config = wustConfig.getConfig("email")
+    private val smtpConfig = config.getConfig("smtp")
 
     val fromAddress: Option[String] = config.getOption("fromAddress", _.getString)
     val smtp = for {
-      confUsername <-config.getOption("username", _.getString)
-      confPassword <- config.getOption("password", _.getString)
-      confEndpoint <- config.getOption("endpoint", _.getString)
+      smtpUsername <-smtpConfig.getOption("username", _.getString)
+      smtpPassword <- smtpConfig.getOption("password", _.getString)
+      smtpEndpoint <- smtpConfig.getOption("endpoint", _.getString)
     } yield new {
-      val username = confUsername
-      val password = confPassword
-      val endpoint = confEndpoint
+      val username = smtpUsername
+      val password = smtpPassword
+      val endpoint = smtpEndpoint
     }
   }
 }
