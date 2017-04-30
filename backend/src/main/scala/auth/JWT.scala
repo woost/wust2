@@ -4,7 +4,7 @@ import wust.graph.User
 import io.igl.jwt._
 import wust.ids._
 import wust.api._
-import wust.backend.Config
+import wust.backend.config.Config
 import wust.backend.dbConversions._
 
 object Claims {

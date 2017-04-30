@@ -9,6 +9,7 @@ import wust.backend.auth._
 import wust.framework._
 import wust.util.Pipe
 import wust.db
+import wust.backend.config.Config
 import wust.backend.dbConversions._
 import wust.graph.Group
 

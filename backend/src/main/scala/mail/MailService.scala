@@ -1,6 +1,6 @@
 package wust.backend.mail
 
-import wust.backend.Config
+import wust.backend.config._
 import scala.concurrent.Future
 
 case class EmailRecipient(address: String)
@@ -17,9 +17,6 @@ class LoggingMailService(address: Option[String]) extends MailService {
   }
 }
 
-case class SmtpConfig(endpoint: String, username: String, password: String) {
-  override def toString = s"SmtpConfig($endpoint, $username, ***)"
-}
 class SmtpMailService(address: String, config: SmtpConfig) extends MailService {
   override def sendMail(recipients: Seq[EmailRecipient], template: EmailTemplate): Future[Boolean] = {
     scribe.info(s"sending mail through smtp ($config):\n\tfrom: $address\n\tto: $recipients\n\tmail: $template")

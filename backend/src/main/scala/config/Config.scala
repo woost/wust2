@@ -1,4 +1,4 @@
-package wust.backend
+package wust.backend.config
 
 import com.typesafe.config.{Config => TConfig, ConfigFactory}
 
@@ -9,6 +9,10 @@ object ConfigExt {
       case false => None
     }
   }
+}
+
+case class SmtpConfig(endpoint: String, username: String, password: String) {
+  override def toString = s"SmtpConfig($endpoint, $username, ***)"
 }
 
 object Config {
@@ -29,13 +33,9 @@ object Config {
 
     val fromAddress: Option[String] = config.getOption("fromAddress", _.getString)
     val smtp = for {
-      smtpUsername <-smtpConfig.getOption("username", _.getString)
-      smtpPassword <- smtpConfig.getOption("password", _.getString)
-      smtpEndpoint <- smtpConfig.getOption("endpoint", _.getString)
-    } yield new {
-      val username = smtpUsername
-      val password = smtpPassword
-      val endpoint = smtpEndpoint
-    }
+      username <-smtpConfig.getOption("username", _.getString)
+      password <- smtpConfig.getOption("password", _.getString)
+      endpoint <- smtpConfig.getOption("endpoint", _.getString)
+    } yield SmtpConfig(endpoint, username, password)
   }
 }
