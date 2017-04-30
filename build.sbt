@@ -198,6 +198,8 @@ lazy val backend = project
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::
       "com.typesafe" % "config" % "1.3.1" ::
+      "javax.mail" % "javax.mail-api" % "1.5.6" ::
+      "com.sun.mail" % "javax.mail" % "1.5.6" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
 
