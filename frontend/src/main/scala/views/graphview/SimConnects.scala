@@ -1,17 +1,13 @@
 package wust.frontend.views.graphview
 
+import delegert.delegert
 import org.scalajs.d3v4._
 import wust.graph.Connection
 
 import scala.scalajs.js
 
-class SimConnection(val connection: Connection, val source: SimPost)
+class SimConnection(@delegert(vals) val connection: Connection, val source: SimPost)
   extends SimulationLink[SimPost, ExtendedD3Node] with SimConnectable with ExtendedD3Node with SimulationLinkImpl[SimPost, ExtendedD3Node] {
-  //TODO: delegert!
-  def id = connection.id
-  def sourceId = connection.sourceId
-  def targetId = connection.targetId
-
   // this is necessary because target can be a SimConnection itself
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   var target: SimConnectable with ExtendedD3Node = _

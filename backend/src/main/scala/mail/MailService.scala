@@ -1,5 +1,6 @@
 package wust.backend.mail
 
+import delegert.delegert
 import wust.backend.config._
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
@@ -36,14 +37,9 @@ class SmtpMailService(from: String, config: SmtpConfig) extends MailService {
   }
 }
 
-trait MailServiceWrapper extends MailService {
-  //TODO delegert
-  protected def inner: MailService
-  override def sendMail(recipient: MailRecipient, message: MailMessage) = inner.sendMail(recipient, message)
-}
-
-object MailService extends MailServiceWrapper {
-  protected lazy val inner: MailService = {
+object MailService extends MailService {
+  @delegert
+  private lazy val inner: MailService = {
     Config.email.fromAddress.flatMap { from =>
       Config.email.smtp.map(smtp => new SmtpMailService(from, smtp))
     } getOrElse LoggingMailService

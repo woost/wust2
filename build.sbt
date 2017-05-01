@@ -84,6 +84,7 @@ val akkaHttpVersion = "10.0.5"
 val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
+val paradiseVersion = "3.0.0-M8"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -193,6 +194,7 @@ lazy val backend = project
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(
+    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++=
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
@@ -200,6 +202,7 @@ lazy val backend = project
       "com.typesafe" % "config" % "1.3.1" ::
       "javax.mail" % "javax.mail-api" % "1.5.6" ::
       "com.sun.mail" % "javax.mail" % "1.5.6" ::
+      "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
 
@@ -210,7 +213,7 @@ lazy val frontend = project
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings)
   .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full),
+    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++= (
       ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll (ExclusionRule(artifact = "scalarx"), ExclusionRule(artifact = "scalatags"))) ::
       "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
@@ -219,6 +222,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       "org.scalameta" %%% "scalameta" % "1.7.0" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
+      "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     ),

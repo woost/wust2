@@ -1,5 +1,6 @@
 package wust.frontend.views.graphview
 
+import delegert.delegert
 import org.scalajs.d3v4._
 import wust.ids._
 import wust.graph.Post
@@ -11,11 +12,7 @@ trait SimConnectable {
   def id: ConnectableId
 }
 
-class SimPost(val post: Post) extends SimConnectable with ExtendedD3Node with SimulationNodeImpl {
-  //TODO: delegert!
-  def id = post.id
-  def title = post.title
-
+class SimPost(@delegert(vals) val post: Post) extends SimConnectable with ExtendedD3Node with SimulationNodeImpl {
   var color = "red"
   var border = "none"
   var opacity = 1.0
