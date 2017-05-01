@@ -210,7 +210,7 @@ lazy val frontend = project
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings)
   .settings(
-    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
+    addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full),
     libraryDependencies ++= (
       ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll (ExclusionRule(artifact = "scalarx"), ExclusionRule(artifact = "scalatags"))) ::
       "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
@@ -218,6 +218,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       "org.scalameta" %%% "scalameta" % "1.7.0" ::
+      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil
     ),

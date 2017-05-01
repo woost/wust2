@@ -43,6 +43,6 @@ class SimPost(val post: Post) extends SimConnectable with ExtendedD3Node with Si
   }
   var draggingPost: Option[SimPost] = None
 
-  //TODO: derive
+  //TODO: derive @derive((post, x, y) => toString)
   override def toString = s"SimPost($post, $title, $x, $y)"
 }
