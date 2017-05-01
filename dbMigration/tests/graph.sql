@@ -29,22 +29,22 @@ SELECT isnt_empty(
 
 SELECT isnt_empty(
   'INSERT INTO
-    connects (id, sourceId, targetId)
+    connection (id, sourceId, targetId)
   VALUES
     (DEFAULT, 1, 2)
    RETURNING
     (id, sourceId, targetId);',
-  'insert connects'
+  'insert connection'
 );
 
 SELECT isnt_empty(
   'INSERT INTO
-    contains (id, parentId, childId)
+    containment (id, parentId, childId)
   VALUES
     (DEFAULT, 2, 1)
    RETURNING
     (id, parentId, childId);',
-  'insert contains'
+  'insert containment'
 );
 
 /* graph component */
@@ -56,44 +56,44 @@ SELECT results_eq(
 
 /* delete edges */
 SELECT lives_ok(
-  'delete from connects where true',
-  'delete connects'
+  'delete from connection where true',
+  'delete connection'
 );
 
 select is_empty(
-  'select * from connects',
-  'connects is empty'
+  'select * from connection',
+  'connection is empty'
 );
 
 SELECT lives_ok(
-  'delete from contains where true',
-  'delete contains'
+  'delete from containment where true',
+  'delete containment'
 );
 
 select is_empty(
-  'select * from contains',
-  'contains is empty'
+  'select * from containment',
+  'containment is empty'
 );
 
 /* insert edges again */
 SELECT isnt_empty(
   'INSERT INTO
-    connects (id, sourceId, targetId)
+    connection (id, sourceId, targetId)
   VALUES
     (DEFAULT, 1, 2)
    RETURNING
     (id, sourceId, targetId);',
-  'insert connects after delete'
+  'insert connection after delete'
 );
 
 SELECT isnt_empty(
   'INSERT INTO
-    contains (id, parentId, childId)
+    containment (id, parentId, childId)
   VALUES
     (DEFAULT, 2, 1)
    RETURNING
     (id, parentId, childId);',
-  'insert contains'
+  'insert containment'
 );
 
 /* delete post and collapse on edges */
@@ -108,13 +108,13 @@ select is_empty(
 );
 
 select is_empty(
-  'select * from connects',
-  'connects is empty after post collapse'
+  'select * from connection',
+  'connection is empty after post collapse'
 );
 
 select is_empty(
-  'select * from contains',
-  'contains is empty after post collapse'
+  'select * from containment',
+  'containment is empty after post collapse'
 );
 
 select is_empty(
