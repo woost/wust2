@@ -4,6 +4,7 @@ import wust.db
 import wust.ids._
 import wust.api._
 import wust.backend.auth._
+import wust.backend.config.Config
 import wust.graph._
 import wust.util.Pipe
 import dbConversions._
@@ -23,6 +24,7 @@ object RandomUtil {
 }
 
 class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
+  import Config.usergroup.{publicId => publicGroupId}
   import Server.{emit, emitDynamic}
   import apiAuth._
 
@@ -108,7 +110,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { user =>
     //TODO this should be handled in the query, just return false in db.user.addMember
     //TODO NEVER use bare exception! we have an exception for apierrors: UserError(something)
-    if (groupId == 1L) Future.failed(new Exception("adding members to public group is not allowed"))
+    if (groupId == publicGroupId) Future.failed(new Exception("adding members to public group is not allowed"))
 
     else {
       //TODO: check if user has access to group
@@ -124,7 +126,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUser { user =>
     //TODO this should be handled in the query, just return false in db.user.addMember
     //TODO NEVER use bare exception! we have an exception for apierrors: UserError(something)
-    if (groupId == 1L) Future.failed(new Exception("adding members to public group is not allowed"))
+    if (groupId == publicGroupId) Future.failed(new Exception("adding members to public group is not allowed"))
     else {
       //TODO: check if user has access to group
       val token = RandomUtil.alphanumeric()

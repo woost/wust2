@@ -19,7 +19,7 @@ import scalatags.rx.all._
 import collection.breakOut
 
 object AddPostForm {
-  //TODO: use public groupid constant from config
+  //TODO: use public groupid constant from config, should be in graph, marked as public
   val publicGroupId = GroupId(1)
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(

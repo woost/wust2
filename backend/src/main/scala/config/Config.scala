@@ -1,6 +1,7 @@
 package wust.backend.config
 
 import com.typesafe.config.{Config => TConfig, ConfigFactory}
+import wust.ids._
 
 object ConfigExt {
   implicit class RichConfig(val conf: TConfig) extends AnyVal {
@@ -18,6 +19,12 @@ case class SmtpConfig(endpoint: String, username: String, password: String) {
 object Config {
   import ConfigExt._
   private val wustConfig = ConfigFactory.load.getConfig("wust")
+
+  object usergroup {
+    private val config = wustConfig.getConfig("usergroup")
+
+    val publicId: GroupId = GroupId(config.getLong("publicId"))
+  }
 
   object auth {
     private val config = wustConfig.getConfig("auth")

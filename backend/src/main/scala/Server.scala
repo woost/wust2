@@ -24,6 +24,7 @@ case class UserError(error: ApiError) extends Exception
 case class State(auth: Option[JWTAuthentication])
 
 class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiEvent, ApiError, State] {
+  import Config.usergroup.{publicId => publicGroupId}
   import Config.auth.enableImplicit
 
   private def createImplicitAuth(): Future[Option[JWTAuthentication]] = {
@@ -36,7 +37,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
     dispatcher.subscribe(sender, Channel.All)
     //TODO: currently updates to a group (via api) are not automatically subscribed!
-    dispatcher.subscribe(sender, Channel.Group(db.Group.default.id))
+    dispatcher.subscribe(sender, Channel.Group(publicGroupId))
     extraGroups
       .map(g => Channel.Group(g.id))
       .foreach(dispatcher.subscribe(sender, _))

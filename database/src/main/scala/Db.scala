@@ -25,19 +25,14 @@ package object db {
 
   case class Containment(id: ContainmentId, parentId: PostId, childId: PostId)
   object Containment {
-    def apply(parentId: PostId, childId: PostId): Containment =
-      Containment(0L, parentId, childId)
+    def apply(parentId: PostId, childId: PostId): Containment = Containment(0L, parentId, childId)
   }
 
   case class Password(id: UserId, digest: Array[Byte])
   case class Membership(groupId: GroupId, userId: Option[UserId])
   case class GroupInvite(groupId: GroupId, token: String)
   case class UserGroup(id: GroupId)
-  object Group {
-    def apply(): UserGroup = UserGroup(GroupId(0))
-    //TODO this should be a setting, it corresponds to the id of the public user group (V6__user_ownership.sql)
-    def default = UserGroup(GroupId(1))
-  }
+  object UserGroup { def apply(): UserGroup = UserGroup(GroupId(0L)) }
   case class Ownership(postId: PostId, groupId: GroupId)
 
   lazy val ctx = new PostgresAsyncContext[LowerCase]("db")

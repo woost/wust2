@@ -33,7 +33,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     .map(_.consistent)
 
   val selectedGroupId = {
-    //TODO: magic number for public group!
+    //TODO: magic number for public group, should be send in graph?
     val rawSelectedId = RxVar[GroupId](GroupId(1))
     RxVar(rawSelectedId, Rx {
       if (rawGraph().groupsById.isDefinedAt(rawSelectedId()))
