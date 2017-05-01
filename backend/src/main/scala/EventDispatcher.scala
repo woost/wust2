@@ -10,7 +10,7 @@ sealed trait Channel
 object Channel {
   case object All extends Channel
   case class User(id: UserId) extends Channel
-  case class UserGroup(id: GroupId) extends Channel
+  case class Group(id: GroupId) extends Channel
 }
 
 sealed trait BaseChannelEvent { def channel: Channel }

@@ -10,14 +10,14 @@ trait Api {
   def deletePost(id: PostId): Future[Boolean]
   def getGraph(selection: GraphSelection): Future[Graph]
   def addPost(msg: String, selection: GraphSelection, groupId: GroupId): Future[Post]
-  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: GroupId): Future[(Post, Connects)]
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: GroupId): Future[(Post, Connection)]
   def updatePost(post: Post): Future[Boolean]
-  def connect(sourceId: PostId, targetId: ConnectableId): Future[Connects]
-  def contain(parentId: PostId, childId: PostId): Future[Contains]
-  def deleteConnection(id: ConnectsId): Future[Boolean]
-  def deleteContainment(id: ContainsId): Future[Boolean]
+  def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection]
+  def contain(parentId: PostId, childId: PostId): Future[Containment]
+  def deleteConnection(id: ConnectionId): Future[Boolean]
+  def deleteContainment(id: ContainmentId): Future[Boolean]
   def getUser(userId: UserId): Future[Option[User]]
-  def addUserGroup(): Future[Group]
+  def addGroup(): Future[Group]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
   def createGroupInvite(groupId: GroupId): Future[Option[String]]
   def acceptGroupInvite(token: String): Future[Boolean]
@@ -36,15 +36,15 @@ sealed trait ApiEvent
 sealed trait DynamicEvent
 case class NewPost(post: Post) extends ApiEvent with DynamicEvent
 case class UpdatedPost(post: Post) extends ApiEvent with DynamicEvent
-case class NewConnection(edge: Connects) extends ApiEvent with DynamicEvent
-case class NewContainment(edge: Contains) extends ApiEvent with DynamicEvent
+case class NewConnection(edge: Connection) extends ApiEvent with DynamicEvent
+case class NewContainment(edge: Containment) extends ApiEvent with DynamicEvent
 case class NewOwnership(edge: Ownership) extends ApiEvent with DynamicEvent
 case class NewUser(edge: User) extends ApiEvent with DynamicEvent
 case class NewGroup(edge: Group) extends ApiEvent with DynamicEvent
 case class NewMembership(edge: Membership) extends ApiEvent with DynamicEvent
 case class DeletePost(id: PostId) extends ApiEvent with DynamicEvent
-case class DeleteConnection(id: ConnectsId) extends ApiEvent with DynamicEvent
-case class DeleteContainment(id: ContainsId) extends ApiEvent with DynamicEvent
+case class DeleteConnection(id: ConnectionId) extends ApiEvent with DynamicEvent
+case class DeleteContainment(id: ContainmentId) extends ApiEvent with DynamicEvent
 case class ImplicitLogin(auth: Authentication) extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {
   override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"

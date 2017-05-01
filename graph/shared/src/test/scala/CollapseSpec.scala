@@ -10,15 +10,15 @@ class CollapseSpec extends FreeSpec with MustMatchers {
   val edgeId = AutoId(-1, delta = -1)
 
   implicit def intToPost(id: Int): Post = Post(id, "title")
-  implicit def intTupleToConnects(ts: (Int, Int)): Connects = Connects(ts)
-  implicit def intTupleToContains(ts: (Int, Int)): Contains = Contains(ts)
+  implicit def intTupleToConnection(ts: (Int, Int)): Connection = Connection(ts)
+  implicit def intTupleToContainment(ts: (Int, Int)): Containment = Containment(ts)
   implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(PostId(_)))
   def PostIds(ids: Int*): Set[PostId] = ids.map(PostId(_))(breakOut)
-  implicit class RichContains(con: Contains) {
+  implicit class RichContainment(con: Containment) {
     def toLocal = LocalContainment(con.parentId, con.childId)
   }
-  def Contains(ts: (Int, Int)): Contains = new Contains(edgeId(), ts._1, ts._2)
-  def Connects(ts: (Int, Int)): Connects = new Connects(edgeId(), ts._1, PostId(ts._2))
+  def Containment(ts: (Int, Int)): Containment = new Containment(edgeId(), ts._1, ts._2)
+  def Connection(ts: (Int, Int)): Connection = new Connection(edgeId(), ts._1, PostId(ts._2))
 
   "collapse" - {
 
@@ -169,10 +169,10 @@ class CollapseSpec extends FreeSpec with MustMatchers {
         import Collapse.{getLocalContainments => local}
 
         "partially collapse cycle" in {
-          val containment = Contains(11 -> 12)
+          val containment = Containment(11 -> 12)
           val graph = Graph(
             posts = List(11, 12, 13),
-            containments = containment :: List[Contains](12 -> 13, 13 -> 11) // containment cycle
+            containments = containment :: List[Containment](12 -> 13, 13 -> 11) // containment cycle
           )
           val collapsingPosts = PostIds(11)
           val hiddenPosts = PostIds()
@@ -182,9 +182,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
         }
 
         "two parents, one with other child" in { //TODO
-          val containment1 = Contains(1 -> 11)
-          val containment2 = Contains(2 -> 11)
-          val containment3 = Contains(1 -> 3)
+          val containment1 = Containment(1 -> 11)
+          val containment2 = Containment(2 -> 11)
+          val containment3 = Containment(1 -> 3)
           val graph = Graph(
             posts = List(1, 2, 3, 11),
             containments = List(containment1, containment2, containment3)
@@ -203,10 +203,10 @@ class CollapseSpec extends FreeSpec with MustMatchers {
         import Collapse.{getAlternativePosts => alt}
 
         "two parents, one with two more parents" in {
-          val containment1 = Contains(1 -> 11)
-          val containment2 = Contains(2 -> 3)
-          val containment3 = Contains(3 -> 11)
-          val containment4 = Contains(4 -> 3)
+          val containment1 = Containment(1 -> 11)
+          val containment2 = Containment(2 -> 3)
+          val containment3 = Containment(3 -> 11)
+          val containment4 = Containment(4 -> 3)
           val graph = Graph(
             posts = List(1, 2, 3, 4, 11),
             containments = List(containment1, containment2, containment3, containment4)
@@ -219,9 +219,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
         }
 
         "two parents, one with one more parent" in {
-          val containment1 = Contains(1 -> 11)
-          val containment2 = Contains(2 -> 3)
-          val containment3 = Contains(3 -> 11)
+          val containment1 = Containment(1 -> 11)
+          val containment2 = Containment(2 -> 3)
+          val containment3 = Containment(3 -> 11)
           val graph = Graph(
             posts = List(1, 2, 3, 11),
             containments = List(containment1, containment2, containment3)
@@ -279,8 +279,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "collapse two parents" in {
-        val containment1 = Contains(1 -> 11)
-        val containment2 = Contains(2 -> 11)
+        val containment1 = Containment(1 -> 11)
+        val containment2 = Containment(2 -> 11)
         val graph = Graph(
           posts = List(1, 2, 11),
           containments = List(containment1, containment2)
@@ -291,11 +291,11 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "diamond-shape containment" in {
-        val containment1 = Contains(2 -> 11)
-        val containment2 = Contains(3 -> 11)
+        val containment1 = Containment(2 -> 11)
+        val containment2 = Containment(3 -> 11)
         val graph = Graph(
           posts = List(1, 2, 3, 11),
-          containments = List[Contains](1 -> 2, 1 -> 3) ++ List(containment1, containment2)
+          containments = List[Containment](1 -> 2, 1 -> 3) ++ List(containment1, containment2)
         )
         collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
         collapse(Set(2), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
@@ -307,19 +307,19 @@ class CollapseSpec extends FreeSpec with MustMatchers {
 
     "cycles" - {
       "partially collapse cycle" in {
-        val containment = Contains(11 -> 12)
+        val containment = Containment(11 -> 12)
         val graph = Graph(
           posts = List(11, 12, 13),
-          containments = containment :: List[Contains](12 -> 13, 13 -> 11) // containment cycle
+          containments = containment :: List[Containment](12 -> 13, 13 -> 11) // containment cycle
         )
         collapse(Set(11), graph) mustEqual dg(graph - containment.id, collapsedContainments = Set(containment.toLocal)) // nothing to collapse because of cycle
       }
 
       "partially collapse cycle with child" in {
-        val containment = Contains(11 -> 12)
+        val containment = Containment(11 -> 12)
         val graph = Graph(
           posts = List(11, 12, 13, 20),
-          containments = containment :: List[Contains](12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
+          containments = containment :: List[Containment](12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
         )
         collapse(Set(11), graph) mustEqual dg(graph - PostId(20) - containment.id, collapsedContainments = Set(containment.toLocal)) // cycle stays
       }
@@ -335,7 +335,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
 
     "connection redirection" - {
       "redirect collapsed connection to source" in {
-        val connection = Connects(11 -> 2)
+        val connection = Connection(11 -> 2)
         val graph = Graph(
           posts = List(1, 11, 2),
           containments = List(1 -> 11),
@@ -345,7 +345,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect collapsed connection to target" in {
-        val connection = Connects(2 -> 11)
+        val connection = Connection(2 -> 11)
         val graph = Graph(
           posts = List(1, 11, 2),
           containments = List(1 -> 11),
@@ -355,7 +355,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect edge source to earliest collapsed transitive parent" in {
-        val connection = Connects(3 -> 11)
+        val connection = Connection(3 -> 11)
         val graph = Graph(
           posts = List(1, 2, 3, 11),
           containments = List(1 -> 2, 2 -> 3),
@@ -367,7 +367,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect edge target to earliest collapsed transitive parent" in {
-        val connection = Connects(11 -> 3)
+        val connection = Connection(11 -> 3)
         val graph = Graph(
           posts = List(1, 2, 3, 11),
           containments = List(1 -> 2, 2 -> 3),
@@ -379,9 +379,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and split outgoing edge while collapsing two parents" in {
-        val containment1 = Contains(1 -> 11)
-        val containment2 = Contains(2 -> 11)
-        val connection = Connects(11 -> 20)
+        val containment1 = Containment(1 -> 11)
+        val containment2 = Containment(2 -> 11)
+        val connection = Connection(11 -> 20)
         val graph = Graph(
           posts = List(1, 2, 11, 20),
           containments = List(containment1, containment2),
@@ -393,9 +393,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and split incoming edge while collapsing two parents" in {
-        val containment1 = Contains(1 -> 11)
-        val containment2 = Contains(2 -> 11)
-        val connection = Connects(20 -> 11)
+        val containment1 = Containment(1 -> 11)
+        val containment2 = Containment(2 -> 11)
+        val connection = Connection(20 -> 11)
         val graph = Graph(
           posts = List(1, 2, 11, 20),
           containments = List(containment1, containment2),
@@ -407,13 +407,13 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and split outgoing edge while collapsing two parents with other connected child" in {
-        val containment1 = Contains(1 -> 11)
-        val containment2 = Contains(2 -> 11)
-        val connection1 = Connects(11 -> 20)
-        val connection2 = Connects(3 -> 20)
+        val containment1 = Containment(1 -> 11)
+        val containment2 = Containment(2 -> 11)
+        val connection1 = Connection(11 -> 20)
+        val connection2 = Connection(3 -> 20)
         val graph = Graph(
           posts = List(1, 2, 3, 11, 20),
-          containments = List(containment1, containment2) ++ List[Contains](1 -> 3),
+          containments = List(containment1, containment2) ++ List[Containment](1 -> 3),
           connections = List(connection1, connection2)
         )
         collapse(Set(1), graph) mustEqual dg(graph - PostId(3) - containment1.id, Set(1 -> 20), collapsedContainments = Set(containment1.toLocal))
@@ -422,10 +422,10 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and split incoming edge while collapsing two parents (one transitive)" in {
-        val containment1 = Contains(1 -> 11)
-        val containment2 = Contains(2 -> 3)
-        val containment3 = Contains(3 -> 11)
-        val connection = Connects(20 -> 11)
+        val containment1 = Containment(1 -> 11)
+        val containment2 = Containment(2 -> 3)
+        val containment3 = Containment(3 -> 11)
+        val connection = Connection(20 -> 11)
         val graph = Graph(
           posts = List(1, 2, 3, 11, 20),
           containments = List(containment1, containment2, containment3),
@@ -439,11 +439,11 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and split incoming edge while collapsing two parents (one transitive with other parent)" in {
-        val containment1 = Contains(1 -> 11)
-        val containment2 = Contains(2 -> 3)
-        val containment3 = Contains(3 -> 11)
-        val containment4 = Contains(4 -> 3)
-        val connection = Connects(20 -> 11)
+        val containment1 = Containment(1 -> 11)
+        val containment2 = Containment(2 -> 3)
+        val containment3 = Containment(3 -> 11)
+        val containment4 = Containment(4 -> 3)
+        val connection = Connection(20 -> 11)
         val graph = Graph(
           posts = List(1, 2, 3, 4, 11, 20),
           containments = List(containment1, containment2, containment3, containment4),
@@ -456,7 +456,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect connection between children while collapsing two parents" in {
-        val connection = Connects(11 -> 12)
+        val connection = Connection(11 -> 12)
         val graph = Graph(
           posts = List(1, 2, 11, 12),
           containments = List(1 -> 11, 2 -> 12),
@@ -468,8 +468,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and bundle edges to target" in {
-        val connection1 = Connects(11 -> 2)
-        val connection2 = Connects(12 -> 2)
+        val connection1 = Connection(11 -> 2)
+        val connection2 = Connection(12 -> 2)
         val graph = Graph(
           posts = List(1, 11, 12, 2),
           containments = List(1 -> 11, 1 -> 12),
@@ -479,8 +479,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and bundle edges to source" in {
-        val connection1 = Connects(2 -> 11)
-        val connection2 = Connects(2 -> 12)
+        val connection1 = Connection(2 -> 11)
+        val connection2 = Connection(2 -> 12)
         val graph = Graph(
           posts = List(1, 11, 12, 2),
           containments = List(1 -> 11, 1 -> 12),
@@ -490,8 +490,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "drop redirected, because of existing connection" in {
-        val connection1 = Connects(1 -> 2)
-        val connection2 = Connects(11 -> 2)
+        val connection1 = Connection(1 -> 2)
+        val connection2 = Connection(11 -> 2)
         val graph = Graph(
           posts = List(1, 11, 2),
           containments = List(1 -> 11),
@@ -501,8 +501,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect mixed edges" in {
-        val connection1 = Connects(2 -> 11)
-        val connection2 = Connects(12 -> 2)
+        val connection1 = Connection(2 -> 11)
+        val connection2 = Connection(12 -> 2)
         val graph = Graph(
           posts = List(1, 11, 12, 2),
           containments = List(1 -> 11, 1 -> 12),
@@ -512,12 +512,12 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect in diamond-shape containment" in {
-        val containment1 = Contains(2 -> 11)
-        val containment2 = Contains(3 -> 11)
-        val connection = Connects(11 -> 20)
+        val containment1 = Containment(2 -> 11)
+        val containment2 = Containment(3 -> 11)
+        val connection = Connection(11 -> 20)
         val graph = Graph(
           posts = List(1, 2, 3, 11, 20),
-          containments = List[Contains](1 -> 2, 1 -> 3) ++ List(containment1, containment2),
+          containments = List[Containment](1 -> 2, 1 -> 3) ++ List(containment1, containment2),
           connections = List(connection)
         )
 
@@ -530,18 +530,18 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect into cycle" in {
-        val connection = Connects(11 -> 20)
-        val containment = Contains(1 -> 2)
+        val connection = Connection(11 -> 20)
+        val containment = Containment(1 -> 2)
         val graph = Graph(
           posts = List(1, 2, 3, 11, 20),
-          containments = containment :: List[Contains](2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
+          containments = containment :: List[Containment](2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
           connections = List(connection) // 11 -> 20
         )
         collapse(Set(1), graph) mustEqual dg(graph - PostId(11) - containment.id, Set(2 -> 20), collapsedContainments = Set(containment.toLocal)) // cycle stays
       }
 
       "redirect out of cycle" in {
-        val connection = Connects(13 -> 20)
+        val connection = Connection(13 -> 20)
         val graph = Graph(
           posts = List(1, 11, 12, 13, 20),
           containments = List(1 -> 11, 11 -> 12, 12 -> 13, 13 -> 11), // 1 -> containment cycle(11,12,13)

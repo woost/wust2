@@ -15,12 +15,12 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
       db.Post("title").id mustEqual PostId(0)
     }
 
-    "connects without id" in {
-      db.Connects(1, ConnectsId(2)).id mustEqual ConnectsId(0)
+    "connection without id" in {
+      db.Connection(1, ConnectionId(2)).id mustEqual ConnectionId(0)
     }
 
-    "contains without id" in {
-      db.Contains(1, 2).id mustEqual ContainsId(0)
+    "containment without id" in {
+      db.Containment(1, 2).id mustEqual ContainmentId(0)
     }
 
     "add" in db.post("t", publicGroup).map {
@@ -59,56 +59,56 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
   }
 
   //TODO: check if actually in db
-  "connects" - {
+  "connection" - {
     val (post, _) = await(db.post("t", publicGroup))
 
-    "newPost" in db.connects.newPost("nu", post.id, publicGroup).map {
-      case (newPost, connects, _) =>
+    "newPost" in db.connection.newPost("nu", post.id, publicGroup).map {
+      case (newPost, connection, _) =>
         newPost.title mustEqual "nu"
-        connects.sourceId mustEqual newPost.id
-        connects.targetId mustEqual post.id
+        connection.sourceId mustEqual newPost.id
+        connection.targetId mustEqual post.id
     }
 
     "add" in db.post("nu", publicGroup).flatMap {
       case (newPost, _) =>
-        db.connects(newPost.id, post.id).map { connects =>
-          connects.sourceId mustEqual newPost.id
-          connects.targetId mustEqual post.id
+        db.connection(newPost.id, post.id).map { connection =>
+          connection.sourceId mustEqual newPost.id
+          connection.targetId mustEqual post.id
         }
     }
 
-    "add hyper" in db.connects.newPost("nu", post.id, publicGroup).flatMap {
-      case (newPost, connects, _) =>
-        db.connects(newPost.id, connects.id).map { connects2 =>
-          connects2.sourceId mustEqual newPost.id
-          connects2.targetId mustEqual connects.id
+    "add hyper" in db.connection.newPost("nu", post.id, publicGroup).flatMap {
+      case (newPost, connection, _) =>
+        db.connection(newPost.id, connection.id).map { connection2 =>
+          connection2.sourceId mustEqual newPost.id
+          connection2.targetId mustEqual connection.id
         }
     }
 
-    "delete" in db.connects.newPost("nu", post.id, publicGroup).flatMap {
-      case (_, connects, _) =>
-        db.connects.delete(connects.id).map { success =>
+    "delete" in db.connection.newPost("nu", post.id, publicGroup).flatMap {
+      case (_, connection, _) =>
+        db.connection.delete(connection.id).map { success =>
           success mustEqual true
         }
     }
   }
 
   //TODO: check if actually in db
-  "contains" - {
+  "containment" - {
     val (post, _) = await(db.post("t", publicGroup))
 
     "add" in db.post("nu", publicGroup).flatMap {
       case (newPost, _) =>
-        db.contains(newPost.id, post.id).map { contains =>
-          contains.parentId mustEqual newPost.id
-          contains.childId mustEqual post.id
+        db.containment(newPost.id, post.id).map { containment =>
+          containment.parentId mustEqual newPost.id
+          containment.childId mustEqual post.id
         }
     }
 
     "delete" in db.post("nu", publicGroup).flatMap {
       case (newPost, _) =>
-        db.contains(newPost.id, post.id).flatMap { contains =>
-          db.contains.delete(contains.id).map { success =>
+        db.containment(newPost.id, post.id).flatMap { containment =>
+          db.containment.delete(containment.id).map { success =>
             success mustEqual true
           }
         }
@@ -127,14 +127,14 @@ class DbSpec extends AsyncFreeSpec with MustMatchers {
       "post in private group (user not member)" in {
         val Some(user) = await(db.user("u2", "123456"))
         val Some(user2) = await(db.user("other", "123456"))
-        val (group, m) = await(db.user.createUserGroupForUser(user2.id))
+        val (group, m) = await(db.user.createGroupForUser(user2.id))
         val post = await(db.post.createOwnedPost("p", group.id))
         hasAccessToPost(user.id, post.id).map(_ must be(false))
       }
 
       "post in private group (user is member)" in {
         val Some(user) = await(db.user("u3", "123456"))
-        val (group, _) = await(db.user.createUserGroupForUser(user.id))
+        val (group, _) = await(db.user.createGroupForUser(user.id))
         val post = await(db.post.createOwnedPost("p", group.id))
         hasAccessToPost(user.id, post.id).map(_ must be(true))
       }

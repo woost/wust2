@@ -78,21 +78,21 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxFocusedSimPost = RxVar(state.focusedPostId, Rx { state.focusedPostId().flatMap(rxPostIdToSimPost().get) })
   // val rxFocusedSimPost = state.focusedPostId.combine { fp => fp.flatMap(postIdToSimPost().get) } // TODO: Possible? See RxExt
 
-  val rxSimConnects = Rx {
+  val rxSimConnection = Rx {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
     val newData = graph.connections.map { c =>
-      new SimConnects(c, postIdToSimPost(c.sourceId))
+      new SimConnection(c, postIdToSimPost(c.sourceId))
     }.toJSArray
 
-    val connIdToSimConnects: Map[ConnectsId, SimConnects] = (newData: js.ArrayOps[SimConnects]).by(_.id)
+    val connIdToSimConnection: Map[ConnectionId, SimConnection] = (newData: js.ArrayOps[SimConnection]).by(_.id)
 
     // set hyperedge targets, goes away with custom linkforce
     newData.foreach { e =>
       e.target = e.targetId match {
         case id: PostId => postIdToSimPost(id)
-        case id: ConnectsId => connIdToSimConnects(id)
+        case id: ConnectionId => connIdToSimConnection(id)
         case _: ConnectableId => throw new Exception("Unresolved ConnectableId found. Should not happen in consistent graph.")
       }
     }
@@ -100,29 +100,29 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     newData
   }
 
-  val rxSimRedirectedConnects = Rx {
+  val rxSimRedirectedConnection = Rx {
     val displayGraph = rxDisplayGraph()
     val postIdToSimPost = rxPostIdToSimPost()
 
     displayGraph.redirectedConnections.map { c =>
-      new SimRedirectedConnects(c, postIdToSimPost(c.sourceId), postIdToSimPost(c.targetId))
+      new SimRedirectedConnection(c, postIdToSimPost(c.sourceId), postIdToSimPost(c.targetId))
     }.toJSArray
   }
 
-  val rxSimContains = Rx {
+  val rxSimContainment = Rx {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
     graph.containments.map { c =>
-      new SimContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
+      new SimContainment(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
     }.toJSArray
   }
 
-  val rxSimCollapsedContains = Rx {
+  val rxSimCollapsedContainment = Rx {
     val postIdToSimPost = rxPostIdToSimPost()
 
     rxDisplayGraph().collapsedContainments.map { c =>
-      new SimCollapsedContains(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
+      new SimCollapsedContainment(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
     }.toJSArray
   }
 
@@ -164,8 +164,8 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   DevOnly {
     rxSimPosts.debug(v => s"  simPosts: ${v.size}")
     rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.size}")
-    rxSimConnects.debug(v => s"  simConnects: ${v.size}")
-    rxSimContains.debug(v => s"  simContains: ${v.size}")
+    rxSimConnection.debug(v => s"  simConnection: ${v.size}")
+    rxSimContainment.debug(v => s"  simContainment: ${v.size}")
     rxContainmentCluster.debug(v => s"  containmentCluster: ${v.size}")
     rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.size}")
   }

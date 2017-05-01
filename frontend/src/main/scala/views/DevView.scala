@@ -65,16 +65,16 @@ object DevView {
 
             val nextAtomId = AutoId(100000)
             def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postsById.keys.toIndexedSeq)(rInt(graph.postsById.size))) else None
-            def randomConnectionId: Option[ConnectsId] = if (graph.connectionsById.size > 0) Option((graph.connectionsById.keys.toIndexedSeq)(rInt(graph.connectionsById.size))) else None
-            def randomContainmentId: Option[ContainsId] = if (graph.containmentsById.size > 0) Option((graph.containmentsById.keys.toIndexedSeq)(rInt(graph.containmentsById.size))) else None
+            def randomConnectionId: Option[ConnectionId] = if (graph.connectionsById.size > 0) Option((graph.connectionsById.keys.toIndexedSeq)(rInt(graph.connectionsById.size))) else None
+            def randomContainmentId: Option[ContainmentId] = if (graph.containmentsById.size > 0) Option((graph.containmentsById.keys.toIndexedSeq)(rInt(graph.containmentsById.size))) else None
             val events: Array[() => Option[ApiEvent]] = {
               val distribution: List[(Int, () => Option[ApiEvent])] = (
                 (1, () => Option(NewPost(Post(nextAtomId(), rStr(1 + rInt(20)))))) ::
                 (1, () => randomPostId.map(p => UpdatedPost(Post(p, rStr(1 + rInt(20)))))) ::
                 (1, () => randomPostId.map(DeletePost(_))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewConnection(Connects(nextAtomId(), p1, p2))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewConnection(Connection(nextAtomId(), p1, p2))) ::
                 (2, () => randomConnectionId.map(DeleteConnection(_))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewContainment(Contains(nextAtomId(), p1, p2))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewContainment(Containment(nextAtomId(), p1, p2))) ::
                 (2, () => randomContainmentId.map(DeleteContainment(_))) ::
                 Nil
               )

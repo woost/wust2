@@ -112,8 +112,8 @@ object AddPostForm {
             }),
 
             button("new group", onclick := { () =>
-              Client.api.addUserGroup().call().foreach { userGroup =>
-                state.selectedGroupId() = userGroup.id
+              Client.api.addGroup().call().foreach { group =>
+                state.selectedGroupId() = group.id
               }
             }),
             if (state.selectedGroupId() != publicGroupId) {

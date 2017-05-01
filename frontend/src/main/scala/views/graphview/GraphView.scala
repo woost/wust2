@@ -17,8 +17,8 @@ case class DropAction(name: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {
   implicit val SimPostWithKey = new WithKey[SimPost](_.id)
-  implicit val SimConnectsWithKey = new WithKey[SimConnects](_.id)
-  implicit val SimRedirectedConnectsWithKey = new WithKey[SimRedirectedConnects](c => s"${c.sourceId} ${c.targetId}")
+  implicit val SimConnectionWithKey = new WithKey[SimConnection](_.id)
+  implicit val SimRedirectedConnectionWithKey = new WithKey[SimRedirectedConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }
 
@@ -36,11 +36,11 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
   val collapsedContainmentHullSelection = SelectData.rx(CollapsedContainmentHullSelection, rxCollapsedContainmentCluster)(svg.append("g"))
-  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnects)(svg.append("g"))
-  val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxSimRedirectedConnects)(svg.append("g"))
+  val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnection)(svg.append("g"))
+  val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxSimRedirectedConnection)(svg.append("g"))
 
   val html = container.append("div")
-  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnects)(html.append("div"))
+  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnection)(html.append("div"))
   val postSelection = SelectData.rx(new PostSelection(graphState, d3State, postDrag), rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
@@ -66,12 +66,12 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
       .style("opacity", "0.8")
   }
 
-  Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnects(); rxSimContains() }.triggerLater {
+  Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnection(); rxSimContainment() }.triggerLater {
     val simPosts = rxSimPosts.now
-    val simConnects = rxSimConnects.now
-    val simRedirectedConnects = rxSimRedirectedConnects.now
-    val simContains = rxSimContains.now
-    val simCollapsedContains = rxSimCollapsedContains.now
+    val simConnection = rxSimConnection.now
+    val simRedirectedConnection = rxSimRedirectedConnection.now
+    val simContainment = rxSimContainment.now
+    val simCollapsedContainment = rxSimCollapsedContainment.now
     // val graph = rxDisplayGraph.now.graph
 
     DevOnly {
@@ -83,19 +83,19 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     // when setting nodes and links. Therefore they need to be set before.
     // even when updating the force.initialize method is called,
     // trying to access all posts which could not exist anymore
-    // d3State.forces.connection.strength { (e: SimConnects) =>
+    // d3State.forces.connection.strength { (e: SimConnection) =>
     //   1.0 / math.min(graph.fullDegree(e.source.id), graph.fullDegree(e.target.id))
     // }
 
-    // d3State.forces.containment.strength { (e: SimContains) =>
+    // d3State.forces.containment.strength { (e: SimContainment) =>
     //   1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
     // }
 
     d3State.simulation.nodes(simPosts)
-    d3State.forces.connection.links(simConnects)
-    d3State.forces.redirectedConnection.links(simRedirectedConnects)
-    d3State.forces.containment.links(simContains)
-    d3State.forces.collapsedContainment.links(simCollapsedContains)
+    d3State.forces.connection.links(simConnection)
+    d3State.forces.redirectedConnection.links(simRedirectedConnection)
+    d3State.forces.containment.links(simContainment)
+    d3State.forces.collapsedContainment.links(simCollapsedContainment)
 
     d3State.simulation.alpha(1).restart()
   }

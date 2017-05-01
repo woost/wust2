@@ -17,16 +17,13 @@ package object graph {
   //TODO: rename Post -> ???
   sealed trait Atom
   final case class Post(id: PostId, title: String) extends Atom
-  //TODO: rename to Connection
-  final case class Connects(
-    id: ConnectsId,
+  final case class Connection(
+    id: ConnectionId,
     sourceId: PostId,
     targetId: ConnectableId
   ) extends Atom
 
-  //TODO: rename to Containment
-  //TODO: reverse direction of contains?
-  final case class Contains(id: ContainsId, parentId: PostId, childId: PostId)
+  final case class Containment(id: ContainmentId, parentId: PostId, childId: PostId)
     extends Atom
 
   object Graph {
@@ -43,8 +40,8 @@ package object graph {
 
     def apply(
       posts: Iterable[Post] = Nil,
-      connections: Iterable[Connects] = Nil,
-      containments: Iterable[Contains] = Nil,
+      connections: Iterable[Connection] = Nil,
+      containments: Iterable[Containment] = Nil,
       groups: Iterable[Group] = Nil,
       ownerships: Iterable[Ownership] = Nil,
       users: Iterable[User] = Nil,
@@ -64,8 +61,8 @@ package object graph {
 
   final case class Graph( //TODO: costom pickler over lists instead of maps to save traffic
     postsById: Map[PostId, Post],
-    connectionsById: Map[ConnectsId, Connects],
-    containmentsById: Map[ContainsId, Contains],
+    connectionsById: Map[ConnectionId, Connection],
+    containmentsById: Map[ContainmentId, Containment],
     groupsById: Map[GroupId, Group],
     ownerships: Set[Ownership],
     usersById: Map[UserId, User],
@@ -75,8 +72,8 @@ package object graph {
     lazy val posts: Iterable[Post] = postsById.values
     lazy val groups: Iterable[Group] = groupsById.values
     lazy val users: Iterable[User] = usersById.values
-    lazy val connections: Iterable[Connects] = connectionsById.values
-    lazy val containments: Iterable[Contains] = containmentsById.values
+    lazy val connections: Iterable[Connection] = connectionsById.values
+    lazy val containments: Iterable[Containment] = containmentsById.values
 
     override def toString =
       s"Graph(${posts.map(_.id.id).mkString(" ")},${
@@ -93,54 +90,54 @@ package object graph {
     private val postDefaultNeighbourhood =
       postsById.mapValues(_ => Set.empty[PostId])
     lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId), PostId](connections.collect {
-      case Connects(_, in, out: PostId) => (in, out)
+      case Connection(_, in, out: PostId) => (in, out)
     }, _._1, _._2)
     lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, (PostId, PostId), PostId](connections.collect {
-      case Connects(_, in, out: PostId) => (in, out)
+      case Connection(_, in, out: PostId) => (in, out)
     }, _._2, _._1)
     lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, (PostId, PostId)](connections.collect {
-      case Connects(_, in, out: PostId) => (in, out)
+      case Connection(_, in, out: PostId) => (in, out)
     }, _._2, _._1)
-    // TODO: lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connects](connections, _.targetId, _.sourceId)
+    // TODO: lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connections, _.targetId, _.sourceId)
 
-    lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains, PostId](containments, _.parentId, _.childId)
-    lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Contains, PostId](containments, _.childId, _.parentId)
-    lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Contains](containments, _.parentId, _.childId)
+    lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Containment, PostId](containments, _.parentId, _.childId)
+    lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Containment, PostId](containments, _.childId, _.parentId)
+    lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Containment](containments, _.parentId, _.childId)
 
     //TODO: remove .mapValues(_.map(_.id))
     // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
     // that's why the need default values from connectionDefaultNeighbourhood
     private val connectionDefaultNeighbourhood =
-      postsById.mapValues(_ => Set.empty[ConnectsId])
-    private val hyperConnectionDefaultNeighbourhood: Map[ConnectableId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++ connectionsById
-      .mapValues(_ => Set.empty[ConnectsId])
-    private val containsDefaultNeighbourhood =
-      postsById.mapValues(_ => Set.empty[ContainsId])
-    lazy val incomingConnections: Map[PostId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++
-      directedIncidenceList[PostId, Connects](connections.collect {
-        case c @ Connects(_, _, _: PostId) => c
+      postsById.mapValues(_ => Set.empty[ConnectionId])
+    private val hyperConnectionDefaultNeighbourhood: Map[ConnectableId, Set[ConnectionId]] = connectionDefaultNeighbourhood ++ connectionsById
+      .mapValues(_ => Set.empty[ConnectionId])
+    private val containmentsDefaultNeighbourhood =
+      postsById.mapValues(_ => Set.empty[ContainmentId])
+    lazy val incomingConnections: Map[PostId, Set[ConnectionId]] = connectionDefaultNeighbourhood ++
+      directedIncidenceList[PostId, Connection](connections.collect {
+        case c @ Connection(_, _, _: PostId) => c
       }, _.targetId.asInstanceOf[PostId]).mapValues(_.map(_.id))
-    lazy val outgoingConnections: Map[PostId, Set[ConnectsId]] = connectionDefaultNeighbourhood ++
-      directedIncidenceList[PostId, Connects](connections, _.sourceId)
+    lazy val outgoingConnections: Map[PostId, Set[ConnectionId]] = connectionDefaultNeighbourhood ++
+      directedIncidenceList[PostId, Connection](connections, _.sourceId)
       .mapValues(_.map(_.id))
 
-    lazy val incidentConnections: Map[ConnectableId, Set[ConnectsId]] = hyperConnectionDefaultNeighbourhood ++
-      incidenceList[ConnectableId, Connects](
+    lazy val incidentConnections: Map[ConnectableId, Set[ConnectionId]] = hyperConnectionDefaultNeighbourhood ++
+      incidenceList[ConnectableId, Connection](
         connections,
         _.sourceId,
         _.targetId
       ).mapValues(_.map(_.id))
 
-    lazy val incidentParentContains: Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ directedIncidenceList[PostId, Contains](containments, _.childId).mapValues(_.map(_.id))
-    lazy val incidentChildContains: Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ directedIncidenceList[PostId, Contains](containments, _.parentId).mapValues(_.map(_.id))
-    lazy val incidentContains: Map[PostId, Set[ContainsId]] = containsDefaultNeighbourhood ++ incidenceList[PostId, Contains](containments, _.parentId, _.childId).mapValues(_.map(_.id))
+    lazy val incidentParentContainments: Map[PostId, Set[ContainmentId]] = containmentsDefaultNeighbourhood ++ directedIncidenceList[PostId, Containment](containments, _.childId).mapValues(_.map(_.id))
+    lazy val incidentChildContainments: Map[PostId, Set[ContainmentId]] = containmentsDefaultNeighbourhood ++ directedIncidenceList[PostId, Containment](containments, _.parentId).mapValues(_.map(_.id))
+    lazy val incidentContainments: Map[PostId, Set[ContainmentId]] = containmentsDefaultNeighbourhood ++ incidenceList[PostId, Containment](containments, _.parentId, _.childId).mapValues(_.map(_.id))
 
-    def incidentConnectionsDeep(id: ConnectableId): Iterable[ConnectsId] = {
-      // Currently connects.in must be a Post, so no cycles can occour
+    def incidentConnectionsDeep(id: ConnectableId): Iterable[ConnectionId] = {
+      // Currently Connection.sourceId must be a Post, so no cycles can occour
       // TODO: algorithm to build for all ids simultanously
 
-      var next: List[ConnectsId] = incidentConnections.get(id).toList.flatten
-      var result: List[ConnectsId] = Nil
+      var next: List[ConnectionId] = incidentConnections.get(id).toList.flatten
+      var result: List[ConnectionId] = Nil
       var i = 0
       while (next.nonEmpty && i < 10) {
         result ::= next.head
@@ -162,8 +159,8 @@ package object graph {
     lazy val groupsByUserId: Map[UserId, Set[GroupId]] = userDefaultGroups ++ directedAdjacencyList[UserId, Membership, GroupId](memberships, _.userId, _.groupId)
 
     private val postDefaultDegree = postsById.mapValues(_ => 0)
-    lazy val connectionDegree = postDefaultDegree ++ degreeSequence[ConnectableId, Connects](connections, _.targetId, _.sourceId)
-    lazy val containmentDegree = postDefaultDegree ++ degreeSequence[PostId, Contains](
+    lazy val connectionDegree = postDefaultDegree ++ degreeSequence[ConnectableId, Connection](connections, _.targetId, _.sourceId)
+    lazy val containmentDegree = postDefaultDegree ++ degreeSequence[PostId, Containment](
       containments,
       _.parentId,
       _.childId
@@ -171,7 +168,7 @@ package object graph {
 
     val fullDegree: ConnectableId => Int = {
       case p: PostId => connectionDegree(p) + containmentDegree(p)
-      case _: ConnectsId => 2
+      case _: ConnectionId => 2
       case _ => ???
     }
 
@@ -207,18 +204,18 @@ package object graph {
       case id: PostId =>
         val removedPosts = postsById.get(id).map(_.id)
         val removedConnections = incidentConnectionsDeep(id)
-        val removedContains = incidentContains.get(id).toList.flatten
+        val removedContainments = incidentContainments.get(id).toList.flatten
         copy(
           postsById = postsById -- removedPosts,
           connectionsById = connectionsById -- removedConnections,
-          containmentsById = containmentsById -- removedContains
+          containmentsById = containmentsById -- removedContainments
         )
-      case id: ConnectsId =>
+      case id: ConnectionId =>
         val removedConnections = incidentConnectionsDeep(id)
         copy(
           connectionsById = connectionsById -- removedConnections - id
         )
-      case id: ContainsId =>
+      case id: ContainmentId =>
         copy(
           containmentsById = containmentsById - id
         )
@@ -231,22 +228,22 @@ package object graph {
     //TODO: also accept Ownerships,Groups,Users,Memberships -> should ownerships and groups have atomids?
     val `+`: Atom => Graph = {
       case p: Post => copy(postsById = postsById + (p.id -> p))
-      case c: Connects => copy(connectionsById = connectionsById + (c.id -> c))
-      case c: Contains =>
+      case c: Connection => copy(connectionsById = connectionsById + (c.id -> c))
+      case c: Containment =>
         copy(containmentsById = containmentsById + (c.id -> c))
     }
 
     def ++(atoms: Iterable[Atom]) = atoms.foldLeft(this)((g, a) => g + a)
 
     def consistent = {
-      val invalidConnects = connections
+      val invalidConnections = connections
         .filter { c =>
           !postsById.isDefinedAt(c.sourceId) || !(c.targetId match {
             case t: PostId => postsById.isDefinedAt(t)
-            case c: ConnectsId => connectionsById.isDefinedAt(c)
+            case c: ConnectionId => connectionsById.isDefinedAt(c)
             case u: UnknownConnectableId =>
               postsById.isDefinedAt(PostId(u.id)) || connectionsById
-                .isDefinedAt(ConnectsId(u.id))
+                .isDefinedAt(ConnectionId(u.id))
           })
         }
         .map(_.id)
@@ -269,15 +266,15 @@ package object graph {
       }
       println("validMemberships: " + validMemberships)
 
-      val g = this -- invalidConnects -- invalidContainments
+      val g = this -- invalidConnections -- invalidContainments
       g.copy(
         connectionsById = g.connectionsById.mapValues {
-          case c @ Connects(_, _, u: UnknownConnectableId) =>
+          case c @ Connection(_, _, u: UnknownConnectableId) =>
             c.copy(
               targetId = g.postsById
                 .get(PostId(u.id))
                 .map(_.id)
-                .getOrElse(g.connectionsById(ConnectsId(u.id)).id)
+                .getOrElse(g.connectionsById(ConnectionId(u.id)).id)
             )
           case valid => valid
         },

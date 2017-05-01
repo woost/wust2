@@ -22,19 +22,19 @@ object Views {
   )
 
   def parents(postId: PostId, graph: Graph) = {
-    val containsIds = graph.incidentParentContains(postId).toSeq
+    val containmentIds = graph.incidentParentContainments(postId).toSeq
     div(
       display.flex,
-      containsIds.map { containsId =>
-        val contains = graph.containmentsById(containsId)
-        val parent = graph.postsById(contains.parentId)
+      containmentIds.map { containmentId =>
+        val containment = graph.containmentsById(containmentId)
+        val parent = graph.postsById(containment.parentId)
         post(parent)(
           backgroundColor := baseColor(parent.id).toString,
           span(
             "×",
             padding := "0 0 0 3px",
             cursor.pointer,
-            onclick := { () => Client.api.deleteContainment(contains.id).call(); }
+            onclick := { () => Client.api.deleteContainment(containment.id).call(); }
           )
         )
       }

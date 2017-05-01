@@ -13,10 +13,10 @@ package object ids {
   sealed trait ConnectableId extends AtomId
   final case class PostId(id: IdType) extends ConnectableId
   object PostId { implicit def fromIdType(id: IdType): PostId = PostId(id) }
-  final case class ConnectsId(id: IdType) extends ConnectableId
-  object ConnectsId { implicit def fromIdType(id: IdType): ConnectsId = ConnectsId(id) }
-  final case class ContainsId(id: IdType) extends AtomId
-  object ContainsId { implicit def fromIdType(id: IdType): ContainsId = ContainsId(id) }
+  final case class ConnectionId(id: IdType) extends ConnectableId
+  object ConnectionId { implicit def fromIdType(id: IdType): ConnectionId = ConnectionId(id) }
+  final case class ContainmentId(id: IdType) extends AtomId
+  object ContainmentId { implicit def fromIdType(id: IdType): ContainmentId = ContainmentId(id) }
   final case class UnknownConnectableId(id: IdType) extends ConnectableId
 
   final case class GroupId(val id: IdType)

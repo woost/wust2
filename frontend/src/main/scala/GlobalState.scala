@@ -102,19 +102,19 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           focusedPostId() = Option(post.id)
         })
     case UpdatedPost(post) => rawGraph.updatef(_ + post)
-    case NewConnection(connects) =>
-      rawGraph.updatef(_ + connects)
-      if (focusedPostId.now contains connects.targetId)
-        focusedPostId() = Option(connects.sourceId)
-    case NewContainment(contains) => rawGraph.updatef(_ + contains)
+    case NewConnection(connection) =>
+      rawGraph.updatef(_ + connection)
+      if (focusedPostId.now contains connection.targetId)
+        focusedPostId() = Option(connection.sourceId)
+    case NewContainment(containment) => rawGraph.updatef(_ + containment)
     case NewOwnership(ownership) => rawGraph.updatef(g => g.copy(ownerships = g.ownerships + ownership))
     case NewMembership(membership) => rawGraph.updatef(g => g.copy(memberships = g.memberships + membership))
     case NewUser(user) => rawGraph.updatef(g => g.copy(usersById = g.usersById + (user.id -> user)))
     case NewGroup(group) => rawGraph.updatef(g => g.copy(groupsById = g.groupsById + (group.id -> group)))
 
     case DeletePost(postId) => rawGraph.updatef(_ - postId)
-    case DeleteConnection(connectsId) => rawGraph.updatef(_ - connectsId)
-    case DeleteContainment(containsId) => rawGraph.updatef(_ - containsId)
+    case DeleteConnection(connectionId) => rawGraph.updatef(_ - connectionId)
+    case DeleteContainment(containmentId) => rawGraph.updatef(_ - containmentId)
     case ReplaceGraph(newGraph) =>
       rawGraph() = newGraph
       DevOnly {

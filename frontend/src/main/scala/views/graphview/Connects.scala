@@ -6,27 +6,27 @@ import wust.frontend._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object ConnectionLineSelection extends DataSelection[SimConnects] {
+object ConnectionLineSelection extends DataSelection[SimConnection] {
   override val tag = "line"
-  override def enterAppend(line: Selection[SimConnects]) {
+  override def enterAppend(line: Selection[SimConnection]) {
     line
       .style("stroke", "#8F8F8F")
   }
 
-  override def draw(line: Selection[SimConnects]) {
+  override def draw(line: Selection[SimConnection]) {
     line
-      .attr("x1", (e: SimConnects) => e.source.x)
-      .attr("y1", (e: SimConnects) => e.source.y)
-      .attr("x2", (e: SimConnects) => e.target.x)
-      .attr("y2", (e: SimConnects) => e.target.y)
+      .attr("x1", (e: SimConnection) => e.source.x)
+      .attr("y1", (e: SimConnection) => e.source.y)
+      .attr("x2", (e: SimConnection) => e.target.x)
+      .attr("y2", (e: SimConnection) => e.target.y)
   }
 }
 
-object ConnectionElementSelection extends DataSelection[SimConnects] {
+object ConnectionElementSelection extends DataSelection[SimConnection] {
   override val tag = "div"
-  override def enterAppend(element: Selection[SimConnects]) {
+  override def enterAppend(element: Selection[SimConnection]) {
     element
-      .attr("title", (e: SimConnects) => e.id)
+      .attr("title", (e: SimConnection) => e.id)
       .style("position", "absolute")
       .style("font-size", "20px")
       .style("margin-left", "-0.5ex")
@@ -34,7 +34,7 @@ object ConnectionElementSelection extends DataSelection[SimConnects] {
       .text("\u00d7")
       .style("pointer-events", "auto") // parent has pointer-events disabled, enable explicitly for the x button.
       .style("cursor", "pointer")
-      .on("click", { (e: SimConnects) =>
+      .on("click", { (e: SimConnection) =>
         import autowire._
 
         println(s"\nDelete Connection: ${e.id}")
@@ -42,10 +42,10 @@ object ConnectionElementSelection extends DataSelection[SimConnects] {
       })
   }
 
-  override def draw(element: Selection[SimConnects]) {
+  override def draw(element: Selection[SimConnection]) {
     element
-      // .style("left", (e: SimConnects) => s"${e.x.get}px")
-      // .style("top", (e: SimConnects) => s"${e.y.get}px")
-      .style("transform", (e: SimConnects) => s"translate(${e.x.get}px,${e.y.get}px)")
+      // .style("left", (e: SimConnection) => s"${e.x.get}px")
+      // .style("top", (e: SimConnection) => s"${e.y.get}px")
+      .style("transform", (e: SimConnection) => s"translate(${e.x.get}px,${e.y.get}px)")
   }
 }

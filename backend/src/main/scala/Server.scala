@@ -35,10 +35,10 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     dispatcher.unsubscribe(sender)
 
     dispatcher.subscribe(sender, Channel.All)
-    //TODO: currently updates to a usergroup (via api) are not automatically subscribed!
-    dispatcher.subscribe(sender, Channel.UserGroup(db.UserGroup.default.id))
+    //TODO: currently updates to a group (via api) are not automatically subscribed!
+    dispatcher.subscribe(sender, Channel.Group(db.Group.default.id))
     extraGroups
-      .map(g => Channel.UserGroup(g.id))
+      .map(g => Channel.Group(g.id))
       .foreach(dispatcher.subscribe(sender, _))
 
     auth.foreach { auth =>
@@ -122,11 +122,11 @@ object Server {
     val channel = ev match {
       //TODO: this is sent to every client, but we need to filter.
       // two problems:
-      //  - who is allowed to see the event (ownership/usergroup)?
+      //  - who is allowed to see the event (ownership/group)?
       //  - who is interested in this specific graph event? which graph is visible in the client?
-      // maybe needs multiple channels for multiple usergroups?
+      // maybe needs multiple channels for multiple groups?
       // => then how to make batch publish on dispatcher in order to not send events multiple times
-      // to the same client. (if he is in more than one of corresponding UserGroups)
+      // to the same client. (if he is in more than one of corresponding Groups)
       case _ => Channel.All
     }
 

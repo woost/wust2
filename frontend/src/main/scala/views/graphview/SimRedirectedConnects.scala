@@ -3,9 +3,9 @@ package wust.frontend.views.graphview
 import org.scalajs.d3v4._
 import wust.graph.LocalConnection
 
-class SimRedirectedConnects(val connects: LocalConnection, val source: SimPost, val target: SimPost)
+class SimRedirectedConnection(val connection: LocalConnection, val source: SimPost, val target: SimPost)
   extends SimulationLinkImpl[SimPost, SimPost] {
   //TODO: delegert!
-  def sourceId = connects.sourceId
-  def targetId = connects.targetId
+  def sourceId = connection.sourceId
+  def targetId = connection.targetId
 }
