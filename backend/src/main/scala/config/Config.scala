@@ -6,7 +6,7 @@ import wust.ids._
 object ConfigExt {
   implicit class RichConfig(val conf: TConfig) extends AnyVal {
     def getOption[T](path: String, getter: TConfig => String => T): Option[T] = conf.hasPath(path) match {
-      case true => Some(getter(conf)(path))
+      case true => Option(getter(conf)(path))
       case false => None
     }
   }
