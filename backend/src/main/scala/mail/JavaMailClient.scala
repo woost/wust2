@@ -43,9 +43,6 @@ class JavaMailClient(config: SmtpConfig)
   }
 
   def sendMessage(from: String, recipient: MailRecipient, mail: MailMessage): Try[Unit] = {
-    createMessage(from, recipient, mail) match {
-      case Success(message) => Try(Transport.send(message))
-      case Failure(t) => Failure(t)
-    }
-}
+    createMessage(from, recipient, mail).map(message => Try(Transport.send(message)))
+  }
 }
