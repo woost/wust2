@@ -51,7 +51,8 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
         }
       ).toString
 
-      sp.opacity = if (graph.groupsByPostId(p.id) contains state.selectedGroupId()) 1.0 else 0.3
+      val postGroups = graph.groupsByPostId(p.id)
+      sp.opacity = if (state.selectedGroupId().map(postGroups.contains).getOrElse(postGroups.isEmpty)) 1.0 else 0.3
 
       sp
 

@@ -34,10 +34,10 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def addPost(
     msg: String,
     selection: GraphSelection,
-    groupId: GroupId
+    groupId: Option[GroupId]
   ): Future[Post] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
-    (db.post(msg, groupId) ||> (_.foreach {
+    (db.post(msg, groupId.getOrElse(publicGroupId)) ||> (_.foreach {
       case (post, ownership) =>
         NewPost(forClient(post)) |> emitDynamic
         NewOwnership(forClient(ownership)) |> emitDynamic
@@ -79,9 +79,9 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   }
 
   //TODO: return Future[Boolean]
-  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: GroupId): Future[(Post, Connection)] = withUserOrImplicit {
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Option[GroupId]): Future[(Post, Connection)] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
-    (db.connection.newPost(msg, to, groupId) ||> (_.foreach {
+    (db.connection.newPost(msg, to, groupId.getOrElse(publicGroupId)) ||> (_.foreach {
       case (post, connection, ownership) =>
         NewPost(post) |> emitDynamic
         NewConnection(connection) |> emitDynamic
@@ -100,10 +100,10 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     val createdGroup = db.user.createGroupForUser(user.id)
     createdGroup.map {
       case (group, membership) =>
-        emit(ChannelEvent(Channel.User(user.id), NewGroup(Group(group.id))))
+        val clientGroup = forClient(group)
+        emit(ChannelEvent(Channel.User(user.id), NewGroup(clientGroup)))
         emit(ChannelEvent(Channel.User(user.id), NewMembership(Membership(user.id, group.id))))
-
-        Group(group.id)
+        clientGroup
     }
   }
 
@@ -162,12 +162,13 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
 
   def getGraph(selection: GraphSelection): Future[Graph] = withUserOpt { uOpt =>
     val userIdOpt = uOpt.map(_.id)
-    selection match {
+    val graph = selection match {
       case GraphSelection.Root =>
         db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
       case GraphSelection.Union(parentIds) =>
         getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
     }
 
+    graph.map(_.withoutGroup(publicGroupId))
   }
 }

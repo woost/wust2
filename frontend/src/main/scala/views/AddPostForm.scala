@@ -19,8 +19,6 @@ import scalatags.rx.all._
 import collection.breakOut
 
 object AddPostForm {
-  //TODO: use public groupid constant from config, should be in graph, marked as public
-  val publicGroupId = GroupId(1)
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None }),
@@ -58,7 +56,7 @@ object AddPostForm {
       case _ => newLabel
     }
 
-    def action(text: String, selection: GraphSelection, groupId: GroupId, graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+    def action(text: String, selection: GraphSelection, groupId: Option[GroupId], graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
         Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
@@ -96,34 +94,39 @@ object AddPostForm {
             div(" in group: ", state.rawGraph.map { graph =>
               select {
                 // only looking at memberships is sufficient to list groups, because the current user is member of each group
-                val groupsIdsWithNames: Seq[(GroupId, String)] = (graph.usersByGroupId - publicGroupId).mapValues(_.map(userId => graph.usersById(userId).name).mkString(", ")).toSeq
-                ((publicGroupId, "public") +: groupsIdsWithNames).map {
-                  case (groupId, name) =>
-                    val opt = option(name, value := groupId.id)
-                    if (groupId == state.selectedGroupId()) opt(selected)
-                    else opt
+                val groupNames = graph.usersByGroupId.mapValues { users =>
+                  users.map(id => graph.usersById(id).name).mkString(",")
                 }
+
+                val publicOption = option("public", value := "")
+                val groupOptions = groupNames.map { case (groupId, name) =>
+                  val opt = option(name, value := groupId.id)
+                  if (state.selectedGroupId().contains(groupId)) opt(selected)
+                  else opt
+                }
+
+                publicOption +: groupOptions.toSeq
               }(
                 onchange := { (e: Event) =>
-                  val groupId = GroupId(e.target.asInstanceOf[HTMLSelectElement].value.toLong)
-                  state.selectedGroupId() = groupId
+                  val id = Option(e.target.asInstanceOf[HTMLSelectElement].value).filter(_.nonEmpty).map(_.toLong)
+                  state.selectedGroupId() = id.map(GroupId(_))
                 }
               ).render
             }),
 
             button("new group", onclick := { () =>
               Client.api.addGroup().call().foreach { group =>
-                state.selectedGroupId() = group.id
+                state.selectedGroupId() = Option(group.id)
               }
             }),
-            if (state.selectedGroupId() != publicGroupId) {
+            if (state.selectedGroupId().isDefined) {
               val field = input(placeholder := "invite user by id").render
               div(field, button("invite", onclick := { () =>
                 Try(UserId(field.value.toLong)).foreach { userId =>
                   println(s"group: ${state.selectedGroupId()}, user: $userId")
-                  Client.api.addMember(state.selectedGroupId(), userId).call().foreach { _ =>
+                  state.selectedGroupId().foreach(Client.api.addMember(_, userId).call().foreach { _ =>
                     field.value = ""
-                  }
+                  })
                 }
               }))
             } else div()

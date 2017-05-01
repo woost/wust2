@@ -51,6 +51,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     //TODO: with current graphselection
     val userIdOpt = state.auth.map(_.user.id)
     val newGraph = db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
+      .map(_.withoutGroup(publicGroupId))
 
     import sender.send
     newGraph.onComplete {

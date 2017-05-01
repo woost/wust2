@@ -20,7 +20,7 @@ package object dbConversions {
       posts.map(forClient),
       connections.map(forClient),
       containments.map(forClient),
-      groups.map(g => Group(g.id)),
+      groups.map(forClient),
       ownerships.map(forClient),
       users.map(forClient),
       memberships.flatMap {
