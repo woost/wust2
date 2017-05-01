@@ -62,7 +62,7 @@ object UserView {
     )
 
   val registerMask = div(userField, passwordField, registerButton)
-  def userProfile(user: User) = div(user.toString, logoutButton)
+  def userProfile(user: User) = div(user.toString)
   def groupProfile(groups: Seq[Group])(implicit ctx: Ctx.Owner) = div(groups.map(groupInvite): _*)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div {
@@ -71,7 +71,7 @@ object UserView {
       val graph = state.rawGraph()
       userOpt match {
         case Some(user) =>
-          userProfile(user)(if (user.isImplicit) registerMask else div())(groupProfile(graph.groups.toSeq)).render
+          userProfile(user)(if (user.isImplicit) registerMask else logoutButton)(groupProfile(graph.groups.toSeq)).render
         case None => registerMask(loginButton).render
       }
     }
