@@ -30,9 +30,6 @@ case class NotFound(path: Seq[String]) extends ApiError
 case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
-//TODO: why does this not compile
-//sealed trait DynamicApiEvent extends ApiEvent
-//[error] knownDirectSubclasses of DynamicApiEvent observed before subclass DeleteConnection registered
 sealed trait DynamicEvent
 case class NewPost(post: Post) extends ApiEvent with DynamicEvent
 case class UpdatedPost(post: Post) extends ApiEvent with DynamicEvent

@@ -23,7 +23,6 @@ package object db {
     def apply(in: PostId, out: ConnectableId): Connection = Connection(0L, in, out)
   }
 
-  //TODO: rename to Containment
   case class Containment(id: ContainmentId, parentId: PostId, childId: PostId)
   object Containment {
     def apply(parentId: PostId, childId: PostId): Containment =
