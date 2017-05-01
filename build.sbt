@@ -56,7 +56,7 @@ lazy val config = project // only contains application.conf
     resourceDirectory in Test := baseDirectory.value
   )
 
-lazy val isCI = sys.env.get("CI").isDefined
+lazy val isCI = sys.env.get("CI").isDefined // set by travis
 
 lazy val root = project.in(file("."))
   .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginxHttps, nginxHttp, dbMigration)

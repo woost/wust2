@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+set -o pipefail
+
+if [ -d "$HOME/.ivy2/local/com.github.fdietze/scalarx_sjs0.6_2.11/0.3.3-SNAPSHOT" ]; then
+    echo "no need to build scalarx, it already exists"
+else
+(
+
+    cd /tmp
+    git clone http://github.com/fdietze/scala.rx --depth=1
+    cd scala.rx
+    sbt ++2.11.8 scalarxJS/publish-local
+)
+fi
+
+
