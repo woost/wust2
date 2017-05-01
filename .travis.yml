@@ -25,6 +25,7 @@ after_success:
 cache:
   yarn: true
   directories:
+  - $HOME/.coursier/cache
   - $HOME/.ivy2/cache
   - $HOME/.ivy2/local
   - $HOME/.sbt/boot/
