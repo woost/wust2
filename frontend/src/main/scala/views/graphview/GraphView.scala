@@ -62,8 +62,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     }
     val mixedDirectParentColors = mixColors(focusedParents.map(baseColor))
     container
-      .style("background-color", mixedDirectParentColors.toString)
-      .style("opacity", "0.5")
+      .style("background-color", mixColors(mixedDirectParentColors, d3.lab("#FFFFFF")).toString)
   }
 
   Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnection(); rxSimContainment() }.triggerLater {
