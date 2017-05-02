@@ -7,7 +7,7 @@ package object graph {
   import wust.util.algorithm._
   import wust.util.collection._
 
-  import collection.{breakOut, mutable}
+  import collection.{ breakOut, mutable }
 
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)
@@ -20,8 +20,7 @@ package object graph {
   final case class Connection(
     id: ConnectionId,
     sourceId: PostId,
-    targetId: ConnectableId
-  ) extends Atom
+    targetId: ConnectableId) extends Atom
 
   final case class Containment(id: ContainmentId, parentId: PostId, childId: PostId)
     extends Atom
@@ -35,8 +34,7 @@ package object graph {
         Map.empty,
         Set.empty,
         Map.empty,
-        Set.empty
-      )
+        Set.empty)
 
     def apply(
       posts: Iterable[Post] = Nil,
@@ -45,8 +43,7 @@ package object graph {
       groups: Iterable[Group] = Nil,
       ownerships: Iterable[Ownership] = Nil,
       users: Iterable[User] = Nil,
-      memberships: Iterable[Membership] = Nil
-    ): Graph = {
+      memberships: Iterable[Membership] = Nil): Graph = {
       new Graph(
         posts.by(_.id),
         connections.by(_.id),
@@ -54,8 +51,7 @@ package object graph {
         groups.by(_.id),
         ownerships.toSet,
         users.by(_.id),
-        memberships.toSet
-      )
+        memberships.toSet)
     }
   }
 
@@ -66,8 +62,7 @@ package object graph {
     groupsById: Map[GroupId, Group],
     ownerships: Set[Ownership],
     usersById: Map[UserId, User],
-    memberships: Set[Membership]
-  ) {
+    memberships: Set[Membership]) {
 
     lazy val posts: Iterable[Post] = postsById.values
     lazy val groups: Iterable[Group] = groupsById.values
@@ -125,8 +120,7 @@ package object graph {
       incidenceList[ConnectableId, Connection](
         connections,
         _.sourceId,
-        _.targetId
-      ).mapValues(_.map(_.id))
+        _.targetId).mapValues(_.map(_.id))
 
     lazy val incidentParentContainments: Map[PostId, Set[ContainmentId]] = containmentsDefaultNeighbourhood ++ directedIncidenceList[PostId, Containment](containments, _.childId).mapValues(_.map(_.id))
     lazy val incidentChildContainments: Map[PostId, Set[ContainmentId]] = containmentsDefaultNeighbourhood ++ directedIncidenceList[PostId, Containment](containments, _.parentId).mapValues(_.map(_.id))
@@ -163,8 +157,7 @@ package object graph {
     lazy val containmentDegree = postDefaultDegree ++ degreeSequence[PostId, Containment](
       containments,
       _.parentId,
-      _.childId
-    )
+      _.childId)
 
     val fullDegree: ConnectableId => Int = {
       case p: PostId => connectionDegree(p) + containmentDegree(p)
@@ -208,17 +201,14 @@ package object graph {
         copy(
           postsById = postsById -- removedPosts,
           connectionsById = connectionsById -- removedConnections,
-          containmentsById = containmentsById -- removedContainments
-        )
+          containmentsById = containmentsById -- removedContainments)
       case id: ConnectionId =>
         val removedConnections = incidentConnectionsDeep(id)
         copy(
-          connectionsById = connectionsById -- removedConnections - id
-        )
+          connectionsById = connectionsById -- removedConnections - id)
       case id: ContainmentId =>
         copy(
-          containmentsById = containmentsById - id
-        )
+          containmentsById = containmentsById - id)
       case _ => ???
     }
 
@@ -255,8 +245,7 @@ package object graph {
       val invalidContainments = containments
         .filter { c =>
           !postsById.isDefinedAt(c.childId) || !postsById.isDefinedAt(
-            c.parentId
-          )
+            c.parentId)
         }
         .map(_.id)
 
@@ -267,7 +256,6 @@ package object graph {
       val validMemberships = memberships.filter { m =>
         usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId)
       }
-      println("validMemberships: " + validMemberships)
 
       val g = this -- invalidConnections -- invalidContainments
       g.copy(
@@ -277,13 +265,11 @@ package object graph {
               targetId = g.postsById
                 .get(PostId(u.id))
                 .map(_.id)
-                .getOrElse(g.connectionsById(ConnectionId(u.id)).id)
-            )
+                .getOrElse(g.connectionsById(ConnectionId(u.id)).id))
           case valid => valid
         },
         ownerships = validOwnerships,
-        memberships = validMemberships
-      )
+        memberships = validMemberships)
     }
 
     lazy val depth: collection.Map[PostId, Int] = {

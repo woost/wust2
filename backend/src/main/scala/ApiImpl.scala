@@ -24,8 +24,8 @@ object RandomUtil {
 }
 
 class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
-  import Config.usergroup.{publicId => publicGroupId}
-  import Server.{emit, emitDynamic}
+  import Config.usergroup.{ publicId => publicGroupId }
+  import Server.{ emit, emitDynamic }
   import apiAuth._
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
@@ -34,8 +34,7 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
   def addPost(
     msg: String,
     selection: GraphSelection,
-    groupId: Option[GroupId]
-  ): Future[Post] = withUserOrImplicit {
+    groupId: Option[GroupId]): Future[Post] = withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
     (db.post(msg, groupId.getOrElse(publicGroupId)) ||> (_.foreach {
       case (post, ownership) =>
@@ -135,16 +134,25 @@ class ApiImpl(apiAuth: AuthenticatedAccess) extends Api {
     }
   }
 
-  def acceptGroupInvite(token: String): Future[Boolean] = withUser { user =>
+  def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUser { user =>
     //TODO optimize into one request?
-    db.user.groupIdFromInvite(token).flatMap {
-      case Some(groupId) =>
-        val createdMembership = db.user.addMember(groupId, user.id)
+    db.user.userGroupFromInvite(token).flatMap {
+      case Some(group) =>
+        val createdMembership = db.user.addMember(group.id, user.id)
         createdMembership.map { membership =>
-          emit(ChannelEvent(Channel.Group(groupId), NewMembership(Membership(membership.userId.get, membership.groupId))))
-          true
+          emit(ChannelEvent(Channel.User(user.id), NewGroup(group)))
+          db.group.members(group.id).foreach { members =>
+            println(group.id)
+            //TODO: this is a hack to work without subscribing
+            for ((user, _) <- members; (groupUser, groupMembership) <- members) {
+              emit(ChannelEvent(Channel.User(user.id), NewUser(groupUser)))
+              emit(ChannelEvent(Channel.User(user.id), NewMembership(Membership(groupMembership.userId.get, groupMembership.groupId))))
+            }
+          }
+
+          Option(group.id)
         }
-      case None => Future.successful(false)
+      case None => Future.successful(None)
     }
   }
 

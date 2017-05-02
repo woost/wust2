@@ -20,8 +20,7 @@ trait Api {
   def addGroup(): Future[Group]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
   def createGroupInvite(groupId: GroupId): Future[Option[String]]
-  def acceptGroupInvite(token: String): Future[Boolean]
-  // def getComponent(id: Id): Future[Graph]
+  def acceptGroupInvite(token: String): Future[Option[GroupId]]
 }
 
 sealed trait ApiError

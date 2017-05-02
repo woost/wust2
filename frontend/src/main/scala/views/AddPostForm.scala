@@ -3,9 +3,9 @@ package wust.frontend.views
 import autowire._
 import boopickle.Default._
 import org.scalajs.dom
-import org.scalajs.dom.{Event, KeyboardEvent, document}
+import org.scalajs.dom.{ Event, KeyboardEvent, document }
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import rx._
 import wust.frontend._
 import wust.ids._
@@ -22,22 +22,20 @@ object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None }),
-      Views.parents(postId, graph)
-    )
+      Views.parents(postId, graph))
   }
 
   def responseLabel(graph: Graph, postId: PostId) = {
     div(
       Views.parents(postId, graph),
       Views.post(graph.postsById(postId)),
-      "respond: "
-    )
+      "respond: ")
   }
 
   val newLabel = div("New Post:")
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
+    import state.{ displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode }
 
     rxMode.foreach { mode =>
       val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
@@ -88,8 +86,7 @@ object AddPostForm {
                   }
                 }
                 ()
-              })
-            ),
+              })),
 
             div(" in group: ", state.rawGraph.map { graph =>
               select {
@@ -99,10 +96,11 @@ object AddPostForm {
                 }
 
                 val publicOption = option("public", value := "")
-                val groupOptions = groupNames.map { case (groupId, name) =>
-                  val opt = option(name, value := groupId.id)
-                  if (state.selectedGroupId().contains(groupId)) opt(selected)
-                  else opt
+                val groupOptions = groupNames.map {
+                  case (groupId, name) =>
+                    val opt = option(s"${groupId.id}: $name", value := groupId.id)
+                    if (state.selectedGroupId().contains(groupId)) opt(selected)
+                    else opt
                 }
 
                 publicOption +: groupOptions.toSeq
@@ -110,8 +108,7 @@ object AddPostForm {
                 onchange := { (e: Event) =>
                   val id = Option(e.target.asInstanceOf[HTMLSelectElement].value).filter(_.nonEmpty).map(_.toLong)
                   state.selectedGroupId() = id.map(GroupId(_))
-                }
-              ).render
+                }).render
             }),
 
             button("new group", onclick := { () =>
@@ -129,10 +126,8 @@ object AddPostForm {
                   })
                 }
               }))
-            } else div()
-          ).render
+            } else div()).render
         }
-      }
-    )
+      })
   }
 }

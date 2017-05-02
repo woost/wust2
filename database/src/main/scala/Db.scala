@@ -68,8 +68,7 @@ package object db {
     //TODO: this is a duplicate for apply -> merge
     def createOwnedPost(title: String, groupId: GroupId): Future[PostId] = {
       ctx.run(
-        createOwnedPostQuote(lift(title), lift(groupId)).returning(_.postId)
-      )
+        createOwnedPostQuote(lift(title), lift(groupId)).returning(_.postId))
     }
 
     def apply(title: String, groupId: GroupId): Future[(Post, Ownership)] = {
@@ -116,8 +115,7 @@ package object db {
     def newPost(
       title: String,
       targetId: ConnectableId,
-      groupId: GroupId
-    ): Future[(Post, Connection, Ownership)] = {
+      groupId: GroupId): Future[(Post, Connection, Ownership)] = {
       // TODO
       // val q = quote { createPostAndConnection(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
@@ -157,7 +155,16 @@ package object db {
     }
   }
 
-  //TODO object group
+  object group {
+    def members(groupId: GroupId): Future[Iterable[(User, Membership)]] = {
+      ctx.run(for {
+        usergroup <- query[UserGroup].filter(_.id == lift(groupId))
+        membership <- query[Membership].filter(m => m.groupId == usergroup.id && m.userId.isDefined)
+        user <- query[User].filter(u => membership.userId.forall(_ == u.id))
+      } yield (user, membership))
+    }
+  }
+
   object user {
     import com.roundeights.hasher.Hasher
 
@@ -186,8 +193,13 @@ package object db {
       ctx.run(q).map(_ == 1)
     }
 
-    def groupIdFromInvite(token: String): Future[Option[GroupId]] = {
-      val q = quote { query[GroupInvite].filter(_.token == lift(token)).map(_.groupId).take(1) }
+    def userGroupFromInvite(token: String): Future[Option[UserGroup]] = {
+      val q = quote {
+        for {
+          invite <- query[GroupInvite].filter(_.token == lift(token)).take(1)
+          usergroup <- query[UserGroup].filter(_.id == invite.groupId)
+        } yield usergroup
+      }
       ctx.run(q).map(_.headOption)
     }
 
@@ -205,8 +217,7 @@ package object db {
 
     def addMember(groupId: GroupId, userId: UserId): Future[Membership] = {
       val q = quote(
-        infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]]
-      )
+        infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]])
       ctx.run(q).map(_ => Membership(groupId, Option(userId)))
     }
 
@@ -253,8 +264,7 @@ package object db {
     def activateImplicitUser(
       id: UserId,
       name: String,
-      password: String
-    ): Future[Option[User]] = {
+      password: String): Future[Option[User]] = {
       val digest = passwordDigest(password)
       //TODO
       // val user = User(id, name)
@@ -267,12 +277,10 @@ package object db {
             val updatedUser = user.copy(
               name = name,
               isImplicit = false,
-              revision = user.revision + 1
-            )
+              revision = user.revision + 1)
             for {
               _ <- ctx.run(
-                query[User].filter(_.id == lift(id)).update(lift(updatedUser))
-              )
+                query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
               _ <- ctx.run(query[Password].insert(lift(Password(id, digest))))
             } yield Option(updatedUser)
           }
@@ -303,21 +311,6 @@ package object db {
           case (user, pw) if (passwordDigest(password) hash = pw.digest) =>
             user
         })
-    }
-
-    def group(user: User): Future[UserGroup] = { //TODO: Long
-      //TODO: this is faking it, just take one group for user.
-      //really need to know the private group of the user! --> column in user-table referencing group?
-      val q = quote {
-        query[Membership]
-          .filter(_.userId == lift(Option(user.id)))
-          .join(query[UserGroup])
-          .on((m, g) => m.groupId == g.id)
-          .map(_._2)
-          .take(1)
-      }
-
-      ctx.run(q).map(_.head)
     }
 
     def checkEqualUserExists(user: User): Future[Boolean] = {
@@ -391,8 +384,7 @@ package object db {
               myGroups.map(UserGroup.apply),
               ownerships,
               users,
-              memberships
-            )
+              memberships)
           }
 
         case None => // not logged in, can only see posts of public groups
@@ -410,8 +402,7 @@ package object db {
               posts,
               connection,
               containments,
-              Nil, Nil, Nil, Nil
-            )
+              Nil, Nil, Nil, Nil)
           }
       }
     }
