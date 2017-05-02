@@ -6,6 +6,7 @@ class SharedTemplates[Builder, Output <: FragT, FragT](val bundle: scalatags.gen
   import bundle.all._
   val radio = input(`type` := "radio")
   def labelfor(id: String) = label(`for` := id)
+  def aUrl(url:String) = a(href := url, url)
 }
 
 package object tags extends SharedTemplates(scalatags.JsDom)

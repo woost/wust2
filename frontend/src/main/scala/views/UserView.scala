@@ -1,18 +1,20 @@
 package wust.frontend.views
 
 import rx._
+import org.scalajs.dom.window.location
+import scalatags.JsDom.all._
+import scalatags.rx.all._
 
 import autowire._
 import boopickle.Default._
 import wust.graph.{User, Group}
 import wust.frontend.{Client, GlobalState}
 import wust.util.Pipe
+import wust.util.tags._
 
 import scala.concurrent.Future
 import scala.collection.mutable
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scalatags.JsDom.all._
-import scalatags.rx.all._
 
 object UserView {
   val inputText = input(`type` := "text")
@@ -47,9 +49,9 @@ object UserView {
       Rx {
         val invites = createdGroupInvites()
         span(
-          invites.get(group).map(token => span(s"invite: $token")).getOrElse(span()),
+          invites.get(group).map(token => aUrl(s"${location.host + location.pathname}#graph?invite=$token")).getOrElse(span()),
           buttonClick(
-            "invite link",
+            "regenerate invite link",
             Client.api.createGroupInvite(group.id).call().foreach {
               case Some(token) => createdGroupInvites() = invites + (group -> token)
               case None =>
