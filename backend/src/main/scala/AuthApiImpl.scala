@@ -8,37 +8,36 @@ import wust.backend.dbConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AuthApiImpl(apiAuth: AuthenticatedAccess) extends AuthApi {
-  import apiAuth._
+class AuthApiImpl(stateAccess: StateAccess) extends AuthApi {
+  import stateAccess._
 
-  def register(name: String, password: String): Future[Option[Authentication]] = {
-    val auth = withUserOpt {
+  def register(name: String, password: String): Future[Option[Authentication]] = withStateChange { state =>
+    val auth = state.withUserOpt {
       case Some(user) if user.isImplicit =>
         db.user.activateImplicitUser(user.id, name, password).map(_.map(u => JWT.generateAuthentication(u)))
       case _ =>
         db.user(name, password).map(_.map(u => JWT.generateAuthentication(u)))
     }
-    setAuth(auth)
-    auth.map(_.map(_.toAuthentication))
+
+    (auth.map(auth => state.copy(auth = auth)), auth.map(_.map(_.toAuthentication)))
   }
 
-  def login(name: String, password: String): Future[Option[Authentication]] = {
+  def login(name: String, password: String): Future[Option[Authentication]] = withStateChange { state =>
     val auth = db.user.get(name, password).map(_.map(u => JWT.generateAuthentication(u)))
-    setAuth(auth)
-    auth.map(_.map(_.toAuthentication))
+    (auth.map(auth => state.copy(auth = auth)), auth.map(_.map(_.toAuthentication)))
   }
 
-  def loginToken(token: Authentication.Token): Future[Option[Authentication]] = {
+  def loginToken(token: Authentication.Token): Future[Option[Authentication]] = withStateChange { state =>
     val auth = JWT.authenticationFromToken(token).map { auth =>
       for (valid <- db.user.checkEqualUserExists(auth.user))
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))
-    setAuth(auth)
-    auth.map(_.map(_.toAuthentication))
+
+    (auth.map(auth => state.copy(auth = auth)), auth.map(_.map(_.toAuthentication)))
   }
 
-  def logout(): Future[Boolean] = {
-    setAuth(Future.successful(None))
-    Future.successful(true)
+  def logout(): Future[Boolean] = withStateChange { state =>
+    val auth = Future.successful(None)
+    (auth.map(auth => state.copy(auth = auth)), Future.successful(true))
   }
 }

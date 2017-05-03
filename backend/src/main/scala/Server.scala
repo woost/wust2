@@ -4,6 +4,7 @@ import java.io.{PrintWriter, StringWriter}
 
 import akka.http.scaladsl.server.Directives._
 import boopickle.Default._
+import derive.derive
 import wust.api._
 import wust.backend.auth._
 import wust.framework._
@@ -19,18 +20,11 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 import collection.breakOut
 
-case class UserError(error: ApiError) extends Exception
-
+@derive(copyF)
 case class State(auth: Option[JWTAuthentication])
 
 class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiEvent, ApiError, State] {
   import Config.usergroup.{publicId => publicGroupId}
-  import Config.auth.enableImplicit
-
-  private def createImplicitAuth(): Future[Option[JWTAuthentication]] = {
-    if (enableImplicit) db.user.createImplicitUser().map(u => JWT.generateAuthentication(u)).map(Option.apply)
-    else Future.successful(None)
-  }
 
   private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Iterable[Group], sender: EventSender[ApiEvent]) = {
     dispatcher.unsubscribe(sender)
@@ -47,40 +41,41 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     }
   }
 
-  private def onStateChange(sender: EventSender[ApiEvent], state: State) = {
-    //TODO: with current graphselection
-    val userIdOpt = state.auth.map(_.user.id)
-    val newGraph = db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
-      .map(_.withoutGroup(publicGroupId))
+  private def onStateChange(sender: EventSender[ApiEvent], prevState: Option[State], state: State) = {
+    if (prevState.map(_.auth != state.auth).getOrElse(true)) {
+      val userIdOpt = state.auth.map(_.user.id)
+      //TODO: with current graphselection
+      val newGraph = db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
+        .map(_.withoutGroup(publicGroupId))
 
-    import sender.send
-    newGraph.onComplete {
-      case Success(graph) =>
-        subscribeChannels(state.auth, graph.groups, sender)
-        state.auth
-          .filter(_.user.isImplicit)
-          .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
-        ReplaceGraph(graph) |> send
-      case Failure(t) =>
-        scribe.error(s"failed to get initial graph for state: $state")
-        scribe.error(t)
+      import sender.send
+      newGraph.onComplete {
+        case Success(graph) =>
+          subscribeChannels(state.auth, graph.groups, sender)
+          state.auth
+            .filter(_.user.isImplicit)
+            .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
+          ReplaceGraph(graph) |> send
+        case Failure(t) =>
+          scribe.error(s"failed to get initial graph for state: $state")
+          scribe.error(t)
+      }
     }
   }
 
   override def router(sender: EventSender[ApiEvent], state: Future[State]) = {
-    val apiAuth = new AuthenticatedAccess(state.map(_.auth), createImplicitAuth, UserError(Unauthorized))
+    val stateAccess = StateAccess(state)
 
     (
-      AutowireServer.route[Api](new ApiImpl(apiAuth)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(apiAuth))
+      AutowireServer.route[Api](new ApiImpl(stateAccess)) orElse
+      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess))
     ) andThen {
         res =>
           val newState = for {
             state <- state
-            auth <- apiAuth.createdOrActualAuth
-          } yield if (state.auth != auth) {
-            val newState = state.copy(auth = auth)
-            onStateChange(sender, newState)
+            newState <- stateAccess.state
+          } yield if (state != newState) {
+            onStateChange(sender, Option(state), newState)
             newState
           } else state
 
@@ -91,7 +86,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
   override def onClientStart(sender: EventSender[ApiEvent]) = {
     val state = State(None)
     scribe.info(s"client started: $state")
-    onStateChange(sender, state)
+    onStateChange(sender, None, state)
     Future.successful(state)
   }
 
@@ -102,7 +97,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
   override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
   override val toError: PartialFunction[Throwable, ApiError] = {
-    case UserError(error) => error
+    case ApiException(error) => error
     case NonFatal(e) =>
       scribe.error("request handler threw exception")
       scribe.error(e)

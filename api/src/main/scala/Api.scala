@@ -23,6 +23,7 @@ trait Api {
   def acceptGroupInvite(token: String): Future[Option[GroupId]]
 }
 
+case class ApiException(error: ApiError) extends Exception
 sealed trait ApiError
 case object InternalServerError extends ApiError
 case class NotFound(path: Seq[String]) extends ApiError

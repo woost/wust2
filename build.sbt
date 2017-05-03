@@ -202,6 +202,7 @@ lazy val backend = project
       "com.typesafe" % "config" % "1.3.1" ::
       "javax.mail" % "javax.mail-api" % "1.5.6" ::
       "com.sun.mail" % "javax.mail" % "1.5.6" ::
+      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
