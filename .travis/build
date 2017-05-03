@@ -4,8 +4,6 @@ set -o pipefail
 
 export CI=true # also set by travis, but helps when running locally
 
-export WUST_AUTH_SECRET=secret
-
 sbt docker \
  testJS \
  coverage testJVM coverageReport
