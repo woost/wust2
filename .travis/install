@@ -10,7 +10,7 @@ else
     cd /tmp
     git clone http://github.com/fdietze/scala.rx --depth=1
     cd scala.rx
-    sbt ++2.11.8 scalarxJS/publish-local
+    sbt ++2.11.11 scalarxJS/publish-local
 )
 fi
 
