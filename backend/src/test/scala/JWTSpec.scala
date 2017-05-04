@@ -5,8 +5,7 @@ import wust.graph.User
 import wust.ids._
 
 class jwtSpec extends FreeSpec with MustMatchers {
-  def jwt = jwt()
-  def jwt(tokenLifeTime: Int = 12345678) = new JWT("secret", tokenLifeTime)
+  val jwt: JWT = new JWT(secret = "secret", tokenLifetime = 12345678)
 
   implicit def intToUserId(id: Int): UserId = UserId(id)
 
@@ -32,9 +31,21 @@ class jwtSpec extends FreeSpec with MustMatchers {
 
   "expired auth is expired" in {
     val user = User("Frau Mahlzahn")
-    val jwt = jwt(tokenLifeTime = 0)
+    val jwt = new JWT("secret", tokenLifetime = 0)
     val auth = jwt.generateAuthentication(user)
     jwt.isExpired(auth) mustEqual true
+  }
+
+  "incompatible secret not valid" in {
+    val user = User("Frau Mahlzahn")
+
+    val jwt1 = new JWT("gisela", tokenLifetime = 12345678)
+    val auth = jwt1.generateAuthentication(user)
+
+    val jwt2 = new JWT("hans", tokenLifetime = 12345678)
+    val noAuth = jwt2.authenticationFromToken(auth.token)
+
+    noAuth mustEqual None
   }
 
   "authentication from token" in {
