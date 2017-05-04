@@ -1,5 +1,6 @@
 package wust.backend.auth
 
+import derive.derive
 import wust.graph.User
 import io.igl.jwt._
 import wust.ids._
@@ -32,9 +33,9 @@ object Claims {
   }
 }
 
+@derive((user, expires) => toString)
 case class JWTAuthentication private[auth] (user: User, expires: Long, token: Authentication.Token) {
   def toAuthentication = Authentication(user, token)
-  override def toString = s"JWTAuthentication($user, ***)"
 }
 
 object JWT {

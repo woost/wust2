@@ -1,5 +1,6 @@
 package wust.backend.config
 
+import derive.derive
 import com.typesafe.config.{Config => TConfig, ConfigFactory}
 import wust.ids._
 
@@ -12,9 +13,8 @@ object ConfigExt {
   }
 }
 
-case class SmtpConfig(endpoint: String, username: String, password: String) {
-  override def toString = s"SmtpConfig($endpoint, $username, ***)"
-}
+@derive((endpoint, username) => toString)
+case class SmtpConfig(endpoint: String, username: String, password: String)
 
 object Config {
   import ConfigExt._
