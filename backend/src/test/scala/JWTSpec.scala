@@ -4,15 +4,19 @@ import org.scalatest._
 import wust.graph.User
 import wust.ids._
 
-class JWTSpec extends FreeSpec with MustMatchers {
+class jwtSpec extends FreeSpec with MustMatchers {
+  def jwt = jwt()
+  def jwt(tokenLifeTime: Int = 12345678) = new JWT("secret", tokenLifeTime)
+
   implicit def intToUserId(id: Int): UserId = UserId(id)
+
   object User {
     def apply(name: String): User = new User(0, name, isImplicit = false, wust.db.User.initialRevision)
   }
 
   "generate auth for user" in {
     val user = User("Biermann")
-    val auth = JWT.generateAuthentication(user)
+    val auth = jwt.generateAuthentication(user)
 
     auth.user mustEqual user
     auth.expires must be > (System.currentTimeMillis / 1000)
@@ -21,27 +25,28 @@ class JWTSpec extends FreeSpec with MustMatchers {
 
   "generated auth is not expired" in {
     val user = User("Frau Mahlzahn")
-    val auth = JWT.generateAuthentication(user)
+    val auth = jwt.generateAuthentication(user)
 
-    JWT.isExpired(auth) mustEqual false
+    jwt.isExpired(auth) mustEqual false
   }
 
   "expired auth is expired" in {
     val user = User("Frau Mahlzahn")
-    val auth = JWT.generateAuthentication(user).copy(expires = 0)
-    JWT.isExpired(auth) mustEqual true
+    val jwt = jwt(tokenLifeTime = 0)
+    val auth = jwt.generateAuthentication(user)
+    jwt.isExpired(auth) mustEqual true
   }
 
   "authentication from token" in {
     val user = User("Pumuckl")
-    val genAuth = JWT.generateAuthentication(user)
-    val auth = JWT.authenticationFromToken(genAuth.token)
+    val genAuth = jwt.generateAuthentication(user)
+    val auth = jwt.authenticationFromToken(genAuth.token)
 
     auth mustEqual Option(genAuth)
   }
 
   "no authentication from invalid token" in {
-    val auth = JWT.authenticationFromToken("invalid token")
+    val auth = jwt.authenticationFromToken("invalid token")
 
     auth mustEqual None
   }

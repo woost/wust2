@@ -38,9 +38,8 @@ case class JWTAuthentication private[auth] (user: User, expires: Long, token: Au
   def toAuthentication = Authentication(user, token)
 }
 
-object JWT {
+class JWT(secret: String, tokenLifetime: Long) {
   import Claims.UserClaim
-  import Config.auth.{secret, tokenLifetime}
 
   private val algorithm = Algorithm.HS256
   private val wustIss = Iss("wust")
@@ -76,3 +75,4 @@ object JWT {
 
   def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp
 }
+object JWT extends JWT(Config.auth.secret, Config.auth.tokenLifetime)

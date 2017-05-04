@@ -194,10 +194,6 @@ lazy val backend = project
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(
-    // start tests with initialized env var for JWTSpec
-    fork in Test := true,
-    envVars in Test := Map("WUST_AUTH_SECRET" -> "test"),
-
     addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++=
       "com.roundeights" %% "hasher" % "1.2.0" ::
