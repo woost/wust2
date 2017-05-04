@@ -17,25 +17,26 @@ import scala.concurrent.duration._
 object TestRequestHandler extends RequestHandler[String, String, Option[String]] {
   private val otherUser = Future.successful(Option("anon"))
 
-  override def router(sender: EventSender[String], state: Future[Option[String]]): PartialFunction[Request[ByteBuffer], RequestResult[Option[String]]] = {
+  override def router(state: Future[Option[String]]): PartialFunction[Request[ByteBuffer], RequestResult[Option[String], String]] = {
     case Request("api" :: Nil, args) =>
-      RequestResult(state, Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
+      RequestResult(state.map(StateEvent(_, Seq.empty)), Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
     case Request("event" :: Nil, _) =>
-      sender.send("event")
-      RequestResult(state, Future.successful(Pickle.intoBytes[Boolean](true)))
+      RequestResult(state.map(StateEvent(_, Seq(Future.successful("event")))), Future.successful(Pickle.intoBytes[Boolean](true)))
     case Request("state" :: Nil, _) =>
-      RequestResult(state, state.map(u => Pickle.intoBytes[Option[String]](u)))
+      RequestResult(state.map(StateEvent(_, Seq.empty)), state.map(u => Pickle.intoBytes[Option[String]](u)))
     case Request("state" :: "change" :: Nil, _) =>
-      RequestResult(otherUser, Future.successful(Pickle.intoBytes[Boolean](true)))
+      RequestResult(otherUser.map(StateEvent(_, Seq.empty)), Future.successful(Pickle.intoBytes[Boolean](true)))
     case Request("broken" :: Nil, _) =>
-      RequestResult(state, Future.failed(new Exception("an error")))
+      RequestResult(state.map(StateEvent(_, Seq.empty)), Future.failed(new Exception("an error")))
   }
+
+  override def onEvent(event: String,state: Future[Option[String]]) = state.map(StateEvent(_, Seq(event).filter(_ != "FORBIDDEN").map(Future.successful _)))
 
   override def onClientStart(sender: EventSender[String]) = {
     sender.send("started")
     Future.successful(None)
   }
-  override def onClientStop(sender: EventSender[String], state: Option[String]) = sender.send("stopped")
+  override def onClientStop(sender: EventSender[String], state: Option[String]) = ()
 
   override def pathNotFound(path: Seq[String]) = "path not found"
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
@@ -134,6 +135,21 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     }
   }
 
+  "event" - {
+    val actor = newActor
+    connectActor(actor)
+
+    "allowed event" in {
+      actor ! Notification("something nice")
+      expectMsg(Notification("something nice"))
+    }
+
+    "forbidden event" in {
+      actor ! Notification("FORBIDDEN")
+      expectNoMsg
+    }
+  }
+
   "stop" - {
     val actor = newActor
     connectActor(actor)
@@ -141,7 +157,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     "stops actor" in {
       actor ! ConnectedClient.Stop
       actor ! Ping()
-      expectMsg(Notification("stopped"))
+      expectNoMsg
     }
   }
 }

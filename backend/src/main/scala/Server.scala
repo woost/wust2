@@ -9,6 +9,7 @@ import wust.api._
 import wust.backend.auth._
 import wust.framework._
 import wust.util.Pipe
+import wust.ids._
 import wust.db.Db
 import wust.backend.config.Config
 import wust.backend.DbConversions._
@@ -21,69 +22,64 @@ import scala.util.{ Failure, Success }
 import collection.breakOut
 
 // TODO: crashes coverage @derive(copyF)
-case class State(auth: Option[JWTAuthentication]) {
-  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity) = copy(auth = auth(this.auth))
+case class State(auth: Option[JWTAuthentication], groupIds: Set[GroupId]) {
+  val user = auth.map(_.user)
+  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity, groupIds: Set[GroupId] => Set[GroupId] = identity) = copy(auth = auth(this.auth), groupIds = groupIds(this.groupIds))
+}
+object State {
+  def initial = State(auth = None, groupIds = Set.empty)
 }
 
-class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiEvent, ApiError, State] {
-  private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Iterable[Group], sender: EventSender[ApiEvent]) = {
-    dispatcher.unsubscribe(sender)
-
-    dispatcher.subscribe(sender, Channel.All)
-    //TODO: currently updates to a group (via api) are not automatically subscribed!
-    extraGroups
-      .map(g => Channel.Group(g.id))
-      .foreach(dispatcher.subscribe(sender, _))
-
-    auth.foreach { auth =>
-      dispatcher.subscribe(sender, Channel.User(auth.user.id))
-    }
+class ApiRequestHandler(dispatcher: EventDispatcher, enableImplicit: Boolean) extends RequestHandler[ApiEvent, ApiError, State] {
+  private def onStateChange(prevState: State, state: State): Seq[Future[ApiEvent]] = {
+    if (prevState.auth != state.auth)
+      state.auth
+        .filter(_.user.isImplicit)
+        .map(auth => ImplicitLogin(auth.toAuthentication))
+        .map(Future.successful _)
+        .toSeq ++ Seq (
+          Db.graph.getAllVisiblePosts(state.user.map(_.id))
+            .map(forClient(_).consistent)
+            .map(ReplaceGraph(_))
+        )
+    else Seq.empty
   }
 
-  private def onStateChange(sender: EventSender[ApiEvent], prevState: Option[State], state: State) = {
-    if (prevState.map(_.auth != state.auth).getOrElse(true)) {
-      val userIdOpt = state.auth.map(_.user.id)
-      //TODO: with current graphselection
-      val newGraph = Db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
-
-      import sender.send
-      newGraph.onComplete {
-        case Success(graph) =>
-          subscribeChannels(state.auth, graph.groups, sender)
-          state.auth
-            .filter(_.user.isImplicit)
-            .foreach(auth => ImplicitLogin(auth.toAuthentication) |> send)
-          ReplaceGraph(graph) |> send
-        case Failure(t) =>
-          scribe.error(s"failed to get initial graph for state: $state")
-          scribe.error(t)
-      }
-    }
+  private def stateChangeResult(state: Future[State], newState: Future[State]) = for {
+    state <- state
+    newState <- newState
+  } yield {
+    val events = onStateChange(state, newState)
+    StateEvent(newState, events)
   }
 
-  override def router(sender: EventSender[ApiEvent], state: Future[State]) = {
-    val stateAccess = StateAccess(state)
+  private def validatedState(state: Future[State]): Future[State] = state.map(_.copyF(auth = _.filterNot(JWT.isExpired)))
+
+  private def createImplicitUser() = enableImplicit match {
+    case true => Db.user.createImplicitUser().map(forClient(_) |> Option.apply)
+    case false => Future.successful(None)
+  }
+
+  override def router(state: Future[State]) = {
+    val stateAccess = new StateAccess(validatedState(state), createImplicitUser _, dispatcher.publish _)
 
     (
       AutowireServer.route[Api](new ApiImpl(stateAccess)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess))) andThen {
-        res =>
-          val newState = for {
-            state <- state
-            newState <- stateAccess.state
-          } yield if (state != newState) {
-            onStateChange(sender, Option(state), newState)
-            newState
-          } else state
-
-          RequestResult(newState, res)
+      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess))) andThen { res =>
+        val newState = stateAccess.state
+        RequestResult(stateChangeResult(state, newState), res)
       }
   }
 
+  override def onEvent(event: ApiEvent, state: Future[State]) = {
+    val newState = validatedState(state).map(StateTranslator.applyEvent(_, event))
+    stateChangeResult(state, newState)
+  }
+
   override def onClientStart(sender: EventSender[ApiEvent]) = {
-    val state = State(None)
+    val state = State.initial
     scribe.info(s"client started: $state")
-    onStateChange(sender, None, state)
+    dispatcher.subscribe(sender, Channel.All)
     Future.successful(state)
   }
 
@@ -104,35 +100,12 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
 object Server {
   private val dispatcher = new ChannelEventBus
-  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(dispatcher))
+  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(dispatcher, Config.auth.enableImplicit))
 
   private val route = (path("ws") & get) {
     ws.websocketHandler
   } ~ (path("health") & get) {
     complete("ok")
-  }
-
-  def emitDynamic(ev: ApiEvent with DynamicEvent): Unit = {
-    val channel = ev match {
-      //TODO: this is sent to every client, but we need to filter.
-      // two problems:
-      //  - who is allowed to see the event (ownership/group)?
-      //  - who is interested in this specific graph event? which graph is visible in the client?
-      // maybe needs multiple channels for multiple groups?
-      // => then how to make batch publish on dispatcher in order to not send events multiple times
-      // to the same client. (if he is in more than one of corresponding Groups)
-      case _ => Channel.All
-    }
-
-    emit(ChannelEvent(channel, ev))
-  }
-
-  def emit(ev: ChannelEvent): Unit = {
-    // dispatcher.publish(ev)
-    //optimiziation to serialize event only once
-    scribe.info(s"serializing event: $ev")
-    val serialized = ws.serializedEvent(ev.event)
-    dispatcher.publish(SerializedChannelEvent(ev.channel, serialized))
   }
 
   def run(port: Int) = ws.run(route, "0.0.0.0", port)

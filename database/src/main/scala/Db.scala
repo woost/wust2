@@ -349,6 +349,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       } yield (user, membership))
     }
 
+    def memberships(userId: UserId): Future[Iterable[Membership]] = {
+      ctx.run(query[Membership].filter(m => m.userId == lift(userId)))
+    }
+
     def createInvite(groupId: GroupId, token: String): Future[Boolean] = {
       val q = quote(infix"""
         insert into groupInvite(groupId, token) values(${lift(groupId)}, ${lift(token)}) on conflict (groupId) do update set token = ${lift(token)}

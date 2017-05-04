@@ -31,18 +31,17 @@ case class NotFound(path: Seq[String]) extends ApiError
 case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
-sealed trait DynamicEvent
-case class NewPost(post: Post) extends ApiEvent with DynamicEvent
-case class UpdatedPost(post: Post) extends ApiEvent with DynamicEvent
-case class NewConnection(edge: Connection) extends ApiEvent with DynamicEvent
-case class NewContainment(edge: Containment) extends ApiEvent with DynamicEvent
-case class NewOwnership(edge: Ownership) extends ApiEvent with DynamicEvent
-case class NewUser(edge: User) extends ApiEvent with DynamicEvent
-case class NewGroup(edge: Group) extends ApiEvent with DynamicEvent
-case class NewMembership(edge: Membership) extends ApiEvent with DynamicEvent
-case class DeletePost(id: PostId) extends ApiEvent with DynamicEvent
-case class DeleteConnection(id: ConnectionId) extends ApiEvent with DynamicEvent
-case class DeleteContainment(id: ContainmentId) extends ApiEvent with DynamicEvent
+case class NewPost(post: Post) extends ApiEvent
+case class UpdatedPost(post: Post) extends ApiEvent
+case class NewConnection(edge: Connection) extends ApiEvent
+case class NewContainment(edge: Containment) extends ApiEvent
+case class NewOwnership(edge: Ownership) extends ApiEvent
+case class NewUser(edge: User) extends ApiEvent
+case class NewGroup(edge: Group) extends ApiEvent
+case class NewMembership(edge: Membership) extends ApiEvent
+case class DeletePost(id: PostId) extends ApiEvent
+case class DeleteConnection(id: ConnectionId) extends ApiEvent
+case class DeleteContainment(id: ContainmentId) extends ApiEvent
 case class ImplicitLogin(auth: Authentication) extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {
   override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"

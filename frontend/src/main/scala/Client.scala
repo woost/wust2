@@ -12,8 +12,6 @@ import wust.graph._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class ApiException(error: ApiError) extends Exception
-
 class ApiIncidentHandler extends IncidentHandler[ApiError] {
   override def fromError(error: ApiError) = ApiException(error)
 }

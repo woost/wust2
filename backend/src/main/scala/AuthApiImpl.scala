@@ -2,8 +2,9 @@ package wust.backend
 
 import wust.api._
 import wust.backend.auth._
-import wust.db.Db
 import wust.backend.DbConversions._
+import wust.db.Db
+import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -11,33 +12,43 @@ import scala.concurrent.Future
 class AuthApiImpl(stateAccess: StateAccess) extends AuthApi {
   import stateAccess._
 
-  def register(name: String, password: String): Future[Option[Authentication]] = withStateChange { state =>
-    val auth = state.withUserOpt {
+  private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = {
+    auth.flatMap {
+      case Some(auth) =>
+        Db.group.memberships(auth.user.id) .map(_.map(_.groupId).toSet).map { groupIds =>
+          state.copy(auth = Option(auth), groupIds = groupIds)
+        }
+      case None => Future.successful(State.initial)
+    }
+  }
+
+  def register(name: String, password: String): Future[Option[Authentication]] = { (state: State) =>
+    val auth = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
         Db.user.activateImplicitUser(user.id, name, password).map(_.map(u => JWT.generateAuthentication(u)))
       case _ =>
         Db.user(name, password).map(_.map(u => JWT.generateAuthentication(u)))
     }
 
-    (auth.map(auth => state.copy(auth = auth)), auth.map(_.map(_.toAuthentication)))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.map(_.toAuthentication)))
   }
 
-  def login(name: String, password: String): Future[Option[Authentication]] = withStateChange { state =>
+  def login(name: String, password: String): Future[Option[Authentication]] = { (state: State) =>
     val auth = Db.user.get(name, password).map(_.map(u => JWT.generateAuthentication(u)))
-    (auth.map(auth => state.copy(auth = auth)), auth.map(_.map(_.toAuthentication)))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.map(_.toAuthentication)))
   }
 
-  def loginToken(token: Authentication.Token): Future[Option[Authentication]] = withStateChange { state =>
+  def loginToken(token: Authentication.Token): Future[Option[Authentication]] = { (state: State) =>
     val auth = JWT.authenticationFromToken(token).map { auth =>
       for (valid <- Db.user.checkIfEqualUserExists(auth.user))
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))
 
-    (auth.map(auth => state.copy(auth = auth)), auth.map(_.map(_.toAuthentication)))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.map(_.toAuthentication)))
   }
 
-  def logout(): Future[Boolean] = withStateChange { state =>
+  def logout(): Future[Boolean] = { (state: State) =>
     val auth = Future.successful(None)
-    (auth.map(auth => state.copy(auth = auth)), Future.successful(true))
+    StateEffect(applyAuthenticationOnState(state, auth), Future.successful(true))
   }
 }
