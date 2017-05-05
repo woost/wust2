@@ -6,7 +6,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import wust.ids._
 
-package object db {
+object db extends Db(new PostgresAsyncContext[LowerCase]("db"))
+
+class Db(val ctx:PostgresAsyncContext[LowerCase]) {
+  import ctx._
+
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
   object User {
     private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
@@ -35,8 +39,6 @@ package object db {
   object UserGroup { def apply(): UserGroup = UserGroup(GroupId(0L)) }
   case class Ownership(postId: PostId, groupId: GroupId)
 
-  lazy val ctx = new PostgresAsyncContext[LowerCase]("db")
-  import ctx._
 
   implicit val encodeGroupId = MappedEncoding[GroupId, IdType](_.id)
   implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId(_))

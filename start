@@ -52,7 +52,11 @@ test.integration)
     $compose up -d
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
     # CI=true disables workbench
-    WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 CI=true sbt_arg it:test
+    export WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 CI=true
+    $script_dir/dbMigration/await-server.sh $POSTGRES_HOSTNAME $POSTGRES_PORT
+    echo "waiting for being able to create template database..."
+    until docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE $POSTGRES_DB"; do sleep 1; done
+    sbt_arg it:test
     $compose down
     ;;
 test.prod.http)
