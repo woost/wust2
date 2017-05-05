@@ -157,7 +157,7 @@ lazy val database = project
   .dependsOn(idsJVM)
   .settings(
     libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % "1.1.0" ::
+      "io.getquill" %% "quill-async-postgres" % "1.1.1" ::
       "com.roundeights" %% "hasher" % "1.2.0" :: //TODO: move to backend
       "org.mindrot" % "jbcrypt" % "0.4" :: //TODO: move to backend
       "com.typesafe" % "config" % "1.3.1" ::
