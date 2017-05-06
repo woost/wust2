@@ -29,7 +29,7 @@ object Main extends js.JSApp {
       Client.auth.reauthenticate()
     }
 
-    state.graphSelection.foreach { selection =>
+    state.rawGraphSelection.foreach { selection =>
       Client.api.getGraph(selection).call().foreach { newGraph =>
         state.rawGraph() = newGraph
       }

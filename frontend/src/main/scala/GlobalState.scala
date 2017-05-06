@@ -3,7 +3,7 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ ViewConfig, ViewPage }
+import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
@@ -16,6 +16,7 @@ case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
   val currentUser = RxVar[Option[User]](None)
+
   val viewConfig = UrlRouter.variable
     .projection[ViewConfig]((ViewConfig.toHash _) andThen Option.apply, ViewConfig.fromHash)
 
@@ -24,13 +25,22 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   //TODO: ".now" is bad here. Maybe we need:
   // projection[B](to: (A,B) => A, from: A => B)
-  val graphSelection = viewConfig
+  val rawGraphSelection = viewConfig
     .projection[GraphSelection](selection => viewConfig.now.copy(selection = selection), _.selection)
 
   val inviteToken = viewConfig.map(_.invite)
 
   val rawGraph = RxVar(Graph.empty)
     .map(_.consistent)
+
+  val graphSelection = RxVar(rawGraphSelection, Rx {
+    val graph = rawGraph()
+    rawGraphSelection() match {
+      case GraphSelection.Union(ids) =>
+        GraphSelection.Union(ids.filter(graph.postsById.isDefinedAt))
+      case s => s
+    }
+  })
 
   val selectedGroupId = {
     val rawSelectedId = RxVar[Option[GroupId]](None)
