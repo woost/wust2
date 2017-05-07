@@ -48,11 +48,11 @@ class StateAccess private(initialState: Future[State])(implicit ec: ExecutionCon
   private var actualState = initialState
   def state = actualState
 
-  def withState[T](f: State => Future[T]): Future[T] = actualState.flatMap(f)
-  def withStateChange[T](f: State => (Future[State], Future[T])): Future[T] = actualState.flatMap { case state =>
-    val (newState, result) = f(state)
-    actualState = newState
-    result
+  def withState[T](f: State => Future[T]): Future[T] = state.flatMap(f)
+  def withStateChange[T](f: State => (Future[State], Future[T])): Future[T] = {
+    val result = state.map(f)
+    actualState = result.flatMap(_._1)
+    result.flatMap(_._2)
   }
 }
 object StateAccess {
