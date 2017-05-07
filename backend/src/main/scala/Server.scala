@@ -4,7 +4,6 @@ import java.io.{PrintWriter, StringWriter}
 
 import akka.http.scaladsl.server.Directives._
 import boopickle.Default._
-import derive.derive
 import wust.api._
 import wust.backend.auth._
 import wust.framework._
@@ -20,8 +19,10 @@ import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 import collection.breakOut
 
-@derive(copyF)
-case class State(auth: Option[JWTAuthentication])
+// TODO: crashes coverage @derive(copyF)
+case class State(auth: Option[JWTAuthentication]) {
+  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity) = copy(auth = auth(this.auth))
+}
 
 class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiEvent, ApiError, State] {
   import Config.usergroup.{publicId => publicGroupId}
