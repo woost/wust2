@@ -4,7 +4,7 @@ import wust.ids._
 import wust.db
 import wust.graph._
 
-package object dbConversions {
+object DbConversions {
   implicit def forClient(post: db.Post) = Post(post.id, post.title)
   implicit def forDb(post: Post) = db.Post(post.id, post.title)
   implicit def forClient(c: db.Connection) = Connection(c.id, c.sourceId, c.targetId)

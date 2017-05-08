@@ -1,4 +1,4 @@
-package wust
+package wust.db
 
 import io.getquill._
 
@@ -8,38 +8,10 @@ import scala.concurrent.duration._
 import wust.ids._
 import scala.util.{ Try, Success, Failure }
 
-object db extends Db(new PostgresAsyncContext[LowerCase]("db"))
+object Db extends Db(new PostgresAsyncContext[LowerCase]("db"))
 
 class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   import ctx._
-
-  case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
-  object User {
-    private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
-    val initialRevision = 0
-    def apply(name: String): User = User(UserId(0), name, isImplicit = false, initialRevision)
-    def apply(): User = User(UserId(0), implicitUserName, isImplicit = true, initialRevision)
-  }
-
-  case class Post(id: PostId, title: String)
-  object Post { def apply(title: String): Post = Post(0L, title) }
-
-  case class Connection(id: ConnectionId, sourceId: PostId, targetId: ConnectableId)
-  object Connection {
-    def apply(in: PostId, out: ConnectableId): Connection = Connection(0L, in, out)
-  }
-
-  case class Containment(id: ContainmentId, parentId: PostId, childId: PostId)
-  object Containment {
-    def apply(parentId: PostId, childId: PostId): Containment = Containment(0L, parentId, childId)
-  }
-
-  case class Password(id: UserId, digest: Array[Byte])
-  case class Membership(groupId: GroupId, userId: UserId) //TODO: graph.Membeship has a different argument order. Alter table?
-  case class GroupInvite(groupId: GroupId, token: String)
-  case class UserGroup(id: GroupId)
-  object UserGroup { def apply(): UserGroup = UserGroup(GroupId(0L)) }
-  case class Ownership(postId: PostId, groupId: GroupId)
 
   implicit val encodeGroupId = MappedEncoding[GroupId, IdType](_.id)
   implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId(_))
@@ -76,7 +48,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     // }
 
     def createPublic(title: String): Future[Post] = {
-      val post = Post(title)
+      val post = Post(DEFAULT, title)
 
       //TODO
       //     val q = quote { createOwnedPost(lift(title), lift(group.id))).returning(_.postId) }
@@ -87,7 +59,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def createOwned(title: String, groupId: GroupId): Future[(Post, Ownership)] = {
-      val post = Post(title)
+      val post = Post(DEFAULT, title)
 
       //TODO
       //     val q = quote { createOwnedPost(lift(title), lift(group.id))).returning(_.postId) }
@@ -137,7 +109,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
   object connection {
     def apply(sourceId: PostId, targetId: ConnectableId): Future[Option[Connection]] = {
-      val connection = Connection(sourceId, targetId)
+      val connection = Connection(DEFAULT, sourceId, targetId)
       val q = quote {
         query[Connection].insert(lift(connection)).returning(x => x.id)
       }
@@ -195,7 +167,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
   object containment {
     def apply(parentId: PostId, childId: PostId): Future[Option[Containment]] = {
-      val containment = Containment(parentId, childId)
+      val containment = Containment(DEFAULT, parentId, childId)
       val q = quote {
         query[Containment].insert(lift(containment)).returning(x => x.id)
       }
@@ -218,8 +190,13 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     import com.roundeights.hasher.Hasher
     def passwordDigest(password: String) = Hasher(password).bcrypt
 
+    val initialRevision = 0
+    private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
+    private def newRealUser(name: String): User = User(DEFAULT, name, isImplicit = false, initialRevision)
+    private def newImplicitUser(): User = User(DEFAULT, implicitUserName, isImplicit = true, initialRevision)
+
     private val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
-      val revision = lift(User.initialRevision)
+      val revision = lift(initialRevision)
       infix"""with ins as (
         insert into "user"(id, name, isImplicit, revision) values(DEFAULT, $name, false, $revision) returning id
       ) insert into password(id, digest) select id, $digest from ins"""
@@ -235,25 +212,18 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def apply(name: String, password: String): Future[Option[User]] = {
-      val user = User(name)
+      val user = newRealUser(name)
       val digest = passwordDigest(password)
       val userIdQuote = quote {
         createUserAndPassword(lift(name), lift(digest)).returning(_.id)
       }
-      val userId = ctx.run(userIdQuote)
+      ctx.run(userIdQuote)
         .map(id => Option(user.copy(id = id)))
         .recover { case _: Exception => None }
-
-      //TODO in user create transaction with one query?
-      userId.flatMap {
-        case Some(user) =>
-          group.createForUser(user.id).map(_ => Option(user))
-        case None => Future.successful(None)
-      }
     }
 
     def createImplicitUser(): Future[User] = {
-      val user = User()
+      val user = newImplicitUser()
       val q = quote { query[User].insert(lift(user)).returning(_.id) }
       val dbUser = ctx.run(q).map(id => user.copy(id = id))
 
@@ -415,19 +385,24 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             query[Membership].filter(m => m.userId == lift(userId))
           }
 
-          val myGroupsMemberships = quote { myMemberships.join(query[Membership]).on((myM, m) => myM.groupId == m.groupId).map { case (myM, m) => m } }
-          // val myGroupsMembers = quote { myGroupsMemberships.join(query[User]).on((m, u) => m.userId.forall(_ == u.id)).map { case (m, u) => u } } //TODO: userid could be null
+          val myGroupsMemberships = quote {
+          for {
+              myM <- myMemberships
+              otherM <- query[Membership].filter(otherM => otherM.groupId == myM.groupId)
+          } yield otherM 
+          }
+
           val myGroupsMembers = quote {
             for {
-              myM <- query[Membership].filter(myM => myM.userId == lift(userId))
-              otherM <- query[Membership].filter(otherM => otherM.groupId == myM.groupId)
-              u <- query[User].join(_.id == otherM.userId)
+              otherM <- myGroupsMemberships
+              u <- query[User].join(u => u.id == otherM.userId)
             } yield u
           }
 
           val visibleOwnerships = ownerships(myMemberships.map(_.groupId))
 
           //TODO: we get more edges than needed, because some posts are filtered out by ownership
+          val userFut = ctx.run(query[User].filter(_.id == lift(userId)))
           val postsFut = for (owned <- ctx.run(ownedPosts(visibleOwnerships)); public <- ctx.run(publicPosts)) yield owned ++ public
           val connectionsFut = ctx.run(query[Connection])
           val containmentsFut = ctx.run(query[Containment])
@@ -442,6 +417,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             containments <- containmentsFut
             myGroups <- myGroupsFut
             ownerships <- ownershipsFut
+            user <- userFut
             users <- myGroupsMembersFut
             memberships <- myGroupsMembershipsFut
           } yield {
@@ -452,7 +428,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
               containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
               myGroups.map(UserGroup.apply),
               ownerships,
-              users,
+              (users ++ user).toSet,
               memberships)
           }
 

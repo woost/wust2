@@ -6,7 +6,7 @@ import scala.util.{ Failure, Success }
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import io.getquill._
-import wust.Db
+import wust.db.Db
 import java.util.UUID.randomUUID
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 

@@ -1,13 +1,13 @@
 package wust.backend
 
-import wust.db
+import wust.Db
 import wust.ids._
 import wust.api._
 import wust.backend.auth._
 import wust.backend.config.Config
 import wust.graph._
 import wust.util.Pipe
-import dbConversions._
+import DbConversions._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -30,7 +30,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   import Server.{ emit, emitDynamic }
   import stateAccess._
 
-  def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
+  def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id).map(_.map(forClient))
 
   //TODO: return Future[Boolean]
   def addPost(
@@ -38,7 +38,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
     selection: GraphSelection,
     groupIdOpt: Option[GroupId]): Future[Post] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
-    (db.post(msg, groupIdOpt) ||> (_.foreach {
+    (Db.post(msg, groupIdOpt) ||> (_.foreach {
       case (post, ownershipOpt) =>
         NewPost(forClient(post)) |> emitDynamic
         ownershipOpt.foreach { ownership =>
@@ -55,36 +55,36 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
 
   def updatePost(post: Post): Future[Boolean] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to update post
-    db.post.update(post) ||> (_.foreach(if (_) UpdatedPost(forClient(post)) |> emitDynamic))
+    Db.post.update(post) ||> (_.foreach(if (_) UpdatedPost(forClient(post)) |> emitDynamic))
   })
 
   def deletePost(id: PostId): Future[Boolean] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to delete post
-    db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emitDynamic))
+    Db.post.delete(id) ||> (_.foreach(if (_) DeletePost(id) |> emitDynamic))
   })
 
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection] = withStateChange(_.withUserOrImplicit {
-    (OptionT(db.connection(sourceId, targetId)).map(forClient) ||> (_.map(NewConnection(_) |> emitDynamic))).value.map(_.get)
+    (OptionT(Db.connection(sourceId, targetId)).map(forClient) ||> (_.map(NewConnection(_) |> emitDynamic))).value.map(_.get)
   })
 
   def deleteConnection(id: ConnectionId): Future[Boolean] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to delete connection
-    db.connection.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emitDynamic))
+    Db.connection.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emitDynamic))
   })
 
   def createContainment(parentId: PostId, childId: PostId): Future[Containment] = withStateChange(_.withUserOrImplicit {
-    (OptionT(db.containment(parentId, childId)).map(forClient) ||> (_.map(NewContainment(_) |> emitDynamic))).value.map(_.get)
+    (OptionT(Db.containment(parentId, childId)).map(forClient) ||> (_.map(NewContainment(_) |> emitDynamic))).value.map(_.get)
   })
 
   def deleteContainment(id: ContainmentId): Future[Boolean] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to delete containment
-    db.containment.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emitDynamic))
+    Db.containment.delete(id) ||> (_.foreach(if (_) DeleteContainment(id) |> emitDynamic))
   })
 
   //TODO: return Future[Boolean]
   def respond(to: PostId, msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[(Post, Connection)] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
-    (db.connection.newPost(msg, to, groupIdOpt) ||> (_.foreach {
+    (Db.connection.newPost(msg, to, groupIdOpt) ||> (_.foreach {
       case Some((post, connection, ownershipOpt)) =>
         NewPost(post) |> emitDynamic
         NewConnection(connection) |> emitDynamic
@@ -103,9 +103,9 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
     }
   })
 
-  def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
+  def getUser(id: UserId): Future[Option[User]] = Db.user.get(id).map(_.map(forClient))
   def addGroup(): Future[Group] = withStateChange(_.withUserOrImplicit { user =>
-    val createdGroup = db.group.createForUser(user.id)
+    val createdGroup = Db.group.createForUser(user.id)
     createdGroup.map {
       case (group, membership) =>
         val clientGroup = forClient(group)
@@ -117,7 +117,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
 
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withStateChange(_.withUserOrImplicit { user =>
     //TODO: check if user has access to group
-    val createdMembership = db.group.addMember(groupId, userId)
+    val createdMembership = Db.group.addMember(groupId, userId)
     createdMembership.map { membership =>
       emit(ChannelEvent(Channel.Group(groupId), NewMembership(membership)))
 
@@ -128,18 +128,18 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   def createGroupInvite(groupId: GroupId): Future[Option[String]] = withState(_.withUser { user =>
     //TODO: check if user has access to group
     val token = RandomUtil.alphanumeric()
-    for (success <- db.group.createInvite(groupId, token))
+    for (success <- Db.group.createInvite(groupId, token))
       yield if (success) Option(token) else None
   })
 
   def acceptGroupInvite(token: String): Future[Option[GroupId]] = withState(_.withUser { user =>
     //TODO optimize into one request?
-    db.group.fromInvite(token).flatMap {
+    Db.group.fromInvite(token).flatMap {
       case Some(group) =>
-        val createdMembership = db.group.addMember(group.id, user.id)
+        val createdMembership = Db.group.addMember(group.id, user.id)
         createdMembership.map { membership =>
           emit(ChannelEvent(Channel.User(user.id), NewGroup(group)))
-          db.group.members(group.id).foreach { members =>
+          Db.group.members(group.id).foreach { members =>
             //TODO: this is a hack to work without subscribing
             for ((user, _) <- members; (groupUser, groupMembership) <- members) {
               emit(ChannelEvent(Channel.User(user.id), NewUser(groupUser)))
@@ -158,7 +158,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   // }
   def getUnion(userIdOpt: Option[UserId], parentIds: Set[PostId]): Future[Graph] = {
     //TODO: in stored procedure
-    db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
+    Db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
       val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
       graph -- graph.postsById.keys.filterNot(transitiveChildren)
@@ -169,7 +169,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
     val userIdOpt = uOpt.map(_.id)
     val graph = selection match {
       case GraphSelection.Root =>
-        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
+        Db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
       case GraphSelection.Union(parentIds) =>
         getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
     }

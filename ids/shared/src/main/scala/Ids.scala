@@ -20,5 +20,7 @@ package object ids {
   final case class UnknownConnectableId(id: IdType) extends ConnectableId
 
   final case class GroupId(val id: IdType)
+  object GroupId { implicit def fromIdType(id: IdType): GroupId = GroupId(id) }
   final case class UserId(val id: IdType)
+  object UserId { implicit def fromIdType(id: IdType): UserId = UserId(id) }
 }
