@@ -214,6 +214,7 @@ lazy val frontend = project
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
     emitSourceMaps := true,
+    emitSourceMaps in fullOptJS := false,
     npmDevDependencies in Compile ++= (
       "compression-webpack-plugin" -> "0.3.1" ::
       "brotli-webpack-plugin" -> "0.2.0" ::
