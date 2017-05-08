@@ -8,9 +8,9 @@ import wust.api._
 import wust.backend.auth._
 import wust.framework._
 import wust.util.Pipe
-import wust.db
+import wust.db.Db
 import wust.backend.config.Config
-import wust.backend.dbConversions._
+import wust.backend.DbConversions._
 import wust.graph.Group
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,7 +43,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
     if (prevState.map(_.auth != state.auth).getOrElse(true)) {
       val userIdOpt = state.auth.map(_.user.id)
       //TODO: with current graphselection
-      val newGraph = db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
+      val newGraph = Db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
 
       import sender.send
       newGraph.onComplete {

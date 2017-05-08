@@ -10,11 +10,11 @@ import scala.concurrent.{Future, ExecutionContext}
 
 object AuthHelper {
   import Config.auth.enableImplicit
-  import wust.db
-  import dbConversions._
+  import wust.db.Db
+  import DbConversions._
 
   def createImplicitAuth()(implicit ec: ExecutionContext): Future[JWTAuthentication] =
-    db.user.createImplicitUser().map(u => JWT.generateAuthentication(forClient(u)))
+    Db.user.createImplicitUser().map(u => JWT.generateAuthentication(forClient(u)))
 
   def actualOrImplicitAuth(auth: Option[JWTAuthentication])(implicit ec: ExecutionContext): Future[Option[JWTAuthentication]] = auth match {
     case None if enableImplicit => createImplicitAuth().map(Option.apply)

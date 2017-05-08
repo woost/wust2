@@ -16,4 +16,6 @@ package object db {
   case class UserGroup(id: GroupId)
   object UserGroup { def apply(): UserGroup = UserGroup(GroupId(0L)) }
   case class Ownership(postId: PostId, groupId: GroupId)
+
+  type Graph = (Iterable[Post], Iterable[Connection], Iterable[Containment], Iterable[UserGroup], Iterable[Ownership], Iterable[User], Iterable[Membership])
 }

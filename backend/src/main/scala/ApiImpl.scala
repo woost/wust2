@@ -1,6 +1,6 @@
 package wust.backend
 
-import wust.Db
+import wust.db.Db
 import wust.ids._
 import wust.api._
 import wust.backend.auth._

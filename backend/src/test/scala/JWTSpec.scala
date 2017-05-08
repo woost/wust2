@@ -10,7 +10,7 @@ class jwtSpec extends FreeSpec with MustMatchers {
   implicit def intToUserId(id: Int): UserId = UserId(id)
 
   object User {
-    def apply(name: String): User = new User(0, name, isImplicit = false, wust.db.User.initialRevision)
+    def apply(name: String): User = new User(wust.db.DEFAULT, name, isImplicit = false, wust.db.Db.user.initialRevision)
   }
 
   "generate auth for user" in {

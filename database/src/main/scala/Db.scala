@@ -358,8 +358,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    type Graph = (Iterable[Post], Iterable[Connection], Iterable[Containment], Iterable[UserGroup], Iterable[Ownership], Iterable[User], Iterable[Membership])
-
     def getAllVisiblePosts(userIdOpt: Option[UserId]): Future[Graph] = {
       def ownerships(groupIds: Quoted[Query[GroupId]]) = quote {
         for {

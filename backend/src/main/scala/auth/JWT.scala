@@ -6,7 +6,6 @@ import io.igl.jwt._
 import wust.ids._
 import wust.api._
 import wust.backend.config.Config
-import wust.backend.dbConversions._
 
 object Claims {
   import play.api.libs.functional.syntax._

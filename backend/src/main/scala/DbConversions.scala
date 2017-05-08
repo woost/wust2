@@ -5,6 +5,7 @@ import wust.db
 import wust.graph._
 
 object DbConversions {
+
   implicit def forClient(post: db.Post) = Post(post.id, post.title)
   implicit def forDb(post: Post) = db.Post(post.id, post.title)
   implicit def forClient(c: db.Connection) = Connection(c.id, c.sourceId, c.targetId)
@@ -15,7 +16,7 @@ object DbConversions {
   implicit def forClient(ownership: db.Ownership) = Ownership(ownership.postId, ownership.groupId)
   implicit def forClient(membership: db.Membership) = Membership(membership.userId, membership.groupId)
 
-  def forClient(tuple: db.graph.Graph): Graph = {
+  def forClient(tuple: db.Graph): Graph = {
     val (posts, connections, containments, groups, ownerships, users, memberships) = tuple
     Graph(
       posts.map(forClient),
