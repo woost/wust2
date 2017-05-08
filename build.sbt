@@ -163,7 +163,7 @@ lazy val database = project
       "com.typesafe" % "config" % "1.3.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       "org.postgresql" % "postgresql" % "9.4.1208" % "test,it" ::
-      "io.getquill" %% "quill-jdbc" % "1.1.2-SNAPSHOT" % "test,it" ::
+      "io.getquill" %% "quill-jdbc" % "1.1.1" % "test,it" :: //TODO: variable for quill version
       Nil
   // parallelExecution in IntegrationTest := false
   )
@@ -178,6 +178,7 @@ lazy val backend = project
   .settings(
     addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++=
+      "org.typelevel" %% "cats" % "0.9.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::

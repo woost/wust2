@@ -1,6 +1,6 @@
 package wust.backend
 
-import java.io.{PrintWriter, StringWriter}
+import java.io.{ PrintWriter, StringWriter }
 
 import akka.http.scaladsl.server.Directives._
 import boopickle.Default._
@@ -16,7 +16,7 @@ import wust.graph.Group
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import collection.breakOut
 
 // TODO: crashes coverage @derive(copyF)
@@ -25,14 +25,11 @@ case class State(auth: Option[JWTAuthentication]) {
 }
 
 class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiEvent, ApiError, State] {
-  import Config.usergroup.{publicId => publicGroupId}
-
   private def subscribeChannels(auth: Option[JWTAuthentication], extraGroups: Iterable[Group], sender: EventSender[ApiEvent]) = {
     dispatcher.unsubscribe(sender)
 
     dispatcher.subscribe(sender, Channel.All)
     //TODO: currently updates to a group (via api) are not automatically subscribed!
-    dispatcher.subscribe(sender, Channel.Group(publicGroupId))
     extraGroups
       .map(g => Channel.Group(g.id))
       .foreach(dispatcher.subscribe(sender, _))
@@ -47,7 +44,6 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
       val userIdOpt = state.auth.map(_.user.id)
       //TODO: with current graphselection
       val newGraph = db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent)
-        .map(_.withoutGroup(publicGroupId))
 
       import sender.send
       newGraph.onComplete {
@@ -69,8 +65,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher) extends RequestHandler[ApiE
 
     (
       AutowireServer.route[Api](new ApiImpl(stateAccess)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess))
-    ) andThen {
+      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess))) andThen {
         res =>
           val newState = for {
             state <- state

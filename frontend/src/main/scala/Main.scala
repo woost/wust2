@@ -38,7 +38,6 @@ object Main extends js.JSApp {
     state.inviteToken.foreach {
       case Some(token) => Client.api.acceptGroupInvite(token).call().foreach {
         _.foreach { groupId =>
-          println(s"accepted group invitation ($token): group ${groupId}")
           state.selectedGroupId() = Option(groupId)
         }
       }

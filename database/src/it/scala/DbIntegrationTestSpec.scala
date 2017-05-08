@@ -12,9 +12,18 @@ import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 
 import wust.ids._
 
-trait DbIntegrationTestSpec extends fixture.AsyncFreeSpec {
+object DbIntegrationTestSpec {
   val defaultDbConfig = ConfigFactory.load().getConfig("db")
-  val dbCreatorCtx = new PostgresJdbcContext[LowerCase](ConfigFactory.load().getConfig("integrationTestDb"))
+  val integrationTestDbConfig = ConfigFactory.load().getConfig("integrationTestDb")
+}
+
+trait DbIntegrationTestSpec extends fixture.AsyncFreeSpec with BeforeAndAfterAll {
+  import DbIntegrationTestSpec._
+  val dbCreatorCtx = new PostgresJdbcContext[LowerCase](integrationTestDbConfig)
+
+  override def afterAll() {
+    dbCreatorCtx.close()
+  }
 
   type FixtureParam = Db
   def withFixture(test: OneArgAsyncTest): FutureOutcome = {
@@ -34,7 +43,7 @@ trait DbIntegrationTestSpec extends fixture.AsyncFreeSpec {
       try {
         // println(s"$tmpDbName: dropping...")
         dbCreatorCtx.executeAction(s"""DROP DATABASE "$tmpDbName"""")
-      } catch { case e => println(e) }
+      } catch { case e: Throwable => println(e) }
     }
   }
 }

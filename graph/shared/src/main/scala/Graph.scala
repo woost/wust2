@@ -225,8 +225,10 @@ package object graph {
 
     def ++(atoms: Iterable[Atom]) = atoms.foldLeft(this)((g, a) => g + a)
 
-    def withoutGroup(groupId: GroupId) =
-      copy(groupsById = groupsById - groupId, ownerships = ownerships.filter(_.groupId != groupId), memberships = memberships.filter(_.groupId != groupId))
+    def withoutGroup(groupId: GroupId) = copy(
+      groupsById = groupsById - groupId,
+      ownerships = ownerships.filter(_.groupId != groupId),
+      memberships = memberships.filter(_.groupId != groupId))
 
     def consistent = {
       val invalidConnections = connections

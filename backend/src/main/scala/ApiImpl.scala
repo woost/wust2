@@ -12,6 +12,9 @@ import dbConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import cats.data.OptionT // helpers for Future[Option[T]] - http://typelevel.org/cats/datatypes/optiont.html
+import cats.implicits._
+
 object RandomUtil {
   import java.math.BigInteger
   import java.security.SecureRandom
@@ -24,7 +27,6 @@ object RandomUtil {
 }
 
 class ApiImpl(stateAccess: StateAccess) extends Api {
-  import Config.usergroup.{ publicId => publicGroupId }
   import Server.{ emit, emitDynamic }
   import stateAccess._
 
@@ -34,16 +36,18 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   def addPost(
     msg: String,
     selection: GraphSelection,
-    groupId: Option[GroupId]): Future[Post] = withStateChange(_.withUserOrImplicit {
+    groupIdOpt: Option[GroupId]): Future[Post] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
-    (db.post(msg, groupId.getOrElse(publicGroupId)) ||> (_.foreach {
-      case (post, ownership) =>
+    (db.post(msg, groupIdOpt) ||> (_.foreach {
+      case (post, ownershipOpt) =>
         NewPost(forClient(post)) |> emitDynamic
-        NewOwnership(forClient(ownership)) |> emitDynamic
+        ownershipOpt.foreach { ownership =>
+          NewOwnership(forClient(ownership)) |> emitDynamic
+        }
 
         selection match {
           case GraphSelection.Union(parentIds) =>
-            parentIds.foreach(contain(_, post.id))
+            parentIds.foreach(createContainment(_, post.id))
           case _ =>
         }
     })) map { case (post, _) => forClient(post) }
@@ -60,7 +64,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   })
 
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection] = withStateChange(_.withUserOrImplicit {
-    db.connection(sourceId, targetId).map(forClient) ||> (_.foreach(NewConnection(_) |> emitDynamic))
+    (OptionT(db.connection(sourceId, targetId)).map(forClient) ||> (_.map(NewConnection(_) |> emitDynamic))).value.map(_.get)
   })
 
   def deleteConnection(id: ConnectionId): Future[Boolean] = withStateChange(_.withUserOrImplicit {
@@ -68,8 +72,8 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
     db.connection.delete(id) ||> (_.foreach(if (_) DeleteConnection(id) |> emitDynamic))
   })
 
-  def contain(parentId: PostId, childId: PostId): Future[Containment] = withStateChange(_.withUserOrImplicit {
-    db.containment(parentId, childId).map(forClient) ||> (_.foreach(NewContainment(_) |> emitDynamic))
+  def createContainment(parentId: PostId, childId: PostId): Future[Containment] = withStateChange(_.withUserOrImplicit {
+    (OptionT(db.containment(parentId, childId)).map(forClient) ||> (_.map(NewContainment(_) |> emitDynamic))).value.map(_.get)
   })
 
   def deleteContainment(id: ContainmentId): Future[Boolean] = withStateChange(_.withUserOrImplicit {
@@ -78,25 +82,30 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   })
 
   //TODO: return Future[Boolean]
-  def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Option[GroupId]): Future[(Post, Connection)] = withStateChange(_.withUserOrImplicit {
+  def respond(to: PostId, msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[(Post, Connection)] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
-    (db.connection.newPost(msg, to, groupId.getOrElse(publicGroupId)) ||> (_.foreach {
-      case (post, connection, ownership) =>
+    (db.connection.newPost(msg, to, groupIdOpt) ||> (_.foreach {
+      case Some((post, connection, ownershipOpt)) =>
         NewPost(post) |> emitDynamic
         NewConnection(connection) |> emitDynamic
-        NewOwnership(ownership) |> emitDynamic
+        ownershipOpt.foreach { ownership =>
+          NewOwnership(ownership) |> emitDynamic
+        }
 
         selection match {
           case GraphSelection.Union(parentIds) =>
-            parentIds.foreach(contain(_, post.id))
+            parentIds.foreach(createContainment(_, post.id))
           case _ =>
         }
-    })).map { case (post, connection, _) => (forClient(post), forClient(connection)) }
+      case None =>
+    })).map {
+      case Some((post, connection, _)) => (forClient(post), forClient(connection))
+    }
   })
 
   def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
   def addGroup(): Future[Group] = withStateChange(_.withUserOrImplicit { user =>
-    val createdGroup = db.user.createGroupForUser(user.id)
+    val createdGroup = db.group.createForUser(user.id)
     createdGroup.map {
       case (group, membership) =>
         val clientGroup = forClient(group)
@@ -107,46 +116,34 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   })
 
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withStateChange(_.withUserOrImplicit { user =>
-    //TODO this should be handled in the query, just return false in db.user.addMember
-    //TODO NEVER use bare exception! we have an exception for apierrors: ApiException(something)
-    if (groupId == publicGroupId) Future.failed(new Exception("adding members to public group is not allowed"))
+    //TODO: check if user has access to group
+    val createdMembership = db.group.addMember(groupId, userId)
+    createdMembership.map { membership =>
+      emit(ChannelEvent(Channel.Group(groupId), NewMembership(membership)))
 
-    else {
-      //TODO: check if user has access to group
-      val createdMembership = db.user.addMember(groupId, userId)
-      createdMembership.map { membership =>
-        emit(ChannelEvent(Channel.Group(groupId), NewMembership(Membership(membership.userId.get, membership.groupId))))
-
-        true
-      }
+      true
     }
   })
 
   def createGroupInvite(groupId: GroupId): Future[Option[String]] = withState(_.withUser { user =>
-    //TODO this should be handled in the query, just return false in db.user.addMember
-    //TODO NEVER use bare exception! we have an exception for apierrors: ApiException(something)
-    if (groupId == publicGroupId) Future.failed(new Exception("adding members to public group is not allowed"))
-    else {
-      //TODO: check if user has access to group
-      val token = RandomUtil.alphanumeric()
-      for (success <- db.user.createGroupInvite(groupId, token))
-        yield if (success) Option(token) else None
-    }
+    //TODO: check if user has access to group
+    val token = RandomUtil.alphanumeric()
+    for (success <- db.group.createInvite(groupId, token))
+      yield if (success) Option(token) else None
   })
 
   def acceptGroupInvite(token: String): Future[Option[GroupId]] = withState(_.withUser { user =>
     //TODO optimize into one request?
-    db.user.userGroupFromInvite(token).flatMap {
+    db.group.fromInvite(token).flatMap {
       case Some(group) =>
-        val createdMembership = db.user.addMember(group.id, user.id)
+        val createdMembership = db.group.addMember(group.id, user.id)
         createdMembership.map { membership =>
           emit(ChannelEvent(Channel.User(user.id), NewGroup(group)))
           db.group.members(group.id).foreach { members =>
-            println(group.id)
             //TODO: this is a hack to work without subscribing
             for ((user, _) <- members; (groupUser, groupMembership) <- members) {
               emit(ChannelEvent(Channel.User(user.id), NewUser(groupUser)))
-              emit(ChannelEvent(Channel.User(user.id), NewMembership(Membership(groupMembership.userId.get, groupMembership.groupId))))
+              emit(ChannelEvent(Channel.User(user.id), NewMembership(groupMembership)))
             }
           }
 
@@ -177,6 +174,6 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
         getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
     }
 
-    graph.map(_.withoutGroup(publicGroupId))
+    graph
   })
 }

@@ -13,7 +13,7 @@ trait Api {
   def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Option[GroupId]): Future[(Post, Connection)]
   def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection]
-  def contain(parentId: PostId, childId: PostId): Future[Containment]
+  def createContainment(parentId: PostId, childId: PostId): Future[Containment]
   def deleteConnection(id: ConnectionId): Future[Boolean]
   def deleteContainment(id: ContainmentId): Future[Boolean]
   def getUser(userId: UserId): Future[Option[User]]

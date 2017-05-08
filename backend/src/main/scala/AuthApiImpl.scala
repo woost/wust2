@@ -29,7 +29,7 @@ class AuthApiImpl(stateAccess: StateAccess) extends AuthApi {
 
   def loginToken(token: Authentication.Token): Future[Option[Authentication]] = withStateChange { state =>
     val auth = JWT.authenticationFromToken(token).map { auth =>
-      for (valid <- db.user.checkEqualUserExists(auth.user))
+      for (valid <- db.user.checkIfEqualUserExists(auth.user))
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))
 

@@ -106,8 +106,10 @@ object DevView {
                   })
               }
             }
-          }
-        )
+          })
+      // ,Rx {
+      //   state.rawGraph().toSummaryString
+      // }
       ),
       Rx {
         (state.jsError() match {
