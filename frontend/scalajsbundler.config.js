@@ -8,7 +8,11 @@ var config = require('./scalajs.webpack.config');
 
 config.plugins = config.plugins || [];
 
-config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+config.plugins.push(new webpack.optimize.UglifyJsPlugin({
+    compress: {
+        warnings: false
+    }
+}));
 // config.plugins.push(new ClosureCompilerPlugin({
 //   compiler: {
 //     language_in: 'ECMASCRIPT5',
