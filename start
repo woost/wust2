@@ -13,7 +13,7 @@ function sbt_arg() {
     arg=$1
     [ -n "$override_sbt_arg" ] && arg="$override_sbt_arg"
 
-    sbt $arg
+    sbt -Dquill.macro.log=false $arg
 }
 
 case $stage in
@@ -56,7 +56,6 @@ test.integration)
     export WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 CI=true
     until docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE $POSTGRES_DB"; do sleep 1; done
     sbt_arg it:test
-    # sbt_arg  -Dquill.macro.log=false ~database/it:testQuick
     $compose down
     ;;
 test.prod.http)
