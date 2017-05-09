@@ -4,6 +4,7 @@ import java.io.{ PrintWriter, StringWriter }
 
 import akka.http.scaladsl.server.Directives._
 import boopickle.Default._
+import derive.derive
 import wust.api._
 import wust.backend.auth._
 import wust.framework._
