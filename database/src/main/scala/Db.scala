@@ -5,7 +5,10 @@ import wust.ids._
 import wust.config.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
+import wust.ids._
+import scala.util.{Try, Success, Failure}
 
 object Db {
   private[db] val ctx = new PostgresAsyncContext[LowerCase](Config.db)
@@ -303,23 +306,30 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object group {
-    def createForUser(userId: UserId): Future[(UserGroup, Membership)] =
+    def createForUser(userId: UserId): Future[Option[(UserGroup, Membership)]] =
       ctx.transaction { _ =>
         //TODO report quill bug:
         // val q = quote(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         // --> produces: "INSERT INTO "usergroup" () VALUES ()"
         // --> should be: "INSERT INTO "usergroup" (id) VALUES (DEFAULT)"
-        for {
-          groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-          m <- ctx.run(query[Membership].insert(lift(Membership(groupId, userId)))) //TODO: what is m? What does it return?
-        } yield (UserGroup(groupId), Membership(groupId, userId))
+        val userOptFut = ctx.run(query[User].filter(_.id == lift(userId))).map(_.headOption)
+        userOptFut.flatMap { userOpt =>
+          userOpt match {
+            case Some(_) =>
+              for {
+                groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
+                m <- ctx.run(query[Membership].insert(lift(Membership(groupId, userId)))) //TODO: what is m? What does it return?
+              } yield Option((UserGroup(groupId), Membership(groupId, userId)))
+            case None => Future.successful(None)
+          }
+        }.recover { case _ => None }
       }
 
-    def addMember(groupId: GroupId, userId: UserId): Future[Membership] = {
+    def addMember(groupId: GroupId, userId: UserId): Future[Option[Membership]] = {
       val q = quote(
         infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]]
       )
-      ctx.run(q).map(_ => Membership(groupId, userId))
+      ctx.run(q).map(_ => Option(Membership(groupId, userId))).recover{case _ => None}
     }
 
     def hasAccessToPost(userId: UserId, postId: PostId): Future[Boolean] = {

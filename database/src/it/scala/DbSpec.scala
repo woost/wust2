@@ -585,6 +585,88 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
   }
 
   "group" - {
+    "create group for existing user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(user) <- db.user("garna", "utria")
+        Some((group, membership)) <- db.group.createForUser(user.id)
+        queryGroups <- ctx.run(query[UserGroup])
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        queryGroups must contain theSameElementsAs List(group)
+        queryMemberships must contain theSameElementsAs List(membership)
+
+        membership mustEqual Membership(group.id, user.id)
+      }
+    }
+
+    "create group for non-existing user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        resultOpt <- db.group.createForUser(13153)
+        queryGroups <- ctx.run(query[UserGroup])
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        resultOpt mustEqual None
+        queryGroups mustBe empty
+        queryMemberships mustBe empty
+      }
+    }
+
+    "add existing user to existing group" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(initialUser) <- db.user("garna", "utria")
+        Some((group, _)) <- db.group.createForUser(initialUser.id)
+        Some(user) <- db.user("furo", "garnaki")
+
+        Some(membership) <- db.group.addMember(group.id, user.id)
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        membership mustEqual Membership(group.id, user.id)
+        queryMemberships must contain theSameElementsAs List(Membership(group.id, initialUser.id), membership)
+      }
+    }
+
+    "add non-existing user to existing group" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(initialUser) <- db.user("garna", "utria")
+        Some((group, _)) <- db.group.createForUser(initialUser.id)
+        Some(user) <- db.user("furo", "garnaki")
+
+        membershipOpt <- db.group.addMember(group.id, 131551)
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        membershipOpt mustEqual None
+        queryMemberships must contain theSameElementsAs List(Membership(group.id, initialUser.id))
+      }
+    }
+
+    "add existing user to non-existing group" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(user) <- db.user("garna", "utria")
+
+        membershipOpt <- db.group.addMember(13515, user.id)
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        membershipOpt mustEqual None
+        queryMemberships mustBe empty
+      }
+    }
+
+    "add non-existing user to non-existing group" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        membershipOpt <- db.group.addMember(13515, 68415)
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        membershipOpt mustEqual None
+        queryMemberships mustBe empty
+      }
+    }
+
     "hasAccessToPost" - {
       "post in pubic group" in { db =>
         val Some(user) = await(db.user("u", "123456"))
@@ -595,14 +677,14 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       "post in private group (user not member)" in { db =>
         val Some(user) = await(db.user("u2", "123456"))
         val Some(user2) = await(db.user("other", "123456"))
-        val (group, _) = await(db.group.createForUser(user2.id))
+        val Some((group, _)) = await(db.group.createForUser(user2.id))
         val (post, _) = await(db.post.createOwned("p", group.id))
         db.group.hasAccessToPost(user.id, post.id).map(_ must be(false))
       }
 
       "post in private group (user is member)" in { db =>
         val Some(user) = await(db.user("u3", "123456"))
-        val (group, _) = await(db.group.createForUser(user.id))
+        val Some((group, _)) = await(db.group.createForUser(user.id))
         val (post, _) = await(db.post.createOwned("p", group.id))
         db.group.hasAccessToPost(user.id, post.id).map(_ must be(true))
       }
@@ -637,7 +719,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          (group, membership) <- db.group.createForUser(user.id)
+          Some((group, membership)) <- db.group.createForUser(user.id)
 
           postA <- db.post.createPublic("A")
           (postB, ownershipB) <- db.post.createOwned("B", group.id)
@@ -687,7 +769,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          (group, membership) <- db.group.createForUser(user.id)
+          Some((group, membership)) <- db.group.createForUser(user.id)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
@@ -706,7 +788,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          (group, membership) <- db.group.createForUser(user.id)
+          Some((group, membership)) <- db.group.createForUser(user.id)
 
           postA <- db.post.createPublic("A")
           (postB, ownershipB) <- db.post.createOwned("B", group.id)
@@ -731,10 +813,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          (group, membership) <- db.group.createForUser(user.id)
+          Some((group, membership)) <- db.group.createForUser(user.id)
 
           Some(otherUser) <- db.user("gurkulo", "meisin")
-          (otherGroup, otherMembership) <- db.group.createForUser(otherUser.id)
+          Some((otherGroup, otherMembership)) <- db.group.createForUser(otherUser.id)
 
           postA <- db.post.createPublic("A")
           (postB, ownershipB) <- db.post.createOwned("B", group.id)

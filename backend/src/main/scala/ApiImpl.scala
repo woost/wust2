@@ -102,7 +102,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
   def addGroup(): Future[Group] = withUser { (_, user) =>
     val createdGroup = db.group.createForUser(user.id)
     createdGroup.map {
-      case (group, membership) =>
+      case Some((group, membership)) =>
         val clientGroup = forClient(group)
         val membership = Membership(user.id, group.id)
         RequestResponse(clientGroup, NewGroup(clientGroup), NewMembership(membership))
@@ -112,7 +112,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUser { (_, user) =>
     //TODO: check if user has access to group
     val createdMembership = db.group.addMember(groupId, userId)
-    createdMembership.map { membership =>
+    createdMembership.map { case Some(membership) =>
       RequestResponse(true, NewMembership(membership))
     }
   }
