@@ -12,7 +12,6 @@ class Notifications {
   // https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
   def notificationsGranted = Notification.permission == "granted"
   def notificationsDenied = Notification.permission == "denied"
-  println(window.navigator)
 
   def notify(title: String, body: Option[String] = None, onclick: Notification => Any = _ => ()) {
     def fire() {
