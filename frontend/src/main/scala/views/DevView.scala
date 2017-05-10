@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import wust.frontend.{ Client, GlobalState }
+import wust.frontend.{Client, GlobalState}
 import wust.ids._
 import wust.graph._
 import wust.frontend.LoggedOut
@@ -12,20 +12,28 @@ import scalatags.JsDom.all._
 import wust.util.tags._
 import rx._
 import scalatags.rx.all._
-import concurrent.duration.{ span => _, _ }
+import concurrent.duration.{span => _, _}
 import collection.breakOut
 import wust.api._
 import wust.util.AutoId
+import scalajs.js
+import org.scalajs.dom.document
+import org.scalajs.dom.raw.HTMLElement
 
 object DevView {
-  import scala.util.Random.{ nextInt => rInt, nextString => rStr }
+  import scala.util.Random.{nextInt => rInt, nextString => rStr}
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     span(
       div(
+        id := "devview",
         position.fixed, right := 0, top := 50, display.flex, flexDirection.column,
         padding := 2,
-        backgroundColor := "rgba(248,240,255,0.7)", border := "1px solid #ECD7FF", Rx {
+        backgroundColor := "rgba(248,240,255,0.7)", border := "1px solid #ECD7FF",
+        div(position.absolute, right := 0, top := 0, "x", cursor := "pointer", onclick := { () =>
+          document.getElementById("devview").asInstanceOf[HTMLElement].style.display = "none"
+        }),
+        Rx {
           val users = List("a", "b", "c", "d", "e", "f", "g")
           div(
             "login: ",
@@ -36,14 +44,16 @@ object DevView {
                   Client.auth.login(u, u)
                 }
               }
-            }))).render
+            }))
+          ).render
         },
         Rx {
           def addRandomPost() { Client.api.addPost(rStr(1 + rInt(20)), state.graphSelection(), state.selectedGroupId()).call() }
           div(
             button("create random post", onclick := { () => addRandomPost() }),
             button("10", onclick := { () => for (_ <- 0 until 10) addRandomPost() }),
-            button("100", onclick := { () => for (_ <- 0 until 100) addRandomPost() })).render
+            button("100", onclick := { () => for (_ <- 0 until 100) addRandomPost() })
+          ).render
         },
         Rx {
           val posts = scala.util.Random.shuffle(state.displayGraph().graph.postsById.keys.toSeq)
@@ -51,7 +61,8 @@ object DevView {
           div(
             button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),
             button("10", onclick := { () => posts.take(10) foreach deletePost }),
-            button("100", onclick := { () => posts.take(100) foreach deletePost })).render
+            button("100", onclick := { () => posts.take(100) foreach deletePost })
+          ).render
         },
         div(
           "Random Events:",
@@ -73,7 +84,8 @@ object DevView {
                 (2, () => randomConnectionId.map(DeleteConnection(_))) ::
                 (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewContainment(Containment(nextAtomId(), p1, p2))) ::
                 (2, () => randomContainmentId.map(DeleteContainment(_))) ::
-                Nil)
+                Nil
+              )
               distribution.flatMap { case (count, f) => List.fill(count)(f) }(breakOut)
             }
             def randomEvent = events(rInt(events.size))()
@@ -89,7 +101,8 @@ object DevView {
               0.5.seconds ::
               0.1.seconds ::
               Duration.Inf ::
-              Nil)
+              Nil
+            )
             val prefix = "DevViewRandomEventTimer"
             for (i <- intervals) yield {
               val iid = s"$prefix$i"
@@ -106,7 +119,8 @@ object DevView {
                   })
               }
             }
-          })
+          }
+        )
       // ,Rx {
       //   state.rawGraph().toSummaryString
       // }
@@ -118,9 +132,11 @@ object DevView {
               position.fixed, right := 0, bottom := 50,
               border := "1px solid #FFD7D7", backgroundColor := "#FFF0F0", color := "#C41A16",
               width := "90%", margin := 10, padding := 10, whiteSpace := "pre-wrap",
-              error)
+              error
+            )
           case None => span()
         }).render
-      })
+      }
+    )
   }
 }
