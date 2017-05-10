@@ -15,4 +15,4 @@ if [[ ! -e $compose_path ]]; then
     exit 1
 fi
 
-docker-compose --project $compose_project --file $compose_path $args
+docker-compose --project-name $compose_project --file $compose_path $args
