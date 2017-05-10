@@ -27,7 +27,7 @@ object RandomUtil {
 }
 
 class ApiImpl(stateAccess: StateAccess) extends Api {
-  import Server.{ emit, emitDynamic }
+  import Server.{emit, emitDynamic}
   import stateAccess._
 
   def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id).map(_.map(forClient))
@@ -36,7 +36,8 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   def addPost(
     msg: String,
     selection: GraphSelection,
-    groupIdOpt: Option[GroupId]): Future[Post] = withStateChange(_.withUserOrImplicit {
+    groupIdOpt: Option[GroupId]
+  ): Future[Post] = withStateChange(_.withUserOrImplicit {
     //TODO: check if user is allowed to create post in group
     (Db.post(msg, groupIdOpt) ||> (_.foreach {
       case (post, ownershipOpt) =>
@@ -124,6 +125,13 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
       true
     }
   })
+
+  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = {
+    Db.user.byName(userName).flatMap {
+      case Some(user) => addMember(groupId, user.id)
+      case None => Future.successful(false)
+    }
+  }
 
   def createGroupInvite(groupId: GroupId): Future[Option[String]] = withState(_.withUser { user =>
     //TODO: check if user has access to group

@@ -62,18 +62,30 @@ object UserView {
     )
 
   val registerMask = div(userField, passwordField, registerButton)
-  def userProfile(user: User) = div(user.toString)
+  // def userProfile(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+  //   span(state.currentUser.map(_.filterNot(_.isImplicit).map { user =>
+  //     span(s"${user.name}").render
+  //   }.getOrElse(span()))).render
+  // }
+
   def groupProfile(groups: Seq[Group])(implicit ctx: Ctx.Owner) = div(groups.map(groupInvite): _*)
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div {
-    Rx {
-      val userOpt = state.currentUser()
-      val graph = state.rawGraph()
-      userOpt match {
-        case Some(user) =>
-          userProfile(user)(if (user.isImplicit) registerMask else logoutButton)(groupProfile(graph.groups.toSeq)).render
-        case None => registerMask(loginButton).render
-      }
-    }
+  def topBarUserStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    (state.currentUser() match {
+      case Some(user) if !user.isImplicit => span(user.name, logoutButton)
+      case _ => registerMask(loginButton)
+    }).render
   }
+
+  // def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div {
+  //   Rx {
+  //     val userOpt = state.currentUser()
+  //     val graph = state.rawGraph()
+  //     userOpt match {
+  //       case Some(user) =>
+  //         userProfile(user)(if (user.isImplicit) registerMask else logoutButton)(groupProfile(graph.groups.toSeq)).render
+  //       case None => registerMask(loginButton).render
+  //     }
+  //   }
+  // }
 }

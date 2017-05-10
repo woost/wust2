@@ -11,6 +11,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import wust.graph.GraphSelection
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
@@ -24,7 +25,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
       // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
       MenuAction("Delete", { (p: SimPost, _: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
       MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
-      MenuAction("Focus", { (p: SimPost, _: Simulation[SimPost]) => graphState.state.graphSelection.updatef(_.add(p.id)) }) ::
+      MenuAction("Focus", { (p: SimPost, _: Simulation[SimPost]) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
       Nil
 
   override val tag = "g"

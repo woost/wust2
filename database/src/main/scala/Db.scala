@@ -3,10 +3,10 @@ package wust.db
 import io.getquill._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Future, Await }
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
 import wust.ids._
-import scala.util.{ Try, Success, Failure }
+import scala.util.{Try, Success, Failure}
 
 object Db extends Db(new PostgresAsyncContext[LowerCase]("db"))
 
@@ -244,10 +244,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             val updatedUser = user.copy(
               name = name,
               isImplicit = false,
-              revision = user.revision + 1)
+              revision = user.revision + 1
+            )
             for {
               _ <- ctx.run(
-                query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
+                query[User].filter(_.id == lift(id)).update(lift(updatedUser))
+              )
               _ <- ctx.run(query[Password].insert(lift(Password(id, digest))))
             } yield Option(updatedUser)
           }
@@ -280,6 +282,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         })
     }
 
+    def byName(name: String): Future[Option[User]] = {
+      ctx.run {
+        query[User]
+          .filter(u => u.name == lift(name) && u.isImplicit == false)
+          .take(1)
+      }.map(_.headOption)
+    }
+
     def checkIfEqualUserExists(user: User): Future[Boolean] = {
       import user._
       val q = quote(query[User]
@@ -304,7 +314,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def addMember(groupId: GroupId, userId: UserId): Future[Membership] = {
       val q = quote(
-        infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]])
+        infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]]
+      )
       ctx.run(q).map(_ => Membership(groupId, userId))
     }
 
@@ -384,10 +395,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           }
 
           val myGroupsMemberships = quote {
-          for {
+            for {
               myM <- myMemberships
               otherM <- query[Membership].filter(otherM => otherM.groupId == myM.groupId)
-          } yield otherM 
+            } yield otherM
           }
 
           val myGroupsMembers = quote {
@@ -427,7 +438,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
               myGroups.map(UserGroup.apply),
               ownerships,
               (users ++ user).toSet,
-              memberships)
+              memberships
+            )
           }
 
         case None => // not logged in, can only see posts of public groups
@@ -444,7 +456,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
               posts,
               connection.filter(c => (postSet contains c.sourceId) && (postSet contains PostId(c.targetId.id))),
               containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
-              Nil, Nil, Nil, Nil)
+              Nil, Nil, Nil, Nil
+            )
           }
       }
     }

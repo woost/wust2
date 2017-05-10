@@ -3,9 +3,9 @@ package wust.frontend.views
 import autowire._
 import boopickle.Default._
 import org.scalajs.dom
-import org.scalajs.dom.{ Event, KeyboardEvent, document }
+import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import rx._
 import wust.frontend._
 import wust.ids._
@@ -22,20 +22,22 @@ object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None }),
-      Views.parents(postId, graph))
+      Views.parents(postId, graph)
+    )
   }
 
   def responseLabel(graph: Graph, postId: PostId) = {
     div(
       Views.parents(postId, graph),
       Views.post(graph.postsById(postId)),
-      "respond: ")
+      "respond: "
+    )
   }
 
   val newLabel = div("New Post:")
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    import state.{ displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode }
+    import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
 
     rxMode.foreach { mode =>
       val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
@@ -86,47 +88,12 @@ object AddPostForm {
                   }
                 }
                 ()
-              })),
+              })
+            )
+          ).render
 
-            div(" in group: ", state.rawGraph.map { graph =>
-              select {
-                // only looking at memberships is sufficient to list groups, because the current user is member of each group
-                val groupNames = graph.usersByGroupId.mapValues { users =>
-                  users.map(id => graph.usersById(id).name).mkString(",")
-                }
-
-                val publicOption = option("public", value := "")
-                val groupOptions = groupNames.map {
-                  case (groupId, name) =>
-                    val opt = option(s"${groupId.id}: $name", value := groupId.id)
-                    if (state.selectedGroupId().contains(groupId)) opt(selected)
-                    else opt
-                }
-
-                publicOption +: groupOptions.toSeq
-              }(
-                onchange := { (e: Event) =>
-                  val id = Option(e.target.asInstanceOf[HTMLSelectElement].value).filter(_.nonEmpty).map(_.toLong)
-                  state.selectedGroupId() = id.map(GroupId(_))
-                }).render
-            }),
-
-            button("new group", onclick := { () =>
-              Client.api.addGroup().call().foreach { group =>
-                state.selectedGroupId() = Option(group.id)
-              }
-            }),
-            if (state.selectedGroupId().isDefined) {
-              val field = input(placeholder := "invite user by id").render
-              div(field, button("invite", onclick := { () =>
-                Try(UserId(field.value.toLong)).foreach { userId =>
-                  state.selectedGroupId().foreach(Client.api.addMember(_, userId).call().foreach { _ =>
-                    field.value = ""
-                  })
-                }
-              }))
-            } else div()).render
         }
-      })
+      }
+    )
   }
 }
