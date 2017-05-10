@@ -3,6 +3,8 @@ package wust.frontend.views
 import autowire._
 import boopickle.Default._
 import org.scalajs.dom._
+import org.scalajs.dom.window.location
+import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
@@ -121,6 +123,19 @@ object MainView {
     } else div().render)
   }
 
+  def currentGroupInviteLink(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val inviteLink = Var[Option[String]](None)
+    Rx {
+      state.selectedGroupId().map { groupId =>
+        Client.api.createGroupInvite(groupId).call().foreach {
+          case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
+          case None =>
+        }
+      }
+    }
+    inviteLink.map(_.map(aUrl(_)(fontSize := "8px")).getOrElse(span()).render)
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
@@ -132,7 +147,8 @@ object MainView {
           // upButton(state),
           focusedParents(state),
           groupSelector(state),
-          inviteUserToGroupField(state)),
+          inviteUserToGroupField(state),
+          currentGroupInviteLink(state)),
 
         div(display.flex, alignItems.center, justifyContent.flexEnd,
           newGroupButton(state),
