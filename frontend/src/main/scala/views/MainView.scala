@@ -179,12 +179,12 @@ object MainView {
       // ),
       GraphView(state, disableSimulation),
 
-      router.showOn(ViewPage.Graph, ViewPage.Tree)(
+      // router.showOn(ViewPage.Graph, ViewPage.Tree)(
         div(position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
           padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD")(
             AddPostForm(state)
-          )
-      ),
+          ),
+      // ),
 
       DevOnly { DevView(state) }
     )
