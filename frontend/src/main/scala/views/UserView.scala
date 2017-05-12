@@ -61,7 +61,15 @@ object UserView {
       }
     )
 
-  val registerMask = div(userField, passwordField, registerButton)
+  def newGroupButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    button("new group", onclick := { () =>
+      Client.api.addGroup().call().foreach { group =>
+        state.selectedGroupId() = Option(group.id)
+      }
+    }).render
+  }
+
+  val registerMask = span(userField, passwordField, registerButton)
   // def userProfile(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
   //   span(state.currentUser.map(_.filterNot(_.isImplicit).map { user =>
   //     span(s"${user.name}").render
@@ -72,7 +80,8 @@ object UserView {
 
   def topBarUserStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (state.currentUser() match {
-      case Some(user) if !user.isImplicit => span(user.name, logoutButton)
+      case Some(user) if !user.isImplicit => span(newGroupButton(state), user.name, logoutButton)
+      case Some(user) if user.isImplicit => span(newGroupButton(state), "*", registerMask(logoutButton))
       case _ => registerMask(loginButton)
     }).render
   }

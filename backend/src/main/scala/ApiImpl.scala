@@ -103,7 +103,7 @@ class ApiImpl(stateAccess: StateAccess, db: Db) extends Api {
   }
 
   def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
-  def addGroup(): Future[Group] = withUserOrImplicit { (_, user) =>
+  def addGroup(): Future[Group] = withUser { (_, user) =>
     val createdGroup = db.group.createForUser(user.id)
     createdGroup.map {
       case (group, membership) =>
@@ -113,7 +113,7 @@ class ApiImpl(stateAccess: StateAccess, db: Db) extends Api {
     }
   }
 
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, user) =>
+  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUser { (_, user) =>
     //TODO: check if user has access to group
     val createdMembership = db.group.addMember(groupId, userId)
     createdMembership.map { membership =>

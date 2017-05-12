@@ -102,14 +102,6 @@ object MainView {
     }).render
   }
 
-  def newGroupButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-    button("new group", onclick := { () =>
-      Client.api.addGroup().call().foreach { group =>
-        state.selectedGroupId() = Option(group.id)
-      }
-    }).render
-  }
-
   def inviteUserToGroupField(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (if (state.selectedGroupId().isDefined) {
       val field = input(placeholder := "invite user by name").render
@@ -151,7 +143,6 @@ object MainView {
           currentGroupInviteLink(state)),
 
         div(display.flex, alignItems.center, justifyContent.flexEnd,
-          newGroupButton(state),
           UserView.topBarUserStatus(state))),
 
       // div(
