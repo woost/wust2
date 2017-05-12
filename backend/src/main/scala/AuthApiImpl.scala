@@ -23,14 +23,16 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
   }
 
   def register(name: String, password: String): Future[Boolean] = { (state: State) =>
-    val auth = state.auth.map(_.user) match {
+    val (auth, success) = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
-        db.user.activateImplicitUser(user.id, name, password).map(_.map(u => JWT.generateAuthentication(u)))
+        val activated = db.user.activateImplicitUser(user.id, name, password).map(_.map(u => JWT.generateAuthentication(u)))
+        (activated.map(_.orElse(state.auth)), activated.map(_.isDefined))
       case _ =>
-        db.user(name, password).map(_.map(u => JWT.generateAuthentication(u)))
+        val newAuth = db.user(name, password).map(_.map(u => JWT.generateAuthentication(u)))
+        (newAuth, newAuth.map(_.isDefined))
     }
 
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
+    StateEffect(applyAuthenticationOnState(state, auth), success)
   }
 
   def login(name: String, password: String): Future[Boolean] = { (state: State) =>
