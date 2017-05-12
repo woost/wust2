@@ -4,13 +4,13 @@ import org.scalatest._
 import wust.graph.User
 import wust.ids._
 
-class jwtSpec extends FreeSpec with MustMatchers {
+class JWTSpec extends FreeSpec with MustMatchers {
   val jwt: JWT = new JWT(secret = "secret", tokenLifetime = 12345678)
 
   implicit def intToUserId(id: Int): UserId = UserId(id)
 
   object User {
-    def apply(name: String): User = new User(wust.db.DEFAULT, name, isImplicit = false, wust.db.Db.user.initialRevision)
+    def apply(name: String): User = new User(wust.db.DEFAULT, name, isImplicit = false, 0)
   }
 
   "generate auth for user" in {

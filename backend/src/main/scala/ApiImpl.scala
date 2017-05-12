@@ -1,7 +1,7 @@
 package wust.backend
 
-import wust.db.Db
 import wust.ids._
+import wust.db.Db
 import wust.api._
 import wust.backend.auth._
 import wust.backend.config.Config
@@ -15,15 +15,15 @@ import scala.concurrent.Future
 import cats.data.OptionT // helpers for Future[Option[T]] - http://typelevel.org/cats/datatypes/optiont.html
 import cats.implicits._
 
-class ApiImpl(stateAccess: StateAccess) extends Api {
+class ApiImpl(stateAccess: StateAccess, db: Db) extends Api {
   import stateAccess._
 
-  def getPost(id: PostId): Future[Option[Post]] = Db.post.get(id).map(_.map(forClient))
+  def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
 
   //TODO: return Future[Boolean]
   def addPost(msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Post] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to create post in group
-    val newPost = Db.post(msg, groupIdOpt)
+    val newPost = db.post(msg, groupIdOpt)
 
     //sideeffect create containment
     //TODO proper integration into request
@@ -43,16 +43,16 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
 
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to update post
-    Db.post.update(post).map(RequestResponse.eventsIf(_, UpdatedPost(forClient(post))))
+    db.post.update(post).map(RequestResponse.eventsIf(_, UpdatedPost(forClient(post))))
   }
 
   def deletePost(id: PostId): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to delete post
-    Db.post.delete(id).map(RequestResponse.eventsIf(_, DeletePost(id)))
+    db.post.delete(id).map(RequestResponse.eventsIf(_, DeletePost(id)))
   }
 
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection] = withUserOrImplicit { (_,_) =>
-    val connection = Db.connection(sourceId, targetId)
+    val connection = db.connection(sourceId, targetId)
     connection.map {
       case Some(connection) =>
         RequestResponse(forClient(connection), NewConnection(connection))
@@ -62,11 +62,11 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
 
   def deleteConnection(id: ConnectionId): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to delete connection
-    Db.connection.delete(id).map(RequestResponse.eventsIf(_, DeleteConnection(id)))
+    db.connection.delete(id).map(RequestResponse.eventsIf(_, DeleteConnection(id)))
   }
 
   def createContainment(parentId: PostId, childId: PostId): Future[Containment] = withUserOrImplicit { (_,_) =>
-    val connection = Db.containment(parentId, childId)
+    val connection = db.containment(parentId, childId)
     connection.map {
       case Some(connection) =>
         RequestResponse(forClient(connection), NewContainment(connection))
@@ -76,13 +76,13 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
 
   def deleteContainment(id: ContainmentId): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to delete containment
-    Db.containment.delete(id).map(RequestResponse.eventsIf(_, DeleteContainment(id)))
+    db.containment.delete(id).map(RequestResponse.eventsIf(_, DeleteContainment(id)))
   }
 
   //TODO: return Future[Boolean]
   def respond(to: PostId, msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[(Post, Connection)] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowe d to create post in group
-    val newPost = Db.connection.newPost(msg, to, groupIdOpt)
+    val newPost = db.connection.newPost(msg, to, groupIdOpt)
 
     //sideeffect create containment
     //TODO proper integration into request
@@ -102,9 +102,9 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
     }
   }
 
-  def getUser(id: UserId): Future[Option[User]] = Db.user.get(id).map(_.map(forClient))
+  def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
   def addGroup(): Future[Group] = withUserOrImplicit { (_, user) =>
-    val createdGroup = Db.group.createForUser(user.id)
+    val createdGroup = db.group.createForUser(user.id)
     createdGroup.map {
       case (group, membership) =>
         val clientGroup = forClient(group)
@@ -115,14 +115,14 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
 
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, user) =>
     //TODO: check if user has access to group
-    val createdMembership = Db.group.addMember(groupId, userId)
+    val createdMembership = db.group.addMember(groupId, userId)
     createdMembership.map { membership =>
       RequestResponse(true, NewMembership(membership))
     }
   }
 
   def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = {
-    Db.user.byName(userName).flatMap {
+    db.user.byName(userName).flatMap {
       case Some(user) => addMember(groupId, user.id)
       case None => Future.successful(false)
     }
@@ -131,15 +131,15 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUser { (_, user) =>
     //TODO: check if user has access to group
     val token = RandomUtil.alphanumeric()
-    for (success <- Db.group.createInvite(groupId, token))
+    for (success <- db.group.createInvite(groupId, token))
       yield if (success) Option(token) else None
   }
 
   def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUser { (_, user) =>
     //TODO optimize into one request?
-    Db.group.fromInvite(token).flatMap {
+    db.group.fromInvite(token).flatMap {
       case Some(group) =>
-        val createdMembership = Db.group.addMember(group.id, user.id)
+        val createdMembership = db.group.addMember(group.id, user.id)
         createdMembership.map { membership =>
           RequestResponse(Option(group.id), NewGroup(group))
         }
@@ -152,7 +152,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
   // }
   private def getUnion(userIdOpt: Option[UserId], parentIds: Set[PostId]): Future[Graph] = {
     //TODO: in stored procedure
-    Db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
+    db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
       val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
       graph -- graph.postsById.keys.filterNot(transitiveChildren)
@@ -163,7 +163,7 @@ class ApiImpl(stateAccess: StateAccess) extends Api {
     val userIdOpt = state.user.map(_.id)
     val graph = selection match {
       case GraphSelection.Root =>
-        Db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
+        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
       case GraphSelection.Union(parentIds) =>
         getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
     }

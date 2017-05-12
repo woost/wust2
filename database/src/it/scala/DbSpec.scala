@@ -367,7 +367,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       } yield {
         user.name mustEqual "heigo"
         user.isImplicit mustEqual false
-        user.revision mustEqual db.user.initialRevision
+        user.revision mustEqual 0
         queriedUsers.head mustEqual user
         (Hasher("parwin").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
         queriedGroups mustBe empty
@@ -409,7 +409,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       } yield {
         user.name must startWith("anon-")
         user.isImplicit mustEqual true
-        user.revision mustEqual db.user.initialRevision
+        user.revision mustEqual 0
         queriedUsers.head mustEqual user
         queriedPasswords mustBe empty
       }
@@ -439,7 +439,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       } yield {
         user.name mustEqual "ganiz"
         user.isImplicit mustEqual false
-        user.revision mustEqual (db.user.initialRevision + 1)
+        user.revision mustEqual 1
         queriedUsers mustEqual List(user)
         (Hasher("faura").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
       }

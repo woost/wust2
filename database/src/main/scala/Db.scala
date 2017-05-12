@@ -8,7 +8,9 @@ import scala.concurrent.duration._
 import wust.ids._
 import scala.util.{Try, Success, Failure}
 
-object Db extends Db(new PostgresAsyncContext[LowerCase]("db"))
+object Db {
+  val default = new Db(new PostgresAsyncContext[LowerCase]("db"))
+}
 
 class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   import ctx._
@@ -190,7 +192,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     import com.roundeights.hasher.Hasher
     def passwordDigest(password: String) = Hasher(password).bcrypt
 
-    val initialRevision = 0
+    private val initialRevision = 0
     private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
     private def newRealUser(name: String): User = User(DEFAULT, name, isImplicit = false, initialRevision)
     private def newImplicitUser(): User = User(DEFAULT, implicitUserName, isImplicit = true, initialRevision)

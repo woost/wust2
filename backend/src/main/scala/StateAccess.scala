@@ -20,8 +20,7 @@ trait RequestEffect[T]
 case class NoEffect[T](response: Future[RequestResponse[T]]) extends RequestEffect[T]
 case class StateEffect[T](state: Future[State], response: Future[RequestResponse[T]]) extends RequestEffect[T]
 
-abstract class StateDsl(createImplicitUser: () => Future[Option[User]]) {
-  import wust.db.Db
+class StateDsl(createImplicitUser: () => Future[Option[User]]) {
   import DbConversions._
 
   private lazy val implicitUser = createImplicitUser()

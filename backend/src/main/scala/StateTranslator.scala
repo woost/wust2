@@ -1,8 +1,25 @@
 package wust.backend
 
 import wust.api._
+import wust.backend.auth._
+import wust.db.Db
+import wust.ids._
+import DbConversions._
+import scala.concurrent.{ExecutionContext, Future}
+
+// TODO: crashes coverage @derive(copyF)
+case class State(auth: Option[JWTAuthentication], groupIds: Set[GroupId]) {
+  val user = auth.map(_.user)
+  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity, groupIds: Set[GroupId] => Set[GroupId] = identity) = copy(auth = auth(this.auth), groupIds = groupIds(this.groupIds))
+}
+object State {
+  def initial = State(auth = None, groupIds = Set.empty)
+}
 
 object StateTranslator {
+  def filterValid(state: Future[State])(implicit ec: ExecutionContext): Future[State] =
+    state.map(_.copyF(auth = _.filterNot(JWT.isExpired)))
+
   def applyEvent(state: State, event: ApiEvent): State = event match {
     case NewMembership(edge) if state.auth.isDefined && edge.userId == state.auth.get.user.id =>
       state.copyF(groupIds = _ ++ Set(edge.groupId))
