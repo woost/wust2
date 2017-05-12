@@ -240,7 +240,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       // val q = quote { createPasswordAndUpdateUser(lift(id), lift(name), lift(digest)) }
       // ctx.run(q).map(revision => Some(user.copy(revision = revision)))
       ctx
-        .run(query[User].filter(_.id == lift(id)))
+        .run(query[User].filter(u => u.id == lift(id) && u.isImplicit == true))
         .flatMap(_.headOption
           .map { user =>
             val updatedUser = user.copy(
