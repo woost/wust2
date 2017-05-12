@@ -36,10 +36,14 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
     val promise = TimeoutPromise[T](timeoutMillis)
     val seqId = nextSeqId()
     openRequests += seqId -> promise
-    promise.future onComplete { _ =>
+    promise.future onComplete { res =>
       openRequests -= seqId
       console.log(s"Request $seqId: ${stopwatch.readMillis}ms")
+      res.failed.foreach { case err =>
+        console.log(s"Request $seqId failed", err.toString)
+      }
     }
+
     seqId -> promise
   }
 
