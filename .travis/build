@@ -4,7 +4,6 @@ set -o pipefail
 
 export CI=true # also set by travis, but helps when running locally
 
-POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test \
 sbt docker \
  testJS \
  coverage testJVM coverageReport

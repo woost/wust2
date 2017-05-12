@@ -19,7 +19,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, enableImplicit: Boolean) extends RequestHandler[ApiEvent, ApiError, State] {
+class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, jwt: JWT, enableImplicit: Boolean) extends RequestHandler[ApiEvent, ApiError, State] {
   import StateTranslator._
 
   private def stateChangeEvents(prevState: State, state: State): Seq[Future[ApiEvent]] =
@@ -37,18 +37,20 @@ class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, enableImplicit: Boo
         )
     }
 
-  private def createImplicitUser() = enableImplicit match {
-    case true => db.user.createImplicitUser().map(forClient(_) |> Option.apply)
+  private def createImplicitAuth() = enableImplicit match {
+    case true => db.user.createImplicitUser().map(u => jwt.generateAuthentication(forClient(u))).map(Option.apply)
     case false => Future.successful(None)
   }
 
+  def filterValid(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
+
   override def router(state: Future[State]) = {
     val validState = state.map(filterValid)
-    val stateAccess = new StateAccess(validState, createImplicitUser _, dispatcher.publish _)
+    val stateAccess = new StateAccess(validState, dispatcher.publish _, createImplicitAuth _)
 
     (
       AutowireServer.route[Api](new ApiImpl(stateAccess, db)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, db))) andThen { res =>
+      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, db, jwt))) andThen { res =>
         val newState = stateAccess.state
         val events = for {
           state <- state
@@ -94,7 +96,7 @@ class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, enableImplicit: Boo
 
 object Server {
   private val ws = new WebsocketServer[ApiEvent, ApiError, State](
-    new ApiRequestHandler(new ChannelEventBus, Db.default, Config.auth.enableImplicit))
+    new ApiRequestHandler(new ChannelEventBus, Db.default, JWT.default, Config.auth.enableImplicit))
 
   private val route = (path("ws") & get) {
     ws.websocketHandler

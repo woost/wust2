@@ -20,12 +20,10 @@ trait RequestEffect[T]
 case class NoEffect[T](response: Future[RequestResponse[T]]) extends RequestEffect[T]
 case class StateEffect[T](state: Future[State], response: Future[RequestResponse[T]]) extends RequestEffect[T]
 
-class StateDsl(createImplicitUser: () => Future[Option[User]]) {
-  import DbConversions._
-
-  private lazy val implicitUser = createImplicitUser()
+class StateDsl(createImplicitAuth: () => Future[Option[JWTAuthentication]]) {
+  private lazy val implicitAuth = createImplicitAuth()
   private def actualOrImplicitAuth(auth: Option[JWTAuthentication])(implicit ec: ExecutionContext): Future[Option[JWTAuthentication]] = auth match {
-    case None => implicitUser.map(_.map(u => JWT.generateAuthentication(forClient(u))))
+    case None => implicitAuth
     case auth => Future.successful(auth)
   }
 
@@ -47,7 +45,7 @@ class StateDsl(createImplicitUser: () => Future[Option[User]]) {
   }
 }
 
-class StateAccess(initialState: Future[State], createImplicitUser: () => Future[Option[User]], publishEvent: ChannelEvent => Unit) extends StateDsl(createImplicitUser) {
+class StateAccess(initialState: Future[State], publishEvent: ChannelEvent => Unit, createImplicitAuth: () => Future[Option[JWTAuthentication]]) extends StateDsl(createImplicitAuth) {
   private var actualState = initialState
   def state = actualState
 

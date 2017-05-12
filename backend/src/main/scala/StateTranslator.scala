@@ -16,8 +16,6 @@ object State {
 }
 
 object StateTranslator {
-  def filterValid(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
-
   def applyEvent(state: State, event: ApiEvent): State = event match {
     case NewMembership(edge) if state.auth.isDefined && edge.userId == state.auth.get.user.id =>
       state.copyF(groupIds = _ ++ Set(edge.groupId))

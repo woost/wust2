@@ -73,4 +73,6 @@ class JWT(secret: String, tokenLifetime: Long) {
 
   def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp
 }
-object JWT extends JWT(Config.auth.secret, Config.auth.tokenLifetime)
+object JWT {
+  val default = new JWT(Config.auth.secret, Config.auth.tokenLifetime)
+}

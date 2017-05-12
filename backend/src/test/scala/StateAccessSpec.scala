@@ -18,7 +18,8 @@ class StateDslSpec extends AsyncFreeSpec with MustMatchers {
     var count = -1
     new StateDsl(() => {
       count = count + 1
-      Future.successful(Option(implicitUser.copy(revision = count)))
+      val auth = jwt.generateAuthentication(implicitUser.copy(revision = count))
+      Future.successful(Option(auth))
     })
   }
   def nonImplicitDsl = new StateDsl(() => Future.successful(None))
@@ -192,7 +193,7 @@ class StateDslSpec extends AsyncFreeSpec with MustMatchers {
         response2.events mustEqual Seq.empty
         state.groupIds mustEqual nonAuthState.groupIds
         state.auth.map(_.user) mustEqual Option(implicitUser)
-        state2.auth.map(_.user) mustEqual Option(implicitUser)
+        state2.auth mustEqual state.auth
       }
     }
   }
