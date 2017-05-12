@@ -3,6 +3,8 @@ package wust.backend
 import java.io.{ PrintWriter, StringWriter }
 
 import akka.http.scaladsl.server.Directives._
+import autowire.Core.Request
+import java.nio.ByteBuffer
 import boopickle.Default._
 import derive.derive
 import wust.api._
@@ -19,46 +21,22 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, jwt: JWT, enableImplicit: Boolean) extends RequestHandler[ApiEvent, ApiError, State] {
-  import StateTranslator._
-
-  private def stateChangeEvents(prevState: State, state: State): Seq[Future[ApiEvent]] =
-    (prevState.auth == state.auth) match {
-      case true => Seq.empty
-      case false =>
-        Seq (
-          state.auth
-            .map(_.toAuthentication |> LoggedIn)
-            .getOrElse(LoggedOut)
-        ).map(Future.successful _) ++ Seq (
-          db.graph.getAllVisiblePosts(state.user.map(_.id))
-            .map(forClient(_).consistent)
-            .map(ReplaceGraph(_))
-        )
-    }
-
-  private def createImplicitAuth() = enableImplicit match {
-    case true => db.user.createImplicitUser().map(u => jwt.generateAuthentication(forClient(u))).map(Option.apply)
-    case false => Future.successful(None)
-  }
-
-  def filterValid(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
+class ApiRequestHandler(dispatcher: EventDispatcher, stateChange: StateChange, api: StateAccess => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
+  import StateTranslator._, stateChange._
 
   override def router(state: Future[State]) = {
     val validState = state.map(filterValid)
     val stateAccess = new StateAccess(validState, dispatcher.publish _, createImplicitAuth _)
 
-    (
-      AutowireServer.route[Api](new ApiImpl(stateAccess, db)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, db, jwt))) andThen { res =>
-        val newState = stateAccess.state
-        val events = for {
-          state <- state
-          newState <- newState
-        } yield stateChangeEvents(state, newState)
+    api(stateAccess) andThen { res =>
+      val newState = stateAccess.state
+      val events = for {
+        state <- state
+        newState <- newState
+      } yield stateChangeEvents(state, newState)
 
-        RequestResult(StateWithEvents(newState, events), res)
-      }
+      RequestResult(StateWithEvents(newState, events), res)
+    }
   }
 
   override def onEvent(event: ApiEvent, state: Future[State]) = {
@@ -95,8 +73,12 @@ class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, jwt: JWT, enableImp
 }
 
 object Server {
-  private val ws = new WebsocketServer[ApiEvent, ApiError, State](
-    new ApiRequestHandler(new ChannelEventBus, Db.default, JWT.default, Config.auth.enableImplicit))
+  private def api(stateAccess: StateAccess) = AutowireServer.route[Api](new ApiImpl(stateAccess, Db.default)) orElse
+      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, Db.default, JWT.default))
+
+  private val stateChange = new StateChange(Db.default, JWT.default, Config.auth.enableImplicit)
+
+  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new ChannelEventBus, stateChange, api _))
 
   private val route = (path("ws") & get) {
     ws.websocketHandler

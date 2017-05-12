@@ -4,7 +4,9 @@ import wust.api._
 import wust.backend.auth._
 import wust.db.Db
 import wust.ids._
+import wust.util.Pipe
 import DbConversions._
+import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: crashes coverage @derive(copyF)
 case class State(auth: Option[JWTAuthentication], groupIds: Set[GroupId]) {
@@ -37,4 +39,31 @@ object StateTranslator {
     case DeleteContainment(_) => true
     case _ => true//false
   }
+}
+
+class StateChange(db: Db, jwt: JWT, enableImplicit: Boolean) {
+  def stateEvents(state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] = {
+    Seq (
+      state.auth
+        .map(_.toAuthentication |> LoggedIn)
+        .getOrElse(LoggedOut)
+    ).map(Future.successful _) ++ Seq (
+      db.graph.getAllVisiblePosts(state.user.map(_.id))
+        .map(forClient(_).consistent)
+        .map(ReplaceGraph(_))
+    )
+  }
+
+  def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] =
+    (prevState.auth == state.auth) match {
+      case true => Seq.empty
+      case false => stateEvents(state)
+    }
+
+  def createImplicitAuth()(implicit ec: ExecutionContext) = enableImplicit match {
+    case true => db.user.createImplicitUser().map(u => jwt.generateAuthentication(forClient(u))).map(Option.apply)
+    case false => Future.successful(None)
+  }
+
+  def filterValid(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
 }
