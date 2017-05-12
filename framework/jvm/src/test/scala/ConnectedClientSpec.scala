@@ -55,6 +55,23 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     else expectNoMsg
   }
 
+  "event sender" - {
+    "compareTo same" in {
+      val actor = newActor
+      val sender = new EventSender(messages, actor)
+      val sender2 = new EventSender(messages, actor)
+      sender.compareTo(sender2) mustEqual 0
+    }
+
+    "compareTo different" in {
+      val actor = newActor
+      val actor2 = newActor
+      val sender = new EventSender(messages, actor)
+      val sender2 = new EventSender(messages, actor2)
+      sender.compareTo(sender2) must not equal(0)
+    }
+  }
+
   "unconnected" - {
     val actor = newActor
 

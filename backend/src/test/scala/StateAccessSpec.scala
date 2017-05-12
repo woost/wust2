@@ -11,8 +11,8 @@ import scala.concurrent.Future
 class StateDslSpec extends AsyncFreeSpec with MustMatchers {
   val jwt = new JWT("secret", 12345678)
 
-  val implicitUser = new User(14, "implicit", isImplicit = true, 0)
-  val initialUser = new User(11, "existing", isImplicit = false, 0)
+  val implicitUser = User(14, "implicit", isImplicit = true, 0)
+  val initialUser = User(11, "existing", isImplicit = false, 0)
 
   def implicitDsl = {
     var count = -1
@@ -199,7 +199,24 @@ class StateDslSpec extends AsyncFreeSpec with MustMatchers {
   }
 }
 
+class RequestResponseSpec extends FreeSpec with MustMatchers {
+  "eventsIf true" in {
+    val response = RequestResponse.eventsIf(true, NewGroup(Group(1)))
+
+    response.result mustEqual true
+    response.events must contain theSameElementsAs Set(NewGroup(Group(1)))
+  }
+
+  "eventsIf false" in {
+    val response = RequestResponse.eventsIf(false, NewGroup(Group(1)))
+
+    response.result mustEqual false
+    response.events.size mustEqual 0
+  }
+}
+
 class StateAccessSpec extends AsyncFreeSpec with MustMatchers {
+
   "result to requestResponse" in {
     val initialState = State(None, Set(113))
     val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
@@ -218,9 +235,9 @@ class StateAccessSpec extends AsyncFreeSpec with MustMatchers {
     val initialState = State(None, Set(113))
     val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
     val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
-    import access.resultIsRequestResponse
+    import access.futureResultIsRequestResponse
 
-    val res: Future[RequestResponse[Set[GroupId]]] = Future.successful(initialState.groupIds)
+    val res: Future[RequestResponse[Set[GroupId]]] = Future.successful[Set[GroupId]](initialState.groupIds)
 
     access.state.map(_ mustEqual initialState)
     res.map { res =>

@@ -13,6 +13,15 @@ class JWTSpec extends FreeSpec with MustMatchers {
     def apply(name: String): User = new User(wust.db.DEFAULT, name, isImplicit = false, 0)
   }
 
+  "generate auth and then to authentication" in {
+    val user = User("Biermann")
+    val auth = jwt.generateAuthentication(user)
+    val clientAuth = auth.toAuthentication
+
+    clientAuth.user mustEqual auth.user
+    clientAuth.token mustEqual auth.token
+  }
+
   "generate auth for user" in {
     val user = User("Biermann")
     val auth = jwt.generateAuthentication(user)
