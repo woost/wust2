@@ -3,7 +3,7 @@ package wust.backend
 import org.scalatest._
 import wust.api._
 import wust.ids._
-import wust.graph.User
+import wust.graph.{User, Group}
 import wust.backend.auth._
 
 import scala.concurrent.Future
@@ -200,4 +200,105 @@ class StateDslSpec extends AsyncFreeSpec with MustMatchers {
 }
 
 class StateAccessSpec extends AsyncFreeSpec with MustMatchers {
+  "result to requestResponse" in {
+    val initialState = State(None, Set(113))
+    val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
+    val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
+    import access.resultIsRequestResponse
+
+    val res: RequestResponse[Set[GroupId]] = initialState.groupIds
+
+    access.state.map(_ mustEqual initialState)
+    res.result mustEqual initialState.groupIds
+    res.events.size mustEqual 0
+    events.size mustEqual 0
+  }
+
+  "future result to requestResponse" in {
+    val initialState = State(None, Set(113))
+    val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
+    val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
+    import access.resultIsRequestResponse
+
+    val res: Future[RequestResponse[Set[GroupId]]] = Future.successful(initialState.groupIds)
+
+    access.state.map(_ mustEqual initialState)
+    res.map { res =>
+      res.result mustEqual initialState.groupIds
+      res.events.size mustEqual 0
+      events.size mustEqual 0
+    }
+  }
+
+  "execute result function" in {
+    val initialState = State(None, Set(113))
+    val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
+    val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
+    import access.resultFunctionIsExecuted
+
+    val res: Future[Set[GroupId]] = { (state: State) =>
+      Future.successful(state.groupIds)
+    }
+
+    access.state.map(_ mustEqual initialState)
+    res.map { res =>
+      res mustEqual initialState.groupIds
+      events.size mustEqual 0
+    }
+  }
+
+  "execute requestResponse function" in {
+    val initialState = State(None, Set(113))
+    val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
+    val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
+    import access.responseFunctionIsExecuted
+
+    val res: Future[Set[GroupId]] = { (state: State) =>
+      Future.successful(RequestResponse(state.groupIds, state.groupIds.map(id => NewGroup(Group(id))).toSeq: _*))
+    }
+
+    access.state.map(_ mustEqual initialState)
+    res.map { res =>
+      res mustEqual initialState.groupIds
+      events must contain theSameElementsAs Set(ChannelEvent(Channel.All, NewGroup(Group(113))))
+    }
+  }
+
+  "execute noEffect function" in {
+    val initialState = State(None, Set(113))
+    val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
+    val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
+    import access.effectFunctionIsExecuted
+
+    val res: Future[Set[GroupId]] = { (state: State) =>
+      val response = Future.successful(RequestResponse(state.groupIds, state.groupIds.map(id => NewGroup(Group(id))).toSeq: _*))
+      NoEffect(response)
+    }
+
+    access.state.map(_ mustEqual initialState)
+    res.map { res =>
+      res mustEqual initialState.groupIds
+      events must contain theSameElementsAs Set(ChannelEvent(Channel.All, NewGroup(Group(113))))
+    }
+  }
+
+  "execute stateEffect function" in {
+    val initialState = State(None, Set(113))
+    val events = collection.mutable.ArrayBuffer.empty[ChannelEvent]
+    val access = new StateAccess(Future.successful(initialState), ev => events += ev, () => ???)
+    import access.effectFunctionIsExecuted
+
+    val newIds = Set(GroupId(114))
+    val res: Future[Set[GroupId]] = { (state: State) =>
+      val newState = Future.successful(state.copyF(groupIds = _ ++ newIds))
+      val response = newState.map(s => RequestResponse(s.groupIds, s.groupIds.map(id => NewGroup(Group(id))).toSeq: _*))
+      StateEffect(newState, response)
+    }
+
+    access.state.map(_ mustEqual initialState.copyF(groupIds = _ ++ newIds))
+    res.map { res =>
+      res mustEqual initialState.groupIds ++ newIds
+      events must contain theSameElementsAs Set(ChannelEvent(Channel.All, NewGroup(Group(113))), ChannelEvent(Channel.All, NewGroup(Group(114))))
+    }
+  }
 }
