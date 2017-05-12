@@ -20,12 +20,19 @@ trait SpecsLikeMockito extends MockitoSugar {
 }
 
 trait ApiTestKit extends SpecsLikeMockito {
-  def newStateAccess[T](state: State, implicitAuth: Option[JWTAuthentication]): (StateAccess, mutable.Seq[ChannelEvent]) = {
+  private def newStateAccess[T](state: State, implicitAuth: Option[JWTAuthentication]): (StateAccess, mutable.Seq[ChannelEvent]) = {
     val events = mutable.ArrayBuffer.empty[ChannelEvent]
     val access = new StateAccess(Future.successful(state), events += _, () => Future.successful(implicitAuth))
     (access, events)
   }
 
+  private def onResult[API, T](impl: API, access: StateAccess, events: mutable.Seq[ChannelEvent])(f: API => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
+    val result = f(impl)
+    for {
+      afterState <- access.state
+      result <- result
+    } yield (afterState, events.map(_.event).toSeq, result)
+  }
 
   def mockedDb = {
     val db = mock[Db]
@@ -42,21 +49,13 @@ trait ApiTestKit extends SpecsLikeMockito {
   def onAuthApi[T](state: State, db: Db = mockedDb, implicitAuth: JWTAuthentication = null)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val (access, events) = newStateAccess(state, Option(implicitAuth))
     val impl = new AuthApiImpl(access, db, TestDefaults.jwt)
-    val result = f(impl)
-    for {
-      afterState <- access.state
-      result <- result
-    } yield (afterState, events.map(_.event).toSeq, result)
+    onResult(impl, access, events)(f)
   }
 
   def onApi[T](state: State, db: Db = mockedDb, implicitAuth: JWTAuthentication = null)(f: Api => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val (access, events) = newStateAccess(state, Option(implicitAuth))
     val impl = new ApiImpl(access, db)
-    val result = f(impl)
-    for {
-      afterState <- access.state
-      result <- result
-    } yield (afterState, events.map(_.event).toSeq, result)
+    onResult(impl, access, events)(f)
   }
 }
 
