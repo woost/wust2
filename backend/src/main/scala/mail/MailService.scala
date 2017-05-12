@@ -1,6 +1,5 @@
 package wust.backend.mail
 
-import delegert.delegert
 import wust.backend.config._
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
@@ -37,9 +36,8 @@ class SmtpMailService(emailConfig: EmailConfig) extends MailService {
   }
 }
 
-object MailService extends MailService {
-  @delegert
-  private lazy val inner: MailService = {
+object MailService {
+  val default = {
     Config.email.map { email =>
       new SmtpMailService(email)
     } getOrElse LoggingMailService
