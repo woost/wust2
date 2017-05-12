@@ -15,7 +15,7 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db, jwt: JWT) extends AuthApi {
   private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = {
     auth.flatMap {
       case Some(auth) =>
-        db.group.memberships(auth.user.id) .map(_.map(_.groupId).toSet).map { groupIds =>
+        db.group.memberships(auth.user.id).map(_.map(_.groupId).toSet).map { groupIds =>
           state.copy(auth = Option(auth), groupIds = groupIds)
         }
       case None => Future.successful(State.initial)

@@ -9,7 +9,7 @@ import wust.backend.auth._
 import scala.concurrent.Future
 
 class StateDslSpec extends AsyncFreeSpec with MustMatchers {
-  val jwt = new JWT("secret", 12345678)
+  import TestDefaults.jwt
 
   val implicitUser = User(14, "implicit", isImplicit = true, 0)
   val initialUser = User(11, "existing", isImplicit = false, 0)

@@ -9,7 +9,7 @@ import wust.backend.auth._
 import scala.concurrent.Future
 
 class StateTranslatorSpec extends FreeSpec with MustMatchers {
-  val jwt = new JWT("secret", 1234567)
+  import TestDefaults.jwt
   val user = User(14, "user", isImplicit = false, 0)
   val auth = jwt.generateAuthentication(user)
 

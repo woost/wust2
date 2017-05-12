@@ -7,7 +7,6 @@ import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import autowire.Core.Request
 import boopickle.Default._
 import org.scalatest._
-import org.scalatest.mockito.MockitoSugar
 import wust.framework.message._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,7 +42,7 @@ object TestRequestHandler extends RequestHandler[String, String, Option[String]]
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
 }
 
-class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers with MockitoSugar {
+class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers {
 
   val messages = new Messages[String, String]
   import messages._

@@ -102,7 +102,6 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % "1.2.6" ::
-      "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil))
   .jvmSettings(
@@ -188,6 +187,7 @@ lazy val backend = project
       "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
+      "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil)
 
