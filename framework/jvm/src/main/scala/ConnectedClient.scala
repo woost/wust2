@@ -24,15 +24,15 @@ class EventSender[Event](messages: Messages[Event, _], private val actor: ActorR
   }
 }
 
-case class RequestResult[State, Event](stateEvent: Future[StateEvent[State, Event]], result: Future[ByteBuffer])
-case class StateEvent[State, Event](state: State, events: Seq[Future[Event]])
+case class RequestResult[State, Event](stateEvent: StateWithEvents[State, Event], result: Future[ByteBuffer])
+case class StateWithEvents[State, Event](state: Future[State], events: Future[Seq[Future[Event]]])
 
 trait RequestHandler[Event, Error, State] {
   def onClientStart(sender: EventSender[Event]): Future[State]
   def onClientStop(sender: EventSender[Event], state: State): Unit
 
   def router(state: Future[State]): PartialFunction[Request[ByteBuffer], RequestResult[State, Event]]
-  def onEvent(event: Event, state: Future[State]): Future[StateEvent[State, Event]]
+  def onEvent(event: Event, state: Future[State]): StateWithEvents[State, Event]
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
 }
@@ -47,9 +47,9 @@ class ConnectedClient[Event, Error, State](
   def connected(outgoing: ActorRef): Receive = {
     val sender = new EventSender(messages, self)
 
-    def switchState(stateEvent: Future[StateEvent[State,Event]]) {
-      val newState = stateEvent.map(_.state)
-      stateEvent.foreach(_.events.foreach(_.map(Notification.apply).pipeTo(outgoing)))
+    def switchState(stateEvent: StateWithEvents[State,Event]) {
+      val newState = stateEvent.state
+      stateEvent.events.foreach(_.foreach(_.map(Notification.apply).pipeTo(outgoing)))
       context.become(withState(newState))
     }
 

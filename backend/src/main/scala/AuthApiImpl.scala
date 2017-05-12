@@ -22,7 +22,7 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
     }
   }
 
-  def register(name: String, password: String): Future[Option[Authentication]] = { (state: State) =>
+  def register(name: String, password: String): Future[Boolean] = { (state: State) =>
     val auth = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
         db.user.activateImplicitUser(user.id, name, password).map(_.map(u => JWT.generateAuthentication(u)))
@@ -30,21 +30,21 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
         db.user(name, password).map(_.map(u => JWT.generateAuthentication(u)))
     }
 
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.map(_.toAuthentication)))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
-  def login(name: String, password: String): Future[Option[Authentication]] = { (state: State) =>
+  def login(name: String, password: String): Future[Boolean] = { (state: State) =>
     val auth = db.user.get(name, password).map(_.map(u => JWT.generateAuthentication(u)))
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.map(_.toAuthentication)))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
-  def loginToken(token: Authentication.Token): Future[Option[Authentication]] = { (state: State) =>
+  def loginToken(token: Authentication.Token): Future[Boolean] = { (state: State) =>
     val auth = JWT.authenticationFromToken(token).map { auth =>
       for (valid <- db.user.checkIfEqualUserExists(auth.user))
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))
 
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.map(_.toAuthentication)))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
   def logout(): Future[Boolean] = { (state: State) =>

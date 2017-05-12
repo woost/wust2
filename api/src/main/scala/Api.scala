@@ -42,15 +42,16 @@ case class NewMembership(edge: Membership) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
 case class DeleteConnection(id: ConnectionId) extends ApiEvent
 case class DeleteContainment(id: ContainmentId) extends ApiEvent
-case class ImplicitLogin(auth: Authentication) extends ApiEvent
+case class LoggedIn(auth: Authentication) extends ApiEvent
+case object LoggedOut extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {
   override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
 }
 
 trait AuthApi {
-  def register(name: String, password: String): Future[Option[Authentication]]
-  def login(name: String, password: String): Future[Option[Authentication]]
-  def loginToken(token: Authentication.Token): Future[Option[Authentication]]
+  def register(name: String, password: String): Future[Boolean]
+  def login(name: String, password: String): Future[Boolean]
+  def loginToken(token: Authentication.Token): Future[Boolean]
   def logout(): Future[Boolean]
 }
 

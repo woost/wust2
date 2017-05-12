@@ -19,18 +19,19 @@ object TestRequestHandler extends RequestHandler[String, String, Option[String]]
 
   override def router(state: Future[Option[String]]): PartialFunction[Request[ByteBuffer], RequestResult[Option[String], String]] = {
     case Request("api" :: Nil, args) =>
-      RequestResult(state.map(StateEvent(_, Seq.empty)), Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
+      RequestResult(StateWithEvents(state, Future.successful(Seq.empty)), Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get))
     case Request("event" :: Nil, _) =>
-      RequestResult(state.map(StateEvent(_, Seq(Future.successful("event")))), Future.successful(Pickle.intoBytes[Boolean](true)))
+      RequestResult(StateWithEvents(state, Future.successful(Seq(Future.successful("event")))), Future.successful(Pickle.intoBytes[Boolean](true)))
     case Request("state" :: Nil, _) =>
-      RequestResult(state.map(StateEvent(_, Seq.empty)), state.map(u => Pickle.intoBytes[Option[String]](u)))
+      RequestResult(StateWithEvents(state, Future.successful(Seq.empty)), state.map(u => Pickle.intoBytes[Option[String]](u)))
     case Request("state" :: "change" :: Nil, _) =>
-      RequestResult(otherUser.map(StateEvent(_, Seq.empty)), Future.successful(Pickle.intoBytes[Boolean](true)))
+      RequestResult(StateWithEvents(otherUser, Future.successful(Seq.empty)), Future.successful(Pickle.intoBytes[Boolean](true)))
     case Request("broken" :: Nil, _) =>
-      RequestResult(state.map(StateEvent(_, Seq.empty)), Future.failed(new Exception("an error")))
+      RequestResult(StateWithEvents(state, Future.successful(Seq.empty)), Future.failed(new Exception("an error")))
   }
 
-  override def onEvent(event: String,state: Future[Option[String]]) = state.map(StateEvent(_, Seq(event).filter(_ != "FORBIDDEN").map(Future.successful _)))
+  override def onEvent(event: String,state: Future[Option[String]]) =
+    StateWithEvents(state, Future.successful(Seq(event).filter(_ != "FORBIDDEN").map(Future.successful _)))
 
   override def onClientStart(sender: EventSender[String]) = {
     sender.send("started")

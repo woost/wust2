@@ -95,11 +95,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val jsError = Var[Option[String]](None)
 
-  val onAuthEvent: AuthEvent => Unit = {
-    case LoggedIn(user) => currentUser() = Option(user)
-    case LoggedOut => currentUser() = None
-  }
-
   val onApiEvent: ApiEvent => Unit = {
     case NewPost(post) =>
       rawGraph.updatef(_ + post)
@@ -130,6 +125,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
         assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
         assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
       }
-    case ImplicitLogin(auth) => Client.auth.acknowledgeAuth(auth)
+
+    case LoggedIn(auth) =>
+      currentUser() = Option(auth.user)
+      ClientCache.currentAuth = Option(auth)
+    case LoggedOut =>
+      currentUser() = None
+      ClientCache.currentAuth = None
   }
 }

@@ -30,15 +30,15 @@ object UserView {
 
   val registerButton = buttonClick(
     "register",
-    Client.auth.register(userField.value, passwordField.value) |> clearOnSuccess
+    Client.auth.register(userField.value, passwordField.value).call() |> clearOnSuccess
   )
   val loginButton = buttonClick(
     "login",
-    Client.auth.login(userField.value, passwordField.value) |> clearOnSuccess
+    Client.auth.login(userField.value, passwordField.value).call() |> clearOnSuccess
   )
   val logoutButton = buttonClick(
     "logout",
-    Client.auth.logout()
+    Client.auth.logout().call()
   )
 
   //TODO: show existing in backend to revoke?

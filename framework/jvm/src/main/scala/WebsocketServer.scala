@@ -36,23 +36,13 @@ object WebsocketFlow {
       }.to(Sink.actorRef[ClientMessage](connectedClientActor, ConnectedClient.Stop))
 
     val outgoing: Source[Message, NotUsed] =
-      Source.actorRef[Any](bufferSize = 10, overflowStrategy = OverflowStrategy.dropNew)
+      Source.actorRef[ServerMessage](bufferSize = 10, overflowStrategy = OverflowStrategy.dropNew)
         .mapMaterializedValue { outActor =>
           connectedClientActor ! ConnectedClient.Connect(outActor)
           NotUsed
-        }.map {
-          //TODO no any, proper serialize map
-          case msg: ServerMessage =>
-            val logMsg = s"--> $msg"
-            msg match {
-              case n: CallResponse => scribe.info(logMsg)
-              case _ => scribe.debug(logMsg)
-            }
-            WebsocketSerializer.serialize(msg)
-          case other: Message =>
-            //we pass through already serialized websocket messages
-            //in order to allow serializing once and sending to multiple clients
-            other
+        }.map { msg =>
+          scribe.info(s"--> $msg")
+          WebsocketSerializer.serialize(msg)
         }
 
     Flow.fromSinkAndSource(incoming, outgoing)

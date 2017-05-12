@@ -20,15 +20,16 @@ import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, enableImplicit: Boolean) extends RequestHandler[ApiEvent, ApiError, State] {
+  import StateTranslator._
+
   private def stateChangeEvents(prevState: State, state: State): Seq[Future[ApiEvent]] =
-    prevState.auth == state.auth match {
+    (prevState.auth == state.auth) match {
       case true => Seq.empty
       case false =>
-        (
+        Seq (
           state.auth
-          .filter(_.user.isImplicit)
-          .map(auth => ImplicitLogin(auth.toAuthentication))
-          .toSeq
+            .map(_.toAuthentication |> LoggedIn)
+            .getOrElse(LoggedOut)
         ).map(Future.successful _) ++ Seq (
           db.graph.getAllVisiblePosts(state.user.map(_.id))
             .map(forClient(_).consistent)
@@ -36,35 +37,37 @@ class ApiRequestHandler(dispatcher: EventDispatcher, db: Db, enableImplicit: Boo
         )
     }
 
-  private def stateChangeResult(state: Future[State], newState: Future[State]) = for {
-    state <- state
-    newState <- newState
-  } yield {
-    val events = stateChangeEvents(state, newState)
-    StateEvent(newState, events)
-  }
-
   private def createImplicitUser() = enableImplicit match {
     case true => db.user.createImplicitUser().map(forClient(_) |> Option.apply)
     case false => Future.successful(None)
   }
 
   override def router(state: Future[State]) = {
-    val validState = StateTranslator.filterValid(state)
+    val validState = state.map(filterValid)
     val stateAccess = new StateAccess(validState, createImplicitUser _, dispatcher.publish _)
 
     (
       AutowireServer.route[Api](new ApiImpl(stateAccess, db)) orElse
       AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, db))) andThen { res =>
         val newState = stateAccess.state
-        RequestResult(stateChangeResult(state, newState), res)
+        val events = for {
+          state <- state
+          newState <- newState
+        } yield stateChangeEvents(state, newState)
+
+        RequestResult(StateWithEvents(newState, events), res)
       }
   }
 
   override def onEvent(event: ApiEvent, state: Future[State]) = {
-    val validState = StateTranslator.filterValid(state)
-    val newState = validState.map(StateTranslator.applyEvent(_, event))
-    stateChangeResult(state, newState)
+    val validState = state.map(filterValid)
+    val newState = validState.map(applyEvent(_, event))
+    val events = for {
+      state <- state
+      newState <- newState
+    } yield stateChangeEvents(state, newState) ++ Seq(event).filter(allowsEvent(newState, _)).map(Future.successful)
+
+    StateWithEvents(newState, events)
   }
 
   override def onClientStart(sender: EventSender[ApiEvent]) = {

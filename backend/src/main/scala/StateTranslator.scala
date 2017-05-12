@@ -5,7 +5,6 @@ import wust.backend.auth._
 import wust.db.Db
 import wust.ids._
 import DbConversions._
-import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: crashes coverage @derive(copyF)
 case class State(auth: Option[JWTAuthentication], groupIds: Set[GroupId]) {
@@ -17,8 +16,7 @@ object State {
 }
 
 object StateTranslator {
-  def filterValid(state: Future[State])(implicit ec: ExecutionContext): Future[State] =
-    state.map(_.copyF(auth = _.filterNot(JWT.isExpired)))
+  def filterValid(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
 
   def applyEvent(state: State, event: ApiEvent): State = event match {
     case NewMembership(edge) if state.auth.isDefined && edge.userId == state.auth.get.user.id =>
@@ -39,6 +37,6 @@ object StateTranslator {
     case DeletePost(_) => true
     case DeleteConnection(_) => true
     case DeleteContainment(_) => true
-    case _ => false
+    case _ => true//false
   }
 }

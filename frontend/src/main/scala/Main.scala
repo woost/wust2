@@ -23,10 +23,11 @@ object Main extends js.JSApp {
     Client.run(s"$protocol://${location.hostname}:$port/ws")
 
     Client.onEvent(state.onApiEvent)
-    Client.auth.onEvent(state.onAuthEvent)
 
-    Client.onConnect { _ =>
-      Client.auth.reauthenticate()
+    Client.onConnect { location =>
+      ClientCache.authToken.foreach { token =>
+        Client.auth.loginToken(token).call()
+      }
     }
 
     state.rawGraphSelection.foreach { selection =>

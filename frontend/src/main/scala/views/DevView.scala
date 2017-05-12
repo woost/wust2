@@ -5,7 +5,6 @@ import boopickle.Default._
 import wust.frontend.{Client, GlobalState}
 import wust.ids._
 import wust.graph._
-import wust.frontend.LoggedOut
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalatags.JsDom.all._
@@ -38,10 +37,9 @@ object DevView {
           div(
             "login: ",
             users.map(u => button(u, onclick := { () =>
-              Client.auth.register(u, u).filter(_ == false).foreach { _ =>
-                Client.auth.logout().foreach { _ =>
-                  state.onAuthEvent(LoggedOut) //TODO: this is necessary, since logging out an implicit user does not send a logout event
-                  Client.auth.login(u, u)
+              Client.auth.register(u, u).call().filter(_ == false).foreach { _ =>
+                Client.auth.logout().call().foreach { _ =>
+                  Client.auth.login(u, u).call()
                 }
               }
             }))

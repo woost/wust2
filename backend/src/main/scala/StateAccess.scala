@@ -32,11 +32,6 @@ class StateDsl(createImplicitUser: () => Future[Option[User]]) {
   private def userOrFail(auth: Option[JWTAuthentication]): User =
     auth.map(_.user).getOrElse(throw ApiException(Unauthorized))
 
-  def isRealUser[T](f: State => RequestEffect[T]): State => RequestEffect[T] = state => {
-    userOrFail(state.auth.filterNot(_.user.isImplicit))
-    f(state)
-  }
-
   def withUser[T](f: (State, User) => Future[RequestResponse[T]]): State => RequestEffect[T] = state => {
     val user = userOrFail(state.auth)
     val response = f(state, user)
@@ -63,7 +58,8 @@ class StateAccess(initialState: Future[State], createImplicitUser: () => Future[
     response.map(_.result)
   }
 
-  implicit def resultIsRequestResponse[T](result: Future[T])(implicit ec: ExecutionContext): Future[RequestResponse[T]] = result.map(RequestResponse(_))
+  implicit def resultIsRequestResponse[T](result: T)(implicit ec: ExecutionContext): RequestResponse[T] = RequestResponse(result)
+  implicit def futureResultIsRequestResponse[T](result: Future[T])(implicit ec: ExecutionContext): Future[RequestResponse[T]] = result.map(RequestResponse(_))
   implicit def resultFunctionIsExecuted[T](f: State => Future[T])(implicit ec: ExecutionContext): Future[T] = state.flatMap(f)
   implicit def responseFunctionIsExecuted[T](f: State => Future[RequestResponse[T]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))
   implicit def effectFunctionIsExecuted[T](f: State => RequestEffect[T])(implicit ec: ExecutionContext): Future[T] = {
