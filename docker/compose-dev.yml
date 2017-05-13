@@ -2,22 +2,20 @@ version: '2'
 
 services:
   postgres:
+    extends:
+      file: services.yml
+      service: postgres
     stdin_open: true
     tty: true
-    image: postgres:9.6.2-alpine
-    environment: &pg_env
-      POSTGRES_USER: "wust"
-      POSTGRES_PASSWORD: "test"
-      POSTGRES_DB: "wust"
     ports:
       - "5432:5432"
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
   db-migration:
+    extends:
+      file: services.yml
+      service: db-migration
     stdin_open: true
     tty: true
-    image: woost/wust2.db-migration
-    environment:
-      <<: *pg_env
     depends_on:
       - postgres
