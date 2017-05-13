@@ -64,16 +64,13 @@ Requirements:
 * docker-compose
 
 Set environment variables according to your setup:
-* **HOST_DOMAIN**: domain (example.com)
 * **POSTGRES_PASSWORD**: a password for the postgres application user 'wust'
 * **WUST_AUTH_SECRET**: a secret for signing JWT tokens
 * **WUST_EMAIL_ADDRESS**: from address for sent email (optional)
 * **WUST_SMTP_ENDPOINT**: smtp endpoint (optional)
 * **WUST_SMTP_USER**: smtp username (optional)
 * **WUST_SMTP_PASS**: smtp password (optional)
-* **CERT_DIR**: directory on docker host containing SSL_CERT and SSL_KEY, is mounted read-only in nginx container
-* **SSL_CERT**: path to tls certificate (relative to CERT_DIR), used in [ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)
-* **SSL_KEY**: path to private tls key (relative to CERT_DIR), used in [ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)
+* **CERT_DIR**: directory on docker host containing fullchain.pem ([ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)) and privkey.pem ([ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)), is mounted read-only in nginx container
 
 See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl)
 
@@ -91,5 +88,5 @@ $ ./start prod.http
 
 Example:
 ```bash
-HOST_DOMAIN=yourdomain.com POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs SSL_CERT=cert.pem SSL_KEY=key.pem ./start prod
+POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs ./start prod
 ```

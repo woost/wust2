@@ -60,14 +60,15 @@ test.integration)
     ;;
 test.prod.http)
     # CI=true disables workbench
-    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CI=true
+    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CI=true
     $compose_stage prod.http down
     $compose_stage prod.http up -d
     sbt_arg systemTest/it:test
     $compose_stage prod.http down
     ;;
 test.prod)
-    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CI=true CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    # CI=true disables workbench
+    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CI=true CERT_DIR=$PWD/systemTest
     $compose_stage prod down
     $compose_stage prod up -d
     #TODO sbt_arg systemTest/it:test
@@ -75,12 +76,12 @@ test.prod)
     $compose_stage prod down
     ;;
 local.prod.http)
-    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test
+    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test
     $compose_stage prod.http down
     $compose_stage prod.http up -d
     ;;
 local.prod)
-    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest
     $compose_stage prod down
     $compose_stage prod up -d
     ;;

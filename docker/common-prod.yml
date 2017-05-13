@@ -25,14 +25,8 @@ services:
   nginx:
     image: woost/wust2.nginx
     restart: always
-    environment:
-      HOST_DOMAIN: ${HOST_DOMAIN}
-      SSL_CERT_PATH: "/cert_dir/${SSL_CERT}"
-      SSL_KEY_PATH: "/cert_dir/${SSL_KEY}"
     volumes:
-      - ${CERT_DIR}:/cert_dir/:ro
+      - ${CERT_DIR}:/tls_certs/:ro
   nginx-http:
     image: woost/wust2.nginx:http
     restart: always
-    environment:
-      HOST_DOMAIN: ${HOST_DOMAIN}

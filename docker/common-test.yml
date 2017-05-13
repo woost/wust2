@@ -20,15 +20,9 @@ services:
   nginx:
     image: woost/wust2.nginx
     restart: always
-    environment:
-      HOST_DOMAIN: localhost
-      SSL_CERT_PATH: "/cert_dir/.test_cert.pem"
-      SSL_KEY_PATH: "/cert_dir/.test_key.pem"
     volumes:
-      - ../test/:/cert_dir/:ro
+      - ../test/:/tls_certs/:ro
   nginx-http:
     image: woost/wust2.nginx:http
-    environment:
-      HOST_DOMAIN: "localhost"
     ports:
       - "80:80"
