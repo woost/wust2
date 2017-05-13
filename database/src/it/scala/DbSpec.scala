@@ -1,11 +1,12 @@
 package wust.dbSpec
 
 import org.scalatest._
-import wust.db._
-import wust.ids._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
+
+import wust.ids._
+import wust.db._
 
 // TODO: Query-Probing: https://github.com/getquill/quill#query-probing
 // "Query probing validates queries against the database at compile time, failing the compilation if it is not valid. The query validation does not alter the database state."
@@ -17,8 +18,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
   "post" - {
     "create public post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         post <- db.post.createPublic("t")
 
@@ -32,8 +32,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create public post with apply" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         (post, None) <- db.post("t", groupIdOpt = None)
 
@@ -47,8 +46,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create owned post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         // groupId <- ctx.run(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
@@ -66,8 +64,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create owned post with apply" in { db =>
-      import db.{ctx, _}
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         // groupId <- ctx.run(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
@@ -85,7 +82,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get existing post" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Post(postId, _) <- db.post.createPublic("t")
         getPost <- db.post.get(postId)
@@ -95,7 +92,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get non-existing post" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         getPost <- db.post.get(17134)
       } yield {
@@ -104,8 +101,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "update existing post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         post <- db.post.createPublic("t")
         updatedPost <- db.post.update(post.copy(title = "harals"))
@@ -117,8 +113,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "update non-existing post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         updatedPost <- db.post.update(Post(1135, "harals"))
         queriedPosts <- ctx.run(query[Post].filter(_.id == lift(PostId(1135))))
@@ -129,8 +124,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "delete existing post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         post <- db.post.createPublic("t")
         deleted <- db.post.delete(post.id)
@@ -142,8 +136,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "delete non-existing post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         deleted <- db.post.delete(135481)
         queriedPosts <- ctx.run(query[Post].filter(_.id == lift(PostId(135481))))
@@ -156,7 +149,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
   "connection" - {
     "create between two existing posts" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         sourcePost <- db.post.createPublic("s")
         targetPost <- db.post.createPublic("t")
@@ -169,7 +162,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create between two posts, source not existing" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         targetPost <- db.post.createPublic("t")
         connectionOpt <- db.connection(131565, targetPost.id)
@@ -179,7 +172,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create between two posts, target not existing" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         sourcePost <- db.post.createPublic("s")
         connectionOpt <- db.connection(sourcePost.id, PostId(131565))
@@ -189,7 +182,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create between two posts, both not existing" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         connectionOpt <- db.connection(16816, PostId(131565))
       } yield {
@@ -198,7 +191,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create from post to other connection" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         sourcePost <- db.post.createPublic("s")
         aPost <- db.post.createPublic("a")
@@ -214,8 +207,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create connection with new public post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         targetPost <- db.post.createPublic("t")
 
@@ -238,8 +230,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create connection with new owned post" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         targetPost <- db.post.createPublic("t")
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
@@ -263,8 +254,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create connection with new public post to non-existing targetId" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         connectionResultOpt <- db.connection.newPost("response", PostId(612345), groupIdOpt = None)
 
@@ -276,7 +266,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "delete existing connection" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         sourcePost <- db.post.createPublic("s")
         targetPost <- db.post.createPublic("t")
@@ -289,7 +279,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "delete non-existing connection" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         deleted <- db.connection.delete(165151)
       } yield {
@@ -300,7 +290,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
   "containment" - {
     "create between two existing posts" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         parentPost <- db.post.createPublic("s")
         childPost <- db.post.createPublic("t")
@@ -313,7 +303,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create between two posts, parent not existing" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         childPost <- db.post.createPublic("t")
         containmentOpt <- db.containment(131565, childPost.id)
@@ -323,7 +313,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create between two posts, child not existing" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         parentPost <- db.post.createPublic("s")
         containmentOpt <- db.containment(parentPost.id, PostId(131565))
@@ -333,7 +323,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create between two posts, both not existing" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         containmentOpt <- db.containment(16816, PostId(131565))
       } yield {
@@ -342,7 +332,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "delete existing containment" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         parentPost <- db.post.createPublic("s")
         childPost <- db.post.createPublic("t")
@@ -355,7 +345,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "delete non-existing containment" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         deleted <- db.containment.delete(165151)
       } yield {
@@ -368,8 +358,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     import com.roundeights.hasher.Hasher
 
     "create non-existing" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         Some(user) <- db.user("heigo", "parwin")
         queriedUsers <- ctx.run(query[User].filter(_.id == lift(user.id)))
@@ -386,8 +375,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "try to create existing with same password" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         None <- db.user("heigo", "parwin")
@@ -400,8 +388,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "try to create existing with different password" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         None <- db.user("heigo", "reidon")
@@ -414,8 +401,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create implicit user" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         user <- db.user.createImplicitUser()
         queriedUsers <- ctx.run(query[User])
@@ -430,8 +416,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "create two implicit users" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         user1 <- db.user.createImplicitUser()
         user2 <- db.user.createImplicitUser()
@@ -445,8 +430,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "activate implicit user to non-existing" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         implUser <- db.user.createImplicitUser()
         Some(user) <- db.user.activateImplicitUser(implUser.id, "ganiz", "faura")
@@ -462,8 +446,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "try to activate implicit user to existing with same password" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         implUser <- db.user.createImplicitUser()
         Some(existingUser) <- db.user("ganiz", "heuriso")
@@ -478,8 +461,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "try to activate implicit user to existing with different password" in { db =>
-      import db.ctx
-      import ctx._
+      import db._, db.ctx, ctx._
       for {
         implUser <- db.user.createImplicitUser()
         Some(existingUser) <- db.user("ganiz", "heuriso")
@@ -494,7 +476,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get existing by id" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         Some(user) <- db.user.get(existingUser.id)
@@ -504,7 +486,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get non-existing by id" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         userOpt <- db.user.get(UserId(11351))
       } yield {
@@ -513,7 +495,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get existing by name,password" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         Some(user) <- db.user.get("heigo", "parwin")
@@ -523,7 +505,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get non-existing by name,password" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         userOpt <- db.user.get("a", "b")
       } yield {
@@ -532,7 +514,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get existing with wrong password" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         userOpt <- db.user.get("heigo", "brutula")
@@ -542,7 +524,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "get existing with wrong username" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         userOpt <- db.user.get("ürgens", "parwin")
@@ -552,7 +534,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "check if existing user exists" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         exists <- db.user.checkIfEqualUserExists(existingUser)
@@ -562,7 +544,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "check if existing user exists (wrong id)" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         exists <- db.user.checkIfEqualUserExists(existingUser.copy(id = UserId(187)))
@@ -572,7 +554,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "check if existing user exists (wrong name)" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         exists <- db.user.checkIfEqualUserExists(existingUser.copy(name = "heikola"))
@@ -582,7 +564,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "check if existing user exists (wrong isImplicit)" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         exists <- db.user.checkIfEqualUserExists(existingUser.copy(isImplicit = true))
@@ -592,7 +574,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     }
 
     "check if existing user exists (wrong revision)" in { db =>
-
+      import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         exists <- db.user.checkIfEqualUserExists(existingUser.copy(revision = 3))
@@ -630,7 +612,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
   "graph" - {
     "without user" - {
       "public posts, connections and containments" in { db =>
-
+        import db._, db.ctx, ctx._
         for {
           postA <- db.post.createPublic("A")
           postB <- db.post.createPublic("B")
@@ -652,7 +634,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
 
       "public posts, connections and containments, private posts" in { db =>
-
+        import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
           (group, membership) <- db.group.createForUser(user.id)
@@ -679,7 +661,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
     "with user" - {
       "public posts, connections and containments" in { db =>
-
+        import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
           postA <- db.post.createPublic("A")
@@ -702,7 +684,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
 
       "group without posts" in { db =>
-
+        import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
           (group, membership) <- db.group.createForUser(user.id)
@@ -721,7 +703,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
 
       "public posts, own private posts" in { db =>
-
+        import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
           (group, membership) <- db.group.createForUser(user.id)
@@ -746,7 +728,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
 
       "public posts, own private posts, invisible posts" in { db =>
-
+        import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
           (group, membership) <- db.group.createForUser(user.id)
