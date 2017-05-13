@@ -1,10 +1,10 @@
 #!/bin/sh
 
 echo -n "waiting for postgres to be up..."
-while [ -z "`nc -z postgres 5432 && echo connected`" ]; do
+while ! nc -z postgres 5432; do
     sleep 1
 done
 
 echo "done"
 
-flyway $@
+flyway -url="jdbc:postgresql://postgres/$POSTGRES_DB" -schemas=public -user=$POSTGRES_USER -password=$POSTGRES_PASSWORD migrate

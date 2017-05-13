@@ -13,7 +13,8 @@ services:
       - /pg_data/:/var/lib/postgresql/data
   db-migration:
     image: woost/wust2.db-migration
-    command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=wust -password=${POSTGRES_PASSWORD} migrate
+    environment:
+      <<: *pg_env
   wust:
     image: woost/wust2
     restart: always

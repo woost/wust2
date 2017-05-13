@@ -9,7 +9,8 @@ services:
       POSTGRES_DB: 'wust'
   db-migration:
     image: woost/wust2.db-migration
-    command: -url='jdbc:postgresql://postgres/wust' -schemas=public -user=wust -password=test migrate
+    environment:
+      <<: *pg_env
   wust:
     image: woost/wust2
     environment:
