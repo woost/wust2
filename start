@@ -54,7 +54,7 @@ test.integration)
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
     # CI=true disables workbench
     export WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 CI=true
-    until docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE $POSTGRES_DB"; do sleep 1; done
+    docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE $POSTGRES_DB"
     sbt_arg it:test
     $compose down
     ;;
@@ -67,7 +67,7 @@ test.prod.http)
     $compose_stage prod.http down
     ;;
 test.prod)
-    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
+    export WUST_AUTH_SECRET=secret HOST_DOMAIN=localhost POSTGRES_PASSWORD=test CI=true CERT_DIR=$PWD/systemTest SSL_CERT=.test_cert.pem SSL_KEY=.test_key.pem
     $compose_stage prod down
     $compose_stage prod up -d
     #TODO sbt_arg systemTest/it:test

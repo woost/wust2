@@ -3,7 +3,6 @@ set -e
 set -o pipefail
 
 export CI=true # also set by travis, but helps when running locally
-export POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test
 
 ./start test.postgres
 ./start test.integration
