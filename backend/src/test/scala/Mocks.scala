@@ -20,6 +20,7 @@ trait DbMocks extends SpecsLikeMockito {
     db.post returns mock[db.post.type]
     db.connection returns mock[db.connection.type]
     db.containment returns mock[db.containment.type]
+    db.graph returns mock[db.graph.type]
     db
   }
 
