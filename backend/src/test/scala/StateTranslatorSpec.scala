@@ -1,14 +1,14 @@
 package wust.backend
 
 import org.scalatest._
+import wust.backend.auth.JWT
 import wust.api._
 import wust.graph._
 import wust.ids._
 
 class StateTranslatorSpec extends FreeSpec with MustMatchers {
-  import TestDefaults.jwt
   val user = User(14, "user", isImplicit = false, 0)
-  val auth = jwt.generateAuthentication(user)
+  val auth = JWT.generateAuthentication(user)
 
   "applyEvent" - {
     "NewMembership" - {

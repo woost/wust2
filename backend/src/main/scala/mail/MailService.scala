@@ -1,6 +1,6 @@
 package wust.backend.mail
 
-import wust.backend.config._
+import wust.config._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

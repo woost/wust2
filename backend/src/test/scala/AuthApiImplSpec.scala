@@ -1,6 +1,7 @@
 package wust.backend
 
 import org.scalatest._
+import wust.backend.auth.JWT
 import wust.graph._
 import wust.ids._
 import wust.{db => dbT}
@@ -8,8 +9,6 @@ import wust.{db => dbT}
 import scala.concurrent.Future
 
 class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
-  import TestDefaults.jwt
-
   "register" - {
     "no user" in mockDb { db =>
       db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
@@ -27,7 +26,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.apply("torken", "sanh") returns Future.successful(Option(dbT.User(0, "torken", false, 0)))
 
       val user = User(13, "dieter", false, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.register("torken", "sanh")).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -41,7 +40,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.activateImplicitUser(13, "torken", "sanh") returns Future.successful(Option(dbT.User(13, "torken", false, 0)))
 
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.register("torken", "sanh")).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -54,7 +53,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.apply("torken", "sanh") returns Future.successful(None)
 
       val user = User(13, "dieter", false, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.register("torken", "sanh")).map { case (state, events, result) =>
         state.auth mustEqual None
@@ -68,7 +67,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.activateImplicitUser(13, "torken", "sanh") returns Future.successful(None)
 
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.register("torken", "sanh")).map { case (state, events, result) =>
         state.auth mustEqual Some(auth)
@@ -95,7 +94,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.get("torken", "sanh") returns Future.successful(Option(dbT.User(0, "torken", false, 0)))
 
       val user = User(13, "dieter", false, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -109,7 +108,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.get("torken", "sanh") returns Future.successful(Option(dbT.User(0, "torken", false, 0)))
 
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -122,7 +121,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.get("torken", "sanh") returns Future.successful(None)
 
       val user = User(13, "dieter", false, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
         state.auth mustEqual None
@@ -135,7 +134,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.get("torken", "sanh") returns Future.successful(None)
 
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
         state.auth mustEqual None
@@ -148,7 +147,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   "loginToken" - {
     import DbConversions._
     val tokUser = User(0, "torken", true, 0)
-    val tokAuth = jwt.generateAuthentication(tokUser)
+    val tokAuth = JWT.generateAuthentication(tokUser)
 
     "invalid token" in mockDb { db =>
       onAuthApi(State.initial, db = db)(_.loginToken("invalid")).map { case (state, events, result) =>
@@ -174,7 +173,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.checkIfEqualUserExists(tokUser) returns Future.successful(true)
 
       val user = User(13, "dieter", false, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.loginToken(tokAuth.token)).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -188,7 +187,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.checkIfEqualUserExists(tokUser) returns Future.successful(true)
 
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.loginToken(tokAuth.token)).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -201,7 +200,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.checkIfEqualUserExists(tokUser) returns Future.successful(false)
 
       val user = User(13, "dieter", false, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.loginToken(tokAuth.token)).map { case (state, events, result) =>
         state.auth mustEqual None
@@ -214,7 +213,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.checkIfEqualUserExists(tokUser) returns Future.successful(false)
 
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.loginToken(tokAuth.token)).map { case (state, events, result) =>
         state.auth mustEqual None
@@ -235,7 +234,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "with user" in {
       val user = User(13, "anonieter", true, 0)
-      val auth = jwt.generateAuthentication(user)
+      val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)))(_.logout()).map { case (state, events, result) =>
         state.auth mustEqual None

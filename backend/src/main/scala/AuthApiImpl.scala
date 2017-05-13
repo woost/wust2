@@ -8,7 +8,7 @@ import wust.db.Db
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AuthApiImpl(stateAccess: StateAccess, db: Db, jwt: JWT) extends AuthApi {
+class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
   import stateAccess._
 
   private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = {
@@ -24,10 +24,10 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db, jwt: JWT) extends AuthApi {
   def register(name: String, password: String): Future[Boolean] = { (state: State) =>
     val (auth, success) = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
-        val activated = db.user.activateImplicitUser(user.id, name, password).map(_.map(u => jwt.generateAuthentication(u)))
+        val activated = db.user.activateImplicitUser(user.id, name, password).map(_.map(u => JWT.generateAuthentication(u)))
         (activated.map(_.orElse(state.auth)), activated.map(_.isDefined))
       case _ =>
-        val newAuth = db.user(name, password).map(_.map(u => jwt.generateAuthentication(u)))
+        val newAuth = db.user(name, password).map(_.map(u => JWT.generateAuthentication(u)))
         (newAuth, newAuth.map(_.isDefined))
     }
 
@@ -35,12 +35,12 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db, jwt: JWT) extends AuthApi {
   }
 
   def login(name: String, password: String): Future[Boolean] = { (state: State) =>
-    val auth = db.user.get(name, password).map(_.map(u => jwt.generateAuthentication(u)))
+    val auth = db.user.get(name, password).map(_.map(u => JWT.generateAuthentication(u)))
     StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
   def loginToken(token: Authentication.Token): Future[Boolean] = { (state: State) =>
-    val auth = jwt.authenticationFromToken(token).map { auth =>
+    val auth = JWT.authenticationFromToken(token).map { auth =>
       for (valid <- db.user.checkIfEqualUserExists(auth.user))
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))

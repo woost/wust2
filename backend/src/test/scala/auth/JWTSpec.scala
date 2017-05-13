@@ -1,12 +1,11 @@
 package wust.backend.auth
 
 import org.scalatest._
-import wust.backend.TestDefaults
 import wust.graph.User
 import wust.ids._
 
 class JWTSpec extends FreeSpec with MustMatchers {
-  import TestDefaults.jwt
+  val jwt = new JWT("secret", 123456789)
 
   implicit def intToUserId(id: Int): UserId = UserId(id)
 

@@ -24,7 +24,7 @@ trait ApiTestKit extends DbMocks {
 
   def onAuthApi[T](state: State, db: Db = mockedDb, implicitAuth: JWTAuthentication = null)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val (access, events) = newStateAccess(state, Option(implicitAuth))
-    val impl = new AuthApiImpl(access, db, TestDefaults.jwt)
+    val impl = new AuthApiImpl(access, db)
     onResult(impl, access, events)(f)
   }
 

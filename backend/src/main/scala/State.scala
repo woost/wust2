@@ -42,7 +42,7 @@ object StateTranslator {
   }
 }
 
-class StateChange(db: Db, jwt: JWT, enableImplicit: Boolean) {
+class StateChange(db: Db, enableImplicit: Boolean) {
   def stateEvents(state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] = {
     Seq (
       state.auth
@@ -62,9 +62,9 @@ class StateChange(db: Db, jwt: JWT, enableImplicit: Boolean) {
     }
 
   def createImplicitAuth()(implicit ec: ExecutionContext) = enableImplicit match {
-    case true => db.user.createImplicitUser().map(u => jwt.generateAuthentication(forClient(u))).map(Option.apply)
+    case true => db.user.createImplicitUser().map(u => JWT.generateAuthentication(forClient(u))).map(Option.apply)
     case false => Future.successful(None)
   }
 
-  def filterValid(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
+  def filterValid(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
 }

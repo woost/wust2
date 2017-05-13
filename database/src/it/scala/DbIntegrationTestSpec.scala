@@ -2,13 +2,13 @@ package wust.dbSpec
 
 import java.util.UUID.randomUUID
 
+import wust.config.Config
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.getquill._
 import org.scalatest._
 import wust.db.Db
 
 object DbIntegrationTestSpec {
-  val defaultDbConfig = ConfigFactory.load().getConfig("db")
   val integrationTestDbConfig = ConfigFactory.load().getConfig("integrationTestDb")
 }
 
@@ -27,7 +27,7 @@ trait DbIntegrationTestSpec extends fixture.AsyncFreeSpec with BeforeAndAfterAll
     // println(s"$tmpDbName: creating...")
     dbCreatorCtx.executeAction(s"""CREATE DATABASE "$tmpDbName" TEMPLATE wust_template CONNECTION LIMIT 1""")
 
-    val testEnvConfig = defaultDbConfig.withValue("database", ConfigValueFactory.fromAnyRef(tmpDbName))
+    val testEnvConfig = Config.db.withValue("database", ConfigValueFactory.fromAnyRef(tmpDbName))
     val testDb = new Db(new PostgresAsyncContext[LowerCase](testEnvConfig))
     complete {
       // println(s"$tmpDbName: running test...")

@@ -2,7 +2,7 @@ package wust.backend.auth
 
 import io.igl.jwt._
 import wust.api._
-import wust.backend.config.Config
+import wust.config.Config
 import wust.graph.User
 import wust.ids._
 
@@ -73,6 +73,4 @@ class JWT(secret: String, tokenLifetime: Long) {
 
   def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp
 }
-object JWT {
-  val default = new JWT(Config.auth.secret, Config.auth.tokenLifetime)
-}
+object JWT extends JWT(Config.auth.secret, Config.auth.tokenLifetime)

@@ -7,7 +7,7 @@ import autowire.Core.Request
 import boopickle.Default._
 import wust.api._
 import wust.backend.auth._
-import wust.backend.config.Config
+import wust.config.Config
 import wust.db.Db
 import wust.framework._
 
@@ -69,9 +69,9 @@ class ApiRequestHandler(dispatcher: EventDispatcher, stateChange: StateChange, a
 
 object Server {
   private def api(stateAccess: StateAccess) = AutowireServer.route[Api](new ApiImpl(stateAccess, Db.default)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, Db.default, JWT.default))
+      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, Db.default))
 
-  private val stateChange = new StateChange(Db.default, JWT.default, Config.auth.enableImplicit)
+  private val stateChange = new StateChange(Db.default, Config.auth.enableImplicit)
 
   private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new ChannelEventBus, stateChange, api _))
 

@@ -12,8 +12,6 @@ lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
     Nil),
-  unmanagedResourceDirectories in Compile ++= (unmanagedResourceDirectories in Compile in config).value, // use application.conf
-  unmanagedResourceDirectories in Test ++= (unmanagedResourceDirectories in Test in config).value, // use application.conf
 
   // do not run tests in assembly command
   test in assembly := {},
@@ -49,8 +47,14 @@ lazy val commonSettings = Seq(
 // )
 )
 
-lazy val config = project // only contains application.conf
+lazy val config = project.in(file("config")) // only contains application.conf and config object
+  .settings(commonSettings)
   .settings(
+    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
+    libraryDependencies ++= (
+      "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
+      Nil
+    ),
     resourceDirectory in Compile := baseDirectory.value,
     resourceDirectory in Test := baseDirectory.value)
 
@@ -149,17 +153,16 @@ lazy val api = crossProject.crossType(CrossType.Pure)
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
-lazy val database = project
+lazy val database = project.in(file("database"))
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .dependsOn(idsJVM)
+  .dependsOn(idsJVM, config)
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.1.1" ::
       "com.roundeights" %% "hasher" % "1.2.0" :: //TODO: move to backend
       "org.mindrot" % "jbcrypt" % "0.4" :: //TODO: move to backend
-      "com.typesafe" % "config" % "1.3.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       "org.postgresql" % "postgresql" % "9.4.1208" % "test,it" ::
       "io.getquill" %% "quill-jdbc" % "1.1.1" % "test,it" :: //TODO: variable for quill version
@@ -171,7 +174,7 @@ lazy val backend = project
   .enablePlugins(DockerPlugin)
   .settings(dockerBackend)
   .settings(commonSettings)
-  .dependsOn(frameworkJVM, apiJVM, database)
+  .dependsOn(frameworkJVM, apiJVM, database, config)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(
@@ -181,10 +184,8 @@ lazy val backend = project
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "io.igl" %% "jwt" % "1.2.0" ::
-      "com.typesafe" % "config" % "1.3.1" ::
       "javax.mail" % "javax.mail-api" % "1.5.6" ::
       "com.sun.mail" % "javax.mail" % "1.5.6" ::
-      "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::

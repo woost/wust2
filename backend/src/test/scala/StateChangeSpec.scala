@@ -1,6 +1,7 @@
 package wust.backend
 
 import org.scalatest._
+import wust.backend.auth.JWT
 import wust.api._
 import wust.ids._
 import wust.{db => dbT}
@@ -9,11 +10,10 @@ import wust.graph._
 import scala.concurrent.Future
 
 class StateChangeSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
-  import TestDefaults.jwt
   val user = User(14, "user", isImplicit = false, 0)
-  val auth = jwt.generateAuthentication(user)
+  val auth = JWT.generateAuthentication(user)
 
-  def newStateChange(db: Db = mockedDb, enableImplicit: Boolean = false) = new StateChange(db, jwt, enableImplicit)
+  def newStateChange(db: Db = mockedDb, enableImplicit: Boolean = false) = new StateChange(db, enableImplicit)
 
   "filterValid" - {
     val stateChange = newStateChange()

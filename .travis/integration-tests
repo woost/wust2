@@ -2,8 +2,6 @@
 set -e
 set -o pipefail
 
-export CI=true # also set by travis, but helps when running locally
-
 ./start test.postgres
 ./start test.integration
 ./start test.prod.http

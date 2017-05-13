@@ -13,11 +13,15 @@ function sbt_arg() {
     arg=$1
     [ -n "$override_sbt_arg" ] && arg="$override_sbt_arg"
 
-    sbt -Dquill.macro.log=false $arg
+    WUST_STAGE=dev sbt -Dquill.macro.log=false $arg
 }
 
 # variables used in services.yml
-export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest/.test_certs
+function PROD_VARS() {
+    WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest/.test_certs "$@"
+}
+
+# CI=true => disable workbench
 
 case $stage in
 psql)
@@ -27,7 +31,7 @@ psql)
     ;;
 dev)
     $compose up -d
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust sbt_arg
+    sbt_arg
     ;;
 migrate)
     CI=true sbt dbMigration/docker
@@ -35,11 +39,11 @@ migrate)
     ;;
 prod.http)
     $compose_stage prod down
-    $compose_stage prod up -d nginx-http
+    PROD_VARS $compose_stage prod up -d nginx-http
     ;;
 prod)
     $compose down
-    $compose up -d nginx
+    PROD_VARS $compose up -d nginx
     ;;
 test.postgres)
     $compose down
@@ -53,18 +57,18 @@ test.integration)
     $compose up -d
     docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PORT=5431 CI=true sbt_arg it:test
+    POSTGRES_PORT=5431 CI=true sbt_arg it:test
     $compose down
     ;;
 test.prod.http)
     $compose_stage prod down
-    $compose_stage prod up -d nginx-http
+    PROD_VARS $compose_stage prod up -d nginx-http
     CI=true sbt_arg systemTest/it:test
     $compose_stage prod down
     ;;
 test.prod)
     $compose_stage prod down
-    $compose_stage prod up -d nginx
+    PROD_VARS $compose_stage prod up -d nginx
     #TODO CI=true sbt_arg systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
     $compose_stage prod down

@@ -1,6 +1,7 @@
 package wust.backend
 
 import org.scalatest._
+import wust.backend.auth.JWT
 import wust.api._
 import wust.graph.{Group, User}
 import wust.ids._
@@ -8,8 +9,6 @@ import wust.ids._
 import scala.concurrent.Future
 
 class StateDslSpec extends AsyncFreeSpec with MustMatchers {
-  import TestDefaults.jwt
-
   val implicitUser = User(14, "implicit", isImplicit = true, 0)
   val initialUser = User(11, "existing", isImplicit = false, 0)
 
@@ -17,13 +16,13 @@ class StateDslSpec extends AsyncFreeSpec with MustMatchers {
     var count = -1
     new StateDsl(() => {
       count = count + 1
-      val auth = jwt.generateAuthentication(implicitUser.copy(revision = count))
+      val auth = JWT.generateAuthentication(implicitUser.copy(revision = count))
       Future.successful(Option(auth))
     })
   }
   def nonImplicitDsl = new StateDsl(() => Future.successful(None))
 
-  val authState = State(auth = Option(jwt.generateAuthentication(initialUser)), groupIds = Set(1,2))
+  val authState = State(auth = Option(JWT.generateAuthentication(initialUser)), groupIds = Set(1,2))
   val nonAuthState = State(auth = None, groupIds = Set.empty)
 
   "withUser" - {
