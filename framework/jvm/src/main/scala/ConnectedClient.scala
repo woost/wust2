@@ -3,7 +3,7 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import akka.actor._
-import akka.http.scaladsl.model.ws.{ Message => WSMessage }
+import akka.http.scaladsl.model.ws.{Message => WSMessage}
 import akka.pattern.pipe
 import autowire.Core.Request
 import wust.framework.message._

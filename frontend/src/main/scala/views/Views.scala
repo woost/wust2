@@ -4,8 +4,8 @@ import autowire._
 import boopickle.Default._
 import wust.frontend.Client
 import wust.frontend.Color._
-import wust.ids._
 import wust.graph._
+import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalatags.JsDom.all._

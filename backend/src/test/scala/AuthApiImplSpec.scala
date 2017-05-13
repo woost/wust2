@@ -1,15 +1,11 @@
 package wust.backend
 
 import org.scalatest._
-import wust.backend.auth._
-import wust.api._
-import wust.{db => dbT}
-import wust.db.Db
-import wust.ids._
 import wust.graph._
-import scala.concurrent.{ ExecutionContext, Future }
-import org.scalatest.mockito.MockitoSugar
-import org.mockito.Matchers._
+import wust.ids._
+import wust.{db => dbT}
+
+import scala.concurrent.Future
 
 class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   import TestDefaults.jwt

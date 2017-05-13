@@ -1,8 +1,6 @@
 package wust.backend
 
 import akka.event.{EventBus, LookupClassification}
-import akka.http.scaladsl.model.ws.Message
-import wust.ids._
 import wust.api._
 import wust.framework._
 

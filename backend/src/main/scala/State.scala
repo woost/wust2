@@ -1,11 +1,12 @@
 package wust.backend
 
 import wust.api._
+import wust.backend.DbConversions._
 import wust.backend.auth._
 import wust.db.Db
 import wust.ids._
 import wust.util.Pipe
-import DbConversions._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: crashes coverage @derive(copyF)

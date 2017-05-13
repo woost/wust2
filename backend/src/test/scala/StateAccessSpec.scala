@@ -2,9 +2,8 @@ package wust.backend
 
 import org.scalatest._
 import wust.api._
+import wust.graph.{Group, User}
 import wust.ids._
-import wust.graph.{User, Group}
-import wust.backend.auth._
 
 import scala.concurrent.Future
 

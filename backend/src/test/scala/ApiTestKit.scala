@@ -1,15 +1,11 @@
 package wust.backend
 
-import org.scalatest._
-import wust.backend.auth._
 import wust.api._
+import wust.backend.auth._
 import wust.db.Db
-import wust.ids._
-import wust.graph._
-import scala.concurrent.{ ExecutionContext, Future }
+
 import scala.collection.mutable
-import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ApiTestKit extends DbMocks {
   private def newStateAccess[T](state: State, implicitAuth: Option[JWTAuthentication]): (StateAccess, mutable.Seq[ChannelEvent]) = {

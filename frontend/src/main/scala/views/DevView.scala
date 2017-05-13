@@ -2,22 +2,21 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import wust.frontend.{Client, GlobalState}
-import wust.ids._
-import wust.graph._
-
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import scalatags.JsDom.all._
-import wust.util.tags._
-import rx._
-import scalatags.rx.all._
-import concurrent.duration.{span => _, _}
-import collection.breakOut
-import wust.api._
-import wust.util.AutoId
-import scalajs.js
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
+import rx._
+import wust.api._
+import wust.frontend.{Client, GlobalState}
+import wust.graph._
+import wust.ids._
+import wust.util.AutoId
+import wust.util.tags._
+
+import scala.collection.breakOut
+import scala.concurrent.duration.{span => _, _}
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import scalatags.JsDom.all._
+import scalatags.rx.all._
 
 object DevView {
   import scala.util.Random.{nextInt => rInt, nextString => rStr}

@@ -1,15 +1,6 @@
 package wust.frontend.views
 
-import org.scalajs.dom._
-import rx._
-import wust.ids._
-import wust.graph._
-
-import scala.collection.breakOut
-import scala.util.{Failure, Success, Try}
-import scalatags.JsDom.TypedTag
-import scalatags.JsDom.all._
-import scalatags.rx.all._
+import scala.util.Try
 
 case class Path(name: String, options: Map[String,String]) {
   override def toString: String = {

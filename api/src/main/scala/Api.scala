@@ -1,7 +1,7 @@
 package wust.api
 
-import wust.ids._
 import wust.graph._
+import wust.ids._
 
 import scala.concurrent.Future
 

@@ -2,11 +2,8 @@ package wust.backend
 
 import org.scalatest._
 import wust.api._
-import wust.ids._
 import wust.graph._
-import wust.backend.auth._
-
-import scala.concurrent.Future
+import wust.ids._
 
 class StateTranslatorSpec extends FreeSpec with MustMatchers {
   import TestDefaults.jwt

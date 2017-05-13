@@ -1,12 +1,10 @@
 package wust.db
 
 import io.getquill._
+import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Await}
-import scala.concurrent.duration._
-import wust.ids._
-import scala.util.{Try, Success, Failure}
+import scala.concurrent.Future
 
 object Db {
   val default = new Db(new PostgresAsyncContext[LowerCase]("db"))

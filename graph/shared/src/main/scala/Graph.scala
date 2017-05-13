@@ -1,13 +1,13 @@
 package wust
 
-import ids._
+import wust.ids._
 
 package object graph {
   import wust.util.Pipe
   import wust.util.algorithm._
   import wust.util.collection._
 
-  import collection.{breakOut, mutable}
+  import collection.mutable
 
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)

@@ -1,7 +1,6 @@
 package wust.backend.config
 
 import autoconfig.config
-import wust.ids._
 
 //@derive((endpoint, username) => toString)
 case class SmtpConfig(endpoint: String, username: String, password: String)

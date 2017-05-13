@@ -1,28 +1,23 @@
 package wust.backend
 
-import java.io.{ PrintWriter, StringWriter }
+import java.nio.ByteBuffer
 
 import akka.http.scaladsl.server.Directives._
 import autowire.Core.Request
-import java.nio.ByteBuffer
 import boopickle.Default._
-import derive.derive
 import wust.api._
 import wust.backend.auth._
-import wust.framework._
-import wust.util.Pipe
-import wust.ids._
-import wust.db.Db
 import wust.backend.config.Config
-import wust.backend.DbConversions._
-import wust.graph.Group
+import wust.db.Db
+import wust.framework._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 class ApiRequestHandler(dispatcher: EventDispatcher, stateChange: StateChange, api: StateAccess => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
-  import StateTranslator._, stateChange._
+  import StateTranslator._
+  import stateChange._
 
   override def router(state: Future[State]) = {
     val validState = state.map(filterValid)

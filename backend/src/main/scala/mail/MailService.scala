@@ -1,10 +1,10 @@
 package wust.backend.mail
 
 import wust.backend.config._
-import scala.concurrent.Future
-import scala.util.{Success, Failure}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
 case class MailMessage(subject: String, content: String)

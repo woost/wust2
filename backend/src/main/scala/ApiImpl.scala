@@ -1,19 +1,14 @@
 package wust.backend
 
-import wust.ids._
-import wust.db.Db
 import wust.api._
-import wust.backend.auth._
-import wust.backend.config.Config
+import wust.backend.DbConversions._
+import wust.db.Db
 import wust.graph._
-import wust.util.{RandomUtil, Pipe}
-import DbConversions._
+import wust.ids._
+import wust.util.RandomUtil
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import cats.data.OptionT // helpers for Future[Option[T]] - http://typelevel.org/cats/datatypes/optiont.html
-import cats.implicits._
 
 class ApiImpl(stateAccess: StateAccess, db: Db) extends Api {
   import stateAccess._

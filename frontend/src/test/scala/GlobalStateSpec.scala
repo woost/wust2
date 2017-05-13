@@ -2,8 +2,8 @@ package wust.frontend
 
 import org.scalatest._
 import rx.Ctx.Owner.Unsafe._
-import wust.ids._
 import wust.graph._
+import wust.ids._
 
 class GlobalStateSpec extends FreeSpec with MustMatchers {
 

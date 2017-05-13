@@ -1,6 +1,5 @@
 package wust.backend
 
-import wust.ids._
 import wust.db
 import wust.graph._
 

@@ -2,8 +2,8 @@ package wust.frontend.views.graphview
 
 import delegert.delegert
 import org.scalajs.d3v4._
-import wust.ids._
 import wust.graph.Post
+import wust.ids._
 import wust.util.Pipe
 
 import scala.math._

@@ -1,13 +1,12 @@
 package wust.backend.mail
 
-import wust.backend.config.SmtpConfig
-
+import java.util.{Date, Properties}
 import javax.mail._
 import javax.mail.internet._
-import java.util.Date
-import java.util.Properties
-import scala.util.{Try, Success, Failure}
-import scala.collection.JavaConversions._
+
+import wust.backend.config.SmtpConfig
+
+import scala.util.Try
 
 class JavaMailClient(config: SmtpConfig)
 {

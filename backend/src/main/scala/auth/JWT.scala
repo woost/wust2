@@ -1,10 +1,10 @@
 package wust.backend.auth
 
-import wust.graph.User
 import io.igl.jwt._
-import wust.ids._
 import wust.api._
 import wust.backend.config.Config
+import wust.graph.User
+import wust.ids._
 
 object Claims {
   import play.api.libs.functional.syntax._

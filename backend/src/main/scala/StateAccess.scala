@@ -1,12 +1,11 @@
 package wust.backend
 
-import wust.backend.config.Config
-import wust.graph._
 import wust.api._
 import wust.backend.auth._
+import wust.graph._
 import wust.util.Pipe
 
-import scala.concurrent.{ Future, ExecutionContext }
+import scala.concurrent.{ExecutionContext, Future}
 
 case class RequestResponse[T](result: T, events: ApiEvent*)
 object RequestResponse {

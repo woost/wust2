@@ -1,8 +1,8 @@
 package wust.graph
 
 import org.scalatest._
-import wust.util._
 import wust.ids._
+import wust.util._
 
 import scala.collection.breakOut
 

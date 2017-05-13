@@ -1,16 +1,11 @@
 package wust.dbSpec
 
-import org.scalatest._
-
-import scala.util.{ Failure, Success }
-import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
-import io.getquill._
-import wust.db.Db
 import java.util.UUID.randomUUID
-import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 
-import wust.ids._
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import io.getquill._
+import org.scalatest._
+import wust.db.Db
 
 object DbIntegrationTestSpec {
   val defaultDbConfig = ConfigFactory.load().getConfig("db")

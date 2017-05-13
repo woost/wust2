@@ -1,10 +1,9 @@
 package wust.backend
 
 import wust.api._
-import wust.backend.auth._
 import wust.backend.DbConversions._
+import wust.backend.auth._
 import wust.db.Db
-import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

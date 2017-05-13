@@ -2,12 +2,7 @@ package wust.backend
 
 import org.scalatest._
 import wust.db.Db
-import wust.api._
-import wust.ids._
 import wust.graph._
-import wust.backend.auth._
-
-import scala.concurrent.Future
 
 class StateChangeSpec extends FreeSpec with MustMatchers with DbMocks {
   import TestDefaults.jwt
