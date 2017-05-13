@@ -17,7 +17,7 @@ function sbt_arg() {
 }
 
 # variables used in services.yml
-export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest
+export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest/.test_certs
 
 case $stage in
 psql)
