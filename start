@@ -16,6 +16,9 @@ function sbt_arg() {
     sbt -Dquill.macro.log=false $arg
 }
 
+# variables used in services.yml
+export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest
+
 case $stage in
 psql)
     $compose_stage dev run db-migration
@@ -24,22 +27,19 @@ psql)
     ;;
 dev)
     $compose up -d
-    WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test sbt_arg
+    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust sbt_arg
     ;;
 migrate)
-    # CI=true disables workbench
     CI=true sbt dbMigration/docker
     $compose_stage dev run db-migration
     ;;
 prod.http)
-    $compose pull
-    $compose run db-migration
-    $compose up -d --remove-orphans
+    $compose_stage prod down
+    $compose_stage prod up -d nginx-http
     ;;
 prod)
-    $compose pull
-    $compose run db-migration
-    $compose up -d --remove-orphans
+    $compose down
+    $compose up -d nginx
     ;;
 test.postgres)
     $compose down
@@ -51,41 +51,25 @@ test.integration)
     $compose down
     $compose run db-migration
     $compose up -d
+    docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-    # CI=true disables workbench
-    export WUST_AUTH_SECRET=secret POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PASSWORD=test POSTGRES_PORT=5431 CI=true
-    docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE $POSTGRES_DB"
-    sbt_arg it:test
+    POSTGRES_HOSTNAME=localhost POSTGRES_DB=wust POSTGRES_USER=wust POSTGRES_PORT=5431 CI=true sbt_arg it:test
     $compose down
     ;;
 test.prod.http)
-    # CI=true disables workbench
-    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CI=true
-    $compose_stage prod.http down
-    $compose_stage prod.http up -d
-    sbt_arg systemTest/it:test
-    $compose_stage prod.http down
+    $compose_stage prod down
+    $compose_stage prod up -d nginx-http
+    CI=true sbt_arg systemTest/it:test
+    $compose_stage prod down
     ;;
 test.prod)
-    # CI=true disables workbench
-    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CI=true CERT_DIR=$PWD/systemTest
     $compose_stage prod down
-    $compose_stage prod up -d
-    #TODO sbt_arg systemTest/it:test
+    $compose_stage prod up -d nginx
+    #TODO CI=true sbt_arg systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
     $compose_stage prod down
     ;;
-local.prod.http)
-    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test
-    $compose_stage prod.http down
-    $compose_stage prod.http up -d
-    ;;
-local.prod)
-    export WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest
-    $compose_stage prod down
-    $compose_stage prod up -d
-    ;;
 *)
-    echo "unknown stage '$1', expected one of [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod,local.prod.http,local.prod]"
+    echo "unknown stage '$1', expected one of [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]"
     exit 1
 esac

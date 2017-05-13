@@ -3,11 +3,11 @@ version: '2'
 services:
   postgres:
     extends:
-      file: common-test.yml
+      file: services.yml
       service: postgres
   db-migration:
     extends:
-      file: common-test.yml
+      file: services.yml
       service: db-migration
     depends_on:
       - postgres

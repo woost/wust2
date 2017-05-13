@@ -50,6 +50,13 @@ If you are only developing the frontend, you can also skip recompilation of the 
 
 Access wust via http://localhost:12345/workbench/index.html
 
+The start script is the central script for developers.
+From here, you can also run db migrations, access psql, run tests or start a production stack with test settings:
+```
+start [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]
+```
+
+
 # Docker images
 Build all docker images in project:
 ```
@@ -78,15 +85,15 @@ For persisting its data, the postgres container mounts the folder `/pg_data` on 
 
 Start production in docker:
 ```
-$ ./start prod
+$ docker-compose --file docker/compose-prod.yml up nginx
 ```
 
 Or without tls:
 ```
-$ ./start prod.http
+$ docker-compose --file docker/compose-prod.yml up nginx-http
 ```
 
 Example:
 ```bash
-POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs ./start prod
+POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs docker-compose --file docker/compose-prod.yml up nginx
 ```

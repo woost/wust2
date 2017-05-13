@@ -1,6 +1,5 @@
 version: '2'
 
-# TODO: fix to versions
 services:
   postgres:
     image: postgres:9.6.2-alpine
@@ -9,8 +8,6 @@ services:
       POSTGRES_USER: 'wust'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: 'wust'
-    volumes:
-      - /pg_data/:/var/lib/postgresql/data
   db-migration:
     image: woost/wust2.db-migration
     environment:
@@ -22,6 +19,10 @@ services:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
       WUST_AUTH_SECRET: ${WUST_AUTH_SECRET}
+      WUST_EMAIL_ADDRESS: ${WUST_EMAIL_ADDRESS}
+      WUST_SMTP_ENDPOINT: ${WUST_SMTP_ENDPOINT}
+      WUST_SMTP_USER: ${WUST_SMTP_USER}
+      WUST_SMTP_PASS: ${WUST_SMTP_PASS}
   nginx:
     image: woost/wust2.nginx
     restart: always

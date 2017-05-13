@@ -3,25 +3,25 @@ version: '2'
 services:
   postgres:
     extends:
-      file: common-test.yml
+      file: services.yml
       service: postgres
     ports:
       - "5431:5432"
   db-migration:
     extends:
-      file: common-test.yml
+      file: services.yml
       service: db-migration
     depends_on:
       - postgres
   wust:
     extends:
-      file: common-test.yml
+      file: services.yml
       service: wust
     depends_on:
       - postgres
   nginx:
     extends:
-      file: common-test.yml
+      file: services.yml
       #TODO: test with tls or even both? (needs test client to accept our test_cert.pem)
       service: nginx-http
     ports:

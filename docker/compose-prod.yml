@@ -3,26 +3,34 @@ version: '2'
 services:
   postgres:
     extends:
-      file: common-prod.yml
+      file: services.yml
       service: postgres
   db-migration:
     extends:
-      file: common-prod.yml
+      file: services.yml
       service: db-migration
     depends_on:
       - postgres
   wust:
     extends:
-      file: common-prod.yml
+      file: services.yml
       service: wust
     depends_on:
       - postgres
   nginx:
     extends:
-      file: common-prod.yml
+      file: services.yml
       service: nginx
     ports:
       - "443:443"
+      - "80:80"
+    depends_on:
+      - wust
+  nginx-http:
+    extends:
+      file: services.yml
+      service: nginx-http
+    ports:
       - "80:80"
     depends_on:
       - wust
