@@ -65,7 +65,7 @@ $ sbt docker
 
 The images are automatically published to [dockerhub](https://hub.docker.com/r/woost/) in each travis build on `master`.
 
-# Production
+# Deployment
 Requirements:
 * docker
 * docker-compose
@@ -81,7 +81,7 @@ Set environment variables according to your setup:
 
 See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl)
 
-For persisting its data, the postgres container mounts the folder `/pg_data` on the docker host.
+For persisting its data, the postgres container mounts the folder `./pg_data` from the docker host.
 
 Start production in docker:
 ```
@@ -97,3 +97,5 @@ Example:
 ```bash
 POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs docker-compose --file docker/compose-prod.yml up nginx
 ```
+
+Please adapt the compose file to your needs, before deploying to production.
