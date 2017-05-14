@@ -86,12 +86,12 @@ See also [How to create a self-signed certificate](https://stackoverflow.com/que
 
 For persisting its data, the postgres container mounts the folder `./pg_data` from the docker host.
 
-Start whole stack with docker-compose:
+Start the whole stack with docker-compose:
 ```
 $ docker-compose --file docker/compose-prod.yml up nginx
 ```
 
-Or without in a tls-only version:
+Or run nginx without tls:
 ```
 $ docker-compose --file docker/compose-prod.yml up nginx-http
 ```
