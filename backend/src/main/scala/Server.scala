@@ -15,7 +15,6 @@ import wust.framework.state.StateHolder
 import wust.util.{ Pipe, RichFuture }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
@@ -63,6 +62,8 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 }
 
 object Server {
+  import scala.concurrent.ExecutionContext.Implicits.global
+
   private val ws = {
     val db = Db(Config.db)
     val stateInterpreter = new StateInterpreter(db)

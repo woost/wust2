@@ -31,8 +31,8 @@ Requirements:
 * docker, docker-compose
 * node, yarn
 * phantomjs
-* [fork of scala.rx](https://github.com/fdietze/scala.rx): `$ sbt ++2.11.8 scalarxJS/publish-local`
-* [fork of autowire](https://github.com/cornerman/autowire): `$ sbt ++2.11.8 publish-local`
+* [fork of scala.rx](https://github.com/fdietze/scala.rx): `$ sbt ++2.12.2 scalarxJS/publish-local`
+* [fork of autowire](https://github.com/cornerman/autowire): `$ sbt ++2.12.12 publish-local`
 
 Starting all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
 ```

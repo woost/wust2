@@ -185,7 +185,9 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     })
   }
 
-  private def zoomed() {
+  //TODO why does this not work on 2.12, works on 2.11. maybe scalajs function implicit?
+  // private def zoomed() {
+  private val zoomed = () => {
     import d3State.transform
     val htmlTransformString = s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
     svg.selectAll("g").attr("transform", transform.toString)

@@ -5,8 +5,7 @@ git.useGitDescribe := true
 git.baseVersion := "0.1.0"
 git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is always(!) active.
 
-// scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
-scalaVersion in ThisBuild := "2.11.11" // TODO: migrate to 2.12 when delegert supports 2.12
+scalaVersion in ThisBuild := "2.12.2"
 
 lazy val commonSettings = Seq(
   resolvers ++= (
@@ -99,6 +98,7 @@ val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
+val quillVersion = "1.2.1"
 
 lazy val util = crossProject
   .settings(commonSettings)
