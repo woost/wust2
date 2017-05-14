@@ -6,7 +6,11 @@ script_dir="$(dirname $(readlink -f '$0'))"
 
 stage="$1"
 compose_stage="$script_dir/docker/compose"
-compose="$compose_stage $stage"
+function on_stage() {
+    compose="$compose_stage $1"
+}
+
+on_stage $stage
 
 override_sbt_arg="$2"
 function sbt_arg() {
@@ -14,10 +18,6 @@ function sbt_arg() {
     [ -n "$override_sbt_arg" ] && arg="$override_sbt_arg"
 
     WUST_STAGE=dev sbt -Dquill.macro.log=false $arg
-}
-
-# variables used in services.yml
-function PROD_VARS() {
 }
 
 # CI=true => disable workbench
@@ -33,16 +33,18 @@ dev)
     sbt_arg
     ;;
 migrate)
+    on_stage dev
     CI=true sbt dbMigration/docker
-    $compose_stage dev run db-migration
+    $compose run db-migration
     ;;
 prod.http)
-    $compose_stage prod down
-    PROD_VARS $compose_stage prod up -d nginx-http
+    on_stage prod
+    $compose down
+    $compose up -d nginx-http
     ;;
 prod)
     $compose down
-    PROD_VARS $compose up -d nginx
+    $compose up -d nginx
     ;;
 test.postgres)
     $compose down
@@ -60,17 +62,19 @@ test.integration)
     $compose down
     ;;
 test.prod.http)
-    $compose_stage prod down
-    PROD_VARS $compose_stage prod up -d nginx-http
+    on_stage prod
+    $compose down
+    $compose up -d nginx-http
     CI=true sbt_arg systemTest/it:test
-    $compose_stage prod down
+    $compose down
     ;;
 test.prod)
-    $compose_stage prod down
-    PROD_VARS $compose_stage prod up -d nginx
+    on_stage prod
+    $compose down
+    $compose up -d nginx
     #TODO CI=true sbt_arg systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
-    $compose_stage prod down
+    $compose down
     ;;
 *)
     echo "unknown stage '$1', expected one of [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]"
