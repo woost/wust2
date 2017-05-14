@@ -47,7 +47,7 @@ lazy val commonSettings = Seq(
 // )
 )
 
-lazy val config = project.in(file("config")) // only contains application.conf and config object
+lazy val config = project // only contains application.conf and config object
   .settings(commonSettings)
   .settings(
     addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
@@ -61,7 +61,7 @@ lazy val config = project.in(file("config")) // only contains application.conf a
 lazy val isCI = sys.env.get("CI").isDefined // set by travis
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginxHttps, nginxHttp, dbMigration)
+  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration)
   .settings(
     publish := {},
     publishLocal := {},
@@ -153,7 +153,7 @@ lazy val api = crossProject.crossType(CrossType.Pure)
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
-lazy val database = project.in(file("database"))
+lazy val database = project
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
@@ -171,8 +171,6 @@ lazy val database = project.in(file("database"))
   )
 
 lazy val backend = project
-  .enablePlugins(DockerPlugin)
-  .settings(dockerBackend)
   .settings(commonSettings)
   .dependsOn(frameworkJVM, apiJVM, database, config)
   .configs(IntegrationTest)
@@ -230,7 +228,7 @@ lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
   refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
 )
 
-lazy val workbench = project.in(file("workbench"))
+lazy val workbench = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
   .enablePlugins(DevWorkbenchPlugins: _*)
   .settings(DevWorkbenchSettings: _*)
@@ -283,71 +281,5 @@ lazy val systemTest = project
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
 
-def dockerImageName(name: String, version: String) = ImageName(
-  namespace = Some("woost"),
-  repository = name,
-  tag = Some(version))
-
-import sbtdocker.Instructions.Raw
-
-val dockerBackend = Seq(
-  dockerfile in docker := {
-    val artifact: File = assembly.value
-    val artifactPath = s"/app/${artifact.name}"
-
-    new Dockerfile {
-      from("openjdk:8-jre-alpine")
-      runRaw("apk update && apk add curl")
-      run("adduser", "user", "-D", "-u", "1000")
-      user("user")
-      copy(artifact, artifactPath)
-      addInstruction(Raw("healthcheck", "--interval=30s --timeout=10s --retries=2 CMD curl -f -X GET localhost:8080/health"))
-      entryPoint("java", "-jar", artifactPath)
-    }
-  },
-  imageNames in docker := Seq(
-    dockerImageName("wust2", "latest"),
-    dockerImageName("wust2", version.value)))
-
-//TODO watchSources <++= baseDirectory map { p => (p / "reverse-proxy.conf").get } //TODO
-lazy val nginxHttps = project.in(file("nginx/https"))
-  .enablePlugins(DockerPlugin)
-  .settings(dockerNginx(None))
-
-lazy val nginxHttp = project.in(file("nginx/http"))
-  .enablePlugins(DockerPlugin)
-  .settings(dockerNginx(Some("http")))
-
-def dockerNginx(tagPostfix: Option[String]) = Seq(
-  dockerfile in docker := {
-    val assetFolder = (WebKeys.assets in assets).value
-
-    new Dockerfile {
-      from("nginx:1.11.8-alpine")
-      copy(baseDirectory(_ / "reverse-proxy.conf").value, "/etc/nginx/conf.d/default.conf")
-      copy(assetFolder, "/public")
-    }
-  },
-  imageNames in docker := Seq(
-    dockerImageName("wust2.nginx", tagPostfix.getOrElse("latest")),
-    dockerImageName("wust2.nginx", tagPostfix.map(_ + "-" + version.value).getOrElse(version.value))))
-
+lazy val nginx = project
 lazy val dbMigration = project
-  .enablePlugins(DockerPlugin)
-  .settings(dockerDbMigration)
-
-val dockerDbMigration = Seq(
-  dockerfile in docker := {
-    new Dockerfile {
-      from("dhoer/flyway:4.0.3-alpine")
-      run("adduser", "user", "-D", "-u", "1000")
-      run("chown", "-R", "user:user", "/flyway")
-      user("user")
-      copy(baseDirectory(_ / "sql").value, "/flyway/sql")
-      copy(baseDirectory(_ / "flyway-await-postgres.sh").value, s"/flyway/flyway-await-postgres.sh")
-      entryPoint("/flyway/flyway-await-postgres.sh")
-    }
-  },
-  imageNames in docker := Seq(
-    dockerImageName("wust2.db-migration", "latest"),
-    dockerImageName("wust2.db-migration", version.value)))
