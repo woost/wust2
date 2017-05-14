@@ -17,7 +17,7 @@ function sbt_arg() {
     arg=$1
     [ -n "$override_sbt_arg" ] && arg="$override_sbt_arg"
 
-    WUST_STAGE=dev sbt -Dquill.macro.log=false $arg
+    WUST_STAGE=dev sbt -Dquill.macro.log=false "$arg"
 }
 
 # CI=true => disable workbench
@@ -58,7 +58,7 @@ test.integration)
     $compose up -d
     docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-    POSTGRES_PORT=5431 CI=true sbt_arg it:test
+    POSTGRES_PORT=5431 CI=true sbt_arg "; coverage; it:test; coverageReport"
     $compose down
     ;;
 test.prod.http)

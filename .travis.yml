@@ -19,7 +19,7 @@ script:
 after_success:
     - set -e
     - .travis/publish-docker
-    - sbt coveralls
+    - sbt coverageAggregate coveralls
     - set +e
 
 cache:

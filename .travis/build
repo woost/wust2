@@ -8,5 +8,3 @@ export WUST_STAGE=dev
 sbt docker \
  testJS \
  coverage testJVM coverageReport
-
-sbt coverageAggregate
