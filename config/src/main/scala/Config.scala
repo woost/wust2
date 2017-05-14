@@ -17,7 +17,6 @@ object StageConfig {
 
 @config(section = StageConfig.section)
 object Config  {
-import com.typesafe.config.Config
   val auth: AuthConfig
   val email: Option[EmailConfig]
   val db: TConfig
