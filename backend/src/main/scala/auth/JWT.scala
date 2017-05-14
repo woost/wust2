@@ -5,6 +5,7 @@ import wust.api._
 import wust.config.Config
 import wust.graph.User
 import wust.ids._
+import java.time.Duration
 
 object Claims {
   import play.api.libs.functional.syntax._
@@ -36,14 +37,14 @@ case class JWTAuthentication private[auth] (user: User, expires: Long, token: Au
   def toAuthentication = Authentication(user, token)
 }
 
-class JWT(secret: String, tokenLifetime: Long) {
+class JWT(secret: String, tokenLifetime: Duration) {
   import Claims.UserClaim
 
   private val algorithm = Algorithm.HS256
   private val wustIss = Iss("wust")
   private val wustAud = Aud("wust")
   private def currentTimestamp: Long = System.currentTimeMillis / 1000
-  private def expirationTimestamp = currentTimestamp + tokenLifetime
+  private def expirationTimestamp = currentTimestamp + tokenLifetime.getSeconds
 
   def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
     Seq(Alg(algorithm), Typ("JWT")),
