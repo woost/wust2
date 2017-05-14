@@ -4,8 +4,7 @@ import org.scalatest._
 import wust.backend.auth.JWT
 import wust.api._
 import wust.ids._
-import wust.{db => dbT}
-import wust.db.Db
+import wust.db.{Db, data}
 import wust.graph._
 import scala.concurrent.Future
 
@@ -33,7 +32,7 @@ class StateChangeSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   }
 
   "stateEvents" - {
-    def emptyGraph = (Seq.empty[dbT.Post], Seq.empty[dbT.Connection], Seq.empty[dbT.Containment], Seq.empty[dbT.UserGroup], Seq.empty[dbT.Ownership], Seq.empty[dbT.User], Seq.empty[dbT.Membership])
+    def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
 
     "with auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(Some(user.id)) returns Future.successful(emptyGraph)
@@ -73,7 +72,7 @@ class StateChangeSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   }
 
   "stateChangeEvents" - {
-    def emptyGraph = (Seq.empty[dbT.Post], Seq.empty[dbT.Connection], Seq.empty[dbT.Containment], Seq.empty[dbT.UserGroup], Seq.empty[dbT.Ownership], Seq.empty[dbT.User], Seq.empty[dbT.Membership])
+    def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
 
     "same state" in mockDb { db =>
       val stateChange = newStateChange(db = db)

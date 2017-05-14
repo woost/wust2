@@ -6,7 +6,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 
 import wust.ids._
-import wust.db._
+import wust.db.data._
 
 // TODO: Query-Probing: https://github.com/getquill/quill#query-probing
 // "Query probing validates queries against the database at compile time, failing the compilation if it is not valid. The query validation does not alter the database state."

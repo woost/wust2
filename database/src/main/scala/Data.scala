@@ -1,8 +1,8 @@
-package wust
+package wust.db
 
 import wust.ids._
 
-package object db {
+package object data {
   val DEFAULT = 0L
 
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)

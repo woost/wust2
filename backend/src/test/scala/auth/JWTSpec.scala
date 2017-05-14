@@ -11,7 +11,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
   implicit def intToUserId(id: Int): UserId = UserId(id)
 
   object User {
-    def apply(name: String): User = new User(wust.db.DEFAULT, name, isImplicit = false, 0)
+    def apply(name: String): User = new User(1313L, name, isImplicit = false, 0)
   }
 
   "generate auth and then to authentication" in {

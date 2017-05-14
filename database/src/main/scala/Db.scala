@@ -13,6 +13,7 @@ object Db {
 }
 
 class Db(val ctx: PostgresAsyncContext[LowerCase]) {
+  import data._
   import ctx._
 
   implicit val encodeGroupId = MappedEncoding[GroupId, IdType](_.id)
