@@ -14,7 +14,6 @@ package object db {
   case class Membership(groupId: GroupId, userId: UserId) //TODO: graph.Membeship has a different argument order. Alter table?
   case class GroupInvite(groupId: GroupId, token: String)
   case class UserGroup(id: GroupId)
-  object UserGroup { def apply(): UserGroup = UserGroup(GroupId(0L)) }
   case class Ownership(postId: PostId, groupId: GroupId)
 
   type Graph = (Iterable[Post], Iterable[Connection], Iterable[Containment], Iterable[UserGroup], Iterable[Ownership], Iterable[User], Iterable[Membership])
