@@ -70,32 +70,28 @@ Requirements:
 * docker
 * docker-compose
 
-Set environment variables according to your setup:
+All used docker services are defined in `docker/services.yml` and can be configured with the following environment variables:
 * **POSTGRES_PASSWORD**: a password for the postgres application user 'wust'
 * **WUST_AUTH_SECRET**: a secret for signing JWT tokens
 * **WUST_EMAIL_ADDRESS**: from address for sent email (optional)
 * **WUST_SMTP_ENDPOINT**: smtp endpoint (optional)
 * **WUST_SMTP_USER**: smtp username (optional)
 * **WUST_SMTP_PASS**: smtp password (optional)
-* **CERT_DIR**: directory on docker host containing fullchain.pem ([ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)) and privkey.pem ([ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)), is mounted read-only in nginx container
+
+The compose stack `docker/compose-prod.yml` is an example how to run wust in production with docker. Please adapt it to your needs, before actualy deploying to production.
+
+For HTTPS, the nginx container read-only mounts a directory with tls certificates to the path `/tls_certs/`. This directory contains two files fullchain.pem ([ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)) and privkey.pem ([ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)).
 
 See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl)
 
 For persisting its data, the postgres container mounts the folder `./pg_data` from the docker host.
 
-Start production in docker:
+Start whole stack with docker-compose:
 ```
 $ docker-compose --file docker/compose-prod.yml up nginx
 ```
 
-Or without tls:
+Or without in a tls-only version:
 ```
 $ docker-compose --file docker/compose-prod.yml up nginx-http
 ```
-
-Example:
-```bash
-POSTGRES_PASSWORD=password WUST_AUTH_SECRET=secret CERT_DIR=/home/user/certs docker-compose --file docker/compose-prod.yml up nginx
-```
-
-Please adapt the compose file to your needs, before deploying to production.

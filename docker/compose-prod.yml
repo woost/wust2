@@ -5,24 +5,33 @@ services:
     extends:
       file: services.yml
       service: postgres
+    environment: &pg_env
+      POSTGRES_PASSWORD: "test"
     volumes:
       - ./pg_data/:/var/lib/postgresql/data
   db-migration:
     extends:
       file: services.yml
       service: db-migration
+    environment:
+      <<: *pg_env
     depends_on:
       - postgres
   wust:
     extends:
       file: services.yml
       service: wust
+    environment:
+      <<: *pg_env
+      WUST_AUTH_SECRET: "secret"
     depends_on:
       - postgres
   nginx:
     extends:
       file: services.yml
       service: nginx
+    volumes:
+      - .test_certs:/tls_certs/:ro
     ports:
       - "443:443"
       - "80:80"

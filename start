@@ -18,7 +18,6 @@ function sbt_arg() {
 
 # variables used in services.yml
 function PROD_VARS() {
-    WUST_AUTH_SECRET=secret POSTGRES_PASSWORD=test CERT_DIR=$PWD/systemTest/.test_certs "$@"
 }
 
 # CI=true => disable workbench
