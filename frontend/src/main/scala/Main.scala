@@ -8,6 +8,13 @@ import rxext._
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
+import scala.scalajs.js.annotation._
+
+@js.native
+@JSGlobal("wustConfig")
+object Config extends js.Object {
+  val wsPort: js.UndefOr[Int] = js.native
+}
 
 object Main extends js.JSApp {
 
@@ -16,7 +23,7 @@ object Main extends js.JSApp {
 
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
-    val port = if (location.port == "12345") "8080" else location.port
+    val port = Config.wsPort getOrElse location.port
 
     val state = new GlobalState
 
