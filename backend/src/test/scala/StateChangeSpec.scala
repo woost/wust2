@@ -111,7 +111,7 @@ class StateChangeSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
     }
 
     "enabled" in mockDb { db =>
-      val implUser = dbT.User(13, "harals", true, 0)
+      val implUser = data.User(13, "harals", true, 0)
       db.user.createImplicitUser() returns Future.successful(implUser)
       val stateChange = newStateChange(db = db, enableImplicit = true)
 
