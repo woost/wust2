@@ -8,7 +8,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object Db {
-  val default = new Db(new PostgresAsyncContext[LowerCase](Config.db))
+  private[db] val ctx = new PostgresAsyncContext[LowerCase](Config.db)
+  val default = new Db(ctx)
 }
 
 class Db(val ctx: PostgresAsyncContext[LowerCase]) {

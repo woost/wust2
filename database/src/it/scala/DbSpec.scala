@@ -1,4 +1,4 @@
-package wust.dbSpec
+package wust.db
 
 import org.scalatest._
 
