@@ -3,35 +3,36 @@ package wust.backend
 import wust.api._
 import wust.backend.auth._
 import wust.db.Db
+import wust.framework.state._
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 trait ApiTestKit extends DbMocks {
-  private def newStateAccess[T](state: State, implicitAuth: Option[JWTAuthentication]): (StateAccess, mutable.Seq[ChannelEvent]) = {
-    val events = mutable.ArrayBuffer.empty[ChannelEvent]
-    val access = new StateAccess(Future.successful(state), events += _, () => Future.successful(implicitAuth))
-    (access, events)
+  private def newStateHolder[T](state: State): (StateHolder[State, ApiEvent], mutable.Seq[ApiEvent]) = {
+    val events = mutable.ArrayBuffer.empty[ApiEvent]
+    val holder = new StateHolder[State, ApiEvent](Future.successful(state), events += _)
+    (holder, events)
   }
 
-  private def onResult[API, T](impl: API, access: StateAccess, events: mutable.Seq[ChannelEvent])(f: API => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
+  private def onResult[API, T](impl: API, holder: StateHolder[State, ApiEvent], events: mutable.Seq[ApiEvent])(f: API => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val result = f(impl)
     for {
-      afterState <- access.state
+      afterState <- holder.state
       result <- result
-    } yield (afterState, events.map(_.event).toSeq, result)
+    } yield (afterState, events, result)
   }
 
-  def onAuthApi[T](state: State, db: Db = mockedDb, implicitAuth: JWTAuthentication = null)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
-    val (access, events) = newStateAccess(state, Option(implicitAuth))
-    val impl = new AuthApiImpl(access, db)
-    onResult(impl, access, events)(f)
+  def onAuthApi[T](state: State, db: Db = mockedDb, enableImplicit: Boolean = false)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
+    val (holder, events) = newStateHolder(state)
+    val impl = new AuthApiImpl(holder, new GuardDsl(db, enableImplicit), db)
+    onResult(impl, holder, events)(f)
   }
 
-  def onApi[T](state: State, db: Db = mockedDb, implicitAuth: JWTAuthentication = null)(f: Api => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
-    val (access, events) = newStateAccess(state, Option(implicitAuth))
-    val impl = new ApiImpl(access, db)
-    onResult(impl, access, events)(f)
+  def onApi[T](state: State, db: Db = mockedDb, enableImplicit: Boolean = false)(f: Api => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
+    val (holder, events) = newStateHolder(state)
+    val impl = new ApiImpl(holder, new GuardDsl(db, enableImplicit), db)
+    onResult(impl, holder, events)(f)
   }
 }
 

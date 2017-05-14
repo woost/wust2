@@ -18,7 +18,7 @@ object State {
   def initial = State(auth = None, groupIds = Set.empty)
 }
 
-object StateTranslator {
+object StateInterpreter {
   def applyEvent(state: State, event: ApiEvent): State = event match {
     case NewMembership(edge) if state.auth.isDefined && edge.userId == state.auth.get.user.id =>
       state.copyF(groupIds = _ ++ Set(edge.groupId))
@@ -40,9 +40,11 @@ object StateTranslator {
     case DeleteContainment(_) => true
     case _ => true//false
   }
+
+  def filterValid(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
 }
 
-class StateChange(db: Db, enableImplicit: Boolean) {
+class StateInterpreter(db: Db) {
   def stateEvents(state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] = {
     Seq (
       state.auth
@@ -60,11 +62,4 @@ class StateChange(db: Db, enableImplicit: Boolean) {
       case true => Seq.empty
       case false => stateEvents(state)
     }
-
-  def createImplicitAuth()(implicit ec: ExecutionContext) = enableImplicit match {
-    case true => db.user.createImplicitUser().map(u => JWT.generateAuthentication(forClient(u))).map(Option.apply)
-    case false => Future.successful(None)
-  }
-
-  def filterValid(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
 }

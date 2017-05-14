@@ -4,14 +4,15 @@ import wust.api._
 import wust.backend.DbConversions._
 import wust.db.Db
 import wust.graph._
+import wust.framework.state._
 import wust.ids._
 import wust.util.RandomUtil
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ApiImpl(stateAccess: StateAccess, db: Db) extends Api {
-  import stateAccess._
+class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) extends Api {
+  import holder._, dsl._
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
 

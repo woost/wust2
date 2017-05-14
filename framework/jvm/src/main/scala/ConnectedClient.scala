@@ -9,6 +9,7 @@ import autowire.Core.Request
 import wust.framework.message._
 import wust.util.Pipe
 import wust.util.time.StopWatch
+import wust.framework.state.StateHolder
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -24,15 +25,15 @@ class EventSender[Event](messages: Messages[Event, _], private val actor: ActorR
   }
 }
 
-case class RequestResult[State, Event](stateEvent: StateWithEvents[State, Event], result: Future[ByteBuffer])
-case class StateWithEvents[State, Event](state: Future[State], events: Future[Seq[Future[Event]]])
-
 trait RequestHandler[Event, Error, State] {
   def onClientStart(sender: EventSender[Event]): Future[State]
   def onClientStop(sender: EventSender[Event], state: State): Unit
 
-  def router(state: Future[State]): PartialFunction[Request[ByteBuffer], RequestResult[State, Event]]
-  def onEvent(event: Event, state: Future[State]): StateWithEvents[State, Event]
+  def before(state: Future[State]): Future[State]
+  def after(prevState: Future[State], state: Future[State]): Future[Seq[Future[Event]]]
+  def router(holder: StateHolder[State, Event]): PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]
+  def isEventAllowed(event: Event, state: Future[State]): Future[Boolean]
+  def publishEvent(event: Event): Unit
   def pathNotFound(path: Seq[String]): Error
   def toError: PartialFunction[Throwable, Error]
 }
@@ -47,31 +48,34 @@ class ConnectedClient[Event, Error, State](
   def connected(outgoing: ActorRef): Receive = {
     val sender = new EventSender(messages, self)
 
-    def switchState(stateEvent: StateWithEvents[State,Event]) {
-      val newState = stateEvent.state
-      stateEvent.events.foreach(_.foreach(_.map(Notification.apply).pipeTo(outgoing)))
-      context.become(withState(newState))
-    }
-
     def withState(state: Future[State]): Receive = {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
+        val newState = before(state)
         val timer = StopWatch.started
-        router(state).lift(Request(path, args)) match {
-          case Some(RequestResult(stateEvent, response)) =>
+        val holder = new StateHolder(newState, publishEvent)
+        router(holder).lift(Request(path, args)) match {
+          case Some(response) =>
             response
               .map(resp => CallResponse(seqId, Right(resp)))
               .recover(toError andThen (err => CallResponse(seqId, Left(err))))
               .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-              switchState(stateEvent)
+            val newState = holder.state
+            after(state, newState).foreach(_.foreach(_.map(Notification.apply).pipeTo(outgoing)))
+            context.become(withState(newState))
           case None =>
             outgoing ! CallResponse(seqId, Left(pathNotFound(path)))
         }
       case Notification(event) =>
-        val stateEvent = onEvent(event, state)
-        switchState(stateEvent)
+        val newState = before(state)
+        isEventAllowed(event, newState).foreach { allowed =>
+          if (allowed) outgoing ! Notification(event)
+        }
+
+        after(state, newState).foreach(_.foreach(_.map(Notification.apply).pipeTo(outgoing)))
+        context.become(withState(newState))
       case Stop =>
         state.foreach(onClientStop(sender, _))
         context.stop(self)

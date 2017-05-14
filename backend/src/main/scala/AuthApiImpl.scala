@@ -3,13 +3,14 @@ package wust.backend
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._
+import wust.framework.state._
 import wust.db.Db
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
-  import stateAccess._
+class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) extends AuthApi {
+  import holder._, dsl._
 
   private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = {
     auth.flatMap {
@@ -31,12 +32,12 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
         (newAuth, newAuth.map(_.isDefined))
     }
 
-    StateEffect(applyAuthenticationOnState(state, auth), success)
+    StateEffect.replace(applyAuthenticationOnState(state, auth), success)
   }
 
   def login(name: String, password: String): Future[Boolean] = { (state: State) =>
     val auth = db.user.get(name, password).map(_.map(u => JWT.generateAuthentication(u)))
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
+    StateEffect.replace(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
   def loginToken(token: Authentication.Token): Future[Boolean] = { (state: State) =>
@@ -45,11 +46,11 @@ class AuthApiImpl(stateAccess: StateAccess, db: Db) extends AuthApi {
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))
 
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
+    StateEffect.replace(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
   def logout(): Future[Boolean] = { (state: State) =>
     val auth = Future.successful(None)
-    StateEffect(applyAuthenticationOnState(state, auth), Future.successful(true))
+    StateEffect.replace(applyAuthenticationOnState(state, auth), Future.successful(true))
   }
 }

@@ -10,40 +10,25 @@ import wust.backend.auth._
 import wust.config.Config
 import wust.db.Db
 import wust.framework._
+import wust.framework.state.StateHolder
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(dispatcher: EventDispatcher, stateChange: StateChange, api: StateAccess => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
-  import StateTranslator._
-  import stateChange._
+class ApiRequestHandler(dispatcher: EventDispatcher, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
+  import StateInterpreter._
+  import stateInterpreter._
 
-  override def router(state: Future[State]) = {
-    val validState = state.map(filterValid)
-    val stateAccess = new StateAccess(validState, dispatcher.publish _, createImplicitAuth _)
+  override def before(state: Future[State]) = state.map(filterValid)
+  override def after(state: Future[State], newState: Future[State]) = for {
+    state <- state
+    newState <- newState
+  } yield stateChangeEvents(state, newState)
 
-    api(stateAccess) andThen { res =>
-      val newState = stateAccess.state
-      val events = for {
-        state <- state
-        newState <- newState
-      } yield stateChangeEvents(state, newState)
-
-      RequestResult(StateWithEvents(newState, events), res)
-    }
-  }
-
-  override def onEvent(event: ApiEvent, state: Future[State]) = {
-    val validState = state.map(filterValid)
-    val newState = validState.map(applyEvent(_, event))
-    val events = for {
-      state <- state
-      newState <- newState
-    } yield stateChangeEvents(state, newState) ++ Seq(event).filter(allowsEvent(newState, _)).map(Future.successful)
-
-    StateWithEvents(newState, events)
-  }
+  override def router(holder: StateHolder[State, ApiEvent]) = api(holder)
+  override def isEventAllowed(event: ApiEvent, state: Future[State]) = state.map(allowsEvent(_, event))
+  override def publishEvent(event: ApiEvent) = dispatcher.publish(ChannelEvent(Channel.All, event))
 
   override def onClientStart(sender: EventSender[ApiEvent]) = {
     val state = State.initial
@@ -68,12 +53,13 @@ class ApiRequestHandler(dispatcher: EventDispatcher, stateChange: StateChange, a
 }
 
 object Server {
-  private def api(stateAccess: StateAccess) = AutowireServer.route[Api](new ApiImpl(stateAccess, Db.default)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(stateAccess, Db.default))
+  private val dsl = new GuardDsl(Db.default, Config.auth.enableImplicit)
+  private val stateInterpreter = new StateInterpreter(Db.default)
 
-  private val stateChange = new StateChange(Db.default, Config.auth.enableImplicit)
+  private def api(holder: StateHolder[State, ApiEvent]) = AutowireServer.route[Api](new ApiImpl(holder, dsl, Db.default)) orElse
+      AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, Db.default))
 
-  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new ChannelEventBus, stateChange, api _))
+  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new ChannelEventBus, stateInterpreter, api _))
 
   private val route = (path("ws") & get) {
     ws.websocketHandler
