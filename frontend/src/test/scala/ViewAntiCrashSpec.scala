@@ -12,6 +12,7 @@ import wust.graph._
 import scala.collection.immutable._
 
 class ViewsExamples extends Tables {
+  DevOnly.enabled = false
   def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_: GlobalState, disableSimulation = true), MainView(_: GlobalState, disableSimulation = true))
 }
 
