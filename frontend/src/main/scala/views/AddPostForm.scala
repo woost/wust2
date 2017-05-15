@@ -6,6 +6,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{Event, KeyboardEvent, document}
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import scala.scalajs.js.timers.setTimeout
 import rx._
 import wust.frontend._
 import wust.ids._
@@ -39,15 +40,13 @@ object AddPostForm {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
 
+    val inputfield = input(`type` := "text").render
     rxMode.foreach { mode =>
-      val input = document.getElementById("addpostfield").asInstanceOf[HTMLInputElement]
-      if (input != null) {
-        mode match {
-          case EditMode(postId) => input.value = rxDisplayGraph.now.graph.postsById(postId).title
-          case _ =>
-        }
-        input.focus()
+      mode match {
+        case EditMode(postId) => inputfield.value = rxDisplayGraph.now.graph.postsById(postId).title
+        case _ => inputfield.value = ""
       }
+      setTimeout(100) { inputfield.focus() } //TODO: why is this timeout hack needed?
     }
 
     def label(mode: InteractionMode, graph: Graph) = mode match {
@@ -59,6 +58,7 @@ object AddPostForm {
     def action(text: String, selection: GraphSelection, groupId: Option[GroupId], graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
+        rxEditedPostId() = None
         Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
@@ -75,23 +75,24 @@ object AddPostForm {
             display.flex,
             div(
               label(rxMode(), rxDisplayGraph().graph),
-              input(`type` := "text", id := "addpostfield", onkeyup := { (e: KeyboardEvent) =>
-                val input = e.target.asInstanceOf[HTMLInputElement]
-                val text = input.value
-                val groupId = state.selectedGroupId()
-                if (e.keyCode == KeyCode.Enter && text.trim.nonEmpty) {
-                  action(text, state.graphSelection(), groupId, rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
-                    if (success) {
-                      input.value = ""
-                      rxEditedPostId() = None
+              {
+                form(
+                  inputfield,
+                  onsubmit := { () =>
+                    val text = inputfield.value
+                    if (text.trim.nonEmpty) {
+                      action(text, state.graphSelection(), state.selectedGroupId(), rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
+                        if (success) {
+                          inputfield.value = ""
+                        }
+                      }
                     }
+                    false
                   }
-                }
-                ()
-              })
+                )
+              }
             )
           ).render
-
         }
       }
     )
