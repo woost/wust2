@@ -362,8 +362,13 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       } yield (user, membership))
     }
 
-    def memberships(userId: UserId): Future[Iterable[Membership]] = {
-      ctx.run(query[Membership].filter(m => m.userId == lift(userId)))
+    def memberships(userId: UserId): Future[Iterable[(UserGroup,Membership)]] = {
+      ctx.run(
+        for {
+          membership <- query[Membership].filter(m => m.userId == lift(userId))
+          usergroup <- query[UserGroup].filter(_.id == membership.groupId)
+        } yield (usergroup, membership)
+      )
     }
 
     def createInvite(groupId: GroupId, token: String): Future[Boolean] = {

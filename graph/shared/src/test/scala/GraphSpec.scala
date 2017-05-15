@@ -107,7 +107,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         ownerships = List(Ownership(postId = 4, groupId = 1), Ownership(postId = 1, groupId = 2))
       )
       graph.consistent mustEqual graph.copy(ownerships = Set.empty)
-      (graph + 4).consistent mustEqual (graph + 4).copy(ownerships = Set(Ownership(postId = 4, groupId = 1)))
+      (graph + idToPost(4)).consistent mustEqual (graph + idToPost(4)).copy(ownerships = Set(Ownership(postId = 4, groupId = 1)))
       graph.copy(groupsById = Seq[Group](1, 2).by(_.id)).consistent mustEqual graph.copy(groupsById = Seq[Group](1, 2).by(_.id), ownerships = Set(Ownership(postId = 1, groupId = 2)))
     }
 
@@ -148,19 +148,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val newContainment = Containment(99, 3, 1)
       val graph = Graph(List(1, 2, 3), List(1 -> 2, 2 -> 3), containment)
       (graph + newContainment) mustEqual Graph(graph.posts, graph.connections, containment :+ newContainment)
-    }
-
-    "add multiple atoms" in {
-      val newPost = Post(99, "hans")
-      val newConnection = Connection(99, 3, PostId(1))
-      val newContainment = Containment(99, 3, 1)
-      val newAtoms = Seq(newPost, newConnection, newContainment)
-      val graph = Graph(List(1, 2, 3), List(1 -> 2, 2 -> 3), List(1 -> 2, 2 -> 3))
-      (graph ++ newAtoms) mustEqual Graph(
-        graph.posts.toSeq :+ newPost,
-        graph.connections.toSeq :+ newConnection,
-        graph.containments.toSeq :+ newContainment
-      )
     }
 
     "remove post" in {

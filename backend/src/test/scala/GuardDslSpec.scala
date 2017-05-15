@@ -8,6 +8,7 @@ import wust.db.{Db, data}
 import wust.ids._
 import org.mockito.Mockito._
 import wust.framework.state._
+import wust.graph.{Graph, Group}
 
 import scala.concurrent.Future
 
@@ -24,8 +25,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   def implicitDsl(db: Db) = new GuardDsl(db, true)
   def nonImplicitDsl(db: Db) = new GuardDsl(db, enableImplicit = false)
 
-  val authState = State(auth = Option(JWT.generateAuthentication(initialUser)), groupIds = Set(1,2))
-  val nonAuthState = State(auth = None, groupIds = Set.empty)
+  val authState = State(auth = Option(JWT.generateAuthentication(initialUser)), graph = Graph(groups = List(Group(1), Group(2))))
+  val nonAuthState = State(auth = None, graph = Graph.empty)
 
   "withUser" - {
     "has user and implicit" in mockDb { db =>
@@ -77,7 +78,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      an [ApiException] must be thrownBy fun(nonAuthState)
+      an[ApiException] must be thrownBy fun(nonAuthState)
     }
 
     "has no user and no implicit" in mockDb { db =>
@@ -90,7 +91,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      an [ApiException] must be thrownBy fun(nonAuthState)
+      an[ApiException] must be thrownBy fun(nonAuthState)
     }
   }
 
@@ -154,7 +155,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       } yield {
         response.result mustEqual "str"
         response.events mustEqual Seq.empty
-        state.groupIds mustEqual nonAuthState.groupIds
+        state.graph.groupIds mustEqual nonAuthState.graph.groupIds
         state.auth.map(_.user) mustEqual Option(implicitUser)
       }
     }
@@ -201,7 +202,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         response.events mustEqual Seq.empty
         response2.result mustEqual "str"
         response2.events mustEqual Seq.empty
-        state.groupIds mustEqual nonAuthState.groupIds
+        state.graph.groupIds mustEqual nonAuthState.graph.groupIds
         state.auth.map(_.user) mustEqual Option(implicitUser)
         state2.auth mustEqual state.auth
       }

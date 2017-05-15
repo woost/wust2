@@ -231,15 +231,16 @@ package object graph {
     def --(ids: Iterable[AtomId]) =
       ids.foldLeft(this)((g, p) => g - p) //TODO: more efficient
 
-    //TODO: also accept Ownerships,Groups,Users,Memberships -> should ownerships and groups have atomids?
-    val `+`: Atom => Graph = {
-      case p: Post => copy(postsById = postsById + (p.id -> p))
-      case c: Connection => copy(connectionsById = connectionsById + (c.id -> c))
-      case c: Containment =>
-        copy(containmentsById = containmentsById + (c.id -> c))
-    }
+    def +(post: Post) = copy(postsById = postsById + (post.id -> post))
+    def +(connection: Connection) = copy(connectionsById = connectionsById + (connection.id -> connection))
+    def +(containment: Containment) = copy(containmentsById = containmentsById + (containment.id -> containment))
 
-    def ++(atoms: Iterable[Atom]) = atoms.foldLeft(this)((g, a) => g + a)
+    def +(group: Group) = copy(groupsById = groupsById + (group.id -> group))
+    def addGroups(newGroups: Iterable[Group]) = copy(groupsById = groupsById ++ newGroups.by(_.id))
+    def +(user: User) = copy(usersById = usersById + (user.id -> user))
+    def +(ownership: Ownership) = copy(ownerships = ownerships + ownership)
+    def +(membership: Membership) = copy(memberships = memberships + membership)
+    def addMemberships(newMemberships: Iterable[Membership]) = copy(memberships = memberships ++ newMemberships)
 
     def withoutGroup(groupId: GroupId) = copy(
       groupsById = groupsById - groupId,

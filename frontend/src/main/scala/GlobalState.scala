@@ -95,42 +95,35 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val jsError = Var[Option[String]](None)
 
-  val onApiEvent: ApiEvent => Unit = {
-    case NewPost(post) =>
-      rawGraph.updatef(_ + post)
-      Notifications.notify("New Post", Option(post.title),
-        onclick = { (notification) =>
-          notification.close()
-          window.focus()
-          focusedPostId() = Option(post.id)
-        })
-    case UpdatedPost(post) => rawGraph.updatef(_ + post)
-    case NewConnection(connection) =>
-      rawGraph.updatef(_ + connection)
-      if (focusedPostId.now contains connection.targetId)
-        focusedPostId() = Option(connection.sourceId)
-    case NewContainment(containment) => rawGraph.updatef(_ + containment)
-    case NewOwnership(ownership) => rawGraph.updatef(g => g.copy(ownerships = g.ownerships + ownership))
-    case NewMembership(membership) => rawGraph.updatef(g => g.copy(memberships = g.memberships + membership))
-    case NewUser(user) => rawGraph.updatef(g => g.copy(usersById = g.usersById + (user.id -> user)))
-    case NewGroup(group) => rawGraph.updatef(g => g.copy(groupsById = g.groupsById + (group.id -> group)))
+  def onApiEvent(event: ApiEvent) {
+    rawGraph.updatef(GraphUpdate.onEvent(_, event))
 
-    case DeletePost(postId) => rawGraph.updatef(_ - postId)
-    case DeleteConnection(connectionId) => rawGraph.updatef(_ - connectionId)
-    case DeleteContainment(containmentId) => rawGraph.updatef(_ - containmentId)
-    case ReplaceGraph(newGraph) =>
-      rawGraph() = newGraph
-      DevOnly {
-        assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
-        assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
-        assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
-      }
+    event match {
+      case NewPost(post) =>
+        Notifications.notify("New Post", Option(post.title),
+          onclick = { (notification) =>
+            notification.close()
+            window.focus()
+            focusedPostId() = Option(post.id)
+          })
+      case NewConnection(connection) =>
+        if (focusedPostId.now contains connection.targetId)
+          focusedPostId() = Option(connection.sourceId)
+      case ReplaceGraph(newGraph) =>
+        DevOnly {
+          assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
+          assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
+          assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
+        }
 
-    case LoggedIn(auth) =>
-      currentUser() = Option(auth.user)
-      ClientCache.currentAuth = Option(auth)
-    case LoggedOut =>
-      currentUser() = None
-      ClientCache.currentAuth = None
+      case LoggedIn(auth) =>
+        currentUser() = Option(auth.user)
+        ClientCache.currentAuth = Option(auth)
+      case LoggedOut =>
+        currentUser() = None
+        ClientCache.currentAuth = None
+
+      case _ =>
+    }
   }
 }

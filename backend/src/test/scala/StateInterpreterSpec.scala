@@ -12,36 +12,12 @@ class StateInterpreterSpec extends FreeSpec with MustMatchers {
   val user = User(14, "user", isImplicit = false, 0)
   val auth = JWT.generateAuthentication(user)
 
-  "applyEvent" - {
-    "NewMembership" - {
-      "with new member as user" in {
-        val group = GroupId(2)
-        val state = State(Some(auth), groupIds = Set.empty)
-        val membership = NewMembership(Membership(auth.user.id, group))
-
-        val newState = StateInterpreter.applyEvent(state, membership)
-
-        newState.groupIds must contain theSameElementsAs Set(group)
-      }
-
-      "with different user" in {
-        val group = GroupId(2)
-        val state = State(Some(auth), groupIds = Set.empty)
-        val membership = NewMembership(Membership(666, group))
-
-        val newState = StateInterpreter.applyEvent(state, membership)
-
-        newState.groupIds.size mustEqual 0
-      }
-    }
-  }
-
   "allowsEvent" - {
     "NewMembership" - {
       "with member" in {
-        val group = GroupId(2)
-        val state = State(None, groupIds = Set(group))
-        val membership = NewMembership(Membership(666, group))
+        val group = Group(2)
+        val state = State(None, graph = Graph(groups = List(group)))
+        val membership = NewMembership(Membership(666, group.id))
 
         val allowed = StateInterpreter.allowsEvent(state, membership)
 
@@ -49,9 +25,9 @@ class StateInterpreterSpec extends FreeSpec with MustMatchers {
       }
 
       "with non-member" in {
-        val group = GroupId(2)
-        val state = State(Some(auth), groupIds = Set.empty)
-        val membership = NewMembership(Membership(666, group))
+        val groupId = GroupId(2)
+        val state = State(Some(auth), graph = Graph.empty)
+        val membership = NewMembership(Membership(666, groupId))
 
         val allowed = StateInterpreter.allowsEvent(state, membership)
 
@@ -59,9 +35,9 @@ class StateInterpreterSpec extends FreeSpec with MustMatchers {
       }
 
       "with new user" in {
-        val group = GroupId(2)
-        val state = State(Some(auth), groupIds = Set.empty)
-        val membership = NewMembership(Membership(auth.user.id, group))
+        val groupId = GroupId(2)
+        val state = State(Some(auth), graph = Graph.empty)
+        val membership = NewMembership(Membership(auth.user.id, groupId))
 
         val allowed = StateInterpreter.allowsEvent(state, membership)
 
@@ -72,16 +48,16 @@ class StateInterpreterSpec extends FreeSpec with MustMatchers {
 
   "filterValid" - {
     "valid" in {
-      val state = State(auth = Some(auth), groupIds = Set.empty)
+      val state = State(auth = Some(auth), graph = Graph.empty)
       val newState = StateInterpreter.filterValid(state)
       newState mustEqual state
     }
 
     "invalid" in {
-      val state = State(auth = Some(auth.copy(expires = 0)), groupIds = Set.empty)
+      val state = State(auth = Some(auth.copy(expires = 0)), graph = Graph.empty)
       val newState = StateInterpreter.filterValid(state)
       newState.auth mustEqual None
-      newState.groupIds mustEqual state.groupIds
+      newState.graph.groupIds mustEqual state.graph.groupIds
     }
   }
 }
@@ -97,7 +73,7 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
       db.graph.getAllVisiblePosts(Some(user.id)) returns Future.successful(emptyGraph)
       val stateChange = new StateInterpreter(db = db)
 
-      val state = State(auth = Some(auth), groupIds = Set.empty)
+      val state = State(auth = Some(auth), graph = Graph.empty)
       val events = Future.sequence(stateChange.stateEvents(state))
 
       events.map { events =>
@@ -109,7 +85,7 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
       db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
       val stateChange = new StateInterpreter(db = db)
 
-      val state = State(auth = None, groupIds = Set(1,2))
+      val state = State(auth = None, graph = Graph(groups = List(Group(1), Group(2))))
       val events = Future.sequence(stateChange.stateEvents(state))
 
       events.map { events =>
@@ -121,7 +97,7 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
       val stateChange = new StateInterpreter(db = db)
       db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
 
-      val state = State(auth = None, groupIds = Set.empty)
+      val state = State(auth = None, graph = Graph.empty)
       val events = Future.sequence(stateChange.stateEvents(state))
 
       events.map { events =>
@@ -136,7 +112,7 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
     "same state" in mockDb { db =>
       val stateChange = new StateInterpreter(db = db)
 
-      val state = State(auth = Some(auth), groupIds = Set.empty)
+      val state = State(auth = Some(auth), graph = Graph.empty)
       val events = Future.sequence(stateChange.stateChangeEvents(state, state))
 
       events.map { events =>
@@ -148,7 +124,7 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
       db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
       val stateChange = new StateInterpreter(db = db)
 
-      val state = State(auth = Some(auth), groupIds = Set(1,2))
+      val state = State(auth = Some(auth), graph = Graph(groups = List(Group(1), Group(2))))
       val newState = state.copy(auth = None)
       val events = Future.sequence(stateChange.stateChangeEvents(state, newState))
       val expected = Future.sequence(stateChange.stateEvents(newState))

@@ -6,23 +6,22 @@ import wust.backend.auth._
 import wust.db.Db
 import wust.ids._
 import wust.util.Pipe
+import wust.graph.Graph
 
 import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: crashes coverage @derive(copyF)
-case class State(auth: Option[JWTAuthentication], groupIds: Set[GroupId]) {
+case class State(auth: Option[JWTAuthentication], graph: Graph) {
   val user = auth.map(_.user)
-  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity, groupIds: Set[GroupId] => Set[GroupId] = identity) = copy(auth = auth(this.auth), groupIds = groupIds(this.groupIds))
+  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity, graph: Graph => Graph = identity) = copy(auth = auth(this.auth), graph = graph(this.graph))
 }
 object State {
-  def initial = State(auth = None, groupIds = Set.empty)
+  def initial = State(auth = None, graph = Graph.empty)
 }
 
 object StateInterpreter {
-  def applyEvent(state: State, event: ApiEvent): State = event match {
-    case NewMembership(edge) if state.auth.isDefined && edge.userId == state.auth.get.user.id =>
-      state.copyF(groupIds = _ ++ Set(edge.groupId))
-    case _ => state
+  def applyEvent(state: State, event: ApiEvent): State = { 
+      state.copyF(graph = GraphUpdate.onEvent(_, event))
   }
 
   def allowsEvent(state: State, event: ApiEvent): Boolean = event match {
@@ -34,7 +33,7 @@ object StateInterpreter {
     case NewUser(_) => true
     case NewGroup(edge) => true //TODO: for who?
     case NewMembership(edge) =>
-      state.auth.map(_.user.id == edge.userId).getOrElse(false) || state.groupIds.contains(edge.groupId)
+      state.auth.map(_.user.id == edge.userId).getOrElse(false) || state.graph.groupsById.isDefinedAt(edge.groupId)
     case DeletePost(_) => true
     case DeleteConnection(_) => true
     case DeleteContainment(_) => true

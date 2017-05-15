@@ -15,9 +15,10 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) e
   private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = {
     auth.flatMap {
       case Some(auth) =>
-        db.group.memberships(auth.user.id).map(_.map(_.groupId).toSet).map { groupIds =>
-          state.copy(auth = Option(auth), groupIds = groupIds)
-        }
+        db.group.memberships(auth.user.id).map({ groupsAndMemberships =>
+          val (groups, memberships) = groupsAndMemberships.unzip
+          state.copy(auth = Option(auth), graph = state.graph addGroups groups.map(forClient) addMemberships memberships.map(forClient))
+        })
       case None => Future.successful(State.initial)
     }
   }
