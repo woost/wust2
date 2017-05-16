@@ -20,8 +20,8 @@ object State {
 }
 
 object StateInterpreter {
-  def applyEvent(state: State, event: ApiEvent): State = { 
-      state.copyF(graph = GraphUpdate.onEvent(_, event))
+  def applyEvent(state: State, event: ApiEvent): State = {
+    state.copyF(graph = GraphUpdate.onEvent(_, event))
   }
 
   def allowsEvent(state: State, event: ApiEvent): Boolean = event match {

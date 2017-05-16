@@ -33,46 +33,46 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
 
     newPost.map { case (post, ownershipOpt) =>
       val events = Seq(NewPost(post)) ++ ownershipOpt.map(NewOwnership(_)).toSeq
-      RequestResponse(forClient(post), events :_*)
+      respondWithEvents(forClient(post), events :_*)
     }
   }
 
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to update post
-    db.post.update(post).map(RequestResponse.eventsIf(_, UpdatedPost(forClient(post))))
+    db.post.update(post).map(respondWithEventsIf(_, UpdatedPost(forClient(post))))
   }
 
   def deletePost(id: PostId): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to delete post
-    db.post.delete(id).map(RequestResponse.eventsIf(_, DeletePost(id)))
+    db.post.delete(id).map(respondWithEventsIf(_, DeletePost(id)))
   }
 
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection] = withUserOrImplicit { (_,_) =>
     val connection = db.connection(sourceId, targetId)
     connection.map {
       case Some(connection) =>
-        RequestResponse(forClient(connection), NewConnection(connection))
+        respondWithEvents(forClient(connection), NewConnection(connection))
       //TODO: failure case
     }
   }
 
   def deleteConnection(id: ConnectionId): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to delete connection
-    db.connection.delete(id).map(RequestResponse.eventsIf(_, DeleteConnection(id)))
+    db.connection.delete(id).map(respondWithEventsIf(_, DeleteConnection(id)))
   }
 
   def createContainment(parentId: PostId, childId: PostId): Future[Containment] = withUserOrImplicit { (_,_) =>
     val connection = db.containment(parentId, childId)
     connection.map {
       case Some(connection) =>
-        RequestResponse(forClient(connection), NewContainment(connection))
+        respondWithEvents(forClient(connection), NewContainment(connection))
       //TODO: failure case
     }
   }
 
   def deleteContainment(id: ContainmentId): Future[Boolean] = withUserOrImplicit { (_,_) =>
     //TODO: check if user is allowed to delete containment
-    db.containment.delete(id).map(RequestResponse.eventsIf(_, DeleteContainment(id)))
+    db.containment.delete(id).map(respondWithEventsIf(_, DeleteContainment(id)))
   }
 
   //TODO: return Future[Boolean]
@@ -93,7 +93,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
     newPost.map {
       case Some((post, connection, ownershipOpt)) =>
         val events = Seq(NewPost(post), NewConnection(connection)) ++ ownershipOpt.map(NewOwnership(_)).toSeq
-        RequestResponse[(Post, Connection)]((post, connection), events: _*)
+        respondWithEvents[(Post, Connection)]((post, connection), events: _*)
       //TODO failure case
     }
   }
@@ -105,7 +105,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
       case Some((group, membership)) =>
         val clientGroup = forClient(group)
         val membership = Membership(user.id, group.id)
-        RequestResponse(clientGroup, NewGroup(clientGroup), NewMembership(membership))
+        respondWithEvents(clientGroup, NewGroup(clientGroup), NewMembership(membership))
     }
   }
 
@@ -113,7 +113,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
     //TODO: check if user has access to group
     val createdMembership = db.group.addMember(groupId, userId)
     createdMembership.map { case Some(membership) =>
-      RequestResponse(true, NewMembership(membership))
+      respondWithEvents(true, NewMembership(membership))
     }
   }
 
@@ -137,9 +137,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
       case Some(group) =>
         val createdMembership = db.group.addMember(group.id, user.id)
         createdMembership.map { membership =>
-          RequestResponse(Option(group.id), NewGroup(group))
+          respondWithEvents(Option(group.id), NewGroup(group))
         }
-      case None => Future.successful(RequestResponse[Option[GroupId]](None))
+      case None => Future.successful(respondWithEvents[Option[GroupId]](None))
     }
   }
 

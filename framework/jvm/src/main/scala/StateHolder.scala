@@ -5,32 +5,27 @@ import scala.concurrent.{ExecutionContext, Future}
 case class RequestResponse[T, Event](result: T, events: Seq[Event] = Seq.empty)
 case class StateEffect[State, T, Event](state: Option[Future[State]], response: Future[RequestResponse[T, Event]])
 
-class StateHolder[State, Event](initialState: Future[State], publishEvent: Event => Unit) {
+class StateHolder[State, Event](initialState: Future[State]) {
   private var actualState = initialState
+  private var actualEvents = Future.successful(Seq.empty[Event])
   // TODO: private[framework] def state = actualState
   def state = actualState
+  def events = actualEvents
 
   private def returnResult[T](response: Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = {
-    //sideeffect: send out events!
-    response.foreach(_.events.foreach(publishEvent))
+    //sideeffect: set events
+    actualEvents = response.map(_.events)
 
     response.map(_.result)
   }
 
-  object RequestResponse {
-    import wust.framework.state.{RequestResponse => Self}
-    def apply[T](result: T, events: Event*) = new Self[T, Event](result, events)
-    def eventsIf(result: Boolean, events: Event*) = result match {
-      case true => new Self[Boolean, Event](result, events)
-      case false => new Self[Boolean, Event](result, Seq.empty)
-    }
+  def respondWithEvents[T](result: T, events: Event*) = new RequestResponse[T, Event](result, events)
+  def respondWithEventsIf(result: Boolean, events: Event*) = result match {
+    case true => new RequestResponse[Boolean, Event](result, events)
+    case false => new RequestResponse[Boolean, Event](result, Seq.empty)
   }
-
-  object StateEffect {
-    import wust.framework.state.{StateEffect => Self}
-    def none[T](response: Future[RequestResponse[T, Event]]) = new Self[State, T, Event](None, response)
-    def replace[T](state: Future[State], response: Future[RequestResponse[T, Event]]) = new Self[State, T, Event](Option(state), response)
-  }
+  def keepState[T](response: Future[RequestResponse[T, Event]]) = new StateEffect[State, T, Event](None, response)
+  def replaceState[T](state: Future[State], response: Future[RequestResponse[T, Event]]) = new StateEffect[State, T, Event](Option(state), response)
 
   implicit def resultIsRequestResponse[T](result: T)(implicit ec: ExecutionContext): RequestResponse[T, Event] = RequestResponse(result)
   implicit def futureResultIsRequestResponse[T](result: Future[T])(implicit ec: ExecutionContext): Future[RequestResponse[T, Event]] = result.map(RequestResponse(_))

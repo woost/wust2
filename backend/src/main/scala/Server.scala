@@ -20,35 +20,43 @@ class ApiRequestHandler(dispatcher: EventDispatcher, stateInterpreter: StateInte
   import StateInterpreter._
   import stateInterpreter._
 
-  override def before(state: Future[State]) = state.map(filterValid)
-  override def after(state: Future[State], newState: Future[State]) = for {
-    state <- state
-    newState <- newState
-  } yield stateChangeEvents(state, newState)
+  override def initialState = State.initial
 
-  override def router(holder: StateHolder[State, ApiEvent]) = api(holder)
-  override def isEventAllowed(event: ApiEvent, state: Future[State]) = state.map(allowsEvent(_, event))
-  override def publishEvent(event: ApiEvent) = dispatcher.publish(ChannelEvent(Channel.All, event))
+  override def validate(state: State) = filterValid(state)
 
-  override def onClientStart(sender: EventSender[ApiEvent]) = {
-    val state = State.initial
-    scribe.info(s"client started: $state")
-    dispatcher.subscribe(sender, Channel.All)
-    Future.successful(state)
+  override def onRequest(holder: StateHolder[State, ApiEvent], request: Request[ByteBuffer]) = {
+    val handler = api(holder).lift
+    handler(request).toRight(NotFound(request.path))
   }
 
-  override def onClientStop(sender: EventSender[ApiEvent], state: State) = {
-    scribe.info(s"client stopped: $state")
-    dispatcher.unsubscribe(sender)
-  }
-
-  override def pathNotFound(path: Seq[String]): ApiError = NotFound(path)
   override val toError: PartialFunction[Throwable, ApiError] = {
     case ApiException(error) => error
     case NonFatal(e) =>
       scribe.error("request handler threw exception")
       scribe.error(e)
       InternalServerError
+  }
+
+  override def publishEvent(event: ApiEvent) = dispatcher.publish(ChannelEvent(Channel.All, event))
+
+  override def isEventAllowed(event: ApiEvent, state: State) = allowsEvent(state, event)
+
+  override def onEvent(event: ApiEvent, state: State) = applyEvent(state, event)
+
+  override def onClientConnect(sender: EventSender[ApiEvent], state: State) = {
+    scribe.info(s"client started: $state")
+    dispatcher.subscribe(sender, Channel.All)
+    Future.successful(state)
+  }
+
+  override def onClientDisconnect(sender: EventSender[ApiEvent], state: State) = {
+    scribe.info(s"client stopped: $state")
+    dispatcher.unsubscribe(sender)
+  }
+
+  override def onClientInteraction(sender: EventSender[ApiEvent], state: State, newState: State) = {
+    val events = stateChangeEvents(state, newState)
+    events.foreach(_.foreach(sender.send))
   }
 }
 
