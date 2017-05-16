@@ -20,6 +20,7 @@ import scalatags.rx.all._
 
 object DevView {
   import scala.util.Random.{nextInt => rInt, nextString => rStr}
+  val apiEvents = RxVar[List[ApiEvent]](Nil)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     span(
@@ -27,7 +28,7 @@ object DevView {
         id := "devview",
         position.fixed, right := 0, top := 50, display.flex, flexDirection.column,
         padding := 2,
-        backgroundColor := "rgba(248,240,255,0.7)", border := "1px solid #ECD7FF",
+        backgroundColor := "rgba(248,240,255,0.8)", border := "1px solid #ECD7FF",
         div(position.absolute, right := 0, top := 0, "x", cursor := "pointer", onclick := { () =>
           document.getElementById("devview").asInstanceOf[HTMLElement].style.display = "none"
         }),
@@ -117,10 +118,13 @@ object DevView {
               }
             }
           }
-        )
-      // ,Rx {
-      //   state.rawGraph().toSummaryString
-      // }
+        ) // ,Rx {
+        //   state.rawGraph().toSummaryString
+        // }
+        , pre(maxWidth := "400px", maxHeight := "300px", overflow.scroll, fontSize := "11px", Rx {
+          apiEvents().mkString("\n")
+          // pre(apiEvents().mkString("\n")).render
+        }), button("clear", onclick := { () => apiEvents() = Nil })
       ),
       Rx {
         (state.jsError() match {

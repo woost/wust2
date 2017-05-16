@@ -96,6 +96,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val jsError = Var[Option[String]](None)
 
   def onApiEvent(event: ApiEvent) {
+    DevOnly {
+      views.DevView.apiEvents.updatef(event :: _)
+    }
     rawGraph.updatef(GraphUpdate.onEvent(_, event))
 
     event match {
