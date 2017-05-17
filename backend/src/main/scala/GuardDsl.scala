@@ -5,7 +5,7 @@ import wust.db.Db
 import wust.framework.state._
 import wust.backend.auth._
 import wust.graph._
-  import DbConversions._
+import DbConversions._
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -102,10 +102,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
   def addGroup(): Future[Group] = withUser { (_, user) =>
     val createdGroup = db.group.createForUser(user.id)
     createdGroup.map {
-      case Some((group, membership)) =>
-        val clientGroup = forClient(group)
-        val membership = Membership(user.id, group.id)
-        respondWithEvents(clientGroup, NewGroup(clientGroup), NewMembership(membership))
+      case Some((dbGroup, dbMembership)) =>
+        val group = forClient(dbGroup)
+        respondWithEvents(group, NewGroup(group), NewMembership(dbMembership))
     }
   }
 
