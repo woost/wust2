@@ -6,7 +6,9 @@ import wust.graph._
 import wust.ids._
 import wust.db.data
 
-import scala.concurrent.Future
+import scala.concurrent.{Future,Await}
+import scala.concurrent.duration._
+
 
 class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   "register" - {
@@ -94,20 +96,6 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       db.user.get("torken", "sanh") returns Future.successful(Option(data.User(0, "torken", false, 0)))
 
       val user = User(13, "dieter", false, 0)
-      val auth = JWT.generateAuthentication(user)
-
-      onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
-        state.auth.map(_.user.name) mustEqual Some("torken")
-        events.size mustEqual 0
-        result mustEqual true
-      }
-    }
-
-    "activate implicit user" in mockDb { db =>
-      db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
-      db.user.get("torken", "sanh") returns Future.successful(Option(data.User(0, "torken", false, 0)))
-
-      val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
