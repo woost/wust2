@@ -1,4 +1,6 @@
 package wust.framework.state
+import scala.concurrent.{Future,Await}
+import scala.concurrent.duration._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,7 +35,9 @@ class StateHolder[State, Event](initialState: Future[State]) {
   implicit def responseFunctionIsExecuted[T](f: State => Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))
   implicit def effectFunctionIsExecuted[T](f: State => StateEffect[State, T, Event])(implicit ec: ExecutionContext): Future[T] = {
     val effect = state.map(f)
+    Await.ready(effect, 5 seconds)
     val newState = effect.flatMap(_.state.getOrElse(state))
+    Await.ready(newState, 5 seconds)
     val response = effect.flatMap(_.response)
 
     //sideeffect: set new state
