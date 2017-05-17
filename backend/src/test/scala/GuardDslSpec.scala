@@ -33,14 +33,14 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = implicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUser { (state, user) =>
+      val fun: State => Future[RequestResponse[String, ApiEvent]] = withUser { (state, user) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
 
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      val StateEffect(None, response) = fun(authState)
+      val response = fun(authState)
       for {
         response <- response
       } yield {
@@ -53,13 +53,13 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = nonImplicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUser { (state, user) =>
+      val fun: State => Future[RequestResponse[String, ApiEvent]] = withUser { (state, user) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      val StateEffect(None, response) = fun(authState)
+      val response = fun(authState)
       for {
         response <- response
       } yield {
@@ -72,7 +72,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = implicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUser { (state, user) =>
+      val fun: State => Future[RequestResponse[String, ApiEvent]] = withUser { (state, user) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
@@ -85,7 +85,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = nonImplicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUser { (state, user) =>
+      val fun: State => Future[RequestResponse[String, ApiEvent]] = withUser { (state, user) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }

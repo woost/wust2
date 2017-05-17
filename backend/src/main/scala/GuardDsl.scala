@@ -25,10 +25,9 @@ class GuardDsl(db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext) {
   private def userOrFail(auth: Option[JWTAuthentication]): User =
     auth.map(_.user).getOrElse(throw ApiException(Unauthorized))
 
-  def withUser[T](f: (State, User) => Future[RequestResponse[T, ApiEvent]]): State => StateEffect[State, T, ApiEvent] = state => {
+  def withUser[T](f: (State, User) => Future[RequestResponse[T, ApiEvent]]): State => Future[RequestResponse[T, ApiEvent]] = state => {
     val user = userOrFail(state.auth)
-    val response = f(state, user)
-    StateEffect(None, response)
+    f(state, user)
   }
 
   def withUserOrImplicit[T](f: (State, User) => Future[RequestResponse[T, ApiEvent]]): State => StateEffect[State, T, ApiEvent] = state => {
