@@ -70,7 +70,13 @@ object MainView {
       select {
         // only looking at memberships is sufficient to list groups, because the current user is member of each group
         val groupNames = graph.usersByGroupId.mapValues { users =>
-          users.map(id => graph.usersById(id).name).mkString(",")
+          users.map{id =>
+            val user = graph.usersById(id)
+            if(user.isImplicit)
+              user.name.split("-").take(2).mkString("-") // shorten to "anon-987452"
+            else
+              user.name
+          }.mkString(", ")
         }
 
         val publicOption = option("public", value := "public")
