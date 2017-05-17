@@ -9,9 +9,9 @@ object GraphUpdate {
       case NewConnection(connection) => graph + connection
       case NewContainment(containment) => graph + containment
       case NewOwnership(ownership) => graph + ownership
-      case NewMembership(membership) => graph + membership
-      case NewUser(user) => graph + user
-      case NewGroup(group) => graph + group
+      case NewMembership(user, membership, group) => graph + user + group + membership
+      // case NewUser(user, membership) => graph + user + membership
+      // case NewGroup(group, membership) => graph + group + membership
 
       case UpdatedPost(post) => graph + post
 

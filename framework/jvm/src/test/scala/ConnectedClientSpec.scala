@@ -3,7 +3,7 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import akka.actor._
-import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import akka.testkit.{ ImplicitSender, TestActorRef, TestKit }
 import autowire.Core.Request
 import boopickle.Default._
 import org.scalatest._
@@ -35,9 +35,9 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
       case Request("state" :: Nil, _) =>
         (state: Option[String]) => Future.successful(Pickle.intoBytes[Option[String]](state))
       case Request("state" :: "change" :: Nil, _) =>
-        (state: Option[String]) => replaceState(otherUser, Future.successful(Pickle.intoBytes[Boolean](true)))
+        (state: Option[String]) => StateEffect(otherUser, Future.successful(Pickle.intoBytes[Boolean](true)))
       case Request("state" :: "stupid" :: Nil, _) =>
-        (state: Option[String]) => replaceState(stupidUser, Future.successful(Pickle.intoBytes[Boolean](true)))
+        (state: Option[String]) => StateEffect(stupidUser, Future.successful(Pickle.intoBytes[Boolean](true)))
       case Request("broken" :: Nil, _) =>
         (state: Option[String]) => Future.failed(new Exception("an error"))
     }
@@ -49,7 +49,10 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def publishEvent(event: String): Unit = { eventActor ! event }
 
-  override def isEventAllowed(event: String, state: Option[String]) = event != "FORBIDDEN"
+  override def triggeredEvents(event: String, state: Option[String]) = event match {
+    case "FORBIDDEN" => Seq.empty
+    case other => Seq(Future.successful(other))
+  }
 
   override def onEvent(event: String, state: Option[String]) = state
 
@@ -84,23 +87,6 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
   def newActor[T](f: ActorRef => T): T = f(newActor)
   def connectedActor[T](f: ActorRef => T): T = f(connectedActor)
-
-  "event sender" - {
-    "compareTo same" in {
-      val actor = newActor
-      val sender = new EventSender(messages, actor)
-      val sender2 = new EventSender(messages, actor)
-      sender.compareTo(sender2) mustEqual 0
-    }
-
-    "compareTo different" in {
-      val actor = newActor
-      val actor2 = newActor
-      val sender = new EventSender(messages, actor)
-      val sender2 = new EventSender(messages, actor2)
-      sender.compareTo(sender2) must not equal(0)
-    }
-  }
 
   "unconnected" - {
     val actor = newActor
@@ -161,8 +147,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
         10 seconds,
         CallResponse(1, Right(pickledResponse1)),
         CallResponse(2, Right(pickledResponse2)),
-        CallResponse(3, Right(pickledResponse3))
-      )
+        CallResponse(3, Right(pickledResponse3)))
     }
 
     "filter stupid after switch state" in connectedActor { actor =>
@@ -177,8 +162,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
         10 seconds,
         CallResponse(1, Right(pickledResponse1)),
         CallResponse(2, Right(pickledResponse2)),
-        CallResponse(3, Right(pickledResponse3))
-      )
+        CallResponse(3, Right(pickledResponse3)))
     }
 
     "send event" in connectedActor { actor =>
@@ -188,8 +172,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsgAllOf(
         10 seconds,
         "event",
-        CallResponse(2, Right(pickledResponse))
-      )
+        CallResponse(2, Right(pickledResponse)))
     }
   }
 

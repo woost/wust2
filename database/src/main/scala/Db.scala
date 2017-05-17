@@ -306,7 +306,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object group {
-    def createForUser(userId: UserId): Future[Option[(UserGroup, Membership)]] =
+    def createForUser(userId: UserId): Future[Option[(User, Membership, UserGroup)]] =
       ctx.transaction { _ =>
         //TODO report quill bug:
         // val q = quote(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
@@ -319,18 +319,21 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
               for {
                 groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
                 m <- ctx.run(query[Membership].insert(lift(Membership(groupId, userId)))) //TODO: what is m? What does it return?
-              } yield Option((UserGroup(groupId), Membership(groupId, userId)))
+                user <- ctx.run(query[User].filter(_.id == lift(userId)))
+              } yield Option((user.head, Membership(groupId, userId), UserGroup(groupId)))
             case None => Future.successful(None)
           }
         }.recover { case _ => None }
       }
 
-    def addMember(groupId: GroupId, userId: UserId): Future[Option[Membership]] = {
-      val q = quote(
-        infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]]
-      )
-      ctx.run(q).map(_ => Option(Membership(groupId, userId))).recover{case _ => None}
-    }
+    def addMember(groupId: GroupId, userId: UserId): Future[Option[(User, Membership, UserGroup)]] =
+      ctx.transaction { _ =>
+        for {
+          _ <- ctx.run(infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]])
+          user <- ctx.run(query[User].filter(_.id == lift(userId)))
+          userGroup <- ctx.run(query[UserGroup].filter(_.id == lift(groupId)))
+        } yield Option(user.head, Membership(groupId, userId), userGroup.head)
+      }.recover { case _ => None }
 
     def hasAccessToPost(userId: UserId, postId: PostId): Future[Boolean] = {
       //TODO: more efficient
@@ -362,7 +365,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       } yield (user, membership))
     }
 
-    def memberships(userId: UserId): Future[Iterable[(UserGroup,Membership)]] = {
+    def memberships(userId: UserId): Future[Iterable[(UserGroup, Membership)]] = {
       ctx.run(
         for {
           membership <- query[Membership].filter(m => m.userId == lift(userId))

@@ -15,7 +15,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
     val holder = newStateHolder(initialState)
     import holder.resultIsRequestResponse
 
-    val res: RequestResponse[Int,Int] = 2
+    val res: RequestResponse[Int, Int] = 2
 
     holder.state.map(_ mustEqual initialState)
     holder.events.map(_.size mustEqual 0)
@@ -28,7 +28,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
     val holder = newStateHolder(initialState)
     import holder.futureResultIsRequestResponse
 
-    val res: Future[RequestResponse[Int,Int]] = Future.successful[Int](2)
+    val res: Future[RequestResponse[Int, Int]] = Future.successful[Int](2)
 
     holder.state.map(_ mustEqual initialState)
     holder.events.map(_.size mustEqual 0)
@@ -57,7 +57,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   "execute requestResponse function" in {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.{respondWithEvents, responseFunctionIsExecuted}
+    import holder.{ respondWithEvents, responseFunctionIsExecuted }
 
     val res: Future[Int] = { (state: String) =>
       Future.successful(respondWithEvents(2, 666))
@@ -70,33 +70,16 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
     }
   }
 
-  "execute noEffect function" in {
-    val initialState = ""
-    val holder = newStateHolder(initialState)
-    import holder.{keepState, respondWithEvents, effectFunctionIsExecuted}
-
-    val res: Future[Int] = { (state: String) =>
-      val response = Future.successful(respondWithEvents(2, 666))
-      keepState(response)
-    }
-
-    holder.state.map(_ mustEqual initialState)
-    holder.events.map(_ must contain theSameElementsAs Set(666))
-    res.map { res =>
-      res mustEqual 2
-    }
-  }
-
   "execute stateEffect function" in {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.{replaceState, respondWithEvents, effectFunctionIsExecuted}
+    import holder.{ respondWithEvents, effectFunctionIsExecuted }
 
     val nextState = "new"
     val res: Future[Int] = { (state: String) =>
       val newState = Future.successful(nextState)
       val response = Future.successful(respondWithEvents(2, 666))
-      replaceState(newState, response)
+      StateEffect(newState, response)
     }
 
     holder.state.map(_ mustEqual nextState)
@@ -115,7 +98,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
     val res: Future[String] = { (state: String) =>
       val newState = Future.successful(nextState)
       val response = Future.successful(respondWithEvents("response2", 777))
-      replaceState(newState, response)
+      StateEffect(newState, response)
     }
 
     holder.state.map(_ mustEqual nextState)
@@ -127,42 +110,19 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
     val betweenState = holder.state
 
     {
-    val holder = newStateHolder(betweenState)
-    val nextState = "new2"
-    val res: Future[String] = { (state: String) =>
-      val newState = Future.successful(nextState)
-      val response = Future.successful(respondWithEvents("response", 666))
-      replaceState(newState, response)
-    }
+      val holder = newStateHolder(betweenState)
+      val nextState = "new2"
+      val res: Future[String] = { (state: String) =>
+        val newState = Future.successful(nextState)
+        val response = Future.successful(respondWithEvents("response", 666))
+        StateEffect(newState, response)
+      }
 
-    holder.state.map(_ mustEqual nextState)
-    holder.events.map(_ must contain theSameElementsAs Set(666))
-    res.map { res =>
-      res mustEqual "response"
-    }
-    }
-  }
-
-  "StateEffect" - {
-    val initialState = ""
-    val holder = newStateHolder(initialState)
-    import holder.{respondWithEvents, keepState, replaceState}
-
-    "keepState" in {
-      val response = respondWithEvents(1, 666)
-      val effect = keepState(Future.successful(response))
-
-      effect.state mustEqual None
-      effect.response.map(_ mustEqual response)
-    }
-
-    "replaceState" in {
-      val response = respondWithEvents(1, 666)
-      val newState = "foo"
-      val effect = replaceState(Future.successful(newState), Future.successful(response))
-      effect.state.isDefined mustEqual true
-      effect.state.get.map(_ mustEqual newState)
-      effect.response.map(_ mustEqual response)
+      holder.state.map(_ mustEqual nextState)
+      holder.events.map(_ must contain theSameElementsAs Set(666))
+      res.map { res =>
+        res mustEqual "response"
+      }
     }
   }
 

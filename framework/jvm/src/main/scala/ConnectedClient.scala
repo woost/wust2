@@ -3,7 +3,7 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import akka.actor._
-import akka.http.scaladsl.model.ws.{Message => WSMessage}
+import akka.http.scaladsl.model.ws.{ Message => WSMessage }
 import akka.pattern.pipe
 import autowire.Core.Request
 import wust.framework.message._
@@ -35,9 +35,10 @@ trait RequestHandler[Event, Error, State] {
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
   def publishEvent(event: Event): Unit
 
-  // depending on the state, you might want to filter out certain incoming events
-  // returning false, means the event is not send to this client
-  def isEventAllowed(event: Event, state: State): Boolean
+  // events can trigger further events to provide
+  // missing data for the client. Events have to be explicitly forwarded.
+  // for example, returning Seq.empty will ignore the event.
+  def triggeredEvents(event: Event, state: State): Seq[Future[Event]] = Nil
 
   // after you have allowed the event, you can then adapt the state according to the event
   def onEvent(event: Event, state: State): State
@@ -57,20 +58,25 @@ trait RequestHandler[Event, Error, State] {
   def onClientInteraction(sender: EventSender[Event], prevState: State, state: State): Unit
 }
 
-class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) extends Comparable[EventSender[Event]] {
+class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) {
   import messages._
-
-  def compareTo(other: EventSender[Event]) = actor.compareTo(other.actor)
 
   def send(event: Event): Unit = {
     scribe.info(s"--> event: $event")
     actor ! Notification(event)
   }
+
+  override def equals(other: Any) = other match {
+    case other: EventSender[_] => actor.equals(other.actor)
+    case _ => false
+  }
+
+  override def hashCode = actor.hashCode
 }
 
 class ConnectedClient[Event, Error, State](
-    messages: Messages[Event, Error],
-    handler:  RequestHandler[Event, Error, State]) extends Actor {
+  messages: Messages[Event, Error],
+  handler: RequestHandler[Event, Error, State]) extends Actor {
   import ConnectedClient._
   import handler._
   import messages._
@@ -97,16 +103,22 @@ class ConnectedClient[Event, Error, State](
           case Left(error) =>
             outgoing ! CallResponse(seqId, Left(error))
         }
+
       case Notification(event) =>
-        val newState = state.map { state =>
-          val newState = validate(state)
-          if (isEventAllowed(event, newState)) {
+        val newState = for {
+          unvalidatedState <- state
+          validatedState = validate(unvalidatedState)
+          events <- Future.sequence(triggeredEvents(event, validatedState))
+        } yield {
+          events.foldLeft(validatedState) { (state, event) =>
+            // sideeffect: send actual event to client
             outgoing ! Notification(event)
-            onEvent(event, newState)
-          } else newState
+            onEvent(event, state)
+          }
         }
 
         switchState(state, newState)
+
       case Stop =>
         state.foreach(onClientDisconnect(sender, _))
         context.stop(self)
@@ -128,7 +140,7 @@ class ConnectedClient[Event, Error, State](
 
   def receive = {
     case Connect(outgoing) => context.become(connected(outgoing))
-    case Stop              => context.stop(self)
+    case Stop => context.stop(self)
   }
 }
 object ConnectedClient {

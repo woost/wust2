@@ -3,12 +3,12 @@ package wust.backend
 import org.scalatest._
 import wust.backend.auth.JWT
 import wust.api._
-import wust.graph.{Group, User}
-import wust.db.{Db, data}
+import wust.graph.{ Group, User }
+import wust.db.{ Db, data }
 import wust.ids._
 import org.mockito.Mockito._
 import wust.framework.state._
-import wust.graph.{Graph, Group}
+import wust.graph.{ Graph, Group }
 
 import scala.concurrent.Future
 
@@ -106,7 +106,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      val StateEffect(Some(state), response) = fun(authState)
+      val StateEffect(state, response) = fun(authState)
       for {
         state <- state
         response <- response
@@ -127,7 +127,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      val StateEffect(Some(state), response) = fun(authState)
+      val StateEffect(state, response) = fun(authState)
       for {
         state <- state
         response <- response
@@ -148,7 +148,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       // verify(db.user, times(1)).createImplicitUser() //TODO
-      val StateEffect(Some(state), response) = fun(nonAuthState)
+      val StateEffect(state, response) = fun(nonAuthState)
       for {
         state <- state
         response <- response
@@ -170,7 +170,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       verify(db.user, times(0)).createImplicitUser()
-      val StateEffect(Some(state), response) = fun(nonAuthState)
+      val StateEffect(state, response) = fun(nonAuthState)
       for {
         state <- state
       } yield {
@@ -190,8 +190,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       }
 
       // verify(db.user, times(1)).createImplicitUser() //TODO
-      val StateEffect(Some(state), response) = fun(nonAuthState)
-      val StateEffect(Some(state2), response2) = fun(nonAuthState)
+      val StateEffect(state, response) = fun(nonAuthState)
+      val StateEffect(state2, response2) = fun(nonAuthState)
       for {
         state <- state
         state2 <- state2

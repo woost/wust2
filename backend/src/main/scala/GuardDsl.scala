@@ -7,7 +7,7 @@ import wust.backend.auth._
 import wust.graph._
 import DbConversions._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class GuardDsl(db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext) {
   private def createImplicitAuth() = enableImplicit match {
@@ -35,6 +35,6 @@ class GuardDsl(db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext) {
     val newState = auth.map(auth => state.copy(auth = auth))
     val user = auth.map(userOrFail _)
     val response = newState.flatMap(newState => user.flatMap(f(newState, _)))
-    StateEffect(Option(newState), response)
+    StateEffect(newState, response)
   }
 }

@@ -16,13 +16,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(dispatcher: EventDispatcher, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
   import StateInterpreter._
   import stateInterpreter._
 
   override def initialState = State.initial
 
-  override def validate(state: State) = filterValid(state)
+  override def validate(state: State) = StateInterpreter.validate(state)
 
   override def onRequest(holder: StateHolder[State, ApiEvent], request: Request[ByteBuffer]) = {
     val handler = api(holder).lift
@@ -37,21 +37,21 @@ class ApiRequestHandler(dispatcher: EventDispatcher, stateInterpreter: StateInte
       InternalServerError
   }
 
-  override def publishEvent(event: ApiEvent) = dispatcher.publish(ChannelEvent(Channel.All, event))
+  override def publishEvent(event: ApiEvent) = distributor.publish(event)
 
-  override def isEventAllowed(event: ApiEvent, state: State) = allowsEvent(state, event)
+  override def triggeredEvents(event: ApiEvent, state: State): Seq[Future[ApiEvent]] = StateInterpreter.triggeredEvents(state, event)
 
-  override def onEvent(event: ApiEvent, state: State) = applyEvent(state, event)
+  override def onEvent(event: ApiEvent, state: State) = StateInterpreter.onEvent(state, event)
 
   override def onClientConnect(sender: EventSender[ApiEvent], state: State) = {
     scribe.info(s"client started: $state")
-    dispatcher.subscribe(sender, Channel.All)
+    distributor.subscribe(sender)
     Future.successful(state)
   }
 
   override def onClientDisconnect(sender: EventSender[ApiEvent], state: State) = {
     scribe.info(s"client stopped: $state")
-    dispatcher.unsubscribe(sender)
+    distributor.unsubscribe(sender)
   }
 
   override def onClientInteraction(sender: EventSender[ApiEvent], state: State, newState: State) = {
@@ -65,9 +65,9 @@ object Server {
   private val stateInterpreter = new StateInterpreter(Db.default)
 
   private def api(holder: StateHolder[State, ApiEvent]) = AutowireServer.route[Api](new ApiImpl(holder, dsl, Db.default)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, Db.default))
+    AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, Db.default))
 
-  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new ChannelEventBus, stateInterpreter, api _))
+  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new EventDistributor, stateInterpreter, api _))
 
   private val route = (path("ws") & get) {
     ws.websocketHandler

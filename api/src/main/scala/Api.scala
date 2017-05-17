@@ -17,7 +17,7 @@ trait Api {
   def deleteConnection(id: ConnectionId): Future[Boolean]
   def deleteContainment(id: ContainmentId): Future[Boolean]
   def getUser(userId: UserId): Future[Option[User]]
-  def addGroup(): Future[Group]
+  def addGroup(): Future[GroupId]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
   def addMemberByName(groupId: GroupId, userName: String): Future[Boolean]
   def createGroupInvite(groupId: GroupId): Future[Option[String]]
@@ -36,12 +36,12 @@ case object Unauthorized extends ApiError
 sealed trait ApiEvent
 case class NewPost(post: Post) extends ApiEvent
 case class UpdatedPost(post: Post) extends ApiEvent
-case class NewConnection(edge: Connection) extends ApiEvent
-case class NewContainment(edge: Containment) extends ApiEvent
-case class NewOwnership(edge: Ownership) extends ApiEvent
-case class NewUser(edge: User) extends ApiEvent
-case class NewGroup(edge: Group) extends ApiEvent
-case class NewMembership(edge: Membership) extends ApiEvent
+case class NewConnection(connection: Connection) extends ApiEvent
+case class NewContainment(containment: Containment) extends ApiEvent
+case class NewOwnership(ownership: Ownership) extends ApiEvent
+// case class NewUser(user: User, membership:Membership) extends ApiEvent
+// case class NewGroup(group: Group, membership:Membership) extends ApiEvent
+case class NewMembership(user: User, membership: Membership, group:Group) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
 case class DeleteConnection(id: ConnectionId) extends ApiEvent
 case class DeleteContainment(id: ContainmentId) extends ApiEvent

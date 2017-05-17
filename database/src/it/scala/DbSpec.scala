@@ -589,7 +589,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         Some(user) <- db.user("garna", "utria")
-        Some((group, membership)) <- db.group.createForUser(user.id)
+        Some((`user`, membership, group)) <- db.group.createForUser(user.id)
         queryGroups <- ctx.run(query[UserGroup])
         queryMemberships <- ctx.run(query[Membership])
       } yield {
@@ -617,10 +617,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         Some(initialUser) <- db.user("garna", "utria")
-        Some((group, _)) <- db.group.createForUser(initialUser.id)
+        Some((_, _, group)) <- db.group.createForUser(initialUser.id)
         Some(user) <- db.user("furo", "garnaki")
 
-        Some(membership) <- db.group.addMember(group.id, user.id)
+        Some((_, membership, _)) <- db.group.addMember(group.id, user.id)
         queryMemberships <- ctx.run(query[Membership])
       } yield {
         membership mustEqual Membership(group.id, user.id)
@@ -632,7 +632,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         Some(initialUser) <- db.user("garna", "utria")
-        Some((group, _)) <- db.group.createForUser(initialUser.id)
+        Some((_, _, group)) <- db.group.createForUser(initialUser.id)
         Some(user) <- db.user("furo", "garnaki")
 
         membershipOpt <- db.group.addMember(group.id, 131551)
@@ -677,14 +677,14 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       "post in private group (user not member)" in { db =>
         val Some(user) = await(db.user("u2", "123456"))
         val Some(user2) = await(db.user("other", "123456"))
-        val Some((group, _)) = await(db.group.createForUser(user2.id))
+        val Some((_, _, group)) = await(db.group.createForUser(user2.id))
         val (post, _) = await(db.post.createOwned("p", group.id))
         db.group.hasAccessToPost(user.id, post.id).map(_ must be(false))
       }
 
       "post in private group (user is member)" in { db =>
         val Some(user) = await(db.user("u3", "123456"))
-        val Some((group, _)) = await(db.group.createForUser(user.id))
+        val Some((_, _, group)) = await(db.group.createForUser(user.id))
         val (post, _) = await(db.post.createOwned("p", group.id))
         db.group.hasAccessToPost(user.id, post.id).map(_ must be(true))
       }
@@ -719,7 +719,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          Some((group, membership)) <- db.group.createForUser(user.id)
+          Some((_, membership, group)) <- db.group.createForUser(user.id)
 
           postA <- db.post.createPublic("A")
           (postB, ownershipB) <- db.post.createOwned("B", group.id)
@@ -769,7 +769,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          Some((group, membership)) <- db.group.createForUser(user.id)
+          Some((_, membership, group)) <- db.group.createForUser(user.id)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
@@ -788,7 +788,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          Some((group, membership)) <- db.group.createForUser(user.id)
+          Some((_, membership, group)) <- db.group.createForUser(user.id)
 
           postA <- db.post.createPublic("A")
           (postB, ownershipB) <- db.post.createOwned("B", group.id)
@@ -813,10 +813,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          Some((group, membership)) <- db.group.createForUser(user.id)
+          Some((_, membership, group)) <- db.group.createForUser(user.id)
 
           Some(otherUser) <- db.user("gurkulo", "meisin")
-          Some((otherGroup, otherMembership)) <- db.group.createForUser(otherUser.id)
+          Some((_, otherMembership, otherGroup)) <- db.group.createForUser(otherUser.id)
 
           postA <- db.post.createPublic("A")
           (postB, ownershipB) <- db.post.createOwned("B", group.id)

@@ -6,9 +6,9 @@ import wust.backend.auth._
 import wust.db.Db
 import wust.ids._
 import wust.util.Pipe
-import wust.graph.Graph
+import wust.graph._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 // TODO: crashes coverage @derive(copyF)
 case class State(auth: Option[JWTAuthentication], graph: Graph) {
@@ -20,40 +20,37 @@ object State {
 }
 
 object StateInterpreter {
-  def applyEvent(state: State, event: ApiEvent): State = {
+  def onEvent(state: State, event: ApiEvent): State = {
     state.copyF(graph = GraphUpdate.onEvent(_, event))
   }
 
-  def allowsEvent(state: State, event: ApiEvent): Boolean = event match {
-    case NewPost(_) => true
-    case UpdatedPost(_) => true
-    case NewConnection(_) => true
-    case NewContainment(_) => true
-    case NewOwnership(_) => true
-    case NewUser(_) => true
-    case NewGroup(edge) => true //TODO: for who?
-    case NewMembership(edge) =>
-      state.auth.map(_.user.id == edge.userId).getOrElse(false) || state.graph.groupsById.isDefinedAt(edge.groupId)
-    case DeletePost(_) => true
-    case DeleteConnection(_) => true
-    case DeleteContainment(_) => true
-    case _ => true//false
+  def triggeredEvents(state: State, event: ApiEvent): Seq[Future[ApiEvent]] = event match {
+    case e @ (_: NewPost | _: UpdatedPost | _: NewConnection | _: NewContainment) => Seq(Future.successful(e))
+    case NewMembership(_, Membership(userId, groupId), _) =>
+      def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
+      def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
+      if (currentUserInvolved) {
+        Nil
+        // query all members of groupId
+      } else if (ownGroupInvolved) {
+        Nil
+        // only forward new membership and user
+      } else Nil
+    case other => Seq(Future.successful(other)) //TODO:
   }
 
-  def filterValid(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
+  def validate(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
 }
 
 class StateInterpreter(db: Db) {
   def stateEvents(state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] = {
-    Seq (
+    Seq(
       state.auth
         .map(_.toAuthentication |> LoggedIn)
-        .getOrElse(LoggedOut)
-    ).map(Future.successful _) ++ Seq (
-      db.graph.getAllVisiblePosts(state.user.map(_.id))
-        .map(forClient(_).consistent)
-        .map(ReplaceGraph(_))
-    )
+        .getOrElse(LoggedOut)).map(Future.successful _) ++ Seq(
+        db.graph.getAllVisiblePosts(state.user.map(_.id))
+          .map(forClient(_).consistent)
+          .map(ReplaceGraph(_)))
   }
 
   def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] =

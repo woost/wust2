@@ -33,12 +33,12 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) e
         (newAuth, newAuth.map(_.isDefined))
     }
 
-    replaceState(applyAuthenticationOnState(state, auth), success)
+    StateEffect(applyAuthenticationOnState(state, auth), success)
   }
 
   def login(name: String, password: String): Future[Boolean] = { (state: State) =>
     val auth = db.user.get(name, password).map(_.map(u => JWT.generateAuthentication(u)))
-    replaceState(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
   def loginToken(token: Authentication.Token): Future[Boolean] = { (state: State) =>
@@ -47,11 +47,11 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) e
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))
 
-    replaceState(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
+    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
 
   def logout(): Future[Boolean] = { (state: State) =>
     val auth = Future.successful(None)
-    replaceState(applyAuthenticationOnState(state, auth), Future.successful(true))
+    StateEffect(applyAuthenticationOnState(state, auth), Future.successful(true))
   }
 }

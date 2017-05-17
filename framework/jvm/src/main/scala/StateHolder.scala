@@ -1,11 +1,11 @@
 package wust.framework.state
-import scala.concurrent.{Future,Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 case class RequestResponse[T, Event](result: T, events: Seq[Event] = Seq.empty)
-case class StateEffect[State, T, Event](state: Option[Future[State]], response: Future[RequestResponse[T, Event]])
+case class StateEffect[State, T, Event](state: Future[State], response: Future[RequestResponse[T, Event]])
 
 class StateHolder[State, Event](initialState: Future[State]) {
   private var actualState = initialState
@@ -26,20 +26,17 @@ class StateHolder[State, Event](initialState: Future[State]) {
     case true => new RequestResponse[Boolean, Event](result, events)
     case false => new RequestResponse[Boolean, Event](result, Seq.empty)
   }
-  def keepState[T](response: Future[RequestResponse[T, Event]]) = new StateEffect[State, T, Event](None, response)
-  def replaceState[T](state: Future[State], response: Future[RequestResponse[T, Event]]) = new StateEffect[State, T, Event](Option(state), response)
-
   implicit def resultIsRequestResponse[T](result: T)(implicit ec: ExecutionContext): RequestResponse[T, Event] = RequestResponse(result)
   implicit def futureResultIsRequestResponse[T](result: Future[T])(implicit ec: ExecutionContext): Future[RequestResponse[T, Event]] = result.map(RequestResponse(_))
   implicit def resultFunctionIsExecuted[T](f: State => Future[T])(implicit ec: ExecutionContext): Future[T] = state.flatMap(f)
   implicit def responseFunctionIsExecuted[T](f: State => Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))
   implicit def effectFunctionIsExecuted[T](f: State => StateEffect[State, T, Event])(implicit ec: ExecutionContext): Future[T] = {
     val effect = state.map(f)
-    val newState = for{
+    val newState = for {
       //TODO: why wait on state? waiting on effect should be enough, since it depends on state
-      state <- state
+      // state <- state
       e <- effect
-      s <- e.state.getOrElse(Future.successful(state))
+      s <- e.state
     } yield s
 
     val response = effect.flatMap(_.response)

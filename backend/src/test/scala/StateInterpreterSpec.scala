@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.backend.auth.JWT
 import wust.api._
 import wust.ids._
-import wust.db.{Db, data}
+import wust.db.{ Db, data }
 import wust.graph._
 import scala.concurrent.Future
 
@@ -12,50 +12,16 @@ class StateInterpreterSpec extends FreeSpec with MustMatchers {
   val user = User(14, "user", isImplicit = false, 0)
   val auth = JWT.generateAuthentication(user)
 
-  "allowsEvent" - {
-    "NewMembership" - {
-      "with member" in {
-        val group = Group(2)
-        val state = State(None, graph = Graph(groups = List(group)))
-        val membership = NewMembership(Membership(666, group.id))
-
-        val allowed = StateInterpreter.allowsEvent(state, membership)
-
-        allowed mustEqual true
-      }
-
-      "with non-member" in {
-        val groupId = GroupId(2)
-        val state = State(Some(auth), graph = Graph.empty)
-        val membership = NewMembership(Membership(666, groupId))
-
-        val allowed = StateInterpreter.allowsEvent(state, membership)
-
-        allowed mustEqual false
-      }
-
-      "with new user" in {
-        val groupId = GroupId(2)
-        val state = State(Some(auth), graph = Graph.empty)
-        val membership = NewMembership(Membership(auth.user.id, groupId))
-
-        val allowed = StateInterpreter.allowsEvent(state, membership)
-
-        allowed mustEqual true
-      }
-    }
-  }
-
-  "filterValid" - {
+  "validate" - {
     "valid" in {
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val newState = StateInterpreter.filterValid(state)
+      val newState = StateInterpreter.validate(state)
       newState mustEqual state
     }
 
     "invalid" in {
       val state = State(auth = Some(auth.copy(expires = 0)), graph = Graph.empty)
-      val newState = StateInterpreter.filterValid(state)
+      val newState = StateInterpreter.validate(state)
       newState.auth mustEqual None
       newState.graph.groupIds mustEqual state.graph.groupIds
     }
