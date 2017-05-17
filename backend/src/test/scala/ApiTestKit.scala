@@ -12,8 +12,7 @@ trait ApiTestKit extends DbMocks {
     new StateHolder[State, ApiEvent](Future.successful(state))
   }
 
-  private def onResult[API, T](impl: API, holder: StateHolder[State, ApiEvent])(f: API => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
-    val result = f(impl)
+  private def onResult[T](result: Future[T], holder: StateHolder[State, ApiEvent])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     for {
       afterState <- holder.state
       events <- holder.events
@@ -24,13 +23,13 @@ trait ApiTestKit extends DbMocks {
   def onAuthApi[T](state: State, db: Db = mockedDb, enableImplicit: Boolean = false)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val holder = newStateHolder(state)
     val impl = new AuthApiImpl(holder, new GuardDsl(db, enableImplicit), db)
-    onResult(impl, holder)(f)
+    onResult(f(impl), holder)
   }
 
   def onApi[T](state: State, db: Db = mockedDb, enableImplicit: Boolean = false)(f: Api => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val holder = newStateHolder(state)
     val impl = new ApiImpl(holder, new GuardDsl(db, enableImplicit), db)
-    onResult(impl, holder)(f)
+    onResult(f(impl), holder)
   }
 }
 
