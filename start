@@ -12,12 +12,12 @@ function on_stage() {
 
 on_stage $stage
 
-override_sbt_arg="$2"
-function sbt_arg() {
-    arg=$1
-    [ -n "$override_sbt_arg" ] && arg="$override_sbt_arg"
+override_sbt_args="${@:2}" # all remaining arguments starting at 2
+function sbt_with_args() {
+    args="${@:1}"
+    [ -n "$override_sbt_args" ] && args="$override_sbt_args"
 
-    WUST_STAGE=dev sbt -Dquill.macro.log=false "$arg"
+    WUST_STAGE=dev sbt -Dquill.macro.log=false $args
 }
 
 # CI=true => disable workbench
@@ -30,7 +30,7 @@ psql)
     ;;
 dev)
     $compose up -d
-    sbt_arg
+    sbt_with_args
     ;;
 migrate)
     on_stage dev
@@ -58,21 +58,21 @@ test.integration)
     $compose up -d
     docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-    POSTGRES_PORT=5431 CI=true sbt_arg "; coverage; it:test; coverageReport"
+    POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
     $compose down
     ;;
 test.prod.http)
     on_stage prod
     $compose down
     $compose up -d nginx-http
-    CI=true sbt_arg systemTest/it:test
+    CI=true sbt_with_args systemTest/it:test
     $compose down
     ;;
 test.prod)
     on_stage prod
     $compose down
     $compose up -d nginx
-    #TODO CI=true sbt_arg systemTest/it:test
+    #TODO CI=true sbt_with_args systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
     $compose down
     ;;
