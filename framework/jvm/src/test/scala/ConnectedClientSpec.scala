@@ -50,8 +50,8 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
   override def publishEvent(event: String): Unit = { eventActor ! event }
 
   override def triggeredEvents(event: String, state: Option[String]) = event match {
-    case "FORBIDDEN" => Seq.empty
-    case other => Seq(Future.successful(other))
+    case "FORBIDDEN" => Future.successful(Seq.empty)
+    case other => Future.successful(Seq(other))
   }
 
   override def onEvent(event: String, state: Option[String]) = state
