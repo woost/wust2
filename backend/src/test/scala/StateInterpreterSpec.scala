@@ -9,7 +9,7 @@ import DbConversions._
 import wust.graph._
 import scala.concurrent.Future
 
-class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
+class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   object User {
     def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)
     def data(id: Long, name: String): wust.db.data.User = new wust.db.data.User(id, name, isImplicit = false, 0)
@@ -146,7 +146,7 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
         val state = State(auth = Some(aAuth), graph = graph)
         val event = NewMembership(Membership(aMember.id, aGroup.id))
         stateInterpreter.triggeredEvents(state, event).map { events =>
-          events must contain theSameElementsAs Seq(event, NewUser(aMember), NewGroup(aGroup), NewPost(postInGroup))
+          events must contain theSameElementsAs Seq(event, NewUser(aMember), NewGroup(aGroup), NewPost(postInGroup), NewOwnership(Ownership(postInGroup.id, aGroup.id)))
         }
       }
     }
