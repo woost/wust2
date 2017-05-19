@@ -5,10 +5,10 @@ import wust.ids._
 import wust.config.Config
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration._
 import wust.ids._
-import scala.util.{Try, Success, Failure}
+import scala.util.{ Try, Success, Failure }
 
 object Db {
   val default = new Db(new PostgresAsyncContext[LowerCase](Config.db))
@@ -108,6 +108,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           exists <- ctx.run(postQ.nonEmpty)
           _ <- ctx.run(postQ.delete)
         } yield exists
+      }
+    }
+
+    def getGroups(postId: PostId): Future[Iterable[UserGroup]] = {
+      ctx.run {
+        for {
+          ownership <- query[Ownership].filter(_.postId == lift(postId))
+          usergroup <- query[UserGroup].filter(_.id == ownership.groupId)
+        } yield usergroup
       }
     }
   }
@@ -249,12 +258,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             val updatedUser = user.copy(
               name = name,
               isImplicit = false,
-              revision = user.revision + 1
-            )
+              revision = user.revision + 1)
             for {
               _ <- ctx.run(
-                query[User].filter(_.id == lift(id)).update(lift(updatedUser))
-              )
+                query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
               _ <- ctx.run(query[Password].insert(lift(Password(id, digest))))
             } yield Option(updatedUser)
           }
@@ -305,6 +312,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object group {
+    def get(groupId: GroupId): Future[Option[UserGroup]] = {
+      ctx.run(query[UserGroup].filter(_.id == lift(groupId))).map(_.headOption)
+    }
     def createForUser(userId: UserId): Future[Option[(User, Membership, UserGroup)]] =
       ctx.transaction { _ =>
         //TODO report quill bug:
@@ -369,8 +379,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         for {
           membership <- query[Membership].filter(m => m.userId == lift(userId))
           usergroup <- query[UserGroup].filter(_.id == membership.groupId)
-        } yield (usergroup, membership)
-      )
+        } yield (usergroup, membership))
     }
 
     def createInvite(groupId: GroupId, token: String): Future[Boolean] = {
@@ -390,6 +399,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       ctx.run(q).map(_.headOption)
     }
 
+    def getOwnedPosts(groupId: GroupId): Future[Seq[Post]] = {
+      val q = quote {
+        for {
+          ownership <- query[Ownership].filter(o => o.groupId == lift(groupId))
+          post <- query[Post].join(p => p.id == ownership.postId)
+        } yield post
+      }
+      ctx.run(q)
+    }
   }
 
   object graph {
@@ -462,8 +480,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
               myGroups.map(UserGroup.apply),
               ownerships,
               (users ++ user).toSet,
-              memberships
-            )
+              memberships)
           }
 
         case None => // not logged in, can only see posts of public groups
@@ -480,8 +497,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
               posts,
               connection.filter(c => (postSet contains c.sourceId) && (postSet contains PostId(c.targetId.id))),
               containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
-              Nil, Nil, Nil, Nil
-            )
+              Nil, Nil, Nil, Nil)
           }
       }
     }

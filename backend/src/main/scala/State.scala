@@ -19,30 +19,61 @@ object State {
   def initial = State(auth = None, graph = Graph.empty)
 }
 
-object StateInterpreter {
+class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
   def onEvent(state: State, event: ApiEvent): State = {
     state.copyF(graph = GraphUpdate.onEvent(_, event))
   }
 
-  def triggeredEvents(state: State, event: ApiEvent): Seq[Future[ApiEvent]] = event match {
-    case e @ (_: NewPost | _: UpdatedPost | _: NewConnection | _: NewContainment) => Seq(Future.successful(e))
-    case NewMembership(_, Membership(userId, groupId), _) =>
+  def triggeredEvents(state: State, event: ApiEvent): Future[Seq[ApiEvent]] = event match {
+    case e @ (_: NewConnection | _: NewContainment) => Future.successful(Seq(e))
+    case e @ (_: DeletePost | _: DeleteConnection | _: DeleteContainment) => Future.successful(Seq(e))
+    case e @ (_: ReplaceGraph) => Future.successful(Seq(e))
+    case e @ (_: LoggedIn | LoggedOut) => Future.successful(Seq(e))
+
+    case newMembership @ NewMembership(Membership(userId, groupId)) =>
       def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
       def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
       if (currentUserInvolved) {
-        Nil
-        // query all members of groupId
+        println(s"currentUserInvolved: $userId")
+        // query all other members of groupId
+        val groupFut = db.group.get(groupId)
+        val iterableFut = db.group.members(groupId)
+        val postsFut = db.group.getOwnedPosts(groupId)
+        for {
+          Some(group) <- groupFut
+          iterable <- iterableFut
+          posts <- postsFut
+        } yield (for {
+          (user, membership) <- iterable.toSeq
+          event <- Seq(NewUser(user), NewMembership(membership)) ++ posts.flatMap(post => Seq(NewPost(post), NewOwnership(Ownership(post.id, membership.groupId))))
+        } yield event) :+ NewGroup(group)
       } else if (ownGroupInvolved) {
-        Nil
+        for {
+          Some(user) <- db.user.get(userId)
+        } yield Seq(NewUser(user), newMembership)
         // only forward new membership and user
-      } else Nil
-    case other => Seq(Future.successful(other)) //TODO:
+      } else Future.successful(Nil)
+    case newPost @ NewPost(post) =>
+      for {
+        groups <- db.post.getGroups(post.id)
+      } yield for {
+        group <- (groups.map(forClient).toSet intersect state.graph.groups.toSet).toSeq
+        event <- Seq(NewOwnership(Ownership(post.id, group.id)), newPost)
+      } yield event
+    case updatedPost @ UpdatedPost(post) =>
+      for {
+        groups <- db.post.getGroups(post.id)
+      } yield for {
+        group <- (groups.map(forClient).toSet intersect state.graph.groups.toSet).toSeq
+        event <- Seq(updatedPost)
+      } yield event
+    case other =>
+      println(s"####### ignored Event: $other")
+      Future.successful(Nil)
   }
 
   def validate(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
-}
 
-class StateInterpreter(db: Db) {
   def stateEvents(state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] = {
     Seq(
       state.auth
@@ -50,7 +81,8 @@ class StateInterpreter(db: Db) {
         .getOrElse(LoggedOut)).map(Future.successful _) ++ Seq(
         db.graph.getAllVisiblePosts(state.user.map(_.id))
           .map(forClient(_).consistent)
-          .map(ReplaceGraph(_)))
+          .map(ReplaceGraph(_)) //TODO: move to triggeredEvents
+      )
   }
 
   def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] =

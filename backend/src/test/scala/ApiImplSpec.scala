@@ -24,7 +24,7 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     onApi(state, db = db)(_.addGroup()).map {
       case (state, events, result) =>
         state.auth mustEqual Some(auth)
-        events must contain theSameElementsAs Seq(NewMembership(User(23, "dieter"), Membership(23, 1), Group(1)))
+        events must contain theSameElementsAs Seq(NewMembership(Membership(23, 1)))
         result mustEqual GroupId(1)
     }
   }
@@ -38,13 +38,12 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       case (state1, events1, result1) =>
         onApi(state1, db = db)(_.addGroup()).map {
           case (state, events, result) =>
-
             state1.auth mustEqual Some(auth)
-            events1 must contain theSameElementsAs Seq(NewMembership(User(23, "dieter"), Membership(23, 1), Group(1)))
+            events must contain theSameElementsAs Seq(NewMembership(Membership(23, 1)))
             result1 mustEqual GroupId(1)
 
             state.auth mustEqual Some(auth)
-            events must contain theSameElementsAs Seq(NewMembership(User(23, "dieter"), Membership(23, 1), Group(1)))
+            events must contain theSameElementsAs Seq(NewMembership(Membership(23, 1)))
             result mustEqual GroupId(1)
         }
     }

@@ -5,42 +5,45 @@ import wust.backend.auth.JWT
 import wust.api._
 import wust.ids._
 import wust.db.{ Db, data }
+import DbConversions._
 import wust.graph._
 import scala.concurrent.Future
 
-class StateInterpreterSpec extends FreeSpec with MustMatchers {
-  val user = User(14, "user", isImplicit = false, 0)
+class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
+  object User {
+    def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)
+    def data(id: Long, name: String): wust.db.data.User = new wust.db.data.User(id, name, isImplicit = false, 0)
+  }
+
+  val user = User(14, "user")
   val auth = JWT.generateAuthentication(user)
 
   "validate" - {
-    "valid" in {
+    "valid" in mockDb { db =>
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val newState = StateInterpreter.validate(state)
+      val stateInterpreter = new StateInterpreter(db = db)
+      val newState = stateInterpreter.validate(state)
       newState mustEqual state
     }
 
-    "invalid" in {
+    "invalid" in mockDb { db =>
       val state = State(auth = Some(auth.copy(expires = 0)), graph = Graph.empty)
-      val newState = StateInterpreter.validate(state)
+      val stateInterpreter = new StateInterpreter(db = db)
+      val newState = stateInterpreter.validate(state)
       newState.auth mustEqual None
       newState.graph.groupIds mustEqual state.graph.groupIds
     }
   }
-}
-
-class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
-  val user = User(14, "user", isImplicit = false, 0)
-  val auth = JWT.generateAuthentication(user)
 
   "stateEvents" - {
     def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
 
     "with auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(Some(user.id)) returns Future.successful(emptyGraph)
-      val stateChange = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val events = Future.sequence(stateChange.stateEvents(state))
+      val events = Future.sequence(stateInterpreter.stateEvents(state))
 
       events.map { events =>
         events must contain theSameElementsAs Seq(LoggedIn(auth.toAuthentication), ReplaceGraph(Graph.empty))
@@ -49,10 +52,10 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
 
     "with groupIds" in mockDb { db =>
       db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
-      val stateChange = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = None, graph = Graph(groups = List(Group(1), Group(2))))
-      val events = Future.sequence(stateChange.stateEvents(state))
+      val events = Future.sequence(stateInterpreter.stateEvents(state))
 
       events.map { events =>
         events must contain theSameElementsAs Seq(LoggedOut, ReplaceGraph(Graph.empty))
@@ -60,11 +63,11 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
     }
 
     "without auth" in mockDb { db =>
-      val stateChange = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db = db)
       db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
 
       val state = State(auth = None, graph = Graph.empty)
-      val events = Future.sequence(stateChange.stateEvents(state))
+      val events = Future.sequence(stateInterpreter.stateEvents(state))
 
       events.map { events =>
         events must contain theSameElementsAs Seq(LoggedOut, ReplaceGraph(Graph.empty))
@@ -76,10 +79,10 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
     def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
 
     "same state" in mockDb { db =>
-      val stateChange = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val events = Future.sequence(stateChange.stateChangeEvents(state, state))
+      val events = Future.sequence(stateInterpreter.stateChangeEvents(state, state))
 
       events.map { events =>
         events.size mustEqual 0
@@ -88,17 +91,64 @@ class StateInterpreterDbSpec extends AsyncFreeSpec with MustMatchers with DbMock
 
     "different auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
-      val stateChange = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph(groups = List(Group(1), Group(2))))
       val newState = state.copy(auth = None)
-      val events = Future.sequence(stateChange.stateChangeEvents(state, newState))
-      val expected = Future.sequence(stateChange.stateEvents(newState))
+      val events = Future.sequence(stateInterpreter.stateChangeEvents(state, newState))
+      val expected = Future.sequence(stateInterpreter.stateEvents(newState))
 
       for {
         events <- events
         expected <- expected
       } yield events must contain theSameElementsAs expected
+    }
+
+    "triggeredEvents" - {
+      "NewMembership with non-member user" in mockDb { db =>
+        val stateInterpreter = new StateInterpreter(db = db)
+
+        val state = State.initial.copy(auth = None)
+        val event = NewMembership(Membership(1337, 12))
+        stateInterpreter.triggeredEvents(state, event).map { events =>
+          events.size mustEqual 0
+        }
+      }
+
+      "NewMembership with exising member user" in mockDb { db =>
+        val aMember = User.data(777, "harals")
+
+        db.user.get(aMember.id) returns Future.successful(Some(aMember))
+        val stateInterpreter = new StateInterpreter(db = db)
+
+        val group = Group(12)
+        val graph = Graph(users = Seq(aMember), groups = Seq(group), memberships = Seq(Membership(user.id, group.id)))
+        val state = State(auth = Some(auth), graph = graph)
+        val event = NewMembership(Membership(aMember.id, group.id))
+        stateInterpreter.triggeredEvents(state, event).map { events =>
+          events must contain theSameElementsAs Seq(NewUser(aMember), event)
+        }
+      }
+
+      "NewMembership with new member user" in mockDb { db =>
+        val postInGroup = data.Post(121212, "harhar")
+        val aMember = User.data(777, "harals")
+        val aGroup = data.UserGroup(12)
+        val aMembership = data.Membership(aGroup.id, aMember.id)
+
+        db.group.get(aGroup.id) returns Future.successful(Some(aGroup))
+        db.group.members(aGroup.id) returns Future.successful(Seq((aMember, aMembership)))
+        db.group.getOwnedPosts(aGroup.id) returns Future.successful(Seq(postInGroup))
+        val stateInterpreter = new StateInterpreter(db = db)
+
+        val graph = Graph.empty
+        val aAuth = JWT.generateAuthentication(aMember)
+        val state = State(auth = Some(aAuth), graph = graph)
+        val event = NewMembership(Membership(aMember.id, aGroup.id))
+        stateInterpreter.triggeredEvents(state, event).map { events =>
+          events must contain theSameElementsAs Seq(event, NewUser(aMember), NewGroup(aGroup), NewPost(postInGroup))
+        }
+      }
     }
   }
 }

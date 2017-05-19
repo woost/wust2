@@ -17,12 +17,11 @@ import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
-  import StateInterpreter._
   import stateInterpreter._
 
   override def initialState = State.initial
 
-  override def validate(state: State) = StateInterpreter.validate(state)
+  override def validate(state: State) = stateInterpreter.validate(state)
 
   override def onRequest(holder: StateHolder[State, ApiEvent], request: Request[ByteBuffer]) = {
     val handler = api(holder).lift
@@ -39,9 +38,9 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 
   override def publishEvent(event: ApiEvent) = distributor.publish(event)
 
-  override def triggeredEvents(event: ApiEvent, state: State): Seq[Future[ApiEvent]] = StateInterpreter.triggeredEvents(state, event)
+  override def triggeredEvents(event: ApiEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)
 
-  override def onEvent(event: ApiEvent, state: State) = StateInterpreter.onEvent(state, event)
+  override def onEvent(event: ApiEvent, state: State) = stateInterpreter.onEvent(state, event)
 
   override def onClientConnect(sender: EventSender[ApiEvent], state: State) = {
     scribe.info(s"client started: $state")

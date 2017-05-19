@@ -33,9 +33,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
     }
 
     newPost.map {
-      case (post, ownershipOpt) =>
-        val events = Seq(NewPost(post)) ++ ownershipOpt.map(NewOwnership(_)).toSeq
-        respondWithEvents(forClient(post), events: _*)
+      case (post, _) =>
+        respondWithEvents(forClient(post), NewPost(post))
     }
   }
 
@@ -95,7 +94,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
 
     newPost.map {
       case Some((post, connection, ownershipOpt)) =>
-        val events = Seq(NewPost(post), NewConnection(connection)) ++ ownershipOpt.map(NewOwnership(_)).toSeq
+        val events = Seq(NewPost(post), NewConnection(connection))
         respondWithEvents[(Post, Connection)]((post, connection), events: _*)
       //TODO failure case
     }
@@ -103,29 +102,31 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
 
   def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
   def addGroup(): Future[GroupId] = withUser { (_, user) =>
-    val createdGroup = db.group.createForUser(user.id)
-    createdGroup.map {
-      case Some((dbUser, dbMembership, dbGroup)) =>
-        val group = forClient(dbGroup)
-        respondWithEvents(group.id, NewMembership(dbUser, dbMembership, group))
+    for {
+      //TODO: simplify db.createForUser return values
+      Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
+    } yield {
+      val group = forClient(dbGroup)
+      respondWithEvents(group.id, NewMembership(dbMembership))
     }
   }
 
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUser { (_, _) =>
     //TODO: check if user has access to group
-    db.group.addMember(groupId, userId).map {
-      case Some((dbUser, dbMembership, dbGroup)) =>
-        respondWithEvents(true, NewMembership(dbUser, dbMembership, dbGroup))
-    }
+    (
+      for {
+        Some((_, dbMembership, _)) <- db.group.addMember(groupId, userId)
+      } yield {
+        respondWithEvents(true, NewMembership(dbMembership))
+      }).recover { case _ => respondWithEvents(false) }
   }
 
   def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUser { (_, _) =>
     (
       for {
         Some(user) <- db.user.byName(userName)
-        Some((dbUser, dbMembership, dbGroup)) <- db.group.addMember(groupId, user.id)
-      } yield respondWithEvents(true, NewMembership(dbUser, dbMembership, dbGroup))
-    ).recover { case _ => respondWithEvents(false) }
+        Some((_, dbMembership, _)) <- db.group.addMember(groupId, user.id)
+      } yield respondWithEvents(true, NewMembership(dbMembership))).recover { case _ => respondWithEvents(false) }
   }
 
   def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUser { (_, user) =>
@@ -141,9 +142,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
       case Some(group) =>
         val createdMembership = db.group.addMember(group.id, user.id)
         createdMembership.map {
-          case Some((dbUser, dbMembership, dbGroup)) =>
+          case Some((_, dbMembership, dbGroup)) =>
             val group = forClient(dbGroup)
-            respondWithEvents(Option(group.id), NewMembership(dbUser, dbMembership, group))
+            respondWithEvents(Option(group.id), NewMembership(dbMembership))
         }
       case None => Future.successful(respondWithEvents[Option[GroupId]](None))
     }

@@ -38,7 +38,7 @@ trait RequestHandler[Event, Error, State] {
   // events can trigger further events to provide
   // missing data for the client. Events have to be explicitly forwarded.
   // for example, returning Seq.empty will ignore the event.
-  def triggeredEvents(event: Event, state: State): Seq[Future[Event]] = Nil
+  def triggeredEvents(event: Event, state: State): Future[Seq[Event]]
 
   // after you have allowed the event, you can then adapt the state according to the event
   def onEvent(event: Event, state: State): State
@@ -62,7 +62,6 @@ class EventSender[Event](messages: Messages[Event, _], private val actor: ActorR
   import messages._
 
   def send(event: Event): Unit = {
-    scribe.info(s"--> event: $event")
     actor ! Notification(event)
   }
 
@@ -108,7 +107,7 @@ class ConnectedClient[Event, Error, State](
         val newState = for {
           unvalidatedState <- state
           validatedState = validate(unvalidatedState)
-          events <- Future.sequence(triggeredEvents(event, validatedState))
+          events <- triggeredEvents(event, validatedState)
         } yield {
           events.foldLeft(validatedState) { (state, event) =>
             // sideeffect: send actual event to client

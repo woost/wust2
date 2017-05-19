@@ -39,9 +39,9 @@ case class UpdatedPost(post: Post) extends ApiEvent
 case class NewConnection(connection: Connection) extends ApiEvent
 case class NewContainment(containment: Containment) extends ApiEvent
 case class NewOwnership(ownership: Ownership) extends ApiEvent
-// case class NewUser(user: User, membership:Membership) extends ApiEvent
-// case class NewGroup(group: Group, membership:Membership) extends ApiEvent
-case class NewMembership(user: User, membership: Membership, group:Group) extends ApiEvent
+case class NewUser(user: User) extends ApiEvent
+case class NewGroup(group: Group) extends ApiEvent
+case class NewMembership(membership: Membership) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
 case class DeleteConnection(id: ConnectionId) extends ApiEvent
 case class DeleteContainment(id: ContainmentId) extends ApiEvent

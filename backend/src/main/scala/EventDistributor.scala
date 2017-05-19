@@ -16,6 +16,7 @@ class EventDistributor {
   }
 
   def publish(event: ApiEvent) {
+    scribe.info(s"--> Backend Event: $event --> ${subscribers.size} connectedClients")
     subscribers.foreach(_.send(event))
   }
 }

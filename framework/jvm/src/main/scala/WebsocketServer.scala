@@ -41,7 +41,7 @@ object WebsocketFlow {
           connectedClientActor ! ConnectedClient.Connect(outActor)
           NotUsed
         }.map { msg =>
-          scribe.info(s"--> $msg")
+          scribe.info(s"--> to client: $msg")
           WebsocketSerializer.serialize(msg)
         }
 
