@@ -13,15 +13,17 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
   //TODO: test the number of rx updates
 
   "raw graph" - {
-    "be consistent" in {
+    "be not consistent" in {
       val state = new GlobalState
-      state.rawGraph() = Graph(
+      val graph = Graph(
         posts = List(Post(1, "title")),
         connections = List(Connection(2, 1, ConnectionId(11))),
         containments = List(Containment(3, 1, 12))
       )
 
-      state.rawGraph.now mustEqual Graph(posts = List(Post(1, "title")))
+      state.rawGraph() = graph
+
+      state.rawGraph.now mustEqual graph
     }
   }
 

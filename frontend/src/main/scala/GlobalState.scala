@@ -3,7 +3,7 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.frontend.views.{ ViewConfig, ViewPage }
 import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
@@ -31,7 +31,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val inviteToken = viewConfig.map(_.invite)
 
   val rawGraph = RxVar(Graph.empty)
-    .map(_.consistent)
 
   val graphSelection = RxVar(rawGraphSelection, Rx {
     val graph = rawGraph()
@@ -67,7 +66,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
         case GraphSelection.Root => Set.empty
         case GraphSelection.Union(parentIds) => parentIds
       }
-      Perspective(currentView(), rawGraph() -- focusedParents)
+      Perspective(currentView(), rawGraph().consistent -- focusedParents)
     })
   }
 
