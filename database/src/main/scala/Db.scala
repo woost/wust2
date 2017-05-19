@@ -11,8 +11,7 @@ import wust.ids._
 import scala.util.{Try, Success, Failure}
 
 object Db {
-  private[db] val ctx = new PostgresAsyncContext[LowerCase](Config.db)
-  val default = new Db(ctx)
+  val default = new Db(new PostgresAsyncContext[LowerCase](Config.db))
 }
 
 class Db(val ctx: PostgresAsyncContext[LowerCase]) {
