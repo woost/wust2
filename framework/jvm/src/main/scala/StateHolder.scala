@@ -32,13 +32,7 @@ class StateHolder[State, Event](initialState: Future[State]) {
   implicit def responseFunctionIsExecuted[T](f: State => Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))
   implicit def effectFunctionIsExecuted[T](f: State => StateEffect[State, T, Event])(implicit ec: ExecutionContext): Future[T] = {
     val effect = state.map(f)
-    val newState = for {
-      //TODO: why wait on state? waiting on effect should be enough, since it depends on state
-      // state <- state
-      e <- effect
-      s <- e.state
-    } yield s
-
+    val newState = effect.flatMap(_.state)
     val response = effect.flatMap(_.response)
 
     //sideeffect: set new state
