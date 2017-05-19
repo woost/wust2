@@ -205,7 +205,7 @@ lazy val backend = project
       "org.typelevel" %% "cats" % "0.9.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
-      "io.igl" %% "jwt" % "1.2.0" ::
+      "com.pauldijou" %% "jwt-circe" % "0.12.1" ::
       "javax.mail" % "javax.mail-api" % "1.5.6" ::
       "com.sun.mail" % "javax.mail" % "1.5.6" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::

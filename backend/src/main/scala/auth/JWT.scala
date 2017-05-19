@@ -1,37 +1,13 @@
 package wust.backend.auth
 
-import io.igl.jwt._
+import pdi.jwt.{JwtCirce, JwtAlgorithm, JwtClaim}
 import wust.api._
 import wust.backend.config.Config
 import wust.graph.User
 import wust.ids._
-import scalaz._
+import scala.util.{Success, Failure}
+import java.time.Instant
 import java.time.Duration
-
-object Claims {
-  import play.api.libs.functional.syntax._
-  import play.api.libs.json._
-
-  implicit val userIdReader = Reads.of[IdType].map(UserId _)
-  implicit val userIdWriter = Writes[UserId] { user => JsNumber(Tag.unwrap(user): IdType) }
-  implicit val userFormat = (
-    (__ \ "id").format[UserId] ~
-    (__ \ "name").format[String] ~
-    (__ \ "isImplicit").format[Boolean] ~
-    (__ \ "revision").format[Int]
-  )(User.apply, unlift(User.unapply))
-
-  case class UserClaim(value: User) extends ClaimValue {
-    override val field: ClaimField = UserClaim
-    override val jsValue: JsValue = Json.toJson(value)
-  }
-  object UserClaim extends ClaimField {
-    override def attemptApply(value: JsValue): Option[ClaimValue] =
-      value.asOpt[User].map(apply)
-
-    override val name = "user"
-  }
-}
 
 //@derive((user, expires) => toString)
 case class JWTAuthentication private[auth] (user: User, expires: Long, token: Authentication.Token) {
@@ -39,40 +15,39 @@ case class JWTAuthentication private[auth] (user: User, expires: Long, token: Au
 }
 
 class JWT(secret: String, tokenLifetime: Duration) {
-  import Claims.UserClaim
+  import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._
+  implicit val userDecoder: Decoder[User] = deriveDecoder[User]
+  implicit val userEncoder: Encoder[User] = deriveEncoder[User]
 
-  private val algorithm = Algorithm.HS256
-  private val wustIss = Iss("wust")
-  private val wustAud = Aud("wust")
-  private def currentTimestamp: Long = System.currentTimeMillis / 1000
-  private def expirationTimestamp = currentTimestamp + tokenLifetime.getSeconds
+  private val algorithm = JwtAlgorithm.HS256
+  private val issuer = "wust"
+  private val audience = "wust"
 
-  def generateToken(user: User, expires: Long): DecodedJwt = new DecodedJwt(
-    Seq(Alg(algorithm), Typ("JWT")),
-    Seq(wustIss, wustAud, Exp(expires), UserClaim(user))
-  )
+  def generateClaim(user: User, expires: Long) = {
+    JwtClaim(content = user.asJson.toString)
+      .by(issuer)
+      .to(audience)
+      .startsNow
+      .issuedNow
+      .expiresAt(expires)
+  }
 
   def generateAuthentication(user: User): JWTAuthentication = {
-    val expires = expirationTimestamp
-    val jwt = generateToken(user, expires)
-    JWTAuthentication(user, expires, jwt.encodedAndSigned(secret))
+    val expires = Instant.now.getEpochSecond + tokenLifetime.getSeconds
+    val claim = generateClaim(user, expires)
+    val token = JwtCirce.encode(claim, secret, algorithm)
+    JWTAuthentication(user, expires, token)
   }
 
   def authenticationFromToken(token: Authentication.Token): Option[JWTAuthentication] = {
-    DecodedJwt.validateEncodedJwt(
-      token, secret, algorithm, Set(Typ),
-      Set(Iss, Aud, Exp, UserClaim),
-      iss = Option(wustIss), aud = Option(wustAud)
-    ).toOption.flatMap { decoded =>
-        for {
-          expires <- decoded.getClaim[Exp]
-          user <- decoded.getClaim[UserClaim]
-        } yield {
-          JWTAuthentication(user.value, expires.value, token)
-        }
-      }.filterNot(isExpired)
+    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.collect {
+      case claim if claim.isValid(issuer, audience) => for {
+        expires <- claim.expiration
+        user <- parser.decode[User](claim.content).right.toOption
+      } yield JWTAuthentication(user, expires, token)
+    }.flatten
   }
 
-  def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= currentTimestamp
+  def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= Instant.now.getEpochSecond
 }
 object JWT extends JWT(Config.auth.secret, Config.auth.tokenLifetime)
