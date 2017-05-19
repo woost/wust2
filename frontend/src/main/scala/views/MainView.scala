@@ -124,11 +124,13 @@ object MainView {
   def currentGroupInviteLink(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val inviteLink = Var[Option[String]](None)
     Rx {
-      state.selectedGroupId().map { groupId =>
+      state.selectedGroupId() match {
+        case Some( groupId) =>
         Client.api.createGroupInvite(groupId).call().foreach {
           case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
           case None =>
         }
+          case None => inviteLink() = None
       }
     }
     inviteLink.map(_.map(aUrl(_)(fontSize := "8px")).getOrElse(span()).render)
