@@ -54,9 +54,7 @@ lazy val config = project // only contains application.conf and config object
     libraryDependencies ++= (
       "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
       Nil
-    ),
-    resourceDirectory in Compile := baseDirectory.value,
-    resourceDirectory in Test := baseDirectory.value)
+    ))
 
 lazy val isCI = sys.env.get("CI").isDefined // set by travis
 
