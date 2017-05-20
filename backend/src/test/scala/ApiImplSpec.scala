@@ -17,7 +17,7 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   }
 
   "addGroup" in mockDb { db =>
-    db.group.createForUser(UserId(23)) returns Future.successful(Option((User.data(23, "dieter"), data.Membership(1, 23), data.UserGroup(1))))
+    db.group.createForUser(UserId(23)) returns Future.successful(Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1))))
 
     val auth = JWT.generateAuthentication(User(23, "hans"))
     val state = State.initial.copy(auth = Some(auth))
@@ -30,7 +30,7 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   }
 
   "2x addGroup" in mockDb { db =>
-    db.group.createForUser(UserId(23)) returns Future.successful(Option((User.data(23, "dieter"), data.Membership(1, 23), data.UserGroup(1))))
+    db.group.createForUser(UserId(23)) returns Future.successful(Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1))))
 
     val auth = JWT.generateAuthentication(User(23, "hans"))
     val state = State.initial.copy(auth = Some(auth))

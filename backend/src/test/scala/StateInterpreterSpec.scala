@@ -134,7 +134,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
         val postInGroup = data.Post(121212, "harhar")
         val aMember = User.data(777, "harals")
         val aGroup = data.UserGroup(12)
-        val aMembership = data.Membership(aGroup.id, aMember.id)
+        val aMembership = data.Membership(aMember.id, aGroup.id)
 
         db.group.get(aGroup.id) returns Future.successful(Some(aGroup))
         db.group.members(aGroup.id) returns Future.successful(Seq((aMember, aMembership)))

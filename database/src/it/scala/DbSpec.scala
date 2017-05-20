@@ -596,7 +596,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         queryGroups must contain theSameElementsAs List(group)
         queryMemberships must contain theSameElementsAs List(membership)
 
-        membership mustEqual Membership(group.id, user.id)
+        membership mustEqual Membership(user.id, group.id)
       }
     }
 
@@ -623,8 +623,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         Some((_, membership, _)) <- db.group.addMember(group.id, user.id)
         queryMemberships <- ctx.run(query[Membership])
       } yield {
-        membership mustEqual Membership(group.id, user.id)
-        queryMemberships must contain theSameElementsAs List(Membership(group.id, initialUser.id), membership)
+        membership mustEqual Membership(user.id, group.id)
+        queryMemberships must contain theSameElementsAs List(Membership(initialUser.id, group.id), membership)
       }
     }
 
@@ -639,7 +639,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         queryMemberships <- ctx.run(query[Membership])
       } yield {
         membershipOpt mustEqual None
-        queryMemberships must contain theSameElementsAs List(Membership(group.id, initialUser.id))
+        queryMemberships must contain theSameElementsAs List(Membership(initialUser.id, group.id))
       }
     }
 

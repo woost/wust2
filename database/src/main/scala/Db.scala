@@ -327,9 +327,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             case Some(_) =>
               for {
                 groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-                m <- ctx.run(query[Membership].insert(lift(Membership(groupId, userId)))) //TODO: what is m? What does it return?
+                m <- ctx.run(query[Membership].insert(lift(Membership(userId, groupId)))) //TODO: what is m? What does it return?
                 user <- ctx.run(query[User].filter(_.id == lift(userId)))
-              } yield Option((user.head, Membership(groupId, userId), UserGroup(groupId)))
+              } yield Option((user.head, Membership(userId, groupId), UserGroup(groupId)))
             case None => Future.successful(None)
           }
         }.recover { case _ => None }
@@ -341,7 +341,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           _ <- ctx.run(infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]])
           user <- ctx.run(query[User].filter(_.id == lift(userId)))
           userGroup <- ctx.run(query[UserGroup].filter(_.id == lift(groupId)))
-        } yield Option(user.head, Membership(groupId, userId), userGroup.head)
+        } yield Option(user.head, Membership(userId, groupId), userGroup.head)
       }.recover { case _ => None }
 
     def hasAccessToPost(userId: UserId, postId: PostId): Future[Boolean] = {
