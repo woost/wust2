@@ -16,6 +16,11 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     Await.result(future, 10.seconds)
   }
 
+  implicit def passwordToDigest(pw: String): Array[Byte] = pw.map(_.toByte).toArray
+  implicit class EqualityByteArray(val arr: Array[Byte]) {
+    def mustEqualDigest(pw: String) = arr mustEqual passwordToDigest(pw)
+  }
+
   "post" - {
     "create public post" in { db =>
       import db._, db.ctx, ctx._
@@ -355,21 +360,18 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
   }
 
   "user" - {
-    import com.roundeights.hasher.Hasher
-
     "create non-existing" in { db =>
       import db._, db.ctx, ctx._
       for {
         Some(user) <- db.user("heigo", "parwin")
-        queriedUsers <- ctx.run(query[User].filter(_.id == lift(user.id)))
-        queriedPasswords <- ctx.run(query[Password].filter(_.id == lift(user.id)))
+        Some((queriedUser, queriedDigest)) <- db.user.getUserAndDigest("heigo")
         queriedGroups <- ctx.run(query[UserGroup])
       } yield {
         user.name mustEqual "heigo"
         user.isImplicit mustEqual false
         user.revision mustEqual 0
-        queriedUsers.head mustEqual user
-        (Hasher("parwin").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
+        queriedUser mustEqual user
+        queriedDigest mustEqualDigest "parwin"
         queriedGroups mustBe empty
       }
     }
@@ -379,11 +381,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         None <- db.user("heigo", "parwin")
-        queriedUsers <- ctx.run(query[User])
-        queriedPasswords <- ctx.run(query[Password])
+        Some((queriedUser, queriedDigest)) <- db.user.getUserAndDigest("heigo")
       } yield {
-        queriedUsers mustEqual List(existingUser)
-        (Hasher("parwin").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
+        queriedUser mustEqual existingUser
+        queriedDigest mustEqualDigest "parwin"
       }
     }
 
@@ -392,11 +393,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
         None <- db.user("heigo", "reidon")
-        queriedUsers <- ctx.run(query[User])
-        queriedPasswords <- ctx.run(query[Password])
+        Some((queriedUser, queriedDigest)) <- db.user.getUserAndDigest("heigo")
       } yield {
-        queriedUsers mustEqual List(existingUser)
-        (Hasher("parwin").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
+        queriedUser mustEqual existingUser
+        queriedDigest mustEqualDigest "parwin"
       }
     }
 
@@ -434,14 +434,13 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         implUser <- db.user.createImplicitUser()
         Some(user) <- db.user.activateImplicitUser(implUser.id, "ganiz", "faura")
-        queriedUsers <- ctx.run(query[User])
-        queriedPasswords <- ctx.run(query[Password])
+        Some((queriedUser, queriedDigest)) <- db.user.getUserAndDigest("ganiz")
       } yield {
         user.name mustEqual "ganiz"
         user.isImplicit mustEqual false
         user.revision mustEqual 1
-        queriedUsers mustEqual List(user)
-        (Hasher("faura").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
+        queriedUser mustEqual user
+        queriedDigest mustEqualDigest "faura"
       }
     }
 
@@ -451,12 +450,14 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         implUser <- db.user.createImplicitUser()
         Some(existingUser) <- db.user("ganiz", "heuriso")
         None <- db.user.activateImplicitUser(implUser.id, "ganiz", "heuriso")
+        Some((queriedUser, queriedDigest)) <- db.user.getUserAndDigest("ganiz")
         queriedUsers <- ctx.run(query[User])
         queriedPasswords <- ctx.run(query[Password])
       } yield {
         queriedUsers must contain theSameElementsAs List(existingUser, implUser)
         queriedPasswords.size mustEqual 1
-        (Hasher("heuriso").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
+        queriedUser mustEqual existingUser
+        queriedDigest mustEqualDigest "heuriso"
       }
     }
 
@@ -466,12 +467,14 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         implUser <- db.user.createImplicitUser()
         Some(existingUser) <- db.user("ganiz", "heuriso")
         None <- db.user.activateImplicitUser(implUser.id, "ganiz", "faura")
+        Some((queriedUser, queriedDigest)) <- db.user.getUserAndDigest("ganiz")
         queriedUsers <- ctx.run(query[User])
         queriedPasswords <- ctx.run(query[Password])
       } yield {
         queriedUsers must contain theSameElementsAs List(existingUser, implUser)
         queriedPasswords.size mustEqual 1
-        (Hasher("heuriso").bcrypt.hash = queriedPasswords.head.digest) mustEqual true
+        queriedUser mustEqual existingUser
+        queriedDigest mustEqualDigest "heuriso"
       }
     }
 
@@ -498,8 +501,9 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
-        Some(user) <- db.user.get("heigo", "parwin")
+        Some((user, digest)) <- db.user.getUserAndDigest("heigo")
       } yield {
+        digest mustEqualDigest "parwin"
         user mustEqual existingUser
       }
     }
@@ -507,17 +511,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "get non-existing by name,password" in { db =>
       import db._, db.ctx, ctx._
       for {
-        userOpt <- db.user.get("a", "b")
-      } yield {
-        userOpt mustEqual None
-      }
-    }
-
-    "get existing with wrong password" in { db =>
-      import db._, db.ctx, ctx._
-      for {
-        Some(existingUser) <- db.user("heigo", "parwin")
-        userOpt <- db.user.get("heigo", "brutula")
+        userOpt <- db.user.getUserAndDigest("a")
       } yield {
         userOpt mustEqual None
       }
@@ -527,7 +521,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
-        userOpt <- db.user.get("ürgens", "parwin")
+        userOpt <- db.user.getUserAndDigest("ürgens")
       } yield {
         userOpt mustEqual None
       }

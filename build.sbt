@@ -158,12 +158,9 @@ lazy val database = project
   .dependsOn(idsJVM, config)
   .settings(
     libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % "1.1.1" ::
-      "com.roundeights" %% "hasher" % "1.2.0" :: //TODO: move to backend
-      "org.mindrot" % "jbcrypt" % "0.4" :: //TODO: move to backend
+      "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       "org.postgresql" % "postgresql" % "9.4.1208" % "test,it" ::
-      "io.getquill" %% "quill-jdbc" % "1.1.1" % "test,it" :: //TODO: variable for quill version
       Nil
   // parallelExecution in IntegrationTest := false
   )
@@ -182,6 +179,8 @@ lazy val backend = project
       "io.igl" %% "jwt" % "1.2.0" ::
       "javax.mail" % "javax.mail-api" % "1.5.6" ::
       "com.sun.mail" % "javax.mail" % "1.5.6" ::
+      "com.roundeights" %% "hasher" % "1.2.0" ::
+      "org.mindrot" % "jbcrypt" % "0.4" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::

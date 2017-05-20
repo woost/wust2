@@ -201,9 +201,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object user {
-    import com.roundeights.hasher.Hasher
-    def passwordDigest(password: String) = Hasher(password).bcrypt
-
     private val initialRevision = 0
     private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
     private def newRealUser(name: String): User = User(DEFAULT, name, isImplicit = false, initialRevision)
@@ -225,11 +222,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           .as[Query[Int]] //TODO update? but does not support returning?
     }
 
-    def apply(name: String, password: String): Future[Option[User]] = {
+    def apply(name: String, passwordDigest: Array[Byte]): Future[Option[User]] = {
       val user = newRealUser(name)
-      val digest = passwordDigest(password)
       val userIdQuote = quote {
-        createUserAndPassword(lift(name), lift(digest)).returning(_.id)
+        createUserAndPassword(lift(name), lift(passwordDigest)).returning(_.id)
       }
       ctx.run(userIdQuote)
         .map(id => Option(user.copy(id = id)))
@@ -245,11 +241,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       dbUser.flatMap(user => group.createForUser(user.id).map(_ => user))
     }
 
-    def activateImplicitUser(id: UserId, name: String, password: String): Future[Option[User]] = {
-      val digest = passwordDigest(password)
+    def activateImplicitUser(id: UserId, name: String, passwordDigest: Array[Byte]): Future[Option[User]] = {
       //TODO
       // val user = User(id, name)
-      // val q = quote { createPasswordAndUpdateUser(lift(id), lift(name), lift(digest)) }
+      // val q = quote { createPasswordAndUpdateUser(lift(id), lift(name), lift(passwordDigest)) }
       // ctx.run(q).map(revision => Some(user.copy(revision = revision)))
       ctx
         .run(query[User].filter(u => u.id == lift(id) && u.isImplicit == true))
@@ -262,7 +257,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             for {
               _ <- ctx.run(
                 query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
-              _ <- ctx.run(query[Password].insert(lift(Password(id, digest))))
+              _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
             } yield Option(updatedUser)
           }
           .getOrElse(Future.successful(None)))
@@ -277,21 +272,17 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       ctx.run(q).map(_.headOption)
     }
 
-    def get(name: String, password: String): Future[Option[User]] = {
+    def getUserAndDigest(name: String): Future[Option[(User, Array[Byte])]] = {
       val q = quote {
         query[User]
           .filter(_.name == lift(name))
           .join(query[Password])
           .on((u, p) => u.id == p.id)
+          .map { case (u, p) => (u, p.digest) }
           .take(1)
       }
 
-      ctx
-        .run(q)
-        .map(_.headOption.collect {
-          case (user, pw) if (passwordDigest(password) hash = pw.digest) =>
-            user
-        })
+      ctx.run(q).map(_.headOption)
     }
 
     def byName(name: String): Future[Option[User]] = {
