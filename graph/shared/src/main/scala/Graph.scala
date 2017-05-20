@@ -196,7 +196,7 @@ package object graph {
         } //TODO better?
       case false => Seq.empty
     }
-    //TODO: rename to transitiveParentsIds:Iterable[PostId]
+    //TODO: rename to transitiveParentIds:Iterable[PostId]
     // Also provide transitiveParents:Iterable[Post]?
     def transitiveParents(postId: PostId): Iterable[PostId] = postsById.keySet.contains(postId) match {
       case true =>

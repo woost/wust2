@@ -54,7 +54,7 @@ object DevView {
           ).render
         },
         Rx {
-          val posts = scala.util.Random.shuffle(state.displayGraph().graph.postsIds.toSeq)
+          val posts = scala.util.Random.shuffle(state.displayGraph().graph.postIds.toSeq)
           def deletePost(id: PostId) { Client.api.deletePost(id).call() }
           div(
             button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),
@@ -70,9 +70,9 @@ object DevView {
             def graph = state.rawGraph.now
 
             val nextAtomId = AutoId(100000)
-            def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postsIds.toIndexedSeq)(rInt(graph.postsById.size))) else None
-            def randomConnectionId: Option[ConnectionId] = if (graph.connectionsById.size > 0) Option((graph.connectionsIds.toIndexedSeq)(rInt(graph.connectionsById.size))) else None
-            def randomContainmentId: Option[ContainmentId] = if (graph.containmentsById.size > 0) Option((graph.containmentsIds.toIndexedSeq)(rInt(graph.containmentsById.size))) else None
+            def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postIds.toIndexedSeq)(rInt(graph.postsById.size))) else None
+            def randomConnectionId: Option[ConnectionId] = if (graph.connectionsById.size > 0) Option((graph.connectionIds.toIndexedSeq)(rInt(graph.connectionsById.size))) else None
+            def randomContainmentId: Option[ContainmentId] = if (graph.containmentsById.size > 0) Option((graph.containmentIds.toIndexedSeq)(rInt(graph.containmentsById.size))) else None
             val events: Array[() => Option[ApiEvent]] = {
               val distribution: List[(Int, () => Option[ApiEvent])] = (
                 (1, () => Option(NewPost(Post(nextAtomId(), rStr(1 + rInt(20)))))) ::
