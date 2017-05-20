@@ -1,6 +1,7 @@
 package wust.backend
 
 import org.scalatest._
+import org.mockito.{ArgumentMatchers => Args}
 import wust.backend.auth.JWT
 import wust.graph._
 import wust.ids._
@@ -8,13 +9,18 @@ import wust.db.data
 
 import scala.concurrent.{Future,Await}
 import scala.concurrent.duration._
-
+import com.roundeights.hasher.Hasher
 
 class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
+  implicit def passwordToDigest(pw: String): Array[Byte] = Hasher(pw).bcrypt
+  // implicit class EqualityByteArray(val arr: Array[Byte]) {
+  //   def mustEqualDigest(pw: String) = assert(passwordToDigest(pw)
+  // }
+
   "register" - {
     "no user" in mockDb { db =>
       db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
-      db.user.apply("torken", "sanh") returns Future.successful(Option(data.User(0, "torken", false, 0)))
+      db.user.apply(Args.eq("torken"), Args.any()) returns Future.successful(Option(data.User(0, "torken", false, 0)))
 
       onAuthApi(State.initial, db = db)(_.register("torken", "sanh")).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -25,7 +31,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "override real user" in mockDb { db =>
       db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
-      db.user.apply("torken", "sanh") returns Future.successful(Option(data.User(0, "torken", false, 0)))
+      db.user.apply(Args.eq("torken"), Args.any()) returns Future.successful(Option(data.User(0, "torken", false, 0)))
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -39,7 +45,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "activate implicit user" in mockDb { db =>
       db.group.memberships(UserId(13)) returns Future.successful(Seq.empty)
-      db.user.activateImplicitUser(13, "torken", "sanh") returns Future.successful(Option(data.User(13, "torken", false, 0)))
+      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any()) returns Future.successful(Option(data.User(13, "torken", false, 0)))
 
       val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
@@ -52,7 +58,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     }
 
     "create fails and forgets real user" in mockDb { db =>
-      db.user.apply("torken", "sanh") returns Future.successful(None)
+      db.user.apply(Args.eq("torken"), Args.any()) returns Future.successful(None)
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -66,7 +72,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "create fails and remembers implicit user" in mockDb { db =>
       db.group.memberships(UserId(13)) returns Future.successful(Seq.empty)
-      db.user.activateImplicitUser(13, "torken", "sanh") returns Future.successful(None)
+      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any()) returns Future.successful(None)
 
       val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
@@ -82,7 +88,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   "login" - {
     "no user" in mockDb { db =>
       db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
-      db.user.get("torken", "sanh") returns Future.successful(Option(data.User(0, "torken", false, 0)))
+      db.user.getUserAndDigest("torken") returns Future.successful(Option((data.User(0, "torken", false, 0), "sanh")))
 
       onAuthApi(State.initial, db = db)(_.login("torken", "sanh")).map { case (state, events, result) =>
         state.auth.map(_.user.name) mustEqual Some("torken")
@@ -93,7 +99,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "override real user" in mockDb { db =>
       db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
-      db.user.get("torken", "sanh") returns Future.successful(Option(data.User(0, "torken", false, 0)))
+      db.user.getUserAndDigest("torken") returns Future.successful(Option((data.User(0, "torken", false, 0), "sanh")))
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -106,7 +112,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     }
 
     "get fails and forgets real user" in mockDb { db =>
-      db.user.get("torken", "sanh") returns Future.successful(None)
+      db.user.getUserAndDigest("torken") returns Future.successful(None)
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -119,7 +125,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     }
 
     "get fails and forgets implicit user" in mockDb { db =>
-      db.user.get("torken", "sanh") returns Future.successful(None)
+      db.user.getUserAndDigest("torken") returns Future.successful(None)
 
       val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
