@@ -89,7 +89,7 @@ package object graph {
         containments
           .map(c => s"${c.id.id}:${c.parentId.id}⊂${c.childId.id}")
           .mkString(", ")
-      },groups:${groupsById.keys}, ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, users: ${usersById.keys}, memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
+      },groups:${groupIds}, ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, users: ${userIds}, memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
     def toSummaryString = s"Graph(posts: ${posts.size}, connections: ${connections.size}, containments: ${containments.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
     private val postDefaultNeighbourhood =
@@ -311,7 +311,7 @@ package object graph {
         })
       }
 
-      for (id <- postsById.keys if !tmpDepths.isDefinedAt(id)) {
+      for (id <- postIds if !tmpDepths.isDefinedAt(id)) {
         getDepth(id)
       }
       tmpDepths

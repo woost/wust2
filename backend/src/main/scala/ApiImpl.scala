@@ -158,7 +158,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) exten
     db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
       val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-      graph -- graph.postsById.keys.filterNot(transitiveChildren)
+      graph -- graph.postIds.filterNot(transitiveChildren)
     }
   }
 
