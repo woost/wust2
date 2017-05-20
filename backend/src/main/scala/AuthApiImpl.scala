@@ -12,15 +12,9 @@ import scala.concurrent.Future
 class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) extends AuthApi {
   import holder._, dsl._
 
-  private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = {
-    auth.flatMap {
-      case Some(auth) =>
-        db.group.memberships(auth.user.id).map({ groupsAndMemberships =>
-          val (groups, memberships) = groupsAndMemberships.unzip
-          state.copy(auth = Option(auth), graph = state.graph addGroups groups.map(forClient) addMemberships memberships.map(forClient))
-        })
-      case None => Future.successful(State.initial)
-    }
+  private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = auth.map {
+    case auth@Some(_) => state.copy(auth = auth)
+    case None => State.initial
   }
 
   def register(name: String, password: String): Future[Boolean] = { (state: State) =>
