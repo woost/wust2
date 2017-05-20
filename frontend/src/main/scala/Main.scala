@@ -5,6 +5,7 @@ import boopickle.Default._
 import org.scalajs.dom._
 import rx._
 import rxext._
+import wust.util.EventTracker.sendEvent
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js

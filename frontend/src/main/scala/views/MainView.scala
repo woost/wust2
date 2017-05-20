@@ -15,6 +15,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.graph._
 import wust.frontend.Client
+import wust.util.EventTracker.sendEvent
 import scala.util.Try
 
 import scalatags.JsDom.all._
