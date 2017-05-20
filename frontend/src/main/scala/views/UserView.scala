@@ -77,6 +77,7 @@ object UserView {
       Client.api.addGroup().call().foreach { group =>
         state.selectedGroupId() = Option(group.id)
       }
+      sendEvent("group", "created", "collaboration")
     }).render
   }
 

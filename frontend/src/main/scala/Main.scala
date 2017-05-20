@@ -49,6 +49,8 @@ object Main extends js.JSApp {
           state.selectedGroupId() = Option(groupId)
         }
       }
+
+      sendEvent("group", "acceptinvite", "collaboration")
       case None =>
     }
 

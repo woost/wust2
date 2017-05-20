@@ -6,6 +6,7 @@ import rxext._
 import wust.frontend._
 import wust.frontend.views.Views
 import wust.util.collection._
+import wust.util.EventTracker.sendEvent
 
 import scalatags.JsDom.all._
 
@@ -24,6 +25,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
         DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
+          sendEvent("post", "clicked", "postmenu")
         rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
       })
       .call(d3.drag[SimPost]()

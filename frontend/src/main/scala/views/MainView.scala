@@ -70,9 +70,9 @@ object MainView {
       select {
         // only looking at memberships is sufficient to list groups, because the current user is member of each group
         val groupNames = graph.usersByGroupId.mapValues { users =>
-          users.map{id =>
+          users.map { id =>
             val user = graph.usersById(id)
-            if(user.isImplicit)
+            if (user.isImplicit)
               user.name.split("-").take(2).mkString("-") // shorten to "anon-987452"
             else
               user.name
@@ -117,6 +117,8 @@ object MainView {
           println(success)
           field.value = ""
         })
+
+        sendEvent("group", "invitebyname", "collaboration")
       })).render
     } else div().render)
   }
@@ -125,12 +127,12 @@ object MainView {
     val inviteLink = Var[Option[String]](None)
     Rx {
       state.selectedGroupId() match {
-        case Some( groupId) =>
-        Client.api.createGroupInvite(groupId).call().foreach {
-          case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
-          case None =>
-        }
-          case None => inviteLink() = None
+        case Some(groupId) =>
+          Client.api.createGroupInvite(groupId).call().foreach {
+            case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
+            case None =>
+          }
+        case None => inviteLink() = None
       }
     }
     inviteLink.map(_.map(aUrl(_)(fontSize := "8px")).getOrElse(span()).render)
@@ -179,10 +181,10 @@ object MainView {
       GraphView(state, disableSimulation),
 
       // router.showOn(ViewPage.Graph, ViewPage.Tree)(
-        div(position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
-          padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD")(
-            AddPostForm(state)
-          ),
+      div(position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
+        padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD")(
+          AddPostForm(state)
+        ),
       // ),
 
       DevOnly { DevView(state) }
