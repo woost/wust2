@@ -1,6 +1,6 @@
 package wust.backend.mail
 
-import wust.config._
+import wust.backend.config._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}

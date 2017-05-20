@@ -1,4 +1,4 @@
-package wust.config
+package wust.backend.config
 
 import autoconfig.config
 import com.typesafe.config.{Config => TConfig}

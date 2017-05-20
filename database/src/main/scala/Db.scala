@@ -2,7 +2,7 @@ package wust.db
 
 import io.getquill._
 import wust.ids._
-import wust.config.Config
+import com.typesafe.config.Config
 
 import scala.concurrent.{ ExecutionContext, Future, Await }
 import scala.concurrent.duration._
@@ -10,7 +10,7 @@ import wust.ids._
 import scala.util.{ Try, Success, Failure }
 
 object Db {
-  def create()(implicit ec: ExecutionContext) = new Db(new PostgresAsyncContext[LowerCase](Config.db))
+  def apply(config: Config)(implicit ec: ExecutionContext) = new Db(new PostgresAsyncContext[LowerCase](config))
 }
 
 class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext) {

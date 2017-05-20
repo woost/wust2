@@ -1,6 +1,6 @@
 package wust.backend
 
-import wust.config.Config
+import config.Config
 
 object Main extends App {
   scribe.info(s"Starting wust with Config: $Config")

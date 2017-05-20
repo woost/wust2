@@ -7,7 +7,7 @@ import autowire.Core.Request
 import boopickle.Default._
 import wust.api._
 import wust.backend.auth._
-import wust.config.Config
+import wust.backend.config.Config
 import wust.db.Db
 import wust.framework._
 import wust.framework.state.StateHolder
@@ -62,7 +62,7 @@ object Server {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   private val ws = {
-    val db = Db.create()
+    val db = Db(Config.db)
     val dsl = new GuardDsl(db, Config.auth.enableImplicit)
     val stateInterpreter = new StateInterpreter(db)
 

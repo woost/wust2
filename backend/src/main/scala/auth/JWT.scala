@@ -2,7 +2,7 @@ package wust.backend.auth
 
 import io.igl.jwt._
 import wust.api._
-import wust.config.Config
+import wust.backend.config.Config
 import wust.graph.User
 import wust.ids._
 import java.time.Duration

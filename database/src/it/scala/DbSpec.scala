@@ -11,11 +11,6 @@ import wust.db.data._
 // TODO: Query-Probing: https://github.com/getquill/quill#query-probing
 // "Query probing validates queries against the database at compile time, failing the compilation if it is not valid. The query validation does not alter the database state."
 class DbSpec extends DbIntegrationTestSpec with MustMatchers {
-  def await[T](future: Future[T]) = {
-    future.onFailure { case e => println(e.getMessage) }
-    Await.result(future, 10.seconds)
-  }
-
   implicit def passwordToDigest(pw: String): Array[Byte] = pw.map(_.toByte).toArray
   implicit class EqualityByteArray(val arr: Array[Byte]) {
     def mustEqualDigest(pw: String) = arr mustEqual passwordToDigest(pw)
@@ -663,24 +658,30 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
     "hasAccessToPost" - {
       "post in pubic group" in { db =>
-        val Some(user) = await(db.user("u", "123456"))
-        val (post, _) = await(db.post("p", groupIdOpt = None))
-        db.group.hasAccessToPost(user.id, post.id).map(_ must be(true))
+        for {
+          Some(user) <- db.user("u", "123456")
+          (post, _) <- db.post("p", groupIdOpt = None)
+          hasAccess <- db.group.hasAccessToPost(user.id, post.id)
+        } yield hasAccess must be(true)
       }
 
       "post in private group (user not member)" in { db =>
-        val Some(user) = await(db.user("u2", "123456"))
-        val Some(user2) = await(db.user("other", "123456"))
-        val Some((_, _, group)) = await(db.group.createForUser(user2.id))
-        val (post, _) = await(db.post.createOwned("p", group.id))
-        db.group.hasAccessToPost(user.id, post.id).map(_ must be(false))
+        for {
+          Some(user) <- db.user("u2", "123456")
+          Some(user2) <- db.user("other", "123456")
+          Some((_, _, group)) <- db.group.createForUser(user2.id)
+          (post, _) <- db.post.createOwned("p", group.id)
+          hasAccess <- db.group.hasAccessToPost(user.id, post.id)
+        } yield hasAccess must be(false)
       }
 
       "post in private group (user is member)" in { db =>
-        val Some(user) = await(db.user("u3", "123456"))
-        val Some((_, _, group)) = await(db.group.createForUser(user.id))
-        val (post, _) = await(db.post.createOwned("p", group.id))
-        db.group.hasAccessToPost(user.id, post.id).map(_ must be(true))
+        for {
+          Some(user) <- db.user("u3", "123456")
+          Some((_, _, group)) <- db.group.createForUser(user.id)
+          (post, _) <- db.post.createOwned("p", group.id)
+          hasAccess <- db.group.hasAccessToPost(user.id, post.id)
+        } yield hasAccess must be(true)
       }
     }
   }

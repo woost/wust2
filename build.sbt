@@ -47,16 +47,12 @@ lazy val commonSettings = Seq(
 // )
 )
 
-lazy val config = project // only contains application.conf and config object
-  .settings(commonSettings)
-  .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
-    libraryDependencies ++= (
-      "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
-      Nil
-    ))
-
 lazy val isCI = sys.env.get("CI").isDefined // set by travis
+
+lazy val config = file("config")
+lazy val configSettings = Seq(
+  unmanagedResourceDirectories in Runtime += config,
+  unmanagedResourceDirectories in Compile += config)
 
 lazy val root = project.in(file("."))
   .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration)
@@ -155,21 +151,21 @@ lazy val database = project
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .dependsOn(idsJVM, config)
+  .dependsOn(idsJVM)
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
-      "org.postgresql" % "postgresql" % "9.4.1208" % "test,it" ::
       Nil
   // parallelExecution in IntegrationTest := false
   )
 
 lazy val backend = project
   .settings(commonSettings)
-  .dependsOn(frameworkJVM, apiJVM, database, config)
+  .dependsOn(frameworkJVM, apiJVM, database)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
+  .settings(configSettings)
   .settings(
     addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++=
@@ -183,6 +179,7 @@ lazy val backend = project
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
+      "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil)

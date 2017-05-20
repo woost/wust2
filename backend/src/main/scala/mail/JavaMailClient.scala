@@ -4,7 +4,7 @@ import java.util.{Date, Properties}
 import javax.mail._
 import javax.mail.internet._
 
-import wust.config.SmtpConfig
+import wust.backend.config.SmtpConfig
 
 import scala.util.Try
 
