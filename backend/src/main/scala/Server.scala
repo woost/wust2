@@ -12,11 +12,10 @@ import wust.db.Db
 import wust.framework._
 import wust.framework.state.StateHolder
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]]) extends RequestHandler[ApiEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]])(implicit ec: ExecutionContext) extends RequestHandler[ApiEvent, ApiError, State] {
   import stateInterpreter._
 
   override def initialState = State.initial
@@ -60,13 +59,19 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 }
 
 object Server {
-  private val dsl = new GuardDsl(Db.default, Config.auth.enableImplicit)
-  private val stateInterpreter = new StateInterpreter(Db.default)
+  import scala.concurrent.ExecutionContext.Implicits.global
 
-  private def api(holder: StateHolder[State, ApiEvent]) = AutowireServer.route[Api](new ApiImpl(holder, dsl, Db.default)) orElse
-    AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, Db.default))
+  private val ws = {
+    val db = Db.create()
+    val dsl = new GuardDsl(db, Config.auth.enableImplicit)
+    val stateInterpreter = new StateInterpreter(db)
 
-  private val ws = new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new EventDistributor, stateInterpreter, api _))
+    def api(holder: StateHolder[State, ApiEvent]) =
+      AutowireServer.route[Api](new ApiImpl(holder, dsl, db)) orElse
+      AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, db))
+
+    new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new EventDistributor, stateInterpreter, api _))
+  }
 
   private val route = (path("ws") & get) {
     ws.websocketHandler
@@ -74,5 +79,7 @@ object Server {
     complete("ok")
   }
 
-  def run(port: Int) = ws.run(route, "0.0.0.0", port)
+  def run(port: Int) = ws.run(route, "0.0.0.0", port).foreach { binding =>
+    scribe.info(s"Server online at ${binding.localAddress}")
+  }
 }

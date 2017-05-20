@@ -2,19 +2,18 @@ package wust.backend.mail
 
 import wust.config._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
 case class MailMessage(subject: String, content: String)
 
 trait MailService {
-  def sendMail(recipient: MailRecipient, message: MailMessage): Future[Boolean]
+  def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean]
 }
 
 object LoggingMailService extends MailService {
-  override def sendMail(recipient: MailRecipient, message: MailMessage): Future[Boolean] = {
+  override def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean] = {
     scribe.info(s"logging mail:\n\tto: $recipient\n\tmail: $message")
     Future.successful(true)
   }
@@ -23,7 +22,7 @@ object LoggingMailService extends MailService {
 class SmtpMailService(emailConfig: EmailConfig) extends MailService {
   private val client = new JavaMailClient(emailConfig.smtp)
 
-  override def sendMail(recipient: MailRecipient, message: MailMessage): Future[Boolean] = Future {
+  override def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean] = Future {
     scribe.info(s"sending mail through smtp ($emailConfig):\n\tto: $recipient\n\tmail: $message")
 
     client.sendMessage(emailConfig.fromAddress, recipient, message) match {

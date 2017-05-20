@@ -4,17 +4,16 @@ import io.getquill._
 import wust.ids._
 import wust.config.Config
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Future, Await }
+import scala.concurrent.{ ExecutionContext, Future, Await }
 import scala.concurrent.duration._
 import wust.ids._
 import scala.util.{ Try, Success, Failure }
 
 object Db {
-  val default = new Db(new PostgresAsyncContext[LowerCase](Config.db))
+  def create()(implicit ec: ExecutionContext) = new Db(new PostgresAsyncContext[LowerCase](Config.db))
 }
 
-class Db(val ctx: PostgresAsyncContext[LowerCase]) {
+class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext) {
   import data._
   import ctx._
 

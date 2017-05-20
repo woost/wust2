@@ -7,10 +7,9 @@ import wust.backend.auth._
 import wust.framework.state._
 import wust.db.Db
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) extends AuthApi {
+class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends AuthApi {
   import holder._, dsl._
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt

@@ -5,14 +5,13 @@ import java.nio.ByteBuffer
 import boopickle.Default._
 import wust.framework.message._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait IncidentHandler[Error] {
   def fromError(error: Error): Throwable
 }
 
-class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[Error]) {
+class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[Error])(implicit ec: ExecutionContext) {
   val messages = new Messages[Event, Error]
   import handler._
   import messages._

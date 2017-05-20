@@ -10,7 +10,6 @@ import org.scalatest._
 import wust.framework.message._
 import wust.framework.state._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.collection.mutable

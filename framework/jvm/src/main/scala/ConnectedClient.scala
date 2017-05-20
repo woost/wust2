@@ -11,7 +11,6 @@ import wust.util.Pipe
 import wust.util.time.StopWatch
 import wust.framework.state.StateHolder
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait RequestHandler[Event, Error, State] {
@@ -79,6 +78,8 @@ class ConnectedClient[Event, Error, State](
   import ConnectedClient._
   import handler._
   import messages._
+
+  import context.dispatcher
 
   def connected(outgoing: ActorRef): Receive = {
     val sender = new EventSender(messages, self)

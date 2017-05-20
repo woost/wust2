@@ -12,7 +12,6 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import boopickle.Default._
 import wust.framework.message._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object WebsocketFlow {

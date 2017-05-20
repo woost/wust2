@@ -8,10 +8,9 @@ import wust.framework.state._
 import wust.ids._
 import wust.util.RandomUtil
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db) extends Api {
+class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
