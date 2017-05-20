@@ -3,7 +3,7 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ ViewConfig, ViewPage }
+import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
@@ -62,12 +62,16 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val displayGraph = {
     RxVar(rawGraph, Rx {
-      val selection = graphSelection()
-      val focusedParents = selection match {
-        case GraphSelection.Root => Set.empty
-        case GraphSelection.Union(parentIds) => parentIds
+      val graph = rawGraph().consistent
+      graphSelection() match {
+        case GraphSelection.Root =>
+          Perspective(currentView(), graph)
+
+        case GraphSelection.Union(parentIds) =>
+          val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
+          val selectedGraph = graph -- graph.postIds.filterNot(transitiveChildren) -- parentIds
+          Perspective(currentView(), selectedGraph)
       }
-      Perspective(currentView(), rawGraph().consistent -- focusedParents)
     })
   }
 
@@ -122,7 +126,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       case LoggedIn(auth) =>
         currentUser() = Option(auth.user)
         ClientCache.currentAuth = Option(auth)
-        if(auth.user.isImplicit)
+        if (auth.user.isImplicit)
           sendEvent("login", "implicit", "auth")
       case LoggedOut =>
         currentUser() = None
