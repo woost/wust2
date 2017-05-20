@@ -15,6 +15,7 @@ import wust.util.tags._
 import scala.concurrent.Future
 import scala.collection.mutable
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import wust.util.EventTracker.sendEvent
 
 object UserView {
   val inputText = input(`type` := "text")
@@ -30,15 +31,25 @@ object UserView {
 
   val registerButton = buttonClick(
     "register",
-    Client.auth.register(userField.value, passwordField.value).call() |> clearOnSuccess
+    Client.auth.register(userField.value, passwordField.value).call() ||> clearOnSuccess |> ((success: Future[Boolean]) => success.foreach(if (_)
+      sendEvent("registration", "successful", "auth")
+    else
+      sendEvent("registration", "failed", "auth")))
   )
   val loginButton = buttonClick(
     "login",
-    Client.auth.login(userField.value, passwordField.value).call() |> clearOnSuccess
+    Client.auth.login(userField.value, passwordField.value).call() ||> clearOnSuccess |> ((success: Future[Boolean]) => success.foreach(if (_)
+      sendEvent("login", "successful", "auth")
+    else
+      sendEvent("login", "failed", "auth")))
+
   )
   val logoutButton = buttonClick(
     "logout",
-    Client.auth.logout().call()
+    {
+      Client.auth.logout().call()
+      sendEvent("logout", "logout", "auth")
+    }
   )
 
   //TODO: show existing in backend to revoke?

@@ -18,6 +18,7 @@ import scala.util.Try
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 import collection.breakOut
+import wust.util.EventTracker.sendEvent
 
 object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
@@ -59,13 +60,19 @@ object AddPostForm {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
         rxEditedPostId() = None
-        Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
+        val result = Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
+        sendEvent("post", "update", "api")
+        result
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        Client.api.respond(postId, text, selection, groupId).call().map(_ => true)
+        val result = Client.api.respond(postId, text, selection, groupId).call().map(_ => true)
+        sendEvent("post", "respond", "api")
+        result
       case _ =>
         DevPrintln(s"\nCreating Post: $text")
-        Client.api.addPost(text, selection, groupId).call().map(_ => true)
+        val result = Client.api.addPost(text, selection, groupId).call().map(_ => true)
+        sendEvent("post", "create", "api")
+        result
     }
 
     div(

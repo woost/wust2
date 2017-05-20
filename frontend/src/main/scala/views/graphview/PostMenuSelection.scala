@@ -12,6 +12,7 @@ import scala.math._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import wust.graph.GraphSelection
+import wust.util.EventTracker.sendEvent
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
@@ -20,13 +21,13 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
   val menuCornerRadius = 2.0
 
   val menuActions = // TODO indication for toggle button? switch string/appearance on basis of value?
-    MenuAction("Collapse", { (p: SimPost, _: Simulation[SimPost]) => graphState.rxCollapsedPostIds.updatef(_.toggle(p.id)) }) ::
-      MenuAction("Edit", { (p: SimPost, _: Simulation[SimPost]) => graphState.rxEditedPostId() = Option(p.id) }) ::
-      // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-      MenuAction("Delete", { (p: SimPost, _: Simulation[SimPost]) => Client.api.deletePost(p.id).call() }) ::
-      MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
-      MenuAction("Focus", { (p: SimPost, _: Simulation[SimPost]) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
-      Nil
+    MenuAction("Collapse", { (p: SimPost, _: Simulation[SimPost]) => graphState.rxCollapsedPostIds.updatef(_.toggle(p.id)); }) ::
+  MenuAction("Edit", { (p: SimPost, _: Simulation[SimPost]) => graphState.rxEditedPostId() = Option(p.id) }) ::
+    // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+    MenuAction("Delete", { (p: SimPost, _: Simulation[SimPost]) => Client.api.deletePost(p.id).call(); sendEvent("post", "delete", "api") }) ::
+    MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
+    MenuAction("Focus", { (p: SimPost, _: Simulation[SimPost]) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
+    Nil
 
   override val tag = "g"
   override def enter(menu: Enter[SimPost]) {
@@ -65,6 +66,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
           }
           d.data.action(simPost, simulation)
           rxFocusedSimPost() = None
+          sendEvent("post", d.data.name, "postmenu")
         })
         .on("mousedown", (_: PieArcDatum[MenuAction]) => d3.event.asInstanceOf[org.scalajs.dom.Event].preventDefault()) // disable selecting text in menu
 

@@ -8,6 +8,7 @@ import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
 import org.scalajs.dom.experimental.Notification
+import wust.util.EventTracker.sendEvent
 
 sealed trait InteractionMode
 case class FocusMode(postId: PostId) extends InteractionMode
@@ -121,6 +122,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       case LoggedIn(auth) =>
         currentUser() = Option(auth.user)
         ClientCache.currentAuth = Option(auth)
+        if(auth.user.isImplicit)
+          sendEvent("login", "implicit", "auth")
       case LoggedOut =>
         currentUser() = None
         ClientCache.currentAuth = None
