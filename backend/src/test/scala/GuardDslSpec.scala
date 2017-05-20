@@ -39,8 +39,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
 
       }
 
-      verify(db.user, times(0)).createImplicitUser()
       val response = fun(authState)
+      verify(db.user, times(0)).createImplicitUser()
       for {
         response <- response
       } yield {
@@ -58,8 +58,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
-      verify(db.user, times(0)).createImplicitUser()
       val response = fun(authState)
+      verify(db.user, times(0)).createImplicitUser()
       for {
         response <- response
       } yield {
@@ -77,8 +77,9 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
+      val r = an[ApiException] must be thrownBy fun(nonAuthState)
       verify(db.user, times(0)).createImplicitUser()
-      an[ApiException] must be thrownBy fun(nonAuthState)
+      r
     }
 
     "has no user and no implicit" in mockDb { db =>
@@ -90,8 +91,9 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
+      val r = an[ApiException] must be thrownBy fun(nonAuthState)
       verify(db.user, times(0)).createImplicitUser()
-      an[ApiException] must be thrownBy fun(nonAuthState)
+      r
     }
   }
 
@@ -105,8 +107,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
-      verify(db.user, times(0)).createImplicitUser()
       val StateEffect(state, response) = fun(authState)
+      verify(db.user, times(0)).createImplicitUser()
       for {
         state <- state
         response <- response
@@ -126,8 +128,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
-      verify(db.user, times(0)).createImplicitUser()
       val StateEffect(state, response) = fun(authState)
+      verify(db.user, times(0)).createImplicitUser()
       for {
         state <- state
         response <- response
@@ -147,8 +149,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
-      // verify(db.user, times(1)).createImplicitUser() //TODO
       val StateEffect(state, response) = fun(nonAuthState)
+      verify(db.user, times(1)).createImplicitUser()
       for {
         state <- state
         response <- response
@@ -169,8 +171,8 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
-      verify(db.user, times(0)).createImplicitUser()
       val StateEffect(state, response) = fun(nonAuthState)
+      verify(db.user, times(0)).createImplicitUser()
       for {
         state <- state
       } yield {
@@ -189,9 +191,9 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
         Future.successful(RequestResponse("str"))
       }
 
-      // verify(db.user, times(1)).createImplicitUser() //TODO
       val StateEffect(state, response) = fun(nonAuthState)
       val StateEffect(state2, response2) = fun(nonAuthState)
+      verify(db.user, times(1)).createImplicitUser()
       for {
         state <- state
         state2 <- state2
