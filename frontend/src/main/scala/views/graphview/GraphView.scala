@@ -107,7 +107,12 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     svg.call(d3.zoom().on("zoom", zoomed _))
     svg.on("click", () => focusedPostId() = None)
     d3State.simulation.on("tick", draw _)
-    DevOnly { d3State.simulation.on("end", { () => println("simulation ended") }) }
+    d3State.simulation.on("end", { () =>
+      rxSimPosts.now.foreach {simPost =>
+        simPost.fixedPos = simPost.pos
+      }
+      DevOnly {println("simulation ended.")}
+    }) 
   }
 
   private def zoomed() {
