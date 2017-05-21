@@ -23,8 +23,9 @@ import wust.util.EventTracker.sendEvent
 object AddPostForm {
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
-      "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None }),
-      Views.parents(postId, graph)
+      Views.parents(postId, graph),
+      Views.post(graph.postsById(postId)),
+      "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None })
     )
   }
 
@@ -76,31 +77,22 @@ object AddPostForm {
     }
 
     div(
-      {
-        Rx {
-          div(
-            display.flex,
-            div(
-              label(rxMode(), rxDisplayGraph().graph),
-              {
-                form(
-                  inputfield,
-                  onsubmit := { () =>
-                    val text = inputfield.value
-                    if (text.trim.nonEmpty) {
-                      action(text, state.graphSelection(), state.selectedGroupId(), rxDisplayGraph.now.graph, rxMode.now).foreach { success =>
-                        if (success) {
-                          inputfield.value = ""
-                        }
-                      }
-                    }
-                    false
-                  }
-                )
+      display.flex,
+      Rx {
+        div(
+          label(rxMode(), rxDisplayGraph().graph),
+          form(
+            inputfield,
+            onsubmit := { () =>
+              val text = inputfield.value
+              if (text.trim.nonEmpty) {
+                action(text, state.graphSelection(), state.selectedGroupId(), rxDisplayGraph.now.graph, rxMode.now)
+                  .foreach(success => if (success) inputfield.value = "")
               }
-            )
-          ).render
-        }
+              false
+            }
+          )
+        ).render
       }
     )
   }
