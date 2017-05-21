@@ -617,6 +617,22 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
     }
 
+    "add existing user to existing group (is already member)" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(initialUser) <- db.user("garna", "utria")
+        Some((_, _, group)) <- db.group.createForUser(initialUser.id)
+        Some(user) <- db.user("furo", "garnaki")
+
+        Some((_, _, _)) <- db.group.addMember(group.id, user.id)
+        Some((_, membership, _)) <- db.group.addMember(group.id, user.id)
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        membership mustEqual Membership(user.id, group.id)
+        queryMemberships must contain theSameElementsAs List(Membership(initialUser.id, group.id), membership)
+      }
+    }
+
     "add non-existing user to existing group" in { db =>
       import db._, db.ctx, ctx._
       for {

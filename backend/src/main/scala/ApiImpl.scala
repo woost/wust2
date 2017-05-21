@@ -127,7 +127,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       for {
         Some(user) <- db.user.byName(userName)
         Some((_, dbMembership, _)) <- db.group.addMember(groupId, user.id)
-      } yield respondWithEvents(true, NewMembership(dbMembership))).recover { case _ => respondWithEvents(false) }
+      } yield respondWithEvents(true, NewMembership(dbMembership))
+    ).recover { case _ => respondWithEvents(false) }
   }
 
   private def setRandomGroupInviteToken(groupId: GroupId): Future[Option[String]] = {
@@ -147,7 +148,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
           case someToken @ Some(token) => Future.successful(someToken)
-          case None => setRandomGroupInviteToken(groupId)
+          case None                    => setRandomGroupInviteToken(groupId)
         }
       }(recover = None)
     }
@@ -156,8 +157,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     //TODO optimize into one request?
     db.group.fromInvite(token).flatMap {
       case Some(group) =>
-        val createdMembership = db.group.addMember(group.id, user.id)
-        createdMembership.map {
+        db.group.addMember(group.id, user.id).map {
           case Some((_, dbMembership, dbGroup)) =>
             val group = forClient(dbGroup)
             respondWithEvents(Option(group.id), NewMembership(dbMembership))
@@ -195,7 +195,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   private def selectionToContainments(selection: GraphSelection, postId: PostId): Future[Seq[ApiEvent]] = {
     val containments = selection match {
       case GraphSelection.Union(parentIds) => parentIds.map(db.containment(_, postId)).toSeq
-      case _ => Seq.empty
+      case _                               => Seq.empty
     }
 
     Future.sequence(containments).map(_.flatten).map { containments =>

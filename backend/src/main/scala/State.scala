@@ -34,7 +34,6 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
       def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
       def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
       if (currentUserInvolved) {
-        println(s"currentUserInvolved: $userId")
         // query all other members of groupId
         val groupFut = db.group.get(groupId)
         val iterableFut = db.group.members(groupId)
@@ -84,7 +83,8 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     Seq(
       state.auth
         .map(_.toAuthentication |> LoggedIn)
-        .getOrElse(LoggedOut)).map(Future.successful _) ++ Seq(
+        .getOrElse(LoggedOut)
+    ).map(Future.successful _) ++ Seq(
         db.graph.getAllVisiblePosts(state.user.map(_.id))
           .map(forClient(_).consistent)
           .map(ReplaceGraph(_)) //TODO: move to triggeredEvents
@@ -93,7 +93,7 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
 
   def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Seq[Future[ApiEvent]] =
     (prevState.auth == state.auth) match {
-      case true => Seq.empty
+      case true  => Seq.empty
       case false => stateEvents(state)
     }
 }

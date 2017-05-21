@@ -252,10 +252,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
             val updatedUser = user.copy(
               name = name,
               isImplicit = false,
-              revision = user.revision + 1)
+              revision = user.revision + 1
+            )
             for {
               _ <- ctx.run(
-                query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
+                query[User].filter(_.id == lift(id)).update(lift(updatedUser))
+              )
               _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
             } yield Option(updatedUser)
           }
@@ -328,7 +330,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
     def addMember(groupId: GroupId, userId: UserId): Future[Option[(User, Membership, UserGroup)]] =
       ctx.transaction { _ =>
         for {
-          _ <- ctx.run(infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)})""".as[Insert[Membership]])
+          _ <- ctx.run(infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)}) on conflict do nothing""".as[Insert[Membership]])
           user <- ctx.run(query[User].filter(_.id == lift(userId)))
           userGroup <- ctx.run(query[UserGroup].filter(_.id == lift(groupId)))
         } yield Option(user.head, Membership(userId, groupId), userGroup.head)
@@ -373,7 +375,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
         for {
           membership <- query[Membership].filter(m => m.userId == lift(userId))
           usergroup <- query[UserGroup].filter(_.id == membership.groupId)
-        } yield (usergroup, membership))
+        } yield (usergroup, membership)
+      )
     }
 
     def setInviteToken(groupId: GroupId, token: String): Future[Boolean] = {
@@ -477,7 +480,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
               myGroups.map(UserGroup.apply),
               ownerships,
               (users ++ user).toSet,
-              memberships)
+              memberships
+            )
           }
 
         case None => // not logged in, can only see posts of public groups
@@ -494,7 +498,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
               posts,
               connection.filter(c => (postSet contains c.sourceId) && (postSet contains PostId(c.targetId.id))),
               containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
-              Nil, Nil, Nil, Nil)
+              Nil, Nil, Nil, Nil
+            )
           }
       }
     }
