@@ -4,6 +4,7 @@ import org.scalajs.dom._
 import rx._
 import wust.graph._
 import wust.ids._
+import scala.util.Try
 
 import scalatags.JsDom.TypedTag
 import scalatags.JsDom.all._
@@ -26,11 +27,11 @@ object ViewPage {
   }
 }
 
-case class ViewConfig(page: ViewPage, selection: GraphSelection, invite: Option[String])
+case class ViewConfig(page: ViewPage, selection: GraphSelection, groupIdOpt: Option[GroupId], invite: Option[String])
 object ViewConfig {
   def fromHash(hash: Option[String]): ViewConfig = hash.collect {
     case Path(path) => pathToViewConfig(path)
-  }.getOrElse(ViewConfig(ViewPage.default, GraphSelection.default, None))
+  }.getOrElse(ViewConfig(ViewPage.default, GraphSelection.default, None, None))
 
   def toHash(config: ViewConfig): String = viewConfigToPath(config).toString
 
@@ -39,8 +40,9 @@ object ViewConfig {
     val selection = Option(config.selection) collect {
       case GraphSelection.Union(ids) => "select" -> PathOption.IdList.toString(ids.map(_.id).toSeq)
     }
+    val group = config.groupIdOpt.map(groupId => "group" -> groupId.id.toString)
     //do not store invite key in url
-    val options = Seq(selection).flatten.toMap
+    val options = Seq(selection, group).flatten.toMap
     Path(name, options)
   }
 
@@ -51,8 +53,9 @@ object ViewConfig {
       case None => GraphSelection.default
     }
     val invite = path.options.get("invite")
+    val groupId = path.options.get("group").flatMap(str => Try(GroupId(str.toLong)).toOption)
 
-    ViewConfig(page, selection, invite)
+    ViewConfig(page, selection, groupId, invite)
   }
 }
 

@@ -42,12 +42,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   })
 
+  val rawSelectedGroupId = viewConfig
+    .projection[Option[GroupId]](groupIdOpt => viewConfig.now.copy(groupIdOpt = groupIdOpt), _.groupIdOpt)
+
   val selectedGroupId = {
-    val rawSelectedId = RxVar[Option[GroupId]](None)
-    RxVar(rawSelectedId, Rx {
-      val graph = rawGraph()
-      val selected = rawSelectedId()
-      selected.filter(graph.groupsById.isDefinedAt)
+    RxVar(rawSelectedGroupId, Rx {
+      rawSelectedGroupId().filter(rawGraph().groupsById.isDefinedAt)
     })
   }
 
