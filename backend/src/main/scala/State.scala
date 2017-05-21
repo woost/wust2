@@ -8,7 +8,7 @@ import wust.ids._
 import wust.util.Pipe
 import wust.graph._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 // TODO: crashes coverage @derive(copyF)
 case class State(auth: Option[JWTAuthentication], graph: Graph) {
@@ -67,10 +67,12 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     case updatedPost @ UpdatedPost(post) =>
       for {
         groups <- db.post.getGroups(post.id)
-      } yield for {
-        group <- (groups.map(forClient).toSet intersect state.graph.groups.toSet).toSeq
-        event <- Seq(updatedPost)
-      } yield event
+      } yield if (groups.nonEmpty) {
+        for {
+          group <- (groups.map(forClient).toSet intersect state.graph.groups.toSet).toSeq
+          event <- Seq(updatedPost)
+        } yield event
+      } else Seq(updatedPost) // post is public
     case other =>
       println(s"####### ignored Event: $other")
       Future.successful(Nil)
@@ -82,8 +84,7 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     Seq(
       state.auth
         .map(_.toAuthentication |> LoggedIn)
-        .getOrElse(LoggedOut)
-    ).map(Future.successful _) ++ Seq(
+        .getOrElse(LoggedOut)).map(Future.successful _) ++ Seq(
         db.graph.getAllVisiblePosts(state.user.map(_.id))
           .map(forClient(_).consistent)
           .map(ReplaceGraph(_)) //TODO: move to triggeredEvents
