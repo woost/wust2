@@ -92,9 +92,9 @@ object UserView {
 
   def topBarUserStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (state.currentUser() match {
-      case Some(user) if !user.isImplicit => span(newGroupButton(state), user.name, logoutButton)
-      case Some(user) if user.isImplicit => span(newGroupButton(state), "*", registerMask(logoutButton))
-      case _ => registerMask(loginButton)
+      case Some(user) if !user.isImplicit => span(user.name, newGroupButton(state), logoutButton)
+      case Some(user) if user.isImplicit => span("*", newGroupButton(state), registerMask(logoutButton))
+      case _ => span(newGroupButton(state), registerMask(loginButton))
     }).render
   }
 

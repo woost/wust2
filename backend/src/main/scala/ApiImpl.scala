@@ -100,7 +100,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   }
 
   def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
-  def addGroup(): Future[GroupId] = withUser { (_, user) =>
+  def addGroup(): Future[GroupId] = withUserOrImplicit { (_, user) =>
     for {
       //TODO: simplify db.createForUser return values
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
@@ -110,7 +110,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUser { (_, _) =>
+  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO: check if user has access to group
     (
       for {
@@ -120,7 +120,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       }).recover { case _ => respondWithEvents(false) }
   }
 
-  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUser { (_, _) =>
+  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUserOrImplicit { (_, _) =>
     (
       for {
         Some(user) <- db.user.byName(userName)
@@ -128,14 +128,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       } yield respondWithEvents(true, NewMembership(dbMembership))).recover { case _ => respondWithEvents(false) }
   }
 
-  def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUser { (_, user) =>
+  def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user) =>
     //TODO: check if user has access to group
     val token = RandomUtil.alphanumeric()
     for (success <- db.group.createInvite(groupId, token))
       yield if (success) Option(token) else None
   }
 
-  def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUser { (_, user) =>
+  def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUserOrImplicit { (_, user) =>
     //TODO optimize into one request?
     db.group.fromInvite(token).flatMap {
       case Some(group) =>
