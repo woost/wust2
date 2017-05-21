@@ -20,20 +20,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     //TODO: check if user is allowed to create post in group
     val newPost = db.post(msg, groupIdOpt)
 
-    //sideeffect create containment
-    //TODO proper integration into request
-    newPost.foreach {
+    newPost.flatMap {
       case (post, _) =>
-        selection match {
-          case GraphSelection.Union(parentIds) =>
-            parentIds.foreach(createContainment(_, post.id))
-          case _ =>
+        selectionToContainments(selection, post.id).map { containEvents =>
+          val events = Seq(NewPost(post)) ++ containEvents
+          respondWithEvents(forClient(post), events: _*)
         }
-    }
-
-    newPost.map {
-      case (post, _) =>
-        respondWithEvents(forClient(post), NewPost(post))
     }
   }
 
@@ -77,24 +69,15 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   //TODO: return Future[Boolean]
   def respond(to: PostId, msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[(Post, Connection)] = withUserOrImplicit { (_, _) =>
-    //TODO: check if user is allowe d to create post in group
+    //TODO: check if user is allowed to create post in group
     val newPost = db.connection.newPost(msg, to, groupIdOpt)
 
-    //sideeffect create containment
-    //TODO proper integration into request
-    newPost.foreach(_.foreach {
-      case (post, _, _) =>
-        selection match {
-          case GraphSelection.Union(parentIds) =>
-            parentIds.foreach(createContainment(_, post.id))
-          case _ =>
-        }
-    })
-
-    newPost.map {
+    newPost.flatMap {
       case Some((post, connection, ownershipOpt)) =>
-        val events = Seq(NewPost(post), NewConnection(connection))
-        respondWithEvents[(Post, Connection)]((post, connection), events: _*)
+        selectionToContainments(selection, post.id).map { containEvents =>
+          val events = Seq(NewPost(post), NewConnection(connection)) ++ containEvents
+          respondWithEvents[(Post, Connection)]((post, connection), events: _*)
+        }
       //TODO failure case
     }
   }
@@ -149,6 +132,18 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
+  def getGraph(selection: GraphSelection): Future[Graph] = { (state: State) =>
+    val userIdOpt = state.user.map(_.id)
+    val graph = selection match {
+      case GraphSelection.Root =>
+        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
+      case GraphSelection.Union(parentIds) =>
+        getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
+    }
+
+    graph
+  }
+
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
@@ -163,15 +158,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def getGraph(selection: GraphSelection): Future[Graph] = { (state: State) =>
-    val userIdOpt = state.user.map(_.id)
-    val graph = selection match {
-      case GraphSelection.Root =>
-        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
-      case GraphSelection.Union(parentIds) =>
-        getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
+  private def selectionToContainments(selection: GraphSelection, postId: PostId): Future[Seq[ApiEvent]] = {
+    val containments = selection match {
+      case GraphSelection.Union(parentIds) => parentIds.map(db.containment(_, postId)).toSeq
+      case _ => Seq.empty
     }
 
-    graph
+    Future.sequence(containments).map(_.flatten).map { containments =>
+      containments.map(NewContainment(_))
+    }
   }
 }
