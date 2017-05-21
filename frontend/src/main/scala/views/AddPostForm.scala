@@ -3,8 +3,7 @@ package wust.frontend.views
 import autowire._
 import boopickle.Default._
 import org.scalajs.dom
-import org.scalajs.dom.{Event, KeyboardEvent, document}
-import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.{Event, document}
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import scala.scalajs.js.timers.setTimeout
 import rx._
@@ -25,7 +24,7 @@ object AddPostForm {
     div(
       Views.parents(postId, graph),
       Views.post(graph.postsById(postId)),
-      "Edit Post:", button("cancel", onclick := { (_: Event) => editedPostId() = None })
+      "Edit Post", button("cancel", onclick := { (_: Event) => editedPostId() = None })
     )
   }
 
@@ -33,16 +32,19 @@ object AddPostForm {
     div(
       Views.parents(postId, graph),
       Views.post(graph.postsById(postId)),
-      "respond: "
+      "Respond"
     )
   }
 
-  val newLabel = div("New Post:")
+  val newLabel = div("New post")
+
+  val sendButton = input(`type` := "submit", value := "send")
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
 
-    val inputfield = input(`type` := "text").render
+    val inputfield = Elements.textareaWithEnterSubmit(rows := 3, cols := 80).render
+
     rxMode.foreach { mode =>
       mode match {
         case EditMode(postId) => inputfield.value = rxDisplayGraph.now.graph.postsById(postId).title
@@ -76,24 +78,24 @@ object AddPostForm {
         result
     }
 
-    div(
-      display.flex,
-      Rx {
-        div(
-          label(rxMode(), rxDisplayGraph().graph),
-          form(
-            inputfield,
-            onsubmit := { () =>
-              val text = inputfield.value
-              if (text.trim.nonEmpty) {
-                action(text, state.graphSelection(), state.selectedGroupId(), rxDisplayGraph.now.graph, rxMode.now)
-                  .foreach(success => if (success) inputfield.value = "")
-              }
-              false
+    Rx {
+      div(
+        display.flex, justifyContent.spaceBetween,
+        label(rxMode(), rxDisplayGraph().graph),
+        form(
+          display.flex,
+          inputfield,
+          sendButton,
+          onsubmit := { () =>
+            val text = inputfield.value
+            if (text.trim.nonEmpty) {
+              val success = action(text, state.graphSelection(), state.selectedGroupId(), rxDisplayGraph.now.graph, rxMode.now)
+              success.foreach(if (_) inputfield.value = "")
             }
-          )
-        ).render
-      }
-    )
+            false
+          }
+        )
+      ).render
+    }
   }
 }
