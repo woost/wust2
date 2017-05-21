@@ -334,6 +334,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
         } yield Option(user.head, Membership(userId, groupId), userGroup.head)
       }.recover { case _ => None }
 
+    def isMember(groupId: GroupId, userId: UserId): Future[Boolean] = {
+      ctx.run(query[Membership].filter(m => m.groupId == lift(groupId) && m.userId == lift(userId)).nonEmpty)
+    }
+
     def hasAccessToPost(userId: UserId, postId: PostId): Future[Boolean] = {
       //TODO: more efficient
       val q1 = quote {
@@ -372,11 +376,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
         } yield (usergroup, membership))
     }
 
-    def createInvite(groupId: GroupId, token: String): Future[Boolean] = {
-      val q = quote(infix"""
+    def setInviteToken(groupId: GroupId, token: String): Future[Boolean] = {
+      ctx.run(infix"""
         insert into groupInvite(groupId, token) values(${lift(groupId)}, ${lift(token)}) on conflict (groupId) do update set token = ${lift(token)}
-      """.as[Insert[GroupInvite]])
-      ctx.run(q).map(_ == 1)
+        """.as[Insert[GroupInvite]]).map(_ => true).recover { case _ => false }
+    }
+
+    def getInviteToken(groupId: GroupId): Future[Option[String]] = {
+      ctx.run(query[GroupInvite].filter(_.groupId == lift(groupId)).map(_.token)).map(_.headOption)
     }
 
     def fromInvite(token: String): Future[Option[UserGroup]] = {

@@ -9,8 +9,8 @@ import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import wust.frontend.{ DevOnly, GlobalState }
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.graph._
@@ -29,12 +29,12 @@ object MainView {
       case GraphSelection.Union(parentIds) =>
         val newParentIds = parentIds.flatMap(state.rawGraph().parents)
         val newParentNames = newParentIds.map(state.rawGraph().postsById(_).title).mkString(", ")
-        val buttonTitle = if(newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
+        val buttonTitle = if (newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
         button("↑", padding := "1px", title := buttonTitle,
           onclick := { () =>
-          state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
-          else GraphSelection.Root
-        })
+            state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
+            else GraphSelection.Root
+          })
     }).render
   }
 
@@ -59,8 +59,7 @@ object MainView {
         //   onclick := { () => state.graphSelection.updatef { _ remove parentId } }
         // )
         )
-      }
-    ).render
+      }).render
   }
 
   def groupSelector(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
@@ -101,8 +100,7 @@ object MainView {
             val id = Option(value).filter(_.nonEmpty).map(_.toLong)
             state.selectedGroupId() = id.map(GroupId(_))
           }
-        }
-      ).render
+        }).render
     }).render
   }
 
@@ -127,7 +125,7 @@ object MainView {
     Rx {
       state.selectedGroupId() match {
         case Some(groupId) =>
-          Client.api.createGroupInvite(groupId).call().foreach {
+          Client.api.getGroupInviteToken(groupId).call().foreach {
             //TODO: we should not construct absolute paths here
             case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
             case None =>
@@ -143,8 +141,8 @@ object MainView {
 
     val views =
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
-      // ViewPage.Tree -> TreeView(state) ::
-      Nil
+        // ViewPage.Tree -> TreeView(state) ::
+        Nil
 
     div(fontFamily := "sans-serif")(
       div(
@@ -157,40 +155,33 @@ object MainView {
           focusedParents(state),
           groupSelector(state),
           inviteUserToGroupField(state),
-          currentGroupInviteLink(state)
-        ),
+          currentGroupInviteLink(state)),
 
         if (views.size > 1)
           div("view: ")(
-            select(Rx {
-              views.map(_._1).map { page =>
-                val attrs = if (state.viewPage() == page) Seq(selected) else Seq.empty
-                option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
-              }
-            })(
-              onchange := { (e: Event) =>
-                val value = e.target.asInstanceOf[HTMLSelectElement].value
-                state.viewPage() = ViewPage.fromString(value)
-              }
-            )
-          )
+          select(Rx {
+            views.map(_._1).map { page =>
+              val attrs = if (state.viewPage() == page) Seq(selected) else Seq.empty
+              option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
+            }
+          })(
+            onchange := { (e: Event) =>
+              val value = e.target.asInstanceOf[HTMLSelectElement].value
+              state.viewPage() = ViewPage.fromString(value)
+            }))
         else div(),
 
         div(
           display.flex, alignItems.center, justifyContent.flexEnd,
-          UserView.topBarUserStatus(state)
-        )
-      ),
+          UserView.topBarUserStatus(state))),
 
       router.map(views),
 
       div(
         position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
         padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD",
-        AddPostForm(state)
-      ),
+        AddPostForm(state)),
 
-      DevOnly { DevView(state) }
-    )
+      DevOnly { DevView(state) })
   }
 }

@@ -8,10 +8,17 @@ import wust.framework.state._
 import wust.ids._
 import wust.util.RandomUtil
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
+
+  private def isGroupMember[T](groupId: GroupId, userId: UserId)(code: => Future[T])(recover: T): Future[T] = {
+    (for {
+      isMember <- db.group.isMember(groupId, userId) if isMember
+      result <- code
+    } yield result).recover { case _ => recover }
+  }
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
 
@@ -111,12 +118,27 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       } yield respondWithEvents(true, NewMembership(dbMembership))).recover { case _ => respondWithEvents(false) }
   }
 
-  def createGroupInvite(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user) =>
-    //TODO: check if user has access to group
-    val token = RandomUtil.alphanumeric()
-    for (success <- db.group.createInvite(groupId, token))
-      yield if (success) Option(token) else None
+  private def setRandomGroupInviteToken(groupId: GroupId): Future[Option[String]] = {
+    val randomToken = RandomUtil.alphanumeric()
+    db.group.setInviteToken(groupId, randomToken).map(_ => Option(randomToken)).recover { case _ => None }
   }
+
+  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]] =
+    withUserOrImplicit { (_, user) =>
+      isGroupMember(groupId, user.id) {
+        setRandomGroupInviteToken(groupId)
+      }(recover = None)
+    }
+
+  def getGroupInviteToken(groupId: GroupId): Future[Option[String]] =
+    withUserOrImplicit { (_, user) =>
+      isGroupMember(groupId, user.id) {
+        db.group.getInviteToken(groupId).flatMap {
+          case someToken @ Some(token) => Future.successful(someToken)
+          case None => setRandomGroupInviteToken(groupId)
+        }
+      }(recover = None)
+    }
 
   def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUserOrImplicit { (_, user) =>
     //TODO optimize into one request?
