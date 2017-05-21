@@ -20,7 +20,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     } yield result).recover { case _ => recover }
   }
 
-  def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient))
+  private def hasAccessToPost[T](postId: PostId, userId: UserId)(code: => Future[T])(recover: T): Future[T] = {
+    (for {
+      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
+      result <- code
+    } yield result).recover { case _ => recover }
+  }
+
+  def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
 
   //TODO: return Future[Boolean]
   def addPost(msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Post] = withUserOrImplicit { (_, _) =>
@@ -36,17 +43,20 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def updatePost(post: Post): Future[Boolean] = withUserOrImplicit { (_, _) =>
-    //TODO: check if user is allowed to update post
-    db.post.update(post).map(respondWithEventsIf(_, UpdatedPost(forClient(post))))
+  def updatePost(post: Post): Future[Boolean] = withUserOrImplicit { (_, user) =>
+    hasAccessToPost(post.id, user.id) {
+      db.post.update(post).map(respondWithEventsIf(_, UpdatedPost(forClient(post))))
+    }(recover = false)
   }
 
-  def deletePost(id: PostId): Future[Boolean] = withUserOrImplicit { (_, _) =>
-    //TODO: check if user is allowed to delete post
-    db.post.delete(id).map(respondWithEventsIf(_, DeletePost(id)))
+  def deletePost(postId: PostId): Future[Boolean] = withUserOrImplicit { (_, user) =>
+    hasAccessToPost(postId, user.id) {
+      db.post.delete(postId).map(respondWithEventsIf(_, DeletePost(postId)))
+    }(recover = false)
   }
 
   def connect(sourceId: PostId, targetId: ConnectableId): Future[Connection] = withUserOrImplicit { (_, _) =>
+    //TODO: hasAccessToOnePost(user, postA, postB)
     val connection = db.connection(sourceId, targetId)
     connection.map {
       case Some(connection) =>
@@ -56,11 +66,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   }
 
   def deleteConnection(id: ConnectionId): Future[Boolean] = withUserOrImplicit { (_, _) =>
-    //TODO: check if user is allowed to delete connection
+    //TODO: hasAccessToBothPosts(user, postA, postB)
     db.connection.delete(id).map(respondWithEventsIf(_, DeleteConnection(id)))
   }
 
   def createContainment(parentId: PostId, childId: PostId): Future[Containment] = withUserOrImplicit { (_, _) =>
+    //TODO: hasAccessToOnePost(user, postA, postB)
     val connection = db.containment(parentId, childId)
     connection.map {
       case Some(connection) =>
@@ -100,15 +111,16 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, _) =>
-    //TODO: check if user has access to group
-    (
-      for {
-        Some((_, dbMembership, _)) <- db.group.addMember(groupId, userId)
-      } yield {
-        respondWithEvents(true, NewMembership(dbMembership))
-      }).recover { case _ => respondWithEvents(false) }
-  }
+  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] =
+    withUserOrImplicit { (_, user) =>
+      isGroupMember(groupId, user.id) {
+        for {
+          Some((_, dbMembership, _)) <- db.group.addMember(groupId, userId)
+        } yield {
+          respondWithEvents(true, NewMembership(dbMembership))
+        }
+      }(recover = respondWithEvents(false))
+    }
 
   def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUserOrImplicit { (_, _) =>
     (
