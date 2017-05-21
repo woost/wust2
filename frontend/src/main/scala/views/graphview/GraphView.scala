@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.graph._
 import wust.util.Pipe
 
@@ -22,11 +22,18 @@ object KeyImplicits {
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }
 
+object GraphView {
+  //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
+  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
+    div(div().render ||> (new GraphView(state, _, disableSimulation)))
+  }
+}
+
 class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) {
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{displayGraph => rxDisplayGraph, _}
+  import state.{ displayGraph => rxDisplayGraph, _ }
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -49,6 +56,15 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
   val dropMenuSelection = SelectData.rxDraw(DropMenuSelection, postDrag.closestPosts)(dropMenuLayer.append("g"))
+
+  val controls = container.append(() => div(
+    position.absolute, left := 5, top := 100,
+    button("⟳", title := "automatic layout", onclick := { () =>
+      rxSimPosts.now.foreach { simPost =>
+        simPost.fixedPos = js.undefined
+      }
+      d3State.simulation.restart()
+    })).render)
 
   initContainerDimensionsAndPositions()
   initEvents()
@@ -108,11 +124,11 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     svg.on("click", () => focusedPostId() = None)
     d3State.simulation.on("tick", draw _)
     d3State.simulation.on("end", { () =>
-      rxSimPosts.now.foreach {simPost =>
+      rxSimPosts.now.foreach { simPost =>
         simPost.fixedPos = simPost.pos
       }
-      DevOnly {println("simulation ended.")}
-    }) 
+      DevOnly { println("simulation ended.") }
+    })
   }
 
   private def zoomed() {
@@ -161,11 +177,5 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
       .style("width", "100%")
       .style("height", "100%")
       .style("pointer-events", "none")
-  }
-}
-
-object GraphView {
-  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
-    div(div().render ||> (new GraphView(state, _, disableSimulation)))
   }
 }
