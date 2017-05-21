@@ -154,10 +154,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   // }
   private def getUnion(userIdOpt: Option[UserId], parentIds: Set[PostId]): Future[Graph] = {
     //TODO: in stored procedure
+    // we also include the direct parents of the parentIds to be able no navigate upwards
     db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
       val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-      graph -- graph.postIds.filterNot(transitiveChildren)
+      val transitiveChildrenWithDirectParents = transitiveChildren ++ parentIds.flatMap(graph.parents)
+      graph -- graph.postIds.filterNot(transitiveChildrenWithDirectParents)
     }
   }
 

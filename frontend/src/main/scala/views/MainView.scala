@@ -23,23 +23,20 @@ import scalatags.rx.all._
 
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
-  // def upButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //   (if (state.graphSelection().isInstanceOf[GraphSelection.Union])
-  //     button("up", onclick := { () =>
-  //     state.graphSelection() = state.graphSelection() match {
-  //       case GraphSelection.Root => GraphSelection.Root
-  //       case GraphSelection.Union(parentIds) =>
-  //         println(parentIds)
-  //         val newParentIds = parentIds.flatMap(state.rawGraph().parents)
-  //         println(state.rawGraph())
-  //         println(state.rawGraph().parents(PostId(16)))
-  //         println(newParentIds)
-  //         if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
-  //         else GraphSelection.Root
-  //     }
-  //   })
-  //   else span()).render
-  // }
+  def upButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    (state.graphSelection() match {
+      case GraphSelection.Root => span()
+      case GraphSelection.Union(parentIds) =>
+        val newParentIds = parentIds.flatMap(state.rawGraph().parents)
+        val newParentNames = newParentIds.map(state.rawGraph().postsById(_).title).mkString(", ")
+        val buttonTitle = if(newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
+        button("↑", padding := "1px", title := buttonTitle,
+          onclick := { () =>
+          state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
+          else GraphSelection.Root
+        })
+    }).render
+  }
 
   def focusedParents(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     val selection = state.graphSelection()
@@ -54,13 +51,13 @@ object MainView {
       focusedParents.toSeq.map { parentId =>
         val post = graph.postsById(parentId)
         Views.post(post)(
-          backgroundColor := baseColor(post.id).toString,
-          span(
-            "×",
-            padding := "0 0 0 3px",
-            cursor.pointer,
-            onclick := { () => state.graphSelection.updatef { _ remove parentId } }
-          )
+          backgroundColor := baseColor(post.id).toString
+        // ,span(
+        //   "×",
+        //   padding := "0 0 0 3px",
+        //   cursor.pointer,
+        //   onclick := { () => state.graphSelection.updatef { _ remove parentId } }
+        // )
         )
       }
     ).render
@@ -147,7 +144,7 @@ object MainView {
         padding := "5px", background := "rgba(247,247,247,0.8)", borderBottom := "1px solid #DDD",
         display.flex, alignItems.center, justifyContent.spaceBetween,
         div(display.flex, alignItems.center, justifyContent.flexStart,
-          // upButton(state),
+          upButton(state),
           focusedParents(state),
           groupSelector(state),
           inviteUserToGroupField(state),
