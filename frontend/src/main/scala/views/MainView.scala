@@ -138,50 +138,52 @@ object MainView {
     inviteLink.map(_.map(aUrl(_)(fontSize := "8px")).getOrElse(span()).render)
   }
 
+  def viewSelection(state: GlobalState, pages: Seq[ViewPage])(implicit ctx: Ctx.Owner) = Rx {
+    select(onchange := { (e: Event) =>
+      val value = e.target.asInstanceOf[HTMLSelectElement].value
+      state.viewPage() = ViewPage.fromString(value)
+    }, pages.map { page =>
+      val attrs = if (page == state.viewPage()) Seq(selected) else Seq.empty
+      option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
+    }).render
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
-    val views =
+    val viewPages =
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
-        // ViewPage.Tree -> TreeView(state) ::
-        Nil
+      // ViewPage.Tree -> TreeView(state) ::
+      Nil
 
-    div(fontFamily := "sans-serif")(
+    div(
+      fontFamily := "sans-serif",
+
       div(
         position.fixed, width := "100%", top := 0, left := 0, boxSizing.`border-box`,
         padding := "5px", background := "rgba(247,247,247,0.8)", borderBottom := "1px solid #DDD",
         display.flex, alignItems.center, justifyContent.spaceBetween,
 
-        div(display.flex, alignItems.center, justifyContent.flexStart,
+        div(
+          display.flex, alignItems.center, justifyContent.flexStart,
+
           upButton(state),
           focusedParents(state),
           groupSelector(state),
           inviteUserToGroupField(state),
           currentGroupInviteLink(state)),
 
-        if (views.size > 1)
-          div("view: ")(
-          select(Rx {
-            views.map(_._1).map { page =>
-              val attrs = if (state.viewPage() == page) Seq(selected) else Seq.empty
-              option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
-            }
-          })(
-            onchange := { (e: Event) =>
-              val value = e.target.asInstanceOf[HTMLSelectElement].value
-              state.viewPage() = ViewPage.fromString(value)
-            }
-          )
-        )
+        if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
         else div(),
 
         div(
           display.flex, alignItems.center, justifyContent.flexEnd,
+
           UserView.topBarUserStatus(state)
         )
       ),
 
-      router.map(views),
+      router.map(viewPages),
 
       div(
         position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
