@@ -78,7 +78,7 @@ object AddPostForm {
         result
     }
 
-    Rx {
+    div(Rx {
       div(
         display.flex, justifyContent.spaceBetween,
         label(rxMode(), rxDisplayGraph().graph),
@@ -96,6 +96,6 @@ object AddPostForm {
           }
         )
       ).render
-    }
+    })
   }
 }
