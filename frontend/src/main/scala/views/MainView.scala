@@ -109,7 +109,7 @@ object MainView {
   def inviteUserToGroupField(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (if (state.selectedGroupId().isDefined) {
       val field = input(placeholder := "invite user by name").render
-      div(field, button("invite", onclick := { () =>
+      form(field, input(tpe := "submit", value := "invite"), onsubmit := { () =>
         val userName = field.value
         state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).call().foreach { success =>
           println(success)
@@ -117,7 +117,8 @@ object MainView {
         })
 
         sendEvent("group", "invitebyname", "collaboration")
-      })).render
+        false
+      }).render
     } else div().render)
   }
 
