@@ -13,9 +13,17 @@ sealed trait ViewPage
 object ViewPage {
   case object Graph extends ViewPage
   case object Tree extends ViewPage
-  case object User extends ViewPage
+  case object Chat extends ViewPage
 
   def default = Graph
+
+  def toString(page: ViewPage) = page.toString.toLowerCase
+  val fromString: String => ViewPage = {
+    case "graph" => ViewPage.Graph
+    case "tree" => ViewPage.Tree
+    case "chat" => ViewPage.Chat
+    case _ => ViewPage.default
+  }
 }
 
 case class ViewConfig(page: ViewPage, selection: GraphSelection, invite: Option[String])
@@ -27,7 +35,7 @@ object ViewConfig {
   def toHash(config: ViewConfig): String = viewConfigToPath(config).toString
 
   private def viewConfigToPath(config: ViewConfig) = {
-    val name = config.page.toString.toLowerCase
+    val name = ViewPage.toString(config.page)
     val selection = Option(config.selection) collect {
       case GraphSelection.Union(ids) => "select" -> PathOption.IdList.toString(ids.map(_.id).toSeq)
     }
@@ -37,12 +45,7 @@ object ViewConfig {
   }
 
   private def pathToViewConfig(path: Path) = {
-    val page = path.name match {
-      case "graph" => ViewPage.Graph
-      case "tree" => ViewPage.Tree
-      case "user" => ViewPage.User
-      case _ => ViewPage.default
-    }
+    val page = ViewPage.fromString(path.name)
     val selection = path.options.get("select").map(PathOption.IdList.parse) match {
       case Some(ids) => GraphSelection.Union(ids.map(PostId.apply _).toSet)
       case None => GraphSelection.default

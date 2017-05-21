@@ -82,11 +82,6 @@ object UserView {
   }
 
   val registerMask = span(userField, passwordField, registerButton)
-  // def userProfile(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //   span(state.currentUser.map(_.filterNot(_.isImplicit).map { user =>
-  //     span(s"${user.name}").render
-  //   }.getOrElse(span()))).render
-  // }
 
   def groupProfile(groups: Seq[Group])(implicit ctx: Ctx.Owner) = div(groups.map(groupInvite): _*)
 
@@ -97,16 +92,4 @@ object UserView {
       case _ => span(newGroupButton(state), registerMask(loginButton))
     }).render
   }
-
-  // def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div {
-  //   Rx {
-  //     val userOpt = state.currentUser()
-  //     val graph = state.rawGraph()
-  //     userOpt match {
-  //       case Some(user) =>
-  //         userProfile(user)(if (user.isImplicit) registerMask else logoutButton)(groupProfile(graph.groups.toSeq)).render
-  //       case None => registerMask(loginButton).render
-  //     }
-  //   }
-  // }
 }

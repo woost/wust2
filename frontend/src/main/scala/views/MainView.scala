@@ -127,6 +127,7 @@ object MainView {
       state.selectedGroupId() match {
         case Some(groupId) =>
           Client.api.createGroupInvite(groupId).call().foreach {
+            //TODO: we should not construct absolute paths here
             case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
             case None =>
           }
@@ -139,51 +140,54 @@ object MainView {
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
+    val views =
+      ViewPage.Graph -> GraphView(state, disableSimulation) ::
+      // ViewPage.Tree -> TreeView(state) ::
+      Nil
+
     div(fontFamily := "sans-serif")(
-      div(position.fixed, width := "100%", top := 0, left := 0, boxSizing.`border-box`,
+      div(
+        position.fixed, width := "100%", top := 0, left := 0, boxSizing.`border-box`,
         padding := "5px", background := "rgba(247,247,247,0.8)", borderBottom := "1px solid #DDD",
         display.flex, alignItems.center, justifyContent.spaceBetween,
+
         div(display.flex, alignItems.center, justifyContent.flexStart,
           upButton(state),
           focusedParents(state),
           groupSelector(state),
           inviteUserToGroupField(state),
-          currentGroupInviteLink(state)),
-
-        div(display.flex, alignItems.center, justifyContent.flexEnd,
-          UserView.topBarUserStatus(state))),
-
-      // div(
-      //   button(onclick := { (_: Event) => state.viewPage() = ViewPage.Graph })("graph"),
-      //   button(onclick := { (_: Event) => state.viewPage() = ViewPage.Tree })("tree"),
-      //   button(onclick := { (_: Event) => state.viewPage() = ViewPage.User })("user"),
-
-      //   //TODO: make scalatagst-rx accept Rx[Option[T]], then getOrElse can be dropped
-
-      //   // div(
-      //   //   float.right,
-      //   //   input(placeholder := "your email"),
-      //   //   button("get notified when we launch")
-      //   // ),
-
-      //   // TODO: make scalatags-rx accept primitive datatypes as strings
-      //   // span(" selected group: ", state.selectedGroup.map(_.toString))
-      // ),
-
-      // router.map(
-      //   ViewPage.Graph -> GraphView(state, disableSimulation) ::
-      //     ViewPage.Tree -> TreeView(state) ::
-      //     ViewPage.User -> UserView(state) ::
-      //     Nil
-      // ),
-      GraphView(state, disableSimulation),
-
-      // router.showOn(ViewPage.Graph, ViewPage.Tree)(
-      div(position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
-        padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD")(
-          AddPostForm(state)
+          currentGroupInviteLink(state)
         ),
-      // ),
+
+        if (views.size > 1)
+          div("view: ")(
+            select(Rx {
+              views.map(_._1).map { page =>
+                val attrs = if (state.viewPage() == page) Seq(selected) else Seq.empty
+                option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
+              }
+            })(
+              onchange := { (e: Event) =>
+                val value = e.target.asInstanceOf[HTMLSelectElement].value
+                state.viewPage() = ViewPage.fromString(value)
+              }
+            )
+          )
+        else div(),
+
+        div(
+          display.flex, alignItems.center, justifyContent.flexEnd,
+          UserView.topBarUserStatus(state)
+        )
+      ),
+
+      router.map(views),
+
+      div(
+        position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
+        padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD",
+        AddPostForm(state)
+      ),
 
       DevOnly { DevView(state) }
     )
