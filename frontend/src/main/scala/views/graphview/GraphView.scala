@@ -63,8 +63,9 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
       rxSimPosts.now.foreach { simPost =>
         simPost.fixedPos = js.undefined
       }
-      d3State.simulation.restart()
-    })).render)
+      d3State.simulation.alpha(1).restart()
+    })
+  ).render)
 
   initContainerDimensionsAndPositions()
   initEvents()
@@ -73,7 +74,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   Rx {
     val selection = state.graphSelection()
     val focusedParents = selection match {
-      case GraphSelection.Root => Set.empty
+      case GraphSelection.Root             => Set.empty
       case GraphSelection.Union(parentIds) => parentIds
     }
     val mixedDirectParentColors = mixColors(focusedParents.map(baseColor))
