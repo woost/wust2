@@ -43,7 +43,7 @@ object MainView {
     val graph = state.rawGraph()
 
     val focusedParents: Set[PostId] = selection match {
-      case GraphSelection.Root => Set.empty
+      case GraphSelection.Root             => Set.empty
       case GraphSelection.Union(parentIds) => parentIds
     }
 
@@ -59,7 +59,8 @@ object MainView {
         //   onclick := { () => state.graphSelection.updatef { _ remove parentId } }
         // )
         )
-      }).render
+      }
+    ).render
   }
 
   def groupSelector(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
@@ -100,7 +101,8 @@ object MainView {
             val id = Option(value).filter(_.nonEmpty).map(_.toLong)
             state.selectedGroupId() = id.map(GroupId(_))
           }
-        }).render
+        }
+      ).render
     }).render
   }
 
@@ -127,8 +129,8 @@ object MainView {
         case Some(groupId) =>
           Client.api.getGroupInviteToken(groupId).call().foreach {
             //TODO: we should not construct absolute paths here
-            case Some(token) => inviteLink() = Some(s"${location.host + location.pathname}#graph?invite=$token")
-            case None =>
+            case Some(token) => inviteLink() = Some(s"${location.href.split("#").head}#${ViewConfig.toHash(state.viewConfig())}&invite=$token")
+            case None        =>
           }
         case None => inviteLink() = None
       }
@@ -168,20 +170,26 @@ object MainView {
             onchange := { (e: Event) =>
               val value = e.target.asInstanceOf[HTMLSelectElement].value
               state.viewPage() = ViewPage.fromString(value)
-            }))
+            }
+          )
+        )
         else div(),
 
         div(
           display.flex, alignItems.center, justifyContent.flexEnd,
-          UserView.topBarUserStatus(state))),
+          UserView.topBarUserStatus(state)
+        )
+      ),
 
       router.map(views),
 
       div(
         position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
         padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD",
-        AddPostForm(state)),
+        AddPostForm(state)
+      ),
 
-      DevOnly { DevView(state) })
+      DevOnly { DevView(state) }
+    )
   }
 }

@@ -21,9 +21,9 @@ object ViewPage {
   def toString(page: ViewPage) = page.toString.toLowerCase
   val fromString: String => ViewPage = {
     case "graph" => ViewPage.Graph
-    case "tree" => ViewPage.Tree
-    case "chat" => ViewPage.Chat
-    case _ => ViewPage.default
+    case "tree"  => ViewPage.Tree
+    case "chat"  => ViewPage.Chat
+    case _       => ViewPage.default
   }
 }
 
@@ -50,7 +50,7 @@ object ViewConfig {
     val page = ViewPage.fromString(path.name)
     val selection = path.options.get("select").map(PathOption.IdList.parse) match {
       case Some(ids) => GraphSelection.Union(ids.map(PostId.apply _).toSet)
-      case None => GraphSelection.default
+      case None      => GraphSelection.default
     }
     val invite = path.options.get("invite")
     val groupId = path.options.get("group").flatMap(str => Try(GroupId(str.toLong)).toOption)
