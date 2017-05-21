@@ -12,7 +12,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scalatags.JsDom.all._
 
-case class MenuAction(name: String, action: (SimPost, Simulation[SimPost]) => Unit)
+case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
 case class DropAction(name: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {

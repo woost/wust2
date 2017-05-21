@@ -21,18 +21,24 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
   val menuCornerRadius = 2.0
 
   val menuActions = // TODO indication for toggle button? switch string/appearance on basis of value?
-    MenuAction("Collapse", { (p: SimPost, _: Simulation[SimPost]) => graphState.rxCollapsedPostIds.updatef(_.toggle(p.id)); }) ::
-  MenuAction("Edit", { (p: SimPost, _: Simulation[SimPost]) => graphState.rxEditedPostId() = Option(p.id) }) ::
-    // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-    MenuAction("Delete", { (p: SimPost, _: Simulation[SimPost]) => Client.api.deletePost(p.id).call(); sendEvent("post", "delete", "api") }) ::
-    MenuAction("Autopos", { (p: SimPost, s: Simulation[SimPost]) => p.fixedPos = js.undefined; s.restart() }) :: //TODO:  hide or on/off when already auto positioned
-    MenuAction("Focus", { (p: SimPost, _: Simulation[SimPost]) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
-    Nil
+    MenuAction(
+      "Collapse",
+      action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ + p.id),
+      showIf = (p: SimPost) => graphState.rxDisplayGraph.now.graph.hasChildren(p.id)) ::
+      MenuAction(
+        "Expand",
+        action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ - p.id),
+        showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now.contains(p.id)) ::
+        MenuAction("Edit", { (p: SimPost) => graphState.rxEditedPostId() = Option(p.id) }) ::
+        // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+        MenuAction("Delete", { (p: SimPost) => Client.api.deletePost(p.id).call(); sendEvent("post", "delete", "api") }) ::
+        MenuAction("Autopos", { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.restart() }) :: //TODO:  hide or on/off when already auto positioned
+        MenuAction("Focus", { (p: SimPost) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
+        Nil
 
   override val tag = "g"
   override def enter(menu: Enter[SimPost]) {
     menu.append { (simPost: SimPost) =>
-      import d3State.simulation
       import graphState.rxFocusedSimPost
 
       import scalatags.JsDom.svgTags._
@@ -43,7 +49,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
         .value(1)
         .padAngle(menuPaddingAngle)
 
-      val pieData = menuActions.toJSArray
+      val pieData = menuActions.filter(_.showIf(simPost)).toJSArray
       val ringMenuArc = menu.selectAll("path")
         .data(pie(pieData))
       val ringMenuLabels = menu.selectAll("text")
@@ -64,7 +70,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
           DevOnly {
             println(s"\nMenu ${d.data.name}: [${simPost.id}]${simPost.title}")
           }
-          d.data.action(simPost, simulation)
+          d.data.action(simPost)
           rxFocusedSimPost() = None
           sendEvent("post", d.data.name, "postmenu")
         })

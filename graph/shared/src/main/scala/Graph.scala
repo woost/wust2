@@ -18,7 +18,7 @@ package object graph {
   sealed trait Atom
   final case class Post(id: PostId, title: String) extends Atom
   final case class Connection(
-    id: ConnectionId,
+    id:       ConnectionId,
     sourceId: PostId,
     targetId: ConnectableId
   ) extends Atom
@@ -39,13 +39,13 @@ package object graph {
       )
 
     def apply(
-      posts: Iterable[Post] = Nil,
-      connections: Iterable[Connection] = Nil,
+      posts:        Iterable[Post]        = Nil,
+      connections:  Iterable[Connection]  = Nil,
       containments: Iterable[Containment] = Nil,
-      groups: Iterable[Group] = Nil,
-      ownerships: Iterable[Ownership] = Nil,
-      users: Iterable[User] = Nil,
-      memberships: Iterable[Membership] = Nil
+      groups:       Iterable[Group]       = Nil,
+      ownerships:   Iterable[Ownership]   = Nil,
+      users:        Iterable[User]        = Nil,
+      memberships:  Iterable[Membership]  = Nil
     ): Graph = {
       new Graph(
         posts.by(_.id),
@@ -60,13 +60,13 @@ package object graph {
   }
 
   final case class Graph( //TODO: costom pickler over lists instead of maps to save traffic
-    postsById: Map[PostId, Post],
-    connectionsById: Map[ConnectionId, Connection],
+    postsById:        Map[PostId, Post],
+    connectionsById:  Map[ConnectionId, Connection],
     containmentsById: Map[ContainmentId, Containment],
-    groupsById: Map[GroupId, Group],
-    ownerships: Set[Ownership],
-    usersById: Map[UserId, User],
-    memberships: Set[Membership]
+    groupsById:       Map[GroupId, Group],
+    ownerships:       Set[Ownership],
+    usersById:        Map[UserId, User],
+    memberships:      Set[Membership]
   ) {
 
     lazy val posts: Iterable[Post] = postsById.values
@@ -108,6 +108,9 @@ package object graph {
     lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Containment, PostId](containments, _.parentId, _.childId)
     lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Containment, PostId](containments, _.childId, _.parentId)
     lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Containment](containments, _.parentId, _.childId)
+
+    def hasChildren(post: PostId) = children(post).nonEmpty
+    def hasParents(post: PostId) = parents(post).nonEmpty
 
     //TODO: remove .mapValues(_.map(_.id))
     // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
@@ -173,9 +176,9 @@ package object graph {
     )
 
     val fullDegree: ConnectableId => Int = {
-      case p: PostId => connectionDegree(p) + containmentDegree(p)
+      case p: PostId       => connectionDegree(p) + containmentDegree(p)
       case _: ConnectionId => 2
-      case _ => ???
+      case _               => ???
     }
 
     def involvedInContainmentCycle(id: PostId): Boolean = {
@@ -252,7 +255,7 @@ package object graph {
       val invalidConnections = connections
         .filter { c =>
           !postsById.isDefinedAt(c.sourceId) || !(c.targetId match {
-            case t: PostId => postsById.isDefinedAt(t)
+            case t: PostId       => postsById.isDefinedAt(t)
             case c: ConnectionId => connectionsById.isDefinedAt(c)
             case u: UnknownConnectableId =>
               postsById.isDefinedAt(PostId(u.id)) || connectionsById
