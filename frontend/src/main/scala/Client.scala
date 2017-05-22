@@ -31,5 +31,5 @@ object ClientCache {
     _currentAuth = auth
     storage.token = auth.map(_.token)
   }
-  def authToken = currentAuth.map(_.token).orElse(storage.token)
+  def authToken: Option[String] = currentAuth.map(_.token).orElse(storage.token)
 }

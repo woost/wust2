@@ -33,30 +33,34 @@ object Main extends js.JSApp {
     Client.onEvent(state.onApiEvent)
 
     Client.onConnect { location =>
+      // The first thing to be sent should be the auth-token
+      // TODO: make a DevOnly assertion for that
       ClientCache.authToken.foreach { token =>
         Client.auth.loginToken(token).call()
       }
-    }
 
-    state.rawGraphSelection.foreach { selection =>
-      Client.api.getGraph(selection).call().foreach { newGraph =>
-        state.rawGraph() = newGraph
-      }
-    }
-
-    state.inviteToken.foreach {
-      case Some(token) => Client.api.acceptGroupInvite(token).call().foreach {
-        _.foreach { groupId =>
-          state.selectedGroupId() = Option(groupId)
+      state.rawGraphSelection.foreach { selection =>
+        Client.api.getGraph(selection).call().foreach { newGraph =>
+          state.rawGraph() = newGraph
         }
       }
 
-      sendEvent("group", "acceptinvite", "collaboration")
-      case None =>
+      state.inviteToken.foreach {
+        case Some(token) =>
+          Client.api.acceptGroupInvite(token).call().foreach {
+            _.foreach { groupId =>
+              state.selectedGroupId() = Option(groupId)
+            }
+          }
+
+          sendEvent("group", "acceptinvite", "collaboration")
+        case None =>
+      }
     }
 
     document.getElementById("container").appendChild(
-      views.MainView(state).render)
+      views.MainView(state).render
+    )
 
     DevOnly {
       import state._
