@@ -7,20 +7,20 @@ import wust.api._
 import wust.framework._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ApiIncidentHandler(onConnect: (String, Boolean) => Any, onEvent: Event => Any) extends IncidentHandler[ApiEvent, ApiError] {
-  override def fromError(error: ApiError) = ApiException(error)
-  override def onConnect(location: String, reconnect: Boolean) = onConnect(location, reconnect)
-  override def onEvent(event: ApiEvent) = onEvent(event)
+class ApiIncidentHandler(connectHandler: (String, Boolean) => Any, eventHandler: ApiEvent => Any) extends IncidentHandler[ApiEvent, ApiError] {
+  override def fromError(error: ApiError): Throwable = ApiException(error)
+  override def onConnect(location: String, reconnect: Boolean): Unit = connectHandler(location, reconnect)
+  override def onEvent(event: ApiEvent): Unit = eventHandler(event)
 }
 
 object Client {
-  private val handler = new ApiIncidentHandler((l,r) => connectHandler.foreach(_(l,r)), e => eventHandler(_(e)))
+  private val handler = new ApiIncidentHandler((l,r) => connectHandler.foreach(_(l,r)), e => eventHandler.foreach(_(e)))
   val ws = new WebsocketClient[ApiEvent, ApiError](handler)
 
   private var connectHandler: Option[(String, Boolean) => Any] = None
   def onConnect(handler: (String, Boolean) => Any): Unit = connectHandler = Option(handler)
-  private var eventHandler: Option[Event => Any] = None
-  def onEvent(handler: Event => Any): Unit = eventHandler = Option(handler)
+  private var eventHandler: Option[ApiEvent => Any] = None
+  def onEvent(handler: ApiEvent => Any): Unit = eventHandler = Option(handler)
 
   val api = ws.wire[Api]
   val auth = ws.wire[AuthApi]
