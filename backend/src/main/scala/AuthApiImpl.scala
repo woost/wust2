@@ -15,14 +15,15 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
   private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = auth.map {
-    case auth@Some(_) => state.copy(auth = auth)
-    case None => State.initial
+    case auth @ Some(_) => state.copy(auth = auth)
+    case None           => State.initial
   }
 
   def register(name: String, password: String): Future[Boolean] = { (state: State) =>
     val digest = passwordDigest(password)
     val (auth, success) = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
+        //TODO: propagate name change to the respective groups
         val activated = db.user.activateImplicitUser(user.id, name, digest).map(_.map(u => JWT.generateAuthentication(u)))
         (activated.map(_.orElse(state.auth)), activated.map(_.isDefined))
       case _ =>
@@ -36,7 +37,7 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
   def login(name: String, password: String): Future[Boolean] = { (state: State) =>
     val digest = passwordDigest(password)
     val auth = db.user.getUserAndDigest(name).map(_.collect {
-      case (user, userDigest) if (digest hash= userDigest) => JWT.generateAuthentication(user)
+      case (user, userDigest) if (digest hash = userDigest) => JWT.generateAuthentication(user)
     })
     StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
   }
