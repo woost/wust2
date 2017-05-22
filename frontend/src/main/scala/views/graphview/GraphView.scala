@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.{DevOnly, GlobalState}
 import wust.graph._
 import wust.util.Pipe
 
@@ -33,7 +33,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{ displayGraph => rxDisplayGraph, _ }
+  import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -66,6 +66,18 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
       d3State.simulation.alpha(1).restart()
     })
   ).render)
+
+  // Arrows
+  svg.append("svg:defs").append("svg:marker")
+    .attr("id", "graph_arrow")
+    .attr("viewBox", "0 -3 10 6") // x y w h
+    .attr("refX", 35) // This is a workaround. The line is longer than displayed...
+    .attr("markerWidth", 15)
+    .attr("markerHeight", 9)
+    .attr("orient", "auto")
+    .append("svg:path")
+    .attr("d", "M 0,-3 L 10,-0.5 L 10,0.5 L0,3")
+    .style("fill", "#8F8F8F")
 
   initContainerDimensionsAndPositions()
   initEvents()

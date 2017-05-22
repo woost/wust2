@@ -10,6 +10,7 @@ object ConnectionLineSelection extends DataSelection[SimConnection] {
   override val tag = "line"
   override def enterAppend(line: Selection[SimConnection]) {
     line
+      .attr("marker-end", "url(#graph_arrow)")
       .style("stroke", "#8F8F8F")
   }
 
