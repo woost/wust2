@@ -23,7 +23,6 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       cursor.default
     ).render)
       //TODO: http://bl.ocks.org/couchand/6394506 distinguish between click and doubleclick, https://stackoverflow.com/questions/42330521/distinguishing-click-and-double-click-in-d3-version-4
-      //TODO: click tolerance vs dragstart
       //TODO: Doubleclick -> Focus
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
@@ -32,6 +31,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
         rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
       })
       .call(d3.drag[SimPost]()
+        .clickDistance(5) // interpret short drags as clicks
         .on("start", postDragStarted _)
         .on("drag", postDragged _)
         .on("end", postDragEnded _))
