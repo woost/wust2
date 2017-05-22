@@ -9,7 +9,7 @@ import scala.scalajs.js.timers.setTimeout
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
 import scala.scalajs.js.typedarray._
 
-class WebsocketConnection(onConnect: String => Unit) {
+class WebsocketConnection(onConnect: (String, Boolean) => Unit) {
   private var connectionAttempts = 1
   private def backoffInterval = {
     val maxInterval = (math.pow(2, connectionAttempts) - 1) * 1000.0
@@ -46,9 +46,9 @@ class WebsocketConnection(onConnect: String => Unit) {
     websocket.onerror = (e: ErrorEvent) => console.log("error", e)
 
     websocket.onopen = { (_: Event) =>
-      console.log("websocket is open")
+      console.log(s"websocket is open: $location")
+      onConnect(location, connectionAttempts > 1)
       connectionAttempts = 1
-      onConnect(location)
       wsOpt = Option(websocket)
       flush()
     }

@@ -7,18 +7,23 @@ import wust.api._
 import wust.framework._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ApiIncidentHandler extends IncidentHandler[ApiError] {
+class ApiIncidentHandler(onConnect: (String, Boolean) => Any, onEvent: Event => Any) extends IncidentHandler[ApiEvent, ApiError] {
   override def fromError(error: ApiError) = ApiException(error)
+  override def onConnect(location: String, reconnect: Boolean) = onConnect(location, reconnect)
+  override def onEvent(event: ApiEvent) = onEvent(event)
 }
 
 object Client {
-  private val handler = new ApiIncidentHandler
+  private val handler = new ApiIncidentHandler((l,r) => connectHandler.foreach(_(l,r)), e => eventHandler(_(e)))
   val ws = new WebsocketClient[ApiEvent, ApiError](handler)
+
+  private var connectHandler: Option[(String, Boolean) => Any] = None
+  def onConnect(handler: (String, Boolean) => Any): Unit = connectHandler = Option(handler)
+  private var eventHandler: Option[Event => Any] = None
+  def onEvent(handler: Event => Any): Unit = eventHandler = Option(handler)
 
   val api = ws.wire[Api]
   val auth = ws.wire[AuthApi]
-  val onConnect = ws.onConnect _
-  val onEvent = ws.onEvent _
   val run = ws.run _
 }
 
@@ -31,5 +36,6 @@ object ClientCache {
     _currentAuth = auth
     storage.token = auth.map(_.token)
   }
-  def authToken: Option[String] = currentAuth.map(_.token).orElse(storage.token)
+
+  def storedToken: Option[String] = storage.token
 }

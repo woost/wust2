@@ -7,17 +7,19 @@ import wust.framework.message._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait IncidentHandler[Error] {
+trait IncidentHandler[Event, Error] {
   def fromError(error: Error): Throwable
+  def onConnect(location: String, reconnect: Boolean): Unit
+  def onEvent(event: Event): Unit
 }
 
-class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[Error])(implicit ec: ExecutionContext) {
+class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[Event, Error])(implicit ec: ExecutionContext) {
   val messages = new Messages[Event, Error]
   import handler._
   import messages._
 
   private val callRequests = new OpenRequests[ByteBuffer]
-  private val ws = new WebsocketConnection(s => connectHandler.foreach(_(s)))
+  private val ws = new WebsocketConnection(onConnect _)
 
   private val pingIdleMillis = 115 * 1000
   private val acknowledgeTraffic: () => Unit = {
@@ -40,11 +42,6 @@ class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[E
     promise.future
   }
 
-  private var connectHandler: Option[String => Any] = None
-  def onConnect(handler: String => Any): Unit = connectHandler = Option(handler)
-  private var eventHandler: Option[Event => Any] = None
-  def onEvent(handler: Event => Any): Unit = eventHandler = Option(handler)
-
   val wire = new AutowireClient(call)
 
   def run(location: String): Unit = ws.run(location) { bytes =>
@@ -53,7 +50,7 @@ class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[E
       case CallResponse(seqId, result) => callRequests.get(seqId).foreach { req =>
         result.fold(req tryFailure fromError(_), req trySuccess _)
       }
-      case Notification(event) => eventHandler.foreach(_(event))
+      case Notification(event) => onEvent(event)
       case Pong() =>
     }
   }
