@@ -192,7 +192,7 @@ package object graph {
     // Even better:
     // lazy val involvedInContainmentCycle:Set[PostId] = all posts involved in a cycle
 
-    def transitiveChildren(postId: PostId) = postsById.keySet.contains(postId) match {
+    def transitiveChildren(postId: PostId) = postsById.isDefinedAt(postId) match {
       case true =>
         depthFirstSearch(postId, children) |> { children =>
           if (involvedInContainmentCycle(postId)) children else children.drop(1)

@@ -8,7 +8,7 @@ import wust.framework.state._
 import wust.ids._
 import wust.util.RandomUtil
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
@@ -181,11 +181,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
-  private def getUnion(userIdOpt: Option[UserId], parentIds: Set[PostId]): Future[Graph] = {
+  private def getUnion(userIdOpt: Option[UserId], rawParentIds: Set[PostId]): Future[Graph] = {
     //TODO: in stored procedure
     // we also include the direct parents of the parentIds to be able no navigate upwards
     db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
+      val parentIds = rawParentIds filter graph.postsById.isDefinedAt
       val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
       val transitiveChildrenWithDirectParents = transitiveChildren ++ parentIds.flatMap(graph.parents)
       graph -- graph.postIds.filterNot(transitiveChildrenWithDirectParents)
