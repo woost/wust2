@@ -18,6 +18,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   // }
 
   "register" - {
+    //TODO: username or password empty
     "no user" in mockDb { db =>
       db.group.memberships(UserId(0)) returns Future.successful(Seq.empty)
       db.user.apply(Args.eq("torken"), Args.any()) returns Future.successful(Option(data.User(0, "torken", false, 0)))

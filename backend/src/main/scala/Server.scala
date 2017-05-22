@@ -63,12 +63,13 @@ object Server {
 
   private val ws = {
     val db = Db(Config.db)
-    val dsl = new GuardDsl(db, Config.auth.enableImplicit)
     val stateInterpreter = new StateInterpreter(db)
 
-    def api(holder: StateHolder[State, ApiEvent]) =
+    def api(holder: StateHolder[State, ApiEvent]) = {
+      val dsl = new GuardDsl(db, Config.auth.enableImplicit)
       AutowireServer.route[Api](new ApiImpl(holder, dsl, db)) orElse
-      AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, db))
+        AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, db))
+    }
 
     new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new EventDistributor, stateInterpreter, api _))
   }
