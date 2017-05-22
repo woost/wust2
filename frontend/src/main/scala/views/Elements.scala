@@ -17,4 +17,8 @@ object Elements {
       form.querySelector("""input[type="submit"]""").asInstanceOf[HTMLInputElement].click()
     }
   })
+
+  val inputText = input(`type` := "text")
+  val inputPassword = input(`type` := "password")
+  def buttonClick(name: String, handler: => Any) = button(name, onclick := handler _)
 }

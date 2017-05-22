@@ -18,38 +18,26 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.util.EventTracker.sendEvent
 
 object UserView {
-  val inputText = input(`type` := "text")
-  val inputPassword = input(`type` := "password")
-  def buttonClick(name: String, handler: => Any) = button(name, onclick := handler _)
+  import Elements._
 
-  val userField = inputText(placeholder := "user name").render
+  val userField = input(placeholder := "user name").render
   val passwordField = inputPassword(placeholder := "password").render
-  def clearOnSuccess(success: Future[Boolean]) = success.foreach(if (_) {
-    userField.value = ""
-    passwordField.value = ""
-  })
-
-  val registerButton = buttonClick(
-    "register",
-    Client.auth.register(userField.value, passwordField.value).call() ||> clearOnSuccess |> ((success: Future[Boolean]) => success.foreach(if (_)
-      sendEvent("registration", "successful", "auth")
-    else
-      sendEvent("registration", "failed", "auth")))
-  )
-  val loginButton = buttonClick(
-    "login",
-    Client.auth.login(userField.value, passwordField.value).call() ||> clearOnSuccess |> ((success: Future[Boolean]) => success.foreach(if (_)
-      sendEvent("login", "successful", "auth")
-    else
-      sendEvent("login", "failed", "auth")))
-  )
-  val logoutButton = buttonClick(
-    "logout",
-    {
-      Client.auth.logout().call()
-      sendEvent("logout", "logout", "auth")
+  def handleAuthResponse(topic: String, success: Boolean) = {
+    if (success) {
+      userField.value = ""
+      passwordField.value = ""
+      sendEvent(topic, "successful", "auth")
+    else {
+      sendEvent(topic, "failed", "auth")
     }
-  )
+  }
+
+  val registerButton = buttonClick("register",
+    Client.auth.register(userField.value, passwordField.value).call().foreach(handleAuthResponse("registration", _)))
+  val loginButton = buttonClick("login",
+    Client.auth.login(userField.value, passwordField.value).call().foreach(handleAuthResponse("login", _)))
+  val logoutButton = buttonClick("logout",
+    Client.auth.logout().call().foreach(handleAuthResponse("logout", _)))
 
   //TODO: show existing in backend to revoke?
   //TODO: instead of this local var, get all tokens from backend
