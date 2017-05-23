@@ -64,6 +64,8 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
         simPost.fixedPos = js.undefined
       }
       d3State.simulation.alpha(1).restart()
+      d3State.transform = d3.zoomIdentity
+      applyZoomTransform()
     })
   ).render)
 
@@ -147,6 +149,11 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   private def zoomed() {
     import d3State._
     transform = d3.event.asInstanceOf[ZoomEvent].transform
+    applyZoomTransform()
+  }
+
+  private def applyZoomTransform() {
+    import d3State._
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
     postMenuLayer.attr("transform", transform.toString)
