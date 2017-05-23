@@ -91,9 +91,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val mode: Rx[InteractionMode] = Rx {
     (focusedPostId(), editedPostId()) match {
-      case (_, Some(id)) => EditMode(id)
+      case (_, Some(id))    => EditMode(id)
       case (Some(id), None) => FocusMode(id)
-      case _ => DefaultMode
+      case _                => DefaultMode
     }
   }
 
@@ -113,9 +113,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
             window.focus()
             focusedPostId() = Option(post.id)
           })
-      case NewConnection(connection) =>
-        if (focusedPostId.now contains connection.targetId)
-          focusedPostId() = Option(connection.sourceId)
+      // case NewConnection(connection) =>
+      //   if (focusedPostId.now contains connection.targetId)
+      //     focusedPostId() = Option(connection.sourceId)
       case ReplaceGraph(newGraph) =>
         DevOnly {
           assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
