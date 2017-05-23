@@ -77,10 +77,10 @@ object AddPostForm {
         result
     }
 
-    div(Rx {
+    div(
       div(
         display.flex, justifyContent.spaceBetween,
-        label(rxMode(), rxDisplayGraph().graph),
+        Rx { label(rxMode(), rxDisplayGraph().graph).render },
         form(
           width := "100%",
           display.flex,
@@ -89,13 +89,13 @@ object AddPostForm {
           onsubmit := { () =>
             val text = inputfield.value
             if (text.trim.nonEmpty) {
-              val success = action(text, state.graphSelection(), state.selectedGroupId(), rxDisplayGraph.now.graph, rxMode.now)
+              val success = action(text, state.graphSelection.now, state.selectedGroupId.now, rxDisplayGraph.now.graph, rxMode.now)
               success.foreach(if (_) inputfield.value = "")
             }
             false
           }
         )
-      ).render
-    })
+      )
+    )
   }
 }
