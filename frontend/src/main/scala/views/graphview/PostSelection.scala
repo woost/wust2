@@ -45,12 +45,17 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .style("opacity", (p: SimPost) => p.opacity)
       .text((p: SimPost) => p.title)
 
+    recalculateNodeSizes(post)
+  }
+
+  private def recalculateNodeSizes(post: Selection[SimPost]) {
     post.each({ (node: HTMLElement, p: SimPost) =>
       p.recalculateSize(node, d3State.transform.k)
     })
+    d3State.forces.collision.initialize(post.data)
   }
 
-  var draw = 0
+  private var draw = 0
   override def draw(post: Selection[SimPost]) {
 
     // DevOnly {
@@ -66,9 +71,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     if (onePostHasSizeZero) {
       // if one post has size zero => all posts have size zero
       // --> recalculate all visible sizes
-      post.each({ (node: HTMLElement, p: SimPost) =>
-        p.recalculateSize(node, d3State.transform.k)
-      })
+      recalculateNodeSizes(post)
     }
 
     post
