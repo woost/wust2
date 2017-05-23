@@ -218,7 +218,7 @@ object MainView {
               val text = feedbackField.value
               if (text.nonEmpty) {
                 //TODO: Don't hardcode feedback postId
-                Client.api.addPost(text, GraphSelection.Union(Set(PostId(447))), groupId = None).call().foreach { postOpt =>
+                Client.api.addPost(text, GraphSelection.Union(Set(PostId(82))), groupId = None).call().foreach { postOpt =>
                   val success = postOpt.isDefined
                   feedbackField.value = ""
                 }
