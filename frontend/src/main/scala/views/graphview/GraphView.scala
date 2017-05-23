@@ -64,8 +64,8 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
         simPost.fixedPos = js.undefined
       }
       d3State.simulation.alpha(1).restart()
-      d3State.transform = d3.zoomIdentity
-      applyZoomTransform()
+      // d3State.transform = d3.zoomIdentity
+      // applyZoomTransform()
     })
   ).render)
 
