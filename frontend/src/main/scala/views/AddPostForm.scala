@@ -49,7 +49,7 @@ object AddPostForm {
         case EditMode(postId) => inputfield.value = rxDisplayGraph.now.graph.postsById(postId).title
         case _                =>
       }
-      setTimeout(100) { inputfield.focus() } //TODO: why is this timeout hack needed?
+      inputfield.focus()
     }
 
     def label(mode: InteractionMode, graph: Graph) = mode match {
