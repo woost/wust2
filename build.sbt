@@ -83,7 +83,9 @@ val paradiseVersion = "3.0.0-M8"
 lazy val util = crossProject
   .settings(commonSettings)
   .settings(
+    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++= (
+      "org.scalameta" %%% "scalameta" % "1.7.0" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil))
   .jsSettings(
