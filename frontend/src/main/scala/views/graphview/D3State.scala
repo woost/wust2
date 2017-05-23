@@ -1,6 +1,7 @@
 package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
+import org.scalajs.dom.window
 
 class Forces {
   val gravityX = d3.forceX[SimPost]()
@@ -56,8 +57,8 @@ object Simulation {
 // It should stop when alpha < alphaMin, but is running infinitely, causing a jsdom timeout.
 class D3State(disableSimulation: Boolean = false) {
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
-  private val width = 640
-  private val height = 480
+  private val width = window.innerWidth.toInt
+  private val height = window.innerHeight.toInt
 
   var transform: Transform = d3.zoomIdentity // stores current pan and zoom
   val forces = Forces(height, width)
