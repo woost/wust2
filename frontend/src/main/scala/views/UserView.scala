@@ -27,7 +27,7 @@ object UserView {
       userField.value = ""
       passwordField.value = ""
       sendEvent(topic, "successful", "auth")
-    else {
+    } else {
       sendEvent(topic, "failed", "auth")
     }
   }
