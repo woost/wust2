@@ -202,6 +202,34 @@ object MainView {
       router.map(viewPages),
 
       div(
+        position.fixed, bottom := 200, right := 0, boxSizing.`border-box`,
+        padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
+        "Feedback",
+        {
+          val feedbackField = textarea(
+            rows := 5,
+            cols := 30,
+            placeholder := "Missing features? Suggestions? You found a bug? What do you like about this tool?"
+          ).render
+          form(
+            feedbackField, br(),
+            input (tpe := "submit", value := "submit"),
+            onsubmit := { () =>
+              val text = feedbackField.value
+              if (text.nonEmpty) {
+                //TODO: Don't hardcode feedback postId
+                Client.api.addPost(text, GraphSelection.Union(Set(PostId(447))), groupId = None).call().foreach { postOpt =>
+                  val success = postOpt.isDefined
+                  feedbackField.value = ""
+                }
+                sendEvent("feedback", "submit", "api")
+              }
+            }
+          )
+        }
+      ),
+
+      div(
         position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
         padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD",
         AddPostForm(state)

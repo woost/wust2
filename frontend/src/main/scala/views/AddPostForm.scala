@@ -58,7 +58,7 @@ object AddPostForm {
       case _                 => span()
     }
 
-    def action(text: String, selection: GraphSelection, groupId: Option[GroupId], graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+    def action(text: String, selection: GraphSelection, groupIdOpt: Option[GroupId], graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
         rxEditedPostId() = None
@@ -67,12 +67,12 @@ object AddPostForm {
         result
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        val result = Client.api.respond(postId, text, selection, groupId).call().map(_ => true)
+        val result = Client.api.respond(postId, text, selection, groupIdOpt).call().map(_.isDefined)
         sendEvent("post", "respond", "api")
         result
       case _ =>
         DevPrintln(s"\nCreating Post: $text")
-        val result = Client.api.addPost(text, selection, groupId).call().map(_ => true)
+        val result = Client.api.addPost(text, selection, groupIdOpt).call().map(_.isDefined)
         sendEvent("post", "create", "api")
         result
     }
