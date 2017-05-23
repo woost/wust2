@@ -218,12 +218,12 @@ object MainView {
               val text = feedbackField.value
               if (text.nonEmpty) {
                 //TODO: Don't hardcode feedback postId
-                Client.api.addPost(text, GraphSelection.Union(Set(PostId(82))), groupId = None).call().foreach { postOpt =>
+                Client.api.addPost(text, GraphSelection.Union(Set(PostId(82))) : GraphSelection, groupId = None: Option[GroupId]).call().foreach { postOpt =>
                   val success = postOpt.isDefined
                   if (success)
                     feedbackField.value = ""
                   else {
-                    Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
+                    Client.api.addPost(text, GraphSelection.Root: GraphSelection, groupId = None: Option[GroupId]).call().foreach { postOpt =>
                       val success = postOpt.isDefined
                       if (success)
                         feedbackField.value = ""
