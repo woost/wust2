@@ -17,6 +17,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
         position.absolute,
         cursor.move,
         opacity := 0.5,
+        fontSize := simPost.fontSize,
         border := simPost.border,
         backgroundColor := simPost.color
       ).render
@@ -32,7 +33,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
 }
 
 class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ()) {
-  import d3State.{simulation, transform}
+  import d3State.{ simulation, transform }
 
   private val _draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
   private val _closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
@@ -71,7 +72,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
 
-    p.dragClosest.foreach(_.isClosest = false)
+    p.dragClosest.foreach(_.isClosest= false)
     closest match {
       case Some(target) if target != p =>
         val dir = draggingPost.pos.get - target.pos.get
@@ -94,7 +95,6 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
     closest match {
       case Some(target) if target != dragging =>
-
 
         val dropAction = dropActions(target.dropIndex(dropActions.length))
         println(s"\nDropped ${dropAction.name}: [${dragging.id}]${dragging.title} -> [${target.id}]${target.title}")

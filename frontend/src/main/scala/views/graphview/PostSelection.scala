@@ -39,6 +39,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
 
   override def update(post: Selection[SimPost]) {
     post
+      .style("font-size", (post: SimPost) => post.fontSize)
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
       .style("opacity", (p: SimPost) => p.opacity)

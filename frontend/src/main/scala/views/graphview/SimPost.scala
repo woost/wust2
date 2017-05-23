@@ -14,6 +14,7 @@ trait SimConnectable {
 
 class SimPost(@delegert(vals) val post: Post) extends SimConnectable with ExtendedD3Node with SimulationNodeImpl {
   var color = "red"
+  var fontSize = "100%"
   var border = "none"
   var opacity = 1.0
 
@@ -35,6 +36,7 @@ class SimPost(@delegert(vals) val post: Post) extends SimConnectable with Extend
       g.centerOffset = centerOffset
 
       g.color = color
+      g.fontSize = fontSize
       g.border = border
     }
   }

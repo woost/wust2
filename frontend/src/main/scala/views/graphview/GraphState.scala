@@ -3,7 +3,7 @@ package wust.frontend.views.graphview
 import rx._
 import rxext._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
@@ -35,6 +35,8 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       sp.border =
         if (hasChildren) "none"
         else "2px solid rgba(0,0,0,0.2)" // no children
+
+      sp.fontSize = if (hasChildren && !collapsedPostIds(p.id)) "200%" else "100%"
 
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
@@ -92,7 +94,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     // set hyperedge targets, goes away with custom linkforce
     newData.foreach { e =>
       e.target = e.targetId match {
-        case id: PostId => postIdToSimPost(id)
+        case id: PostId       => postIdToSimPost(id)
         case id: ConnectionId => connIdToSimConnection(id)
         case _: ConnectableId => throw new Exception("Unresolved ConnectableId found. Should not happen in consistent graph.")
       }
