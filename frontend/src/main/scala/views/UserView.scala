@@ -7,8 +7,8 @@ import scalatags.rx.all._
 
 import autowire._
 import boopickle.Default._
-import wust.graph.{ User, Group }
-import wust.frontend.{ Client, GlobalState }
+import wust.graph.{User, Group}
+import wust.frontend.{Client, GlobalState}
 import wust.util.Pipe
 import wust.util.tags._
 
@@ -34,19 +34,22 @@ object UserView {
     Client.auth.register(userField.value, passwordField.value).call() ||> clearOnSuccess |> ((success: Future[Boolean]) => success.foreach(if (_)
       sendEvent("registration", "successful", "auth")
     else
-      sendEvent("registration", "failed", "auth"))))
+      sendEvent("registration", "failed", "auth")))
+  )
   val loginButton = buttonClick(
     "login",
     Client.auth.login(userField.value, passwordField.value).call() ||> clearOnSuccess |> ((success: Future[Boolean]) => success.foreach(if (_)
       sendEvent("login", "successful", "auth")
     else
-      sendEvent("login", "failed", "auth"))))
+      sendEvent("login", "failed", "auth")))
+  )
   val logoutButton = buttonClick(
     "logout",
     {
       Client.auth.logout().call()
       sendEvent("logout", "logout", "auth")
-    })
+    }
+  )
 
   //TODO: show existing in backend to revoke?
   //TODO: instead of this local var, get all tokens from backend
@@ -62,28 +65,22 @@ object UserView {
             "regenerate invite link",
             Client.api.recreateGroupInviteToken(group.id).call().foreach {
               case Some(token) => createdGroupInvites() = invites + (group -> token)
-              case None =>
-            })).render
-      })
-
-  def newGroupButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-    button("new group", onclick := { () =>
-      Client.api.addGroup().call().foreach { group =>
-        state.selectedGroupId() = Option(group.id)
+              case None        =>
+            }
+          )
+        ).render
       }
-      sendEvent("group", "created", "collaboration")
-    }).render
-  }
+    )
 
-  val registerMask = span(userField, passwordField, registerButton)
+  val registerMask = div(display.flex, div(userField, br(), passwordField), registerButton)
 
   def groupProfile(groups: Seq[Group])(implicit ctx: Ctx.Owner) = div(groups.map(groupInvite): _*)
 
   def topBarUserStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (state.currentUser() match {
-      case Some(user) if !user.isImplicit => span(user.name, newGroupButton(state), logoutButton)
-      case Some(user) if user.isImplicit => span("anonymous", newGroupButton(state), registerMask(loginButton))
-      case _ => span(newGroupButton(state), registerMask(loginButton))
+      case Some(user) if !user.isImplicit => span(user.name, logoutButton)
+      case Some(user) if user.isImplicit  => span(registerMask(loginButton))
+      case _                              => registerMask(loginButton)
     }).render
   }
 }
