@@ -10,7 +10,10 @@ import wust.ids._
 import scala.util.{ Try, Success, Failure }
 
 object Db {
-  def apply(config: Config)(implicit ec: ExecutionContext) = new Db(new PostgresAsyncContext[LowerCase](config))
+  def apply(config: Config)(implicit ec: ExecutionContext) = {
+    scribe.info("########## Connecting to database ##########")
+    new Db(new PostgresAsyncContext[LowerCase](config))
+  }
 }
 
 class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext) {

@@ -156,6 +156,7 @@ lazy val database = project
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
+      "com.outr" %% "scribe" % "1.4.1" ::
       Nil
   // parallelExecution in IntegrationTest := false
   )
