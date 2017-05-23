@@ -47,7 +47,7 @@ object AddPostForm {
     rxMode.foreach { mode =>
       mode match {
         case EditMode(postId) => inputfield.value = rxDisplayGraph.now.graph.postsById(postId).title
-        case _                => inputfield.value = ""
+        case _                =>
       }
       setTimeout(100) { inputfield.focus() } //TODO: why is this timeout hack needed?
     }
