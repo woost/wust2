@@ -9,8 +9,8 @@ import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import wust.frontend.{ DevOnly, GlobalState }
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.graph._
@@ -220,7 +220,15 @@ object MainView {
                 //TODO: Don't hardcode feedback postId
                 Client.api.addPost(text, GraphSelection.Union(Set(PostId(82))), groupId = None).call().foreach { postOpt =>
                   val success = postOpt.isDefined
-                  feedbackField.value = ""
+                  if (success)
+                    feedbackField.value = ""
+                  else {
+                    Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
+                      val success = postOpt.isDefined
+                      if (success)
+                        feedbackField.value = ""
+                    }
+                  }
                 }
                 sendEvent("feedback", "submit", "api")
               }
