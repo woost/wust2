@@ -30,33 +30,32 @@ object AddPostForm {
 
   def responseLabel(graph: Graph, postId: PostId) = {
     div(
-      Views.parents(postId, graph),
+      width := "10em",
+      "Responding to:",
       Views.post(graph.postsById(postId)),
-      "Respond"
+      Views.parents(postId, graph)
     )
   }
-
-  val newLabel = div("New post")
 
   val sendButton = input(`type` := "submit", value := "send")
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
 
-    val inputfield = Elements.textareaWithEnterSubmit(rows := 3, cols := 80).render
+    val inputfield = Elements.textareaWithEnterSubmit(rows := 3, cols := 80, width := "100%").render
 
     rxMode.foreach { mode =>
       mode match {
         case EditMode(postId) => inputfield.value = rxDisplayGraph.now.graph.postsById(postId).title
-        case _ => inputfield.value = ""
+        case _                => inputfield.value = ""
       }
       setTimeout(100) { inputfield.focus() } //TODO: why is this timeout hack needed?
     }
 
     def label(mode: InteractionMode, graph: Graph) = mode match {
-      case EditMode(postId) => editLabel(graph, rxEditedPostId, postId)
+      case EditMode(postId)  => editLabel(graph, rxEditedPostId, postId)
       case FocusMode(postId) => responseLabel(graph, postId)
-      case _ => newLabel
+      case _                 => span()
     }
 
     def action(text: String, selection: GraphSelection, groupId: Option[GroupId], graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
@@ -83,6 +82,7 @@ object AddPostForm {
         display.flex, justifyContent.spaceBetween,
         label(rxMode(), rxDisplayGraph().graph),
         form(
+          width := "100%",
           display.flex,
           inputfield,
           sendButton,
