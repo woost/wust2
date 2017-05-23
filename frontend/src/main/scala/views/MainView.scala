@@ -232,6 +232,7 @@ object MainView {
                 }
                 sendEvent("feedback", "submit", "api")
               }
+              false
             }
           )
         }
