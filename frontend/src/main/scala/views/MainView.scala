@@ -9,8 +9,8 @@ import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.graph._
@@ -24,6 +24,7 @@ import scalatags.rx.all._
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
   def upButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    //TODO: handle containment cycles
     (state.graphSelection() match {
       case GraphSelection.Root => span()
       case GraphSelection.Union(parentIds) =>
@@ -153,8 +154,8 @@ object MainView {
 
     val viewPages =
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
-      // ViewPage.Tree -> TreeView(state) ::
-      Nil
+        // ViewPage.Tree -> TreeView(state) ::
+        Nil
 
     div(
       fontFamily := "sans-serif",
@@ -171,7 +172,8 @@ object MainView {
           focusedParents(state),
           groupSelector(state),
           inviteUserToGroupField(state),
-          currentGroupInviteLink(state)),
+          currentGroupInviteLink(state)
+        ),
 
         if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
         else div(),

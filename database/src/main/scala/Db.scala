@@ -4,10 +4,10 @@ import io.getquill._
 import wust.ids._
 import com.typesafe.config.Config
 
-import scala.concurrent.{ ExecutionContext, Future, Await }
+import scala.concurrent.{ExecutionContext, Future, Await}
 import scala.concurrent.duration._
 import wust.ids._
-import scala.util.{ Try, Success, Failure }
+import scala.util.{Try, Success, Failure}
 
 object Db {
   def apply(config: Config)(implicit ec: ExecutionContext) = {
@@ -113,7 +113,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
       }
     }
 
-    def getGroups(postId: PostId): Future[Iterable[UserGroup]] = {
+    def getGroups(postId: PostId): Future[List[UserGroup]] = {
       ctx.run {
         for {
           ownership <- query[Ownership].filter(_.postId == lift(postId))
@@ -121,15 +121,29 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
         } yield usergroup
       }
     }
+
+    def getParentIds(postId: PostId): Future[List[PostId]] = {
+      ctx.run {
+        for {
+          containment <- query[Containment].filter(_.childId == lift(postId))
+        } yield containment.parentId
+      }
+    }
   }
 
   object connection {
     def apply(sourceId: PostId, targetId: ConnectableId): Future[Option[Connection]] = {
-      val connection = Connection(DEFAULT, sourceId, targetId)
-      val q = quote {
-        query[Connection].insert(lift(connection)).returning(x => x.id)
-      }
-      ctx.run(q).map(id => Option(connection.copy(id = id))).recover { case _ => None }
+      //TODO: check existence with database constraints
+      val existing = ctx.run(query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId))).map(_.headOption)
+      (existing.flatMap {
+        case None =>
+          val connection = Connection(DEFAULT, sourceId, targetId)
+          for {
+            id <- ctx.run(query[Connection].insert(lift(connection)).returning(x => x.id))
+          } yield Option(connection.copy(id = id))
+        case someConnection =>
+          Future.successful(someConnection)
+      }).recover { case _ => None }
     }
 
     def newPost(title: String, targetConnectableId: ConnectableId, groupIdOpt: Option[GroupId]): Future[Option[(Post, Connection, Option[Ownership])]] = {
@@ -183,11 +197,17 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
   object containment {
     def apply(parentId: PostId, childId: PostId): Future[Option[Containment]] = {
-      val containment = Containment(DEFAULT, parentId, childId)
-      val q = quote {
-        query[Containment].insert(lift(containment)).returning(x => x.id)
-      }
-      ctx.run(q).map(id => Option(containment.copy(id = id))).recover { case _ => None }
+      //TODO: check existence with database constraints
+      val existing = ctx.run(query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId))).map(_.headOption)
+      (existing.flatMap {
+        case None =>
+          val containment = Containment(DEFAULT, parentId, childId)
+          for {
+            id <- ctx.run(query[Containment].insert(lift(containment)).returning(x => x.id))
+          } yield Option(containment.copy(id = id))
+        case someContainment =>
+          Future.successful(someContainment)
+      }).recover { case _ => None }
     }
 
     def delete(contId: ContainmentId): Future[Boolean] = {
@@ -365,7 +385,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
       } yield noOwnership || ownershipWhereUserIsMember
     }
 
-    def members(groupId: GroupId): Future[Iterable[(User, Membership)]] = {
+    def members(groupId: GroupId): Future[List[(User, Membership)]] = {
       ctx.run(for {
         usergroup <- query[UserGroup].filter(_.id == lift(groupId))
         membership <- query[Membership].filter(_.groupId == usergroup.id)
@@ -373,7 +393,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
       } yield (user, membership))
     }
 
-    def memberships(userId: UserId): Future[Iterable[(UserGroup, Membership)]] = {
+    def memberships(userId: UserId): Future[List[(UserGroup, Membership)]] = {
       ctx.run(
         for {
           membership <- query[Membership].filter(m => m.userId == lift(userId))
@@ -402,7 +422,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
       ctx.run(q).map(_.headOption)
     }
 
-    def getOwnedPosts(groupId: GroupId): Future[Seq[Post]] = {
+    def getOwnedPosts(groupId: GroupId): Future[List[Post]] = {
       val q = quote {
         for {
           ownership <- query[Ownership].filter(o => o.groupId == lift(groupId))

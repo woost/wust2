@@ -3,7 +3,7 @@ package wust.db
 import org.scalatest._
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 
 import wust.ids._
 import wust.db.data._
@@ -145,6 +145,20 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         queriedPosts mustBe empty
       }
     }
+
+    "get parentIds" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        child <- db.post.createPublic("Sohnemann")
+        parent1 <- db.post.createPublic("Borolf")
+        parent2 <- db.post.createPublic("Migrota")
+        Some(_) <- db.containment(parent1.id, child.id)
+        Some(_) <- db.containment(parent2.id, child.id)
+        parentIds <- db.post.getParentIds(child.id)
+      } yield {
+        parentIds must contain theSameElementsAs List(parent1.id, parent2.id)
+      }
+    }
   }
 
   "connection" - {
@@ -154,10 +168,42 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         sourcePost <- db.post.createPublic("s")
         targetPost <- db.post.createPublic("t")
         Some(connection) <- db.connection(sourcePost.id, targetPost.id)
-        //TODO: queryConnection
+        connections <- ctx.run(query[Connection])
       } yield {
         connection.sourceId mustEqual sourcePost.id
         connection.targetId mustEqual targetPost.id
+        connections must contain theSameElementsAs List(connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
+      }
+    }
+
+    "create between two existing posts with already existing connection" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        sourcePost <- db.post.createPublic("s")
+        targetPost <- db.post.createPublic("t")
+        Some(_) <- db.connection(sourcePost.id, targetPost.id)
+        Some(connection) <- db.connection(sourcePost.id, targetPost.id)
+        connections <- ctx.run(query[Connection])
+      } yield {
+        connection.sourceId mustEqual sourcePost.id
+        connection.targetId mustEqual UnknownConnectableId(targetPost.id.id)
+        connections must contain theSameElementsAs List(connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
+      }
+    }
+
+    "create between two existing posts with already existing containments" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        sourcePost <- db.post.createPublic("s")
+        targetPost <- db.post.createPublic("t")
+        Some(_) <- db.containment(sourcePost.id, targetPost.id)
+        Some(_) <- db.containment(targetPost.id, sourcePost.id)
+        Some(connection) <- db.connection(sourcePost.id, targetPost.id)
+        connections <- ctx.run(query[Connection])
+      } yield {
+        connection.sourceId mustEqual sourcePost.id
+        connection.targetId mustEqual targetPost.id
+        connections must contain theSameElementsAs List(connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
       }
     }
 
@@ -166,8 +212,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         targetPost <- db.post.createPublic("t")
         connectionOpt <- db.connection(131565, targetPost.id)
+        connections <- ctx.run(query[Connection])
       } yield {
         connectionOpt mustEqual None
+        connections mustBe empty
       }
     }
 
@@ -176,8 +224,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         sourcePost <- db.post.createPublic("s")
         connectionOpt <- db.connection(sourcePost.id, PostId(131565))
+        connections <- ctx.run(query[Connection])
       } yield {
         connectionOpt mustEqual None
+        connections mustBe empty
       }
     }
 
@@ -185,8 +235,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         connectionOpt <- db.connection(16816, PostId(131565))
+        connections <- ctx.run(query[Connection])
       } yield {
         connectionOpt mustEqual None
+        connections mustBe empty
       }
     }
 
@@ -199,10 +251,11 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         Some(targetConnection) <- db.connection(aPost.id, bPost.id)
 
         Some(connection) <- db.connection(sourcePost.id, targetConnection.id)
-        //TODO: queryConnection
+        connections <- ctx.run(query[Connection])
       } yield {
         connection.sourceId mustEqual sourcePost.id
         connection.targetId mustEqual targetConnection.id
+        connections must contain theSameElementsAs List(targetConnection.copy(targetId = UnknownConnectableId(targetConnection.targetId.id)), connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
       }
     }
 
@@ -295,10 +348,42 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         parentPost <- db.post.createPublic("s")
         childPost <- db.post.createPublic("t")
         Some(containment) <- db.containment(parentPost.id, childPost.id)
-        //TODO: queryContainment
+        containments <- ctx.run(query[Containment])
       } yield {
         containment.parentId mustEqual parentPost.id
         containment.childId mustEqual childPost.id
+        containments must contain theSameElementsAs List(containment)
+      }
+    }
+
+    "create between two existing posts with already existing containment" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        parentPost <- db.post.createPublic("s")
+        childPost <- db.post.createPublic("t")
+        Some(_) <- db.containment(parentPost.id, childPost.id)
+        Some(containment) <- db.containment(parentPost.id, childPost.id)
+        containments <- ctx.run(query[Containment])
+      } yield {
+        containment.parentId mustEqual parentPost.id
+        containment.childId mustEqual childPost.id
+        containments must contain theSameElementsAs List(containment)
+      }
+    }
+
+    "create between two existing posts with already existing connection" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        parentPost <- db.post.createPublic("s")
+        childPost <- db.post.createPublic("t")
+        Some(_) <- db.connection(parentPost.id, childPost.id)
+        Some(_) <- db.connection(childPost.id, parentPost.id)
+        Some(containment) <- db.containment(parentPost.id, childPost.id)
+        containments <- ctx.run(query[Containment])
+      } yield {
+        containment.parentId mustEqual parentPost.id
+        containment.childId mustEqual childPost.id
+        containments must contain theSameElementsAs List(containment)
       }
     }
 
@@ -307,8 +392,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         childPost <- db.post.createPublic("t")
         containmentOpt <- db.containment(131565, childPost.id)
+        containments <- ctx.run(query[Containment])
       } yield {
         containmentOpt mustEqual None
+        containments mustBe empty
       }
     }
 
@@ -317,8 +404,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         parentPost <- db.post.createPublic("s")
         containmentOpt <- db.containment(parentPost.id, PostId(131565))
+        containments <- ctx.run(query[Containment])
       } yield {
         containmentOpt mustEqual None
+        containments mustBe empty
       }
     }
 
@@ -326,8 +415,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         containmentOpt <- db.containment(16816, PostId(131565))
+        containments <- ctx.run(query[Containment])
       } yield {
         containmentOpt mustEqual None
+        containments mustBe empty
       }
     }
 
@@ -339,8 +430,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         Some(containment) <- db.containment(parentPost.id, childPost.id)
 
         deleted <- db.containment.delete(containment.id)
+        containments <- ctx.run(query[Containment])
       } yield {
         deleted mustEqual true
+        containments mustBe empty
       }
     }
 
@@ -348,8 +441,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         deleted <- db.containment.delete(165151)
+        containments <- ctx.run(query[Containment])
       } yield {
         deleted mustEqual false
+        containments mustBe empty
       }
     }
   }

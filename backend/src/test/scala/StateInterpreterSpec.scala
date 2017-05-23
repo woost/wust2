@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.backend.auth.JWT
 import wust.api._
 import wust.ids._
-import wust.db.{ Db, data }
+import wust.db.{Db, data}
 import DbConversions._
 import wust.graph._
 import scala.concurrent.Future
@@ -137,8 +137,8 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
         val aMembership = data.Membership(aMember.id, aGroup.id)
 
         db.group.get(aGroup.id) returns Future.successful(Some(aGroup))
-        db.group.members(aGroup.id) returns Future.successful(Seq((aMember, aMembership)))
-        db.group.getOwnedPosts(aGroup.id) returns Future.successful(Seq(postInGroup))
+        db.group.members(aGroup.id) returns Future.successful(List((aMember, aMembership)))
+        db.group.getOwnedPosts(aGroup.id) returns Future.successful(List(postInGroup))
         val stateInterpreter = new StateInterpreter(db = db)
 
         val graph = Graph.empty
