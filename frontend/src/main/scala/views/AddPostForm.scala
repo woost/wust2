@@ -20,11 +20,13 @@ import collection.breakOut
 import wust.util.EventTracker.sendEvent
 
 object AddPostForm {
+  val inputfield = Elements.textareaWithEnterSubmit(rows := 3, cols := 80, width := "100%").render
+
   def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
     div(
       Views.parents(postId, graph),
       Views.post(graph.postsById(postId)),
-      "Edit Post", button("cancel", onclick := { (_: Event) => editedPostId() = None })
+      "Edit Post", button("cancel", onclick := { (_: Event) => editedPostId() = None; inputfield.value = "" })
     )
   }
 
@@ -41,8 +43,6 @@ object AddPostForm {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import state.{displayGraph => rxDisplayGraph, editedPostId => rxEditedPostId, mode => rxMode}
-
-    val inputfield = Elements.textareaWithEnterSubmit(rows := 3, cols := 80, width := "100%").render
 
     rxMode.foreach { mode =>
       mode match {
