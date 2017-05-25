@@ -12,7 +12,7 @@ import scala.scalajs.js.JSConverters._
 
 object DropMenu {
   val dropActions = (
-    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id: ConnectableId).call() }) :: //TODO: better solution for pickling trait parameters in autowire?
+    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) :: //TODO: better solution for pickling trait parameters in autowire?
     DropAction("insert into", { (dropped: SimPost, target: SimPost) => Client.api.createContainment(target.id, dropped.id).call() }) ::
     // DropAction("Merge", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
     Nil

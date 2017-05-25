@@ -2,9 +2,11 @@ BEGIN;
 SELECT plan(19);
 
 /* structure */
-SELECT col_not_null('_post', 'title');
-SELECT col_not_null('_incidence', 'sourceid');
-SELECT col_not_null('_incidence', 'targetid');
+SELECT col_not_null('post', 'title');
+SELECT col_not_null('connection', 'sourceid');
+SELECT col_not_null('connection', 'targetid');
+SELECT col_not_null('containment', 'parentid');
+SELECT col_not_null('containment', 'childid');
 
 /* insert small graph */
 SELECT isnt_empty(
@@ -29,29 +31,22 @@ SELECT isnt_empty(
 
 SELECT isnt_empty(
   'INSERT INTO
-    connection (id, sourceId, targetId)
+    connection (sourceid, targetid)
   VALUES
-    (DEFAULT, 1, 2)
+    (1, 2)
    RETURNING
-    (id, sourceId, targetId);',
+    (sourceid, targetid);',
   'insert connection'
 );
 
 SELECT isnt_empty(
   'INSERT INTO
-    containment (id, parentId, childId)
+    containment (parentid, childid)
   VALUES
-    (DEFAULT, 2, 1)
+    (2, 1)
    RETURNING
-    (id, parentId, childId);',
+    (parentid, childid);',
   'insert containment'
-);
-
-/* graph component */
-SELECT results_eq(
-  'select graph_component(1)',
-  'select id from post',
-  'graph component'
 );
 
 /* delete edges */
@@ -78,21 +73,21 @@ select is_empty(
 /* insert edges again */
 SELECT isnt_empty(
   'INSERT INTO
-    connection (id, sourceId, targetId)
+    connection (sourceid, targetid)
   VALUES
-    (DEFAULT, 1, 2)
+    (1, 2)
    RETURNING
-    (id, sourceId, targetId);',
+    (sourceid, targetid);',
   'insert connection after delete'
 );
 
 SELECT isnt_empty(
   'INSERT INTO
-    containment (id, parentId, childId)
+    containment (parentid, childid)
   VALUES
-    (DEFAULT, 2, 1)
+    (2, 1)
    RETURNING
-    (id, parentId, childId);',
+    (parentid, childid);',
   'insert containment'
 );
 
@@ -115,11 +110,6 @@ select is_empty(
 select is_empty(
   'select * from containment',
   'containment is empty after post collapse'
-);
-
-select is_empty(
-  'select * from atom',
-  'atoms is empty'
 );
 
 

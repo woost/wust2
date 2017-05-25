@@ -27,7 +27,6 @@ object ConnectionElementSelection extends DataSelection[SimConnection] {
   override val tag = "div"
   override def enterAppend(element: Selection[SimConnection]) {
     element
-      .attr("title", (e: SimConnection) => e.id)
       .style("position", "absolute")
       .style("font-size", "20px")
       .style("margin-left", "-0.5ex")
@@ -38,8 +37,8 @@ object ConnectionElementSelection extends DataSelection[SimConnection] {
       .on("click", { (e: SimConnection) =>
         import autowire._
 
-        println(s"\nDelete Connection: ${e.id}")
-        Client.api.deleteConnection(e.id).call()
+        DevPrintln(s"\nDelete Connection: ${e.sourceId} -> ${e.targetId}")
+        Client.api.deleteConnection(e.connection).call()
       })
   }
 
@@ -47,6 +46,9 @@ object ConnectionElementSelection extends DataSelection[SimConnection] {
     element
       // .style("left", (e: SimConnection) => s"${e.x.get}px")
       // .style("top", (e: SimConnection) => s"${e.y.get}px")
-      .style("transform", (e: SimConnection) => s"translate(${e.x.get}px,${e.y.get}px)")
+      .style("transform", {(e: SimConnection) =>
+        val center = (e.source.pos.get + e.target.pos.get) / 2
+          s"translate(${center.x}px,${center.y}px)"
+      })
   }
 }

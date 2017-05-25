@@ -12,10 +12,10 @@ trait Api {
   def addPost(msg: String, selection: GraphSelection, groupId: Option[GroupId]): Future[Option[Post]]
   def respond(to: PostId, msg: String, selection: GraphSelection, groupId: Option[GroupId]): Future[Option[(Post, Connection)]]
   def updatePost(post: Post): Future[Boolean]
-  def connect(sourceId: PostId, targetId: ConnectableId): Future[Option[Connection]]
+  def connect(sourceId: PostId, targetId: PostId): Future[Option[Connection]]
   def createContainment(parentId: PostId, childId: PostId): Future[Option[Containment]]
-  def deleteConnection(id: ConnectionId): Future[Boolean]
-  def deleteContainment(id: ContainmentId): Future[Boolean]
+  def deleteConnection(id: Connection): Future[Boolean]
+  def deleteContainment(id: Containment): Future[Boolean]
   def getUser(userId: UserId): Future[Option[User]]
   def addGroup(): Future[GroupId]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
@@ -44,8 +44,8 @@ case class NewUser(user: User) extends ApiEvent
 case class NewGroup(group: Group) extends ApiEvent
 case class NewMembership(membership: Membership) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
-case class DeleteConnection(id: ConnectionId) extends ApiEvent
-case class DeleteContainment(id: ContainmentId) extends ApiEvent
+case class DeleteConnection(connection:Connection) extends ApiEvent
+case class DeleteContainment(containment: Containment) extends ApiEvent
 case class LoggedIn(auth: Authentication) extends ApiEvent
 case object LoggedOut extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {

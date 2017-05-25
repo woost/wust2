@@ -22,11 +22,10 @@ object Views {
   )
 
   def parents(postId: PostId, graph: Graph) = {
-    val containmentIds = graph.incidentParentContainments(postId).toSeq
+    val containment = graph.incidentParentContainments(postId).toSeq
     div(
       display.flex,
-      containmentIds.map { containmentId =>
-        val containment = graph.containmentsById(containmentId)
+      containment.map { containment =>
         val parent = graph.postsById(containment.parentId)
         post(parent)(
           backgroundColor := baseColor(parent.id).toString,
@@ -34,7 +33,7 @@ object Views {
             "×",
             padding := "0 0 0 3px",
             cursor.pointer,
-            onclick := { () => Client.api.deleteContainment(containment.id).call(); }
+            onclick := { () => Client.api.deleteContainment(containment).call(); }
           )
         )
       }

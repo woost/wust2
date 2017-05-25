@@ -3,9 +3,8 @@ package wust.db
 import org.scalatest._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 
-import wust.ids._
 import wust.db.data._
 
 // TODO: Query-Probing: https://github.com/getquill/quill#query-probing
@@ -22,11 +21,11 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         post <- db.post.createPublic("t")
 
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
-        queriedOwnerships <- ctx.run(query[Ownership].filter(_.postId == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         post.title mustEqual "t"
-        queriedPosts.head.title mustEqual "t"
+        queriedPosts must contain theSameElementsAs List(post)
         queriedOwnerships mustBe empty
       }
     }
@@ -36,11 +35,11 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         (post, None) <- db.post("t", groupIdOpt = None)
 
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
-        queriedOwnerships <- ctx.run(query[Ownership].filter(_.postId == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         post.title mustEqual "t"
-        queriedPosts.head.title mustEqual "t"
+        queriedPosts must contain theSameElementsAs List(post)
         queriedOwnerships mustBe empty
       }
     }
@@ -52,14 +51,14 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
         (post, ownership) <- db.post.createOwned("t", groupId)
 
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
-        queriedOwnerships <- ctx.run(query[Ownership].filter(_.postId == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         post.title mustEqual "t"
         ownership mustEqual Ownership(post.id, groupId)
 
-        queriedPosts.head.title mustEqual "t"
-        queriedOwnerships.head mustEqual Ownership(post.id, groupId)
+        queriedPosts must contain theSameElementsAs List(post)
+        queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
       }
     }
 
@@ -70,14 +69,14 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
         (post, Some(ownership)) <- post("t", Option(groupId))
 
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
-        queriedOwnerships <- ctx.run(query[Ownership].filter(_.postId == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         post.title mustEqual "t"
         ownership mustEqual Ownership(post.id, groupId)
 
-        queriedPosts.head.title mustEqual "t"
-        queriedOwnerships.head mustEqual Ownership(post.id, groupId)
+        queriedPosts must contain theSameElementsAs List(post)
+        queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
       }
     }
 
@@ -105,10 +104,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         post <- db.post.createPublic("t")
         updatedPost <- db.post.update(post.copy(title = "harals"))
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
       } yield {
         updatedPost mustBe true
-        queriedPosts.head mustEqual post.copy(title = "harals")
+        queriedPosts must contain theSameElementsAs List(post.copy(title = "harals"))
       }
     }
 
@@ -116,7 +115,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         updatedPost <- db.post.update(Post(1135, "harals"))
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(PostId(1135))))
+        queriedPosts <- ctx.run(query[Post])
       } yield {
         updatedPost mustBe false
         queriedPosts mustBe empty
@@ -128,7 +127,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         post <- db.post.createPublic("t")
         deleted <- db.post.delete(post.id)
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
       } yield {
         deleted mustBe true
         queriedPosts mustBe empty
@@ -139,7 +138,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         deleted <- db.post.delete(135481)
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(PostId(135481))))
+        queriedPosts <- ctx.run(query[Post])
       } yield {
         deleted mustBe false
         queriedPosts mustBe empty
@@ -172,7 +171,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       } yield {
         connection.sourceId mustEqual sourcePost.id
         connection.targetId mustEqual targetPost.id
-        connections must contain theSameElementsAs List(connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
+        connections must contain theSameElementsAs List(connection)
       }
     }
 
@@ -186,8 +185,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         connections <- ctx.run(query[Connection])
       } yield {
         connection.sourceId mustEqual sourcePost.id
-        connection.targetId mustEqual UnknownConnectableId(targetPost.id.id)
-        connections must contain theSameElementsAs List(connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
+        connection.targetId mustEqual targetPost.id
+        connections must contain theSameElementsAs List(connection)
       }
     }
 
@@ -203,7 +202,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       } yield {
         connection.sourceId mustEqual sourcePost.id
         connection.targetId mustEqual targetPost.id
-        connections must contain theSameElementsAs List(connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
+        connections must contain theSameElementsAs List(connection)
       }
     }
 
@@ -223,7 +222,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         sourcePost <- db.post.createPublic("s")
-        connectionOpt <- db.connection(sourcePost.id, PostId(131565))
+        connectionOpt <- db.connection(sourcePost.id, 131565)
         connections <- ctx.run(query[Connection])
       } yield {
         connectionOpt mustEqual None
@@ -234,7 +233,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "create between two posts, both not existing" in { db =>
       import db._, db.ctx, ctx._
       for {
-        connectionOpt <- db.connection(16816, PostId(131565))
+        connectionOpt <- db.connection(16816, 131565)
         connections <- ctx.run(query[Connection])
       } yield {
         connectionOpt mustEqual None
@@ -242,22 +241,23 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
     }
 
-    "create from post to other connection" in { db =>
-      import db._, db.ctx, ctx._
-      for {
-        sourcePost <- db.post.createPublic("s")
-        aPost <- db.post.createPublic("a")
-        bPost <- db.post.createPublic("b")
-        Some(targetConnection) <- db.connection(aPost.id, bPost.id)
+    // TODO: reactivate when hyperedges are back
+    // "create from post to other connection" in { db =>
+    //   import db._, db.ctx, ctx._
+    //   for {
+    //     sourcePost <- db.post.createPublic("s")
+    //     aPost <- db.post.createPublic("a")
+    //     bPost <- db.post.createPublic("b")
+    //     Some(targetConnection) <- db.connection(aPost.id, bPost.id)
 
-        Some(connection) <- db.connection(sourcePost.id, targetConnection.id)
-        connections <- ctx.run(query[Connection])
-      } yield {
-        connection.sourceId mustEqual sourcePost.id
-        connection.targetId mustEqual targetConnection.id
-        connections must contain theSameElementsAs List(targetConnection.copy(targetId = UnknownConnectableId(targetConnection.targetId.id)), connection.copy(targetId = UnknownConnectableId(connection.targetId.id)))
-      }
-    }
+    //     Some(connection) <- db.connection(sourcePost.id, targetConnection.id)
+    //     connections <- ctx.run(query[Connection])
+    //   } yield {
+    //     connection.sourceId mustEqual sourcePost.id
+    //     connection.targetId mustEqual targetConnection.id
+    //     connections must contain theSameElementsAs List(targetConnection, connection)
+    //   }
+    // }
 
     "create connection with new public post" in { db =>
       import db._, db.ctx, ctx._
@@ -266,18 +266,16 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
         Some((post, connection, None)) <- db.connection.newPost("response", targetPost.id, groupIdOpt = None)
 
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
-        queriedConnections <- ctx.run(query[Connection].filter(_.id == lift(connection.id)))
-        queriedOwnerships <- ctx.run(query[Ownership].filter(_.postId == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
+        queriedConnections <- ctx.run(query[Connection])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         post.title mustEqual "response"
         connection.targetId mustEqual targetPost.id
         connection.sourceId mustEqual post.id
 
-        queriedPosts.head mustEqual post
-        queriedConnections.head.id mustEqual connection.id
-        queriedConnections.head.sourceId mustEqual connection.sourceId
-        queriedConnections.head.targetId.id mustEqual connection.targetId.id
+        queriedPosts must contain theSameElementsAs List(targetPost, post)
+        queriedConnections must contain theSameElementsAs List(connection)
         queriedOwnerships mustBe empty
       }
     }
@@ -290,28 +288,26 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
         Some((post, connection, Some(ownership))) <- db.connection.newPost("response", targetPost.id, groupIdOpt = Option(groupId))
 
-        queriedPosts <- ctx.run(query[Post].filter(_.id == lift(post.id)))
-        queriedConnections <- ctx.run(query[Connection].filter(_.id == lift(connection.id)))
-        queriedOwnerships <- ctx.run(query[Ownership].filter(_.postId == lift(post.id)))
+        queriedPosts <- ctx.run(query[Post])
+        queriedConnections <- ctx.run(query[Connection])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         post.title mustEqual "response"
         connection.targetId mustEqual targetPost.id
         connection.sourceId mustEqual post.id
 
-        queriedPosts.head mustEqual post
-        queriedConnections.head.id mustEqual connection.id
-        queriedConnections.head.sourceId mustEqual connection.sourceId
-        queriedConnections.head.targetId.id mustEqual connection.targetId.id
-        queriedOwnerships.head mustEqual Ownership(post.id, groupId)
+        queriedPosts must contain theSameElementsAs List(targetPost, post)
+        queriedConnections must contain theSameElementsAs List(connection)
+        queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
       }
     }
 
     "create connection with new public post to non-existing targetId" in { db =>
       import db._, db.ctx, ctx._
       for {
-        connectionResultOpt <- db.connection.newPost("response", PostId(612345), groupIdOpt = None)
+        connectionResultOpt <- db.connection.newPost("response", 612345, groupIdOpt = None)
 
-        queriedPosts <- ctx.run(query[Post].filter(_.title == lift("response")))
+        queriedPosts <- ctx.run(query[Post])
       } yield {
         connectionResultOpt mustEqual None
         queriedPosts mustBe empty
@@ -325,7 +321,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         targetPost <- db.post.createPublic("t")
         Some(connection) <- db.connection(sourcePost.id, targetPost.id)
 
-        deleted <- db.connection.delete(connection.id)
+        deleted <- db.connection.delete(connection)
       } yield {
         deleted mustEqual true
       }
@@ -334,7 +330,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "delete non-existing connection" in { db =>
       import db._, db.ctx, ctx._
       for {
-        deleted <- db.connection.delete(165151)
+        deleted <- db.connection.delete(Connection(165151, 15615))
       } yield {
         deleted mustEqual false
       }
@@ -403,7 +399,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         parentPost <- db.post.createPublic("s")
-        containmentOpt <- db.containment(parentPost.id, PostId(131565))
+        containmentOpt <- db.containment(parentPost.id, 131565)
         containments <- ctx.run(query[Containment])
       } yield {
         containmentOpt mustEqual None
@@ -414,7 +410,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "create between two posts, both not existing" in { db =>
       import db._, db.ctx, ctx._
       for {
-        containmentOpt <- db.containment(16816, PostId(131565))
+        containmentOpt <- db.containment(16816, 131565)
         containments <- ctx.run(query[Containment])
       } yield {
         containmentOpt mustEqual None
@@ -429,7 +425,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         childPost <- db.post.createPublic("t")
         Some(containment) <- db.containment(parentPost.id, childPost.id)
 
-        deleted <- db.containment.delete(containment.id)
+        deleted <- db.containment.delete(containment)
         containments <- ctx.run(query[Containment])
       } yield {
         deleted mustEqual true
@@ -440,7 +436,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "delete non-existing containment" in { db =>
       import db._, db.ctx, ctx._
       for {
-        deleted <- db.containment.delete(165151)
+        deleted <- db.containment.delete(Containment(165151, 16851))
         containments <- ctx.run(query[Containment])
       } yield {
         deleted mustEqual false
@@ -500,7 +496,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         user.name must startWith("anon-")
         user.isImplicit mustEqual true
         user.revision mustEqual 0
-        queriedUsers.head mustEqual user
+        queriedUsers must contain theSameElementsAs List(user)
         queriedPasswords mustBe empty
       }
     }
@@ -581,7 +577,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "get non-existing by id" in { db =>
       import db._, db.ctx, ctx._
       for {
-        userOpt <- db.user.get(UserId(11351))
+        userOpt <- db.user.get(11351)
       } yield {
         userOpt mustEqual None
       }
@@ -631,7 +627,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       for {
         Some(existingUser) <- db.user("heigo", "parwin")
-        exists <- db.user.checkIfEqualUserExists(existingUser.copy(id = UserId(187)))
+        exists <- db.user.checkIfEqualUserExists(existingUser.copy(id = 187))
       } yield {
         exists mustBe false
       }
@@ -812,7 +808,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
         } yield {
           posts must contain theSameElementsAs List(postA, postB, postC)
-          connections.map(c => c.copy(targetId = PostId(c.targetId.id))) must contain theSameElementsAs List(conn)
+          connections must contain theSameElementsAs List(conn)
           containments must contain theSameElementsAs List(cont)
           userGroups mustBe empty
           ownerships mustBe empty
@@ -837,7 +833,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
         } yield {
           posts must contain theSameElementsAs List(postA, postC)
-          connections.map(c => c.copy(targetId = PostId(c.targetId.id))) must contain theSameElementsAs List()
+          connections must contain theSameElementsAs List()
           containments must contain theSameElementsAs List()
           userGroups mustBe empty
           ownerships mustBe empty
@@ -862,7 +858,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List(postA, postB, postC)
-          connections.map(c => c.copy(targetId = PostId(c.targetId.id))) must contain theSameElementsAs List(conn)
+          connections must contain theSameElementsAs List(conn)
           containments must contain theSameElementsAs List(cont)
           userGroups mustBe empty
           ownerships mustBe empty
@@ -881,7 +877,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List()
-          connections.map(c => c.copy(targetId = PostId(c.targetId.id))) must contain theSameElementsAs List()
+          connections must contain theSameElementsAs List()
           containments must contain theSameElementsAs List()
           userGroups mustEqual List(group)
           ownerships mustBe empty
@@ -906,7 +902,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List(postA, postB, postC)
-          connections.map(c => c.copy(targetId = PostId(c.targetId.id))) must contain theSameElementsAs List(conn)
+          connections must contain theSameElementsAs List(conn)
           containments must contain theSameElementsAs List(cont)
           userGroups must contain theSameElementsAs List(group)
           ownerships must contain theSameElementsAs List(ownershipB)
@@ -935,7 +931,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List(postA, postB)
-          connections.map(c => c.copy(targetId = PostId(c.targetId.id))) must contain theSameElementsAs List(conn)
+          connections must contain theSameElementsAs List(conn)
           containments must contain theSameElementsAs List()
           userGroups must contain theSameElementsAs List(group)
           ownerships must contain theSameElementsAs List(ownershipB)

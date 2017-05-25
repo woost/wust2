@@ -4,10 +4,10 @@ import io.getquill._
 import wust.ids._
 import com.typesafe.config.Config
 
-import scala.concurrent.{ExecutionContext, Future, Await}
+import scala.concurrent.{ ExecutionContext, Future, Await }
 import scala.concurrent.duration._
 import wust.ids._
-import scala.util.{Try, Success, Failure}
+import scala.util.{ Try, Success, Failure }
 
 object Db {
   def apply(config: Config)(implicit ec: ExecutionContext) = {
@@ -26,16 +26,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId(_))
   implicit val encodePostId = MappedEncoding[PostId, IdType](_.id)
   implicit val decodePostId = MappedEncoding[IdType, PostId](PostId(_))
-  implicit val encodeConnectionId = MappedEncoding[ConnectionId, IdType](_.id)
-  implicit val decodeConnectionId =
-    MappedEncoding[IdType, ConnectionId](ConnectionId(_))
-  implicit val encodeContainmentId = MappedEncoding[ContainmentId, IdType](_.id)
-  implicit val decodeContainmentId =
-    MappedEncoding[IdType, ContainmentId](ContainmentId(_))
-  implicit val encodeConnectableId =
-    MappedEncoding[ConnectableId, IdType](_.id)
-  implicit val decodeConnectableId =
-    MappedEncoding[IdType, ConnectableId](UnknownConnectableId)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
@@ -132,24 +122,24 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   }
 
   object connection {
-    def apply(sourceId: PostId, targetId: ConnectableId): Future[Option[Connection]] = {
+    def apply(sourceId: PostId, targetId: PostId): Future[Option[Connection]] = {
       //TODO: check existence with database constraints
       val existing = ctx.run(query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId))).map(_.headOption)
       (existing.flatMap {
         case None =>
-          val connection = Connection(DEFAULT, sourceId, targetId)
+          val connection = Connection(sourceId, targetId)
           for {
-            id <- ctx.run(query[Connection].insert(lift(connection)).returning(x => x.id))
-          } yield Option(connection.copy(id = id))
+            _ <- ctx.run(query[Connection].insert(lift(connection)))
+          } yield Option(connection)
         case someConnection =>
           Future.successful(someConnection)
       }).recover { case _ => None }
     }
 
-    def newPost(title: String, targetConnectableId: ConnectableId, groupIdOpt: Option[GroupId]): Future[Option[(Post, Connection, Option[Ownership])]] = {
+    def newPost(title: String, targetPostId: PostId, groupIdOpt: Option[GroupId]): Future[Option[(Post, Connection, Option[Ownership])]] = {
       // TODO in one query:
       // val createPostAndConnection = quote {
-      //   (title: String, targetId: ConnectableId) =>
+      //   (title: String, targetId: PostId) =>
       //     infix"""with ins as (
       //     insert into post(id, title) values(DEFAULT, $title) returning id
       //   ) insert into connection(id, sourceId, targetId) select 0, id, ${targetId.id} from ins"""
@@ -158,18 +148,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
       // val q = quote { createPostAndConnection(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
-      val targetIdOptFut: Future[Option[ConnectableId]] = targetConnectableId match {
-        case postId: PostId =>
-          ctx.run(query[Post].filter(_.id == lift(postId)).nonEmpty).map { exists =>
-            if (exists) Some(postId)
-            else None
-          }
-        case connectionId: ConnectionId =>
-          ctx.run(query[Connection].filter(_.id == lift(connectionId)).nonEmpty).map { exists =>
-            if (exists) Some(connectionId)
-            else None
-          }
-        case _ => Future.successful(None)
+      val targetIdOptFut: Future[Option[PostId]] = ctx.run(query[Post].filter(_.id == lift(targetPostId)).nonEmpty).map { exists =>
+        if (exists) Some(targetPostId)
+        else None
       }
 
       targetIdOptFut.flatMap {
@@ -183,8 +164,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
       }
     }
 
-    def delete(connId: ConnectionId): Future[Boolean] = {
-      val connQ = quote { query[Connection].filter(_.id == lift(connId)) }
+    def delete(connection:Connection): Future[Boolean] = {
+      import connection.{sourceId, targetId}
+      val connQ = quote { query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId)) }
       //TODO: quill delete.returning(_.id) to avoid 2 queries
       ctx.transaction { _ =>
         for {
@@ -196,23 +178,23 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   }
 
   object containment {
-    def apply(parentId: PostId, childId: PostId): Future[Option[Containment]] = {
+    def apply(parentId: PostId, childId: PostId): Future[Option[Containment]] = { //TODO: returen Future[Boolean]
       //TODO: check existence with database constraints
       val existing = ctx.run(query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId))).map(_.headOption)
       (existing.flatMap {
         case None =>
-          val containment = Containment(DEFAULT, parentId, childId)
+          val containment = Containment(parentId, childId)
           for {
-            id <- ctx.run(query[Containment].insert(lift(containment)).returning(x => x.id))
-          } yield Option(containment.copy(id = id))
+            _ <- ctx.run(query[Containment].insert(lift(containment)))
+          } yield Option(containment)
         case someContainment =>
           Future.successful(someContainment)
       }).recover { case _ => None }
     }
 
-    def delete(contId: ContainmentId): Future[Boolean] = {
-      val contQ = quote { query[Containment].filter(_.id == lift(contId)) }
-      //TODO: quill delete.returning(_.id) to avoid 2 queries
+    def delete(containment:Containment): Future[Boolean] = {
+      import containment.{parentId, childId}
+      val contQ = quote { query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId)) }
       ctx.transaction { _ =>
         for {
           exists <- ctx.run(contQ.nonEmpty)

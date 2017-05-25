@@ -17,7 +17,7 @@ case class DropAction(name: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {
   implicit val SimPostWithKey = new WithKey[SimPost](_.id)
-  implicit val SimConnectionWithKey = new WithKey[SimConnection](_.id)
+  implicit val SimConnectionWithKey = new WithKey[SimConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val SimRedirectedConnectionWithKey = new WithKey[SimRedirectedConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
 }

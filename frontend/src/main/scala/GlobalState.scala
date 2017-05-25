@@ -69,7 +69,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
         case GraphSelection.Union(parentIds) =>
           val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-          val selectedGraph = graph -- graph.postIds.filterNot(transitiveChildren) -- parentIds
+          val selectedGraph = graph removePosts graph.postIds.filterNot(transitiveChildren) removePosts parentIds
           Perspective(currentView(), selectedGraph)
       }
     })

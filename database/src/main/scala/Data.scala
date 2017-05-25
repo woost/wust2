@@ -7,8 +7,8 @@ package object data {
 
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
   case class Post(id: PostId, title: String)
-  case class Connection(id: ConnectionId, sourceId: PostId, targetId: ConnectableId)
-  case class Containment(id: ContainmentId, parentId: PostId, childId: PostId)
+  case class Connection(sourceId: PostId, targetId: PostId)
+  case class Containment(parentId: PostId, childId: PostId)
 
   case class Password(id: UserId, digest: Array[Byte])
   case class Membership(userId: UserId, groupId: GroupId)

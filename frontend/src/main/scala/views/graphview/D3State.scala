@@ -8,9 +8,8 @@ class Forces {
   val gravityY = d3.forceY[SimPost]()
   val repel = d3.forceManyBody[SimPost]()
   val collision = d3.forceCollide[SimPost]() //TODO: rectangle collision detection?
-  val connection = d3.forceLink[ExtendedD3Node, SimConnection]()
+  val connection = d3.forceLink[SimPost, SimConnection]()
   val redirectedConnection = d3.forceLink[SimPost, SimRedirectedConnection]()
-  // val connection = new CustomLinkForce[ExtendedD3Node, SimConnection]
   val containment = d3.forceLink[SimPost, SimContainment]()
   val collapsedContainment = d3.forceLink[SimPost, SimCollapsedContainment]()
   //TODO: push posts out of containment clusters they don't belong to

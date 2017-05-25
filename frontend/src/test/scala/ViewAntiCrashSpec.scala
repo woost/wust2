@@ -85,7 +85,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting connected source post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(3, PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(1, 2)))
       view(state).render
       state.rawGraph.updatef(_ - PostId(1))
     }
@@ -94,7 +94,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting connected target post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(3, PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(1, 2)))
       view(state).render
       state.rawGraph.updatef(_ - PostId(2))
     }
@@ -103,7 +103,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting containment parent post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(3, PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(1, 2)))
       view(state).render
       state.rawGraph.updatef(_ - PostId(1))
     }
@@ -112,7 +112,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting containment child post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(3, PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment( PostId(1), PostId(2))))
       view(state).render
       state.rawGraph.updatef(_ - PostId(2))
     }
@@ -163,25 +163,26 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")))
       view(state).render
-      state.rawGraph.updatef(_ + Connection(3, PostId(1), PostId(2)))
+      state.rawGraph.updatef(_ + Connection( PostId(1), PostId(2)))
     }
   }
 
   "deleting connection" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(3, PostId(1), PostId(2))))
+      val conn = Connection( PostId(1), PostId(2))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(conn))
       view(state).render
-      state.rawGraph.updatef(_ - ConnectionId(3))
+      state.rawGraph.updatef(_ - conn)
     }
   }
 
   "deleting containment" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(3, PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment( PostId(1), PostId(2))))
       view(state).render
-      state.rawGraph.updatef(_ - ContainmentId(3))
+      state.rawGraph.updatef(_ - Containment(1,2))
     }
   }
 
@@ -190,7 +191,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")))
       view(state).render
-      state.rawGraph.updatef(_ + Containment(3, PostId(1), PostId(2)))
+      state.rawGraph.updatef(_ + Containment(PostId(1), PostId(2)))
     }
   }
 }

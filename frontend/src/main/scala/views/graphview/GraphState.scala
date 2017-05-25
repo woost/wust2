@@ -85,22 +85,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
-    val newData = graph.connections.map { c =>
-      new SimConnection(c, postIdToSimPost(c.sourceId))
-    }.toJSArray
-
-    val connIdToSimConnection: Map[ConnectionId, SimConnection] = (newData: js.ArrayOps[SimConnection]).by(_.id)
-
-    // set hyperedge targets, goes away with custom linkforce
-    newData.foreach { e =>
-      e.target = e.targetId match {
-        case id: PostId       => postIdToSimPost(id)
-        case id: ConnectionId => connIdToSimConnection(id)
-        case _: ConnectableId => throw new Exception("Unresolved ConnectableId found. Should not happen in consistent graph.")
-      }
-    }
-
-    newData
+    graph.connections.map { c => new SimConnection(c, postIdToSimPost(c.sourceId), postIdToSimPost(c.targetId)) }.toJSArray
   }
 
   val rxSimRedirectedConnection = Rx {

@@ -62,7 +62,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }(recover = false)
   }
 
-  def connect(sourceId: PostId, targetId: ConnectableId): Future[Option[Connection]] = withUserOrImplicit { (_, _) =>
+  def connect(sourceId: PostId, targetId: PostId): Future[Option[Connection]] = withUserOrImplicit { (_, _) =>
     //TODO: hasAccessToOnePost(user, postA, postB)
     val connection = db.connection(sourceId, targetId)
     connection.map {
@@ -73,9 +73,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def deleteConnection(id: ConnectionId): Future[Boolean] = withUserOrImplicit { (_, _) =>
+  def deleteConnection(connection: Connection): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO: hasAccessToBothPosts(user, postA, postB)
-    db.connection.delete(id).map(respondWithEventsIf(_, DeleteConnection(id)))
+    db.connection.delete(connection).map(respondWithEventsIf(_, DeleteConnection(connection)))
   }
 
   def createContainment(parentId: PostId, childId: PostId): Future[Option[Containment]] = withUserOrImplicit { (_, _) =>
@@ -89,9 +89,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def deleteContainment(id: ContainmentId): Future[Boolean] = withUserOrImplicit { (_, _) =>
+  def deleteContainment(containment: Containment): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO: check if user is allowed to delete containment
-    db.containment.delete(id).map(respondWithEventsIf(_, DeleteContainment(id)))
+    db.containment.delete(containment).map(respondWithEventsIf(_, DeleteContainment(containment)))
   }
 
   def respond(targetPostId: PostId, msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Option[(Post, Connection)]] = withUserOrImplicit { (_, user) =>
@@ -216,7 +216,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       val parentIds = rawParentIds filter graph.postsById.isDefinedAt
       val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
       val transitiveChildrenWithDirectParents = transitiveChildren ++ parentIds.flatMap(graph.parents)
-      graph -- graph.postIds.filterNot(transitiveChildrenWithDirectParents)
+      graph removePosts graph.postIds.filterNot(transitiveChildrenWithDirectParents)
     }
   }
 

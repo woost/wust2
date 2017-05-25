@@ -16,8 +16,8 @@ object GraphUpdate {
       case UpdatedPost(post) => graph + post
 
       case DeletePost(postId) => graph - postId
-      case DeleteConnection(connectionId) => graph - connectionId
-      case DeleteContainment(containmentId) => graph - containmentId
+      case DeleteConnection(connection) => graph - connection
+      case DeleteContainment(containment) => graph - containment
 
       case ReplaceGraph(newGraph) => newGraph
 

@@ -8,8 +8,8 @@ import wust.ids._
 class GlobalStateSpec extends FreeSpec with MustMatchers {
 
   implicit def tuplePosts(t: (Long, Post)): (PostId, Post) = (PostId(t._1), t._2)
-  implicit def tupleConnection(t: (Long, Connection)): (ConnectionId, Connection) = (ConnectionId(t._1), t._2)
-  implicit def tupleContainment(t: (Long, Containment)): (ContainmentId, Containment) = (ContainmentId(t._1), t._2)
+  // implicit def tupleConnection(t: (Long, Connection)): Connection = (ConnectionId(t._1), t._2)
+  // implicit def tupleContainment(t: (Long, Containment)): (ContainmentId, Containment) = (ContainmentId(t._1), t._2)
   //TODO: test the number of rx updates
 
   "raw graph" - {
@@ -17,8 +17,8 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       val state = new GlobalState
       val graph = Graph(
         posts = List(Post(1, "title")),
-        connections = List(Connection(2, 1, ConnectionId(11))),
-        containments = List(Containment(3, 1, 12))
+        connections = List(Connection(1, 11)),
+        containments = List(Containment(1, 12))
       )
 
       state.rawGraph() = graph
@@ -32,8 +32,8 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       val state = new GlobalState
       state.rawGraph() = Graph(
         posts = List(Post(1, "title"), Post(11, "title2")),
-        connections = List(Connection(2, 1, PostId(11))),
-        containments = List(Containment(3, 11, 1))
+        connections = List(Connection(1, 11)),
+        containments = List(Containment(11, 1))
       )
 
       state.rawGraph.now mustEqual state.displayGraph.now.graph
@@ -78,7 +78,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
       state.rawGraph() = Graph(
         posts = List(Post(1, "title"), Post(11, "title2")),
         connections = Nil,
-        containments = List(Containment(3, 1, 11))
+        containments = List(Containment(1, 11))
       )
       state.currentView() = Perspective(collapsed = Selector.IdSet(Set(1L)))
 

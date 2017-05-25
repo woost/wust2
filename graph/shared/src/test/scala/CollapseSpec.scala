@@ -17,8 +17,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
   implicit class RichContainment(con: Containment) {
     def toLocal = LocalContainment(con.parentId, con.childId)
   }
-  def Containment(ts: (Int, Int)): Containment = new Containment(edgeId(), ts._1, ts._2)
-  def Connection(ts: (Int, Int)): Connection = new Connection(edgeId(), ts._1, PostId(ts._2))
+  def Containment(ts: (Int, Int)): Containment = new Containment(ts._1, ts._2)
+  def Connection(ts: (Int, Int)): Connection = new Connection(ts._1, ts._2)
 
   "collapse" - {
 
@@ -176,7 +176,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           )
           val collapsingPosts = PostIds(11)
           val hiddenPosts = PostIds()
-          val hiddenContainments = Set(containment.id)
+          val hiddenContainments = Set(containment)
 
           local(graph, hiddenPosts, hiddenContainments, collapsingPosts) mustEqual Set(containment.toLocal)
         }
@@ -191,12 +191,12 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           )
           val collapsingPosts = PostIds(1)
           val hiddenPosts = PostIds(3)
-          val hiddenContainments = Set(containment1.id, containment3.id)
+          val hiddenContainments = Set(containment1, containment3)
           local(graph, hiddenPosts, hiddenContainments, collapsingPosts) mustEqual Set(containment1.toLocal) // containment1 becomes local, because PostId(11) is still visible, because of containment2
 
-          // collapse(Set(1), graph) mustEqual dg(graph - PostId(3) - containment1.id, Set(1 -> 20), collapsedContainments = Set(containment1.toLocal))
-          // collapse(Set(2), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
-          // collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(11, 3), Set(1 -> 20, 2 -> 20))
+          // collapse(Set(1), graph) mustEqual dg(graph - PostId(3) - containment1, Set(1 -> 20), collapsedContainments = Set(containment1.toLocal))
+          // collapse(Set(2), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
+          // collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(11, 3), Set(1 -> 20, 2 -> 20))
         }
       }
       "getAlternativePosts" - {
@@ -257,7 +257,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(1, 11, 12),
           containments = List(1 -> 11, 11 -> 12)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11, 12))
       }
 
       "collapse multiple, transitive parents" in {
@@ -265,9 +265,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(1, 2, 3),
           containments = List(1 -> 2, 2 -> 3)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(2, 3))
         collapse(Set(2), graph) mustEqual dg(graph - PostId(3))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(2, 3))
       }
 
       "collapse children while having parent" in {
@@ -285,8 +285,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(1, 2, 11),
           containments = List(containment1, containment2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(2), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(2), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
         collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11))
       }
 
@@ -297,11 +297,11 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(1, 2, 3, 11),
           containments = List[Containment](1 -> 2, 1 -> 3) ++ List(containment1, containment2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
-        collapse(Set(2), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(3), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
-        collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(2, 3, 11))
+        collapse(Set(2), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(3), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(2, 3, 11))
+        collapse(Set(1, 2, 3), graph) mustEqual dg(graph removePosts PostIds(2, 3, 11))
       }
     }
 
@@ -312,7 +312,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(11, 12, 13),
           containments = containment :: List[Containment](12 -> 13, 13 -> 11) // containment cycle
         )
-        collapse(Set(11), graph) mustEqual dg(graph - containment.id, collapsedContainments = Set(containment.toLocal)) // nothing to collapse because of cycle
+        collapse(Set(11), graph) mustEqual dg(graph - containment, collapsedContainments = Set(containment.toLocal)) // nothing to collapse because of cycle
       }
 
       "partially collapse cycle with child" in {
@@ -321,7 +321,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(11, 12, 13, 20),
           containments = containment :: List[Containment](12 -> 13, 13 -> 11, 12 -> 20) // containment cycle -> 20
         )
-        collapse(Set(11), graph) mustEqual dg(graph - PostId(20) - containment.id, collapsedContainments = Set(containment.toLocal)) // cycle stays
+        collapse(Set(11), graph) mustEqual dg(graph - PostId(20) - containment, collapsedContainments = Set(containment.toLocal)) // cycle stays
       }
 
       "collapse parent with child-cycle" in {
@@ -329,7 +329,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(1, 11, 12, 13),
           containments = List(1 -> 11, 11 -> 12, 12 -> 13, 13 -> 11) // 1 -> containment cycle
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12, 13))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11, 12, 13))
       }
     }
 
@@ -361,9 +361,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 2, 2 -> 3),
           connections = List(connection)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3), Set(1 -> 11))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(2, 3), Set(1 -> 11))
         collapse(Set(2), graph) mustEqual dg(graph - PostId(3), Set(2 -> 11))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3), Set(1 -> 11))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(2, 3), Set(1 -> 11))
       }
 
       "redirect edge target to earliest collapsed transitive parent" in {
@@ -373,9 +373,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 2, 2 -> 3),
           connections = List(connection)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3), Set(11 -> 1))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(2, 3), Set(11 -> 1))
         collapse(Set(2), graph) mustEqual dg(graph - PostId(3), Set(11 -> 2))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3), Set(11 -> 1))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(2, 3), Set(11 -> 1))
       }
 
       "redirect and split outgoing edge while collapsing two parents" in {
@@ -387,8 +387,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(containment1, containment2),
           connections = List(connection)
         )
-        collapse(Set(1), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(2), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(2), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
         collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(1 -> 20, 2 -> 20))
       }
 
@@ -401,8 +401,8 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(containment1, containment2),
           connections = List(connection)
         )
-        collapse(Set(1), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(2), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(2), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
         collapse(Set(1, 2), graph) mustEqual dg(graph - PostId(11), Set(20 -> 1, 20 -> 2))
       }
 
@@ -416,9 +416,9 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(containment1, containment2) ++ List[Containment](1 -> 3),
           connections = List(connection1, connection2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph - PostId(3) - containment1.id, Set(1 -> 20), collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(2), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(11, 3), Set(1 -> 20, 2 -> 20))
+        collapse(Set(1), graph) mustEqual dg(graph - PostId(3) - containment1, Set(1 -> 20), collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(2), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(11, 3), Set(1 -> 20, 2 -> 20))
       }
 
       "redirect and split incoming edge while collapsing two parents (one transitive)" in {
@@ -431,11 +431,11 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(containment1, containment2, containment3),
           connections = List(connection)
         )
-        collapse(Set(1), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(1), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
         collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalContainment(2, 11)))
-        collapse(Set(3), graph) mustEqual dg(graph - containment3.id, collapsedContainments = Set(containment3.toLocal))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(3, 11), Set(20 -> 1, 20 -> 2))
-        collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(3, 11), Set(20 -> 1, 20 -> 2))
+        collapse(Set(3), graph) mustEqual dg(graph - containment3, collapsedContainments = Set(containment3.toLocal))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 2))
+        collapse(Set(1, 2, 3), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 2))
       }
 
       "redirect and split incoming edge while collapsing two parents (one transitive with other parent)" in {
@@ -449,10 +449,10 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(containment1, containment2, containment3, containment4),
           connections = List(connection)
         )
-        collapse(Set(1, 2), graph) mustEqual dg(graph - containment1.id - containment2.id, collapsedContainments = Set(containment1.toLocal, containment2.toLocal, LocalContainment(2, 11)))
-        collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(11) - containment2.id, Set(20 -> 1, 20 -> 3), collapsedContainments = Set(containment2.toLocal))
-        collapse(Set(1, 3), graph) mustEqual dg(graph -- PostIds(11), Set(20 -> 1, 20 -> 3))
-        collapse(Set(1, 2, 4), graph) mustEqual dg(graph -- PostIds(3, 11), Set(20 -> 1, 20 -> 4, 20 -> 2))
+        collapse(Set(1, 2), graph) mustEqual dg(graph - containment1- containment2, collapsedContainments = Set(containment1.toLocal, containment2.toLocal, LocalContainment(2, 11)))
+        collapse(Set(1, 2, 3), graph) mustEqual dg((graph removePosts PostIds(11)) - containment2, Set(20 -> 1, 20 -> 3), collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1, 3), graph) mustEqual dg(graph removePosts PostIds(11), Set(20 -> 1, 20 -> 3))
+        collapse(Set(1, 2, 4), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 4, 20 -> 2))
       }
 
       "redirect connection between children while collapsing two parents" in {
@@ -464,7 +464,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
         )
         collapse(Set(1), graph) mustEqual dg(graph - PostId(11), Set(1 -> 12))
         collapse(Set(2), graph) mustEqual dg(graph - PostId(12), Set(11 -> 2))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(11, 12), Set(1 -> 2))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(11, 12), Set(1 -> 2))
       }
 
       "redirect and bundle edges to target" in {
@@ -475,7 +475,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 11, 1 -> 12),
           connections = List(connection1, connection2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12), Set(1 -> 2))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11, 12), Set(1 -> 2))
       }
 
       "redirect and bundle edges to source" in {
@@ -486,7 +486,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 11, 1 -> 12),
           connections = List(connection1, connection2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12), Set(2 -> 1))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11, 12), Set(2 -> 1))
       }
 
       "drop redirected, because of existing connection" in {
@@ -497,7 +497,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 11),
           connections = List(connection1, connection2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11))
       }
 
       "redirect mixed edges" in {
@@ -508,7 +508,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 11, 1 -> 12),
           connections = List(connection1, connection2)
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12), Set(2 -> 1, 1 -> 2))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11, 12), Set(2 -> 1, 1 -> 2))
       }
 
       "redirect in diamond-shape containment" in {
@@ -521,12 +521,12 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           connections = List(connection)
         )
 
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
-        collapse(Set(2), graph) mustEqual dg(graph - containment1.id, collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(3), graph) mustEqual dg(graph - containment2.id, collapsedContainments = Set(containment2.toLocal))
-        collapse(Set(1, 2), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
-        collapse(Set(2, 3), graph) mustEqual dg(graph -- PostIds(11), Set(2 -> 20, 3 -> 20))
-        collapse(Set(1, 2, 3), graph) mustEqual dg(graph -- PostIds(2, 3, 11), Set(1 -> 20))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(2, 3, 11), Set(1 -> 20))
+        collapse(Set(2), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
+        collapse(Set(3), graph) mustEqual dg(graph - containment2, collapsedContainments = Set(containment2.toLocal))
+        collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(2, 3, 11), Set(1 -> 20))
+        collapse(Set(2, 3), graph) mustEqual dg(graph removePosts PostIds(11), Set(2 -> 20, 3 -> 20))
+        collapse(Set(1, 2, 3), graph) mustEqual dg(graph removePosts PostIds(2, 3, 11), Set(1 -> 20))
       }
 
       "redirect into cycle" in {
@@ -537,7 +537,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = containment :: List[Containment](2 -> 3, 3 -> 1, 2 -> 11), // containment cycle -> 11
           connections = List(connection) // 11 -> 20
         )
-        collapse(Set(1), graph) mustEqual dg(graph - PostId(11) - containment.id, Set(2 -> 20), collapsedContainments = Set(containment.toLocal)) // cycle stays
+        collapse(Set(1), graph) mustEqual dg(graph - PostId(11) - containment, Set(2 -> 20), collapsedContainments = Set(containment.toLocal)) // cycle stays
       }
 
       "redirect out of cycle" in {
@@ -547,7 +547,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           containments = List(1 -> 11, 11 -> 12, 12 -> 13, 13 -> 11), // 1 -> containment cycle(11,12,13)
           connections = List(connection) // 13 -> 20
         )
-        collapse(Set(1), graph) mustEqual dg(graph -- PostIds(11, 12, 13), Set(1 -> 20))
+        collapse(Set(1), graph) mustEqual dg(graph removePosts PostIds(11, 12, 13), Set(1 -> 20))
       }
     }
   }

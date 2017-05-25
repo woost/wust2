@@ -8,11 +8,7 @@ import wust.util.Pipe
 
 import scala.math._
 
-trait SimConnectable {
-  def id: ConnectableId
-}
-
-class SimPost(@delegert(vals) val post: Post) extends SimConnectable with ExtendedD3Node with SimulationNodeImpl {
+class SimPost(@delegert(vals) val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
   var color = "red"
   var fontSize = "100%"
   var border = "none"
