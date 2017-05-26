@@ -15,25 +15,25 @@ class Notifications {
   def notificationsDenied = Notification.permission == "denied"
 
   def notify(title: String, body: Option[String] = None, onclick: Notification => Any = _ => ()) {
-    def fire() {
-      sendEvent("notification", "fired", "pwa")
-      val n = new Notification(title, NotificationOptions(body = body.orUndefined))
-      n.addEventListener[Event]("click", { (event: Event) => 
-      onclick(event.target.asInstanceOf[Notification])
-        sendEvent("notification", "clicked", "pwa")
-      })
-    }
-    if (notificationsDenied) {
-    } else if (notificationsGranted) {
-      fire()
-    } else {
-      Notification.requestPermission { (permission: String) =>
-        sendEvent("notification", "permissionrequested", "pwa")
-        if (permission == "granted") {
-          sendEvent("notification", "permissiongranted", "pwa")
-          fire()
-        }
-      }
-    }
+    // def fire() {
+    //   sendEvent("notification", "fired", "pwa")
+    //   val n = new Notification(title, NotificationOptions(body = body.orUndefined))
+    //   n.addEventListener[Event]("click", { (event: Event) => 
+    //   onclick(event.target.asInstanceOf[Notification])
+    //     sendEvent("notification", "clicked", "pwa")
+    //   })
+    // }
+    // if (notificationsDenied) {
+    // } else if (notificationsGranted) {
+    //   fire()
+    // } else {
+    //   Notification.requestPermission { (permission: String) =>
+    //     sendEvent("notification", "permissionrequested", "pwa")
+    //     if (permission == "granted") {
+    //       sendEvent("notification", "permissiongranted", "pwa")
+    //       fire()
+    //     }
+    //   }
+    // }
   }
 }
