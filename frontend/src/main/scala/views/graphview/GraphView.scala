@@ -135,7 +135,11 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   }
 
   private def initEvents(): Unit = {
-    svg.call(d3.zoom().on("zoom", zoomed _))
+    svg.call(
+      d3.zoom()
+        .on("zoom", zoomed _)
+        .scaleExtent(js.Array(0.1, 10))
+    )
     svg.on("click", () => focusedPostId() = None)
     d3State.simulation.on("tick", draw _)
     d3State.simulation.on("end", { () =>
