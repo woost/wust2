@@ -182,7 +182,7 @@ lazy val backend = project
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
+      "org.scalatest" %% "scalatest" % scalaTestVersion % "test,it" ::
       Nil)
 
 lazy val frontend = project
