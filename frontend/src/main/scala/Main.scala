@@ -6,6 +6,7 @@ import org.scalajs.dom._
 import rx._
 import rxext._
 import wust.util.EventTracker.sendEvent
+import wust.api._
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js

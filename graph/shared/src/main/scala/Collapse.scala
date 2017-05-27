@@ -54,7 +54,7 @@ object Collapse {
     (alternativePosts.keys.flatMap { post =>
       graph.incidentConnections(post).flatMap { c =>
         //TODO: assert(c.targetId is PostId) => this will be different for hyperedges
-        for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(PostId(c.targetId.id))) yield {
+        for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId)) yield {
           LocalConnection(sourceId = altSource, targetId = altTarget)
         }
       }

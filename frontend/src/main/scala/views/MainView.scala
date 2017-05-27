@@ -13,10 +13,12 @@ import wust.frontend.{ DevOnly, GlobalState }
 import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
+import wust.api._
 import wust.graph._
 import wust.frontend.Client
 import wust.util.EventTracker.sendEvent
 import scala.util.Try
+import scalaz.Tag
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -87,7 +89,7 @@ object MainView {
         val groupOptions = groupNames.map {
           case (groupId, name) =>
             // val opt = option(s"${groupId.id}: $name", value := groupId.id)
-            val opt = option(s"$name", value := groupId.id)
+            val opt = option(s"$name", value := Tag.unwrap(groupId))
             if (state.selectedGroupId().contains(groupId)) opt(selected)
             else opt
         }
@@ -100,7 +102,7 @@ object MainView {
             state.selectedGroupId() = None
           } else if (value == "newgroup") {
             Client.api.addGroup().call().foreach { group =>
-              state.selectedGroupId() = Option(group.id)
+              state.selectedGroupId() = Option(group)
             }
           } else { // probably groupId
             val id = Option(value).filter(_.nonEmpty).map(_.toLong)
@@ -114,7 +116,7 @@ object MainView {
   def newGroupButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     button("new group", onclick := { () =>
       Client.api.addGroup().call().foreach { group =>
-        state.selectedGroupId() = Option(group.id)
+        state.selectedGroupId() = Option(group)
       }
       sendEvent("group", "created", "collaboration")
     }).render

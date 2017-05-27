@@ -2,11 +2,12 @@ package wust.frontend
 
 import org.scalajs.d3v4._
 import wust.ids._
+import scalaz.Tag
 
 object Color {
   val postDefaultColor = d3.lab("#f8f8f8")
 
-  def baseHue(id: PostId) = (id.id * 137) % 360
+  def baseHue(id: PostId) = (Tag.unwrap(id) * 137) % 360
   def baseColor(id: PostId) = d3.hcl(baseHue(id), 50, 75)
   def baseColorMixedWithDefault(id: PostId) = mixColors(d3.hcl(baseHue(id), 50, 75), postDefaultColor)
 

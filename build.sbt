@@ -79,6 +79,7 @@ val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
 val paradiseVersion = "3.0.0-M8"
+val scalazVersion = "7.2.13"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -123,6 +124,7 @@ lazy val ids = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
+      "org.scalaz" %%% "scalaz-core" % scalazVersion ::
       Nil))
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm

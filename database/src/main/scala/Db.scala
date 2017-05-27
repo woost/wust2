@@ -6,6 +6,7 @@ import com.typesafe.config.Config
 
 import scala.concurrent.{ ExecutionContext, Future, Await }
 import scala.concurrent.duration._
+import scalaz.Tag
 import wust.ids._
 import scala.util.{ Try, Success, Failure }
 
@@ -20,12 +21,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   import data._
   import ctx._
 
-  implicit val encodeGroupId = MappedEncoding[GroupId, IdType](_.id)
-  implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId(_))
-  implicit val encodeUserId = MappedEncoding[UserId, IdType](_.id)
-  implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId(_))
-  implicit val encodePostId = MappedEncoding[PostId, IdType](_.id)
-  implicit val decodePostId = MappedEncoding[IdType, PostId](PostId(_))
+  implicit val encodeGroupId = MappedEncoding[GroupId, IdType](Tag.unwrap _)
+  implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId _)
+  implicit val encodeUserId = MappedEncoding[UserId, IdType](Tag.unwrap _)
+  implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId _)
+  implicit val encodePostId = MappedEncoding[PostId, IdType](Tag.unwrap _)
+  implicit val decodePostId = MappedEncoding[IdType, PostId](PostId _)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
@@ -480,7 +481,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
             val postSet = posts.map(_.id).toSet
             (
               posts,
-              connection.filter(c => (postSet contains c.sourceId) && (postSet contains PostId(c.targetId.id))),
+              connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
               containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
               myGroups.map(UserGroup.apply),
               ownerships,
@@ -501,7 +502,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
             val postSet = posts.map(_.id).toSet
             (
               posts,
-              connection.filter(c => (postSet contains c.sourceId) && (postSet contains PostId(c.targetId.id))),
+              connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
               containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
               Nil, Nil, Nil, Nil
             )

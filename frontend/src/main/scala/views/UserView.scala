@@ -11,6 +11,7 @@ import wust.graph.{User, Group}
 import wust.frontend.{Client, GlobalState}
 import wust.util.Pipe
 import wust.util.tags._
+import wust.api._
 
 import scala.concurrent.Future
 import scala.collection.mutable

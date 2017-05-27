@@ -101,7 +101,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         case Some((post, connection, ownershipOpt)) =>
           val selectionContainmentsFut = selectionToContainments(selection, post.id)
           val parentContainmentsFut = for {
-            parentIds <- db.post.getParentIds(targetPostId.id)
+            parentIds <- db.post.getParentIds(targetPostId)
             containments <- createContainments(parentIds, post.id)
           } yield containments
 

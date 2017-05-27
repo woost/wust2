@@ -9,6 +9,7 @@ import scala.scalajs.js.timers.setTimeout
 import rx._
 import wust.frontend._
 import wust.ids._
+import wust.api._
 import wust.graph._
 
 import scala.concurrent.Future

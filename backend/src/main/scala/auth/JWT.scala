@@ -5,14 +5,15 @@ import wust.api._
 import wust.backend.config.Config
 import wust.graph.User
 import wust.ids._
+import scalaz._
 import java.time.Duration
 
 object Claims {
   import play.api.libs.functional.syntax._
   import play.api.libs.json._
 
-  implicit val userIdReader = Reads.of[Long].map(new UserId(_))
-  implicit val userIdWriter = Writes { (user: UserId) => JsNumber(user.id) }
+  implicit val userIdReader = Reads.of[IdType].map(UserId _)
+  implicit val userIdWriter = Writes[UserId] { user => JsNumber(Tag.unwrap(user): IdType) }
   implicit val userFormat = (
     (__ \ "id").format[UserId] ~
     (__ \ "name").format[String] ~
