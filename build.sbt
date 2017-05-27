@@ -80,6 +80,7 @@ val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
 val paradiseVersion = "3.0.0-M8"
 val scalazVersion = "7.2.13"
+val boopickleVersion = "1.2.6"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -100,7 +101,7 @@ lazy val framework = crossProject
   .settings(
     libraryDependencies ++= (
       "com.lihaoyi" %%% "autowire" % "0.2.6" ::
-      "io.suzaku" %%% "boopickle" % "1.2.6" ::
+      "io.suzaku" %%% "boopickle" % boopickleVersion ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil))
   .jvmSettings(
@@ -145,6 +146,7 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
+      "io.suzaku" %%% "boopickle" % boopickleVersion ::
       Nil))
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
