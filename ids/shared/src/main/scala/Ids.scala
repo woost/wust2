@@ -4,9 +4,6 @@ import scalaz._
 
 package object ids {
   type IdType = Long
-  // object AtomId {
-  //   implicit def ordering[A <: AtomId]: Ordering[A] = Ordering.by(_.id)
-  // }
 
   // unboxed types with scalaz: http://eed3si9n.com/learning-scalaz/Tagged+type.html
   sealed trait PostIdType
