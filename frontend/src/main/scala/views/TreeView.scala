@@ -15,9 +15,13 @@ import wust.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
 
+import org.scalajs.dom.console
+import org.scalajs.dom.raw.{Element, HTMLElement}
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
+import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.KeyboardEvent
 
 object TreeView {
   import Elements._
@@ -26,6 +30,8 @@ object TreeView {
   private var lastSelectedParent: Option[PostId] = None
 
   val postOrdering: PostId => IdType = Tag.unwrap _
+
+  def textfield = span(contenteditable := "true", width := "80ex")
 
   def bulletPoint(state: GlobalState, postId: PostId) = span(
     "o ",
@@ -43,12 +49,18 @@ object TreeView {
   )
 
   def insertPostPlaceholder(state: GlobalState, postId: PostId) = {
-    val area = textareaWithEnter(elem => {
-      lastSelectedParent = Some(postId)
-      Client.api.addPostInContainment(elem.value, postId, state.selectedGroupId.now).call().map { success =>
-        if (success) elem.value = ""
-      }
-    })(rows := "1", cols := "80", placeholder := "type something here...").render
+    val area = textfield(onkeydown := { (event: KeyboardEvent) =>
+        val elem = event.target.asInstanceOf[HTMLElement]
+        onKey(event) {
+          case KeyCode.Enter =>
+            lastSelectedParent = Some(postId)
+            Client.api.addPostInContainment(elem.innerHTML, postId, state.selectedGroupId.now).call().map { success =>
+              if (success) elem.innerHTML = ""
+            }
+          // case KeyCode.Up
+        }
+    }).render
+
     //TODO: better?
     if (lastSelectedParent.map(_ == postId).getOrElse(false)) {
       setTimeout(100) {
@@ -58,27 +70,42 @@ object TreeView {
     }
 
     div(
+      display.flex,
       paddingLeft := "10px", color := "#AAAAAA",
       "+ ",
       area
     )
   }
 
+  def nextSiblingElement(elem: HTMLElement, next: HTMLElement => HTMLElement): Option[HTMLElement] = {
+    val sibling = Option(next(elem))
+    sibling orElse {
+      val parent = Option(elem.parentElement)
+      parent.flatMap(nextSiblingElement(_, next))
+    }
+  }
+
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Frag = {
     //TODO: why need rendered textarea for setting value?
-    val area = textareaWithEnter(elem => {
-      Client.api.updatePost(post.copy(title = elem.value)).call().map { success =>
-        //TODO: indicator?
+    val area = textfield(post.title, onkeydown := { (event: KeyboardEvent) =>
+      val elem = event.target.asInstanceOf[HTMLElement]
+      onKey(event) {
+        case KeyCode.Enter =>
+          Client.api.updatePost(post.copy(title = elem.innerHTML)).call().map { success =>
+            //TODO: indicator?
+          }
+        case KeyCode.Up => nextSiblingElement(elem.parentElement.parentElement,  _.previousElementSibling.asInstanceOf[HTMLElement] ).foreach(_.querySelector("""span[contenteditable="true"]""").asInstanceOf[HTMLElement].focus())
+        case KeyCode.Down => nextSiblingElement(elem.parentElement.parentElement,_.nextElementSibling.asInstanceOf[HTMLElement]).foreach(_.querySelector("""span[contenteditable="true"]""").asInstanceOf[HTMLElement].focus())
       }
-    })(rows := "1", cols := "80"/*TODO:, value := post.title*/).render
-    area.value = post.title
+    })
 
     div(
       div(
+        display.flex,
         bulletPoint(state, post.id),
         collapseButton(state, post.id),
-        area,
-        deleteButton(post.id)
+        deleteButton(post.id),
+        area
       )
     )
   }

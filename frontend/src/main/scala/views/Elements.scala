@@ -1,6 +1,6 @@
 package wust.frontend.views
 
-import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
+import org.scalajs.dom.raw.{ HTMLElement, HTMLFormElement, HTMLInputElement, HTMLTextAreaElement }
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.KeyboardEvent
 import scalatags.JsDom.all._
@@ -15,12 +15,19 @@ object Elements {
     form.querySelector("""input[type="submit"]""").asInstanceOf[HTMLInputElement].click()
   }
 
-  def textareaWithEnter(onEnter: HTMLTextAreaElement => Any): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
-    if (event.keyCode == KeyCode.Enter && !event.shiftKey) {
-      event.preventDefault()
-      event.stopPropagation()
-      val elem = event.target.asInstanceOf[HTMLTextAreaElement]
-      onEnter(elem)
+  def onKey(e: KeyboardEvent)(f: PartialFunction[Long, Any]) = {
+    val result = if (e.shiftKey) None else f.lift(e.keyCode)
+    result.foreach { _ =>
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
+  def textareaWithEnter(f: HTMLTextAreaElement => Any): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
+    onKey(event) {
+      case KeyCode.Enter =>
+        val elem = event.target.asInstanceOf[HTMLTextAreaElement]
+        f(elem)
     }
   })
 
