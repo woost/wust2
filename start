@@ -5,12 +5,7 @@ set -o pipefail
 script_dir="$(dirname $(readlink -f '$0'))"
 
 stage="$1"
-compose_stage="$script_dir/docker/compose"
-function on_stage() {
-    compose="$compose_stage $1"
-}
-
-on_stage $stage
+function on_stage() { stage="$1"; }
 
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
@@ -20,61 +15,69 @@ function sbt_with_args() {
     WUST_STAGE=dev sbt -Dquill.macro.log=false $args
 }
 
+function compose() { "$script_dir/docker/compose" $stage $@; }
+
+function create_wust_template() {
+    name=$(echo $stage | tr -d ".")
+    docker exec -it "wust${name}_postgres_1" psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+}
+
 # CI=true => disable workbench
 
 case $stage in
 psql)
-    $compose_stage dev run db-migration
+    on_stage dev
+    compose run db-migration
     # PGPASSWORD=test psql -h localhost -U wust
     docker exec -it wustdev_postgres_1  psql -h localhost -U wust
     ;;
 dev)
-    $compose up -d
+    compose up -d
     sbt_with_args
     ;;
 migrate)
     on_stage dev
     CI=true sbt dbMigration/docker
-    $compose run db-migration
+    compose run db-migration
     ;;
 prod.http)
     on_stage prod
-    $compose down
-    $compose up -d nginx-http
+    compose down
+    compose up -d nginx-http
     ;;
 prod)
-    $compose down
-    $compose up -d nginx
+    compose down
+    compose up -d nginx
     ;;
 test.postgres)
-    $compose down
-    $compose run db-migration
-    $compose run test
-    $compose down
+    compose down
+    compose run db-migration
+    compose run test
+    compose down
     ;;
 test.integration)
-    $compose down
-    $compose run db-migration
-    $compose up -d
-    docker exec -it wusttestintegration_postgres_1 psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+    compose down
+    compose run db-migration
+    compose up -d
+    create_wust_template
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
     POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
-    $compose down
+    compose down
     ;;
 test.prod.http)
     on_stage prod
-    $compose down
-    $compose up -d nginx-http
+    compose down
+    compose up -d nginx-http
     CI=true sbt_with_args systemTest/it:test
-    $compose down
+    compose down
     ;;
 test.prod)
     on_stage prod
-    $compose down
-    $compose up -d nginx
+    compose down
+    compose up -d nginx
     #TODO CI=true sbt_with_args systemTest/it:test
     nc -z localhost 80 && nc -z localhost 443
-    $compose down
+    compose down
     ;;
 *)
     echo "unknown stage '$1', expected one of [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]"
