@@ -32,6 +32,11 @@ object TreeView {
     onclick := { () => state.graphSelection() = GraphSelection.Union(Set(postId)) }
   )
 
+  def collapseButton(state: GlobalState, postId: PostId) = span(
+    "- ",
+    onclick := { () => state.collapsedPostIds() = state.collapsedPostIds.now toggle postId }
+  )
+
   def deleteButton(postId: PostId) = span(
     " x",
     onclick := { () => Client.api.deletePost(postId).call() }
@@ -71,6 +76,7 @@ object TreeView {
     div(
       div(
         bulletPoint(state, post.id),
+        collapseButton(state, post.id),
         area,
         deleteButton(post.id)
       )
