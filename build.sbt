@@ -8,6 +8,10 @@ git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is al
 // scala.tools.asm.tree.analysis.AnalyzerException: While processing backend/Server$$anonfun$$nestedInanonfun$router$1$1.$anonfun$applyOrElse$3
 scalaVersion in ThisBuild := "2.11.11" //TODO: migrate to 2.12 when this PR is merged: https://github.com/getquill/quill/pull/617
 
+// http://ant.apache.org/ivy/history/2.4.0/settings/version-matchers.html
+val latest = "latest.release"
+val latestAny = "latest.integration"
+
 lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
@@ -73,24 +77,15 @@ lazy val root = project.in(file("."))
 
     watchSources ++= (watchSources in workbench).value)
 
-val akkaVersion = "2.4.17"
-val akkaHttpVersion = "10.0.5"
-val specs2Version = "3.8.9"
-val scalaTestVersion = "3.0.3"
-val mockitoVersion = "2.7.22"
-val paradiseVersion = "3.0.0-M8"
-val scalazVersion = "7.2.13"
-val boopickleVersion = "1.2.6"
-
 lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+      "org.scalatest" %%% "scalatest" % latest % "test" ::
       Nil))
   .jsSettings(
     libraryDependencies ++= (
-      "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
+      "com.lihaoyi" %%% "scalatags" % latest ::
       Nil))
 lazy val utilJS = util.js
 lazy val utilJVM = util.jvm
@@ -100,22 +95,22 @@ lazy val framework = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "com.lihaoyi" %%% "autowire" % "0.2.6" ::
-      "io.suzaku" %%% "boopickle" % boopickleVersion ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+      "com.lihaoyi" %%% "autowire" % latestAny ::
+      "io.suzaku" %%% "boopickle" % latest ::
+      "org.scalatest" %%% "scalatest" % latest % "test" ::
       Nil))
   .jvmSettings(
     libraryDependencies ++= (
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
-      "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
-      "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test" ::
-      "com.outr" %% "scribe" % "1.4.1" ::
-      // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
-      // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
+      "com.typesafe.akka" %% "akka-http" % latest ::
+      "com.typesafe.akka" %% "akka-actor" % latest ::
+      "com.typesafe.akka" %% "akka-testkit" % latest % "test" ::
+      "com.outr" %% "scribe" % latest ::
+      // "com.typesafe.akka" %% "akka-slf4j" % latest ::
+      // "com.outr" %% "scribe-slf4j" % latest :: //TODO
       Nil))
   .jsSettings(
     libraryDependencies ++= (
-      "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
+      "org.scala-js" %%% "scalajs-dom" % latest ::
       Nil))
 
 lazy val frameworkJS = framework.js
@@ -125,7 +120,7 @@ lazy val ids = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "org.scalaz" %%% "scalaz-core" % scalazVersion ::
+      "org.scalaz" %%% "scalaz-core" % latest ::
       Nil))
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
@@ -135,7 +130,7 @@ lazy val graph = crossProject
   .dependsOn(ids)
   .settings(
     libraryDependencies ++= (
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+      "org.scalatest" %%% "scalatest" % latest % "test" ::
       Nil))
   .dependsOn(util)
 lazy val graphJS = graph.js
@@ -146,7 +141,7 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "io.suzaku" %%% "boopickle" % boopickleVersion ::
+      "io.suzaku" %%% "boopickle" % latest ::
       Nil))
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
@@ -158,9 +153,9 @@ lazy val database = project
   .dependsOn(idsJVM)
   .settings(
     libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
-      "com.outr" %% "scribe" % "1.4.1" ::
+      "io.getquill" %% "quill-async-postgres" % latest ::
+      "org.scalatest" %%% "scalatest" % latest % "test,it" ::
+      "com.outr" %% "scribe" % latest ::
       Nil
   // parallelExecution in IntegrationTest := false
   )
@@ -172,21 +167,21 @@ lazy val backend = project
   .settings(Defaults.itSettings)
   .settings(configSettings)
   .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
+    addCompilerPlugin("org.scalameta" % "paradise" % latest cross CrossVersion.full),
     libraryDependencies ++=
-      "org.typelevel" %% "cats" % "0.9.0" ::
-      "com.roundeights" %% "hasher" % "1.2.0" ::
-      "org.mindrot" % "jbcrypt" % "0.4" ::
-      "io.igl" %% "jwt" % "1.2.0" ::
-      "javax.mail" % "javax.mail-api" % "1.5.6" ::
-      "com.sun.mail" % "javax.mail" % "1.5.6" ::
-      "com.roundeights" %% "hasher" % "1.2.0" ::
-      "org.mindrot" % "jbcrypt" % "0.4" ::
-      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
-      "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
-      "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
-      "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test,it" ::
+      "org.typelevel" %% "cats" % latest ::
+      "com.roundeights" %% "hasher" % latest ::
+      "org.mindrot" % "jbcrypt" % latest ::
+      "io.igl" %% "jwt" % latest ::
+      "javax.mail" % "javax.mail-api" % latest ::
+      "com.sun.mail" % "javax.mail" % latest ::
+      "com.roundeights" %% "hasher" % latest ::
+      "org.mindrot" % "jbcrypt" % latest ::
+      "com.github.cornerman" %% "derive" % latestAny ::
+      "com.github.cornerman" %% "delegert" % latestAny ::
+      "com.github.cornerman" %% "autoconfig" % latestAny ::
+      "org.mockito" % "mockito-core" % latest % "test" ::
+      "org.scalatest" %% "scalatest" % latest % "test,it" ::
       Nil)
 
 lazy val frontend = project
@@ -194,17 +189,17 @@ lazy val frontend = project
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings)
   .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
+    addCompilerPlugin("org.scalameta" % "paradise" % latest cross CrossVersion.full),
     libraryDependencies ++= (
-      ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll (ExclusionRule(artifact = "scalarx"), ExclusionRule(artifact = "scalatags"))) ::
-      "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
-      "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
-      "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
-      "org.scalameta" %%% "scalameta" % "1.7.0" ::
-      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
-      "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+      ("com.timushev" %%% "scalatags-rx" % latest excludeAll (ExclusionRule(artifact = "scalarx"), ExclusionRule(artifact = "scalatags"))) ::
+      "com.lihaoyi" %%% "scalatags" % latest ::
+      "com.github.fdietze" %%% "scalarx" % latestAny ::
+      "com.github.fdietze" %%% "vectory" % latest ::
+      "com.github.fdietze" %%% "scala-js-d3v4" % latestAny ::
+      "org.scalameta" %%% "scalameta" % latest ::
+      "com.github.cornerman" %% "derive" % latestAny ::
+      "com.github.cornerman" %% "delegert" % latestAny ::
+      "org.scalatest" %%% "scalatest" % latest % "test" ::
       Nil),
     jsDependencies += RuntimeDOM,
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
@@ -214,9 +209,9 @@ lazy val frontend = project
     emitSourceMaps := true,
     emitSourceMaps in fullOptJS := false,
     npmDevDependencies in Compile ++= (
-      "compression-webpack-plugin" -> "0.3.1" ::
-      "brotli-webpack-plugin" -> "0.2.0" ::
-      "webpack-closure-compiler" -> "2.1.4" ::
+      "compression-webpack-plugin" -> latest ::
+      "brotli-webpack-plugin" -> latest ::
+      "webpack-closure-compiler" -> latest ::
       Nil),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "scalajsbundler.config.js") // renamed due to https://github.com/scalacenter/scalajs-bundler/issues/123
   )
@@ -272,10 +267,10 @@ lazy val systemTest = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion % "it" ::
-      "com.typesafe.akka" %% "akka-actor" % akkaVersion % "it" ::
-      "org.specs2" %% "specs2-core" % specs2Version % "it" ::
-      "org.seleniumhq.selenium" % "selenium-java" % "3.3.1" % "it" ::
+      "com.typesafe.akka" %% "akka-http" % latest % "it" ::
+      "com.typesafe.akka" %% "akka-actor" % latest % "it" ::
+      "org.specs2" %% "specs2-core" % latest % "it" ::
+      "org.seleniumhq.selenium" % "selenium-java" % latest % "it" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )

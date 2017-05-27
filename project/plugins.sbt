@@ -3,6 +3,7 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.16")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.6.0")
 addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.6.0")
 addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.0.3")
+addSbtPlugin("com.github.tkawachi" % "sbt-lock" % "0.3.0")
 // addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-RC3") // better dependency fetcher
 
 // workflow
