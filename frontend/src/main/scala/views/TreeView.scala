@@ -45,8 +45,11 @@ object TreeView {
       }
     })(rows := "1", cols := "80", placeholder := "type something here...").render
     //TODO: better?
-    setTimeout(100) {
-      if (lastSelectedParent.map(_ == postId).getOrElse(false)) area.focus()
+    if (lastSelectedParent.map(_ == postId).getOrElse(false)) {
+      setTimeout(100) {
+        lastSelectedParent = None
+        area.focus()
+      }
     }
 
     div(
@@ -74,13 +77,12 @@ object TreeView {
     )
   }
 
-  def postTreeItem(tree: Tree[PostId], showPost: (PostId, Seq[Frag]) => Frag, indent: Int = 0)(implicit ctx: Ctx.Owner): Frag = div(
-    marginLeft := indent * 10,
+  def postTreeItem(tree: Tree[PostId], showPost: (PostId, Seq[Frag]) => Frag)(implicit ctx: Ctx.Owner): Frag = {
     showPost(tree.element, tree.children
       .sortBy(_.element |> postOrdering)
-      .map(postTreeItem(_, showPost, indent + 1))
+      .map(postTreeItem(_, showPost))
     )
-  )
+  }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(state.displayGraph.map { dg =>
@@ -96,6 +98,7 @@ object TreeView {
           val tree = redundantSpanningTree(p.id, graph.children)
           postTreeItem(tree, { (id, inner) =>
             div(
+              paddingLeft := "10px",
               postItem(state, graph.postsById(id)),
               inner,
               insertPostPlaceholder(state, id)
