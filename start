@@ -57,8 +57,8 @@ test.postgres)
     ;;
 test.integration)
     compose down
-    compose run db-migration
     compose up -d
+    compose run db-migration
     create_wust_template
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
     POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
