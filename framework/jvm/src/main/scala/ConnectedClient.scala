@@ -95,7 +95,7 @@ class ConnectedClient[Event, Error, State](
             response
               .map(resp => CallResponse(seqId, Right(resp)))
               .recover(toError andThen (err => CallResponse(seqId, Left(err))))
-              .||>(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
+              .sideEffect(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
             holder.events.foreach(_.foreach(publishEvent))

@@ -25,7 +25,7 @@ object KeyImplicits {
 object GraphView {
   //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
-    div(div().render ||> (new GraphView(state, _, disableSimulation)))
+    div(div().render sideEffect (new GraphView(state, _, disableSimulation)))
   }
 }
 

@@ -25,7 +25,7 @@ class SimPost(@delegert(vals) val post: Post) extends ExtendedD3Node with Simula
   }
 
   def newDraggingPost = {
-    new SimPost(post) ||> { g =>
+    new SimPost(post) sideEffect { g =>
       g.x = x
       g.y = y
       g.size = size

@@ -17,10 +17,10 @@ package object rxext {
     // def combine[B](f: A => Rx[B])(implicit ctx: Ctx.Owner): Rx[B] = Rx{ rx.map(f)) }
     def debug(implicit ctx: Ctx.Owner): Rx[A] = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Rx[A] = {
-      rx ||> (_.foreach(x => println(s"$name: $x")))
+      rx sideEffect (_.foreach(x => println(s"$name: $x")))
     }
     def debug(print: A => String)(implicit ctx: Ctx.Owner): Rx[A] = {
-      rx ||> (_.foreach(x => println(print(x))))
+      rx sideEffect (_.foreach(x => println(print(x))))
     }
   }
 

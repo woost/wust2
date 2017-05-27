@@ -8,9 +8,9 @@ class PipeSpec extends FreeSpec with MustMatchers {
     (5 |> (_ + 1)) mustEqual 6
   }
 
-  "||>" in {
+  "sideEffect" in {
     var done = false
-    (5 ||> (x => done = x > 0)) mustEqual 5
+    (5 sideEffect (x => done = x > 0)) mustEqual 5
     done mustEqual true
   }
 }

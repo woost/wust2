@@ -63,7 +63,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   val rxPostIdToSimPost: Rx[Map[PostId, SimPost]] = rxSimPosts.fold(Map.empty[PostId, SimPost]) {
     (previousMap, simPosts) =>
-      (simPosts: js.ArrayOps[SimPost]).by(_.id) ||> (_.foreach {
+      (simPosts: js.ArrayOps[SimPost]).by(_.id) sideEffect (_.foreach {
         case (id, simPost) =>
           previousMap.get(id).foreach { previousSimPost =>
             // preserve position, velocity and fixed position
