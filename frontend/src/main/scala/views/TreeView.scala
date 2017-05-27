@@ -6,18 +6,22 @@ import rxext._
 import wust.frontend._
 import wust.ids._
 import wust.graph._
+import wust.util.Pipe
 import wust.util.algorithm.{Tree, redundantSpanningTree}
 import wust.util.collection._
 import autowire._
 import boopickle.Default._
 import wust.api._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scalaz.Tag
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 
 object TreeView {
   import Elements._
+
+  val postOrdering: PostId => IdType = Tag.unwrap _
 
   def bulletPoint(state: GlobalState, post: Post) = span(
     "o ",
@@ -61,19 +65,25 @@ object TreeView {
   def postTreeItem(tree: Tree[PostId], showPost: PostId => Frag, indent: Int = 0)(implicit ctx: Ctx.Owner): Frag = div(
     marginLeft := indent * 10,
     showPost(tree.element),
-    tree.children.map(postTreeItem(_, showPost, indent + 1))
+    tree.children
+      .sortBy(_.element |> postOrdering)
+      .map(postTreeItem(_, showPost, indent + 1))
   )
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(state.displayGraph.map { dg =>
       import dg.graph
+      val rootPosts = graph.posts
+        .filter(p => graph.parents(p.id).isEmpty)
+        .toList
+        .sortBy(_.id |> postOrdering)
+
       div(
-        paddingTop := "100px", paddingLeft := "100px",
-        graph.posts.filter(p => graph.parents(p.id).isEmpty).map {
-          p =>
-            val tree = redundantSpanningTree(p.id, graph.children)
-            postTreeItem(tree, id => postItem(state, graph.postsById(id)))
-        }.toList
+        padding := "100px",
+        rootPosts.map { p =>
+          val tree = redundantSpanningTree(p.id, graph.children)
+          postTreeItem(tree, id => postItem(state, graph.postsById(id)))
+        }
       ).render
     })
   }
