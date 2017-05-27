@@ -164,13 +164,46 @@ object MainView {
     }).render
   }
 
+  def feedbackForm = {
+    val feedbackField = textarea(
+      rows := 5,
+      cols := 30,
+      placeholder := "Missing features? Suggestions? You found a bug? What do you like about this tool?"
+    ).render
+
+    form(
+      feedbackField, br(),
+      input (tpe := "submit", value := "submit"),
+      onsubmit := { () =>
+        val text = feedbackField.value
+        if (text.nonEmpty) {
+          //TODO: Don't hardcode feedback postId
+          Client.api.addPost(text, GraphSelection.Union(Set(PostId(82))), groupId = None).call().foreach { postOpt =>
+            val success = postOpt.isDefined
+            if (success)
+              feedbackField.value = ""
+            else {
+              Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
+                val success = postOpt.isDefined
+                if (success)
+                  feedbackField.value = ""
+              }
+            }
+          }
+          sendEvent("feedback", "submit", "api")
+        }
+        false
+      }
+    )
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
     val viewPages =
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
         // ViewPage.Tree -> TreeView(state) ::
-        Nil
+      Nil
 
     div(
       fontFamily := "sans-serif",
@@ -207,37 +240,7 @@ object MainView {
         position.fixed, bottom := 200, right := 0, boxSizing.`border-box`,
         padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
         "Feedback",
-        {
-          val feedbackField = textarea(
-            rows := 5,
-            cols := 30,
-            placeholder := "Missing features? Suggestions? You found a bug? What do you like about this tool?"
-          ).render
-          form(
-            feedbackField, br(),
-            input (tpe := "submit", value := "submit"),
-            onsubmit := { () =>
-              val text = feedbackField.value
-              if (text.nonEmpty) {
-                //TODO: Don't hardcode feedback postId
-                Client.api.addPost(text, GraphSelection.Union(Set(PostId(82))), groupId = None).call().foreach { postOpt =>
-                  val success = postOpt.isDefined
-                  if (success)
-                    feedbackField.value = ""
-                  else {
-                    Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
-                      val success = postOpt.isDefined
-                      if (success)
-                        feedbackField.value = ""
-                    }
-                  }
-                }
-                sendEvent("feedback", "submit", "api")
-              }
-              false
-            }
-          )
-        }
+        feedbackForm
       ),
 
       div(
