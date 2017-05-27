@@ -8,36 +8,53 @@ import wust.ids._
 import wust.graph._
 import wust.util.algorithm.{Tree, redundantSpanningTree}
 import wust.util.collection._
+import autowire._
+import boopickle.Default._
+import wust.api._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 
 object TreeView {
-  //TODO: report bug about pattern matching in rx.map:
-  //scala.reflect.internal.FatalError: unexpected UnApply frontend.FocusMode.unapply(<unapply-selector>) <unapply> (_)
-  def modeToColor(id: PostId): InteractionMode => d3v4.Color = {
-    case FocusMode(`id`) => d3v4.d3.lab("#AAFFAA")
-    case EditMode(`id`) => d3v4.d3.lab("#AAAAFF")
-    case _ => Color.postDefaultColor
-  }
-  def postColor(id: PostId, mode: Rx[InteractionMode])(implicit ctx: Ctx.Owner): Rx[d3v4.Color] = mode.map(modeToColor(id))
+  import Elements._
+
+  def bulletPoint(state: GlobalState, post: Post) = span(
+    "o ",
+    onclick := { () => state.graphSelection() = GraphSelection.Union(Set(post.id)) }
+  )
+
+  def deleteButton(post: Post) = span(
+    " x",
+    onclick := { () => Client.api.deletePost(post.id).call() }
+  )
+
+  def insertPostPlaceholder(state: GlobalState, post: Post) = div(
+    color := "#AAAAAA",
+    "+ ",
+    textareaWithEnter(elem => {
+      Client.api.addPostInContainment(elem.value, post.id, state.selectedGroupId.now).call().map { success =>
+        if (success) elem.value = ""
+      }
+    })(rows := "1", cols := "80", placeholder := "type something here...")
+  )
 
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Frag = {
+    //TODO: why need rendered textarea for setting value?
+    val area = textareaWithEnter(elem => {
+          Client.api.updatePost(post.copy(title = elem.value)).call().map { success =>
+            //TODO: indicator?
+          }
+        })(rows := "1", cols := "80"/*TODO:, value := post.title*/).render
+    area.value = post.title
     import state._
-    Views.post(
-      post
-    )(
-      backgroundColor := postColor(post.id, mode).map(_.toString),
-      onclick := { () => focusedPostId.updatef(_.setOrToggle(post.id)) },
+    div(
       div(
-        span(onclick := { () => editedPostId.updatef(_.setOrToggle(post.id)) }, "[edit]"),
-        collapsedPostIds.rx.map { collapsed =>
-          span(
-            onclick := { () => collapsedPostIds.updatef(_.toggle(post.id)) },
-            if (collapsed(post.id)) "+" else "-"
-          ).render
-        }
-      )
+        bulletPoint(state, post),
+        area,
+        deleteButton(post)
+      ),
+      insertPostPlaceholder(state, post)(paddingLeft := "20px")
     )
   }
 
@@ -50,7 +67,8 @@ object TreeView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(state.displayGraph.map { dg =>
       import dg.graph
-      div( //TODO: avoid this nesting by passing Rx[Seq[Element]] to the outer div?
+      div(
+        paddingTop := "100px", paddingLeft := "100px",
         graph.posts.filter(p => graph.parents(p.id).isEmpty).map {
           p =>
             val tree = redundantSpanningTree(p.id, graph.children)

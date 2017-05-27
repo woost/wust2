@@ -1,20 +1,26 @@
 package wust.frontend.views
 
-import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement, HTMLInputElement}
+import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.KeyboardEvent
 import scalatags.JsDom.all._
+import scalatags.JsDom.TypedTag
+import org.scalajs.dom.html.TextArea
 
 object Elements {
-  def textareaWithEnterSubmit = textarea(onkeydown := { (event: KeyboardEvent) =>
+  def textareaWithEnterSubmit = textareaWithEnter { elem =>
+    val form = elem.parentNode.asInstanceOf[HTMLFormElement]
+    //TODO: calling submit directly skips onSubmit handlers
+    // form.submit()
+    form.querySelector("""input[type="submit"]""").asInstanceOf[HTMLInputElement].click()
+  }
+
+  def textareaWithEnter(onEnter: HTMLTextAreaElement => Any): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
     if (event.keyCode == KeyCode.Enter && !event.shiftKey) {
       event.preventDefault()
       event.stopPropagation()
-      val elem = event.target.asInstanceOf[HTMLElement]
-      val form = elem.parentNode.asInstanceOf[HTMLFormElement]
-      //TODO: calling submit directly skips onSubmit handlers
-      // form.submit()
-      form.querySelector("""input[type="submit"]""").asInstanceOf[HTMLInputElement].click()
+      val elem = event.target.asInstanceOf[HTMLTextAreaElement]
+      onEnter(elem)
     }
   })
 

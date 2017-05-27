@@ -50,6 +50,27 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
+  def addPostInContainment(msg: String, parentId: PostId, groupId: Option[GroupId]): Future[Boolean] = withUserOrImplicit { (_, user) =>
+    def createStuff = {
+      db.containment.newPost(msg, parentId, groupId).map {
+        case Some((post, containment, ownership)) =>
+          val events = NewPost(post) :: NewContainment(containment) :: ownership.map(NewOwnership(_)).toList
+          respondWithEvents(true, events: _*)
+        case None =>
+          respondWithEvents(false)
+      }
+    }
+
+    groupId match {
+      case Some(groupId) =>
+        isGroupMember(groupId, user.id) {
+          createStuff
+        }(recover = respondWithEvents(false))
+      case None => // public group
+        createStuff
+    }
+  }
+
   def updatePost(post: Post): Future[Boolean] = withUserOrImplicit { (_, user) =>
     hasAccessToPost(post.id, user.id) {
       db.post.update(post).map(respondWithEventsIf(_, UpdatedPost(forClient(post))))

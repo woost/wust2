@@ -202,7 +202,7 @@ object MainView {
 
     val viewPages =
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
-        // ViewPage.Tree -> TreeView(state) ::
+      ViewPage.Tree -> TreeView(state) ::
       Nil
 
     div(
@@ -236,12 +236,12 @@ object MainView {
 
       router.map(viewPages),
 
-      div(
-        position.fixed, bottom := 200, right := 0, boxSizing.`border-box`,
-        padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
-        "Feedback",
-        feedbackForm
-      ),
+      // div(
+      //   position.fixed, bottom := 200, right := 0, boxSizing.`border-box`,
+      //   padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
+      //   "Feedback",
+      //   feedbackForm
+      // ),
 
       div(
         position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,

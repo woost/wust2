@@ -193,6 +193,18 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
       }).recover { case _ => None }
     }
 
+    def newPost(title: String, parentId: PostId, groupIdOpt: Option[GroupId]): Future[Option[(Post, Containment, Option[Ownership])]] = {
+      //TODO: ome query
+      ctx.run(query[Post].filter(_.id == lift(parentId)).nonEmpty)
+        .flatMap {
+          case true => for {
+            (post, ownershipOpt) <- post(title, groupIdOpt)
+            containment <- apply(parentId, post.id)
+          } yield containment.map((post, _, ownershipOpt))
+          case false => Future.successful(None)
+        }
+    }
+
     def delete(containment:Containment): Future[Boolean] = {
       import containment.{parentId, childId}
       val contQ = quote { query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId)) }
