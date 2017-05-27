@@ -17,57 +17,69 @@ import scalaz.Tag
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
+import scala.scalajs.js.timers.setTimeout
 
 object TreeView {
   import Elements._
 
+  //TODO better?
+  private var lastSelectedParent: Option[PostId] = None
+
   val postOrdering: PostId => IdType = Tag.unwrap _
 
-  def bulletPoint(state: GlobalState, post: Post) = span(
+  def bulletPoint(state: GlobalState, postId: PostId) = span(
     "o ",
-    onclick := { () => state.graphSelection() = GraphSelection.Union(Set(post.id)) }
+    onclick := { () => state.graphSelection() = GraphSelection.Union(Set(postId)) }
   )
 
-  def deleteButton(post: Post) = span(
+  def deleteButton(postId: PostId) = span(
     " x",
-    onclick := { () => Client.api.deletePost(post.id).call() }
+    onclick := { () => Client.api.deletePost(postId).call() }
   )
 
-  def insertPostPlaceholder(state: GlobalState, post: Post) = div(
-    color := "#AAAAAA",
-    "+ ",
-    textareaWithEnter(elem => {
-      Client.api.addPostInContainment(elem.value, post.id, state.selectedGroupId.now).call().map { success =>
+  def insertPostPlaceholder(state: GlobalState, postId: PostId) = {
+    val area = textareaWithEnter(elem => {
+      lastSelectedParent = Some(postId)
+      Client.api.addPostInContainment(elem.value, postId, state.selectedGroupId.now).call().map { success =>
         if (success) elem.value = ""
       }
-    })(rows := "1", cols := "80", placeholder := "type something here...")
-  )
+    })(rows := "1", cols := "80", placeholder := "type something here...").render
+    //TODO: better?
+    setTimeout(100) {
+      if (lastSelectedParent.map(_ == postId).getOrElse(false)) area.focus()
+    }
+
+    div(
+      paddingLeft := "10px", color := "#AAAAAA",
+      "+ ",
+      area
+    )
+  }
 
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Frag = {
     //TODO: why need rendered textarea for setting value?
     val area = textareaWithEnter(elem => {
-          Client.api.updatePost(post.copy(title = elem.value)).call().map { success =>
-            //TODO: indicator?
-          }
-        })(rows := "1", cols := "80"/*TODO:, value := post.title*/).render
+      Client.api.updatePost(post.copy(title = elem.value)).call().map { success =>
+        //TODO: indicator?
+      }
+    })(rows := "1", cols := "80"/*TODO:, value := post.title*/).render
     area.value = post.title
-    import state._
+
     div(
       div(
-        bulletPoint(state, post),
+        bulletPoint(state, post.id),
         area,
-        deleteButton(post)
-      ),
-      insertPostPlaceholder(state, post)(paddingLeft := "20px")
+        deleteButton(post.id)
+      )
     )
   }
 
-  def postTreeItem(tree: Tree[PostId], showPost: PostId => Frag, indent: Int = 0)(implicit ctx: Ctx.Owner): Frag = div(
+  def postTreeItem(tree: Tree[PostId], showPost: (PostId, Seq[Frag]) => Frag, indent: Int = 0)(implicit ctx: Ctx.Owner): Frag = div(
     marginLeft := indent * 10,
-    showPost(tree.element),
-    tree.children
+    showPost(tree.element, tree.children
       .sortBy(_.element |> postOrdering)
       .map(postTreeItem(_, showPost, indent + 1))
+    )
   )
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -82,7 +94,13 @@ object TreeView {
         padding := "100px",
         rootPosts.map { p =>
           val tree = redundantSpanningTree(p.id, graph.children)
-          postTreeItem(tree, id => postItem(state, graph.postsById(id)))
+          postTreeItem(tree, { (id, inner) =>
+            div(
+              postItem(state, graph.postsById(id)),
+              inner,
+              insertPostPlaceholder(state, id)
+            )
+          })
         }
       ).render
     })
