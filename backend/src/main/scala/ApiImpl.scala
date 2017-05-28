@@ -52,11 +52,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   def addPostInContainment(msg: String, parentId: PostId, groupId: Option[GroupId]): Future[Option[PostId]] = withUserOrImplicit { (_, user) =>
     def createStuff = {
-          println("asd")
       db.containment.newPost(msg, parentId, groupId).map {
         case Some((post, containment, ownership)) =>
           val events = NewPost(post) :: NewContainment(containment) :: ownership.map(NewOwnership(_)).toList
-          println("xxxxxxxxxx")
           respondWithEvents(Option(post.id), events: _*)
         case None =>
           respondWithEvents(None: Option[PostId])
