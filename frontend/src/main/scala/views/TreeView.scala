@@ -27,93 +27,119 @@ object TreeView {
   import Elements._
 
   //TODO better?
-  private var lastSelectedParent: Option[PostId] = None
+  private var nextFocusedPost: Option[PostId] = None
 
   val postOrdering: PostId => IdType = Tag.unwrap _
 
-  def textfield = span(contenteditable := "true", width := "80ex")
+  def textfield = div(contenteditable := "true", width := "80ex")
 
-  def bulletPoint(state: GlobalState, postId: PostId) = span(
-    "o ",
+  def bulletPoint(state: GlobalState, postId: PostId) = div(
+    " o ", color := "#aaaaaa",
     onclick := { () => state.graphSelection() = GraphSelection.Union(Set(postId)) }
   )
 
-  def collapseButton(state: GlobalState, postId: PostId) = span(
-    "- ",
+  def collapseButton(state: GlobalState, postId: PostId) = div(
+    " - ", color := "#aaaaaa",
     onclick := { () => state.collapsedPostIds() = state.collapsedPostIds.now toggle postId }
   )
 
-  def deleteButton(postId: PostId) = span(
-    " x",
+  def deleteButton(postId: PostId) = div(
+    " x ", color := "#aaaaaa",
     onclick := { () => Client.api.deletePost(postId).call() }
   )
 
-  def insertPostPlaceholder(state: GlobalState, postId: PostId) = {
-    val area = textfield(onkeydown := { (event: KeyboardEvent) =>
+  def findNextSibling(elem: HTMLElement, next: HTMLElement => HTMLElement): Option[HTMLElement] = {
+    val sibling = Option(next(elem))
+    sibling orElse {
+      val parent = Option(elem.parentElement)
+      parent.flatMap(findNextSibling(_, next))
+    }
+  }
+
+  def findTextfield(elem: HTMLElement) = Option(elem.querySelector("""div[contenteditable="true"]""").asInstanceOf[HTMLElement])
+
+  def focusUp(elem: HTMLElement) = {
+    findNextSibling(elem.parentElement,  _.previousElementSibling.asInstanceOf[HTMLElement]).foreach { next =>
+      findTextfield(next).foreach(_.focus)
+    }
+  }
+  def focusDown(elem: HTMLElement) = {
+    findNextSibling(elem.parentElement,  _.nextElementSibling.asInstanceOf[HTMLElement]).foreach { next =>
+      findTextfield(next).foreach(_.focus)
+    }
+  }
+
+  def postItem(state: GlobalState, parent: Option[Post], post: Post)(implicit ctx: Ctx.Owner): Frag = {
+    //TODO: why need rendered textarea for setting value?
+    val area = textfield(
+      post.title,
+      onfocus := { () =>
+        nextFocusedPost = Some(post.id)
+      },
+      onkeydown := { (event: KeyboardEvent) =>
         val elem = event.target.asInstanceOf[HTMLElement]
         onKey(event) {
           case KeyCode.Enter =>
-            lastSelectedParent = Some(postId)
-            Client.api.addPostInContainment(elem.innerHTML, postId, state.selectedGroupId.now).call().map { success =>
-              if (success) elem.innerHTML = ""
+            if (post.title != elem.innerHTML) {
+              nextFocusedPost = Some(post.id)
+              Client.api.updatePost(post.copy(title = elem.innerHTML)).call().map { success =>
+                //TODO: indicator?
+              }
+            } else if (elem.innerHTML.nonEmpty) {
+              //TODO: do not create empty post, createlater when there is a title
+              val postIdFut = parent match {
+                case Some(parent) =>
+                  Client.api.addPostInContainment("", parent.id, state.selectedGroupId.now).call()
+                case None =>
+                  Client.api.addPost("", state.graphSelection.now, state.selectedGroupId.now).call()
+              }
+              postIdFut.map { postId =>
+                postId.foreach(id => nextFocusedPost = Some(id))
+              }
             }
-          // case KeyCode.Up
+          case KeyCode.Tab =>
+            if (post.title != elem.innerHTML) {
+              nextFocusedPost = Some(post.id)
+              Client.api.updatePost(post.copy(title = elem.innerHTML)).call().map { success =>
+                //TODO: indicator?
+              }
+            } else if (elem.innerHTML.nonEmpty) {
+              //TODO: do not create empty post, createlater when there is a title
+              Client.api.addPostInContainment("", post.id, state.selectedGroupId.now).call().map { postId =>
+                  postId.foreach(id => nextFocusedPost = Some(id))
+              }
+            }
+          case KeyCode.Up => focusUp(elem)
+          case KeyCode.Down => focusDown(elem)
+          case KeyCode.Backspace if (elem.innerHTML.isEmpty) =>
+            Client.api.deletePost(post.id).call().foreach { success =>
+              if (success) focusUp(elem)
+            }
         }
-    }).render
+      }
+    ).render
 
     //TODO: better?
-    if (lastSelectedParent.map(_ == postId).getOrElse(false)) {
+    if (nextFocusedPost.map(_ == post.id).getOrElse(false)) {
+      nextFocusedPost = None
       setTimeout(100) {
-        lastSelectedParent = None
         area.focus()
       }
     }
 
     div(
       display.flex,
-      paddingLeft := "10px", color := "#AAAAAA",
-      "+ ",
+      bulletPoint(state, post.id),
+      collapseButton(state, post.id),
+      deleteButton(post.id),
       area
     )
   }
 
-  def nextSiblingElement(elem: HTMLElement, next: HTMLElement => HTMLElement): Option[HTMLElement] = {
-    val sibling = Option(next(elem))
-    sibling orElse {
-      val parent = Option(elem.parentElement)
-      parent.flatMap(nextSiblingElement(_, next))
-    }
-  }
-
-  def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): Frag = {
-    //TODO: why need rendered textarea for setting value?
-    val area = textfield(post.title, onkeydown := { (event: KeyboardEvent) =>
-      val elem = event.target.asInstanceOf[HTMLElement]
-      onKey(event) {
-        case KeyCode.Enter =>
-          Client.api.updatePost(post.copy(title = elem.innerHTML)).call().map { success =>
-            //TODO: indicator?
-          }
-        case KeyCode.Up => nextSiblingElement(elem.parentElement.parentElement,  _.previousElementSibling.asInstanceOf[HTMLElement] ).foreach(_.querySelector("""span[contenteditable="true"]""").asInstanceOf[HTMLElement].focus())
-        case KeyCode.Down => nextSiblingElement(elem.parentElement.parentElement,_.nextElementSibling.asInstanceOf[HTMLElement]).foreach(_.querySelector("""span[contenteditable="true"]""").asInstanceOf[HTMLElement].focus())
-      }
-    })
-
-    div(
-      div(
-        display.flex,
-        bulletPoint(state, post.id),
-        collapseButton(state, post.id),
-        deleteButton(post.id),
-        area
-      )
-    )
-  }
-
-  def postTreeItem(tree: Tree[PostId], showPost: (PostId, Seq[Frag]) => Frag)(implicit ctx: Ctx.Owner): Frag = {
-    showPost(tree.element, tree.children
+  def postTreeItem(tree: Tree[PostId], showPost: (Option[PostId], PostId, Seq[Frag]) => Frag, parent: Option[PostId] = None)(implicit ctx: Ctx.Owner): Frag = {
+    showPost(parent, tree.element, tree.children
       .sortBy(_.element |> postOrdering)
-      .map(postTreeItem(_, showPost))
+      .map(postTreeItem(_, showPost, Some(tree.element)))
     )
   }
 
@@ -129,12 +155,13 @@ object TreeView {
         padding := "100px",
         rootPosts.map { p =>
           val tree = redundantSpanningTree(p.id, graph.children)
-          postTreeItem(tree, { (id, inner) =>
+          postTreeItem(tree, { (parentId, id, inner) =>
+            val post = graph.postsById(id)
+            val parent = parentId.map(graph.postsById(_))
             div(
               paddingLeft := "10px",
-              postItem(state, graph.postsById(id)),
-              inner,
-              insertPostPlaceholder(state, id)
+              postItem(state, parent, post),
+              inner
             )
           })
         }

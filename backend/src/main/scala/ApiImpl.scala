@@ -29,14 +29,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
 
-  def addPost(msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Option[Post]] = withUserOrImplicit { (_, user) =>
+  def addPost(msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Option[PostId]] = withUserOrImplicit { (_, user) =>
     def createStuff = {
       val newPost = db.post(msg, groupIdOpt)
       newPost.flatMap {
         case (post, _) =>
           selectionToContainments(selection, post.id).map { containments =>
             val events = Seq(NewPost(post)) ++ containments.map(NewContainment(_))
-            respondWithEvents(Option(forClient(post)), events: _*)
+            respondWithEvents(Option(post.id), events: _*)
           }
       }
     }
@@ -50,14 +50,16 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def addPostInContainment(msg: String, parentId: PostId, groupId: Option[GroupId]): Future[Boolean] = withUserOrImplicit { (_, user) =>
+  def addPostInContainment(msg: String, parentId: PostId, groupId: Option[GroupId]): Future[Option[PostId]] = withUserOrImplicit { (_, user) =>
     def createStuff = {
+          println("asd")
       db.containment.newPost(msg, parentId, groupId).map {
         case Some((post, containment, ownership)) =>
           val events = NewPost(post) :: NewContainment(containment) :: ownership.map(NewOwnership(_)).toList
-          respondWithEvents(true, events: _*)
+          println("xxxxxxxxxx")
+          respondWithEvents(Option(post.id), events: _*)
         case None =>
-          respondWithEvents(false)
+          respondWithEvents(None: Option[PostId])
       }
     }
 
@@ -65,7 +67,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       case Some(groupId) =>
         isGroupMember(groupId, user.id) {
           createStuff
-        }(recover = respondWithEvents(false))
+        }(recover = respondWithEvents(None: Option[PostId]))
       case None => // public group
         createStuff
     }
