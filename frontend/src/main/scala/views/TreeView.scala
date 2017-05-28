@@ -94,6 +94,17 @@ object TreeView {
     nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = false)).foreach(focusAndSetCursor _)
   }
 
+  def textAroundCursorSelectionElement(elem: HTMLElement) = {
+    val cursorRange = window.getSelection.getRangeAt(0)
+    val lhs = document.createRange()
+    val rhs = document.createRange()
+    lhs.setStartBefore(elem)
+    lhs.setEnd(cursorRange.startContainer, cursorRange.startOffset)
+    rhs.setStart(cursorRange.endContainer, cursorRange.endOffset)
+    rhs.setEndAfter(elem)
+    (lhs.toString, rhs.toString)
+  }
+
   def focusAndSetCursor(elem: HTMLElement) {
     elem.focus()
     val s = window.getSelection()
@@ -121,12 +132,14 @@ object TreeView {
         val elem = event.target.asInstanceOf[HTMLElement]
         onKey(event) {
           case KeyCode.Enter if !event.shiftKey =>
+            val (currPostText, newPostText) = textAroundCursorSelectionElement(elem)
+            Client.api.updatePost(post.copy(title = currPostText)).call()
             //TODO: do not create empty post, create later when there is a title
             val postIdFut = c.parentMap.get(tree) match {
               case Some(parentTree) =>
-                Client.api.addPostInContainment("", parentTree.element.id, state.selectedGroupId.now).call()
+                Client.api.addPostInContainment(newPostText, parentTree.element.id, state.selectedGroupId.now).call()
               case None =>
-                Client.api.addPost("", state.graphSelection.now, state.selectedGroupId.now).call()
+                Client.api.addPost(newPostText, state.graphSelection.now, state.selectedGroupId.now).call()
             }
 
             postIdFut.map { postId =>
@@ -156,7 +169,13 @@ object TreeView {
           }
           case KeyCode.Up if !event.shiftKey => focusUp(elem)
           case KeyCode.Down if !event.shiftKey => focusDown(elem)
-          case KeyCode.Backspace if !event.shiftKey && (window.getSelection.getRangeAt(0).startOffset <= 1)=>
+          case KeyCode.Backspace if !event.shiftKey && (window.getSelection.getRangeAt(0).startOffset <= 1) =>
+            c.previousMap.get(tree).foreach { previousTree =>
+              val prevPost = previousTree.element
+              val (_, remainingText) = textAroundCursorSelectionElement(elem)
+              Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
+            }
+
             Client.api.deletePost(post.id).call().foreach { success =>
               if (success) focusUp(elem)
             }
