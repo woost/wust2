@@ -156,7 +156,7 @@ object TreeView {
           }
           case KeyCode.Up if !event.shiftKey => focusUp(elem)
           case KeyCode.Down if !event.shiftKey => focusDown(elem)
-          case KeyCode.Backspace if !event.shiftKey && elem.innerHTML.isEmpty =>
+          case KeyCode.Backspace if !event.shiftKey && (window.getSelection.getRangeAt(0).startOffset <= 1)=>
             Client.api.deletePost(post.id).call().foreach { success =>
               if (success) focusUp(elem)
             }
