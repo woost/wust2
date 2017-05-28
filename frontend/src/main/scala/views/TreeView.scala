@@ -16,8 +16,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
 
 import org.scalajs.dom.console
+import org.scalajs.dom.document
 import org.scalajs.dom.raw.{Element, HTMLElement}
 import scalatags.JsDom.all._
+import scala.scalajs.js
 import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
@@ -48,25 +50,43 @@ object TreeView {
     onclick := { () => Client.api.deletePost(postId).call() }
   )
 
-  def findNextSibling(elem: HTMLElement, next: HTMLElement => HTMLElement): Option[HTMLElement] = {
-    val sibling = Option(next(elem))
+  def nextInParent(elem: HTMLElement, next: HTMLElement => Option[HTMLElement]): Option[HTMLElement] = {
+    val sibling = next(elem)
     sibling orElse {
       val parent = Option(elem.parentElement)
-      parent.flatMap(findNextSibling(_, next))
+      parent.flatMap(nextInParent(_, next))
     }
   }
 
-  def findTextfield(elem: HTMLElement) = Option(elem.querySelector("""div[contenteditable="true"]""").asInstanceOf[HTMLElement])
+  def findNextTextfield(elem: HTMLElement, isReversed: Boolean): Option[HTMLElement] = {
+    val queried = elem.querySelectorAll("""div[contenteditable="true"]:not([disabled])""")
+
+    if (queried.length <= 1) None
+    else {
+      var foundIdx: Option[Int] = None;
+      for (i <- 0 until queried.length) {
+        val e = queried(i).asInstanceOf[HTMLElement]
+        if (e == document.activeElement)
+          foundIdx = Some(i);
+      }
+
+      foundIdx.flatMap { foundIdx =>
+        val offset = if (isReversed) -1 else 1
+        val nextIdx = (foundIdx + offset) match {
+          case x if x < 0 => queried.length - 1
+          case x if x > queried.length => 0
+          case x => x
+        }
+        queried(nextIdx).asInstanceOf[js.UndefOr[HTMLElement]].toOption
+      }
+    }
+  }
 
   def focusUp(elem: HTMLElement) = {
-    findNextSibling(elem.parentElement,  _.previousElementSibling.asInstanceOf[HTMLElement]).foreach { next =>
-      findTextfield(next).foreach(_.focus)
-    }
+    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = true)).foreach(_.focus)
   }
   def focusDown(elem: HTMLElement) = {
-    findNextSibling(elem.parentElement,  _.nextElementSibling.asInstanceOf[HTMLElement]).foreach { next =>
-      findTextfield(next).foreach(_.focus)
-    }
+    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = false)).foreach(_.focus)
   }
 
   def postItem(state: GlobalState, parent: Option[Post], post: Post)(implicit ctx: Ctx.Owner): Frag = {
@@ -122,7 +142,7 @@ object TreeView {
     //TODO: better?
     if (nextFocusedPost.map(_ == post.id).getOrElse(false)) {
       nextFocusedPost = None
-      setTimeout(100) {
+      setTimeout(200) {
         area.focus()
       }
     }
