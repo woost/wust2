@@ -15,6 +15,7 @@ trait Api {
   def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: PostId, targetId: PostId): Future[Option[Connection]]
   def createContainment(parentId: PostId, childId: PostId): Future[Option[Containment]]
+  def createSelection(postId: PostId, selection: GraphSelection): Future[Boolean]
   def deleteConnection(id: Connection): Future[Boolean]
   def deleteContainment(id: Containment): Future[Boolean]
   def getUser(userId: UserId): Future[Option[User]]

@@ -7,13 +7,14 @@ import wust.frontend._
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
-import wust.util.algorithm.{Tree, redundantSpanningTree}
+import wust.util.algorithm.{TreeContext, Tree, redundantSpanningTree}
 import wust.util.collection._
 import autowire._
 import boopickle.Default._
 import wust.api._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
+import scala.math.Ordering
 
 import org.scalajs.dom.console
 import org.scalajs.dom.document
@@ -23,7 +24,12 @@ import scala.scalajs.js
 import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.KeyboardEvent
+import org.scalajs.dom.{Event, KeyboardEvent}
+
+//TODO proper ordering
+object PostOrdering extends Ordering[Post] {
+  def compare(a:Post, b:Post) = Tag.unwrap(a.id) compare Tag.unwrap(b.id)
+}
 
 object TreeView {
   import Elements._
@@ -31,7 +37,7 @@ object TreeView {
   //TODO better?
   private var nextFocusedPost: Option[PostId] = None
 
-  val postOrdering: PostId => IdType = Tag.unwrap _
+  implicit val postOrdering = PostOrdering
 
   def textfield = div(contenteditable := "true", width := "80ex")
 
@@ -89,49 +95,59 @@ object TreeView {
     nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = false)).foreach(_.focus)
   }
 
-  def postItem(state: GlobalState, parent: Option[Post], post: Post)(implicit ctx: Ctx.Owner): Frag = {
+  def postItem(state: GlobalState, c: TreeContext[Post], tree: Tree[Post])(implicit ctx: Ctx.Owner): Frag = {
     //TODO: why need rendered textarea for setting value?
+    val post = tree.element
     val area = textfield(
       post.title,
       onfocus := { () =>
         nextFocusedPost = Some(post.id)
       },
+      onblur := { (event: Event) =>
+        val elem = event.target.asInstanceOf[HTMLElement]
+        if (post.title != elem.innerHTML)
+          Client.api.updatePost(post.copy(title = elem.innerHTML)).call()
+      },
       onkeydown := { (event: KeyboardEvent) =>
         val elem = event.target.asInstanceOf[HTMLElement]
         onKey(event) {
-          case KeyCode.Enter =>
-            if (post.title != elem.innerHTML) {
-              nextFocusedPost = Some(post.id)
-              Client.api.updatePost(post.copy(title = elem.innerHTML)).call().map { success =>
-                //TODO: indicator?
-              }
-            } else if (elem.innerHTML.nonEmpty) {
-              //TODO: do not create empty post, createlater when there is a title
-              val postIdFut = parent match {
-                case Some(parent) =>
-                  Client.api.addPostInContainment("", parent.id, state.selectedGroupId.now).call()
-                case None =>
-                  Client.api.addPost("", state.graphSelection.now, state.selectedGroupId.now).call()
-              }
-              postIdFut.map { postId =>
-                postId.foreach(id => nextFocusedPost = Some(id))
-              }
+          case KeyCode.Enter if !event.shiftKey =>
+            //TODO: do not create empty post, create later when there is a title
+            val postIdFut = c.parentMap.get(tree) match {
+              case Some(parentTree) =>
+                Client.api.addPostInContainment("", parentTree.element.id, state.selectedGroupId.now).call()
+              case None =>
+                Client.api.addPost("", state.graphSelection.now, state.selectedGroupId.now).call()
             }
-          case KeyCode.Tab =>
-            if (post.title != elem.innerHTML) {
-              nextFocusedPost = Some(post.id)
-              Client.api.updatePost(post.copy(title = elem.innerHTML)).call().map { success =>
-                //TODO: indicator?
-              }
-            } else if (elem.innerHTML.nonEmpty) {
-              //TODO: do not create empty post, createlater when there is a title
-              Client.api.addPostInContainment("", post.id, state.selectedGroupId.now).call().map { postId =>
-                nextFocusedPost = postId
-              }
+
+            postIdFut.map { postId =>
+              postId.foreach(id => nextFocusedPost = Some(id))
             }
-          case KeyCode.Up => focusUp(elem)
-          case KeyCode.Down => focusDown(elem)
-          case KeyCode.Backspace if (elem.innerHTML.isEmpty) =>
+          case KeyCode.Tab => event.shiftKey match {
+            case false =>
+              c.previousMap.get(tree).foreach { previousTree =>
+                Client.api.createContainment(previousTree.element.id, post.id).call()
+                c.parentMap.get(tree).foreach { parentTree =>
+                  Client.api.deleteContainment(Containment(parentTree.element.id, post.id)).call()
+                }
+              }
+            case true =>
+              for {
+                parent <- c.parentMap.get(tree)
+                grandParent = c.parentMap.get(parent)
+              } {
+                grandParent match {
+                  case Some(grandParent) =>
+                    Client.api.createContainment(grandParent.element.id, post.id).call()
+                  case None =>
+                    Client.api.createSelection(post.id, state.graphSelection.now).call()
+                }
+                Client.api.deleteContainment(Containment(parent.element.id, post.id)).call()
+              }
+          }
+          case KeyCode.Up if !event.shiftKey => focusUp(elem)
+          case KeyCode.Down if !event.shiftKey => focusDown(elem)
+          case KeyCode.Backspace if !event.shiftKey && elem.innerHTML.isEmpty =>
             Client.api.deletePost(post.id).call().foreach { success =>
               if (success) focusUp(elem)
             }
@@ -156,10 +172,16 @@ object TreeView {
     )
   }
 
-  def postTreeItem(tree: Tree[PostId], showPost: (Option[PostId], PostId, Seq[Frag]) => Frag, parent: Option[PostId] = None)(implicit ctx: Ctx.Owner): Frag = {
-    showPost(parent, tree.element, tree.children
-      .sortBy(_.element |> postOrdering)
-      .map(postTreeItem(_, showPost, Some(tree.element)))
+  def postTreeItem(state: GlobalState, c: TreeContext[Post], tree: Tree[Post])(implicit ctx: Ctx.Owner): Frag = {
+    val childNodes = tree.children
+      .sortBy(_.element)
+      .map(postTreeItem(state, c, _))
+      .toList
+
+    div(
+      paddingLeft := "10px",
+      postItem(state, c, tree),
+      childNodes
     )
   }
 
@@ -169,22 +191,18 @@ object TreeView {
       val rootPosts = graph.posts
         .filter(p => graph.parents(p.id).isEmpty)
         .toList
-        .sortBy(_.id |> postOrdering)
+        .sorted
+
+      def postChildren(post: Post): Iterable[Post] = {
+        graph.children(post.id).map(graph.postsById(_))
+      }
+
+      val trees = rootPosts.map(redundantSpanningTree[Post](_, postChildren _))
+      val context = new TreeContext(trees: _*)
 
       div(
         padding := "100px",
-        rootPosts.map { p =>
-          val tree = redundantSpanningTree(p.id, graph.children)
-          postTreeItem(tree, { (parentId, id, inner) =>
-            val post = graph.postsById(id)
-            val parent = parentId.map(graph.postsById(_))
-            div(
-              paddingLeft := "10px",
-              postItem(state, parent, post),
-              inner
-            )
-          })
-        }
+        trees.map(postTreeItem(state, context, _))
       ).render
     })
   }

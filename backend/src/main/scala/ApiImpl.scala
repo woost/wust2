@@ -99,6 +99,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     db.connection.delete(connection).map(respondWithEventsIf(_, DeleteConnection(connection)))
   }
 
+  def createSelection(postId: PostId, selection: GraphSelection): Future[Boolean] = withUserOrImplicit { (_, _) =>
+    //TODO: hasAccessToOnePost(user, postA, postB)
+    selectionToContainments(selection, postId).map { containments =>
+      val events = containments.map(NewContainment(_))
+      respondWithEvents(true, events: _*)
+    }
+  }
+
   def createContainment(parentId: PostId, childId: PostId): Future[Option[Containment]] = withUserOrImplicit { (_, _) =>
     //TODO: hasAccessToOnePost(user, postA, postB)
     val containment = db.containment(parentId, childId)

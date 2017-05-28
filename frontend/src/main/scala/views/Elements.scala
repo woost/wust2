@@ -16,8 +16,7 @@ object Elements {
   }
 
   def onKey(e: KeyboardEvent)(f: PartialFunction[Long, Any]) = {
-    val result = if (e.shiftKey) None else f.lift(e.keyCode)
-    result.foreach { _ =>
+    f.lift(e.keyCode).foreach { _ =>
       e.preventDefault()
       e.stopPropagation()
     }
