@@ -126,7 +126,7 @@ object TreeView {
             } else if (elem.innerHTML.nonEmpty) {
               //TODO: do not create empty post, createlater when there is a title
               Client.api.addPostInContainment("", post.id, state.selectedGroupId.now).call().map { postId =>
-                  postId.foreach(id => nextFocusedPost = Some(id))
+                nextFocusedPost = postId
               }
             }
           case KeyCode.Up => focusUp(elem)
@@ -141,8 +141,8 @@ object TreeView {
 
     //TODO: better?
     if (nextFocusedPost.map(_ == post.id).getOrElse(false)) {
-      nextFocusedPost = None
       setTimeout(200) {
+        nextFocusedPost = None
         area.focus()
       }
     }
