@@ -42,18 +42,18 @@ object TreeView {
   def textfield = div(contenteditable := "true", width := "80ex")
 
   def bulletPoint(state: GlobalState, postId: PostId) = div(
-    " o ", color := "#aaaaaa",
+    "•", paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
     onclick := { () => state.graphSelection() = GraphSelection.Union(Set(postId)) }
   )
 
-  def collapseButton(state: GlobalState, postId: PostId) = div(
-    " - ", color := "#aaaaaa",
+  def collapseButton(state: GlobalState, postId: PostId)(implicit ctx: Ctx.Owner) = button(
+    span(state.collapsedPostIds.map(ids => if (ids(postId)) "+" else "-")).render,
     onclick := { () => state.collapsedPostIds() = state.collapsedPostIds.now toggle postId }
   )
 
-  def deleteButton(postId: PostId) = div(
-    " x ", color := "#aaaaaa",
-    onclick := { () => Client.api.deletePost(postId).call() }
+  def deleteButton(postId: PostId) = buttonClick(
+    "delete",
+    Client.api.deletePost(postId).call()
   )
 
   def nextInParent(elem: HTMLElement, next: HTMLElement => Option[HTMLElement]): Option[HTMLElement] = {
@@ -166,9 +166,9 @@ object TreeView {
     div(
       display.flex,
       bulletPoint(state, post.id),
+      area,
       collapseButton(state, post.id),
-      deleteButton(post.id),
-      area
+      deleteButton(post.id)
     )
   }
 
