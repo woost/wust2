@@ -16,8 +16,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
 import scala.math.Ordering
 
-import org.scalajs.dom.console
-import org.scalajs.dom.document
+import org.scalajs.dom.{window, document, console}
 import org.scalajs.dom.raw.{Element, HTMLElement}
 import scalatags.JsDom.all._
 import scala.scalajs.js
@@ -89,10 +88,20 @@ object TreeView {
   }
 
   def focusUp(elem: HTMLElement) = {
-    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = true)).foreach(_.focus)
+    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = true)).foreach(focusAndSetCursor _)
   }
   def focusDown(elem: HTMLElement) = {
-    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = false)).foreach(_.focus)
+    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = false)).foreach(focusAndSetCursor _)
+  }
+
+  def focusAndSetCursor(elem: HTMLElement) {
+    elem.focus()
+    val s = window.getSelection()
+    val r = document.createRange()
+    r.selectNodeContents(elem)
+    r.collapse(false) // false: collapse to end, true: collapse to start
+    s.removeAllRanges()
+    s.addRange(r)
   }
 
   def postItem(state: GlobalState, c: TreeContext[Post], tree: Tree[Post])(implicit ctx: Ctx.Owner): Frag = {
@@ -159,7 +168,7 @@ object TreeView {
     if (nextFocusedPost.map(_ == post.id).getOrElse(false)) {
       setTimeout(200) {
         nextFocusedPost = None
-        area.focus()
+        focusAndSetCursor(area)
       }
     }
 
