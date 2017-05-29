@@ -26,7 +26,7 @@ object Elements {
 
   def textareaWithEnter(f: HTMLTextAreaElement => Boolean): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
     onKey(event) {
-      case KeyCode.Enter =>
+      case KeyCode.Enter if !event.shiftKey =>
         val elem = event.target.asInstanceOf[HTMLTextAreaElement]
         f(elem)
     }
