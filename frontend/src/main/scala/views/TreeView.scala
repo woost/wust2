@@ -38,7 +38,8 @@ object TreeView {
 
   implicit val postOrdering = PostOrdering
 
-  def textfield = div(contenteditable := "true", width := "80ex")
+  // preserves newlines and white spaces: white-space: pre
+  def textfield = div(contenteditable := "true", style := "white-space: pre", width := "80ex")
 
   def bulletPoint(state: GlobalState, postId: PostId) = div(
     "•", paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
@@ -109,10 +110,91 @@ object TreeView {
     elem.focus()
     val s = window.getSelection()
     val r = document.createRange()
-    r.selectNodeContents(elem.firstChild)
+    r.selectNodeContents(Option(elem.firstChild).getOrElse(elem))
     r.collapse(false) // false: collapse to end, true: collapse to start
     s.removeAllRanges()
     s.addRange(r)
+  }
+
+  def handleKey(state: GlobalState, c: TreeContext[Post], tree: Tree[Post], event: KeyboardEvent) = {
+    val post = tree.element
+    val elem = event.target.asInstanceOf[HTMLElement]
+    onKey(event) {
+      case KeyCode.Enter if !event.shiftKey =>
+        val (currPostText, newPostText) = textAroundCursorSelectionElement(elem)
+        Client.api.updatePost(post.copy(title = currPostText)).call()
+        //TODO: do not create empty post, create later when there is a title
+        val postIdFut = c.parentMap.get(tree) match {
+          case Some(parentTree) =>
+            Client.api.addPostInContainment(newPostText, parentTree.element.id, state.selectedGroupId.now).call()
+          case None =>
+            Client.api.addPost(newPostText, state.graphSelection.now, state.selectedGroupId.now).call()
+        }
+
+        postIdFut.map { postId =>
+          postId.foreach(id => nextFocusedPost = Some(id))
+        }
+        false
+      case KeyCode.Tab => event.shiftKey match {
+        case false =>
+          c.previousMap.get(tree).foreach { previousTree =>
+            Client.api.createContainment(previousTree.element.id, post.id).call()
+            c.parentMap.get(tree).foreach { parentTree =>
+              Client.api.deleteContainment(Containment(parentTree.element.id, post.id)).call()
+            }
+          }
+          false
+        case true =>
+          for {
+            parent <- c.parentMap.get(tree)
+            grandParent = c.parentMap.get(parent)
+          } {
+            grandParent match {
+              case Some(grandParent) =>
+                Client.api.createContainment(grandParent.element.id, post.id).call()
+              case None =>
+                Client.api.createSelection(post.id, state.graphSelection.now).call()
+            }
+            Client.api.deleteContainment(Containment(parent.element.id, post.id)).call()
+          }
+          false
+      }
+      case KeyCode.Up if !event.shiftKey =>
+        val sel = window.getSelection.getRangeAt(0)
+        if (sel.startOffset == sel.endOffset && !elem.textContent.take(sel.startOffset).contains('\n')) {
+          focusUp(elem)
+          false
+        } else true
+      case KeyCode.Down if !event.shiftKey =>
+        val sel = window.getSelection.getRangeAt(0)
+        if (sel.startOffset == sel.endOffset && !elem.textContent.drop(sel.endOffset).contains('\n')) {
+          focusDown(elem)
+          false
+        } else true
+      case KeyCode.Delete if !event.shiftKey =>
+        val sel = window.getSelection.getRangeAt(0)
+        val textElem = elem.firstChild.asInstanceOf[Text]
+        if (sel.startOffset == textElem.length && sel.endOffset == textElem.length) {
+          c.nextMap.get(tree).map { nextTree =>
+            val nextPost = nextTree.element
+            Client.api.updatePost(post.copy(title = post.title + " " + nextPost.title)).call()
+            Client.api.deletePost(nextPost.id, state.graphSelection.now).call()
+            false
+          }.getOrElse(true)
+        } else true
+      case KeyCode.Backspace if !event.shiftKey =>
+        val sel = window.getSelection.getRangeAt(0)
+        if (sel.startOffset == 0 && sel.endOffset == 0) {
+          c.previousMap.get(tree).map { previousTree =>
+            val prevPost = previousTree.element
+            val (_, remainingText) = textAroundCursorSelectionElement(elem)
+            Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
+            Client.api.deletePost(post.id, state.graphSelection.now).call()
+            focusUp(elem)
+            false
+          }.getOrElse(true)
+        } else true
+    }
   }
 
   def postItem(state: GlobalState, c: TreeContext[Post], tree: Tree[Post])(implicit ctx: Ctx.Owner): Frag = {
@@ -125,95 +207,16 @@ object TreeView {
       },
       onblur := { (event: Event) =>
         val elem = event.target.asInstanceOf[HTMLElement]
-        if (post.title != elem.innerHTML)
-          Client.api.updatePost(post.copy(title = elem.innerHTML)).call()
+        // val elemWithText = event.target.asInstanceOf[}]
+        if (post.title != elem.textContent)
+          Client.api.updatePost(post.copy(title = elem.textContent)).call()
       },
-      onkeydown := { (event: KeyboardEvent) =>
-        val elem = event.target.asInstanceOf[HTMLElement]
-        onKey(event) {
-          case KeyCode.Enter if !event.shiftKey =>
-            val (currPostText, newPostText) = textAroundCursorSelectionElement(elem)
-            Client.api.updatePost(post.copy(title = currPostText)).call()
-            //TODO: do not create empty post, create later when there is a title
-            val postIdFut = c.parentMap.get(tree) match {
-              case Some(parentTree) =>
-                Client.api.addPostInContainment(newPostText, parentTree.element.id, state.selectedGroupId.now).call()
-              case None =>
-                Client.api.addPost(newPostText, state.graphSelection.now, state.selectedGroupId.now).call()
-            }
-
-            postIdFut.map { postId =>
-              postId.foreach(id => nextFocusedPost = Some(id))
-            }
-            false
-          case KeyCode.Tab => event.shiftKey match {
-            case false =>
-              c.previousMap.get(tree).foreach { previousTree =>
-                Client.api.createContainment(previousTree.element.id, post.id).call()
-                c.parentMap.get(tree).foreach { parentTree =>
-                  Client.api.deleteContainment(Containment(parentTree.element.id, post.id)).call()
-                }
-              }
-              false
-            case true =>
-              for {
-                parent <- c.parentMap.get(tree)
-                grandParent = c.parentMap.get(parent)
-              } {
-                grandParent match {
-                  case Some(grandParent) =>
-                    Client.api.createContainment(grandParent.element.id, post.id).call()
-                  case None =>
-                    Client.api.createSelection(post.id, state.graphSelection.now).call()
-                }
-                Client.api.deleteContainment(Containment(parent.element.id, post.id)).call()
-              }
-              false
-          }
-          case KeyCode.Up if !event.shiftKey =>
-            focusUp(elem)
-            false
-          case KeyCode.Down if !event.shiftKey =>
-            focusDown(elem)
-            false
-          case KeyCode.Delete if !event.shiftKey =>
-            val sel = window.getSelection.getRangeAt(0)
-            val textElem = elem.firstChild.asInstanceOf[Text]
-            console.log(textElem)
-            if (sel.startOffset == textElem.length &&
-                sel.endOffset == textElem.length &&
-                sel.startContainer == elem.firstChild &&
-                sel.endContainer == elem.firstChild) {
-              c.nextMap.get(tree).map { nextTree =>
-                val nextPost = nextTree.element
-                Client.api.updatePost(post.copy(title = post.title + " " + nextPost.title)).call()
-                Client.api.deletePost(nextPost.id, state.graphSelection.now).call()
-                focusUp(elem)
-                false
-              }.getOrElse(true)
-            } else true
-          case KeyCode.Backspace if !event.shiftKey =>
-            val sel = window.getSelection.getRangeAt(0)
-            if (sel.startOffset == 0 &&
-                sel.endOffset == 0 &&
-                sel.startContainer == elem.firstChild) {
-              c.previousMap.get(tree).map { previousTree =>
-                val prevPost = previousTree.element
-                val (_, remainingText) = textAroundCursorSelectionElement(elem)
-                Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
-                Client.api.deletePost(post.id, state.graphSelection.now).call()
-                focusUp(elem)
-                false
-              }.getOrElse(true)
-            } else true
-        }
-      }
+      onkeydown := { (e: KeyboardEvent) => handleKey(state, c, tree, e) }
     ).render
 
     //TODO: better?
     if (nextFocusedPost.map(_ == post.id).getOrElse(false)) {
       setTimeout(200) {
-        nextFocusedPost = None
         focusAndSetCursor(area)
       }
     }
