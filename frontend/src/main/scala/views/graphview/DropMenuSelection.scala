@@ -9,18 +9,10 @@ import wust.api._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
+import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-object DropMenu {
-  val dropActions = (
-    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }) :: //TODO: better solution for pickling trait parameters in autowire?
-    DropAction("insert into", { (dropped: SimPost, target: SimPost) => Client.api.createContainment(target.id, dropped.id).call() }) ::
-    // DropAction("Merge", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }) ::
-    Nil
-  ).toArray
-}
-
-object DropMenuSelection extends DataSelection[SimPost] {
+class DropMenuSelection(dropActions: js.Array[DropAction]) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
@@ -37,7 +29,7 @@ object DropMenuSelection extends DataSelection[SimPost] {
       .outerRadius(menuOuterRadius)
       .cornerRadius(menuCornerRadius)
 
-    val pieData = DropMenu.dropActions.toJSArray
+    val pieData = dropActions
     val ringMenuArc = menu.selectAll("path")
       .data(pie(pieData))
     val ringMenuLabels = menu.selectAll("text")

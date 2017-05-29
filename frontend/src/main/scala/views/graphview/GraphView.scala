@@ -7,6 +7,7 @@ import wust.frontend.Color._
 import wust.frontend.{ DevOnly, GlobalState }
 import wust.graph._
 import wust.util.Pipe
+import scala.concurrent.ExecutionContext
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -24,12 +25,12 @@ object KeyImplicits {
 
 object GraphView {
   //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
-  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) = {
     div(div().render sideEffect (new GraphView(state, _, disableSimulation)))
   }
 }
 
-class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) {
+class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
@@ -56,7 +57,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val postMenuLayer = menuSvg.append("g")
   val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = SelectData.rxDraw(DropMenuSelection, postDrag.closestPosts)(dropMenuLayer.append("g"))
+  val dropMenuSelection = SelectData.rxDraw(new DropMenuSelection(postDrag.dropActions), postDrag.closestPosts)(dropMenuLayer.append("g"))
 
   val controls = container.append(() => div(
     position.absolute, left := 5, top := 100,

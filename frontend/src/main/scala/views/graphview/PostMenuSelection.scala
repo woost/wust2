@@ -34,7 +34,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State) extends DataSe
       ) ::
         MenuAction("Edit", { (p: SimPost) => graphState.rxEditedPostId() = Option(p.id) }) ::
         // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-        MenuAction("Delete", { (p: SimPost) => Client.api.deletePost(p.id, graphState.state.graphSelection.now: GraphSelection).call(); sendEvent("post", "delete", "api") }) ::
+        MenuAction("Delete", { (p: SimPost) => Client.api.deletePost(p.id, graphState.state.graphSelection.now).call(); sendEvent("post", "delete", "api") }) ::
         MenuAction("Autopos", { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.restart() }) :: //TODO:  hide or on/off when already auto positioned
         MenuAction("Focus", { (p: SimPost) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
         Nil

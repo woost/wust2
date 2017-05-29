@@ -4,10 +4,16 @@ import org.scalajs.d3v4._
 import rx._
 import vectory._
 import wust.frontend.views.Views
+import autowire._
+import boopickle.Default._
+import wust.frontend.Client
+import wust.api._
+import wust.graph.Containment
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scalatags.JsDom.all._
+import scala.concurrent.ExecutionContext
 
 object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
@@ -32,8 +38,22 @@ object DraggingPostSelection extends DataSelection[SimPost] {
   }
 }
 
-class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ()) {
+class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ())(implicit ec: ExecutionContext) {
   import d3State.{ simulation, transform }
+
+  val dropActions = js.Array(
+    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }),
+    DropAction("insert into", { (dropped: SimPost, target: SimPost) =>
+      val graph = graphState.state.displayGraph.now.graph
+      Client.api.createContainment(target.id, dropped.id).call()
+      val intersectingParents = graph.parents(dropped.id).toSet intersect (graph.transitiveParents(target.id).toSet ++ graph.transitiveChildren(target.id).toSet)
+      val removeContainments = intersectingParents.map(Containment(_, dropped.id)) intersect graph.containments
+      removeContainments.foreach {
+        Client.api.deleteContainment(_).call()
+      }
+    })
+  // DropAction("Merge", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }),
+  )
 
   private val _draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
   private val _closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
@@ -88,7 +108,6 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
   }
 
   def postDragEnded(dragging: SimPost) {
-    import DropMenu.dropActions
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = dragging.dragStart + (eventPos - dragging.dragStart) / transform.k
 
