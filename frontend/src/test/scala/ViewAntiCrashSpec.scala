@@ -8,6 +8,7 @@ import wust.frontend._
 import wust.frontend.views.graphview.GraphView
 import wust.ids._
 import wust.graph._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.collection.immutable._
 
@@ -112,7 +113,7 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting containment child post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment( PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(PostId(1), PostId(2))))
       view(state).render
       state.rawGraph.updatef(_ - PostId(2))
     }
@@ -163,14 +164,14 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")))
       view(state).render
-      state.rawGraph.updatef(_ + Connection( PostId(1), PostId(2)))
+      state.rawGraph.updatef(_ + Connection(PostId(1), PostId(2)))
     }
   }
 
   "deleting connection" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      val conn = Connection( PostId(1), PostId(2))
+      val conn = Connection(PostId(1), PostId(2))
       state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(conn))
       view(state).render
       state.rawGraph.updatef(_ - conn)
@@ -180,9 +181,9 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting containment" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment( PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(PostId(1), PostId(2))))
       view(state).render
-      state.rawGraph.updatef(_ - Containment(1,2))
+      state.rawGraph.updatef(_ - Containment(1, 2))
     }
   }
 
