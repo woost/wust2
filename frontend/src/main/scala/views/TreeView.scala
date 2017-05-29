@@ -17,7 +17,7 @@ import scalaz.Tag
 import scala.math.Ordering
 
 import org.scalajs.dom.{ window, document, console }
-import org.scalajs.dom.raw.{ Element, HTMLElement }
+import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
 import scalatags.JsDom.all._
 import scala.scalajs.js
 import scalatags.rx.all._
@@ -176,19 +176,35 @@ object TreeView {
           case KeyCode.Down if !event.shiftKey =>
             focusDown(elem)
             false
+          case KeyCode.Delete if !event.shiftKey =>
+            val sel = window.getSelection.getRangeAt(0)
+            val textElem = elem.firstChild.asInstanceOf[Text]
+            console.log(textElem)
+            if (sel.startOffset == textElem.length &&
+                sel.endOffset == textElem.length &&
+                sel.startContainer == elem.firstChild &&
+                sel.endContainer == elem.firstChild) {
+              c.nextMap.get(tree).map { nextTree =>
+                val nextPost = nextTree.element
+                Client.api.updatePost(post.copy(title = post.title + " " + nextPost.title)).call()
+                Client.api.deletePost(nextPost.id, state.graphSelection.now).call()
+                focusUp(elem)
+                false
+              }.getOrElse(true)
+            } else true
           case KeyCode.Backspace if !event.shiftKey =>
             val sel = window.getSelection.getRangeAt(0)
-            if (sel.startOffset == 0 && sel.startContainer == elem.firstChild) {
-              c.previousMap.get(tree).foreach { previousTree =>
+            if (sel.startOffset == 0 &&
+                sel.endOffset == 0 &&
+                sel.startContainer == elem.firstChild) {
+              c.previousMap.get(tree).map { previousTree =>
                 val prevPost = previousTree.element
                 val (_, remainingText) = textAroundCursorSelectionElement(elem)
                 Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
-              }
-              Client.api.deletePost(post.id, state.graphSelection.now).call()
-
-              focusUp(elem)
-
-              false
+                Client.api.deletePost(post.id, state.graphSelection.now).call()
+                focusUp(elem)
+                false
+              }.getOrElse(true)
             } else true
         }
       }

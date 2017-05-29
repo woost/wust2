@@ -128,9 +128,14 @@ object algorithm {
       val sortedTrees = trees.sortBy(_.element)
       sortedTrees.drop(1).zip(sortedTrees).toMap ++ trees.map(tree => findPreviousMap(tree.children)).fold(Map.empty)(_ ++ _)
     }
+    private def findNextMap(trees: Seq[Tree[A]]): Map[Tree[A], Tree[A]] = {
+      val sortedTrees = trees.sortBy(_.element)
+      sortedTrees.zip(sortedTrees.drop(1)).toMap ++ trees.map(tree => findNextMap(tree.children)).fold(Map.empty)(_ ++ _)
+    }
 
     lazy val parentMap: Map[Tree[A], Tree[A]] = trees.map(findParentMap _).fold(Map.empty)(_ ++ _)
     lazy val previousMap: Map[Tree[A], Tree[A]] = findPreviousMap(trees)
+    lazy val nextMap: Map[Tree[A], Tree[A]] = findNextMap(trees)
   }
 
   def redundantSpanningTree[V](root: V, successors: V => Iterable[V]): Tree[V] = redundantSpanningTree(root, successors, Set(root))
