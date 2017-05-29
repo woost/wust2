@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.graph._
 import wust.util.Pipe
 
@@ -33,13 +33,14 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{displayGraph => rxDisplayGraph, _}
+  import state.{ displayGraph => rxDisplayGraph, _ }
   import graphState._
 
   // prepare containers where we will append elements depending on the data
   // order is important
   import KeyImplicits._
   val container = d3.select(element)
+  val focusedParentsHeader = container.append(() => div(textAlign.center, marginTop := 70, fontSize := "200%", position.absolute, width := "100%").render)
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
   val collapsedContainmentHullSelection = SelectData.rx(CollapsedContainmentHullSelection, rxCollapsedContainmentCluster)(svg.append("g"))
@@ -86,12 +87,16 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
   // set the background according to focused parents
   Rx {
-    val selection = state.graphSelection()
-    val focusedParents = selection match {
+    val focusedParentIds = state.graphSelection() match {
       case GraphSelection.Root             => Set.empty
       case GraphSelection.Union(parentIds) => parentIds
     }
-    val mixedDirectParentColors = mixColors(focusedParents.map(baseColor))
+    val parents = focusedParentIds.map(state.rawGraph().postsById)
+    val parentTitles = parents.map(_.title).mkString(", ")
+    println(parents + parentTitles)
+    focusedParentsHeader.text(parentTitles)
+
+    val mixedDirectParentColors = mixColors(focusedParentIds.map(baseColor))
     container
       .style("background-color", mixColors(List(mixedDirectParentColors, d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString)
   }

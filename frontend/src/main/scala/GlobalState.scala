@@ -3,7 +3,7 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.frontend.views.{ ViewConfig, ViewPage }
 import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
@@ -69,7 +69,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
         case GraphSelection.Union(parentIds) =>
           val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-          val selectedGraph = graph removePosts graph.postIds.filterNot(transitiveChildren) removePosts parentIds
+          val selectedGraph = graph
+            .removePosts(graph.postIds.filterNot(transitiveChildren) ++ parentIds)
           Perspective(currentView(), selectedGraph)
       }
     })
