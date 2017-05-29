@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import autowire.Core.Request
 import boopickle.Default._
 import wust.api._
+import wust.ids._
 import wust.backend.auth._
 import wust.backend.config.Config
 import wust.db.Db

@@ -4,6 +4,7 @@ import autowire._
 import boopickle.Default._
 import org.scalajs.dom.ext.LocalStorage
 import wust.api._
+import wust.ids._
 import wust.framework._
 import scala.concurrent.ExecutionContext.Implicits.global
 

@@ -1,6 +1,8 @@
 package wust
 
+import boopickle.Default._
 import scalaz._
+import wust.ids._
 
 package object ids {
   type IdType = Long
@@ -17,4 +19,8 @@ package object ids {
   sealed trait UserIdType
   type UserId = IdType @@ UserIdType
   implicit def UserId(id: IdType): UserId = Tag[IdType, UserIdType](id)
+
+  implicit def PostIdPickler = transformPickler[PostId, IdType](PostId _)(Tag.unwrap _)
+  implicit def GroupIdPickler = transformPickler[GroupId, IdType](GroupId _)(Tag.unwrap _)
+  implicit def UserIdPickler = transformPickler[UserId, IdType](UserId _)(Tag.unwrap _)
 }

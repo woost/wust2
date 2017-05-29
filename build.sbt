@@ -126,6 +126,7 @@ lazy val ids = crossProject
   .settings(
     libraryDependencies ++= (
       "org.scalaz" %%% "scalaz-core" % scalazVersion ::
+      "io.suzaku" %%% "boopickle" % boopickleVersion ::
       Nil))
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
@@ -146,7 +147,6 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "io.suzaku" %%% "boopickle" % boopickleVersion ::
       Nil))
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm

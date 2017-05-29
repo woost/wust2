@@ -7,7 +7,7 @@ import wust.frontend.views.Views
 import autowire._
 import boopickle.Default._
 import wust.frontend.Client
-import wust.api._
+import wust.ids._
 import wust.graph.Containment
 
 import scala.scalajs.js

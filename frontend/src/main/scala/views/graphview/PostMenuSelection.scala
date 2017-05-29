@@ -6,7 +6,7 @@ import org.scalajs.d3v4._
 import rxext._
 import wust.frontend._
 import wust.util.collection._
-import wust.api._
+import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
