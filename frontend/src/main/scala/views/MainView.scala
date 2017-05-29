@@ -45,13 +45,8 @@ object MainView {
     val selection = state.graphSelection()
     val graph = state.rawGraph()
 
-    val focusedParents: Set[PostId] = selection match {
-      case GraphSelection.Root             => Set.empty
-      case GraphSelection.Union(parentIds) => parentIds
-    }
-
     div(
-      focusedParents.toSeq.map { parentId =>
+      selection.parentIds.toSeq.map { parentId =>
         val post = graph.postsById(parentId)
         Views.post(post)(
           backgroundColor := baseColor(post.id).toString
@@ -202,8 +197,8 @@ object MainView {
 
     val viewPages =
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
-      ViewPage.Tree -> TreeView(state) ::
-      Nil
+        ViewPage.Tree -> TreeView(state) ::
+        Nil
 
     div(
       fontFamily := "sans-serif",

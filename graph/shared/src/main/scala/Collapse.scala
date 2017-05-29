@@ -13,7 +13,7 @@ object Collapse {
     val hiddenPosts: Set[PostId] = getHiddenPosts(graph, collapsingPosts)
     val alternativePosts: Map[PostId, Set[PostId]] = getAlternativePosts(graph, hiddenPosts, collapsingPosts)
     val redirectedConnections: Set[LocalConnection] = getRedirectedConnections(graph, alternativePosts)
-    val hiddenContainments: Set[Containment] = collapsingPosts.flatMap(graph.incidentChildContainments)//(breakOut)
+    val hiddenContainments: Set[Containment] = collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
     val collapsedLocalContainments: Set[LocalContainment] = getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
 
     // println("collapsingPosts: " + collapsingPosts)

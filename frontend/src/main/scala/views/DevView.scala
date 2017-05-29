@@ -6,20 +6,20 @@ import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
 import rx._
 import wust.api._
-import wust.frontend.{Client, GlobalState}
+import wust.frontend.{ Client, GlobalState }
 import wust.graph._
 import wust.ids._
 import wust.util.AutoId
 import wust.util.tags._
 
 import scala.collection.breakOut
-import scala.concurrent.duration.{span => _, _}
+import scala.concurrent.duration.{ span => _, _ }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 
 object DevView {
-  import scala.util.Random.{nextInt => rInt, nextString => rStr}
+  import scala.util.Random.{ nextInt => rInt, nextString => rStr }
   val apiEvents = RxVar[List[ApiEvent]](Nil)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -55,7 +55,7 @@ object DevView {
         },
         Rx {
           val posts = scala.util.Random.shuffle(state.displayGraph().graph.postIds.toSeq)
-          def deletePost(id: PostId) { Client.api.deletePost(id).call() }
+          def deletePost(id: PostId) { Client.api.deletePost(id, state.graphSelection()).call() }
           div(
             button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),
             button("10", onclick := { () => posts.take(10) foreach deletePost }),

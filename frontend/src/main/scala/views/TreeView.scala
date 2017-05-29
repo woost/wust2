@@ -7,7 +7,7 @@ import wust.frontend._
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
-import wust.util.algorithm.{TreeContext, Tree, redundantSpanningTree}
+import wust.util.algorithm.{ TreeContext, Tree, redundantSpanningTree }
 import wust.util.collection._
 import autowire._
 import boopickle.Default._
@@ -16,18 +16,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
 import scala.math.Ordering
 
-import org.scalajs.dom.{window, document, console}
-import org.scalajs.dom.raw.{Element, HTMLElement}
+import org.scalajs.dom.{ window, document, console }
+import org.scalajs.dom.raw.{ Element, HTMLElement }
 import scalatags.JsDom.all._
 import scala.scalajs.js
 import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.{Event, KeyboardEvent}
+import org.scalajs.dom.{ Event, KeyboardEvent }
 
 //TODO proper ordering
 object PostOrdering extends Ordering[Post] {
-  def compare(a:Post, b:Post) = Tag.unwrap(a.id) compare Tag.unwrap(b.id)
+  def compare(a: Post, b: Post) = Tag.unwrap(a.id) compare Tag.unwrap(b.id)
 }
 
 object TreeView {
@@ -50,9 +50,9 @@ object TreeView {
     onclick := { () => state.collapsedPostIds() = state.collapsedPostIds.now toggle postId }
   )
 
-  def deleteButton(postId: PostId) = buttonClick(
+  def deleteButton(state: GlobalState, postId: PostId) = buttonClick(
     "delete",
-    Client.api.deletePost(postId).call()
+    Client.api.deletePost(postId, state.graphSelection.now).call()
   )
 
   def nextInParent(elem: HTMLElement, next: HTMLElement => Option[HTMLElement]): Option[HTMLElement] = {
@@ -78,9 +78,9 @@ object TreeView {
       foundIdx.flatMap { foundIdx =>
         val offset = if (isReversed) -1 else 1
         val nextIdx = (foundIdx + offset) match {
-          case x if x < 0 => queried.length - 1
+          case x if x < 0              => queried.length - 1
           case x if x > queried.length => 0
-          case x => x
+          case x                       => x
         }
         queried(nextIdx).asInstanceOf[js.UndefOr[HTMLElement]].toOption
       }
@@ -167,7 +167,7 @@ object TreeView {
                 Client.api.deleteContainment(Containment(parent.element.id, post.id)).call()
               }
           }
-          case KeyCode.Up if !event.shiftKey => focusUp(elem)
+          case KeyCode.Up if !event.shiftKey   => focusUp(elem)
           case KeyCode.Down if !event.shiftKey => focusDown(elem)
           case KeyCode.Backspace if !event.shiftKey && (window.getSelection.getRangeAt(0).startOffset <= 1) =>
             c.previousMap.get(tree).foreach { previousTree =>
@@ -176,7 +176,7 @@ object TreeView {
               Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
             }
 
-            Client.api.deletePost(post.id).call().foreach { success =>
+            Client.api.deletePost(post.id, state.graphSelection.now).call().foreach { success =>
               if (success) focusUp(elem)
             }
         }
@@ -196,7 +196,7 @@ object TreeView {
       bulletPoint(state, post.id),
       area,
       collapseButton(state, post.id),
-      deleteButton(post.id)
+      deleteButton(state, post.id)
     )
   }
 

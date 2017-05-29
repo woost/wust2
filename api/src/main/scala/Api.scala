@@ -7,7 +7,7 @@ import scala.concurrent.Future
 
 trait Api {
   def getPost(id: PostId): Future[Option[Post]]
-  def deletePost(id: PostId): Future[Boolean]
+  def deletePost(id: PostId, selection: GraphSelection): Future[Boolean]
   def getGraph(selection: GraphSelection): Future[Graph]
   def addPost(msg: String, selection: GraphSelection, groupId: Option[GroupId]): Future[Option[PostId]]
   def addPostInContainment(msg: String, parentId: PostId, groupId: Option[GroupId]): Future[Option[PostId]]
@@ -46,7 +46,7 @@ case class NewUser(user: User) extends ApiEvent
 case class NewGroup(group: Group) extends ApiEvent
 case class NewMembership(membership: Membership) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
-case class DeleteConnection(connection:Connection) extends ApiEvent
+case class DeleteConnection(connection: Connection) extends ApiEvent
 case class DeleteContainment(containment: Containment) extends ApiEvent
 case class LoggedIn(auth: Authentication) extends ApiEvent
 case object LoggedOut extends ApiEvent

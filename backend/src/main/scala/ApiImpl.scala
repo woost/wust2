@@ -8,7 +8,7 @@ import wust.framework.state._
 import wust.ids._
 import wust.util.RandomUtil
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
@@ -77,10 +77,17 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }(recover = false)
   }
 
-  def deletePost(postId: PostId): Future[Boolean] = withUserOrImplicit { (_, user) =>
-    hasAccessToPost(postId, user.id) {
-      db.post.delete(postId).map(respondWithEventsIf(_, DeletePost(postId)))
-    }(recover = false)
+  def deletePost(postId: PostId, selection: GraphSelection): Future[Boolean] = withUserOrImplicit { (state, user) =>
+    val toDelete = (Collapse.getHiddenPosts(state.graph removePosts selection.parentIds, Set(postId)) + postId).toSeq
+    val deletedPostIds = Future.sequence(toDelete.map { postId =>
+      hasAccessToPost(postId, user.id) {
+        db.post.delete(postId).map{ case true => Some(postId); case false => None }
+      }(recover = None)
+    }).map(_.flatten)
+
+    deletedPostIds.map { postIds =>
+      respondWithEvents(postIds.nonEmpty, postIds.map(DeletePost(_)): _*)
+    }
   }
 
   def connect(sourceId: PostId, targetId: PostId): Future[Option[Connection]] = withUserOrImplicit { (_, _) =>

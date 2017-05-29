@@ -87,10 +87,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
   // set the background according to focused parents
   Rx {
-    val focusedParentIds = state.graphSelection() match {
-      case GraphSelection.Root             => Set.empty
-      case GraphSelection.Union(parentIds) => parentIds
-    }
+    val focusedParentIds = state.graphSelection().parentIds
     val parents = focusedParentIds.map(state.rawGraph().postsById)
     val parentTitles = parents.map(_.title).mkString(", ")
     println(parents + parentTitles)
