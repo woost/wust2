@@ -100,7 +100,7 @@ lazy val framework = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "com.lihaoyi" %%% "autowire" % "0.2.6" ::
+      "com.github.cornerman" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % boopickleVersion ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
       Nil))
