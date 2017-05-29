@@ -18,6 +18,8 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxEditedPostId = state.editedPostId
   val rxCollapsedPostIds = state.collapsedPostIds
 
+  def fontSizeByDepth(d: Int) = (Math.pow(0.65, d + 1) + 1) / 2 // 1..0.5
+
   val rxSimPosts: Rx[js.Array[SimPost]] = Rx {
     val rawGraph = state.rawGraph()
     val graph = rxDisplayGraph().graph
@@ -36,7 +38,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
         if (hasChildren) "none"
         else "2px solid rgba(0,0,0,0.2)" // no children
 
-      sp.fontSize = if (hasChildren && !collapsedPostIds(p.id)) "200%" else "100%"
+      sp.fontSize = if (hasChildren && !collapsedPostIds(p.id)) s"${fontSizeByDepth(graph.parentDepth(p.id)) * 200.0}%" else "100%"
 
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
@@ -128,7 +130,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       new ContainmentCluster(
         parent = postIdToSimPost(p),
         children = graph.transitiveChildren(p).map(p => postIdToSimPost(p))(breakOut),
-        depth = graph.depth(p)
+        depth = graph.childDepth(p)
       )
     }.toJSArray
   }
@@ -144,7 +146,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       new ContainmentCluster(
         parent = postIdToSimPost(p),
         children = children(p).map(p => postIdToSimPost(p))(breakOut),
-        depth = graph.depth(p)
+        depth = graph.childDepth(p)
       )
     }.toJSArray
   }

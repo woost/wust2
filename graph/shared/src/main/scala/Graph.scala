@@ -53,13 +53,13 @@ package object graph {
   }
 
   final case class Graph( //TODO: costom pickler over lists instead of maps to save traffic
-    postsById:        Map[PostId, Post],
+    postsById:    Map[PostId, Post],
     connections:  Set[Connection],
     containments: Set[Containment],
-    groupsById:       Map[GroupId, Group],
-    ownerships:       Set[Ownership],
-    usersById:        Map[UserId, User],
-    memberships:      Set[Membership]
+    groupsById:   Map[GroupId, Group],
+    ownerships:   Set[Ownership],
+    usersById:    Map[UserId, User],
+    memberships:  Set[Membership]
   ) {
 
     lazy val posts: Iterable[Post] = postsById.values
@@ -112,10 +112,10 @@ package object graph {
     lazy val groupsByUserId: Map[UserId, Set[GroupId]] = userDefaultGroups ++ directedAdjacencyList[UserId, Membership, GroupId](memberships, _.userId, _.groupId)
 
     private val postDefaultDegree = postsById.mapValues(_ => 0)
-    lazy val connectionDegree = postDefaultDegree ++ 
-    degreeSequence[PostId, Connection](connections, _.targetId, _.sourceId)
+    lazy val connectionDegree = postDefaultDegree ++
+      degreeSequence[PostId, Connection](connections, _.targetId, _.sourceId)
     lazy val containmentDegree = postDefaultDegree ++
-    degreeSequence[PostId, Containment]( containments, _.parentId, _.childId)
+      degreeSequence[PostId, Containment](containments, _.parentId, _.childId)
 
     def fullDegree(postId: PostId): Int = connectionDegree(postId) + containmentDegree(postId)
 
@@ -151,7 +151,7 @@ package object graph {
     def -(connection: Connection) = copy(connections = connections - connection)
     def -(containment: Containment) = copy(containments = containments - containment)
 
-    def removePosts(ps:Iterable[PostId]) = {
+    def removePosts(ps: Iterable[PostId]) = {
       val removedConnections = ps.flatMap(incidentConnections.get).flatten
       val removedContainments = ps.flatMap(incidentContainments.get).flatten
       copy(
@@ -160,8 +160,8 @@ package object graph {
         containments = containments -- removedContainments
       )
     }
-    def removeConnections(cs:Iterable[Connection]) = copy(connections = connections -- cs)
-    def removeContainments(cs:Iterable[Containment]) = copy(containments = containments -- cs)
+    def removeConnections(cs: Iterable[Connection]) = copy(connections = connections -- cs)
+    def removeContainments(cs: Iterable[Containment]) = copy(containments = containments -- cs)
 
     def +(post: Post) = copy(postsById = postsById + (post.id -> post))
     def +(connection: Connection) = copy(connections = connections + connection)
@@ -181,10 +181,10 @@ package object graph {
     )
 
     def consistent = {
-        val invalidConnections = connections
-        .filter { c => !postsById.isDefinedAt(c.sourceId) || !postsById.isDefinedAt( c.targetId) }
+      val invalidConnections = connections
+        .filter { c => !postsById.isDefinedAt(c.sourceId) || !postsById.isDefinedAt(c.targetId) }
       val invalidContainments = containments
-        .filter { c => !postsById.isDefinedAt(c.childId) || !postsById.isDefinedAt( c.parentId) }
+        .filter { c => !postsById.isDefinedAt(c.childId) || !postsById.isDefinedAt(c.parentId) }
 
       val validOwnerships = ownerships
         .filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }
@@ -199,7 +199,10 @@ package object graph {
       )
     }
 
-    lazy val depth: collection.Map[PostId, Int] = {
+    lazy val childDepth = depth(children)
+    lazy val parentDepth = depth(parents)
+
+    def depth(next: PostId => Iterable[PostId]): collection.Map[PostId, Int] = {
       val tmpDepths = mutable.HashMap[PostId, Int]()
       val visited = mutable.HashSet[PostId]() // to handle cycles
       def getDepth(id: PostId): Int = {
@@ -207,7 +210,7 @@ package object graph {
           if (!visited(id)) {
             visited += id
 
-            val c = children(id)
+            val c = next(id)
             val d = if (c.isEmpty) 0 else c.map(getDepth).max + 1
             tmpDepths(id) = d
             d
