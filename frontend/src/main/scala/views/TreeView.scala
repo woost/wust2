@@ -109,7 +109,7 @@ object TreeView {
     elem.focus()
     val s = window.getSelection()
     val r = document.createRange()
-    r.selectNodeContents(elem)
+    r.selectNodeContents(elem.firstChild)
     r.collapse(false) // false: collapse to end, true: collapse to start
     s.removeAllRanges()
     s.addRange(r)
@@ -145,6 +145,7 @@ object TreeView {
             postIdFut.map { postId =>
               postId.foreach(id => nextFocusedPost = Some(id))
             }
+            false
           case KeyCode.Tab => event.shiftKey match {
             case false =>
               c.previousMap.get(tree).foreach { previousTree =>
@@ -153,6 +154,7 @@ object TreeView {
                   Client.api.deleteContainment(Containment(parentTree.element.id, post.id)).call()
                 }
               }
+              false
             case true =>
               for {
                 parent <- c.parentMap.get(tree)
@@ -166,19 +168,28 @@ object TreeView {
                 }
                 Client.api.deleteContainment(Containment(parent.element.id, post.id)).call()
               }
+              false
           }
-          case KeyCode.Up if !event.shiftKey   => focusUp(elem)
-          case KeyCode.Down if !event.shiftKey => focusDown(elem)
-          case KeyCode.Backspace if !event.shiftKey && (window.getSelection.getRangeAt(0).startOffset <= 1) =>
-            c.previousMap.get(tree).foreach { previousTree =>
-              val prevPost = previousTree.element
-              val (_, remainingText) = textAroundCursorSelectionElement(elem)
-              Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
-            }
+          case KeyCode.Up if !event.shiftKey =>
+            focusUp(elem)
+            false
+          case KeyCode.Down if !event.shiftKey =>
+            focusDown(elem)
+            false
+          case KeyCode.Backspace if !event.shiftKey =>
+            val sel = window.getSelection.getRangeAt(0)
+            if (sel.startOffset == 0 && sel.startContainer == elem.firstChild) {
+              c.previousMap.get(tree).foreach { previousTree =>
+                val prevPost = previousTree.element
+                val (_, remainingText) = textAroundCursorSelectionElement(elem)
+                Client.api.updatePost(prevPost.copy(title = prevPost.title + " " + remainingText)).call()
+              }
+              Client.api.deletePost(post.id, state.graphSelection.now).call()
 
-            Client.api.deletePost(post.id, state.graphSelection.now).call().foreach { success =>
-              if (success) focusUp(elem)
-            }
+              focusUp(elem)
+
+              false
+            } else true
         }
       }
     ).render

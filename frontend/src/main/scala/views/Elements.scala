@@ -13,16 +13,18 @@ object Elements {
     //TODO: calling submit directly skips onSubmit handlers
     // form.submit()
     form.querySelector("""input[type="submit"]""").asInstanceOf[HTMLInputElement].click()
+    false
   }
 
-  def onKey(e: KeyboardEvent)(f: PartialFunction[Long, Any]) = {
-    f.lift(e.keyCode).foreach { _ =>
+  def onKey(e: KeyboardEvent)(f: PartialFunction[Long, Boolean]) = {
+    val shouldHandle = f.lift(e.keyCode).getOrElse(true)
+    if (!shouldHandle) {
       e.preventDefault()
       e.stopPropagation()
     }
   }
 
-  def textareaWithEnter(f: HTMLTextAreaElement => Any): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
+  def textareaWithEnter(f: HTMLTextAreaElement => Boolean): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
     onKey(event) {
       case KeyCode.Enter =>
         val elem = event.target.asInstanceOf[HTMLTextAreaElement]
