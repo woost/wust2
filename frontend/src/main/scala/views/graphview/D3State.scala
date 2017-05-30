@@ -21,17 +21,17 @@ object Forces {
     forces.gravityX.x(width / 2)
     forces.gravityY.y(height / 2)
 
-    forces.repel.strength(-2500)
+    forces.repel.strength(-2200)
     forces.collision.radius((p: SimPost) => p.collisionRadius)
-    // forces.collision.strength(0.4)
+    forces.collision.strength(0.1)
 
     forces.connection.distance(200)
     forces.connection.strength(0.3)
     forces.redirectedConnection.distance(200)
     forces.redirectedConnection.strength(0.2)
 
-    forces.containment.distance(300)
-    forces.containment.strength(0.7)
+    forces.containment.distance(100)
+    forces.containment.strength(0.1)
     forces.collapsedContainment.distance(400)
     forces.collapsedContainment.strength(0.3)
 
