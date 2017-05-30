@@ -111,6 +111,32 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
     }
   }
 
+  "connected components" - {
+    "one vertex" in {
+      val components = connectedComponents[Int](List(0), _ => Nil)
+      components must contain theSameElementsAs List(Set(0))
+    }
+
+    "two isolated vertices" in {
+      val components = connectedComponents[Int](List(0,1), _ => Nil)
+      components must contain theSameElementsAs List(Set(0), Set(1))
+    }
+
+    "cycles" in {
+      val edges = Map(
+        0 -> Seq(1, 2, 3),
+        1 -> Seq(0,2,3),
+        2 -> Seq(0,1,3),
+        3 -> Seq(0,1,2),
+        4 -> Seq(5),
+        5 -> Seq(4)
+      )
+
+      val components = connectedComponents[Int](edges.keys, edges)
+      components must contain theSameElementsAs List(Set(0,1,2,3), Set(4,5))
+    }
+  }
+
   "topological sort" - {
     "empty" - {
       val list = topologicalSort[Int, Seq](Seq.empty, _ => Seq.empty)

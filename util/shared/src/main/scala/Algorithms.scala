@@ -97,9 +97,19 @@ object algorithm {
     }
   }
 
-  def topologicalSort[V, COLL[V]](vertices: IterableLike[V, COLL[V]], successors: V => Iterable[V]): Seq[V] = {
-    // TODO: give result even if there is a cycle
+  def connectedComponents[V](vertices:Iterable[V], continue: V => Iterable[V]):List[Set[V]] = {
+    val left = mutable.HashSet.empty ++ vertices
+    var components:List[Set[V]] = Nil
+    while(left.nonEmpty) {
+      val next = left.head
+      val component = depthFirstSearch(next, continue).toSet
+      components ::= component
+      left --= component
+    }
+    components
+  }
 
+  def topologicalSort[V, COLL[V]](vertices: IterableLike[V, COLL[V]], successors: V => Iterable[V]): Seq[V] = {
     var sorted: List[V] = Nil
     val unmarked = mutable.HashSet.empty[V] ++ vertices
     val tempMarked = mutable.HashSet.empty[V]

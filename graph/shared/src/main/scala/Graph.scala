@@ -147,6 +147,10 @@ package object graph {
       case false => Seq.empty
     }
 
+    lazy val connectedContainmentComponents: List[Set[PostId]] = {
+      connectedComponents(postIds, containmentNeighbours)
+    }
+
     def -(postId: PostId) = removePosts(postId :: Nil)
     def -(connection: Connection) = copy(connections = connections - connection)
     def -(containment: Containment) = copy(containments = containments - containment)
