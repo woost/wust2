@@ -3,7 +3,7 @@ package wust.frontend.views.graphview
 import rx._
 import rxext._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
@@ -36,22 +36,19 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       //TODO: move border and color to views.post()
       sp.border =
         if (hasChildren)
-          if (collapsedPostIds(p.id))
-            "none"
-          else
-            s"10px solid ${baseColor(p.id)}"
-        else "2px solid rgba(0,0,0,0.2)" // no children
+          s"10px solid ${baseColor(p.id)}"
+        else if (collapsedPostIds(p.id))
+          s"5px dotted rgba(0,0,0,0.5)"
+        else
+          "2px solid rgba(0,0,0,0.2)" // no children
 
-      sp.fontSize = if (hasChildren && !collapsedPostIds(p.id)) s"${fontSizeByDepth(graph.parentDepth(p.id)) * 200.0}%" else "100%"
+      sp.fontSize = if (hasChildren || collapsedPostIds(p.id)) s"${fontSizeByDepth(graph.parentDepth(p.id)) * 200.0}%" else "100%"
 
       sp.color = (
         //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
-        if (hasChildren) {
-          if (collapsedPostIds(p.id))
-            postDefaultColor
-          else
-            baseColor(p.id)
-        } else { // no children
+        if (hasChildren || collapsedPostIds(p.id))
+          baseColor(p.id)
+        else { // no children
           if (hasParents)
             mixColors(mixedDirectParentColors, postDefaultColor)
           else
