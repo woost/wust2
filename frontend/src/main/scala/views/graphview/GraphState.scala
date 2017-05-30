@@ -3,7 +3,7 @@ package wust.frontend.views.graphview
 import rx._
 import rxext._
 import wust.frontend.Color._
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.{DevOnly, GlobalState}
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
@@ -35,7 +35,11 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
 
       //TODO: move border and color to views.post()
       sp.border =
-        if (hasChildren) "none"
+        if (hasChildren)
+          if (collapsedPostIds(p.id))
+            "none"
+          else
+            s"10px solid ${baseColor(p.id)}"
         else "2px solid rgba(0,0,0,0.2)" // no children
 
       sp.fontSize = if (hasChildren && !collapsedPostIds(p.id)) s"${fontSizeByDepth(graph.parentDepth(p.id)) * 200.0}%" else "100%"
@@ -46,7 +50,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
           if (collapsedPostIds(p.id))
             postDefaultColor
           else
-            "transparent" // convex hull shows the color instead
+            baseColor(p.id)
         } else { // no children
           if (hasParents)
             mixColors(mixedDirectParentColors, postDefaultColor)
@@ -103,7 +107,9 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
-    graph.containments.map { c =>
+    val containments = graph.postIds.flatMap(parentId => graph.transitiveChildren(parentId).map(childId => Containment(parentId, childId)))
+
+    containments.map { c =>
       new SimContainment(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
     }.toJSArray
   }

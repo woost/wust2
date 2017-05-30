@@ -21,17 +21,22 @@ object Forces {
     forces.gravityX.x(width / 2)
     forces.gravityY.y(height / 2)
 
-    forces.repel.strength(-1500)
+    forces.repel.strength(-2500)
     forces.collision.radius((p: SimPost) => p.collisionRadius)
+    // forces.collision.strength(0.4)
 
-    forces.connection.distance(130)
-    forces.redirectedConnection.distance(150)
-    forces.containment.distance(100)
-    forces.collapsedContainment.distance(100)
-    forces.collapsedContainment.strength(0.01)
+    forces.connection.distance(200)
+    forces.connection.strength(0.3)
+    forces.redirectedConnection.distance(200)
+    forces.redirectedConnection.strength(0.2)
 
-    forces.gravityX.strength(0.1)
-    forces.gravityY.strength(0.1)
+    forces.containment.distance(300)
+    forces.containment.strength(0.7)
+    forces.collapsedContainment.distance(400)
+    forces.collapsedContainment.strength(0.3)
+
+    forces.gravityX.strength(0.05)
+    forces.gravityY.strength(0.05)
 
     forces
   }
@@ -39,14 +44,13 @@ object Forces {
 
 object Simulation {
   def apply(forces: Forces): Simulation[SimPost] = d3.forceSimulation[SimPost]()
-    .alphaMin(0.1) // stop simulation earlier (default = 0.001)
+    .alphaMin(0.01) // stop simulation earlier (default = 0.001)
     .force("gravityx", forces.gravityX)
     .force("gravityy", forces.gravityY)
     .force("repel", forces.repel)
     .force("collision", forces.collision)
-    .force("connection", forces.connection.asInstanceOf[Link[SimPost, SimulationLink[SimPost, SimPost]]])
+    .force("connection", forces.connection)
     .force("redirectedConnection", forces.redirectedConnection)
-    // .force("connection", forces.connection.forJavaScriptIdiots().asInstanceOf[Force[SimPost]])
     .force("containment", forces.containment)
     .force("collapsedContainment", forces.collapsedContainment)
 }

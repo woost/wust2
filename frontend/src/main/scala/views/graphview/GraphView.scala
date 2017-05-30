@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.{DevOnly, GlobalState}
 import wust.graph._
 import wust.util.Pipe
 import scala.concurrent.ExecutionContext
@@ -34,7 +34,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{ displayGraph => rxDisplayGraph, _ }
+  import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -110,19 +110,6 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     DevOnly {
       println("    updating graph simulation")
     }
-
-    //TODO: this can be removed after implementing link force which supports hyperedges
-    // the strength functions depend on the latest graph and are called
-    // when setting nodes and links. Therefore they need to be set before.
-    // even when updating the force.initialize method is called,
-    // trying to access all posts which could not exist anymore
-    // d3State.forces.connection.strength { (e: SimConnection) =>
-    //   1.0 / math.min(graph.fullDegree(e.source.id), graph.fullDegree(e.target.id))
-    // }
-
-    // d3State.forces.containment.strength { (e: SimContainment) =>
-    //   1.0 / math.min(graph.fullDegree(e.source.post.id), graph.fullDegree(e.target.post.id))
-    // }
 
     d3State.simulation.nodes(simPosts)
     d3State.forces.connection.links(simConnection)
