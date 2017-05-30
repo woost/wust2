@@ -27,9 +27,21 @@ function create_wust_template() {
 case $stage in
 psql)
     on_stage dev
-    compose run db-migration
+    # compose run db-migration
     # PGPASSWORD=test psql -h localhost -U wust
-    docker exec -it wustdev_postgres_1  psql -h localhost -U wust
+    docker exec -it wustdev_postgres_1 psql -h localhost -U wust ${@:2}
+    ;;
+pgdump)
+    on_stage dev
+    docker exec -i wustdev_postgres_1 pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
+    ;;
+pgrestore)
+    on_stage dev
+    docker exec -i wustdev_postgres_1 psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+    ;;
+pgclean)
+    on_stage dev
+    docker exec -i wustdev_postgres_1 psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
     ;;
 dev)
     compose up -d
@@ -80,6 +92,25 @@ test.prod)
     compose down
     ;;
 *)
-    echo "unknown stage '$1', expected one of [psql,dev,migrate,prod.http,prod,test.postgres,test.integration,test.prod.http,test.prod]"
+    cat <<EOF
+    unknown stage '$1', expected one of:
+
+    dev
+    migrate
+
+    psql [options]
+    pgdump
+    pgrestore file
+    pgclean
+
+    prod.http
+    prod
+
+    test.postgres
+    test.integration
+    test.prod.http
+    test.prod
+EOF
+
     exit 1
 esac
