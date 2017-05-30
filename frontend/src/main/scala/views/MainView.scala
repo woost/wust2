@@ -2,15 +2,15 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom
+import org.scalajs.dom.{ Event }
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import wust.frontend.{ DevOnly, GlobalState }
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.api._
@@ -159,48 +159,61 @@ object MainView {
     }).render
   }
 
-  def feedbackForm(implicit ctx: Ctx.Owner) = {
+  def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     //TODO: Don't hardcode feedback postId
     val feedbackPostId = PostId(82)
 
     val feedbackField = textarea(
       rows := 5,
       cols := 30,
-      placeholder := "Missing features? Suggestions? You found a bug? What do you like about this tool?"
+      placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
     ).render
 
     val show = Var(false)
-    val activeDisplay = display := show.map(if(_) "block" else "none")
-    val inactiveDisplay = display := show.map(if(_) "none" else "block")
+    val activeDisplay = display := show.map(if (_) "block" else "none")
+    val inactiveDisplay = display := show.map(if (_) "none" else "block")
 
     div(
-      position.fixed, bottom := 200, right := 0, boxSizing.`border-box`,
-      padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
-      div("Please give us feedback", inactiveDisplay, css("transform") := "rotate(-90deg)", onclick := {() => show() = true}),
-      div("Feedback", activeDisplay),
-      form(
+      div(
+        inactiveDisplay,
+        position.fixed, bottom := 250, right := 0, boxSizing.`border-box`,
+        padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderBottom := "none",
+        "Give short feedback",
+        css("transform") := "rotate(-90deg) translate(0,-100%)",
+        css("transform-origin") := "100% 0",
+        cursor.pointer,
+        onclick := { () => show() = true }
+      ),
+      div(
         activeDisplay,
-        feedbackField, br(),
-        input (tpe := "submit", value := "submit"),
-        onsubmit := { () =>
-          val text = feedbackField.value
-          if (text.nonEmpty) {
-            Client.api.addPost(text, GraphSelection.Union(Set(feedbackPostId)), groupId = None).call().foreach { postOpt =>
-              val success = postOpt.isDefined
-              if (success)
-                feedbackField.value = ""
-              else {
-                Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
-                  val success = postOpt.isDefined
-                  if (success)
-                    feedbackField.value = ""
+        position.fixed, bottom := 150, right := 0, boxSizing.`border-box`,
+        padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
+        div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
+        div("Feedback"),
+        form(
+          feedbackField, br(),
+          button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }),
+          input (tpe := "submit", value := "submit"),
+          onsubmit := { () =>
+            val text = feedbackField.value
+            if (text.nonEmpty) {
+              Client.api.addPost(text, GraphSelection.Union(Set(feedbackPostId)), groupId = None).call().foreach { postOpt =>
+                val success = postOpt.isDefined
+                if (success)
+                  feedbackField.value = ""
+                else {
+                  Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
+                    val success = postOpt.isDefined
+                    if (success)
+                      feedbackField.value = ""
+                  }
                 }
               }
+              sendEvent("feedback", "submit", "api")
             }
-            sendEvent("feedback", "submit", "api")
+            false
           }
-          false
-        }
+        )
       )
     )
   }
@@ -244,7 +257,7 @@ object MainView {
 
       router.map(viewPages),
 
-      feedbackForm,
+      feedbackForm(state),
 
       div(
         position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,

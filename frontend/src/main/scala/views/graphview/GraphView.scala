@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.graph._
 import wust.util.Pipe
 import scala.concurrent.ExecutionContext
@@ -34,7 +34,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{displayGraph => rxDisplayGraph, _}
+  import state.{ displayGraph => rxDisplayGraph, _ }
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -105,7 +105,6 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     val simRedirectedConnection = rxSimRedirectedConnection.now
     val simContainment = rxSimContainment.now
     val simCollapsedContainment = rxSimCollapsedContainment.now
-    // val graph = rxDisplayGraph.now.graph
 
     DevOnly {
       println("    updating graph simulation")
