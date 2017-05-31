@@ -2,15 +2,15 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{ Event }
+import org.scalajs.dom.{Event}
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.api._
@@ -19,6 +19,7 @@ import wust.frontend.Client
 import wust.util.EventTracker.sendEvent
 import scala.util.Try
 import scalaz.Tag
+import scala.scalajs.js.timers.setTimeout
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -172,6 +173,13 @@ object MainView {
     val show = Var(false)
     val activeDisplay = display := show.map(if (_) "block" else "none")
     val inactiveDisplay = display := show.map(if (_) "none" else "block")
+
+    show.foreach {
+      if (_)
+        setTimeout(300) {
+          feedbackField.focus()
+        }
+    }
 
     div(
       div(
