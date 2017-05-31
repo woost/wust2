@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.{DevOnly, GlobalState}
 import wust.graph._
 import wust.util.Pipe
 import scala.concurrent.ExecutionContext
@@ -34,7 +34,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag)
-  import state.{ displayGraph => rxDisplayGraph, _ }
+  import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -66,8 +66,15 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
         simPost.fixedPos = js.undefined
       }
       d3State.simulation.alpha(1).restart()
-      // d3State.transform = d3.zoomIdentity
-      // applyZoomTransform()
+    }), br(),
+    button("+", title := "zoom in", onclick := { () =>
+      svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+    }), br(),
+    button("0", title := "reset zoom", onclick := { () =>
+      svg.call(d3State.zoom.transform _, d3.zoomIdentity) //TODO: transition for smooth animation
+    }), br(),
+    button("-", title := "zoom in", onclick := { () =>
+      svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
     })
   ).render)
 
@@ -123,11 +130,9 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   }
 
   private def initEvents(): Unit = {
-    svg.call(
-      d3.zoom()
-        .on("zoom", zoomed _)
-        .scaleExtent(js.Array(0.1, 10))
-    )
+    d3State.zoom.on("zoom", zoomed _)
+    svg.call(d3State.zoom)
+
     svg.on("click", () => focusedPostId() = None)
     d3State.simulation.on("tick", draw _)
     d3State.simulation.on("end", { () =>
@@ -139,13 +144,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   }
 
   private def zoomed() {
-    import d3State._
-    transform = d3.event.asInstanceOf[ZoomEvent].transform
-    applyZoomTransform()
-  }
-
-  private def applyZoomTransform() {
-    import d3State._
+    import d3State.transform
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
     postMenuLayer.attr("transform", transform.toString)

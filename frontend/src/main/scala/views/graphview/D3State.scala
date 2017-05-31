@@ -2,6 +2,7 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.window
+import scala.scalajs.js
 
 class Forces {
   val gravityX = d3.forceX[SimPost]()
@@ -63,7 +64,11 @@ class D3State(disableSimulation: Boolean = false) {
   private val width = window.innerWidth.toInt
   private val height = window.innerHeight.toInt
 
-  var transform: Transform = d3.zoomIdentity // stores current pan and zoom
+  val zoom = d3.zoom().on("zoom.settransform", zoomed _).scaleExtent(js.Array(0.1, 10))
+  private def zoomed() { _transform = d3.event.asInstanceOf[ZoomEvent].transform }
+  private var _transform: Transform = d3.zoomIdentity // stores current pan and zoom
+  def transform = _transform
+
   val forces = Forces(height, width)
   val simulation = Simulation(forces)
   if (disableSimulation) simulation.stop()
