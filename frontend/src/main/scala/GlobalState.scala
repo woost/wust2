@@ -3,7 +3,7 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ ViewConfig, ViewPage }
+import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
@@ -42,10 +42,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   })
 
-  val rawSelectedGroupId = viewConfig
+  val rawSelectedGroupId: RxVar[Option[GroupId], Option[GroupId]] = viewConfig
     .projection[Option[GroupId]](groupIdOpt => viewConfig.now.copy(groupIdOpt = groupIdOpt), _.groupIdOpt)
 
-  val selectedGroupId = {
+  val selectedGroupId: RxVar[Option[GroupId], Option[GroupId]] = {
     RxVar(rawSelectedGroupId, Rx {
       rawSelectedGroupId().filter(rawGraph().groupsById.isDefinedAt)
     })

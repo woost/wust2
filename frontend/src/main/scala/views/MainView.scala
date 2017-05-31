@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Event}
+import org.scalajs.dom.{Event, document, console}
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
@@ -134,7 +134,7 @@ object MainView {
     } else div().render)
   }
 
-  def currentGroupInviteLink(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def currentGroupInviteLink(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Option[String]] = {
     val inviteLink = Var[Option[String]](None)
     Rx {
       state.selectedGroupId() match {
@@ -147,7 +147,7 @@ object MainView {
         case None => inviteLink() = None
       }
     }
-    inviteLink.map(_.map(aUrl(_)(fontSize := "8px")).getOrElse(span()).render)
+    inviteLink
   }
 
   def viewSelection(state: GlobalState, pages: Seq[ViewPage])(implicit ctx: Ctx.Owner) = Rx {
@@ -226,6 +226,35 @@ object MainView {
     )
   }
 
+  def invitePopup(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val show = Var(false)
+    val activeDisplay = display := show.map(if (_) "block" else "none")
+    val inactiveDisplay = display := show.map(if (_) "none" else "block")
+
+    div(
+      div(
+        inactiveDisplay,
+        button("invite...", onclick := { () => show() = !show.now })
+      ),
+      div(
+        activeDisplay,
+        position.fixed, top := 5, left := 5, boxSizing.`border-box`,
+        padding := "15px", background := "rgba(247,247,247,0.9)", border := "1px solid #DDD",
+        div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
+        h4("Invite participants to group"),
+        groupSelector(state),
+        inviteUserToGroupField(state),
+        currentGroupInviteLink(state).map(linkOpt => linkOpt.map{ link =>
+          val linkField = input(tpe := "text", value := link, size := (link.size + 1), readonly).render
+          div(
+            linkField,
+            button("copy", onclick := { () => linkField.select(); document.execCommand("Copy") })
+          )
+        }.getOrElse(span()).render)
+      )
+    )
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
@@ -248,8 +277,7 @@ object MainView {
           upButton(state),
           focusedParents(state),
           groupSelector(state),
-          inviteUserToGroupField(state),
-          currentGroupInviteLink(state),
+          invitePopup(state),
           newGroupButton(state)
         ),
 
