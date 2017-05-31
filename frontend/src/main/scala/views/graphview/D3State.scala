@@ -44,7 +44,7 @@ object Forces {
 
 object Simulation {
   def apply(forces: Forces): Simulation[SimPost] = d3.forceSimulation[SimPost]()
-    .alphaMin(0.01) // stop simulation earlier (default = 0.001)
+    .alphaMin(0.05) // stop simulation earlier (default = 0.001)
     .force("gravityx", forces.gravityX)
     .force("gravityy", forces.gravityY)
     .force("repel", forces.repel)
