@@ -73,7 +73,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     button("0", title := "reset zoom", onclick := { () =>
       svg.call(d3State.zoom.transform _, d3.zoomIdentity) //TODO: transition for smooth animation
     }), br(),
-    button("-", title := "zoom in", onclick := { () =>
+    button("-", title := "zoom out", onclick := { () =>
       svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
     })
   ).render)
