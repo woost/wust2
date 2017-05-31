@@ -91,7 +91,6 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     val focusedParentIds = state.graphSelection().parentIds
     val parents = focusedParentIds.map(state.rawGraph().postsById)
     val parentTitles = parents.map(_.title).mkString(", ")
-    println(parents + parentTitles)
     focusedParentsHeader.text(parentTitles)
 
     val mixedDirectParentColors = mixColors(focusedParentIds.map(baseColor))
