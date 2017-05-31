@@ -9,7 +9,7 @@ import scala.scalajs.js
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
   val posts = children :+ parent
-  def maxRadius = posts.maxBy(_.radius).radius * 2
+  def maxRadius = (posts.maxBy(_.radius).radius) min 150 //TODO: global constant
 
   def positions: js.Array[js.Array[Double]] = posts.map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
   def convexHull: js.Array[js.Array[Double]] = {
@@ -40,7 +40,8 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   override def draw(hull: Selection[ContainmentCluster]) {
     hull
       .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
-      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
+      //TODO: maxRadius is calculated every frame, make it reactive
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius * 2 + cluster.depth * 15}px") // *2 because the stroke is half inward, half outward
       .style("opacity", (cluster: ContainmentCluster) => cluster.parent.opacity * 0.8)
   }
 }
