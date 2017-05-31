@@ -186,9 +186,10 @@ package object graph {
 
     def consistent = {
       val invalidConnections = connections
-        .filter { c => !postsById.isDefinedAt(c.sourceId) || !postsById.isDefinedAt(c.targetId) }
+        .filter { c => !postsById.isDefinedAt(c.sourceId) || !postsById.isDefinedAt(c.targetId) || c.sourceId == c.targetId }
+
       val invalidContainments = containments
-        .filter { c => !postsById.isDefinedAt(c.childId) || !postsById.isDefinedAt(c.parentId) }
+        .filter { c => !postsById.isDefinedAt(c.parentId) || !postsById.isDefinedAt(c.childId) || c.parentId == c.childId }
 
       val validOwnerships = ownerships
         .filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }

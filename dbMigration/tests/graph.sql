@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(19);
+SELECT plan(21);
 
 /* structure */
 SELECT col_not_null('post', 'title');
@@ -47,6 +47,26 @@ SELECT isnt_empty(
    RETURNING
     (parentid, childid);',
   'insert containment'
+);
+
+SELECT throws_ok(
+  'INSERT INTO
+    connection (sourceid, targetid)
+  VALUES
+    (3, 3);',
+  23514,
+  'new row for relation "connection" violates check constraint "selfloop"',
+  'connection self-loop constraint'
+);
+
+SELECT throws_ok(
+  'INSERT INTO
+    containment (parentid, childid)
+  VALUES
+    (3, 3);',
+  23514,
+  'new row for relation "containment" violates check constraint "selfloop"',
+  'containment self-loop constraint'
 );
 
 /* delete edges */

@@ -39,7 +39,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
 }
 
 class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ())(implicit ec: ExecutionContext) {
-  import d3State.{ simulation, transform }
+  import d3State.{simulation, transform}
 
   val dropActions = js.Array(
     DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }),
@@ -92,9 +92,9 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
 
-    p.dragClosest.foreach(_.isClosest= false)
+    p.dragClosest.foreach(_.isClosest = false)
     closest match {
-      case Some(target) if target != p =>
+      case Some(target) if target.id != p.id =>
         val dir = draggingPost.pos.get - target.pos.get
         target.isClosest = true
         target.dropAngle = dir.angle
@@ -113,7 +113,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
 
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
     closest match {
-      case Some(target) if target != dragging =>
+      case Some(target) if target.id != dragging.id =>
 
         val dropAction = dropActions(target.dropIndex(dropActions.length))
         println(s"\nDropped ${dropAction.name}: [${dragging.id}]${dragging.title} -> [${target.id}]${target.title}")
