@@ -13,7 +13,6 @@ import scala.util.{ Try, Success, Failure }
 
 object Db {
   def apply(config: Config)(implicit ec: ExecutionContext) = {
-    scribe.info("########## Connecting to database ##########")
     new Db(new PostgresAsyncContext[LowerCase](config))
   }
 }
