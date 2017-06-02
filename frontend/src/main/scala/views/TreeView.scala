@@ -34,26 +34,43 @@ object TreeView {
   import Elements._
 
   //TODO better?
-  private var nextFocusedPost: Option[PostId] = None
+  private var focusedPostId: Option[PostId] = None
 
   implicit val postOrdering = PostOrdering
 
   // preserves newlines and white spaces: white-space: pre
   def textfield = div(contenteditable := "true", style := "white-space: pre", width := "80ex")
 
+  def movePoint(postId: PostId) = div(
+    paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
+    span("☰"),
+    ondragstart := { (e: Event) =>
+      console.log("dend", e)
+    },
+    ondragend := { (e: Event) =>
+      console.log("dstart", e)
+    },
+    ondrop := { (e: Event) =>
+      console.log("drobbing", e)
+    }
+  )
+
   def bulletPoint(state: GlobalState, postId: PostId) = div(
-    "•", paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
+    paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
+    "•",
     onclick := { () => state.graphSelection() = GraphSelection.Union(Set(postId)) }
   )
 
-  def collapseButton(state: GlobalState, postId: PostId)(implicit ctx: Ctx.Owner) = button(
-    span(state.collapsedPostIds.map(ids => if (ids(postId)) "+" else "-")).render,
+  def collapseButton(state: GlobalState, postId: PostId)(implicit ctx: Ctx.Owner) = div(
+    paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
+    state.collapsedPostIds.map(ids => if (ids(postId)) "+" else "-"),
     onclick := { () => state.collapsedPostIds() = state.collapsedPostIds.now toggle postId }
   )
 
-  def deleteButton(state: GlobalState, postId: PostId) = buttonClick(
-    "delete",
-    Client.api.deletePost(postId, state.graphSelection.now).call()
+  def deleteButton(state: GlobalState, postId: PostId) = div(
+    paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
+    "✖",
+    onclick := { () => Client.api.deletePost(postId, state.graphSelection.now).call() }
   )
 
   def nextInParent(elem: HTMLElement, next: HTMLElement => Option[HTMLElement]): Option[HTMLElement] = {
@@ -64,7 +81,7 @@ object TreeView {
     }
   }
 
-  def findNextTextfield(elem: HTMLElement, isReversed: Boolean): Option[HTMLElement] = {
+def findNextTextfield(elem: HTMLElement, backwards: Boolean): Option[HTMLElement] = {
     val queried = elem.querySelectorAll("""div[contenteditable="true"]:not([disabled])""")
 
     if (queried.length <= 1) None
@@ -77,7 +94,7 @@ object TreeView {
       }
 
       foundIdx.flatMap { foundIdx =>
-        val offset = if (isReversed) -1 else 1
+        val offset = if (backwards) -1 else 1
         val nextIdx = (foundIdx + offset) match {
           case x if x < 0              => queried.length - 1
           case x if x > queried.length => 0
@@ -89,10 +106,10 @@ object TreeView {
   }
 
   def focusUp(elem: HTMLElement) = {
-    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = true)).foreach(focusAndSetCursor _)
+    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, backwards = true)).foreach(focusAndSetCursor _)
   }
   def focusDown(elem: HTMLElement) = {
-    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, isReversed = false)).foreach(focusAndSetCursor _)
+    nextInParent(elem.parentElement.parentElement.parentElement, findNextTextfield(_, backwards = false)).foreach(focusAndSetCursor _)
   }
 
   def textAroundCursorSelectionElement(elem: HTMLElement) = {
@@ -132,7 +149,7 @@ object TreeView {
         }
 
         postIdFut.map { postId =>
-          postId.foreach(id => nextFocusedPost = Some(id))
+          postId.foreach(id => focusedPostId = Some(id))
         }
         false
       case KeyCode.Tab => event.shiftKey match {
@@ -198,16 +215,14 @@ object TreeView {
   }
 
   def postItem(state: GlobalState, c: TreeContext[Post], tree: Tree[Post])(implicit ctx: Ctx.Owner): Frag = {
-    //TODO: why need rendered textarea for setting value?
     val post = tree.element
     val area = textfield(
       post.title,
       onfocus := { () =>
-        nextFocusedPost = Some(post.id)
+        focusedPostId = Some(post.id)
       },
       onblur := { (event: Event) =>
         val elem = event.target.asInstanceOf[HTMLElement]
-        // val elemWithText = event.target.asInstanceOf[}]
         if (post.title != elem.textContent)
           Client.api.updatePost(post.copy(title = elem.textContent)).call()
       },
@@ -215,7 +230,7 @@ object TreeView {
     ).render
 
     //TODO: better?
-    if (nextFocusedPost.map(_ == post.id).getOrElse(false)) {
+    if (focusedPostId.map(_ == post.id).getOrElse(false)) {
       setTimeout(200) {
         focusAndSetCursor(area)
       }
@@ -223,9 +238,10 @@ object TreeView {
 
     div(
       display.flex,
+      collapseButton(state, post.id),
       bulletPoint(state, post.id),
       area,
-      collapseButton(state, post.id),
+      movePoint(post.id),
       deleteButton(state, post.id)
     )
   }
