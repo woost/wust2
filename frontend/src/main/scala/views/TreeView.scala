@@ -139,17 +139,18 @@ def findNextTextfield(elem: HTMLElement, backwards: Boolean): Option[HTMLElement
     onKey(event) {
       case KeyCode.Enter if !event.shiftKey =>
         val (currPostText, newPostText) = textAroundCursorSelectionElement(elem)
+        val newPost = Post.newId(newPostText)
         Client.api.updatePost(post.copy(title = currPostText)).call()
         //TODO: do not create empty post, create later when there is a title
         val postIdFut = c.parentMap.get(tree) match {
           case Some(parentTree) =>
-            Client.api.addPostInContainment(newPostText, parentTree.element.id, state.selectedGroupId.now).call()
+            Client.api.addPostInContainment(newPost, parentTree.element.id, state.selectedGroupId.now).call()
           case None =>
-            Client.api.addPost(newPostText, state.graphSelection.now, state.selectedGroupId.now).call()
+            Client.api.addPost(newPost, state.graphSelection.now, state.selectedGroupId.now).call()
         }
 
-        postIdFut.map { postId =>
-          postId.foreach(id => focusedPostId = Some(id))
+        postIdFut.map { success =>
+          if (success) focusedPostId = Some(newPost.id)
         }
         false
       case KeyCode.Tab => event.shiftKey match {

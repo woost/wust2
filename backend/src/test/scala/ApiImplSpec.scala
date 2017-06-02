@@ -16,12 +16,23 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     def data(id: Long, name: String): wust.db.data.User = new wust.db.data.User(id, name, isImplicit = false, 0)
   }
 
+  "getPost" in mockDb { db =>
+    val postId = "goink"
+    db.post.get(postId) returnsFuture Option(data.Post(postId, "banga"))
+    onApi(State.initial, db)(_.getPost(postId)).map {
+      case (state, events, result) =>
+        state mustEqual State.initial
+        events must contain theSameElementsAs List()
+        result mustEqual Option(Post(postId, "banga"))
+    }
+  }
+
   "addGroup" in mockDb { db =>
-    db.group.createForUser(UserId(23)) returns Future.successful(Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1))))
+    db.group.createForUser(UserId(23)) returnsFuture Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1)))
 
     val auth = JWT.generateAuthentication(User(23, "hans"))
     val state = State.initial.copy(auth = Some(auth))
-    onApi(state, db = db)(_.addGroup()).map {
+    onApi(state, db)(_.addGroup()).map {
       case (state, events, result) =>
         state.auth mustEqual Some(auth)
         events must contain theSameElementsAs Seq(NewMembership(Membership(23, 1)))
@@ -29,12 +40,13 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     }
   }
 
+  // historic test
   "2x addGroup" in mockDb { db =>
-    db.group.createForUser(UserId(23)) returns Future.successful(Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1))))
+    db.group.createForUser(UserId(23)) returnsFuture Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1)))
 
     val auth = JWT.generateAuthentication(User(23, "hans"))
     val state = State.initial.copy(auth = Some(auth))
-    onApi(state, db = db)(_.addGroup()).flatMap {
+    onApi(state, db)(_.addGroup()).flatMap {
       case (state1, events1, result1) =>
         onApi(state1, db = db)(_.addGroup()).map {
           case (state, events, result) =>
@@ -47,6 +59,5 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
             result mustEqual GroupId(1)
         }
     }
-
   }
 }

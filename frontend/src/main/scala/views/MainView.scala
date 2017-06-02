@@ -162,7 +162,7 @@ object MainView {
 
   def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     //TODO: Don't hardcode feedback postId
-    val feedbackPostId = PostId(82)
+    val feedbackPostId = PostId("82")
 
     val feedbackField = textarea(
       rows := 5,
@@ -205,13 +205,11 @@ object MainView {
           onsubmit := { () =>
             val text = feedbackField.value
             if (text.nonEmpty) {
-              Client.api.addPost(text, GraphSelection.Union(Set(feedbackPostId)), groupId = None).call().foreach { postOpt =>
-                val success = postOpt.isDefined
+              Client.api.addPost(Post.newId(text), GraphSelection.Union(Set(feedbackPostId)), groupId = None).call().foreach { success =>
                 if (success)
                   feedbackField.value = ""
                 else {
-                  Client.api.addPost(text, GraphSelection.Root, groupId = None).call().foreach { postOpt =>
-                    val success = postOpt.isDefined
+                  Client.api.addPost(Post.newId(text), GraphSelection.Root, groupId = None).call().foreach { success =>
                     if (success)
                       feedbackField.value = ""
                   }

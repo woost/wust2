@@ -34,6 +34,11 @@ object PathOption {
     def toString(seq: Seq[Long]): String = seq.mkString(",")
   }
 
+  object StringList {
+    def parse(str: String): Seq[String] = str.split(",")
+    def toString(seq: Seq[String]): String = seq.mkString(",")
+  }
+
   object Flag {
     def parse(str: String): Boolean = Try(str.toBoolean).toOption.getOrElse(false)
     def toString(flag: Boolean): String = flag.toString

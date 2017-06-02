@@ -39,7 +39,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
 
     "with auth" in mockDb { db =>
-      db.graph.getAllVisiblePosts(Some(user.id)) returns Future.successful(emptyGraph)
+      db.graph.getAllVisiblePosts(Some(user.id)) returnsFuture emptyGraph
       val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
@@ -51,7 +51,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     }
 
     "with groupIds" in mockDb { db =>
-      db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
+      db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
       val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = None, graph = Graph(groups = List(Group(1), Group(2))))
@@ -64,7 +64,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
 
     "without auth" in mockDb { db =>
       val stateInterpreter = new StateInterpreter(db = db)
-      db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
+      db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
 
       val state = State(auth = None, graph = Graph.empty)
       val events = Future.sequence(stateInterpreter.stateEvents(state))
@@ -90,7 +90,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     }
 
     "different auth" in mockDb { db =>
-      db.graph.getAllVisiblePosts(None) returns Future.successful(emptyGraph)
+      db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
       val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph(groups = List(Group(1), Group(2))))
@@ -118,7 +118,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       "NewMembership with exising member user" in mockDb { db =>
         val aMember = User.data(777, "harals")
 
-        db.user.get(aMember.id) returns Future.successful(Some(aMember))
+        db.user.get(aMember.id) returnsFuture Some(aMember)
         val stateInterpreter = new StateInterpreter(db = db)
 
         val group = Group(12)
@@ -131,14 +131,14 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       }
 
       "NewMembership with new member user" in mockDb { db =>
-        val postInGroup = data.Post(121212, "harhar")
+        val postInGroup = data.Post("eidie", "harhar")
         val aMember = User.data(777, "harals")
         val aGroup = data.UserGroup(12)
         val aMembership = data.Membership(aMember.id, aGroup.id)
 
-        db.group.get(aGroup.id) returns Future.successful(Some(aGroup))
-        db.group.members(aGroup.id) returns Future.successful(List((aMember, aMembership)))
-        db.group.getOwnedPosts(aGroup.id) returns Future.successful(List(postInGroup))
+        db.group.get(aGroup.id) returnsFuture Some(aGroup)
+        db.group.members(aGroup.id) returnsFuture List((aMember, aMembership))
+        db.group.getOwnedPosts(aGroup.id) returnsFuture List(postInGroup)
         val stateInterpreter = new StateInterpreter(db = db)
 
         val graph = Graph.empty

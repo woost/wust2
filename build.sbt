@@ -155,7 +155,7 @@ lazy val database = project
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .dependsOn(idsJVM)
+  .dependsOn(idsJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.2.1" ::

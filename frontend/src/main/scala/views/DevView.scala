@@ -9,7 +9,6 @@ import wust.api._
 import wust.frontend.{ Client, GlobalState }
 import wust.graph._
 import wust.ids._
-import wust.util.AutoId
 import wust.util.tags._
 
 import scala.collection.breakOut
@@ -46,7 +45,7 @@ object DevView {
           ).render
         },
         Rx {
-          def addRandomPost() { Client.api.addPost(rStr(1 + rInt(20)), state.graphSelection(), state.selectedGroupId()).call() }
+          def addRandomPost() { Client.api.addPost(Post.newId(rStr(1 + rInt(20))), state.graphSelection(), state.selectedGroupId()).call() }
           div(
             button("create random post", onclick := { () => addRandomPost() }),
             button("10", onclick := { () => for (_ <- 0 until 10) addRandomPost() }),
@@ -69,13 +68,12 @@ object DevView {
             import scalajs.js.timers._
             def graph = state.rawGraph.now
 
-            val nextPostId = AutoId(100000)
             def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postIds.toIndexedSeq)(rInt(graph.postsById.size))) else None
             def randomConnection: Option[Connection] = if (graph.connections.size > 0) Option((graph.connections.toIndexedSeq)(rInt(graph.connections.size))) else None
             def randomContainment: Option[Containment] = if (graph.containments.size > 0) Option((graph.containments.toIndexedSeq)(rInt(graph.containments.size))) else None
             val events: Array[() => Option[ApiEvent]] = {
               val distribution: List[(Int, () => Option[ApiEvent])] = (
-                (1, () => Option(NewPost(Post(nextPostId(), rStr(1 + rInt(20)))))) ::
+                (1, () => Option(NewPost(Post.newId(rStr(1 + rInt(20)))))) ::
                 (1, () => randomPostId.map(p => UpdatedPost(Post(p, rStr(1 + rInt(20)))))) ::
                 (1, () => randomPostId.map(DeletePost(_))) ::
                 (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewConnection(Connection(p1, p2))) ::

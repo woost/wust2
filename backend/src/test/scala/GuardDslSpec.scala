@@ -18,7 +18,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   val initialUser = User(11, "existing", isImplicit = false, 0)
 
   override def mockDb[T](f: Db => T) = super.mockDb { db =>
-    db.user.createImplicitUser() returns Future.successful(implicitUserDb)
+    db.user.createImplicitUser() returnsFuture implicitUserDb
     f(db)
   }
 

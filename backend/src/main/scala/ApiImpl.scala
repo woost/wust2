@@ -13,6 +13,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
 
+  //TODO: we should raise an apierror 'forbidden', instead of false/None/etc, when a user is not allowed
   private def isGroupMember[T](groupId: GroupId, userId: UserId)(code: => Future[T])(recover: T): Future[T] = {
     (for {
       isMember <- db.group.isMember(groupId, userId) if isMember
@@ -29,43 +30,49 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
 
-  def addPost(msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Option[PostId]] = withUserOrImplicit { (_, user) =>
+  def addPost(post: Post, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Boolean] = withUserOrImplicit { (_, user) =>
+    assert(post.id != null)
     def createStuff = {
-      val newPost = db.post(msg, groupIdOpt)
-      newPost.flatMap {
-        case (post, _) =>
+      val success = groupIdOpt match {
+        case Some(groupId) => db.post.createOwned(post, groupId)
+        case None => db.post.createPublic(post)
+      }
+      success.flatMap {
+        case true =>
           selectionToContainments(selection, post.id).map { containments =>
             val events = Seq(NewPost(post)) ++ containments.map(NewContainment(_))
-            respondWithEvents(Option(post.id), events: _*)
+            respondWithEvents(true, events: _*)
           }
+        case false => Future.successful(respondWithEvents(false))
       }
     }
+
     groupIdOpt match {
       case Some(groupId) =>
         isGroupMember(groupId, user.id) {
           createStuff
-        }(recover = respondWithEvents(None))
+        }(recover = respondWithEvents(false))
       case None => // public group
         createStuff
     }
   }
 
-  def addPostInContainment(msg: String, parentId: PostId, groupId: Option[GroupId]): Future[Option[PostId]] = withUserOrImplicit { (_, user) =>
+  def addPostInContainment(post: Post, parentId: PostId, groupIdOpt: Option[GroupId]): Future[Boolean] = withUserOrImplicit { (_, user) =>
     def createStuff = {
-      db.containment.newPost(msg, parentId, groupId).map {
-        case Some((post, containment, ownership)) =>
-          val events = NewPost(post) :: NewContainment(containment) :: ownership.map(NewOwnership(_)).toList
-          respondWithEvents(Option(post.id), events: _*)
-        case None =>
-          respondWithEvents(None: Option[PostId])
+      db.containment.newPost(post, parentId, groupIdOpt).map {
+        case true =>
+          val ownership = groupIdOpt.map(Ownership(post.id, _))
+          val events = NewPost(post) :: NewContainment(Containment(parentId, post.id)) :: ownership.map(NewOwnership(_)).toList
+          respondWithEvents(true)
+        case false => respondWithEvents(false)
       }
     }
 
-    groupId match {
+    groupIdOpt match {
       case Some(groupId) =>
         isGroupMember(groupId, user.id) {
           createStuff
-        }(recover = respondWithEvents(None: Option[PostId]))
+        }(recover = respondWithEvents(false))
       case None => // public group
         createStuff
     }
@@ -90,15 +97,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def connect(sourceId: PostId, targetId: PostId): Future[Option[Connection]] = withUserOrImplicit { (_, _) =>
+  def connect(sourceId: PostId, targetId: PostId): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO: hasAccessToOnePost(user, postA, postB)
-    val connection = db.connection(sourceId, targetId)
-    connection.map {
-      case Some(connection) =>
-        respondWithEvents[Option[Connection]](Option(forClient(connection)), NewConnection(connection))
-      case None =>
-        respondWithEvents[Option[Connection]](None)
-    }
+    val connection = Connection(sourceId, targetId)
+    db.connection(connection).map(respondWithEventsIf(_, NewConnection(connection)))
   }
 
   def deleteConnection(connection: Connection): Future[Boolean] = withUserOrImplicit { (_, _) =>
@@ -114,15 +116,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def createContainment(parentId: PostId, childId: PostId): Future[Option[Containment]] = withUserOrImplicit { (_, _) =>
+  def createContainment(parentId: PostId, childId: PostId): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO: hasAccessToOnePost(user, postA, postB)
-    val containment = db.containment(parentId, childId)
-    containment.map {
-      case Some(containment) =>
-        respondWithEvents[Option[Containment]](Option(forClient(containment)), NewContainment(containment))
-      case None =>
-        respondWithEvents[Option[Containment]](None)
-    }
+    val containment = Containment(parentId, childId)
+    db.containment(containment).map(respondWithEventsIf(_, NewContainment(containment)))
   }
 
   def deleteContainment(containment: Containment): Future[Boolean] = withUserOrImplicit { (_, _) =>
@@ -130,11 +127,13 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     db.containment.delete(containment).map(respondWithEventsIf(_, DeleteContainment(containment)))
   }
 
-  def respond(targetPostId: PostId, msg: String, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Option[(Post, Connection)]] = withUserOrImplicit { (_, user) =>
+  def respond(targetPostId: PostId, post: Post, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Boolean] = withUserOrImplicit { (_, user) =>
     def createStuff = {
-      val newPost = db.connection.newPost(msg, targetPostId, groupIdOpt)
+      val newPost = db.connection.newPost(post, targetPostId, groupIdOpt)
       newPost.flatMap {
-        case Some((post, connection, ownershipOpt)) =>
+        case true =>
+          val connection = Connection(post.id, targetPostId)
+          val ownership = groupIdOpt.map(Ownership(post.id, _))
           val selectionContainmentsFut = selectionToContainments(selection, post.id)
           val parentContainmentsFut = for {
             parentIds <- db.post.getParentIds(targetPostId)
@@ -147,16 +146,16 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           } yield {
             val containmentEvents = (selectionContainments ++ parentContainments).map(NewContainment(_))
             val events = Seq(NewPost(post), NewConnection(connection)) ++ containmentEvents
-            respondWithEvents[Option[(Post, Connection)]](Option((post, connection)), events: _*)
+            respondWithEvents(true, events: _*)
           }
-        case None => Future.successful(respondWithEvents[Option[(Post, Connection)]](None))
+        case false => Future.successful(respondWithEvents(false))
       }
     }
     groupIdOpt match {
       case Some(groupId) =>
         isGroupMember(groupId, user.id) {
           createStuff
-        }(recover = respondWithEvents[Option[(Post, Connection)]](None))
+        }(recover = respondWithEvents(false))
       case None => // public group
         createStuff
     }
@@ -258,10 +257,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   private def createContainments(parentIds: Seq[PostId], postId: PostId): Future[Seq[Containment]] = {
     //TODO: bulk insert into database
-    val containments = parentIds.map(db.containment(_, postId))
+    val containments = parentIds.map { parent =>
+      val containment = Containment(parent, postId)
+      db.containment(containment).map(_ => containment) // TODO error on false
+    }
 
-    //TODO: fail instead of flatten?
-    Future.sequence(containments).map(_.flatten.map(forClient))
+    Future.sequence(containments)
   }
 
   private def selectionToContainments(selection: GraphSelection, postId: PostId): Future[Seq[Containment]] = {

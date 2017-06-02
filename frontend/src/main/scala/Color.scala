@@ -7,7 +7,7 @@ import scalaz.Tag
 object Color {
   val postDefaultColor = d3.lab("#f8f8f8")
 
-  def baseHue(id: PostId) = (Tag.unwrap(id) * 137) % 360
+  def baseHue(id: PostId) = (id.hashCode * 137) % 360
   def baseColor(id: PostId) = d3.hcl(baseHue(id), 50, 75)
   def baseColorMixedWithDefault(id: PostId) = mixColors(d3.hcl(baseHue(id), 50, 75), postDefaultColor)
 

@@ -68,12 +68,12 @@ object AddPostForm {
         result
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        val result = Client.api.respond(postId, text, selection, groupIdOpt).call().map(_.isDefined)
+        val result = Client.api.respond(postId, Post.newId(text), selection, groupIdOpt).call()
         sendEvent("post", "respond", "api")
         result
       case _ =>
         DevPrintln(s"\nCreating Post: $text")
-        val result = Client.api.addPost(text, selection, groupIdOpt).call().map(_.isDefined)
+        val result = Client.api.addPost(Post.newId(text), selection, groupIdOpt).call()
         sendEvent("post", "create", "api")
         result
     }

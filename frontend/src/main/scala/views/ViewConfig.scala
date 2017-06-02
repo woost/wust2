@@ -39,7 +39,7 @@ object ViewConfig {
   private def viewConfigToPath(config: ViewConfig) = {
     val name = ViewPage.toString(config.page)
     val selection = Option(config.selection) collect {
-      case GraphSelection.Union(ids) => "select" -> PathOption.IdList.toString(ids.map(Tag.unwrap _).toSeq)
+      case GraphSelection.Union(ids) => "select" -> PathOption.StringList.toString(ids.map(Tag.unwrap _).toSeq)
     }
     val group = config.groupIdOpt.map(groupId => "group" -> Tag.unwrap(groupId).toString)
     //do not store invite key in url
@@ -49,7 +49,7 @@ object ViewConfig {
 
   private def pathToViewConfig(path: Path) = {
     val page = ViewPage.fromString(path.name)
-    val selection = path.options.get("select").map(PathOption.IdList.parse) match {
+    val selection = path.options.get("select").map(PathOption.StringList.parse) match {
       case Some(ids) => GraphSelection.Union(ids.map(PostId _).toSet)
       case None      => GraphSelection.default
     }

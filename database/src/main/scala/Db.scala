@@ -8,6 +8,7 @@ import scala.concurrent.{ ExecutionContext, Future, Await }
 import scala.concurrent.duration._
 import scalaz.Tag
 import wust.ids._
+import wust.util._
 import scala.util.{ Try, Success, Failure }
 
 object Db {
@@ -25,8 +26,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId _)
   implicit val encodeUserId = MappedEncoding[UserId, IdType](Tag.unwrap _)
   implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId _)
-  implicit val encodePostId = MappedEncoding[PostId, IdType](Tag.unwrap _)
-  implicit val decodePostId = MappedEncoding[IdType, PostId](PostId _)
+  implicit val encodePostId = MappedEncoding[PostId, UuidType](Tag.unwrap _)
+  implicit val decodePostId = MappedEncoding[UuidType, PostId](PostId _)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
@@ -45,39 +46,26 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
     //   )
     // }
 
-    def createPublic(title: String): Future[Post] = {
-      val post = Post(DEFAULT, title)
-
+    //TODO should notreturn post
+    def createPublic(post: Post): Future[Boolean] = {
       //TODO
       //     val q = quote { createOwnedPost(lift(title), lift(group.id))).returning(_.postId) }
       //     ctx.run(q).map(id => post.copy(id = id))
-      for {
-        postId <- ctx.run(query[Post].insert(lift(post)).returning(_.id))
-      } yield post.copy(id = postId)
+
+      ctx.run(query[Post].insert(lift(post)))
+        .map(_ == 1)
+        .recoverValue(false)
     }
 
-    def createOwned(title: String, groupId: GroupId): Future[(Post, Ownership)] = {
-      val post = Post(DEFAULT, title)
-
+    def createOwned(post: Post, groupId: GroupId): Future[Boolean] = {
       //TODO
       //     val q = quote { createOwnedPost(lift(title), lift(group.id))).returning(_.postId) }
       //     ctx.run(q).map(id => post.copy(id = id))
       ctx.transaction { _ =>
-        for {
-          postId <- ctx.run(query[Post].insert(lift(post)).returning(_.id))
-          _ <- ctx.run(query[Ownership].insert(lift(Ownership(postId, groupId))))
-        } yield (post.copy(id = postId), Ownership(postId, groupId))
-      }
-    }
-
-    def apply(title: String, groupIdOpt: Option[GroupId]): Future[(Post, Option[Ownership])] = {
-      groupIdOpt match {
-        case Some(groupId) => createOwned(title, groupId).map {
-          case (post, ownership) => (post, Option(ownership))
-        }
-        case None => createPublic(title).map { post =>
-          (post, None)
-        }
+        (for {
+          1 <- ctx.run(query[Post].insert(lift(post)))
+          1 <- ctx.run(query[Ownership].insert(lift(Ownership(post.id, groupId))))
+        } yield true).recoverValue(false)
       }
     }
 
@@ -123,21 +111,20 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   }
 
   object connection {
-    def apply(sourceId: PostId, targetId: PostId): Future[Option[Connection]] = {
+    def apply(connection: Connection): Future[Boolean] = {
       //TODO: check existence with database constraints
+      import connection._
       val existing = ctx.run(query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId))).map(_.headOption)
       (existing.flatMap {
         case None =>
-          val connection = Connection(sourceId, targetId)
-          for {
-            _ <- ctx.run(query[Connection].insert(lift(connection)))
-          } yield Option(connection)
-        case someConnection =>
-          Future.successful(someConnection)
-      }).recover { case _ => None }
+          ctx.run(query[Connection].insert(lift(connection)))
+            .map(_ == 1)
+            .recoverValue(false)
+        case someConnection => Future.successful(false)
+      }).recoverValue(false)
     }
 
-    def newPost(title: String, targetPostId: PostId, groupIdOpt: Option[GroupId]): Future[Option[(Post, Connection, Option[Ownership])]] = {
+    def newPost(insertPost: Post, targetId: PostId, groupIdOpt: Option[GroupId]): Future[Boolean] = {
       // TODO in one query:
       // val createPostAndConnection = quote {
       //   (title: String, targetId: PostId) =>
@@ -149,20 +136,17 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
       // val q = quote { createPostAndConnection(lift(title), lift(targetId)) }
       // ctx.run(q).map(conn => (Post(conn.sourceId, title), conn))
-      val targetIdOptFut: Future[Option[PostId]] = ctx.run(query[Post].filter(_.id == lift(targetPostId)).nonEmpty).map { exists =>
-        if (exists) Some(targetPostId)
-        else None
-      }
-
-      targetIdOptFut.flatMap {
-        case Some(targetId) =>
-          for {
-            (post, ownershipOpt) <- post(title, groupIdOpt)
-            Some(connection) <- apply(post.id, targetId)
-          } yield Option((post, connection, ownershipOpt))
-        case None =>
-          Future.successful(None)
-      }
+      ctx.run(query[Post].filter(_.id == lift(targetId)).nonEmpty)
+        .flatMap {
+          case true => (for {
+            true <- groupIdOpt match {
+              case Some(groupId) => post.createOwned(insertPost, groupId)
+              case None => post.createPublic(insertPost)
+            }
+            true <- apply(Connection(insertPost.id, targetId))
+          } yield true).recoverValue(false)
+          case false => Future.successful(false)
+        }
     }
 
     def delete(connection:Connection): Future[Boolean] = {
@@ -179,29 +163,32 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
   }
 
   object containment {
-    def apply(parentId: PostId, childId: PostId): Future[Option[Containment]] = { //TODO: returen Future[Boolean]
+    def apply(containment: Containment): Future[Boolean] = {
       //TODO: check existence with database constraints
+      import containment._
       val existing = ctx.run(query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId))).map(_.headOption)
-      (existing.flatMap {
+      existing.flatMap {
         case None =>
-          val containment = Containment(parentId, childId)
-          for {
-            _ <- ctx.run(query[Containment].insert(lift(containment)))
-          } yield Option(containment)
+          ctx.run(query[Containment].insert(lift(containment)))
+            .map(_ == 1)
+            .recoverValue(false)
         case someContainment =>
-          Future.successful(someContainment)
-      }).recover { case _ => None }
+          Future.successful(false)
+      }
     }
 
-    def newPost(title: String, parentId: PostId, groupIdOpt: Option[GroupId]): Future[Option[(Post, Containment, Option[Ownership])]] = {
+    def newPost(insertPost: Post, parentId: PostId, groupIdOpt: Option[GroupId]): Future[Boolean] = {
       //TODO: ome query
       ctx.run(query[Post].filter(_.id == lift(parentId)).nonEmpty)
         .flatMap {
-          case true => for {
-            (post, ownershipOpt) <- post(title, groupIdOpt)
-            containment <- apply(parentId, post.id)
-          } yield containment.map((post, _, ownershipOpt))
-          case false => Future.successful(None)
+          case true => (for {
+            true <- groupIdOpt match {
+              case Some(groupId) => post.createOwned(insertPost, groupId)
+              case None => post.createPublic(insertPost)
+            }
+            true <- apply(Containment(parentId, insertPost.id))
+          } yield true).recoverValue(false)
+          case false => Future.successful(false)
         }
     }
 
@@ -400,7 +387,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
     def setInviteToken(groupId: GroupId, token: String): Future[Boolean] = {
       ctx.run(infix"""
         insert into groupInvite(groupId, token) values(${lift(groupId)}, ${lift(token)}) on conflict (groupId) do update set token = ${lift(token)}
-        """.as[Insert[GroupInvite]]).map(_ => true).recover { case _ => false }
+        """.as[Insert[GroupInvite]]).map(_ => true).recoverValue(false)
     }
 
     def getInviteToken(groupId: GroupId): Future[Option[String]] = {

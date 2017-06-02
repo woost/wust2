@@ -3,7 +3,7 @@ package wust.db
 import org.scalatest._
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 
 import wust.db.data._
 import wust.ids._
@@ -16,30 +16,35 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     def mustEqualDigest(pw: String) = arr mustEqual passwordToDigest(pw)
   }
 
+  //TODO: still throw exceptions on for example database connection errors
+
   "post" - {
     "create public post" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("ei-D", "dono")
       for {
-        post <- db.post.createPublic("t")
+        success <- db.post.createPublic(post)
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        post.title mustEqual "t"
+        success mustBe true
         queriedPosts must contain theSameElementsAs List(post)
         queriedOwnerships mustBe empty
       }
     }
 
-    "create public post with apply" in { db =>
+    "create public post (existing id)" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("ei-D", "dono")
       for {
-        (post, None) <- db.post("t", groupIdOpt = None)
+        _ <- db.post.createPublic(post)
+        success <- db.post.createPublic(Post("ei-D", "dino"))
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        post.title mustEqual "t"
+        success mustBe false
         queriedPosts must contain theSameElementsAs List(post)
         queriedOwnerships mustBe empty
       }
@@ -47,54 +52,56 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
     "create owned post" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("woink", "klang")
       for {
         // groupId <- ctx.run(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-        (post, ownership) <- db.post.createOwned("t", groupId)
+        success <- db.post.createOwned(post, groupId)
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        post.title mustEqual "t"
-        ownership mustEqual Ownership(post.id, groupId)
+        success mustBe true
 
         queriedPosts must contain theSameElementsAs List(post)
         queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
       }
     }
 
-    "create owned post with apply" in { db =>
+    "create owned post (existing)" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("woink", "klang")
       for {
+        _ <- db.post.createPublic(post)
         // groupId <- ctx.run(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-        (post, Some(ownership)) <- post("t", Option(groupId))
+        success <- db.post.createOwned(post, groupId)
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        post.title mustEqual "t"
-        ownership mustEqual Ownership(post.id, groupId)
+        success mustBe false
 
         queriedPosts must contain theSameElementsAs List(post)
-        queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
+        queriedOwnerships mustBe empty
       }
     }
 
     "get existing post" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("hege", "walt")
       for {
-        Post(postId, _) <- db.post.createPublic("t")
-        getPost <- db.post.get(postId)
+        true <- db.post.createPublic(post)
+        getPost <- db.post.get(post.id)
       } yield {
-        getPost mustEqual Option(Post(postId, "t"))
+        getPost mustEqual Option(post)
       }
     }
 
     "get non-existing post" in { db =>
       import db._, db.ctx, ctx._
       for {
-        getPost <- db.post.get(17134)
+        getPost <- db.post.get("17134")
       } yield {
         getPost mustEqual None
       }
@@ -102,12 +109,13 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
     "update existing post" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("harnig", "delauf")
       for {
-        post <- db.post.createPublic("t")
-        updatedPost <- db.post.update(post.copy(title = "harals"))
+        true <- db.post.createPublic(post)
+        success <- db.post.update(post.copy(title = "harals"))
         queriedPosts <- ctx.run(query[Post])
       } yield {
-        updatedPost mustBe true
+        success mustBe true
         queriedPosts must contain theSameElementsAs List(post.copy(title = "harals"))
       }
     }
@@ -115,22 +123,23 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "update non-existing post" in { db =>
       import db._, db.ctx, ctx._
       for {
-        updatedPost <- db.post.update(Post(1135, "harals"))
+        success <- db.post.update(Post("1135", "harals"))
         queriedPosts <- ctx.run(query[Post])
       } yield {
-        updatedPost mustBe false
+        success mustBe false
         queriedPosts mustBe empty
       }
     }
 
     "delete existing post" in { db =>
       import db._, db.ctx, ctx._
+      val post = Post("harnig", "delauf")
       for {
-        post <- db.post.createPublic("t")
-        deleted <- db.post.delete(post.id)
+        true <- db.post.createPublic(post)
+        success <- db.post.delete(post.id)
         queriedPosts <- ctx.run(query[Post])
       } yield {
-        deleted mustBe true
+        success mustBe true
         queriedPosts mustBe empty
       }
     }
@@ -138,22 +147,25 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "delete non-existing post" in { db =>
       import db._, db.ctx, ctx._
       for {
-        deleted <- db.post.delete(135481)
+        success <- db.post.delete("135481")
         queriedPosts <- ctx.run(query[Post])
       } yield {
-        deleted mustBe false
+        success mustBe false
         queriedPosts mustBe empty
       }
     }
 
     "get parentIds" in { db =>
       import db._, db.ctx, ctx._
+      val child = Post("1", "Sohiritus")
+      val parent1 = Post("2", "Borolf")
+      val parent2 = Post("3", "Sohiritus")
       for {
-        child <- db.post.createPublic("Sohnemann")
-        parent1 <- db.post.createPublic("Borolf")
-        parent2 <- db.post.createPublic("Migrota")
-        Some(_) <- db.containment(parent1.id, child.id)
-        Some(_) <- db.containment(parent2.id, child.id)
+        true <- db.post.createPublic(child)
+        true <- db.post.createPublic(parent1)
+        true <- db.post.createPublic(parent2)
+        true <- db.containment(Containment(parent1.id, child.id))
+        true <- db.containment(Containment(parent2.id, child.id))
         parentIds <- db.post.getParentIds(child.id)
       } yield {
         parentIds must contain theSameElementsAs List(parent1.id, parent2.id)
@@ -164,118 +176,112 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
   "connection" - {
     "create between two existing posts" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        sourcePost <- db.post.createPublic("s")
-        targetPost <- db.post.createPublic("t")
-        Some(connection) <- db.connection(sourcePost.id, targetPost.id)
+        true <- db.post.createPublic(sourcePost)
+        true <- db.post.createPublic(targetPost)
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
-        connection.sourceId mustEqual sourcePost.id
-        connection.targetId mustEqual targetPost.id
+        success mustBe true
         connections must contain theSameElementsAs List(connection)
       }
     }
 
     "create between two existing posts with already existing connection" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        sourcePost <- db.post.createPublic("s")
-        targetPost <- db.post.createPublic("t")
-        Some(_) <- db.connection(sourcePost.id, targetPost.id)
-        Some(connection) <- db.connection(sourcePost.id, targetPost.id)
+        true <- db.post.createPublic(sourcePost)
+        true <- db.post.createPublic(targetPost)
+        true <- db.connection(connection)
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
-        connection.sourceId mustEqual sourcePost.id
-        connection.targetId mustEqual targetPost.id
+        success mustBe false
         connections must contain theSameElementsAs List(connection)
       }
     }
 
     "create between two existing posts with already existing containments" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        sourcePost <- db.post.createPublic("s")
-        targetPost <- db.post.createPublic("t")
-        Some(_) <- db.containment(sourcePost.id, targetPost.id)
-        Some(_) <- db.containment(targetPost.id, sourcePost.id)
-        Some(connection) <- db.connection(sourcePost.id, targetPost.id)
+        true <- db.post.createPublic(sourcePost)
+        true <- db.post.createPublic(targetPost)
+        true <- db.containment(Containment(sourcePost.id, targetPost.id))
+        true <- db.containment(Containment(targetPost.id, sourcePost.id))
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
-        connection.sourceId mustEqual sourcePost.id
-        connection.targetId mustEqual targetPost.id
+        success mustBe true
         connections must contain theSameElementsAs List(connection)
       }
     }
 
     "create between two posts, source not existing" in { db =>
       import db._, db.ctx, ctx._
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        targetPost <- db.post.createPublic("t")
-        connectionOpt <- db.connection(131565, targetPost.id)
+        true <- db.post.createPublic(targetPost)
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
-        connectionOpt mustEqual None
+        success mustBe false
         connections mustBe empty
       }
     }
 
     "create between two posts, target not existing" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("r", "yo")
+      val connection = Connection("r", "t")
       for {
-        sourcePost <- db.post.createPublic("s")
-        connectionOpt <- db.connection(sourcePost.id, 131565)
+        true <- db.post.createPublic(sourcePost)
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
-        connectionOpt mustEqual None
+        success mustBe false
         connections mustBe empty
       }
     }
 
     "create between two posts, both not existing" in { db =>
       import db._, db.ctx, ctx._
+      val connection = Connection("r", "t")
       for {
-        connectionOpt <- db.connection(16816, 131565)
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
-        connectionOpt mustEqual None
+        success mustBe false
         connections mustBe empty
       }
     }
 
-    // TODO: reactivate when hyperedges are back
-    // "create from post to other connection" in { db =>
-    //   import db._, db.ctx, ctx._
-    //   for {
-    //     sourcePost <- db.post.createPublic("s")
-    //     aPost <- db.post.createPublic("a")
-    //     bPost <- db.post.createPublic("b")
-    //     Some(targetConnection) <- db.connection(aPost.id, bPost.id)
-
-    //     Some(connection) <- db.connection(sourcePost.id, targetConnection.id)
-    //     connections <- ctx.run(query[Connection])
-    //   } yield {
-    //     connection.sourceId mustEqual sourcePost.id
-    //     connection.targetId mustEqual targetConnection.id
-    //     connections must contain theSameElementsAs List(targetConnection, connection)
-    //   }
-    // }
-
     "create connection with new public post" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        targetPost <- db.post.createPublic("t")
+        true <- db.post.createPublic(targetPost)
 
-        Some((post, connection, None)) <- db.connection.newPost("response", targetPost.id, groupIdOpt = None)
+        success <- db.connection.newPost(sourcePost, targetPost.id, groupIdOpt = None)
 
         queriedPosts <- ctx.run(query[Post])
         queriedConnections <- ctx.run(query[Connection])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        post.title mustEqual "response"
-        connection.targetId mustEqual targetPost.id
-        connection.sourceId mustEqual post.id
+        success mustBe true
 
-        queriedPosts must contain theSameElementsAs List(targetPost, post)
+        queriedPosts must contain theSameElementsAs List(targetPost, sourcePost)
         queriedConnections must contain theSameElementsAs List(connection)
         queriedOwnerships mustBe empty
       }
@@ -283,57 +289,72 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
     "create connection with new owned post" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        targetPost <- db.post.createPublic("t")
+        true <- db.post.createPublic(targetPost)
         groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
 
-        Some((post, connection, Some(ownership))) <- db.connection.newPost("response", targetPost.id, groupIdOpt = Option(groupId))
+        success <- db.connection.newPost(sourcePost, targetPost.id, groupIdOpt = Option(groupId))
 
         queriedPosts <- ctx.run(query[Post])
         queriedConnections <- ctx.run(query[Connection])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        post.title mustEqual "response"
-        connection.targetId mustEqual targetPost.id
-        connection.sourceId mustEqual post.id
+        success mustBe true
 
-        queriedPosts must contain theSameElementsAs List(targetPost, post)
+        queriedPosts must contain theSameElementsAs List(targetPost, sourcePost)
         queriedConnections must contain theSameElementsAs List(connection)
-        queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
+        queriedOwnerships must contain theSameElementsAs List(Ownership(sourcePost.id, groupId))
       }
     }
 
     "create connection with new public post to non-existing targetId" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
       for {
-        connectionResultOpt <- db.connection.newPost("response", 612345, groupIdOpt = None)
+        success <- db.connection.newPost(sourcePost, "digr", groupIdOpt = None)
 
         queriedPosts <- ctx.run(query[Post])
+        queriedConnections <- ctx.run(query[Connection])
+        queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
-        connectionResultOpt mustEqual None
+        success mustBe false
+
         queriedPosts mustBe empty
+        queriedConnections mustBe empty
+        queriedOwnerships mustBe empty
       }
     }
 
     "delete existing connection" in { db =>
       import db._, db.ctx, ctx._
+      val sourcePost = Post("t", "yo")
+      val targetPost = Post("r", "yo")
+      val connection = Connection("t", "r")
       for {
-        sourcePost <- db.post.createPublic("s")
-        targetPost <- db.post.createPublic("t")
-        Some(connection) <- db.connection(sourcePost.id, targetPost.id)
+        true <- db.post.createPublic(sourcePost)
+        true <- db.post.createPublic(targetPost)
+        true <- db.connection(connection)
 
         deleted <- db.connection.delete(connection)
+        queriedConnections <- ctx.run(query[Connection])
       } yield {
         deleted mustEqual true
+        queriedConnections mustBe empty
       }
     }
 
     "delete non-existing connection" in { db =>
       import db._, db.ctx, ctx._
+      val connection = Connection("t", "r")
       for {
-        deleted <- db.connection.delete(Connection(165151, 15615))
+        deleted <- db.connection.delete(connection)
+        queriedConnections <- ctx.run(query[Connection])
       } yield {
         deleted mustEqual false
+        queriedConnections mustBe empty
       }
     }
   }
@@ -341,106 +362,121 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
   "containment" - {
     "create between two existing posts" in { db =>
       import db._, db.ctx, ctx._
+      val parent = Post("t", "yo")
+      val child = Post("r", "yo")
+      val containment = Containment("t", "r")
       for {
-        parentPost <- db.post.createPublic("s")
-        childPost <- db.post.createPublic("t")
-        Some(containment) <- db.containment(parentPost.id, childPost.id)
+        true <- db.post.createPublic(parent)
+        true <- db.post.createPublic(child)
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        containment.parentId mustEqual parentPost.id
-        containment.childId mustEqual childPost.id
+        success mustBe true
         containments must contain theSameElementsAs List(containment)
       }
     }
 
     "create between two existing posts with already existing containment" in { db =>
       import db._, db.ctx, ctx._
+      val parent = Post("t", "yo")
+      val child = Post("r", "yo")
+      val containment = Containment("t", "r")
       for {
-        parentPost <- db.post.createPublic("s")
-        childPost <- db.post.createPublic("t")
-        Some(_) <- db.containment(parentPost.id, childPost.id)
-        Some(containment) <- db.containment(parentPost.id, childPost.id)
+        true <- db.post.createPublic(parent)
+        true <- db.post.createPublic(child)
+        true <- db.containment(containment)
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        containment.parentId mustEqual parentPost.id
-        containment.childId mustEqual childPost.id
+        success mustBe false
         containments must contain theSameElementsAs List(containment)
       }
     }
 
     "create between two existing posts with already existing connection" in { db =>
       import db._, db.ctx, ctx._
+      val parent = Post("t", "yo")
+      val child = Post("r", "yo")
+      val containment = Containment("t", "r")
       for {
-        parentPost <- db.post.createPublic("s")
-        childPost <- db.post.createPublic("t")
-        Some(_) <- db.connection(parentPost.id, childPost.id)
-        Some(_) <- db.connection(childPost.id, parentPost.id)
-        Some(containment) <- db.containment(parentPost.id, childPost.id)
+        true <- db.post.createPublic(parent)
+        true <- db.post.createPublic(child)
+        true <- db.connection(Connection(parent.id, child.id))
+        true <- db.connection(Connection(child.id, parent.id))
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        containment.parentId mustEqual parentPost.id
-        containment.childId mustEqual childPost.id
+        success mustBe true
         containments must contain theSameElementsAs List(containment)
       }
     }
 
     "create between two posts, parent not existing" in { db =>
       import db._, db.ctx, ctx._
+      val child = Post("r", "yo")
+      val containment = Containment("t", "r")
       for {
-        childPost <- db.post.createPublic("t")
-        containmentOpt <- db.containment(131565, childPost.id)
+        true <- db.post.createPublic(child)
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        containmentOpt mustEqual None
+        success mustBe false
         containments mustBe empty
       }
     }
 
     "create between two posts, child not existing" in { db =>
       import db._, db.ctx, ctx._
+      val parent = Post("t", "yo")
+      val containment = Containment("t", "r")
       for {
-        parentPost <- db.post.createPublic("s")
-        containmentOpt <- db.containment(parentPost.id, 131565)
+        true <- db.post.createPublic(parent)
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        containmentOpt mustEqual None
+        success mustBe false
         containments mustBe empty
       }
     }
 
     "create between two posts, both not existing" in { db =>
       import db._, db.ctx, ctx._
+      val containment = Containment("t", "r")
       for {
-        containmentOpt <- db.containment(16816, 131565)
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        containmentOpt mustEqual None
+        success mustBe false
         containments mustBe empty
       }
     }
 
     "delete existing containment" in { db =>
       import db._, db.ctx, ctx._
+      val parent = Post("t", "yo")
+      val child = Post("r", "yo")
+      val containment = Containment("t", "r")
       for {
-        parentPost <- db.post.createPublic("s")
-        childPost <- db.post.createPublic("t")
-        Some(containment) <- db.containment(parentPost.id, childPost.id)
+        true <- db.post.createPublic(parent)
+        true <- db.post.createPublic(child)
+        true <- db.containment(containment)
 
-        deleted <- db.containment.delete(containment)
+        success <- db.containment.delete(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        deleted mustEqual true
+        success mustEqual true
         containments mustBe empty
       }
     }
 
     "delete non-existing containment" in { db =>
       import db._, db.ctx, ctx._
+      val containment = Containment("t", "r")
       for {
-        deleted <- db.containment.delete(Containment(165151, 16851))
+        success <- db.containment.delete(containment)
         containments <- ctx.run(query[Containment])
       } yield {
-        deleted mustEqual false
+        success mustEqual false
         containments mustBe empty
       }
     }
@@ -766,30 +802,33 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
 
     "hasAccessToPost" - {
       "post in pubic group" in { db =>
+        val post = Post("id", "p")
         for {
           Some(user) <- db.user("u", "123456")
-          (post, _) <- db.post("p", groupIdOpt = None)
+          true <- db.post.createPublic(post)
           hasAccess <- db.group.hasAccessToPost(user.id, post.id)
-        } yield hasAccess must be(true)
+        } yield hasAccess mustBe true
       }
 
       "post in private group (user not member)" in { db =>
+        val post = Post("id", "p")
         for {
           Some(user) <- db.user("u2", "123456")
           Some(user2) <- db.user("other", "123456")
           Some((_, _, group)) <- db.group.createForUser(user2.id)
-          (post, _) <- db.post.createOwned("p", group.id)
+          true <- db.post.createOwned(post, group.id)
           hasAccess <- db.group.hasAccessToPost(user.id, post.id)
-        } yield hasAccess must be(false)
+        } yield hasAccess mustBe false
       }
 
       "post in private group (user is member)" in { db =>
+        val post = Post("id", "p")
         for {
           Some(user) <- db.user("u3", "123456")
           Some((_, _, group)) <- db.group.createForUser(user.id)
-          (post, _) <- db.post.createOwned("p", group.id)
+          true <- db.post.createOwned(post, group.id)
           hasAccess <- db.group.hasAccessToPost(user.id, post.id)
-        } yield hasAccess must be(true)
+        } yield hasAccess mustBe true
       }
     }
   }
@@ -798,12 +837,17 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     "without user" - {
       "public posts, connections and containments" in { db =>
         import db._, db.ctx, ctx._
+        val postA = Post("a", "A")
+        val postB = Post("b", "B")
+        val postC = Post("c", "C")
         for {
-          postA <- db.post.createPublic("A")
-          postB <- db.post.createPublic("B")
-          postC <- db.post.createPublic("C")
-          Some(conn) <- db.connection(postA.id, postB.id)
-          Some(cont) <- db.containment(postB.id, postC.id)
+          true <- db.post.createPublic(postA)
+          true <- db.post.createPublic(postB)
+          true <- db.post.createPublic(postC)
+          conn = Connection(postA.id, postB.id)
+          cont = Containment(postB.id, postC.id)
+          true <- db.connection(conn)
+          true <- db.containment(cont)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
@@ -824,11 +868,17 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           Some(user) <- db.user("heigo", "parwin")
           Some((_, membership, group)) <- db.group.createForUser(user.id)
 
-          postA <- db.post.createPublic("A")
-          (postB, ownershipB) <- db.post.createOwned("B", group.id)
-          postC <- db.post.createPublic("C")
-          Some(conn) <- db.connection(postA.id, postB.id)
-          Some(cont) <- db.containment(postB.id, postC.id)
+          postA = Post("A", "sehe")
+          true <- db.post.createPublic(postA)
+          postB = Post("B", "cehen")
+          ownershipB = Ownership(postB.id, group.id)
+          true <- db.post.createOwned(postB, group.id)
+          postC = Post("C", "geh")
+          true <- db.post.createPublic(postC)
+          conn = Connection(postA.id, postB.id)
+          cont = Containment(postB.id, postC.id)
+          true <- db.connection(conn)
+          true <- db.containment(cont)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
@@ -849,11 +899,16 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         import db._, db.ctx, ctx._
         for {
           Some(user) <- db.user("heigo", "parwin")
-          postA <- db.post.createPublic("A")
-          postB <- db.post.createPublic("B")
-          postC <- db.post.createPublic("C")
-          Some(conn) <- db.connection(postA.id, postB.id)
-          Some(cont) <- db.containment(postB.id, postC.id)
+          postA = Post("A", "sei")
+          true <- db.post.createPublic(postA)
+          postB = Post("B", "rete")
+          true <- db.post.createPublic(postB)
+          postC = Post("C", "dete")
+          true <- db.post.createPublic(postC)
+          conn = Connection(postA.id, postB.id)
+          cont = Containment(postB.id, postC.id)
+          true <- db.connection(conn)
+          true <- db.containment(cont)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
@@ -893,11 +948,20 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           Some(user) <- db.user("heigo", "parwin")
           Some((_, membership, group)) <- db.group.createForUser(user.id)
 
-          postA <- db.post.createPublic("A")
-          (postB, ownershipB) <- db.post.createOwned("B", group.id)
-          postC <- db.post.createPublic("C")
-          Some(conn) <- db.connection(postA.id, postB.id)
-          Some(cont) <- db.containment(postB.id, postC.id)
+          postA = Post("A", "heit")
+          true <- db.post.createPublic(postA)
+
+          postB = Post("b", "asd")
+          ownershipB = Ownership(postB.id, group.id)
+
+          true <- db.post.createOwned(postB, group.id)
+          postC = Post("C", "derlei")
+          true <- db.post.createPublic(postC)
+
+          conn = Connection(postA.id, postB.id)
+          true <- db.connection(conn)
+          cont = Containment(postB.id, postC.id)
+          true <- db.containment(cont)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
@@ -921,12 +985,20 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           Some(otherUser) <- db.user("gurkulo", "meisin")
           Some((_, otherMembership, otherGroup)) <- db.group.createForUser(otherUser.id)
 
-          postA <- db.post.createPublic("A")
-          (postB, ownershipB) <- db.post.createOwned("B", group.id)
-          (postC, ownershipC) <- db.post.createOwned("C", otherGroup.id)
+          postA = Post("hei", "selor")
+          true <- db.post.createPublic(postA)
 
-          Some(conn) <- db.connection(postA.id, postB.id)
-          Some(cont) <- db.containment(postB.id, postC.id)
+          postB = Post("id", "hasnar")
+          ownershipB = Ownership(postB.id, group.id)
+          postC = Post("2d", "shon")
+          ownershipC = Ownership(postC.id, otherGroup.id)
+          true <- db.post.createOwned(postB, group.id)
+          true <- db.post.createOwned(postC, otherGroup.id)
+
+          conn = Connection(postA.id, postB.id)
+          true <- db.connection(conn)
+          cont = Containment(postB.id, postC.id)
+          true <- db.containment(cont)
 
           (posts, connections, containments,
             userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
