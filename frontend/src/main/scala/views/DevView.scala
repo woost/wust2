@@ -6,7 +6,7 @@ import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
 import rx._
 import wust.api._
-import wust.frontend.{ Client, GlobalState }
+import wust.frontend.{ Client, GlobalState, RichPostFactory }
 import wust.graph._
 import wust.ids._
 import wust.util.tags._

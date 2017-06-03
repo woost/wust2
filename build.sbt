@@ -11,6 +11,7 @@ scalaVersion in ThisBuild := "2.11.11" //TODO: migrate to 2.12 when this PR is m
 lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
+    Resolver.jcenterRepo ::
     Nil),
 
   // do not run tests in assembly command
@@ -213,6 +214,9 @@ lazy val frontend = project
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
     emitSourceMaps := true,
     emitSourceMaps in fullOptJS := false,
+    npmDependencies in Compile ++= (
+      "cuid" -> "1.3.8" ::
+      Nil),
     npmDevDependencies in Compile ++= (
       "compression-webpack-plugin" -> "0.3.1" ::
       "brotli-webpack-plugin" -> "0.2.0" ::

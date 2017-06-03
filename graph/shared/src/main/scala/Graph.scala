@@ -17,12 +17,6 @@ package object graph {
 
   //TODO: rename Post -> ???
   final case class Post(id: PostId, title: String)
-  object Post {
-    def newId(title: String) = {
-      val id = java.util.UUID.randomUUID.toString
-      new Post(PostId(id), title)
-    }
-  }
   final case class Connection(sourceId: PostId, targetId: PostId)
   final case class Containment(parentId: PostId, childId: PostId)
   object Graph {
