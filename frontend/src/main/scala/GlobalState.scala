@@ -16,6 +16,8 @@ case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
 class GlobalState(implicit ctx: Ctx.Owner) {
+  val persistence = new GraphPersistence(this)
+
   val currentUser = RxVar[Option[User]](None)
 
   val viewConfig = UrlRouter.variable

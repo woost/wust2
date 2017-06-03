@@ -16,7 +16,6 @@ package object frontend {
   implicit class RichPostFactory(val postFactory: Post.type) extends AnyVal {
     def newId(title: String) = {
       val id = Cuid()
-      println("EIDI" + id)
       postFactory.apply(PostId(id), title)
     }
   }

@@ -3,6 +3,10 @@ package object rxext {
   import rx._
   import wust.util.Pipe
 
+  implicit class RichVar[A](val rxVar:Var[A]) extends AnyVal {
+    def updatef(f: A => A) = rxVar() = f(rxVar.rx.now)
+  }
+
   implicit class RichRxVar[S,A](val rxVar:RxVar[S,A]) extends AnyVal {
     def writeProjection[T](to: T => S)(implicit ctx: Ctx.Owner): RxVar[T, A] = RxVar(WriteProjection(rxVar, to), rxVar.rx)
     def map[T](to: A => T)(implicit ctx: Ctx.Owner):RxVar[S,T] = RxVar(rxVar, rxVar.rx.map(to))

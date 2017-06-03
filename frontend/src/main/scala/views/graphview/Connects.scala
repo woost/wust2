@@ -24,7 +24,9 @@ object ConnectionLineSelection extends DataSelection[SimConnection] {
   }
 }
 
-object ConnectionElementSelection extends DataSelection[SimConnection] {
+class ConnectionElementSelection(graphState: GraphState) extends DataSelection[SimConnection] {
+  import graphState.state.persistence
+
   override val tag = "div"
   override def enterAppend(element: Selection[SimConnection]) {
     element
@@ -39,7 +41,7 @@ object ConnectionElementSelection extends DataSelection[SimConnection] {
         import autowire._
 
         DevPrintln(s"\nDelete Connection: ${e.sourceId} -> ${e.targetId}")
-        Client.api.deleteConnection(e.connection).call()
+        persistence.addChanges(delConnections = Set(e.connection))
       })
   }
 

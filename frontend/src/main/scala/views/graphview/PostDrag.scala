@@ -8,7 +8,7 @@ import autowire._
 import boopickle.Default._
 import wust.frontend.Client
 import wust.ids._
-import wust.graph.Containment
+import wust.graph._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -39,18 +39,17 @@ object DraggingPostSelection extends DataSelection[SimPost] {
 }
 
 class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ())(implicit ec: ExecutionContext) {
+  import graphState.state.persistence
   import d3State.{simulation, transform}
 
   val dropActions = js.Array(
-    DropAction("connect", { (dropped: SimPost, target: SimPost) => Client.api.connect(dropped.id, target.id).call() }),
+    DropAction("connect", { (dropped: SimPost, target: SimPost) => persistence.addChanges(addConnections = Set(Connection(dropped.id, target.id))) }),
     DropAction("insert into", { (dropped: SimPost, target: SimPost) =>
       val graph = graphState.state.displayGraph.now.graph
-      Client.api.createContainment(target.id, dropped.id).call()
+      val containment = Containment(target.id, dropped.id)
       val intersectingParents = graph.parents(dropped.id).toSet intersect (graph.transitiveParents(target.id).toSet ++ graph.transitiveChildren(target.id).toSet)
       val removeContainments = intersectingParents.map(Containment(_, dropped.id)) intersect graph.containments
-      removeContainments.foreach {
-        Client.api.deleteContainment(_).call()
-      }
+      persistence.addChanges(addContainments = Set(containment), delContainments = removeContainments)
     })
   // DropAction("Merge", { (dropped: SimPost, target: SimPost) => /*Client.api.merge(target.id, dropped.id).call()*/ }),
   )

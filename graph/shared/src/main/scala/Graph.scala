@@ -1,13 +1,13 @@
 package wust
 
 import wust.ids._
+import wust.util.Pipe
+import wust.util.algorithm._
+import wust.util.collection._
+
+import collection.mutable
 
 package object graph {
-  import wust.util.Pipe
-  import wust.util.algorithm._
-  import wust.util.collection._
-
-  import collection.mutable
 
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)
@@ -154,6 +154,7 @@ package object graph {
     def -(postId: PostId) = removePosts(postId :: Nil)
     def -(connection: Connection) = copy(connections = connections - connection)
     def -(containment: Containment) = copy(containments = containments - containment)
+    def -(ownership: Ownership) = copy(ownerships = ownerships - ownership)
 
     def removePosts(ps: Iterable[PostId]) = {
       val removedConnections = ps.flatMap(incidentConnections.get).flatten
@@ -166,6 +167,20 @@ package object graph {
     }
     def removeConnections(cs: Iterable[Connection]) = copy(connections = connections -- cs)
     def removeContainments(cs: Iterable[Containment]) = copy(containments = containments -- cs)
+    def removeOwnerships(cs: Iterable[Ownership]) = copy(ownerships = ownerships -- cs)
+    def addPosts(cs: Iterable[Post]) = copy(postsById = postsById ++ cs.map(p => p.id -> p))
+    def addConnections(cs: Iterable[Connection]) = copy(connections = connections ++ cs)
+    def addContainments(cs: Iterable[Containment]) = copy(containments = containments ++ cs)
+    def addOwnerships(cs: Iterable[Ownership]) = copy(ownerships = ownerships ++ cs)
+
+    def applyChanges(c: GraphChanges) = {
+      copy(
+        postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
+        connections = connections ++ c.addConnections -- c.delConnections,
+        containments = containments ++ c.addContainments -- c.delContainments,
+        ownerships = ownerships ++ c.addOwnerships -- c.delOwnerships
+      )
+    }
 
     def +(post: Post) = copy(postsById = postsById + (post.id -> post))
     def +(connection: Connection) = copy(connections = connections + connection)

@@ -23,20 +23,20 @@ import wust.util.EventTracker.sendEvent
 object AddPostForm {
   val inputfield = Elements.textareaWithEnterSubmit(rows := 3, cols := 80, width := "100%").render
 
-  def editLabel(graph: Graph, editedPostId: WriteVar[Option[PostId]], postId: PostId) = {
+  def editLabel(graph: Graph, state: GlobalState, postId: PostId) = {
     div(
-      Views.parents(postId, graph),
+      Views.parents(state, postId, graph),
       Views.post(graph.postsById(postId)),
-      "Edit Post", button("cancel", onclick := { (_: Event) => editedPostId() = None; inputfield.value = "" })
+      "Edit Post", button("cancel", onclick := { (_: Event) => state.editedPostId() = None; inputfield.value = "" })
     )
   }
 
-  def responseLabel(graph: Graph, postId: PostId) = {
+  def responseLabel(graph: Graph, state: GlobalState, postId: PostId) = {
     div(
       width := "10em",
       "Responding to:",
       Views.post(graph.postsById(postId)),
-      Views.parents(postId, graph)
+      Views.parents(state, postId, graph)
     )
   }
 
@@ -54,28 +54,31 @@ object AddPostForm {
     }
 
     def label(mode: InteractionMode, graph: Graph) = mode match {
-      case EditMode(postId)  => editLabel(graph, rxEditedPostId, postId)
-      case FocusMode(postId) => responseLabel(graph, postId)
+      case EditMode(postId)  => editLabel(graph, state, postId)
+      case FocusMode(postId) => responseLabel(graph, state, postId)
       case _                 => span()
     }
 
-    def action(text: String, selection: GraphSelection, groupIdOpt: Option[GroupId], graph: Graph, mode: InteractionMode): Future[Boolean] = mode match {
+    def action(text: String, selection: GraphSelection, groupIdOpt: Option[GroupId], graph: Graph, mode: InteractionMode): Unit = mode match {
       case EditMode(postId) =>
         DevPrintln(s"\nUpdating Post $postId: $text")
         rxEditedPostId() = None
-        val result = Client.api.updatePost(graph.postsById(postId).copy(title = text)).call()
+        state.persistence.addChanges(updatePosts = Set(graph.postsById(postId).copy(title = text)))
         sendEvent("post", "update", "api")
-        result
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        val result = Client.api.respond(postId, Post.newId(text), selection, groupIdOpt).call()
+        state.persistence.addChanges(updatePosts = Set(graph.postsById(postId).copy(title = text)))
+        val newPost = Post.newId(text)
+        val containments = GraphSelection.toContainments(selection, newPost.id)
+        val connection = Connection(newPost.id, postId)
+        state.persistence.addChanges(addPosts = Set(newPost), addContainments = containments, addConnections = Set(connection))
         sendEvent("post", "respond", "api")
-        result
       case _ =>
         DevPrintln(s"\nCreating Post: $text")
-        val result = Client.api.addPost(Post.newId(text), selection, groupIdOpt).call()
+        val newPost = Post.newId(text)
+        val containments = GraphSelection.toContainments(selection, newPost.id)
+        state.persistence.addChanges(addPosts = Set(newPost), addContainments = containments)
         sendEvent("post", "create", "api")
-        result
     }
 
     div(
@@ -90,8 +93,8 @@ object AddPostForm {
           onsubmit := { () =>
             val text = inputfield.value
             if (text.trim.nonEmpty) {
-              val success = action(text, state.graphSelection.now, state.selectedGroupId.now, rxDisplayGraph.now.graph, rxMode.now)
-              success.foreach(if (_) inputfield.value = "")
+              action(text, state.graphSelection.now, state.selectedGroupId.now, rxDisplayGraph.now.graph, rxMode.now)
+              inputfield.value = ""
             }
             false
           }

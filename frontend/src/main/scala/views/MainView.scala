@@ -20,12 +20,15 @@ import wust.util.EventTracker.sendEvent
 import scala.util.Try
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
+import wust.frontend.{SyncStatus, SyncMode}
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
 
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
+  import Elements._
+
   def upButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     //TODO: handle containment cycles
     (state.graphSelection() match {
@@ -205,16 +208,11 @@ object MainView {
           onsubmit := { () =>
             val text = feedbackField.value
             if (text.nonEmpty) {
-              Client.api.addPost(Post.newId(text), GraphSelection.Union(Set(feedbackPostId)), groupId = None).call().foreach { success =>
-                if (success)
-                  feedbackField.value = ""
-                else {
-                  Client.api.addPost(Post.newId(text), GraphSelection.Root, groupId = None).call().foreach { success =>
-                    if (success)
-                      feedbackField.value = ""
-                  }
-                }
-              }
+              //TODO better handling of missing(?) feedbacknode
+              val newPost = Post.newId(text)
+              state.persistence.addChanges(addPosts = Set(newPost))
+              state.persistence.addChanges(addContainments = Set(Containment(feedbackPostId, newPost.id)))
+              feedbackField.value = ""
               sendEvent("feedback", "submit", "api")
             }
             false
@@ -253,6 +251,31 @@ object MainView {
     )
   }
 
+  def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    val status = state.persistence.syncStatus()
+    val mode = state.persistence.mode()
+
+    div(
+      select {
+        SyncMode.all.map { m =>
+          val s = m.toString
+          val opt = option(s, value := s)
+          if (mode == m) opt(selected) else opt
+        }
+      }(
+        onchange := { (e: Event) =>
+          val value = e.target.asInstanceOf[HTMLSelectElement].value
+          SyncMode.fromString.lift(value).foreach { status =>
+            state.persistence.mode() = status
+          }
+        }
+      ),
+      if (status.isSending) "syncing"
+      else if (status.hasUnsyncedChanges) "pending"
+      else "done"
+    ).render
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
@@ -282,9 +305,10 @@ object MainView {
         if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
         else div(),
 
+        syncStatus(state),
+
         div(
           display.flex, alignItems.center, justifyContent.flexEnd,
-
           UserView.topBarUserStatus(state)
         )
       ),

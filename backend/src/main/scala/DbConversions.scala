@@ -15,8 +15,9 @@ object DbConversions {
 
   implicit def forDb(post: Post) = data.Post(post.id, post.title)
   implicit def forDb(user: User) = data.User(user.id, user.name, user.isImplicit, user.revision)
-  implicit def forClient(c: Connection) = data.Connection(c.sourceId, c.targetId)
-  implicit def forClient(c: Containment) = data.Containment(c.parentId, c.childId)
+  implicit def forDb(c: Connection) = data.Connection(c.sourceId, c.targetId)
+  implicit def forDb(c: Containment) = data.Containment(c.parentId, c.childId)
+  implicit def forDb(c: Ownership) = data.Ownership(c.postId, c.groupId)
 
   def forClient(tuple: data.Graph): Graph = {
     val (posts, connections, containments, groups, ownerships, users, memberships) = tuple

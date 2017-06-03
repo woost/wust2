@@ -109,18 +109,30 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
     }
   }
 
+  object ownership {
+    def apply(ownership: Ownership): Future[Boolean] = {
+      ctx.run(query[Ownership].insert(lift(ownership)))
+        .map(_ == 1)
+        .recoverValue(false)
+    }
+
+    def delete(ownership: Ownership): Future[Boolean] = {
+      import ownership.{ groupId, postId }
+      val contQ = quote { query[Ownership].filter(c => c.groupId == lift(groupId) && c.postId == lift(postId)) }
+      ctx.transaction { _ =>
+        for {
+          exists <- ctx.run(contQ.nonEmpty)
+          _ <- ctx.run(contQ.delete)
+        } yield exists
+      }
+    }
+  }
+
   object connection {
     def apply(connection: Connection): Future[Boolean] = {
-      //TODO: check existence with database constraints
-      import connection._
-      val existing = ctx.run(query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId))).map(_.headOption)
-      (existing.flatMap {
-        case None =>
-          ctx.run(query[Connection].insert(lift(connection)))
-            .map(_ == 1)
-            .recoverValue(false)
-        case someConnection => Future.successful(false)
-      }).recoverValue(false)
+      ctx.run(query[Connection].insert(lift(connection)))
+        .map(_ == 1)
+        .recoverValue(false)
     }
 
     def newPost(insertPost: Post, targetId: PostId, groupIdOpt: Option[GroupId]): Future[Boolean] = {
@@ -140,7 +152,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
           case true => (for {
             true <- groupIdOpt match {
               case Some(groupId) => post.createOwned(insertPost, groupId)
-              case None => post.createPublic(insertPost)
+              case None          => post.createPublic(insertPost)
             }
             true <- apply(Connection(insertPost.id, targetId))
           } yield true).recoverValue(false)
@@ -148,8 +160,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
         }
     }
 
-    def delete(connection:Connection): Future[Boolean] = {
-      import connection.{sourceId, targetId}
+    def delete(connection: Connection): Future[Boolean] = {
+      import connection.{ sourceId, targetId }
       val connQ = quote { query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId)) }
       //TODO: quill delete.returning(_.id) to avoid 2 queries
       ctx.transaction { _ =>
@@ -163,17 +175,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
   object containment {
     def apply(containment: Containment): Future[Boolean] = {
-      //TODO: check existence with database constraints
-      import containment._
-      val existing = ctx.run(query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId))).map(_.headOption)
-      existing.flatMap {
-        case None =>
-          ctx.run(query[Containment].insert(lift(containment)))
-            .map(_ == 1)
-            .recoverValue(false)
-        case someContainment =>
-          Future.successful(false)
-      }
+      ctx.run(query[Containment].insert(lift(containment)))
+        .map(_ == 1)
+        .recoverValue(false)
     }
 
     def newPost(insertPost: Post, parentId: PostId, groupIdOpt: Option[GroupId]): Future[Boolean] = {
@@ -183,7 +187,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
           case true => (for {
             true <- groupIdOpt match {
               case Some(groupId) => post.createOwned(insertPost, groupId)
-              case None => post.createPublic(insertPost)
+              case None          => post.createPublic(insertPost)
             }
             true <- apply(Containment(parentId, insertPost.id))
           } yield true).recoverValue(false)
@@ -191,8 +195,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
         }
     }
 
-    def delete(containment:Containment): Future[Boolean] = {
-      import containment.{parentId, childId}
+    def delete(containment: Containment): Future[Boolean] = {
+      import containment.{ parentId, childId }
       val contQ = quote { query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId)) }
       ctx.transaction { _ =>
         for {

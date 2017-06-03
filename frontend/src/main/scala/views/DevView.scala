@@ -45,20 +45,24 @@ object DevView {
           ).render
         },
         Rx {
-          def addRandomPost() { Client.api.addPost(Post.newId(rStr(1 + rInt(20))), state.graphSelection(), state.selectedGroupId()).call() }
+          def addRandomPost(count: Int) {
+            val newPosts = List.fill(count)(Post.newId(rStr(1 + rInt(20))))
+            val containments = newPosts.flatMap(p => GraphSelection.toContainments(state.graphSelection.now, p.id))
+            state.persistence.addChanges(addPosts = newPosts, addContainments = containments)
+          }
           div(
-            button("create random post", onclick := { () => addRandomPost() }),
-            button("10", onclick := { () => for (_ <- 0 until 10) addRandomPost() }),
-            button("100", onclick := { () => for (_ <- 0 until 100) addRandomPost() })
+            button("create random post", onclick := { () => addRandomPost(1) }),
+            button("10", onclick := { () => addRandomPost(10) }),
+            button("100", onclick := { () => addRandomPost(100) })
           ).render
         },
         Rx {
           val posts = scala.util.Random.shuffle(state.displayGraph().graph.postIds.toSeq)
-          def deletePost(id: PostId) { Client.api.deletePost(id, state.graphSelection()).call() }
+          def deletePost(ids: Seq[PostId]) { state.persistence.addChanges(delPosts = ids) }
           div(
-            button("delete random post", onclick := { () => posts.take(1) foreach deletePost }),
-            button("10", onclick := { () => posts.take(10) foreach deletePost }),
-            button("100", onclick := { () => posts.take(100) foreach deletePost })
+            button("delete random post", onclick := { () =>  deletePost(posts.take(1)) }),
+            button("10", onclick := { () =>  deletePost(posts.take(10)) }),
+            button("100", onclick := { () => deletePost(posts.take(100)) })
           ).render
         },
         div(

@@ -49,7 +49,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxSimRedirectedConnection)(svg.append("g"))
 
   val html = container.append("div")
-  val connectionElementSelection = SelectData.rx(ConnectionElementSelection, rxSimConnection)(html.append("div"))
+  val connectionElementSelection = SelectData.rx(new ConnectionElementSelection(graphState), rxSimConnection)(html.append("div"))
   val postSelection = SelectData.rx(new PostSelection(graphState, d3State, postDrag), rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 

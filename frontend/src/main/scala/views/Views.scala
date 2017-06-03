@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import wust.frontend.Client
+import wust.frontend.{GlobalState,Client}
 import wust.frontend.Color._
 import wust.graph._
 import wust.ids._
@@ -22,7 +22,7 @@ object Views {
     borderRadius := "3px"
   )
 
-  def parents(postId: PostId, graph: Graph) = {
+  def parents(state: GlobalState, postId: PostId, graph: Graph) = {
     val containment = graph.incidentParentContainments(postId).toSeq
     div(
       display.flex,
@@ -34,7 +34,7 @@ object Views {
             "×",
             padding := "0 0 0 3px",
             cursor.pointer,
-            onclick := { () => Client.api.deleteContainment(containment).call(); }
+            onclick := { () => state.persistence.addChanges(delContainments = Set(containment)) }
           )
         )
       }

@@ -28,6 +28,43 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     } yield result).recover { case _ => recover }
   }
 
+  override def changeGraph(changes: GraphChanges): Future[Boolean] = withUserOrImplicit { (_, _) =>
+    //TODO bulk inserts
+    //TODO rights
+    import changes.consistent._
+
+    def destruct(s: Set[Future[Boolean]]): Future[Boolean] = Future.sequence(s).map(_.forall(identity))
+
+    //TODO error handling
+    val result = db.ctx.transaction { _ =>
+      for {
+        true <- destruct(addPosts.map(db.post.createPublic(_)))
+        true <- destruct(addConnections.map(db.connection(_)))
+        true <- destruct(addContainments.map(db.containment(_)))
+        true <- destruct(addOwnerships.map(db.ownership(_)))
+        true <- destruct(updatePosts.map(db.post.update(_)))
+        true <- destruct(delPosts.map(db.post.delete(_)))
+        true <- destruct(delConnections.map(db.connection.delete(_)))
+        true <- destruct(delContainments.map(db.containment.delete(_)))
+        true <- destruct(delOwnerships.map(db.ownership.delete(_)))
+      } yield true
+    }
+
+    val events =
+      addPosts.map(NewPost(_)) ::
+      addConnections.map(NewConnection(_)) ::
+      addContainments.map(NewContainment(_)) ::
+      addOwnerships.map(NewOwnership(_)) ::
+      updatePosts.map(UpdatedPost(_)) ::
+      delPosts.map(DeletePost(_)) ::
+      delConnections.map(DeleteConnection(_)) ::
+      delContainments.map(DeleteContainment(_)) ::
+      delOwnerships.map(DeleteOwnership(_)) ::
+      Nil
+
+    result.map(respondWithEvents(_, events.map(_.toList).flatten: _*))
+  }
+
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
 
   def addPost(post: Post, selection: GraphSelection, groupIdOpt: Option[GroupId]): Future[Boolean] = withUserOrImplicit { (_, user) =>

@@ -5,24 +5,22 @@ import wust.ids._
 
 import scala.concurrent.Future
 
-//TODO have one function which expects an ApiEvent, and will say just respond with Boolean. If successful, will also forward the event to connected listeners.
-// this gives the possibility to describe the desired effect in the client, send it to the server and optimisticly fire it in the client.
-// maybe even accept a list of events.
-// with GraphEvent <: ApiEvent:
-// def changeGraph(e: GraphEvent): Future[Boolean] = if (doEvent(e)) dispatch(e)
 trait Api {
-  def getPost(id: PostId): Future[Option[Post]]
+  def changeGraph(changes: GraphChanges): Future[Boolean]
+
   def deletePost(id: PostId, selection: GraphSelection): Future[Boolean]
-  def getGraph(selection: GraphSelection): Future[Graph]
   def addPost(post: Post, selection: GraphSelection, groupId: Option[GroupId]): Future[Boolean]
   def addPostInContainment(post: Post, parentId: PostId, groupId: Option[GroupId]): Future[Boolean]
   def respond(to: PostId, post: Post, selection: GraphSelection, groupId: Option[GroupId]): Future[Boolean]
-  def updatePost(post: Post): Future[Boolean]
   def connect(sourceId: PostId, targetId: PostId): Future[Boolean]
   def createContainment(parentId: PostId, childId: PostId): Future[Boolean]
   def createSelection(postId: PostId, selection: GraphSelection): Future[Boolean]
   def deleteConnection(id: Connection): Future[Boolean]
   def deleteContainment(id: Containment): Future[Boolean]
+  def updatePost(post: Post): Future[Boolean]
+
+  def getPost(id: PostId): Future[Option[Post]]
+  def getGraph(selection: GraphSelection): Future[Graph]
   def getUser(userId: UserId): Future[Option[User]]
   def addGroup(): Future[GroupId]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
@@ -53,6 +51,7 @@ case class NewMembership(membership: Membership) extends ApiEvent
 case class DeletePost(id: PostId) extends ApiEvent
 case class DeleteConnection(connection: Connection) extends ApiEvent
 case class DeleteContainment(containment: Containment) extends ApiEvent
+case class DeleteOwnership(ownership: Ownership) extends ApiEvent
 case class LoggedIn(auth: Authentication) extends ApiEvent
 case object LoggedOut extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {
