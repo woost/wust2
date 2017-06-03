@@ -39,7 +39,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       }
       success.flatMap {
         case true =>
-          selectionToContainments(selection, post.id).map { containments =>
+          createSelectionContainments(selection, post.id).map { containments =>
             val events = Seq(NewPost(post)) ++ containments.map(NewContainment(_))
             respondWithEvents(true, events: _*)
           }
@@ -63,7 +63,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         case true =>
           val ownership = groupIdOpt.map(Ownership(post.id, _))
           val events = NewPost(post) :: NewContainment(Containment(parentId, post.id)) :: ownership.map(NewOwnership(_)).toList
-          respondWithEvents(true)
+          respondWithEvents(true, events: _*)
         case false => respondWithEvents(false)
       }
     }
@@ -110,7 +110,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   def createSelection(postId: PostId, selection: GraphSelection): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO: hasAccessToOnePost(user, postA, postB)
-    selectionToContainments(selection, postId).map { containments =>
+    createSelectionContainments(selection, postId).map { containments =>
       val events = containments.map(NewContainment(_))
       respondWithEvents(true, events: _*)
     }
@@ -134,7 +134,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         case true =>
           val connection = Connection(post.id, targetPostId)
           val ownership = groupIdOpt.map(Ownership(post.id, _))
-          val selectionContainmentsFut = selectionToContainments(selection, post.id)
+          val selectionContainmentsFut = createSelectionContainments(selection, post.id)
           val parentContainmentsFut = for {
             parentIds <- db.post.getParentIds(targetPostId)
             containments <- createContainments(parentIds, post.id)
@@ -145,7 +145,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
             parentContainments <- parentContainmentsFut
           } yield {
             val containmentEvents = (selectionContainments ++ parentContainments).map(NewContainment(_))
-            val events = Seq(NewPost(post), NewConnection(connection)) ++ containmentEvents
+            val events = Seq(NewPost(post), NewConnection(connection)) ++ ownership.map(NewOwnership(_)) ++ containmentEvents
             respondWithEvents(true, events: _*)
           }
         case false => Future.successful(respondWithEvents(false))
@@ -256,19 +256,19 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   }
 
   private def createContainments(parentIds: Seq[PostId], postId: PostId): Future[Seq[Containment]] = {
-    //TODO: bulk insert into database
-    val containments = parentIds.map { parent =>
-      val containment = Containment(parent, postId)
-      db.containment(containment).map(_ => containment) // TODO error on false
-    }
-
-    Future.sequence(containments)
+    val containments = parentIds.map(Containment(_, postId))
+    createContainments(containments).map(_ => containments) //TODO error
   }
 
-  private def selectionToContainments(selection: GraphSelection, postId: PostId): Future[Seq[Containment]] = {
-    selection match {
-      case GraphSelection.Union(parentIds) => createContainments(parentIds.toSeq, postId)
-      case _                               => Future.successful(Seq.empty)
-    }
+  // TODO one transaction and fail
+  private def createContainments(containments: Seq[Containment]): Future[Boolean] = {
+    //TODO: bulk insert into database
+    val created = containments.map(db.containment(_))
+    Future.sequence(created).map(_.forall(identity))
+  }
+
+  private def createSelectionContainments(selection: GraphSelection, postId: PostId): Future[Seq[Containment]] = {
+    val containments = GraphSelection.toContainments(selection, postId)
+    createContainments(containments).map(_ => containments) //TODO error
   }
 }

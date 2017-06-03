@@ -23,6 +23,13 @@ object GraphSelection {
   }
 
   def default = Root
+
+  def toContainments(selection: GraphSelection, postId: PostId): Seq[Containment] = {
+    selection match {
+      case GraphSelection.Union(parentIds) => parentIds.toSeq.map(Containment(_, postId))
+      case _                               => Seq.empty
+    }
+  }
 }
 
 trait Selector extends (PostId => Boolean) {
