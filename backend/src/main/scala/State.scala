@@ -14,6 +14,8 @@ import scala.concurrent.{ ExecutionContext, Future }
 case class State(auth: Option[JWTAuthentication], graph: Graph) {
   val user = auth.map(_.user)
   def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity, graph: Graph => Graph = identity) = copy(auth = auth(this.auth), graph = graph(this.graph))
+
+  override def toString = s"State(${auth.map(_.user.name)}, posts# ${graph.posts.size})"
 }
 object State {
   def initial = State(auth = None, graph = Graph.empty)
