@@ -4,10 +4,8 @@ import org.scalajs.dom.ext.Storage
 import wust.ids._
 import wust.api.Authentication
 import wust.graph.GraphChanges
-import boopickle.Default._
 import scala.util.Try
-import java.nio.charset.Charset
-import java.nio.ByteBuffer
+import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 
 class ClientStorage(storage: Storage) {
   object keys {
@@ -16,8 +14,6 @@ class ClientStorage(storage: Storage) {
     val syncMode = "wust.graph.syncMode"
   }
 
-  private val charset = Charset.forName("UTF-8")
-
   def token: Option[Authentication.Token] = storage(keys.token)
   def token_=(auth: Option[Authentication.Token]) = auth match {
     case Some(token) => storage.update(keys.token, token)
@@ -25,13 +21,10 @@ class ClientStorage(storage: Storage) {
   }
 
   def graphChanges: Option[GraphChanges] = storage(keys.graphChanges).flatMap { changesStr =>
-    val bytes = ByteBuffer.wrap(changesStr.getBytes(charset))
-    Try(Unpickle[GraphChanges].fromBytes(bytes)).toOption
+    decode[GraphChanges](changesStr).right.toOption
   }
   def graphChanges_=(changes: GraphChanges) = {
-    val bytes = Pickle.intoBytes(changes)
-    val value = charset.decode(bytes).toString
-    storage.update(keys.graphChanges, value)
+    storage.update(keys.graphChanges, changes.asJson.noSpaces)
   }
 
   def syncMode: Option[SyncMode] = storage(keys.syncMode).flatMap(SyncMode.fromString.lift)

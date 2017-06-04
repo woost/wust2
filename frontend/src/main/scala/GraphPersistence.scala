@@ -29,10 +29,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
   private val isSending = Var[Int](0)
-  private val current = {
-    val localChanges = storage.graphChanges
-    Var[GraphChanges](localChanges.getOrElse(GraphChanges.empty))
-  }
+  private val current = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
 
   val mode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
   val syncStatus: Rx[SyncStatus] = Rx { SyncStatus(isSending() > 0, !current().isEmpty) }

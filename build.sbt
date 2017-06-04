@@ -86,6 +86,7 @@ lazy val root = project.in(file("."))
 
 val akkaVersion = "2.4.17"
 val akkaHttpVersion = "10.0.5"
+val circeVersion = "0.8.0"
 val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
@@ -146,6 +147,9 @@ lazy val ids = crossProject
     libraryDependencies ++= (
       "org.scalaz" %%% "scalaz-core" % scalazVersion ::
       "io.suzaku" %%% "boopickle" % boopickleVersion ::
+      "io.circe" %%% "circe-core" % circeVersion ::
+      "io.circe" %%% "circe-generic" % circeVersion ::
+      "io.circe" %%% "circe-parser" % circeVersion ::
       Nil
     )
   )
