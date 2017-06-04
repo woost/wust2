@@ -21,17 +21,17 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "focusing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "wust")))
+      state.rawGraph() = Graph(List(Post("heinz", "wust")))
       view(state).render
-      state.focusedPostId() = Option(1)
+      state.focusedPostId() = Option("heinz")
     }
   }
 
   "unfocusing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "wust")))
-      state.focusedPostId() = Option(1)
+      state.rawGraph() = Graph(List(Post("heinz", "wust")))
+      state.focusedPostId() = Option("heinz")
       view(state).render
       state.focusedPostId() = None
     }
@@ -40,17 +40,17 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "editing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "wust")))
+      state.rawGraph() = Graph(List(Post("heinz", "wust")))
       view(state).render
-      state.editedPostId() = Option(1)
+      state.editedPostId() = Option("heinz")
     }
   }
 
   "stop editing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "wust")))
-      state.editedPostId() = Option(1)
+      state.rawGraph() = Graph(List(Post("heinz", "wust")))
+      state.editedPostId() = Option("heinz")
       view(state).render
       state.editedPostId() = None
     }
@@ -61,118 +61,118 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       val state = new GlobalState
       state.rawGraph() = Graph()
       view(state).render
-      state.rawGraph.updatef(_ + Post(1, "wurst"))
+      state.rawGraph.updatef(_ + Post("heinz", "wurst"))
     }
   }
 
   "updating post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "wust")))
+      state.rawGraph() = Graph(List(Post("heinz", "wust")))
       view(state).render
-      state.rawGraph.updatef(_ + Post(1, "wurst"))
+      state.rawGraph.updatef(_ + Post("heinz", "wurst"))
     }
   }
 
   "deleting post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustsein")))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustsein")))
       view(state).render
-      state.rawGraph.updatef(_ - PostId(1))
+      state.rawGraph.updatef(_ - PostId("heinz"))
     }
   }
 
   "deleting connected source post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(1, 2)))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), List(Connection("heinz", "kalla")))
       view(state).render
-      state.rawGraph.updatef(_ - PostId(1))
+      state.rawGraph.updatef(_ - PostId("heinz"))
     }
   }
 
   "deleting connected target post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(Connection(1, 2)))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), List(Connection("heinz", "kalla")))
       view(state).render
-      state.rawGraph.updatef(_ - PostId(2))
+      state.rawGraph.updatef(_ - PostId("kalla"))
     }
   }
 
   "deleting containment parent post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(1, 2)))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment("heinz", "kalla")))
       view(state).render
-      state.rawGraph.updatef(_ - PostId(1))
+      state.rawGraph.updatef(_ - PostId("heinz"))
     }
   }
 
   "deleting containment child post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment(PostId("heinz"), PostId("kalla"))))
       view(state).render
-      state.rawGraph.updatef(_ - PostId(2))
+      state.rawGraph.updatef(_ - PostId("kalla"))
     }
   }
 
   "deleting focused post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.focusedPostId() = Option(1)
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
+      state.focusedPostId() = Option("heinz")
       view(state).render
-      state.rawGraph.updatef(_ - PostId(1))
+      state.rawGraph.updatef(_ - PostId("heinz"))
     }
   }
 
   "deleting editing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.editedPostId() = Option(1)
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
+      state.editedPostId() = Option("heinz")
       view(state).render
-      state.rawGraph.updatef(_ - PostId(1))
+      state.rawGraph.updatef(_ - PostId("heinz"))
     }
   }
 
   "updating focused post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.focusedPostId() = Option(1)
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
+      state.focusedPostId() = Option("heinz")
       view(state).render
-      state.rawGraph.updatef(_ + Post(1, "wurst"))
+      state.rawGraph.updatef(_ + Post("heinz", "wurst"))
     }
   }
 
   "updating editing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos")))
-      state.editedPostId() = Option(1)
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
+      state.editedPostId() = Option("heinz")
       view(state).render
-      state.rawGraph.updatef(_ + Post(1, "wurst"))
+      state.rawGraph.updatef(_ + Post("heinz", "wurst"))
     }
   }
 
   "adding connection" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")))
       view(state).render
-      state.rawGraph.updatef(_ + Connection(PostId(1), PostId(2)))
+      state.rawGraph.updatef(_ + Connection(PostId("heinz"), PostId("kalla")))
     }
   }
 
   "deleting connection" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      val conn = Connection(PostId(1), PostId(2))
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), List(conn))
+      val conn = Connection(PostId("heinz"), PostId("kalla"))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), List(conn))
       view(state).render
       state.rawGraph.updatef(_ - conn)
     }
@@ -181,18 +181,18 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
   "deleting containment" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")), containments = List(Containment(PostId(1), PostId(2))))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment(PostId("heinz"), PostId("kalla"))))
       view(state).render
-      state.rawGraph.updatef(_ - Containment(1, 2))
+      state.rawGraph.updatef(_ - Containment("heinz", "kalla"))
     }
   }
 
   "adding containment" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
-      state.rawGraph() = Graph(List(Post(1, "bewustlos"), Post(2, "unbewust")))
+      state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")))
       view(state).render
-      state.rawGraph.updatef(_ + Containment(PostId(1), PostId(2)))
+      state.rawGraph.updatef(_ + Containment(PostId("heinz"), PostId("kalla")))
     }
   }
 }
