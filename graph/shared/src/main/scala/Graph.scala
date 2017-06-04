@@ -199,7 +199,7 @@ package object graph {
       memberships = memberships.filter(_.groupId != groupId)
     )
 
-    def consistent = {
+    lazy val consistent = {
       val invalidConnections = connections
         .filter { c => !postsById.isDefinedAt(c.sourceId) || !postsById.isDefinedAt(c.targetId) || c.sourceId == c.targetId }
 
