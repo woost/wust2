@@ -8,6 +8,7 @@ import rxext._
 import autowire._
 import boopickle.Default._
 import scala.concurrent.ExecutionContext
+import scala.util.Success
 
 case class SyncStatus(isSending: Boolean, hasUnsyncedChanges: Boolean)
 trait SyncMode
