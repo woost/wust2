@@ -8,17 +8,6 @@ import scala.concurrent.Future
 trait Api {
   def changeGraph(changes: GraphChanges): Future[Boolean]
 
-  def deletePost(id: PostId, selection: GraphSelection): Future[Boolean]
-  def addPost(post: Post, selection: GraphSelection, groupId: Option[GroupId]): Future[Boolean]
-  def addPostInContainment(post: Post, parentId: PostId, groupId: Option[GroupId]): Future[Boolean]
-  def respond(to: PostId, post: Post, selection: GraphSelection, groupId: Option[GroupId]): Future[Boolean]
-  def connect(sourceId: PostId, targetId: PostId): Future[Boolean]
-  def createContainment(parentId: PostId, childId: PostId): Future[Boolean]
-  def createSelection(postId: PostId, selection: GraphSelection): Future[Boolean]
-  def deleteConnection(id: Connection): Future[Boolean]
-  def deleteContainment(id: Containment): Future[Boolean]
-  def updatePost(post: Post): Future[Boolean]
-
   def getPost(id: PostId): Future[Option[Post]]
   def getGraph(selection: GraphSelection): Future[Graph]
   def getUser(userId: UserId): Future[Option[User]]
