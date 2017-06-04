@@ -25,14 +25,14 @@ ALTER TABLE ownership
     ALTER COLUMN postId TYPE CHARACTER VARYING(36);
 
 ALTER TABLE connection
-    ADD constraint connection_sourceid_fkey foreign key (sourceId) references post (id),
-    ADD constraint connection_targetid_fkey foreign key (targetId) references post (id),
+    ADD constraint connection_sourceid_fkey foreign key (sourceId) references post (id) on delete cascade,
+    ADD constraint connection_targetid_fkey foreign key (targetId) references post (id) on delete cascade,
     ADD constraint connection_pkey primary key (sourceId, targetId),
     ADD constraint selfloop check (sourceId <> targetId);
 ALTER TABLE containment
-    ADD constraint containment_parentid_fkey foreign key (parentId) references post (id),
-    ADD constraint containment_childid_fkey foreign key (childId) references post (id),
+    ADD constraint containment_parentid_fkey foreign key (parentId) references post (id) on delete cascade,
+    ADD constraint containment_childid_fkey foreign key (childId) references post (id) on delete cascade,
     ADD constraint containment_pkey primary key (parentId, childId),
     ADD constraint selfloop check (parentId <> childId);
 ALTER TABLE ownership
-    ADD constraint ownership_postid_fkey foreign key (postId) references post (id);
+    ADD constraint ownership_postid_fkey foreign key (postId) references post (id) on delete cascade;
