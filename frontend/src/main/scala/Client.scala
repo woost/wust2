@@ -26,10 +26,12 @@ object Client {
   val api = ws.wire[Api]
   val auth = ws.wire[AuthApi]
   val run = ws.run _
+
+  val storage = new ClientStorage(LocalStorage)
 }
 
 object ClientCache {
-  private val storage = new ClientStorage(LocalStorage)
+  import Client.storage
 
   private var _currentAuth: Option[Authentication] = None
   def currentAuth: Option[Authentication] = _currentAuth

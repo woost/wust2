@@ -25,23 +25,28 @@ object SyncMode {
   val all = Seq(Live, Offline)
 }
 
-object GraphPersistence {
-}
 class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
-  import GraphPersistence._
+  import Client.storage
 
   private val isSending = Var[Int](0)
-  private val current = Var[GraphChanges](GraphChanges.empty)
+  private val current = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
   val syncStatus: Rx[SyncStatus] = Rx {
     SyncStatus(isSending() > 0, !current().isEmpty)
   }
 
-  val mode = Var[SyncMode](SyncMode.default)
+  val mode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
 
   {
     import scala.concurrent.ExecutionContext.Implicits.global //TODO
+
+    //TODO: why does triggerlater not work?
     mode.foreach { (mode: SyncMode) =>
+      storage.syncMode = mode
       if (mode == SyncMode.Live) flush()
+    }
+
+    current.foreach { (changes: GraphChanges) =>
+      storage.graphChanges = changes
     }
   }
 
