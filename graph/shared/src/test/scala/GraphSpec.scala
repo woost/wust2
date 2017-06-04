@@ -5,14 +5,15 @@ import wust.ids._
 import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
-  implicit def intToPostId(id: Int): PostId = PostId(id)
+  implicit def intToUuidType(id: Int): UuidType = id.toString
+  implicit def intToPostId(id: Int): PostId = PostId(id.toString)
   implicit def intToGroupId(id: Int): GroupId = GroupId(id)
-  implicit def idToPost(id: Int): Post = Post(id, "")
+  implicit def idToPost(id: Int): Post = Post(id.toString, "")
   implicit def idToGroup(id: Int): Group = Group(id)
   implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
-  implicit def tupleIsContainment(t: (Int, Int)): Containment = Containment(PostId(t._1), PostId(t._2))
+  implicit def tupleIsContainment(t: (Int, Int)): Containment = Containment(t._1.toString, t._2.toString)
   implicit def containmentListIsMap(containment: List[(Int, Int)]): List[Containment] = containment.map(tupleIsContainment)
-  implicit def tupleIsConnection(t: (Int, Int)): Connection = Connection(PostId(t._1), PostId(t._2))
+  implicit def tupleIsConnection(t: (Int, Int)): Connection = Connection(t._1.toString, t._2.toString)
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Connection] = connections.map(tupleIsConnection)
 
   "graph" - {
@@ -37,7 +38,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         containments = List(Containment(1, 11), Containment(11, 12), Containment(12, 1))
       )
 
-      graph.involvedInContainmentCycle(1L) mustEqual true
+      graph.involvedInContainmentCycle(1) mustEqual true
     }
 
     "one contain" in {
