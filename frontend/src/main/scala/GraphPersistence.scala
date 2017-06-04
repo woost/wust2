@@ -75,7 +75,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       addPosts.map(p => Ownership(p.id, groupId))
     }
 
-    changes + GraphChanges(delPosts = toDelete, addOwnerships = toOwn)
+    changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn)
   }
 
   def addChanges(
