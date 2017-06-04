@@ -228,8 +228,7 @@ lazy val frontend = project
 
 lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)
 lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
-  //TODO: deprecation-warning: https://github.com/sbt/sbt/issues/1444
-  refreshBrowsers <<= refreshBrowsers.triggeredBy(WebKeys.assets in Assets) //TODO: do not refresh if compilation failed
+  refreshBrowsers := (refreshBrowsers.triggeredBy(WebKeys.assets in Assets)).value //TODO: do not refresh if compilation failed
 )
 
 lazy val workbench = project
