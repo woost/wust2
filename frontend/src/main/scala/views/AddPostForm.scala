@@ -67,7 +67,6 @@ object AddPostForm {
         sendEvent("post", "update", "api")
       case FocusMode(postId) =>
         DevPrintln(s"\nRepsonding to $postId: $text")
-        state.persistence.addChanges(updatePosts = Set(graph.postsById(postId).copy(title = text)))
         val newPost = Post.newId(text)
         val containments = GraphSelection.toContainments(selection, newPost.id)
         val connection = Connection(newPost.id, postId)
