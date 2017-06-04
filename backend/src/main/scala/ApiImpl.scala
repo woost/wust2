@@ -50,19 +50,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       } yield true
     }
 
-    val events =
-      addPosts.map(NewPost(_)) ::
-      addConnections.map(NewConnection(_)) ::
-      addContainments.map(NewContainment(_)) ::
-      addOwnerships.map(NewOwnership(_)) ::
-      updatePosts.map(UpdatedPost(_)) ::
-      delPosts.map(DeletePost(_)) ::
-      delConnections.map(DeleteConnection(_)) ::
-      delContainments.map(DeleteContainment(_)) ::
-      delOwnerships.map(DeleteOwnership(_)) ::
-      Nil
-
-    result.map(respondWithEvents(_, events.map(_.toList).flatten: _*))
+    result.map(respondWithEvents(_, NewGraphChanges(changes.consistent)))
   }
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
@@ -159,22 +147,5 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       val transitiveChildrenWithDirectParents = transitiveChildren ++ parentIds.flatMap(graph.parents)
       graph removePosts graph.postIds.filterNot(transitiveChildrenWithDirectParents)
     }
-  }
-
-  private def createContainments(parentIds: Seq[PostId], postId: PostId): Future[Seq[Containment]] = {
-    val containments = parentIds.map(Containment(_, postId))
-    createContainments(containments).map(_ => containments) //TODO error
-  }
-
-  // TODO one transaction and fail
-  private def createContainments(containments: Seq[Containment]): Future[Boolean] = {
-    //TODO: bulk insert into database
-    val created = containments.map(db.containment(_))
-    Future.sequence(created).map(_.forall(identity))
-  }
-
-  private def createSelectionContainments(selection: GraphSelection, postId: PostId): Future[Seq[Containment]] = {
-    val containments = GraphSelection.toContainments(selection, postId)
-    createContainments(containments).map(_ => containments) //TODO error
   }
 }

@@ -77,13 +77,13 @@ object DevView {
             def randomContainment: Option[Containment] = if (graph.containments.size > 0) Option((graph.containments.toIndexedSeq)(rInt(graph.containments.size))) else None
             val events: Array[() => Option[ApiEvent]] = {
               val distribution: List[(Int, () => Option[ApiEvent])] = (
-                (1, () => Option(NewPost(Post.newId(rStr(1 + rInt(20)))))) ::
-                (1, () => randomPostId.map(p => UpdatedPost(Post(p, rStr(1 + rInt(20)))))) ::
-                (1, () => randomPostId.map(DeletePost(_))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewConnection(Connection(p1, p2))) ::
-                (2, () => randomConnection.map(DeleteConnection(_))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewContainment(Containment(p1, p2))) ::
-                (2, () => randomContainment.map(DeleteContainment(_))) ::
+                (1, () => Option(NewGraphChanges(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20)))))))) ::
+                (1, () => randomPostId.map(p => NewGraphChanges(GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20)))))))) ::
+                (1, () => randomPostId.map(p => NewGraphChanges(GraphChanges(delPosts = Set(p))))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewGraphChanges(GraphChanges(addConnections = Set(Connection(p1, p2))))) ::
+                (2, () => randomConnection.map(c => NewGraphChanges(GraphChanges(delConnections = Set(c))))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewGraphChanges(GraphChanges(addContainments = Set(Containment(p1, p2))))) ::
+                (2, () => randomContainment.map(c => NewGraphChanges(GraphChanges(delContainments = Set(c))))) ::
                 Nil
               )
               distribution.flatMap { case (count, f) => List.fill(count)(f) }(breakOut)

@@ -29,18 +29,10 @@ case class NotFound(path: Seq[String]) extends ApiError
 case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
-case class NewPost(post: Post) extends ApiEvent
-case class UpdatedPost(post: Post) extends ApiEvent
-case class NewConnection(connection: Connection) extends ApiEvent
-case class NewContainment(containment: Containment) extends ApiEvent
-case class NewOwnership(ownership: Ownership) extends ApiEvent
 case class NewUser(user: User) extends ApiEvent
 case class NewGroup(group: Group) extends ApiEvent
 case class NewMembership(membership: Membership) extends ApiEvent
-case class DeletePost(id: PostId) extends ApiEvent
-case class DeleteConnection(connection: Connection) extends ApiEvent
-case class DeleteContainment(containment: Containment) extends ApiEvent
-case class DeleteOwnership(ownership: Ownership) extends ApiEvent
+case class NewGraphChanges(changes: GraphChanges) extends ApiEvent
 case class LoggedIn(auth: Authentication) extends ApiEvent
 case object LoggedOut extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {

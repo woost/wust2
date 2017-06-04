@@ -109,13 +109,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     rawGraph.updatef(GraphUpdate.onEvent(_, event))
 
     event match {
-      case NewPost(post) =>
-        Notifications.notify("New Post", Option(post.title),
-          onclick = { (notification) =>
-            notification.close()
-            window.focus()
-            focusedPostId() = Option(post.id)
-          })
+      // case NewPost(post) =>
+      //   Notifications.notify("New Post", Option(post.title),
+      //     onclick = { (notification) =>
+      //       notification.close()
+      //       window.focus()
+      //       focusedPostId() = Option(post.id)
+      //     })
       // case NewConnection(connection) =>
       //   if (focusedPostId.now contains connection.targetId)
       //     focusedPostId() = Option(connection.sourceId)
