@@ -210,8 +210,7 @@ object MainView {
             if (text.nonEmpty) {
               //TODO better handling of missing(?) feedbacknode
               val newPost = Post.newId(text)
-              state.persistence.addChanges(addPosts = Set(newPost))
-              state.persistence.addChanges(addContainments = Set(Containment(feedbackPostId, newPost.id)))
+              state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackPostId, newPost.id)))
               feedbackField.value = ""
               sendEvent("feedback", "submit", "api")
             }

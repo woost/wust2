@@ -53,7 +53,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
         isSending.updatef(_ - 1)
         if (success) println(s"persisted graph changes: $changes")
         else {
-          println(s"ERROR while persisting graph changes: $changes")
+          throw new Exception(s"ERROR while persisting graph changes: $changes") //TODO
           // current() = changes + current.now
         }
       }
