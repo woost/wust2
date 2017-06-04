@@ -49,13 +49,14 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     if (!changes.isEmpty) {
       current() = GraphChanges.empty
       isSending.updatef(_ + 1)
-      Client.api.changeGraph(changes).call().map { success =>
-        isSending.updatef(_ - 1)
-        if (success) println(s"persisted graph changes: $changes")
-        else {
+      Client.api.changeGraph(changes).call().onComplete {
+        case Success(true) =>
+          isSending.updatef(_ - 1)
+          println(s"persisted graph changes: $changes")
+        case _ =>
+          isSending.updatef(_ - 1)
           throw new Exception(s"ERROR while persisting graph changes: $changes") //TODO
           // current() = changes + current.now
-        }
       }
     }
   }
