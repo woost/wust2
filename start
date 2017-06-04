@@ -2,7 +2,8 @@
 set -e
 set -o pipefail
 
-script_dir="$(dirname $(readlink -f '$0'))"
+script_file="$(readlink -f '$0')"
+script_dir="$(dirname $script_file)"
 
 stage="$1"
 function on_stage() { stage="$1"; }
@@ -15,6 +16,7 @@ function sbt_with_args() {
     WUST_STAGE=dev sbt -Dquill.macro.log=false $args
 }
 
+function self() { "$script_file" $@; }
 function compose() { "$script_dir/docker/compose" $stage $@; }
 
 function create_wust_template() {
@@ -61,6 +63,12 @@ prod)
     compose down
     compose up -d nginx
     ;;
+test)
+    sbt docker
+    sbt_with_args test
+    self test.postgres
+    self test.integration
+    ;;
 test.postgres)
     compose down
     compose run db-migration
@@ -106,6 +114,7 @@ test.prod)
     prod.http
     prod
 
+    test
     test.postgres
     test.integration
     test.prod.http
