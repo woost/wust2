@@ -102,7 +102,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val jsError = Var[Option[String]](None)
 
-  def onApiEvent(event: ApiEvent) {
+  def onApiEvent(event: ApiEvent): Unit = if (persistence.mode.now == SyncMode.Live) {
     DevOnly {
       views.DevView.apiEvents.updatef(event :: _)
     }

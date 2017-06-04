@@ -7,6 +7,7 @@ import rx._
 import rxext._
 import wust.util.EventTracker.sendEvent
 import wust.ids._
+import wust.graph.GraphSelection
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -51,11 +52,20 @@ object Main extends js.JSApp {
       Client.auth.loginToken(token).call()
     }
 
-    state.rawGraphSelection.foreach { selection =>
+    def getNewGraph(selection: GraphSelection) = {
       Client.api.getGraph(selection).call().foreach { newGraph =>
         state.rawGraph() = newGraph
         // take changes into account, when we get a new graph
         state.persistence.applyChangesToState()
+      }
+    }
+
+    state.rawGraphSelection.foreach(getNewGraph _)
+    state.persistence.mode.reduce { case (prev, curr) => //hehe reduce
+      curr match {
+        //we ignore all events in offline mode, get graph when switching back to live mode
+        case SyncMode.Live if curr != prev => getNewGraph(state.graphSelection.now); curr
+        case _ => curr
       }
     }
 

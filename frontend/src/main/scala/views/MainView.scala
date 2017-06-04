@@ -251,7 +251,7 @@ object MainView {
   }
 
   def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-    val status = state.persistence.syncStatus()
+    val status = state.persistence.status()
     val mode = state.persistence.mode()
 
     div(

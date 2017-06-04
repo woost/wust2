@@ -32,7 +32,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   private val current = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
 
   val mode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
-  val syncStatus: Rx[SyncStatus] = Rx { SyncStatus(isSending() > 0, !current().isEmpty) }
+  val status: Rx[SyncStatus] = Rx { SyncStatus(isSending() > 0, !current().isEmpty) }
   val changes: Rx[GraphChanges] = current
 
   {
