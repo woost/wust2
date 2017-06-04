@@ -54,6 +54,8 @@ object Main extends js.JSApp {
     state.rawGraphSelection.foreach { selection =>
       Client.api.getGraph(selection).call().foreach { newGraph =>
         state.rawGraph() = newGraph
+        // take changes into account, when we get a new graph
+        state.persistence.applyChangesToState()
       }
     }
 

@@ -29,16 +29,17 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
   private val isSending = Var[Int](0)
-  private val current = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
-  val syncStatus: Rx[SyncStatus] = Rx {
-    SyncStatus(isSending() > 0, !current().isEmpty)
+  private val current = {
+    val localChanges = storage.graphChanges
+    Var[GraphChanges](localChanges.getOrElse(GraphChanges.empty))
   }
 
   val mode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
+  val syncStatus: Rx[SyncStatus] = Rx { SyncStatus(isSending() > 0, !current().isEmpty) }
+  val changes: Rx[GraphChanges] = current
 
   {
     import scala.concurrent.ExecutionContext.Implicits.global //TODO
-
     //TODO: why does triggerlater not work?
     mode.foreach { (mode: SyncMode) =>
       storage.syncMode = mode
@@ -48,6 +49,22 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     current.foreach { (changes: GraphChanges) =>
       storage.graphChanges = changes
     }
+  }
+
+  //TODO: where?
+  // should this also add selection containments?
+  private def enrichChanges(changes: GraphChanges): GraphChanges = {
+    import changes.consistent._
+
+    val toDelete = delPosts.flatMap { postId =>
+      Collapse.getHiddenPosts(state.displayGraph.now.graph removePosts state.graphSelection.now.parentIds, Set(postId))
+    }
+
+    val toOwn = state.selectedGroupId.now.toSet.flatMap { (groupId: GroupId) =>
+      addPosts.map(p => Ownership(p.id, groupId))
+    }
+
+    changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn)
   }
 
   def flush()(implicit ec: ExecutionContext) {
@@ -67,20 +84,10 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }
   }
 
-  //TODO: where?
-  // should this also add selection containments?
-  private def enrichChanges(changes: GraphChanges): GraphChanges = {
-    import changes.consistent._
-
-    val toDelete = delPosts.flatMap { postId =>
-      Collapse.getHiddenPosts(state.displayGraph.now.graph removePosts state.graphSelection.now.parentIds, Set(postId))
-    }
-
-    val toOwn = state.selectedGroupId.now.toSet.flatMap { (groupId: GroupId) =>
-      addPosts.map(p => Ownership(p.id, groupId))
-    }
-
-    changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn)
+  //TODO: change only the display graph in global state by adding the changes to the rawgraph
+  def applyChangesToState() {
+    val newGraph = state.rawGraph.now applyChanges current.now
+    state.rawGraph() = newGraph
   }
 
   def addChanges(
@@ -106,8 +113,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       case SyncMode.Offline => println(s"caching changes: $changes")
     }
 
-    val newGraph = state.rawGraph.now applyChanges changes
-    state.rawGraph() = newGraph
+    applyChangesToState()
   }
 }
 
