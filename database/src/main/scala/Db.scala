@@ -81,14 +81,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
     }
 
     def delete(postId: PostId): Future[Boolean] = {
-      val postQ = quote { query[Post].filter(_.id == lift(postId)) }
-      //TODO: quill delete.returning(_.id) to avoid 2 queries
-      ctx.transaction { _ =>
-        for {
-          exists <- ctx.run(postQ.nonEmpty)
-          _ <- ctx.run(postQ.delete)
-        } yield exists
-      }
+      ctx.run(query[Post].filter(_.id == lift(postId)).delete)
+        .map(_ == 1)
     }
 
     def getGroups(postId: PostId): Future[List[UserGroup]] = {
@@ -118,13 +112,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
     def delete(ownership: Ownership): Future[Boolean] = {
       import ownership.{ groupId, postId }
-      val contQ = quote { query[Ownership].filter(c => c.groupId == lift(groupId) && c.postId == lift(postId)) }
-      ctx.transaction { _ =>
-        for {
-          exists <- ctx.run(contQ.nonEmpty)
-          _ <- ctx.run(contQ.delete)
-        } yield exists
-      }
+      ctx.run(query[Ownership].filter(c => c.groupId == lift(groupId) && c.postId == lift(postId)).delete)
+        .map(_ == 1)
     }
   }
 
@@ -162,14 +151,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
     def delete(connection: Connection): Future[Boolean] = {
       import connection.{ sourceId, targetId }
-      val connQ = quote { query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId)) }
-      //TODO: quill delete.returning(_.id) to avoid 2 queries
-      ctx.transaction { _ =>
-        for {
-          exists <- ctx.run(connQ.nonEmpty)
-          _ <- ctx.run(connQ.delete)
-        } yield exists
-      }
+      ctx.run(query[Connection].filter(c => c.sourceId == lift(sourceId) && c.targetId == lift(targetId)).delete)
+        .map(_ == 1)
     }
   }
 
@@ -197,13 +180,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase])(implicit ec: ExecutionContext
 
     def delete(containment: Containment): Future[Boolean] = {
       import containment.{ parentId, childId }
-      val contQ = quote { query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId)) }
-      ctx.transaction { _ =>
-        for {
-          exists <- ctx.run(contQ.nonEmpty)
-          _ <- ctx.run(contQ.delete)
-        } yield exists
-      }
+      ctx.run(query[Containment].filter(c => c.parentId == lift(parentId) && c.childId == lift(childId)).delete)
+        .map(_ == 1)
     }
   }
 
