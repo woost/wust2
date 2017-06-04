@@ -211,7 +211,6 @@ lazy val frontend = project
       Nil),
     jsDependencies += RuntimeDOM,
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
-    scalaJSOptimizerOptions in (Compile, fullOptJS) ~= { _.withUseClosureCompiler(false) }, // TODO: issue with fullOpt: https://github.com/scala-js/scala-js/issues/2786
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
     emitSourceMaps := true,
