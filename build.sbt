@@ -12,7 +12,15 @@ lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
     Resolver.jcenterRepo ::
-    Nil),
+    Nil
+  ),
+
+  addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
+  libraryDependencies ++= (
+    "org.scalameta" %%% "scalameta" % "1.8.0" % "provided" ::
+    "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+    Nil
+  ),
 
   // do not run tests in assembly command
   test in assembly := {},
@@ -53,7 +61,8 @@ lazy val isCI = sys.env.get("CI").isDefined // set by travis
 lazy val config = file("config")
 lazy val configSettings = Seq(
   unmanagedResourceDirectories in Runtime += config,
-  unmanagedResourceDirectories in Compile += config)
+  unmanagedResourceDirectories in Compile += config
+)
 
 lazy val root = project.in(file("."))
   .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration)
@@ -72,7 +81,8 @@ lazy val root = project.in(file("."))
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"), // TODO: also run optimized tests in productionMode. https://gitter.im/scala-js/scala-js?at=58ef8672ad849bcf427e96ab
     addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test"),
 
-    watchSources ++= (watchSources in workbench).value)
+    watchSources ++= (watchSources in workbench).value
+  )
 
 val akkaVersion = "2.4.17"
 val akkaHttpVersion = "10.0.5"
@@ -86,15 +96,16 @@ val boopickleVersion = "1.2.6"
 lazy val util = crossProject
   .settings(commonSettings)
   .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++= (
-      "org.scalameta" %%% "scalameta" % "1.7.0" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      Nil))
+      Nil
+    )
+  )
   .jsSettings(
     libraryDependencies ++= (
       "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
-      Nil))
+      Nil
+    )
+  )
 lazy val utilJS = util.js
 lazy val utilJVM = util.jvm
 
@@ -105,8 +116,9 @@ lazy val framework = crossProject
     libraryDependencies ++= (
       "com.github.cornerman" %%% "autowire" % "0.2.6" ::
       "io.suzaku" %%% "boopickle" % boopickleVersion ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      Nil))
+      Nil
+    )
+  )
   .jvmSettings(
     libraryDependencies ++= (
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
@@ -115,11 +127,15 @@ lazy val framework = crossProject
       "com.outr" %% "scribe" % "1.4.1" ::
       // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
       // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
-      Nil))
+      Nil
+    )
+  )
   .jsSettings(
     libraryDependencies ++= (
       "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
-      Nil))
+      Nil
+    )
+  )
 
 lazy val frameworkJS = framework.js
 lazy val frameworkJVM = framework.jvm
@@ -130,7 +146,9 @@ lazy val ids = crossProject
     libraryDependencies ++= (
       "org.scalaz" %%% "scalaz-core" % scalazVersion ::
       "io.suzaku" %%% "boopickle" % boopickleVersion ::
-      Nil))
+      Nil
+    )
+  )
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
 
@@ -139,8 +157,9 @@ lazy val graph = crossProject
   .dependsOn(ids)
   .settings(
     libraryDependencies ++= (
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      Nil))
+      Nil
+    )
+  )
   .dependsOn(util)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
@@ -150,7 +169,9 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      Nil))
+      Nil
+    )
+  )
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
@@ -162,8 +183,8 @@ lazy val database = project
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       "com.outr" %% "scribe" % "1.4.1" ::
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
   // parallelExecution in IntegrationTest := false
   )
@@ -189,8 +210,9 @@ lazy val backend = project
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "autoconfig" % "0.1.0-SNAPSHOT" ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
-      "org.scalatest" %% "scalatest" % scalaTestVersion % "test,it" ::
-      Nil)
+      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
+      Nil
+  )
 
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -207,8 +229,8 @@ lazy val frontend = project
       "org.scalameta" %%% "scalameta" % "1.7.0" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-      Nil),
+      Nil
+    ),
     jsDependencies += RuntimeDOM,
     scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm
@@ -217,12 +239,14 @@ lazy val frontend = project
     emitSourceMaps in fullOptJS := false,
     npmDependencies in Compile ++= (
       "cuid" -> "1.3.8" ::
-      Nil),
+      Nil
+    ),
     npmDevDependencies in Compile ++= (
       "compression-webpack-plugin" -> "0.3.1" ::
       "brotli-webpack-plugin" -> "0.2.0" ::
       "webpack-closure-compiler" -> "2.1.4" ::
-      Nil),
+      Nil
+    ),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "scalajsbundler.config.js") // renamed due to https://github.com/scalacenter/scalajs-bundler/issues/123
   )
 
@@ -247,7 +271,8 @@ lazy val workbench = project
     pipelineStages in Assets := Seq(scalaJSPipeline),
 
     watchSources += baseDirectory.value / "index.html",
-    watchSources ++= (watchSources in assets).value)
+    watchSources ++= (watchSources in assets).value
+  )
 
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
