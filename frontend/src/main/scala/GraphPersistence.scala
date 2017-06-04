@@ -45,7 +45,6 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   def flush()(implicit ec: ExecutionContext) {
-    println("flushing changes")
     val changes = current.now
     if (!changes.isEmpty) {
       current() = GraphChanges.empty
@@ -88,17 +87,19 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     delContainments: Iterable[Containment] = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
   )(implicit ec: ExecutionContext): Unit = {
-    val changes = GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
-    val enrichedChanges = enrichChanges(changes)
 
-    current.updatef(_ + enrichedChanges)
+    val changes = enrichChanges(
+      GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
+    )
+
+    current.updatef(_ + changes)
 
     mode.now match {
       case SyncMode.Live    => flush()
-      case SyncMode.Offline => println("caching changes")
+      case SyncMode.Offline => println(s"caching changes: $changes")
     }
 
-    val newGraph = state.rawGraph.now applyChanges enrichedChanges
+    val newGraph = state.rawGraph.now applyChanges changes
     state.rawGraph() = newGraph
   }
 }
