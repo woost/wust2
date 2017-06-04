@@ -17,7 +17,7 @@ class ViewsExamples extends Tables {
   def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_: GlobalState, disableSimulation = true), MainView(_: GlobalState, disableSimulation = true))
 }
 
-class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers {
+class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers with LocalStorageMock {
   "focusing post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState

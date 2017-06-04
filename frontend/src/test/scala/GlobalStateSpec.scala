@@ -5,7 +5,7 @@ import rx.Ctx.Owner.Unsafe._
 import wust.graph._
 import wust.ids._
 
-class GlobalStateSpec extends FreeSpec with MustMatchers {
+class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {
 
   //TODO: test the number of rx updates
 
