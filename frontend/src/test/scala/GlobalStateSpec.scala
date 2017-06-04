@@ -38,11 +38,11 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
 
     "be consistent with focused" in {
       val state = new GlobalState
-      state.focusedPostId() = Option("heinz")
+      state.focusedPostId() = Option("grenom")
       state.focusedPostId.now mustEqual None
 
       state.rawGraph() = Graph(posts = List(Post("grenom", "title")))
-      state.focusedPostId.now mustEqual Option(PostId("heinz"))
+      state.focusedPostId.now mustEqual Option(PostId("grenom"))
 
       state.rawGraph() = Graph.empty
       state.focusedPostId.now mustEqual None
@@ -50,11 +50,11 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
 
     "be consistent with edited" in {
       val state = new GlobalState
-      state.editedPostId() = Option("heinz")
+      state.editedPostId() = Option("grenom")
       state.editedPostId.now mustEqual None
 
       state.rawGraph() = Graph(posts = List(Post("grenom", "title")))
-      state.editedPostId.now mustEqual Option(PostId("heinz"))
+      state.editedPostId.now mustEqual Option(PostId("grenom"))
 
       state.rawGraph() = Graph.empty
       state.editedPostId.now mustEqual None
@@ -62,12 +62,12 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
 
     "be consistent with mode" in {
       val state = new GlobalState
-      state.editedPostId() = Option("heinz")
-      state.focusedPostId() = Option("heinz")
+      state.editedPostId() = Option("grenom")
+      state.focusedPostId() = Option("grenom")
       state.mode.now mustEqual DefaultMode
 
       state.rawGraph() = Graph(posts = List(Post("grenom", "title")))
-      state.mode.now mustEqual EditMode("heinz")
+      state.mode.now mustEqual EditMode("grenom")
     }
 
     "have view" in {
@@ -77,7 +77,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
         connections = Nil,
         containments = List(Containment("grenom", "zeilinda"))
       )
-      state.currentView() = Perspective(collapsed = Selector.IdSet(Set("heinz")))
+      state.currentView() = Perspective(collapsed = Selector.IdSet(Set("grenom")))
 
       state.displayGraph.now.graph mustEqual Graph(posts = List(Post("grenom", "title")))
     }
@@ -87,8 +87,8 @@ class GlobalStateSpec extends FreeSpec with MustMatchers {
   "view" - {
     "be consistent with collapsed" in {
       val state = new GlobalState
-      state.collapsedPostIds() = Set("heinz")
-      state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set("heinz"))))
+      state.collapsedPostIds() = Set("grenom")
+      state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set("grenom"))))
 
       state.collapsedPostIds() = Set.empty
       state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set.empty)))
