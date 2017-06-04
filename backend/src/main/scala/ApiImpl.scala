@@ -43,10 +43,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         true <- destruct(addContainments.map(db.containment(_)))
         true <- destruct(addOwnerships.map(db.ownership(_)))
         true <- destruct(updatePosts.map(db.post.update(_)))
-        true <- destruct(delPosts.map(db.post.delete(_)))
-        true <- destruct(delConnections.map(db.connection.delete(_)))
-        true <- destruct(delContainments.map(db.containment.delete(_)))
-        true <- destruct(delOwnerships.map(db.ownership.delete(_)))
+        _ <- destruct(delPosts.map(db.post.delete(_)))
+        _ <- destruct(delConnections.map(db.connection.delete(_)))
+        _ <- destruct(delContainments.map(db.containment.delete(_)))
+        _ <- destruct(delOwnerships.map(db.ownership.delete(_)))
       } yield true
     }
 
