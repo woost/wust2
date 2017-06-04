@@ -13,7 +13,7 @@ SELECT isnt_empty(
   'INSERT INTO
     post (id, title)
   VALUES
-    (DEFAULT, $$Schneider$$)
+    ($$hester$$, $$Schneider$$)
    RETURNING
     (id, title);',
   'insert post'
@@ -23,7 +23,7 @@ SELECT isnt_empty(
   'INSERT INTO
     post (id, title)
   VALUES
-    (DEFAULT, $$Schneider$$)
+    ($$invester$$, $$Schneider2$$)
    RETURNING
     (id, title);',
   'insert second post'
@@ -33,7 +33,7 @@ SELECT isnt_empty(
   'INSERT INTO
     connection (sourceid, targetid)
   VALUES
-    (1, 2)
+    ($$hester$$, $$invester$$)
    RETURNING
     (sourceid, targetid);',
   'insert connection'
@@ -43,7 +43,7 @@ SELECT isnt_empty(
   'INSERT INTO
     containment (parentid, childid)
   VALUES
-    (2, 1)
+    ($$invester$$, $$hester$$)
    RETURNING
     (parentid, childid);',
   'insert containment'
@@ -95,7 +95,7 @@ SELECT isnt_empty(
   'INSERT INTO
     connection (sourceid, targetid)
   VALUES
-    (1, 2)
+    ($$hester$$, $$invester$$)
    RETURNING
     (sourceid, targetid);',
   'insert connection after delete'
@@ -105,7 +105,7 @@ SELECT isnt_empty(
   'INSERT INTO
     containment (parentid, childid)
   VALUES
-    (2, 1)
+    ($$invester$$, $$hester$$)
    RETURNING
     (parentid, childid);',
   'insert containment'
