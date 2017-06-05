@@ -6,56 +6,38 @@ import wust.db.Db
 import wust.graph._
 import wust.framework.state._
 import wust.ids._
-import wust.util.RandomUtil
+import wust.util.{RandomUtil, RichFuture}
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
 
-  //TODO: we should raise an apierror 'forbidden', instead of false/None/etc, when a user is not allowed
-  private def isGroupMember[T](groupId: GroupId, userId: UserId)(code: => Future[T])(recover: T): Future[T] = {
-    (for {
-      isMember <- db.group.isMember(groupId, userId) if isMember
-      result <- code
-    } yield result).recover { case _ => recover }
-  }
-
-  private def hasAccessToPost[T](postId: PostId, userId: UserId)(code: => Future[T])(recover: T): Future[T] = {
-    (for {
-      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
-      result <- code
-    } yield result).recover { case _ => recover }
-  }
-
   override def changeGraph(changes: GraphChanges): Future[Boolean] = withUserOrImplicit { (_, _) =>
-    //TODO bulk inserts
     //TODO rights
     import changes.consistent._
 
-    def destruct(s: Set[Future[Boolean]]): Future[Boolean] = Future.sequence(s).map(_.forall(identity))
-
     //TODO error handling
-    val result = db.ctx.transaction { _ =>
+    val result = db.ctx.transaction { implicit ec =>
       for {
-        true <- destruct(addPosts.map(db.post.createPublic(_)))
-        true <- destruct(addConnections.map(db.connection(_)))
-        true <- destruct(addContainments.map(db.containment(_)))
-        true <- destruct(addOwnerships.map(db.ownership(_)))
-        true <- destruct(updatePosts.map(db.post.update(_)))
-        _ <- destruct(delPosts.map(db.post.delete(_)))
-        _ <- destruct(delConnections.map(db.connection.delete(_)))
-        _ <- destruct(delContainments.map(db.containment.delete(_)))
-        _ <- destruct(delOwnerships.map(db.ownership.delete(_)))
+        true <- db.post.createPublic(addPosts)
+        true <- db.connection(addConnections)
+        true <- db.containment(addContainments)
+        true <- db.ownership(addOwnerships)
+        true <- db.post.update(updatePosts)
+        _ <- db.post.delete(delPosts)
+        _ <- db.connection.delete(delConnections)
+        _ <- db.containment.delete(delContainments)
+        _ <- db.ownership.delete(delOwnerships)
       } yield true
-    }
+    }//.recoverValue(false)
 
-    result.map(respondWithEvents(_, NewGraphChanges(changes.consistent)))
+    result.map(respondWithEventsIf(_, NewGraphChanges(changes.consistent)))
   }
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
-
   def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
+
   def addGroup(): Future[GroupId] = withUserOrImplicit { (_, user) =>
     for {
       //TODO: simplify db.createForUser return values
@@ -66,8 +48,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] =
-    withUserOrImplicit { (_, user) =>
+  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, user) =>
+    db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
           Some((_, dbMembership, _)) <- db.group.addMember(groupId, userId)
@@ -76,30 +58,29 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         }
       }(recover = respondWithEvents(false))
     }
+  }
 
   def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUserOrImplicit { (_, _) =>
-    (
-      for {
-        Some(user) <- db.user.byName(userName)
-        Some((_, dbMembership, _)) <- db.group.addMember(groupId, user.id)
-      } yield respondWithEvents(true, NewMembership(dbMembership))
-    ).recover { case _ => respondWithEvents(false) }
+    db.ctx.transaction { implicit ec =>
+      (
+        for {
+          Some(user) <- db.user.byName(userName)
+          Some((_, dbMembership, _)) <- db.group.addMember(groupId, user.id)
+        } yield respondWithEvents(true, NewMembership(dbMembership))
+      ).recover { case _ => respondWithEvents(false) }
+    }
   }
 
-  private def setRandomGroupInviteToken(groupId: GroupId): Future[Option[String]] = {
-    val randomToken = RandomUtil.alphanumeric()
-    db.group.setInviteToken(groupId, randomToken).map(_ => Option(randomToken)).recover { case _ => None }
-  }
-
-  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]] =
-    withUserOrImplicit { (_, user) =>
+  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user) =>
+    db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         setRandomGroupInviteToken(groupId)
       }(recover = None)
     }
+  }
 
-  def getGroupInviteToken(groupId: GroupId): Future[Option[String]] =
-    withUserOrImplicit { (_, user) =>
+  def getGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user) =>
+    db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
           case someToken @ Some(token) => Future.successful(someToken)
@@ -107,18 +88,21 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         }
       }(recover = None)
     }
+  }
 
   def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUserOrImplicit { (_, user) =>
     //TODO optimize into one request?
-    db.group.fromInvite(token).flatMap {
-      case Some(group) =>
-        db.group.addMember(group.id, user.id).map {
-          case Some((_, dbMembership, dbGroup)) =>
-            val group = forClient(dbGroup)
-            respondWithEvents(Option(group.id), NewMembership(dbMembership))
-          case None => respondWithEvents[Option[GroupId]](None)
-        }
-      case None => Future.successful(respondWithEvents[Option[GroupId]](None))
+    db.ctx.transaction { implicit ec =>
+      db.group.fromInvite(token).flatMap {
+        case Some(group) =>
+          db.group.addMember(group.id, user.id).map {
+            case Some((_, dbMembership, dbGroup)) =>
+              val group = forClient(dbGroup)
+              respondWithEvents(Option(group.id), NewMembership(dbMembership))
+            case None => respondWithEvents[Option[GroupId]](None)
+          }
+        case None => Future.successful(respondWithEvents[Option[GroupId]](None))
+      }
     }
   }
 
@@ -137,7 +121,13 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
-  private def getUnion(userIdOpt: Option[UserId], rawParentIds: Set[PostId]): Future[Graph] = {
+
+  private def setRandomGroupInviteToken(groupId: GroupId)(implicit ec: ExecutionContext): Future[Option[String]] = {
+    val randomToken = RandomUtil.alphanumeric()
+    db.group.setInviteToken(groupId, randomToken).map(_ => Option(randomToken)).recover { case _ => None }
+  }
+
+  private def getUnion(userIdOpt: Option[UserId], rawParentIds: Set[PostId])(implicit ec: ExecutionContext): Future[Graph] = {
     //TODO: in stored procedure
     // we also include the direct parents of the parentIds to be able no navigate upwards
     db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
@@ -147,5 +137,20 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       val transitiveChildrenWithDirectParents = transitiveChildren ++ parentIds.flatMap(graph.parents)
       graph removePosts graph.postIds.filterNot(transitiveChildrenWithDirectParents)
     }
+  }
+
+  //TODO: we should raise an apierror 'forbidden', instead of false/None/etc, when a user is not allowed
+  private def isGroupMember[T](groupId: GroupId, userId: UserId)(code: => Future[T])(recover: T)(implicit ec: ExecutionContext): Future[T] = {
+    (for {
+      isMember <- db.group.isMember(groupId, userId) if isMember
+      result <- code
+    } yield result).recover { case _ => recover }
+  }
+
+  private def hasAccessToPost[T](postId: PostId, userId: UserId)(code: => Future[T])(recover: T)(implicit ec: ExecutionContext): Future[T] = {
+    (for {
+      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
+      result <- code
+    } yield result).recover { case _ => recover }
   }
 }

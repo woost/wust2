@@ -154,23 +154,6 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         queriedPosts mustBe empty
       }
     }
-
-    "get parentIds" in { db =>
-      import db._, db.ctx, ctx._
-      val child = Post("1", "Sohiritus")
-      val parent1 = Post("2", "Borolf")
-      val parent2 = Post("3", "Sohiritus")
-      for {
-        true <- db.post.createPublic(child)
-        true <- db.post.createPublic(parent1)
-        true <- db.post.createPublic(parent2)
-        true <- db.containment(Containment(parent1.id, child.id))
-        true <- db.containment(Containment(parent2.id, child.id))
-        parentIds <- db.post.getParentIds(child.id)
-      } yield {
-        parentIds must contain theSameElementsAs List(parent1.id, parent2.id)
-      }
-    }
   }
 
   "connection" - {
@@ -262,69 +245,6 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       } yield {
         success mustBe false
         connections mustBe empty
-      }
-    }
-
-    "create connection with new public post" in { db =>
-      import db._, db.ctx, ctx._
-      val sourcePost = Post("t", "yo")
-      val targetPost = Post("r", "yo")
-      val connection = Connection("t", "r")
-      for {
-        true <- db.post.createPublic(targetPost)
-
-        success <- db.connection.newPost(sourcePost, targetPost.id, groupIdOpt = None)
-
-        queriedPosts <- ctx.run(query[Post])
-        queriedConnections <- ctx.run(query[Connection])
-        queriedOwnerships <- ctx.run(query[Ownership])
-      } yield {
-        success mustBe true
-
-        queriedPosts must contain theSameElementsAs List(targetPost, sourcePost)
-        queriedConnections must contain theSameElementsAs List(connection)
-        queriedOwnerships mustBe empty
-      }
-    }
-
-    "create connection with new owned post" in { db =>
-      import db._, db.ctx, ctx._
-      val sourcePost = Post("t", "yo")
-      val targetPost = Post("r", "yo")
-      val connection = Connection("t", "r")
-      for {
-        true <- db.post.createPublic(targetPost)
-        groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-
-        success <- db.connection.newPost(sourcePost, targetPost.id, groupIdOpt = Option(groupId))
-
-        queriedPosts <- ctx.run(query[Post])
-        queriedConnections <- ctx.run(query[Connection])
-        queriedOwnerships <- ctx.run(query[Ownership])
-      } yield {
-        success mustBe true
-
-        queriedPosts must contain theSameElementsAs List(targetPost, sourcePost)
-        queriedConnections must contain theSameElementsAs List(connection)
-        queriedOwnerships must contain theSameElementsAs List(Ownership(sourcePost.id, groupId))
-      }
-    }
-
-    "create connection with new public post to non-existing targetId" in { db =>
-      import db._, db.ctx, ctx._
-      val sourcePost = Post("t", "yo")
-      for {
-        success <- db.connection.newPost(sourcePost, "digr", groupIdOpt = None)
-
-        queriedPosts <- ctx.run(query[Post])
-        queriedConnections <- ctx.run(query[Connection])
-        queriedOwnerships <- ctx.run(query[Ownership])
-      } yield {
-        success mustBe false
-
-        queriedPosts mustBe empty
-        queriedConnections mustBe empty
-        queriedOwnerships mustBe empty
       }
     }
 
