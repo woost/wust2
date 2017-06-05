@@ -10,8 +10,15 @@ import boopickle.Default._
 import scala.concurrent.ExecutionContext
 import scala.util.Success
 
-case class SyncStatus(isSending: Boolean, hasUnsyncedChanges: Boolean)
-trait SyncMode
+sealed trait SyncStatus
+object SyncStatus {
+  case object Sending extends SyncStatus
+  case object Pending extends SyncStatus
+  case object Done extends SyncStatus
+  case object Error extends SyncStatus
+}
+
+sealed trait SyncMode
 object SyncMode {
   case object Live extends SyncMode
   case object Offline extends SyncMode
@@ -29,20 +36,21 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
   private val isSending = Var[Int](0)
-  private val current = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
+  private val hasError = Var[Boolean](false)
+  private val currChanges = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
 
   val mode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
-  val status: Rx[SyncStatus] = Rx { SyncStatus(isSending() > 0, !current().isEmpty) }
-  val changes: Rx[GraphChanges] = current
+  val changes: Rx[GraphChanges] = currChanges
+  val status: Rx[SyncStatus] = Rx {
+    if (isSending() > 0) SyncStatus.Sending
+    else if (hasError()) SyncStatus.Error
+    else if (changes().isEmpty) SyncStatus.Done
+    else SyncStatus.Pending
+  }
 
   //TODO: why does triggerlater not work?
-  mode.foreach { (mode: SyncMode) =>
-    storage.syncMode = mode
-  }
-
-  current.foreach { (changes: GraphChanges) =>
-    storage.graphChanges = changes
-  }
+  mode.foreach(storage.syncMode = _)
+  changes.foreach(storage.graphChanges = _)
 
   //TODO: where?
   // should this also add selection containments?
@@ -62,18 +70,19 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   def flush()(implicit ec: ExecutionContext): Unit = mode.now match {
     case SyncMode.Live =>
-      val changes = current.now
+      val changes = currChanges.now
       if (!changes.isEmpty) {
-        current() = GraphChanges.empty
+        println(s"persisting changes: $changes")
         isSending.updatef(_ + 1)
+        hasError() = false
         Client.api.changeGraph(changes).call().onComplete {
           case Success(true) =>
             isSending.updatef(_ - 1)
-            println(s"persisted graph changes: $changes")
+            currChanges.updatef(changes - _)
           case _ =>
             isSending.updatef(_ - 1)
-            throw new Exception(s"ERROR while persisting graph changes: $changes") //TODO
-            // current() = changes + current.now
+            hasError() = true
+            //TODO handle
         }
       }
     case _ => println(s"caching changes: $changes")
@@ -81,7 +90,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   //TODO: change only the display graph in global state by adding the changes to the rawgraph
   def applyChangesToState(graph: Graph) {
-    val newGraph = graph applyChanges current.now
+    val newGraph = graph applyChanges currChanges.now
     state.rawGraph() = newGraph
   }
 
@@ -101,7 +110,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
     )
 
-    current.updatef(_ + changes)
+    currChanges.updatef(_ + changes)
     applyChangesToState(state.rawGraph.now)
 
     flush()

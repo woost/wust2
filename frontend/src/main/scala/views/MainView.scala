@@ -269,9 +269,7 @@ object MainView {
           }
         }
       ),
-      if (status.isSending) "syncing"
-      else if (status.hasUnsyncedChanges) "pending"
-      else "done"
+      status.toString
     ).render
   }
 

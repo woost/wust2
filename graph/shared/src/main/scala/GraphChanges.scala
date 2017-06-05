@@ -25,6 +25,18 @@ case class GraphChanges(
     delOwnerships ++ other.delOwnerships
   )
 
+  def -(other: GraphChanges) = GraphChanges(
+    addPosts -- other.addPosts,
+    addConnections -- other.addConnections,
+    addContainments -- other.addContainments,
+    addOwnerships -- other.addOwnerships,
+    updatePosts -- other.updatePosts,
+    delPosts -- other.delPosts,
+    delConnections -- other.delConnections,
+    delContainments -- other.delContainments,
+    delOwnerships -- other.delOwnerships
+  )
+
   lazy val consistent = GraphChanges(
     addPosts.filterNot(p => delPosts(p.id)),
     (addConnections -- delConnections).filterNot(c => delPosts(c.sourceId) || delPosts(c.targetId)),

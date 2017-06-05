@@ -56,17 +56,20 @@ object Main extends js.JSApp {
       Client.api.getGraph(selection).call().foreach { newGraph =>
         // take changes into account, when we get a new graph
         state.persistence.applyChangesToState(newGraph)
-        state.persistence.flush()
       }
     }
 
     state.rawGraphSelection.foreach(getNewGraph _)
-    state.persistence.mode.reduce { case (prev, curr) => //hehe reduce
+    state.persistence.mode.reduce { case (prev, curr) =>
       curr match {
         //we ignore all events in offline mode, get graph when switching back to live mode
         case SyncMode.Live if curr != prev => getNewGraph(state.graphSelection.now); curr
         case _ => curr
       }
+    }
+    state.persistence.mode.foreach {
+      case SyncMode.Live => state.persistence.flush()
+      case _ =>
     }
 
     state.inviteToken.foreach {
