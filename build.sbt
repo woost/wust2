@@ -17,8 +17,9 @@ lazy val commonSettings = Seq(
 
   addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
   libraryDependencies ++= (
-    "org.scalameta" %%% "scalameta" % "1.8.0" % "provided" ::
+    "org.scalameta" %%% "scalameta" % scalametaVersion % "provided" ::
     "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
+    "com.outr" %%% "scribe" % "1.4.2" ::
     Nil
   ),
 
@@ -84,15 +85,16 @@ lazy val root = project.in(file("."))
     watchSources ++= (watchSources in workbench).value
   )
 
-val akkaVersion = "2.4.17"
-val akkaHttpVersion = "10.0.5"
+val akkaVersion = "2.4.18"
+val akkaHttpVersion = "10.0.7"
 val circeVersion = "0.8.0"
 val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
-val paradiseVersion = "3.0.0-M8"
+val paradiseVersion = "3.0.0-M9"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
+val scalametaVersion = "1.8.0"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -125,15 +127,12 @@ lazy val framework = crossProject
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
       "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test" ::
-      "com.outr" %% "scribe" % "1.4.1" ::
-      // "com.typesafe.akka" %% "akka-slf4j" % akkaVersion ::
-      // "com.outr" %% "scribe-slf4j" % "1.3.2" :: //TODO
       Nil
     )
   )
   .jsSettings(
     libraryDependencies ++= (
-      "org.scala-js" %%% "scalajs-dom" % "0.9.1" ::
+      "org.scala-js" %%% "scalajs-dom" % "0.9.2" ::
       Nil
     )
   )
@@ -187,7 +186,6 @@ lazy val database = project
   .settings(
     libraryDependencies ++=
       "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
-      "com.outr" %% "scribe" % "1.4.1" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
   // parallelExecution in IntegrationTest := false
@@ -230,7 +228,7 @@ lazy val frontend = project
       "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
-      "org.scalameta" %%% "scalameta" % "1.7.0" ::
+      "org.scalameta" %%% "scalameta" % scalametaVersion % "provided" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
