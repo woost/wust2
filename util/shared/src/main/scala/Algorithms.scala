@@ -73,6 +73,9 @@ object algorithm {
 
   //TODO: depthfirstsearch producing a sequence
   def depthFirstSearch[V](start: V, continue: V => Iterable[V]) = new Iterable[V] {
+    private var _startInvolvedInCycle = false
+    def startInvolvedInCycle = _startInvolvedInCycle
+
     def iterator = new Iterator[V] {
 
       val stack = mutable.Stack(start)
@@ -86,6 +89,7 @@ object algorithm {
         seen += current
 
         for (candidate <- continue(current)) {
+          if(candidate == start) _startInvolvedInCycle = true
           if (!seen(candidate) && !onStack(candidate)) {
             stack push candidate
             onStack += candidate
@@ -95,6 +99,7 @@ object algorithm {
         current
       }
     }
+    iterator.size // consume iterator
   }
 
   def connectedComponents[V](vertices:Iterable[V], continue: V => Iterable[V]):List[Set[V]] = {

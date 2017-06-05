@@ -4,6 +4,7 @@ import wust.ids._
 import wust.util.Pipe
 import wust.util.algorithm._
 import wust.util.collection._
+import scalaz._
 
 import collection.mutable
 
@@ -74,7 +75,7 @@ package object graph {
       s"Graph(${posts.map(_.id).mkString(" ")},${connections.map(c => s"${c.sourceId}->${c.targetId}").mkString(", ")}, ${containments.map(c => s"${c.parentId}⊂${c.childId}").mkString(", ")},groups:${groupIds}, ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, users: ${userIds}, memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
     def toSummaryString = s"Graph(posts: ${posts.size}, connections: ${connections.size}, containments: ${containments.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
-    private val postDefaultNeighbourhood =
+    private lazy val postDefaultNeighbourhood =
       postsById.mapValues(_ => Set.empty[PostId])
     lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connections, _.sourceId, _.targetId)
     lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connections, _.targetId, _.sourceId)
@@ -89,30 +90,30 @@ package object graph {
 
     // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
     // that's why the need default values from connectionDefaultNeighbourhood
-    private val connectionDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Connection])
+    private lazy val connectionDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Connection])
     lazy val incomingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
       directedIncidenceList[PostId, Connection](connections, _.targetId)
     lazy val outgoingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
       directedIncidenceList[PostId, Connection](connections, _.sourceId)
     lazy val incidentConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ incidenceList[PostId, Connection](connections, _.sourceId, _.targetId)
 
-    private val containmentDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Containment])
+    private lazy val containmentDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Containment])
     lazy val incidentParentContainments: Map[PostId, Set[Containment]] = containmentDefaultNeighbourhood ++ directedIncidenceList[PostId, Containment](containments, _.childId)
     lazy val incidentChildContainments: Map[PostId, Set[Containment]] = containmentDefaultNeighbourhood ++ directedIncidenceList[PostId, Containment](containments, _.parentId)
     lazy val incidentContainments: Map[PostId, Set[Containment]] = containmentDefaultNeighbourhood ++ incidenceList[PostId, Containment](containments, _.parentId, _.childId)
 
-    private val groupDefaultPosts: Map[GroupId, Set[PostId]] = groupsById.mapValues(_ => Set.empty[PostId])
-    private val postDefaultGroups = postsById.mapValues(_ => Set.empty[GroupId])
+    private lazy val groupDefaultPosts: Map[GroupId, Set[PostId]] = groupsById.mapValues(_ => Set.empty[PostId])
+    private lazy val postDefaultGroups = postsById.mapValues(_ => Set.empty[GroupId])
     lazy val postsByGroupId: Map[GroupId, Set[PostId]] = groupDefaultPosts ++ directedAdjacencyList[GroupId, Ownership, PostId](ownerships, _.groupId, _.postId)
     lazy val groupsByPostId: Map[PostId, Set[GroupId]] = postDefaultGroups ++ directedAdjacencyList[PostId, Ownership, GroupId](ownerships, _.postId, _.groupId)
     lazy val publicPostIds: Set[PostId] = postsById.keySet -- postsByGroupId.values.flatten
 
-    private val groupDefaultUsers: Map[GroupId, Set[UserId]] = groupsById.mapValues(_ => Set.empty[UserId])
-    private val userDefaultGroups = usersById.mapValues(_ => Set.empty[GroupId])
+    private lazy val groupDefaultUsers: Map[GroupId, Set[UserId]] = groupsById.mapValues(_ => Set.empty[UserId])
+    private lazy val userDefaultGroups = usersById.mapValues(_ => Set.empty[GroupId])
     lazy val usersByGroupId: Map[GroupId, Set[UserId]] = groupDefaultUsers ++ directedAdjacencyList[GroupId, Membership, UserId](memberships, _.groupId, _.userId)
     lazy val groupsByUserId: Map[UserId, Set[GroupId]] = userDefaultGroups ++ directedAdjacencyList[UserId, Membership, GroupId](memberships, _.userId, _.groupId)
 
-    private val postDefaultDegree = postsById.mapValues(_ => 0)
+    private lazy val postDefaultDegree = postsById.mapValues(_ => 0)
     lazy val connectionDegree = postDefaultDegree ++
       degreeSequence[PostId, Connection](connections, _.targetId, _.sourceId)
     lazy val containmentDegree = postDefaultDegree ++
@@ -131,21 +132,27 @@ package object graph {
     // Even better:
     // lazy val involvedInContainmentCycle:Set[PostId] = all posts involved in a cycle
 
-    def transitiveChildren(postId: PostId) = postsById.isDefinedAt(postId) match {
-      case true =>
-        depthFirstSearch(postId, children) |> { children =>
-          if (involvedInContainmentCycle(postId)) children else children.drop(1)
-        } //TODO better?
-      case false => Seq.empty
+    def transitiveChildren(postId: PostId) = _transitiveChildren(postId)
+    private val _transitiveChildren: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
+      postsById.isDefinedAt(postId) match {
+        case true =>
+          depthFirstSearch(postId, children) |> { children =>
+            if (children.startInvolvedInCycle) children else children.drop(1)
+          } //TODO better?
+        case false => Seq.empty
+      }
     }
     //TODO: rename to transitiveParentIds:Iterable[PostId]
     // Also provide transitiveParents:Iterable[Post]?
-    def transitiveParents(postId: PostId): Iterable[PostId] = postsById.keySet.contains(postId) match {
-      case true =>
-        depthFirstSearch(postId, parents) |> { parents =>
-          if (involvedInContainmentCycle(postId)) parents else parents.drop(1)
-        } //TODO better?
-      case false => Seq.empty
+    def transitiveParents(postId: PostId) = _transitiveParents(postId)
+    private val _transitiveParents: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
+      postsById.keySet.contains(postId) match {
+        case true =>
+          depthFirstSearch(postId, parents) |> { parents =>
+            if (parents.startInvolvedInCycle) parents else parents.drop(1)
+          } //TODO better?
+        case false => Seq.empty
+      }
     }
 
     lazy val connectedContainmentComponents: List[Set[PostId]] = {
@@ -158,12 +165,13 @@ package object graph {
     def -(ownership: Ownership) = copy(ownerships = ownerships - ownership)
 
     def removePosts(ps: Iterable[PostId]) = {
-      val removedConnections = ps.flatMap(incidentConnections.get).flatten
-      val removedContainments = ps.flatMap(incidentContainments.get).flatten
+      val postIds = ps.toSet
+
       copy(
         postsById = postsById -- ps,
-        connections = connections -- removedConnections,
-        containments = containments -- removedContainments
+        connections = connections.filterNot{ c => postIds(c.sourceId) || postIds(c.targetId) },
+        containments = containments.filterNot{ c => postIds(c.parentId) || postIds(c.childId) },
+        ownerships = ownerships.filterNot { o => postIds(o.postId) }
       )
     }
     def removeConnections(cs: Iterable[Connection]) = copy(connections = connections -- cs)
@@ -201,22 +209,11 @@ package object graph {
     )
 
     lazy val consistent = {
-      val invalidConnections = connections
-        .filter { c => !postsById.isDefinedAt(c.sourceId) || !postsById.isDefinedAt(c.targetId) || c.sourceId == c.targetId }
-
-      val invalidContainments = containments
-        .filter { c => !postsById.isDefinedAt(c.parentId) || !postsById.isDefinedAt(c.childId) || c.parentId == c.childId }
-
-      val validOwnerships = ownerships
-        .filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }
-
-      val validMemberships = memberships
-        .filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
-
-      val g = this removeConnections invalidConnections removeContainments invalidContainments
-      g.copy(
-        ownerships = validOwnerships,
-        memberships = validMemberships
+      copy(
+        connections = connections.filter{ c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId },
+        containments = containments.filter{ c => postsById.isDefinedAt(c.parentId) && postsById.isDefinedAt(c.childId) && c.parentId != c.childId },
+        ownerships = ownerships.filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) },
+        memberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
       )
     }
 
