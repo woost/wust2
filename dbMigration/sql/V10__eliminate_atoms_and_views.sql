@@ -18,8 +18,8 @@ CREATE TABLE containment (
     PRIMARY KEY (parentid, childid)
 );
 
-INSERT INTO connection SELECT i.sourceid, i.targetid FROM _connects c JOIN _incidence i ON c.id = i.id;
-INSERT INTO containment SELECT i.sourceid, i.targetid FROM _contains c JOIN _incidence i ON c.id = i.id;
+INSERT INTO connection SELECT i.sourceid, i.targetid FROM _connects c JOIN _incidence i ON c.id = i.id ON CONFLICT DO NOTHING;
+INSERT INTO containment SELECT i.sourceid, i.targetid FROM _contains c JOIN _incidence i ON c.id = i.id ON CONFLICT DO NOTHING;
 
 DROP TABLE _connects;
 DROP TABLE _contains;
