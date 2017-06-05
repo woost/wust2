@@ -33,7 +33,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "override real user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.apply(Args.eq("torken"), Args.any()(Args.any())) returnsFuture Option(data.User(0, "torken", false, 0))
+      db.user.apply(Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(data.User(0, "torken", false, 0))
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -48,7 +48,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "activate implicit user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(13)))(Args.any()) returnsFuture Nil
-      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any()(Args.any())) returnsFuture Option(data.User(13, "torken", false, 0))
+      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(data.User(13, "torken", false, 0))
 
       val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
@@ -62,7 +62,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     }
 
     "create fails and forgets real user" in mockDb { db =>
-      db.user.apply(Args.eq("torken"), Args.any()(Args.any())) returnsFuture None
+      db.user.apply(Args.eq("torken"), Args.any())(Args.any()) returnsFuture None
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -77,7 +77,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "create fails and remembers implicit user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(13)))(Args.any()) returnsFuture Nil
-      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any()(Args.any())) returnsFuture None
+      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any())(Args.any()) returnsFuture None
 
       val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
