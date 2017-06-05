@@ -158,6 +158,7 @@ lazy val graph = crossProject
   .dependsOn(ids)
   .settings(
     libraryDependencies ++= (
+      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       Nil
     )
   )

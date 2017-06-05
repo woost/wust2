@@ -1,5 +1,6 @@
 package wust.backend
 
+import derive.derive
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._
@@ -10,11 +11,9 @@ import wust.graph._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-// TODO: crashes coverage @derive(copyF)
+@derive(copyF)
 case class State(auth: Option[JWTAuthentication], graph: Graph) {
   val user = auth.map(_.user)
-  def copyF(auth: Option[JWTAuthentication] => Option[JWTAuthentication] = identity, graph: Graph => Graph = identity) = copy(auth = auth(this.auth), graph = graph(this.graph))
-
   override def toString = s"State(${auth.map(_.user.name)}, posts# ${graph.posts.size})"
 }
 object State {

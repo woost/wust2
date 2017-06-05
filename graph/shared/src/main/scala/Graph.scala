@@ -1,5 +1,6 @@
 package wust
 
+import derive.derive
 import wust.ids._
 import wust.util.Pipe
 import wust.util.algorithm._
@@ -12,7 +13,7 @@ package object graph {
 
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)
-  //TODO: @derive(id => Equality)
+  @derive(id => Equality)
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
   case class Group(id: GroupId)
 

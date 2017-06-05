@@ -1,5 +1,6 @@
 package wust.backend.auth
 
+import derive.derive
 import pdi.jwt.{JwtCirce, JwtAlgorithm, JwtClaim}
 import wust.api._
 import wust.backend.config.Config
@@ -9,7 +10,7 @@ import scala.util.{Success, Failure}
 import java.time.Instant
 import java.time.Duration
 
-//@derive((user, expires) => toString)
+@derive((user, expires) => toString)
 case class JWTAuthentication private[auth] (user: User, expires: Long, token: Authentication.Token) {
   def toAuthentication = Authentication(user, token)
 }
