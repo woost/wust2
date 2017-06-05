@@ -60,21 +60,23 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn)
   }
 
-  def flush()(implicit ec: ExecutionContext) {
-    val changes = current.now
-    if (!changes.isEmpty) {
-      current() = GraphChanges.empty
-      isSending.updatef(_ + 1)
-      Client.api.changeGraph(changes).call().onComplete {
-        case Success(true) =>
-          isSending.updatef(_ - 1)
-          println(s"persisted graph changes: $changes")
-        case _ =>
-          isSending.updatef(_ - 1)
-          throw new Exception(s"ERROR while persisting graph changes: $changes") //TODO
-          // current() = changes + current.now
+  def flush()(implicit ec: ExecutionContext): Unit = mode.now match {
+    case SyncMode.Live =>
+      val changes = current.now
+      if (!changes.isEmpty) {
+        current() = GraphChanges.empty
+        isSending.updatef(_ + 1)
+        Client.api.changeGraph(changes).call().onComplete {
+          case Success(true) =>
+            isSending.updatef(_ - 1)
+            println(s"persisted graph changes: $changes")
+          case _ =>
+            isSending.updatef(_ - 1)
+            throw new Exception(s"ERROR while persisting graph changes: $changes") //TODO
+            // current() = changes + current.now
+        }
       }
-    }
+    case _ => println(s"caching changes: $changes")
   }
 
   //TODO: change only the display graph in global state by adding the changes to the rawgraph
@@ -100,13 +102,9 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     )
 
     current.updatef(_ + changes)
-
-    mode.now match {
-      case SyncMode.Live    => flush()
-      case SyncMode.Offline => println(s"caching changes: $changes")
-    }
-
     applyChangesToState(state.rawGraph.now)
+
+    flush()
   }
 }
 
