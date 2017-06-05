@@ -2,25 +2,25 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Event, document, console}
+import org.scalajs.dom.{ Event, document, console }
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import wust.frontend.{ DevOnly, GlobalState }
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.api._
 import wust.graph._
-import wust.frontend.{RichPostFactory, Client}
+import wust.frontend.{ RichPostFactory, Client }
 import wust.util.EventTracker.sendEvent
 import scala.util.Try
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{SyncStatus, SyncMode}
+import wust.frontend.{ SyncStatus, SyncMode }
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -160,6 +160,33 @@ object MainView {
       val attrs = if (page == state.viewPage()) Seq(selected) else Seq.empty
       option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
     }).render
+  }
+
+  def devPeek(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val show = Var(false)
+    val activeDisplay = display := show.map(if (_) "block" else "none")
+    val inactiveDisplay = display := show.map(if (_) "none" else "block")
+
+    val baseDiv = div(position.fixed, top := 100, right := 0, boxSizing.`border-box`,
+      padding := "5px", backgroundColor := "rgba(248,240,255,0.8)", border := "1px solid #ECD7FF")
+
+    div(
+      baseDiv(
+        inactiveDisplay,
+        "DevView",
+        css("transform") := "rotate(-90deg) translate(0,-100%)",
+        css("transform-origin") := "100% 0",
+        borderBottom := "none",
+        cursor.pointer,
+        onclick := { () => show() = true }
+      ),
+      baseDiv(
+        activeDisplay,
+        div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
+        DevView(state),
+        borderRight := "none"
+      )
+    )
   }
 
   def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -322,7 +349,7 @@ object MainView {
         AddPostForm(state)
       ),
 
-      DevOnly { DevView(state) }
+      DevOnly { devPeek(state) }
     )
   }
 }

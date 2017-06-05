@@ -24,13 +24,7 @@ object DevView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     span(
       div(
-        id := "devview",
-        position.fixed, right := 0, top := 50, display.flex, flexDirection.column,
-        padding := 2,
-        backgroundColor := "rgba(248,240,255,0.8)", border := "1px solid #ECD7FF",
-        div(position.absolute, right := 0, top := 0, "x", cursor := "pointer", onclick := { () =>
-          document.getElementById("devview").asInstanceOf[HTMLElement].style.display = "none"
-        }),
+        display.flex, flexDirection.column,
         Rx {
           val users = List("a", "b", "c", "d", "e", "f", "g")
           div(
@@ -60,8 +54,8 @@ object DevView {
           val posts = scala.util.Random.shuffle(state.displayGraph().graph.postIds.toSeq)
           def deletePost(ids: Seq[PostId]) { state.persistence.addChanges(delPosts = ids) }
           div(
-            button("delete random post", onclick := { () =>  deletePost(posts.take(1)) }),
-            button("10", onclick := { () =>  deletePost(posts.take(10)) }),
+            button("delete random post", onclick := { () => deletePost(posts.take(1)) }),
+            button("10", onclick := { () => deletePost(posts.take(10)) }),
             button("100", onclick := { () => deletePost(posts.take(100)) })
           ).render
         },
