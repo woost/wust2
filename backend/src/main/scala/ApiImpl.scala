@@ -25,10 +25,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         true <- db.containment(addContainments)
         true <- db.ownership(addOwnerships)
         true <- db.post.update(updatePosts)
-        _ <- db.post.delete(delPosts)
-        _ <- db.connection.delete(delConnections)
-        _ <- db.containment.delete(delContainments)
-        _ <- db.ownership.delete(delOwnerships)
+        true <- db.post.delete(delPosts)
+        true <- db.connection.delete(delConnections)
+        true <- db.containment.delete(delContainments)
+        true <- db.ownership.delete(delOwnerships)
       } yield true
     }//.recoverValue(false)
 
