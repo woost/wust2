@@ -15,8 +15,29 @@ case class FocusMode(postId: PostId) extends InteractionMode
 case class EditMode(postId: PostId) extends InteractionMode
 case object DefaultMode extends InteractionMode
 
+sealed trait SyncMode
+object SyncMode {
+  case object Live extends SyncMode
+  case object Offline extends SyncMode
+
+  val fromString: PartialFunction[String, SyncMode] = {
+    case "Live" => Live
+    case "Offline" => Offline
+  }
+
+  val default = Live
+  val all = Seq(Live, Offline)
+}
+
 class GlobalState(implicit ctx: Ctx.Owner) {
+  import Client.storage
+
   val persistence = new GraphPersistence(this)
+  val eventCache = new EventCache(this, onCachedEvents _)
+
+  val syncMode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
+  //TODO: why does triggerlater not work?
+  syncMode.foreach(storage.syncMode = _)
 
   val currentUser = RxVar[Option[User]](None)
 
@@ -102,26 +123,19 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val jsError = Var[Option[String]](None)
 
-  def onApiEvent(event: ApiEvent): Unit = if (persistence.mode.now == SyncMode.Live) {
+  def onCachedEvents(events: Seq[ApiEvent]) = {
+    val newGraph = events.foldLeft(rawGraph.now)(GraphUpdate.onEvent(_, _))
+    // take changes into account, when we get a new graph
+    persistence.applyChangesToState(newGraph)
+  }
+
+  def onEvent(event: ApiEvent) = {
     DevOnly {
       views.DevView.apiEvents.updatef(event :: _)
     }
 
-    val newGraph = GraphUpdate.onEvent(rawGraph.now, event)
-    // take changes into account, when we get a new graph
-    persistence.applyChangesToState(newGraph)
-
     event match {
-      // case NewPost(post) =>
-      //   Notifications.notify("New Post", Option(post.title),
-      //     onclick = { (notification) =>
-      //       notification.close()
-      //       window.focus()
-      //       focusedPostId() = Option(post.id)
-      //     })
-      // case NewConnection(connection) =>
-      //   if (focusedPostId.now contains connection.targetId)
-      //     focusedPostId() = Option(connection.sourceId)
+      case e: NewGraphChanges => eventCache.onEvent(event)
       case ReplaceGraph(newGraph) =>
         DevOnly {
           assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")

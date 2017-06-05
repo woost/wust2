@@ -127,7 +127,6 @@ object MainView {
       form(field, input(tpe := "submit", value := "invite"), onsubmit := { () =>
         val userName = field.value
         state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).call().foreach { success =>
-          println(success)
           field.value = ""
         })
 
@@ -251,8 +250,9 @@ object MainView {
   }
 
   def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-    val status = state.persistence.status()
-    val mode = state.persistence.mode()
+    val mode = state.syncMode()
+    val persistStatus = state.persistence.status()
+    val hasEvents = state.eventCache.hasEvents()
 
     div(
       select {
@@ -264,12 +264,14 @@ object MainView {
       }(
         onchange := { (e: Event) =>
           val value = e.target.asInstanceOf[HTMLSelectElement].value
-          SyncMode.fromString.lift(value).foreach { status =>
-            state.persistence.mode() = status
+          SyncMode.fromString.lift(value).foreach { mode =>
+            state.syncMode() = mode
           }
         }
       ),
-      status.toString
+      persistStatus.toString,
+      " | ",
+      if (hasEvents) "new-events" else "up-to-date"
     ).render
   }
 

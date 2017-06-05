@@ -30,7 +30,19 @@ object Main extends js.JSApp {
 
     val state = new GlobalState
 
-    Client.onEvent(state.onApiEvent)
+    def getNewGraph(selection: GraphSelection) = {
+      Client.api.getGraph(selection).call().foreach { newGraph =>
+        // take changes into account, when we get a new graph
+        state.persistence.applyChangesToState(newGraph)
+      }
+    }
+
+    Client.onEvent(state.onEvent)
+
+    // The first thing to be sent should be the auth-token
+    ClientCache.storedToken.foreach { token =>
+      Client.auth.loginToken(token).call()
+    }
 
     Client.onConnect { (location, isReconnect) =>
       println(s"Connected to server: $location")
@@ -39,36 +51,18 @@ object Main extends js.JSApp {
         ClientCache.currentAuth.foreach { auth =>
           Client.auth.loginToken(auth.token).call()
         }
-      }
 
+        getNewGraph(state.rawGraphSelection.now)
+      }
     }
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
 
-    // The first thing to be sent should be the auth-token
-    // TODO: make a DevOnly assertion for that
-    // or make webconnection.onConnect inject a first message?
-    ClientCache.storedToken.foreach { token =>
-      Client.auth.loginToken(token).call()
-    }
-
-    def getNewGraph(selection: GraphSelection) = {
-      Client.api.getGraph(selection).call().foreach { newGraph =>
-        // take changes into account, when we get a new graph
-        state.persistence.applyChangesToState(newGraph)
-      }
-    }
-
     state.rawGraphSelection.foreach(getNewGraph _)
-    state.persistence.mode.reduce { case (prev, curr) =>
-      curr match {
-        //we ignore all events in offline mode, get graph when switching back to live mode
-        case SyncMode.Live if curr != prev => getNewGraph(state.graphSelection.now); curr
-        case _ => curr
-      }
-    }
-    state.persistence.mode.foreach {
-      case SyncMode.Live => state.persistence.flush()
+    state.syncMode.foreach {
+      case SyncMode.Live =>
+        state.eventCache.flush()
+        state.persistence.flush()
       case _ =>
     }
 

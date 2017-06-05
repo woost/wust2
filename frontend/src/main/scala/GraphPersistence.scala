@@ -9,6 +9,7 @@ import autowire._
 import boopickle.Default._
 import scala.concurrent.ExecutionContext
 import scala.util.Success
+import derive.derive
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -18,42 +19,25 @@ object SyncStatus {
   case object Error extends SyncStatus
 }
 
-sealed trait SyncMode
-object SyncMode {
-  case object Live extends SyncMode
-  case object Offline extends SyncMode
-
-  val fromString: PartialFunction[String, SyncMode] = {
-    case "Live" => Live
-    case "Offline" => Offline
-  }
-
-  val default = Live
-  val all = Seq(Live, Offline)
-}
-
 class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
-  private val isSending = Var[Int](0)
-  private val hasError = Var[Boolean](false)
-  private val currChanges = Var[GraphChanges](storage.graphChanges.getOrElse(GraphChanges.empty))
+  @derive(copyF)
+  private case class KnownChanges(cached: GraphChanges, sent: GraphChanges) { val all = sent + cached }
 
-  val mode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
-  val changes: Rx[GraphChanges] = currChanges
+  private val hasError = Var(false)
+  private val changes = Var(KnownChanges(storage.graphChanges.getOrElse(GraphChanges.empty), GraphChanges.empty))
+
   val status: Rx[SyncStatus] = Rx {
-    if (isSending() > 0) SyncStatus.Sending
+    if (!changes().sent.isEmpty) SyncStatus.Sending
     else if (hasError()) SyncStatus.Error
-    else if (changes().isEmpty) SyncStatus.Done
-    else SyncStatus.Pending
+    else if (!changes().cached.isEmpty) SyncStatus.Pending
+    else SyncStatus.Done
   }
 
-  //TODO: why does triggerlater not work?
-  mode.foreach(storage.syncMode = _)
-  changes.foreach(storage.graphChanges = _)
+  changes.map(_.all).foreach(storage.graphChanges = _)
 
-  //TODO: where?
-  // should this also add selection containments?
+  //TODO: where to do this enrichment?
   private def enrichChanges(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 
@@ -68,30 +52,29 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn)
   }
 
-  def flush()(implicit ec: ExecutionContext): Unit = mode.now match {
-    case SyncMode.Live =>
-      val changes = currChanges.now
-      if (!changes.isEmpty) {
-        println(s"persisting changes: $changes")
-        isSending.updatef(_ + 1)
+  def flush()(implicit ec: ExecutionContext): Unit = {
+    val current = changes.now
+    val newChanges = current.cached
+    state.syncMode.now match {
+      case _ if newChanges.isEmpty => ()
+      case SyncMode.Live =>
+        changes() = current.copy(cached = GraphChanges.empty, sent = current.sent + newChanges)
+        println(s"persisting changes: $newChanges")
         hasError() = false
-        Client.api.changeGraph(changes).call().onComplete {
+        Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
-            isSending.updatef(_ - 1)
-            currChanges.updatef(changes - _)
+            changes.updatef(_.copyF(sent = _ - newChanges))
           case _ =>
-            isSending.updatef(_ - 1)
+            changes.updatef(_.copyF(cached = _ + newChanges, sent = _ - newChanges))
             hasError() = true
-            //TODO handle
         }
-      }
-    case _ => println(s"caching changes: $changes")
+      case _ => println(s"caching changes: $newChanges")
+    }
   }
 
   //TODO: change only the display graph in global state by adding the changes to the rawgraph
   def applyChangesToState(graph: Graph) {
-    val newGraph = graph applyChanges currChanges.now
-    state.rawGraph() = newGraph
+    state.rawGraph() = graph applyChanges changes.now.all
   }
 
   def addChanges(
@@ -105,14 +88,12 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     delContainments: Iterable[Containment] = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
   )(implicit ec: ExecutionContext): Unit = {
-
-    val changes = enrichChanges(
+    val newChanges = enrichChanges(
       GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
     )
 
-    currChanges.updatef(_ + changes)
+    changes.updatef(_.copyF(cached = _ + newChanges))
     applyChangesToState(state.rawGraph.now)
-
     flush()
   }
 }

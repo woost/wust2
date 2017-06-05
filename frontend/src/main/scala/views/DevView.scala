@@ -91,7 +91,7 @@ object DevView {
             def randomEvent = events(rInt(events.size))()
 
             def emitRandomEvent() {
-              randomEvent foreach state.onApiEvent
+              randomEvent foreach state.eventCache.onEvent
             }
             var interval: Option[SetIntervalHandle] = None
             val intervals = (
