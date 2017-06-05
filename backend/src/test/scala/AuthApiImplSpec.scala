@@ -94,7 +94,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   "login" - {
     "no user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.getUserAndDigest("torken")(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
+      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
 
       onAuthApi(State.initial, db = db)(_.login("torken", "sanh")).map {
         case (state, events, result) =>
@@ -106,7 +106,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "override real user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.getUserAndDigest("torken")(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
+      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
