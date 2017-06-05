@@ -1,6 +1,7 @@
 package wust
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 package object util {
   implicit class Pipe[T](val v: T) extends AnyVal {
@@ -14,6 +15,6 @@ package object util {
   }
 
   implicit class RichFuture[A](val fut: Future[A]) extends AnyVal {
-    def recoverValue(a: A)(implicit ec: ExecutionContext) = fut.recover { case _ => a }
+    def recoverValue(a: A)(implicit ec: ExecutionContext) = fut.recover { case NonFatal(_) => a }
   }
 }
