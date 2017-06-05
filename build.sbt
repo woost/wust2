@@ -15,9 +15,9 @@ lazy val commonSettings = Seq(
     Nil
   ),
 
-  addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
+  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M9" cross CrossVersion.full),
   libraryDependencies ++= (
-    "org.scalameta" %%% "scalameta" % scalametaVersion % "provided" ::
+    "org.scalameta" %%% "scalameta" % "1.8.0" % "provided" ::
     "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
     "com.outr" %%% "scribe" % "1.4.2" ::
     Nil
@@ -91,10 +91,8 @@ val circeVersion = "0.8.0"
 val specs2Version = "3.8.9"
 val scalaTestVersion = "3.0.3"
 val mockitoVersion = "2.7.22"
-val paradiseVersion = "3.0.0-M9"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
-val scalametaVersion = "1.8.0"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -198,7 +196,6 @@ lazy val backend = project
   .settings(Defaults.itSettings)
   .settings(configSettings)
   .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++=
       "org.typelevel" %% "cats" % "0.9.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
@@ -221,14 +218,12 @@ lazy val frontend = project
   .dependsOn(frameworkJS, apiJS, utilJS)
   .settings(commonSettings)
   .settings(
-    addCompilerPlugin("org.scalameta" % "paradise" % paradiseVersion cross CrossVersion.full),
     libraryDependencies ++= (
       ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll (ExclusionRule(artifact = "scalarx"), ExclusionRule(artifact = "scalatags"))) ::
       "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
       "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
-      "org.scalameta" %%% "scalameta" % scalametaVersion % "provided" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
