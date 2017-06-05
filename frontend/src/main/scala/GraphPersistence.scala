@@ -35,17 +35,13 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val status: Rx[SyncStatus] = Rx { SyncStatus(isSending() > 0, !current().isEmpty) }
   val changes: Rx[GraphChanges] = current
 
-  {
-    import scala.concurrent.ExecutionContext.Implicits.global //TODO
-    //TODO: why does triggerlater not work?
-    mode.foreach { (mode: SyncMode) =>
-      storage.syncMode = mode
-      if (mode == SyncMode.Live) flush()
-    }
+  //TODO: why does triggerlater not work?
+  mode.foreach { (mode: SyncMode) =>
+    storage.syncMode = mode
+  }
 
-    current.foreach { (changes: GraphChanges) =>
-      storage.graphChanges = changes
-    }
+  current.foreach { (changes: GraphChanges) =>
+    storage.graphChanges = changes
   }
 
   //TODO: where?
@@ -82,8 +78,8 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   //TODO: change only the display graph in global state by adding the changes to the rawgraph
-  def applyChangesToState() {
-    val newGraph = state.rawGraph.now applyChanges current.now
+  def applyChangesToState(graph: Graph) {
+    val newGraph = graph applyChanges current.now
     state.rawGraph() = newGraph
   }
 
@@ -110,7 +106,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       case SyncMode.Offline => println(s"caching changes: $changes")
     }
 
-    applyChangesToState()
+    applyChangesToState(state.rawGraph.now)
   }
 }
 

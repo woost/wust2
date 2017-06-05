@@ -54,9 +54,9 @@ object Main extends js.JSApp {
 
     def getNewGraph(selection: GraphSelection) = {
       Client.api.getGraph(selection).call().foreach { newGraph =>
-        state.rawGraph() = newGraph
         // take changes into account, when we get a new graph
-        state.persistence.applyChangesToState()
+        state.persistence.applyChangesToState(newGraph)
+        state.persistence.flush()
       }
     }
 

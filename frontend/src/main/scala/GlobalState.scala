@@ -106,7 +106,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     DevOnly {
       views.DevView.apiEvents.updatef(event :: _)
     }
-    rawGraph.updatef(GraphUpdate.onEvent(_, event))
+
+    val newGraph = GraphUpdate.onEvent(rawGraph.now, event)
+    // take changes into account, when we get a new graph
+    persistence.applyChangesToState(newGraph)
 
     event match {
       // case NewPost(post) =>
@@ -125,10 +128,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
           assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
         }
-
-        // take changes into account, when we get a new graph
-        persistence.applyChangesToState()
-
       case LoggedIn(auth) =>
         currentUser() = Option(auth.user)
         ClientCache.currentAuth = Option(auth)
