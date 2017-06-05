@@ -30,12 +30,18 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
+  implicit class IngoreDuplicateKey[T](q: Insert[T]) {
+    def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
+  }
+
+  //TODO insert connection and update post fails when one of the posts was deleted => we should do soft deletes
   object post {
+    private val insert = quote { (post: Post) => query[Post].insert(post).ignoreDuplicates } //TODO FIXME this should only DO NOTHING if id and title are equal to db row. now this will hide conflict on post ids!!
 
     def createPublic(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = createPublic(Set(post))
     def createPublic(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(post => query[Post].insert(post)))
-        .map(_.forall(_ == 1))
+      ctx.run(liftQuery(posts.toList).foreach(insert(_)))
+        .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
 
@@ -63,7 +69,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def delete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
     def delete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(postIds.toList).foreach(postId => query[Post].filter(_.id == postId).delete))
-        .map(_.forall(_ == 1))
+        .map(_.forall(_ <= 1))
     }
 
     def getGroups(postId: PostId)(implicit ec: ExecutionContext): Future[List[UserGroup]] = {
@@ -77,47 +83,53 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object ownership {
+    private val insert = quote { (ownership: Ownership) => query[Ownership].insert(ownership).ignoreDuplicates }
+
     def apply(ownership: Ownership)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(ownership))
     def apply(ownerships: Set[Ownership])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(ownerships.toList).foreach(ownership => query[Ownership].insert(ownership)))
-        .map(_.forall(_ == 1))
+      ctx.run(liftQuery(ownerships.toList).foreach(insert(_)))
+        .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
 
     def delete(ownership: Ownership)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(ownership))
     def delete(ownerships: Set[Ownership])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(ownerships.toList).foreach(ownership => query[Ownership].filter(c => c.groupId == ownership.groupId && c.postId == ownership.postId).delete))
-        .map(_.forall(_ == 1))
+        .map(_.forall(_ <= 1))
     }
   }
 
   object connection {
+    private val insert = quote { (connection: Connection) => query[Connection].insert(connection).ignoreDuplicates }
+
     def apply(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].insert(connection)))
-        .map(_.forall(_ == 1))
+      ctx.run(liftQuery(connections.toList).foreach(insert(_)))
+        .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
     def delete(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.targetId == connection.targetId).delete))
-        .map(_.forall(_ == 1))
+        .map(_.forall(_ <= 1))
     }
   }
 
   object containment {
+    private val insert = quote { (containment: Containment) => query[Containment].insert(containment).ignoreDuplicates }
+
     def apply(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(containment))
     def apply(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(containments.toList).foreach(containment => query[Containment].insert(containment)))
-        .map(_.forall(_ == 1))
+      ctx.run(liftQuery(containments.toList).foreach(insert(_)))
+        .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
 
     def delete(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(containment))
     def delete(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(containments.toList).foreach(containment => query[Containment].filter(c => c.parentId == containment.parentId && c.childId == containment.childId).delete))
-        .map(_.forall(_ == 1))
+        .map(_.forall(_ <= 1))
     }
   }
 
