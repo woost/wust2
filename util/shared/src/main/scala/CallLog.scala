@@ -12,7 +12,7 @@ object CallLog {
     val resultVarParam = Term.Param(List.empty, resultVar, None, Some(resultVar))
 
     // val logEntry = q"""$logger("entry: " + $identifier)"""
-    val syncLogExit = List(q"""$accTimeVar($identifier) += $timerVar.passed""" ,q"""$logger("call: " + $identifier + " " + ($accTimeVar($identifier) / 1000) + "us, " + ($accTimeVar.maxBy(_._2)))""")
+    val syncLogExit = List(q"$timerVar.stop()", q"""$accTimeVar($identifier) += $timerVar.totalPassedTime"""  ,q"""$logger("call: " + $identifier + " " + $timerVar.readMicros + "us, " + ($accTimeVar.toSeq.sortBy(-_._2).take(3).map{case (k,v) => k -> (v / 1000 + "us")}))""")
     val logExit = value.decltpe match {
       case Some(t"Future[$_]") => List(q"$resultVar.foreach(($resultVarParam) => {..$syncLogExit})")
       case _ => syncLogExit
@@ -45,7 +45,7 @@ object CallLog {
     val resultVarParam = Term.Param(List.empty, resultVar, None, Some(resultVar))
 
     // val logEntry = q"""$logger("entry: " + $identifier.+($paramTerm))"""
-    val syncLogExit = List(q"""$accTimeVar($identifier) += $timerVar.passed""" ,q"""$logger("call: " + $identifier.+($paramTerm) + " " + ($accTimeVar($identifier) / 1000) + "us, " + ($accTimeVar.maxBy(_._2)))""")
+    val syncLogExit = List(q"$timerVar.stop()", q"""$accTimeVar($identifier) += $timerVar.totalPassedTime""" ,q"""$logger("call: " + $identifier.+($paramTerm) + " " + $timerVar.readMicros + "us, " + ($accTimeVar.toSeq.sortBy(-_._2).take(3).map{case (k,v) => k -> (v / 1000 + "us")}))""")
     val logExit = method.decltpe match {
       case Some(t"Future[$_]") => List(q"$resultVar.foreach(($resultVarParam) => {..$syncLogExit})")
       case _ => syncLogExit
