@@ -25,55 +25,23 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     state.copyF(graph = GraphUpdate.onEvent(_, event))
   }
 
+  //TODO: we should not do database queries here, this is done in each connected client
+  //rather get meta information about posts in event once, then work with this information here.
   def triggeredEvents(state: State, event: ApiEvent): Future[Seq[ApiEvent]] = event match {
     case e @ (_: ReplaceGraph) => Future.successful(Seq(e))
-    case e @ (_: LoggedIn | LoggedOut) => Future.successful(Seq(e))
 
-    // case newMembership @ NewMembership(Membership(userId, groupId)) =>
-    //   def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
-    //   def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
-    //   if (currentUserInvolved) {
-    //     // query all other members of groupId
-    //     val groupFut = db.group.get(groupId)
-    //     val iterableFut = db.group.members(groupId)
-    //     val postsFut = db.group.getOwnedPosts(groupId)
-    //     for {
-    //       Some(group) <- groupFut
-    //       iterable <- iterableFut
-    //       posts <- postsFut
-    //     } yield (for {
-    //       (user, membership) <- iterable.toSeq
-    //       event <- Seq(NewUser(user), NewMembership(membership)) ++ posts.flatMap(post => Seq(NewPost(post), NewOwnership(Ownership(post.id, membership.groupId))))
-    //     } yield event) :+ NewGroup(group)
-    //   } else if (ownGroupInvolved) {
-    //     for {
-    //       Some(user) <- db.user.get(userId)
-    //     } yield Seq(NewUser(user), newMembership)
-    //     // only forward new membership and user
-    //   } else Future.successful(Nil)
-    // case newPost @ NewPost(post) =>
-    //   for {
-    //     groups <- db.post.getGroups(post.id)
-    //   } yield {
-    //     if (groups.nonEmpty) {
-    //       for {
-    //         group <- (groups.map(forClient).toSet intersect state.graph.groups.toSet).toSeq
-    //         event <- Seq(NewOwnership(Ownership(post.id, group.id)), newPost)
-    //       } yield event
-    //     } else Seq(newPost) // post is public
-    //   }
-    // case updatedPost @ UpdatedPost(post) =>
-    //   for {
-    //     groups <- db.post.getGroups(post.id)
-    //   } yield if (groups.nonEmpty) {
-    //     for {
-    //       group <- (groups.map(forClient).toSet intersect state.graph.groups.toSet).toSeq
-    //       event <- Seq(updatedPost)
-    //     } yield event
-    //   } else Seq(updatedPost) // post is public
-    case ev @ NewGraphChanges(changes) =>
-      //TODO rights s.o.
-      Future.successful(Seq(ev))
+    case e @ LoggedIn(auth) if state.auth.map(_.toAuthentication) == Some(auth) => Future.successful(Seq(e))
+    case e @ LoggedOut => Future.successful(Seq(e))
+
+    case NewMembership(membership) =>
+      membershipEventsForState(state, membership)
+
+    case NewGraphChanges(changes) =>
+      visibleChangesForState(state, changes).map { visibleChanges =>
+        if (visibleChanges.isEmpty) Seq.empty
+        else Seq(NewGraphChanges(visibleChanges))
+      }
+
     case other =>
       println(s"####### ignored Event: $other")
       Future.successful(Nil)
@@ -98,4 +66,57 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
       case true  => Seq.empty
       case false => stateEvents(state)
     }
+
+  private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent]] = {
+    import membership._
+
+    def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
+    def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
+    if (currentUserInvolved) {
+      // query all other members of groupId
+      val groupFut = db.group.get(groupId)
+      val iterableFut = db.group.members(groupId)
+      val postsFut = db.group.getOwnedPosts(groupId)
+      for {
+        Some(group) <- groupFut
+        iterable <- iterableFut
+        posts <- postsFut
+      } yield (for {
+        (user, membership) <- iterable.toSeq
+        addPosts = posts.map(forClient).toSet
+        addOwnerships = posts.map(post => Ownership(post.id, membership.groupId)).toSet
+        changes = GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)
+        event <- Seq(NewUser(user), NewMembership(membership), NewGraphChanges(changes))
+      } yield event) :+ NewGroup(group)
+    } else if (ownGroupInvolved) {
+      for {
+        Some(user) <- db.user.get(userId)
+      } yield Seq(NewUser(user), NewMembership(membership))
+      // only forward new membership and user
+    } else Future.successful(Nil)
+  }
+
+  private def visibleChangesForState(state: State, changes: GraphChanges): Future[GraphChanges] = {
+    import changes.consistent._
+
+    val postIds = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
+    if (postIds.isEmpty) Future.successful(changes)
+    else {
+      val ownGroups = state.graph.groups.toSet
+      db.ctx.transaction { implicit ec =>
+        //TODO: we know the groups for addPosts already => addOwnerships
+        //TODO dont query for each post? needs to be chained
+        val disallowedPostIds = postIds.foldLeft(Future.successful(List.empty[PostId])) { (disallowedIds, postId) =>
+          disallowedIds.flatMap { disallowedIds =>
+            db.post.getGroups(postId).map { groups =>
+              if (groups.isEmpty || (groups.map(forClient).toSet intersect ownGroups).nonEmpty) disallowedIds
+              else postId :: disallowedIds
+            }
+          }
+        }.map(_.toSet)
+
+        disallowedPostIds.map(changes.consistent.withoutPosts)
+      }
+    }
+  }
 }
