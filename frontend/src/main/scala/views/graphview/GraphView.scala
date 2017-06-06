@@ -138,7 +138,9 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   }
 
   private def initEvents(): Unit = {
-    d3State.zoom.on("zoom", zoomed _)
+    d3State.zoom
+      .on("zoom", zoomed _)
+      .clickDistance(5) // interpret short drags as clicks
     svg.call(d3State.zoom)
 
     svg.on("click", () => focusedPostId() = None)
