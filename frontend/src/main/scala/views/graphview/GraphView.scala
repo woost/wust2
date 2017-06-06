@@ -45,7 +45,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   // order is important
   import KeyImplicits._
   val container = d3.select(element)
-  val focusedParentsHeader = container.append(() => div(textAlign.center, marginTop := 70, fontSize := "200%", position.absolute, width := "100%").render)
+  val focusedParentsHeader = container.append(() => div(textAlign.center, marginTop := 10, fontSize := "200%", position.absolute, width := "100%").render)
   val svg = container.append("svg")
   val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
   val collapsedContainmentHullSelection = SelectData.rx(CollapsedContainmentHullSelection, rxCollapsedContainmentCluster)(svg.append("g"))
