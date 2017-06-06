@@ -43,7 +43,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val events = Future.sequence(stateInterpreter.stateEvents(state))
+      val events = stateInterpreter.stateEvents(state)
 
       events.map { events =>
         events must contain theSameElementsAs Seq(LoggedIn(auth.toAuthentication), ReplaceGraph(Graph.empty))
@@ -55,7 +55,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = None, graph = Graph(groups = List(Group(1), Group(2))))
-      val events = Future.sequence(stateInterpreter.stateEvents(state))
+      val events = stateInterpreter.stateEvents(state)
 
       events.map { events =>
         events must contain theSameElementsAs Seq(LoggedOut, ReplaceGraph(Graph.empty))
@@ -67,7 +67,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
 
       val state = State(auth = None, graph = Graph.empty)
-      val events = Future.sequence(stateInterpreter.stateEvents(state))
+      val events = stateInterpreter.stateEvents(state)
 
       events.map { events =>
         events must contain theSameElementsAs Seq(LoggedOut, ReplaceGraph(Graph.empty))
@@ -82,7 +82,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       val stateInterpreter = new StateInterpreter(db = db)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val events = Future.sequence(stateInterpreter.stateChangeEvents(state, state))
+      val events = stateInterpreter.stateChangeEvents(state, state)
 
       events.map { events =>
         events.size mustEqual 0
@@ -95,8 +95,8 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
 
       val state = State(auth = Some(auth), graph = Graph(groups = List(Group(1), Group(2))))
       val newState = state.copy(auth = None)
-      val events = Future.sequence(stateInterpreter.stateChangeEvents(state, newState))
-      val expected = Future.sequence(stateInterpreter.stateEvents(newState))
+      val events = stateInterpreter.stateChangeEvents(state, newState)
+      val expected = stateInterpreter.stateEvents(newState)
 
       for {
         events <- events
