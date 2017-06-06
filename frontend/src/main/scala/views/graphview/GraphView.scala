@@ -37,7 +37,7 @@ object GraphView {
 class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
-  val postDrag = new PostDrag(graphState, d3State, onPostDrag)
+  val postDrag = new PostDrag(graphState, d3State, onPostDrag, onPostDragEnd)
   import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
@@ -131,6 +131,10 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
   private def onPostDrag() {
     draggingPostSelection.draw()
+  }
+
+  private def onPostDragEnd() {
+    draw()
   }
 
   private def initEvents(): Unit = {

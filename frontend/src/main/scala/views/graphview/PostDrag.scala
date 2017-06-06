@@ -38,9 +38,9 @@ object DraggingPostSelection extends DataSelection[SimPost] {
   }
 }
 
-class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Unit = () => ())(implicit ec: ExecutionContext) {
+class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit = () => (), onPostDragEnd: () => Unit = () => ())(implicit ec: ExecutionContext) {
   import graphState.state.persistence
-  import d3State.{simulation, transform}
+  import d3State.{ simulation, transform }
 
   val dropActions = js.Array(
     DropAction("connect", { (dropped: SimPost, target: SimPost) => persistence.addChanges(addConnections = Set(Connection(dropped.id, target.id))) }),
@@ -91,7 +91,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
     val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
 
-    p.dragClosest.foreach(_.isClosest = false)
+    p.dragClosest.foreach(_.isClosest= false)
     closest match {
       case Some(target) if target.id != p.id =>
         val dir = draggingPost.pos.get - target.pos.get
@@ -103,7 +103,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     updateClosestPosts()
 
     draggingPost.pos = transformedEventPos
-    onPostDragged()
+    onPostDrag()
   }
 
   def postDragEnded(dragging: SimPost) {
@@ -129,7 +129,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDragged: () => Un
     dragging.draggingPost = None
     updateDraggingPosts()
 
-    simulation.alpha(1).restart()
+    onPostDragEnd()
   }
 
 }
