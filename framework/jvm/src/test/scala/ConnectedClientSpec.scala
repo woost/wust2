@@ -47,7 +47,7 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
 
-  override def publishEvent(event: String): Unit = { eventActor ! event }
+  override def publishEvent(sender: EventSender[String], event: String): Unit = { eventActor ! event }
 
   override def triggeredEvents(event: String, state: Option[String]) = event match {
     case "FORBIDDEN" => Future.successful(Seq.empty)

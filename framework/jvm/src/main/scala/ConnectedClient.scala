@@ -32,7 +32,7 @@ trait RequestHandler[Event, Error, State] {
 
   // a request can return events, here you can distribute the event to all connected clients.
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
-  def publishEvent(event: Event): Unit
+  def publishEvent(sender: EventSender[Event], event: Event): Unit
 
   // events can trigger further events to provide
   // missing data for the client. Events have to be explicitly forwarded.
@@ -87,9 +87,9 @@ class ConnectedClient[Event, Error, State](
     def withState(state: Future[State]): Receive = {
       case Ping() => outgoing ! Pong()
       case CallRequest(seqId, path, args) =>
-        val newState = state.map(validate)
+        val validatedState = state.map(validate)
         val timer = StopWatch.started
-        val holder = new StateHolder[State, Event](newState)
+        val holder = new StateHolder[State, Event](validatedState)
         onRequest(holder, Request(path, args)) match {
           case Right(response) =>
             response
@@ -98,30 +98,44 @@ class ConnectedClient[Event, Error, State](
               .sideEffect(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-            holder.events.foreach(_.foreach(publishEvent))
-            switchState(state, holder.state)
+            holder.events.foreach(_.foreach { event =>
+              // sideeffect: publish event to others
+              publishEvent(sender, event)
+            })
+
+            val newState = applyEventsOnState(holder.events, holder.state)
+            switchState(state, newState)
+
           case Left(error) =>
             outgoing ! CallResponse(seqId, Left(error))
         }
 
+      //TODO: send notification with multiple events
       case Notification(event) =>
-        val newState = for {
-          unvalidatedState <- state
-          validatedState = validate(unvalidatedState)
+        val validatedState = state.map(validate)
+        val events = for {
+          validatedState <- validatedState
           events <- triggeredEvents(event, validatedState)
-        } yield {
-          events.foldLeft(validatedState) { (state, event) =>
-            // sideeffect: send actual event to client
-            outgoing ! Notification(event)
-            onEvent(event, state)
-          }
-        }
+        } yield events
 
+        events.foreach(_.foreach { event =>
+          // sideeffect: send actual event to client
+          outgoing ! Notification(event)
+        })
+
+        val newState = applyEventsOnState(events, validatedState)
         switchState(state, newState)
 
       case Stop =>
         state.foreach(onClientDisconnect(sender, _))
         context.stop(self)
+    }
+
+    def applyEventsOnState(events: Future[Seq[Event]], state: Future[State]): Future[State] = for {
+      state <- state
+      events <- events
+    } yield events.foldLeft(state) { (state, event) =>
+      onEvent(event, state)
     }
 
     def switchState(state: Future[State], newState: Future[State]) {

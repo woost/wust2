@@ -15,8 +15,9 @@ class EventDistributor {
     subscribers -= sender
   }
 
-  def publish(event: ApiEvent) {
+  def publish(sender: Option[EventSender[ApiEvent]], event: ApiEvent) {
     scribe.info(s"--> Backend Event: $event --> ${subscribers.size} connectedClients")
-    subscribers.foreach(_.send(event))
+    val receivers = subscribers -- sender
+    receivers.foreach(_.send(event))
   }
 }

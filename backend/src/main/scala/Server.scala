@@ -12,8 +12,10 @@ import wust.backend.config.Config
 import wust.db.Db
 import wust.framework._
 import wust.framework.state.StateHolder
+import wust.util.{ Pipe, RichFuture }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
 class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]])(implicit ec: ExecutionContext) extends RequestHandler[ApiEvent, ApiError, State] {
@@ -36,7 +38,14 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       InternalServerError
   }
 
-  override def publishEvent(event: ApiEvent) = distributor.publish(event)
+  override def publishEvent(sender: EventSender[ApiEvent], event: ApiEvent) = {
+    // do not send graphchange events to origin of event
+    val origin = event match {
+      case e @ NewGraphChanges(_) => Some(sender)
+      case _                      => None
+    }
+    distributor.publish(origin, event)
+  }
 
   override def triggeredEvents(event: ApiEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)
 
