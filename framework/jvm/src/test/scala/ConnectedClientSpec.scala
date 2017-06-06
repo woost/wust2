@@ -47,7 +47,7 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
 
-  override def publishEvent(sender: EventSender[String], event: String): Unit = { eventActor ! event }
+  override def publishEvent(sender: EventSender[String], event: String): Unit = { eventActor ! event + "-published" }
 
   override def triggeredEvents(event: String, state: Option[String]) = event match {
     case "FORBIDDEN" => Future.successful(Seq.empty)
@@ -171,7 +171,8 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       val pickledResponse = AutowireServer.write[Boolean](true)
       expectMsgAllOf(
         10 seconds,
-        "event",
+        "event-published",
+        Notification("event"),
         CallResponse(2, Right(pickledResponse)))
     }
   }
