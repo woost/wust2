@@ -65,7 +65,7 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
     clients -= sender
     ()
   }
-  override def onClientInteraction(sender: EventSender[String], prevState: Option[String], state: Option[String]) = ()
+  override def onClientInteraction(prevState: Option[String], state: Option[String]) = Future.successful(Seq.empty)
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers {

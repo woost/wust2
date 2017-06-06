@@ -54,7 +54,8 @@ trait RequestHandler[Event, Error, State] {
   // whenever there was an interaction with the client, the state might have changed.
   // either the stateholder recorded a new state during a request or the onEvent method was called.
   // this does not mean, that the states are different; as we do not make assumption about state equality.
-  def onClientInteraction(sender: EventSender[Event], prevState: State, state: State): Unit
+  // here you can return events to be sent to the client.
+  def onClientInteraction(prevState: State, state: State): Future[Seq[Event]]
 }
 
 class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) {
@@ -103,14 +104,12 @@ class ConnectedClient[Event, Error, State](
               publishEvent(sender, event)
             })
 
-            val newState = applyEventsOnState(holder.events, holder.state)
-            switchState(state, newState)
+            switchState(state, holder.state, holder.events)
 
           case Left(error) =>
             outgoing ! CallResponse(seqId, Left(error))
         }
 
-      //TODO: send notification with multiple events
       case Notification(event) =>
         val validatedState = state.map(validate)
         val events = for {
@@ -118,13 +117,7 @@ class ConnectedClient[Event, Error, State](
           events <- triggeredEvents(event, validatedState)
         } yield events
 
-        events.foreach(_.foreach { event =>
-          // sideeffect: send actual event to client
-          outgoing ! Notification(event)
-        })
-
-        val newState = applyEventsOnState(events, validatedState)
-        switchState(state, newState)
+        switchState(state, validatedState, events)
 
       case Stop =>
         state.foreach(onClientDisconnect(sender, _))
@@ -138,13 +131,22 @@ class ConnectedClient[Event, Error, State](
       onEvent(event, state)
     }
 
-    def switchState(state: Future[State], newState: Future[State]) {
-      for {
+    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]]) {
+      val events = for {
         state <- state
         newState <- newState
-      } onClientInteraction(sender, state, newState)
+        initialEvents <- initialEvents
+        additionalEvents <- onClientInteraction(state, newState)
+      } yield initialEvents ++ additionalEvents
 
-      context.become(withState(newState))
+      //TODO: send notification with multiple events
+      events.foreach(_.foreach { event =>
+        // sideeffect: send actual event to client
+        outgoing ! Notification(event)
+      })
+
+      val switchState = applyEventsOnState(events, newState)
+      context.become(withState(switchState))
     }
 
     val state = initialState

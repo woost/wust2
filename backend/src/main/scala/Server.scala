@@ -62,10 +62,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     distributor.unsubscribe(sender)
   }
 
-  override def onClientInteraction(sender: EventSender[ApiEvent], state: State, newState: State) = {
-    val events = stateChangeEvents(state, newState)
-    events.foreach(_.foreach(sender.send))
-  }
+  override def onClientInteraction(state: State, newState: State) = stateChangeEvents(state, newState)
 }
 
 object Server {
