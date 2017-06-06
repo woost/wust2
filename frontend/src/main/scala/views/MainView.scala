@@ -2,25 +2,25 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{ Event, document, console }
+import org.scalajs.dom.{Event, document, console}
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import wust.api._
 import wust.graph._
-import wust.frontend.{ RichPostFactory, Client }
+import wust.frontend.{RichPostFactory, Client}
 import wust.util.EventTracker.sendEvent
 import scala.util.Try
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{ SyncStatus, SyncMode }
+import wust.frontend.{SyncStatus, SyncMode}
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -168,7 +168,7 @@ object MainView {
     val inactiveDisplay = display := show.map(if (_) "none" else "block")
 
     val baseDiv = div(position.fixed, top := 100, right := 0, boxSizing.`border-box`,
-      padding := "5px", backgroundColor := "rgba(248,240,255,0.8)", border := "1px solid #ECD7FF")
+      padding := "5px", backgroundColor := "rgba(248,240,255,0.95)", border := "1px solid #ECD7FF")
 
     div(
       baseDiv(
@@ -214,7 +214,7 @@ object MainView {
       div(
         inactiveDisplay,
         position.fixed, bottom := 250, right := 0, boxSizing.`border-box`,
-        padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderBottom := "none",
+        padding := "5px", background := "#F8F8F8", border := "1px solid #DDD", borderBottom := "none",
         "Give short feedback",
         css("transform") := "rotate(-90deg) translate(0,-100%)",
         css("transform-origin") := "100% 0",
@@ -224,7 +224,7 @@ object MainView {
       div(
         activeDisplay,
         position.fixed, bottom := 150, right := 0, boxSizing.`border-box`,
-        padding := "5px", background := "rgba(247,247,247,0.8)", border := "1px solid #DDD", borderRight := "none",
+        padding := "5px", background := "#F8F8F8", border := "1px solid #DDD", borderRight := "none",
         div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
         div("Feedback"),
         form(
@@ -260,7 +260,7 @@ object MainView {
       div(
         activeDisplay,
         position.fixed, top := 5, left := 5, boxSizing.`border-box`,
-        padding := "15px", background := "rgba(247,247,247,0.9)", border := "1px solid #DDD",
+        padding := "15px", background := "#F8F8F8", border := "1px solid #DDD",
         div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
         h4("Invite participants to group"),
         groupSelector(state),
@@ -302,53 +302,66 @@ object MainView {
     ).render
   }
 
+  def topBar(state: GlobalState, viewPages: List[(ViewPage, Modifier)])(implicit ctx: Ctx.Owner) = {
+    div(
+      padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
+      display.flex, alignItems.center, justifyContent.spaceBetween,
+
+      div(
+        display.flex, alignItems.center, justifyContent.flexStart,
+
+        upButton(state),
+        focusedParents(state),
+        groupSelector(state),
+        invitePopup(state),
+        newGroupButton(state)
+      ),
+
+      if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
+      else div(),
+
+      syncStatus(state),
+
+      div(
+        display.flex, alignItems.center, justifyContent.flexEnd,
+        UserView.topBarUserStatus(state)
+      )
+    )
+  }
+
+  def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    div(
+      padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD",
+      AddPostForm(state)
+    )
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val router = new ViewPageRouter(state.viewPage)
 
-    val viewPages =
+    val viewPages = (
       ViewPage.Graph -> GraphView(state, disableSimulation) ::
-        ViewPage.Tree -> TreeView(state) ::
-        Nil
+      ViewPage.Tree -> TreeView(state) ::
+      Nil
+    )
 
+    // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
+    // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
     div(
-      fontFamily := "sans-serif",
+      width := "100%",
+      height := "100%",
 
-      div(
-        position.fixed, width := "100%", top := 0, left := 0, boxSizing.`border-box`,
-        padding := "5px", background := "rgba(247,247,247,0.8)", borderBottom := "1px solid #DDD",
-        display.flex, alignItems.center, justifyContent.spaceBetween,
+      display.flex,
+      flexDirection.column,
+      justifyContent.flexStart,
+      alignItems.stretch,
+      alignContent.stretch,
 
-        div(
-          display.flex, alignItems.center, justifyContent.flexStart,
-
-          upButton(state),
-          focusedParents(state),
-          groupSelector(state),
-          invitePopup(state),
-          newGroupButton(state)
-        ),
-
-        if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
-        else div(),
-
-        syncStatus(state),
-
-        div(
-          display.flex, alignItems.center, justifyContent.flexEnd,
-          UserView.topBarUserStatus(state)
-        )
-      ),
-
-      router.map(viewPages),
+      topBar(state, viewPages)(ctx)(minHeight := "min-content"),
+      router.map(viewPages)(flex := "1", overflow.auto),
+      bottomBar (state),
 
       feedbackForm(state),
-
-      div(
-        position.fixed, width := "100%", bottom := 0, left := 0, boxSizing.`border-box`,
-        padding := "5px", background := "rgba(247,247,247,0.8)", borderTop := "1px solid #DDD",
-        AddPostForm(state)
-      ),
-
       DevOnly { devPeek(state) }
     )
   }

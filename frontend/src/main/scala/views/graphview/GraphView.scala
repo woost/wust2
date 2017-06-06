@@ -26,7 +26,11 @@ object KeyImplicits {
 object GraphView {
   //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) = {
-    div(div().render sideEffect (new GraphView(state, _, disableSimulation)))
+    div(
+      height := "100%",
+
+      div().render sideEffect (new GraphView(state, _, disableSimulation))
+    )
   }
 }
 
@@ -163,10 +167,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
   private def initContainerDimensionsAndPositions() {
     container
-      .style("position", "absolute")
-      .style("top", "0")
-      .style("left", "0")
-      .style("z-index", "-1")
+      .style("position", "relative")
       .style("width", "100%")
       .style("height", "100%")
       .style("overflow", "hidden")

@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import wust.frontend.{GlobalState,Client}
+import wust.frontend.{GlobalState, Client}
 import wust.frontend.Color._
 import wust.graph._
 import wust.ids._
@@ -16,7 +16,6 @@ object Views {
     post.title,
     maxWidth := "10em",
     wordWrap := "break-word",
-    margin := 3,
     padding := "3px 5px",
     border := "1px solid #444",
     borderRadius := "3px"
