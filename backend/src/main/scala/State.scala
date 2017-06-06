@@ -81,8 +81,8 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
           (user, membership) <- iterable.toSeq
           addPosts = posts.map(forClient).toSet
           addOwnerships = posts.map(post => Ownership(post.id, membership.groupId)).toSet
-          changes = GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)
-          event <- Seq(NewUser(user), NewMembership(membership), NewGraphChanges(changes))
+          changes = Some(GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)).filterNot(_.isEmpty)
+          event <- Seq(NewUser(user), NewMembership(membership)) ++ changes.map(NewGraphChanges(_))
         } yield event) :+ NewGroup(group)
       } else if (ownGroupInvolved) {
         for {
