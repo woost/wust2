@@ -11,8 +11,8 @@ class StateHolder[State, Event](initialState: Future[State]) {
   private var actualState = initialState
   private var actualEvents = Future.successful(Seq.empty[Event])
   // TODO: private[framework] def state = actualState
-  private[framework] def state = actualState
-  private[framework] def events = actualEvents
+  def state = actualState
+  def events = actualEvents
 
   private def returnResult[T](response: Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = {
     //sideeffect: set events
