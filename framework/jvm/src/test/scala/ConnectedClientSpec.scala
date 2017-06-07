@@ -47,17 +47,17 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
 
-  override def publishEvent(sender: EventSender[String], event: String): Unit = { eventActor ! event + "-published" }
+  override def publishEvents(sender: EventSender[String], events: Seq[String]): Unit = { eventActor ! events.mkString("") + "-published" }
 
-  override def triggeredEvents(event: String, state: Option[String]) = event match {
-    case "FORBIDDEN" => Future.successful(Seq.empty)
-    case other => Future.successful(Seq(other))
-  }
+  override def transformIncomingEvents(events: Seq[String], state: Option[String]) = Future.successful(events.map {
+    case "FORBIDDEN" => Seq.empty
+    case other => Seq(other)
+  }).map(_.flatten)
 
-  override def onEvent(event: String, state: Option[String]) = state
+  override def applyEventsToState(events: Seq[String], state: Option[String]) = state
 
   override def onClientConnect(sender: EventSender[String], state: Option[String]) = {
-    sender.send("started")
+    sender.send(Seq("started"))
     clients += sender
     ()
   }
@@ -76,7 +76,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   def newActor: ActorRef = TestActorRef(new ConnectedClient(messages, requestHandler))
   def connectActor(actor: ActorRef, shouldConnect: Boolean = true) = {
     actor ! ConnectedClient.Connect(self)
-    if (shouldConnect) expectMsg(Notification("started"))
+    if (shouldConnect) expectMsg(Notification(List("started")))
     else expectNoMsg
   }
   def connectedActor: ActorRef = {
@@ -172,7 +172,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsgAllOf(
         10 seconds,
         "event-published",
-        Notification("event"),
+        Notification(List("event")),
         CallResponse(2, Right(pickledResponse)))
     }
   }
@@ -181,12 +181,12 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
     val actor = connectedActor
 
     "allowed event" in {
-      actor ! Notification("something nice")
-      expectMsg(Notification("something nice"))
+      actor ! Notification(List("something nice"))
+      expectMsg(Notification(List("something nice")))
     }
 
     "forbidden event" in {
-      actor ! Notification("FORBIDDEN")
+      actor ! Notification(List("FORBIDDEN"))
       expectNoMsg
     }
   }

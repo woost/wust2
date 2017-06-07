@@ -33,7 +33,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   import Client.storage
 
   val persistence = new GraphPersistence(this)
-  val eventCache = new EventCache(this, applyEvents _)
+  val eventCache = new EventCache(this)
 
   val syncMode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
   //TODO: why does triggerlater not work?
@@ -123,25 +123,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val jsError = Var[Option[String]](None)
 
-  private def applyEvents(events: Seq[ApiEvent]) = {
-    val newGraph = events.foldLeft(rawGraph.now)(GraphUpdate.onEvent(_, _))
-    // take changes into account, when we get a new graph
-    persistence.applyChangesToState(newGraph)
-  }
-
-  def onEvent(event: ApiEvent) = {
-    DevOnly {
-      views.DevView.apiEvents.updatef(event :: _)
-      event match {
-        case ReplaceGraph(newGraph) =>
-          assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
-          assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
-          assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
-        case _ =>
-      }
-    }
-
-    event match {
+  def applyEvents(events: Seq[ApiEvent]) = {
+    events foreach {
       case LoggedIn(auth) =>
         currentUser() = Option(auth.user)
         ClientCache.currentAuth = Option(auth)
@@ -150,9 +133,32 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       case LoggedOut =>
         currentUser() = None
         ClientCache.currentAuth = None
-
-      case e: NewGraphChanges => eventCache.onEvent(event)
-      case e => applyEvents(Seq(e))
+      case _ =>
     }
+
+    val newGraph = events.foldLeft(rawGraph.now)(GraphUpdate.onEvent(_, _))
+    // take changes into account, when we get a new graph
+    persistence.applyChangesToState(newGraph)
+  }
+
+  def onEvents(events: Seq[ApiEvent]) = {
+    DevOnly {
+      views.DevView.apiEvents.updatef(events.toList ++ _)
+      events foreach {
+        case ReplaceGraph(newGraph) =>
+          assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
+          assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
+          assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
+        case _ =>
+      }
+    }
+
+    val (graphChangeEvents, otherEvents) = events partition {
+      case NewGraphChanges(_) => true
+      case _ => false
+    }
+
+    eventCache.addEvents(graphChangeEvents)
+    applyEvents(otherEvents)
   }
 }

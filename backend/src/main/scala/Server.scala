@@ -38,18 +38,13 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       InternalServerError
   }
 
-  override def publishEvent(sender: EventSender[ApiEvent], event: ApiEvent) = {
-    // do not send graphchange events to origin of event
-    val origin = event match {
-      case e @ NewGraphChanges(_) => Some(sender)
-      case _                      => None
-    }
-    distributor.publish(origin, event)
-  }
+  override def publishEvents(sender: EventSender[ApiEvent], events: Seq[ApiEvent]) = distributor.publish(sender, events)
 
-  override def triggeredEvents(event: ApiEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)
+  override def transformIncomingEvents(events: Seq[ApiEvent], state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, events)
 
-  override def onEvent(event: ApiEvent, state: State) = stateInterpreter.onEvent(state, event)
+  override def applyEventsToState(events: Seq[ApiEvent], state: State) = stateInterpreter.applyEventsToState(state, events)
+
+  override def onClientInteraction(state: State, newState: State) = stateChangeEvents(state, newState)
 
   override def onClientConnect(sender: EventSender[ApiEvent], state: State) = {
     scribe.info(s"client started: $state")
@@ -61,8 +56,6 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     scribe.info(s"client stopped: $state")
     distributor.unsubscribe(sender)
   }
-
-  override def onClientInteraction(state: State, newState: State) = stateChangeEvents(state, newState)
 }
 
 object Server {

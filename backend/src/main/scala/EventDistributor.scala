@@ -15,9 +15,17 @@ class EventDistributor {
     subscribers -= sender
   }
 
-  def publish(sender: Option[EventSender[ApiEvent]], event: ApiEvent) {
-    scribe.info(s"--> Backend Event: $event --> ${subscribers.size} connectedClients")
-    val receivers = subscribers -- sender
-    receivers.foreach(_.send(event))
+  def publish(sender: EventSender[ApiEvent], events: Seq[ApiEvent]) {
+    scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
+
+    // do not send graphchange events to origin of event
+    val nonGraphEvents = events.filter {
+      case NewGraphChanges(_) => false
+      case _ => true
+    }
+
+    val receivers = subscribers - sender
+    sender.send(nonGraphEvents)
+    receivers.foreach(_.send(events))
   }
 }

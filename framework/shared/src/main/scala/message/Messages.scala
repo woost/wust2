@@ -15,7 +15,7 @@ class Messages[Event : Pickler, Error: Pickler] {
   sealed trait ServerMessage
   case class Pong() extends ServerMessage
   case class CallResponse(seqId: SequenceId, result: Either[Error, ByteBuffer]) extends ServerMessage
-  case class Notification(event: Event) extends ServerMessage
+  case class Notification(event: List[Event]) extends ServerMessage
 
   //TODO: case objects?
   implicit def clientMessagePickler = compositePickler[ClientMessage]

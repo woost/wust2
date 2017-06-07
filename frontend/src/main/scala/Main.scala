@@ -37,7 +37,7 @@ object Main extends js.JSApp {
       }
     }
 
-    Client.onEvent(state.onEvent)
+    Client.onEvents(state.onEvents)
 
     // The first thing to be sent should be the auth-token
     ClientCache.storedToken.foreach { token =>

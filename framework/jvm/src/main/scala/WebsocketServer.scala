@@ -53,10 +53,7 @@ class WebsocketServer[Event: Pickler, Error: Pickler, State](handler: RequestHan
   private implicit val materializer = ActorMaterializer()
 
   val messages = new Messages[Event, Error]
-  import messages._
-
   def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler))
-  def serializedEvent(event: Event): Message = WebsocketSerializer.serialize[ServerMessage](Notification(event))
 
   def run(route: Route, interface: String, port: Int): Future[ServerBinding] =
     Http().bindAndHandle(route, interface = interface, port = port)

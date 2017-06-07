@@ -21,13 +21,13 @@ object State {
 }
 
 class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
-  def onEvent(state: State, event: ApiEvent): State = {
-    state.copyF(graph = GraphUpdate.onEvent(_, event))
+  def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
+    events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.onEvent(_, event)))
   }
 
   //TODO: we should not do database queries here, this is done in each connected client
   //rather get meta information about posts in event once, then work with this information here.
-  def triggeredEvents(state: State, event: ApiEvent): Future[Seq[ApiEvent]] = event match {
+  def triggeredEvents(state: State, events: Seq[ApiEvent]): Future[Seq[ApiEvent]] = Future.sequence(events.map {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
@@ -40,7 +40,7 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     case other =>
       println(s"####### ignored Event: $other")
       Future.successful(Nil)
-  }
+  }).map(_.flatten)
 
   def validate(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
 

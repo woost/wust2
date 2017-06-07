@@ -30,17 +30,25 @@ trait RequestHandler[Event, Error, State] {
   // remaining throwables will be thrown!
   def toError: PartialFunction[Throwable, Error]
 
-  // a request can return events, here you can distribute the event to all connected clients.
+  // a request can return events, here you can distribute the events to all connected clients.
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
-  def publishEvent(sender: EventSender[Event], event: Event): Unit
+  def publishEvents(sender: EventSender[Event], event: Seq[Event]): Unit
 
-  // events can trigger further events to provide
-  // missing data for the client. Events have to be explicitly forwarded.
+  // whenever there new incoming events arrive, this method will be called.
+  // events can trigger further events to provide missing data for the client
+  // or to filter out certain events. Events have to be explicitly forwarded.
   // for example, returning Seq.empty will ignore the event.
-  def triggeredEvents(event: Event, state: State): Future[Seq[Event]]
+  def transformIncomingEvents(event: Seq[Event], state: State): Future[Seq[Event]]
 
-  // after you have allowed the event, you can then adapt the state according to the event
-  def onEvent(event: Event, state: State): State
+  // whenever there was an interaction with the client, the state might have changed.
+  // either the stateholder recorded a new state during a request or there were events.
+  // this does not mean, that the states are different; as we do not make assumption about state equality.
+  // here you can return additional events to be sent to the client.
+  def onClientInteraction(prevState: State, state: State): Future[Seq[Event]]
+
+  // when incoming or self-emitted events are received, they can be applied to the state.
+  // here you can return a new state.
+  def applyEventsToState(event: Seq[Event], state: State): State
 
   // called when a client connects to the websocket.
   // this allows for managing/bookkeeping of connected clients.
@@ -50,19 +58,13 @@ trait RequestHandler[Event, Error, State] {
   // called when a client disconnects.
   // this can be due to a timeout on the websocket connection or the client closed the connection.
   def onClientDisconnect(sender: EventSender[Event], state: State): Unit
-
-  // whenever there was an interaction with the client, the state might have changed.
-  // either the stateholder recorded a new state during a request or the onEvent method was called.
-  // this does not mean, that the states are different; as we do not make assumption about state equality.
-  // here you can return events to be sent to the client.
-  def onClientInteraction(prevState: State, state: State): Future[Seq[Event]]
 }
 
 class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) {
   import messages._
 
-  def send(event: Event): Unit = {
-    actor ! Notification(event)
+  def send(events: Seq[Event]): Unit = {
+    actor ! Notification(events.toList)
   }
 
   override def equals(other: Any) = other match {
@@ -99,10 +101,10 @@ class ConnectedClient[Event, Error, State](
               .sideEffect(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-            holder.events.foreach(_.foreach { event =>
+            holder.events.foreach { events =>
               // sideeffect: publish event to others
-              publishEvent(sender, event)
-            })
+              if (events.nonEmpty) publishEvents(sender, events)
+            }
 
             switchState(state, holder.state, holder.events)
 
@@ -110,25 +112,18 @@ class ConnectedClient[Event, Error, State](
             outgoing ! CallResponse(seqId, Left(error))
         }
 
-      case Notification(event) =>
+      case Notification(events) =>
         val validatedState = state.map(validate)
-        val events = for {
+        val newEvents = for {
           validatedState <- validatedState
-          events <- triggeredEvents(event, validatedState)
+          events <- transformIncomingEvents(events, validatedState)
         } yield events
 
-        switchState(state, validatedState, events)
+        switchState(state, validatedState, newEvents)
 
       case Stop =>
         state.foreach(onClientDisconnect(sender, _))
         context.stop(self)
-    }
-
-    def applyEventsOnState(events: Future[Seq[Event]], state: Future[State]): Future[State] = for {
-      state <- state
-      events <- events
-    } yield events.foldLeft(state) { (state, event) =>
-      onEvent(event, state)
     }
 
     def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]]) {
@@ -137,15 +132,18 @@ class ConnectedClient[Event, Error, State](
         newState <- newState
         initialEvents <- initialEvents
         additionalEvents <- onClientInteraction(state, newState)
-      } yield initialEvents ++ additionalEvents
+      } yield (initialEvents ++ additionalEvents).toList
 
-      //TODO: send notification with multiple events
-      events.foreach(_.foreach { event =>
+      events.foreach { events =>
         // sideeffect: send actual event to client
-        outgoing ! Notification(event)
-      })
+        if (events.nonEmpty) outgoing ! Notification(events)
+      }
 
-      val switchState = applyEventsOnState(events, newState)
+      val switchState = for {
+        state <- newState
+        events <- events
+      } yield if (events.isEmpty) state else applyEventsToState(events, state)
+
       context.become(withState(switchState))
     }
 

@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait IncidentHandler[Event, Error] {
   def fromError(error: Error): Throwable
   def onConnect(location: String, reconnect: Boolean): Unit
-  def onEvent(event: Event): Unit
+  def onEvents(events: Seq[Event]): Unit
 }
 
 class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[Event, Error])(implicit ec: ExecutionContext) {
@@ -50,7 +50,7 @@ class WebsocketClient[Event: Pickler, Error: Pickler](handler: IncidentHandler[E
       case CallResponse(seqId, result) => callRequests.get(seqId).foreach { req =>
         result.fold(req tryFailure fromError(_), req trySuccess _)
       }
-      case Notification(event) => onEvent(event)
+      case Notification(events) => onEvents(events)
       case Pong() =>
     }
   }
