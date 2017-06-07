@@ -27,12 +27,13 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
 
   //TODO: we should not do database queries here, this is done in each connected client
   //rather get meta information about posts in event once, then work with this information here.
-  def triggeredEvents(state: State, events: Seq[ApiEvent]): Future[Seq[ApiEvent]] = Future.sequence(events.map {
+  def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent]] = Future.sequence(event.events.map {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
     case NewGraphChanges(changes) =>
-      visibleChangesForState(state, changes).map { visibleChanges =>
+      val visibleChanges = visibleChangesForState(state, changes, event.postGroups)
+      Future.successful {
         if (visibleChanges.isEmpty) Seq.empty
         else Seq(NewGraphChanges(visibleChanges))
       }
@@ -92,27 +93,18 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     } else Future.successful(Nil)
   }
 
-  private def visibleChangesForState(state: State, changes: GraphChanges): Future[GraphChanges] = {
+  private def visibleChangesForState(state: State, changes: GraphChanges, postGroups: Map[PostId, Set[GroupId]]): GraphChanges = {
     import changes.consistent._
 
     val postIds = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
-    if (postIds.isEmpty) Future.successful(changes)
-    else {
-      val ownGroups = state.graph.groups.toSet
-      db.ctx.transaction { implicit ec =>
-        //TODO: we know the groups for addPosts already => addOwnerships
-        //TODO dont query for each post? needs to be chained
-        val disallowedPostIds = postIds.foldLeft(Future.successful(List.empty[PostId])) { (disallowedIds, postId) =>
-          disallowedIds.flatMap { disallowedIds =>
-            db.post.getGroups(postId).map { groups =>
-              if (groups.isEmpty || (groups.map(forClient).toSet intersect ownGroups).nonEmpty) disallowedIds
-              else postId :: disallowedIds
-            }
-          }
-        }.map(_.toSet)
-
-        disallowedPostIds.map(changes.consistent.withoutPosts)
-      }
+    val ownGroups = state.graph.groups.map(_.id).toSet
+    val disallowedPostIds = postIds.flatMap { postId =>
+      postGroups.get(postId).map { groups =>
+        if (groups.isEmpty || (groups intersect ownGroups).nonEmpty) None
+        else Some(postId)
+      }.getOrElse(Some(postId)) //no knowledge about group, forbid
     }
+
+    changes.consistent.withoutPosts(disallowedPostIds)
   }
 }

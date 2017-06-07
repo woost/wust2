@@ -15,9 +15,9 @@ import wust.framework.message._
 import scala.concurrent.Future
 
 object WebsocketFlow {
-  def apply[Event, Error, State](
+  def apply[Event, PublishEvent, Error, State](
     messages: Messages[Event, Error],
-    handler: RequestHandler[Event, Error, State])
+    handler: RequestHandler[Event, PublishEvent, Error, State])
     (implicit system: ActorSystem): Flow[Message, Message, NotUsed] = {
 
     import WebsocketSerializer._
@@ -48,7 +48,7 @@ object WebsocketFlow {
   }
 }
 
-class WebsocketServer[Event: Pickler, Error: Pickler, State](handler: RequestHandler[Event, Error, State]) {
+class WebsocketServer[Event: Pickler, PublishEvent, Error: Pickler, State](handler: RequestHandler[Event, PublishEvent, Error, State]) {
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 

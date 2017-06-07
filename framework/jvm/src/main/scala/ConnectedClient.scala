@@ -13,7 +13,7 @@ import wust.framework.state.StateHolder
 
 import scala.concurrent.Future
 
-trait RequestHandler[Event, Error, State] {
+trait RequestHandler[Event, PublishEvent, Error, State] {
   // initial state for a new client
   def initialState: State
 
@@ -32,13 +32,13 @@ trait RequestHandler[Event, Error, State] {
 
   // a request can return events, here you can distribute the events to all connected clients.
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
-  def publishEvents(sender: EventSender[Event], event: Seq[Event]): Unit
+  def publishEvents(sender: EventSender[PublishEvent], events: Seq[Event]): Unit
 
-  // whenever there new incoming events arrive, this method will be called.
+  // whenever there is a new incoming event arrive, this method will be called.
   // events can trigger further events to provide missing data for the client
   // or to filter out certain events. Events have to be explicitly forwarded.
   // for example, returning Seq.empty will ignore the event.
-  def transformIncomingEvents(event: Seq[Event], state: State): Future[Seq[Event]]
+  def transformIncomingEvent(event: PublishEvent, state: State): Future[Seq[Event]]
 
   // whenever there was an interaction with the client, the state might have changed.
   // either the stateholder recorded a new state during a request or there were events.
@@ -53,19 +53,17 @@ trait RequestHandler[Event, Error, State] {
   // called when a client connects to the websocket.
   // this allows for managing/bookkeeping of connected clients.
   // the eventsender can be used to send events to downstream
-  def onClientConnect(sender: EventSender[Event], state: State): Unit
+  def onClientConnect(sender: EventSender[PublishEvent], state: State): Unit
 
   // called when a client disconnects.
   // this can be due to a timeout on the websocket connection or the client closed the connection.
-  def onClientDisconnect(sender: EventSender[Event], state: State): Unit
+  def onClientDisconnect(sender: EventSender[PublishEvent], state: State): Unit
 }
 
-class EventSender[Event](messages: Messages[Event, _], private val actor: ActorRef) {
-  import messages._
+class EventSender[PublishEvent](private val actor: ActorRef) {
+  private[framework] case class Notify(event: PublishEvent)
 
-  def send(events: Seq[Event]): Unit = {
-    actor ! Notification(events.toList)
-  }
+  def send(event: PublishEvent): Unit = actor ! Notify(event)
 
   override def equals(other: Any) = other match {
     case other: EventSender[_] => actor.equals(other.actor)
@@ -75,9 +73,9 @@ class EventSender[Event](messages: Messages[Event, _], private val actor: ActorR
   override def hashCode = actor.hashCode
 }
 
-class ConnectedClient[Event, Error, State](
+class ConnectedClient[Event, PublishEvent, Error, State](
   messages: Messages[Event, Error],
-  handler: RequestHandler[Event, Error, State]) extends Actor {
+  handler: RequestHandler[Event, PublishEvent, Error, State]) extends Actor {
   import ConnectedClient._
   import handler._
   import messages._
@@ -85,7 +83,7 @@ class ConnectedClient[Event, Error, State](
   import context.dispatcher
 
   def connected(outgoing: ActorRef): Receive = {
-    val sender = new EventSender(messages, self)
+    val sender = new EventSender[PublishEvent](self)
 
     def withState(state: Future[State]): Receive = {
       case Ping() => outgoing ! Pong()
@@ -112,11 +110,11 @@ class ConnectedClient[Event, Error, State](
             outgoing ! CallResponse(seqId, Left(error))
         }
 
-      case Notification(events) =>
+      case sender.Notify(event) =>
         val validatedState = state.map(validate)
         val newEvents = for {
           validatedState <- validatedState
-          events <- transformIncomingEvents(events, validatedState)
+          events <- transformIncomingEvent(event, validatedState)
         } yield events
 
         switchState(state, validatedState, newEvents)

@@ -15,11 +15,11 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.collection.mutable
 
-class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, String, Option[String]] {
+class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, String, String, Option[String]] {
   private val stupidPhrase = "the stupid guy"
   private val stupidUser = Future.successful(Option(stupidPhrase))
   private val otherUser = Future.successful(Option("anon"))
-  private val clients = mutable.ArrayBuffer.empty[EventSender[String]]
+  val clients = mutable.ArrayBuffer.empty[EventSender[String]]
 
   override def initialState = None
 
@@ -49,15 +49,15 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def publishEvents(sender: EventSender[String], events: Seq[String]): Unit = { eventActor ! events.mkString("") + "-published" }
 
-  override def transformIncomingEvents(events: Seq[String], state: Option[String]) = Future.successful(events.map {
-    case "FORBIDDEN" => Seq.empty
-    case other => Seq(other)
-  }).map(_.flatten)
+  override def transformIncomingEvent(event: String, state: Option[String]) = Future.successful(event match {
+    case "FORBIDDEN" => println("ASASDSDAD"); Seq.empty
+    case other => println("GMEKSDA"); Seq(other)
+  })
 
   override def applyEventsToState(events: Seq[String], state: Option[String]) = state
 
   override def onClientConnect(sender: EventSender[String], state: Option[String]) = {
-    sender.send(Seq("started"))
+    sender.send("started")
     clients += sender
     ()
   }
@@ -72,24 +72,24 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   val messages = new Messages[String, String]
   import messages._
 
-  val requestHandler = new TestRequestHandler(self)
-  def newActor: ActorRef = TestActorRef(new ConnectedClient(messages, requestHandler))
+  def requestHandler = new TestRequestHandler(self)
+  def newActor(handler: TestRequestHandler = requestHandler): ActorRef = TestActorRef(new ConnectedClient(messages, handler))
   def connectActor(actor: ActorRef, shouldConnect: Boolean = true) = {
     actor ! ConnectedClient.Connect(self)
     if (shouldConnect) expectMsg(Notification(List("started")))
     else expectNoMsg
   }
-  def connectedActor: ActorRef = {
-    val actor = newActor
+  def connectedActor(handler: TestRequestHandler = requestHandler): ActorRef = {
+    val actor = newActor(handler)
     connectActor(actor)
     actor
   }
 
-  def newActor[T](f: ActorRef => T): T = f(newActor)
-  def connectedActor[T](f: ActorRef => T): T = f(connectedActor)
+  def newActor[T](f: ActorRef => T): T = f(newActor())
+  def connectedActor[T](f: ActorRef => T): T = f(connectedActor())
 
   "unconnected" - {
-    val actor = newActor
+    val actor = newActor()
 
     "no pong" in {
       actor ! Ping()
@@ -178,15 +178,17 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   }
 
   "event" - {
-    val actor = connectedActor
-
     "allowed event" in {
-      actor ! Notification(List("something nice"))
+      val handler = requestHandler
+      val actor = connectedActor(handler)
+      handler.clients.foreach(_.send("something nice"))
       expectMsg(Notification(List("something nice")))
     }
 
     "forbidden event" in {
-      actor ! Notification(List("FORBIDDEN"))
+      val handler = requestHandler
+      val actor = connectedActor(handler)
+      handler.clients.foreach(_.send("FORBIDDEN"))
       expectNoMsg
     }
   }
@@ -196,6 +198,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       actor ! ConnectedClient.Stop
       actor ! Ping()
       expectNoMsg
+
     }
   }
 }

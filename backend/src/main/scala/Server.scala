@@ -15,10 +15,14 @@ import wust.framework.state.StateHolder
 import wust.util.{ Pipe, RichFuture }
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]])(implicit ec: ExecutionContext) extends RequestHandler[ApiEvent, ApiError, State] {
+case class RequestEvent(events: Seq[ApiEvent], postGroups: Map[PostId, Set[GroupId]])
+
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]])(implicit ec: ExecutionContext) extends RequestHandler[ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
   override def initialState = State.initial
@@ -38,29 +42,27 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       InternalServerError
   }
 
-  override def publishEvents(sender: EventSender[ApiEvent], events: Seq[ApiEvent]) = distributor.publish(sender, events)
+  override def publishEvents(sender: EventSender[RequestEvent], events: Seq[ApiEvent]) = distributor.publish(sender, events)
 
-  override def transformIncomingEvents(events: Seq[ApiEvent], state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, events)
+  override def transformIncomingEvent(event: RequestEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)
 
   override def applyEventsToState(events: Seq[ApiEvent], state: State) = stateInterpreter.applyEventsToState(state, events)
 
   override def onClientInteraction(state: State, newState: State) = stateChangeEvents(state, newState)
 
-  override def onClientConnect(sender: EventSender[ApiEvent], state: State) = {
+  override def onClientConnect(sender: EventSender[RequestEvent], state: State) = {
     scribe.info(s"client started: $state")
     distributor.subscribe(sender)
     Future.successful(state)
   }
 
-  override def onClientDisconnect(sender: EventSender[ApiEvent], state: State) = {
+  override def onClientDisconnect(sender: EventSender[RequestEvent], state: State) = {
     scribe.info(s"client stopped: $state")
     distributor.unsubscribe(sender)
   }
 }
 
 object Server {
-  import scala.concurrent.ExecutionContext.Implicits.global
-
   private val ws = {
     val db = Db(Config.db)
     val stateInterpreter = new StateInterpreter(db)
@@ -71,7 +73,7 @@ object Server {
         AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, db))
     }
 
-    new WebsocketServer[ApiEvent, ApiError, State](new ApiRequestHandler(new EventDistributor, stateInterpreter, api _))
+    new WebsocketServer[ApiEvent, RequestEvent, ApiError, State](new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api _))
   }
 
   private val route = (path("ws") & get) {
