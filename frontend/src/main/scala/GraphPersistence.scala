@@ -92,6 +92,10 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
     )
 
+    addChanges(newChanges)
+  }
+
+  def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = {
     changes.updatef(_.copyF(cached = _ + newChanges))
     applyChangesToState(state.rawGraph.now)
     flush()

@@ -3,7 +3,7 @@ package wust.frontend.views
 import autowire._
 import boopickle.Default._
 import org.scalajs.dom.document
-import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLElement}
 import rx._
 import wust.api._
 import wust.frontend.{ Client, GlobalState, RichPostFactory }
@@ -15,11 +15,13 @@ import scala.collection.breakOut
 import scala.concurrent.duration.{ span => _, _ }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalatags.JsDom.all._
+import org.scalajs.dom.{Event, console}
 import scalatags.rx.all._
 
 object DevView {
   import scala.util.Random.{ nextInt => rInt, nextString => rStr }
   val apiEvents = RxVar[List[ApiEvent]](Nil)
+  val syncEvents = Var(false)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     span(
@@ -62,6 +64,18 @@ object DevView {
         div(
           "Random Events:",
           br(),
+          "Sync enabled",
+          Rx {
+            input(
+              `type` := "checkbox",
+              value := syncEvents(),
+              onclick := { (event: Event) =>
+                val elem = event.target.asInstanceOf[HTMLInputElement]
+                syncEvents() = elem.checked
+              }
+            ).render
+          },
+          br(),
           {
             import scalajs.js.timers._
             def graph = state.rawGraph.now
@@ -69,15 +83,15 @@ object DevView {
             def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postIds.toIndexedSeq)(rInt(graph.postsById.size))) else None
             def randomConnection: Option[Connection] = if (graph.connections.size > 0) Option((graph.connections.toIndexedSeq)(rInt(graph.connections.size))) else None
             def randomContainment: Option[Containment] = if (graph.containments.size > 0) Option((graph.containments.toIndexedSeq)(rInt(graph.containments.size))) else None
-            val events: Array[() => Option[ApiEvent]] = {
-              val distribution: List[(Int, () => Option[ApiEvent])] = (
-                (1, () => Option(NewGraphChanges(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20)))))))) ::
-                (1, () => randomPostId.map(p => NewGraphChanges(GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20)))))))) ::
-                (1, () => randomPostId.map(p => NewGraphChanges(GraphChanges(delPosts = Set(p))))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewGraphChanges(GraphChanges(addConnections = Set(Connection(p1, p2))))) ::
-                (2, () => randomConnection.map(c => NewGraphChanges(GraphChanges(delConnections = Set(c))))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield NewGraphChanges(GraphChanges(addContainments = Set(Containment(p1, p2))))) ::
-                (2, () => randomContainment.map(c => NewGraphChanges(GraphChanges(delContainments = Set(c))))) ::
+            val events: Array[() => Option[GraphChanges]] = {
+              val distribution: List[(Int, () => Option[GraphChanges])] = (
+                (1, () => Option(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20))))))) ::
+                (1, () => randomPostId.map(p => GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20))))))) ::
+                (1, () => randomPostId.map(p => GraphChanges(delPosts = Set(p)))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addConnections = Set(Connection(p1, p2)))) ::
+                (2, () => randomConnection.map(c => GraphChanges(delConnections = Set(c)))) ::
+                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addContainments = Set(Containment(p1, p2)))) ::
+                (2, () => randomContainment.map(c => GraphChanges(delContainments = Set(c)))) ::
                 Nil
               )
               distribution.flatMap { case (count, f) => List.fill(count)(f) }(breakOut)
@@ -85,7 +99,8 @@ object DevView {
             def randomEvent = events(rInt(events.size))()
 
             def emitRandomEvent() {
-              randomEvent foreach state.eventCache.onEvent
+              if (syncEvents.now) randomEvent.foreach(state.persistence.addChanges)
+              else state.onEvents(randomEvent.map(NewGraphChanges(_)).toSeq)
             }
             var interval: Option[SetIntervalHandle] = None
             val intervals = (
