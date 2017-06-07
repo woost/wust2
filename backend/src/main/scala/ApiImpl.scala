@@ -44,7 +44,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
     } yield {
       val group = forClient(dbGroup)
-      respondWithEvents(group.id, NewMembership(dbMembership))
+      respondWithEvents(group.id, NewMembership(dbMembership), NewGroup(group))
     }
   }
 
@@ -52,10 +52,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
-          Some((_, dbMembership, _)) <- db.group.addMember(groupId, userId)
-        } yield {
-          respondWithEvents(true, NewMembership(dbMembership))
-        }
+          Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
+        } yield respondWithEvents(true, NewMembership(dbMembership), NewGroup(group))
       }(recover = respondWithEvents(false))
     }
   }
@@ -65,8 +63,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       (
         for {
           Some(user) <- db.user.byName(userName)
-          Some((_, dbMembership, _)) <- db.group.addMember(groupId, user.id)
-        } yield respondWithEvents(true, NewMembership(dbMembership))
+          Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
+        } yield respondWithEvents(true, NewMembership(dbMembership), NewGroup(group))
       ).recover { case _ => respondWithEvents(false) }
     }
   }
@@ -98,7 +96,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           db.group.addMember(group.id, user.id).map {
             case Some((_, dbMembership, dbGroup)) =>
               val group = forClient(dbGroup)
-              respondWithEvents(Option(group.id), NewMembership(dbMembership))
+              respondWithEvents(Option(group.id), NewMembership(dbMembership), NewGroup(group))
             case None => respondWithEvents[Option[GroupId]](None)
           }
         case None => Future.successful(respondWithEvents[Option[GroupId]](None))
