@@ -6,5 +6,5 @@ export CI=true # also set by travis, but helps when running locally
 export WUST_STAGE=dev
 
 sbt -Dquill.macro.log=false docker \
- testJS \
+ testJS testJSOpt \
  coverage testJVM coverageReport

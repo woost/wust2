@@ -85,7 +85,7 @@ lazy val root = project.in(file("."))
     addCommandAlias("devf", "; project root; backend/re-start; devfwatch"),
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; frameworkJS/test; apiJS/test; frontend/test"),
-    addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"), // TODO: also run optimized tests in productionMode. https://gitter.im/scala-js/scala-js?at=58ef8672ad849bcf427e96ab
+    addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
     addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test"),
 
     watchSources ++= (watchSources in workbench).value
