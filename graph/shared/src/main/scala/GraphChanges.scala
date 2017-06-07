@@ -56,6 +56,8 @@ case class GraphChanges(
   )
 
   lazy val isEmpty = addPosts.isEmpty && addConnections.isEmpty && addContainments.isEmpty && addOwnerships.isEmpty && updatePosts.isEmpty && delPosts.isEmpty && delConnections.isEmpty && delContainments.isEmpty && delOwnerships.isEmpty
+
+  lazy val size = addPosts.size + addConnections.size + addContainments.size + addOwnerships.size + updatePosts.size + delPosts.size + delConnections.size + delContainments.size + delOwnerships.size
 }
 object GraphChanges {
   def empty = GraphChanges()

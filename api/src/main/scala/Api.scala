@@ -32,7 +32,9 @@ sealed trait ApiEvent
 case class NewUser(user: User) extends ApiEvent
 case class NewGroup(group: Group) extends ApiEvent
 case class NewMembership(membership: Membership) extends ApiEvent
-case class NewGraphChanges(changes: GraphChanges) extends ApiEvent
+case class NewGraphChanges(changes: GraphChanges) extends ApiEvent {
+  override def toString = s"NewGraphChanges(#changes: ${changes.size})"
+}
 case class LoggedIn(auth: Authentication) extends ApiEvent
 case object LoggedOut extends ApiEvent
 case class ReplaceGraph(graph: Graph) extends ApiEvent {
