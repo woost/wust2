@@ -109,6 +109,9 @@ class ConnectedClient[Event, PublishEvent, Error, State](
             }
 
             switchState(state, holder.state, holder.events)
+            val (newState, events) = switchState(state, holder.state, holder.events)
+            sendEvents(events.map(filterClientEvents _))
+            context.become(withState(newState))
 
           case Left(error) =>
             outgoing ! CallResponse(seqId, Left(error))
@@ -121,14 +124,16 @@ class ConnectedClient[Event, PublishEvent, Error, State](
           events <- transformIncomingEvent(event, validatedState)
         } yield events
 
-        switchState(state, validatedState, newEvents)
+        val (newState, events) = switchState(state, validatedState, newEvents)
+        sendEvents(events)
+        context.become(withState(newState))
 
       case Stop =>
         state.foreach(onClientDisconnect(sender, _))
         context.stop(self)
     }
 
-    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]]) {
+    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]]): (Future[State], Future[Seq[Event]]) = {
       val events = for {
         state <- state
         newState <- newState
@@ -136,18 +141,19 @@ class ConnectedClient[Event, PublishEvent, Error, State](
         additionalEvents <- onClientInteraction(state, newState)
       } yield initialEvents ++ additionalEvents
 
-      events.foreach { events =>
-        // sideeffect: send actual event to client
-        val filteredEvents = filterClientEvents(events)
-        if (filteredEvents.nonEmpty) outgoing ! Notification(filteredEvents.toList)
-      }
-
       val switchState = for {
         state <- newState
         events <- events
       } yield if (events.isEmpty) state else applyEventsToState(events, state)
 
-      context.become(withState(switchState))
+      (switchState, events)
+    }
+
+    def sendEvents(events: Future[Seq[Event]]) = {
+      events.foreach { events =>
+        // sideeffect: send actual event to client
+        if (events.nonEmpty) outgoing ! Notification(events.toList)
+      }
     }
 
     val state = initialState
