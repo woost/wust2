@@ -47,6 +47,8 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
 
+  override def filterClientEvents(events: Seq[String]) = events
+
   override def publishEvents(sender: EventSender[String], events: Seq[String]): Unit = { eventActor ! events.mkString("") + "-published" }
 
   override def transformIncomingEvent(event: String, state: Option[String]) = Future.successful(event match {

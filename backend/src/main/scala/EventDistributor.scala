@@ -21,15 +21,8 @@ class EventDistributor(db: Db) {
   def publish(sender: EventSender[RequestEvent], events: Seq[ApiEvent])(implicit ec: ExecutionContext) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
-    // do not send graphchange events to origin of event
-    val nonGraphEvents = events.filter {
-      case NewGraphChanges(_) => false
-      case _ => true
-    }
-
     val receivers = subscribers - sender
     postGroupsFromEvents(events).foreach { postGroups =>
-      sender.send(RequestEvent(nonGraphEvents, postGroups))
       receivers.foreach(_.send(RequestEvent(events, postGroups)))
     }
   }

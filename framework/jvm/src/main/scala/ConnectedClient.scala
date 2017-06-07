@@ -30,9 +30,13 @@ trait RequestHandler[Event, PublishEvent, Error, State] {
   // remaining throwables will be thrown!
   def toError: PartialFunction[Throwable, Error]
 
+  // a request can return events, here you can filter which of the events
+  // will be send to this client itself.
+  def filterClientEvents(events: Seq[Event]): Seq[Event]
+
   // a request can return events, here you can distribute the events to all connected clients.
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
-  def publishEvents(sender: EventSender[PublishEvent], events: Seq[Event]): Unit
+  def publishEvents(origin: EventSender[PublishEvent], events: Seq[Event]): Unit
 
   // whenever there is a new incoming event arrive, this method will be called.
   // events can trigger further events to provide missing data for the client
@@ -130,11 +134,12 @@ class ConnectedClient[Event, PublishEvent, Error, State](
         newState <- newState
         initialEvents <- initialEvents
         additionalEvents <- onClientInteraction(state, newState)
-      } yield (initialEvents ++ additionalEvents).toList
+      } yield initialEvents ++ additionalEvents
 
       events.foreach { events =>
         // sideeffect: send actual event to client
-        if (events.nonEmpty) outgoing ! Notification(events)
+        val filteredEvents = filterClientEvents(events)
+        if (filteredEvents.nonEmpty) outgoing ! Notification(filteredEvents.toList)
       }
 
       val switchState = for {
