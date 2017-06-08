@@ -259,6 +259,8 @@ object MainView {
       ),
       div(
         activeDisplay,
+        zIndex := 100,
+        cls := "shadow",
         position.fixed, top := 5, left := 5, boxSizing.`border-box`,
         padding := "15px", background := "#F8F8F8", border := "1px solid #DDD",
         div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
