@@ -3,7 +3,6 @@ version: '2'
 services:
   postgres:
     image: postgres:9.6.2-alpine
-    restart: always
     environment: &pg_env
       POSTGRES_USER: 'wust'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -14,7 +13,6 @@ services:
       <<: *pg_env
   wust:
     image: woost/wust2
-    restart: always
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
@@ -26,7 +24,5 @@ services:
       WUST_SMTP_PASS: ${WUST_SMTP_PASS}
   nginx:
     image: woost/wust2.nginx
-    restart: always
   nginx-http:
     image: woost/wust2.nginx:http
-    restart: always
