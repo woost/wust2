@@ -37,7 +37,6 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   changes.map(_.all).foreach(storage.graphChanges = _)
 
-  //TODO: where to do this enrichment?
   private def enrichChanges(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 
@@ -96,7 +95,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = {
-    changes.updatef(_.copyF(cached = _ + newChanges))
+    changes.updatef(_.copyF(cached = _ + newChanges.consistent))
     applyChangesToState(state.rawGraph.now)
     flush()
   }
