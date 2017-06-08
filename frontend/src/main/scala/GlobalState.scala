@@ -10,18 +10,13 @@ import org.scalajs.dom.window
 import org.scalajs.dom.experimental.Notification
 import wust.util.EventTracker.sendEvent
 
-sealed trait InteractionMode
-case class FocusMode(postId: PostId) extends InteractionMode
-case class EditMode(postId: PostId) extends InteractionMode
-case object DefaultMode extends InteractionMode
-
 sealed trait SyncMode
 object SyncMode {
   case object Live extends SyncMode
   case object Offline extends SyncMode
 
   val fromString: PartialFunction[String, SyncMode] = {
-    case "Live" => Live
+    case "Live"    => Live
     case "Offline" => Offline
   }
 
@@ -106,21 +101,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     })
   }
 
-  val editedPostId = {
-    val ep = RxVar[Option[PostId]](None)
-    RxVar(ep, Rx {
-      ep().filter(displayGraph().graph.postsById.isDefinedAt)
-    })
-  }
-
-  val mode: Rx[InteractionMode] = Rx {
-    (focusedPostId(), editedPostId()) match {
-      case (_, Some(id))    => EditMode(id)
-      case (Some(id), None) => FocusMode(id)
-      case _                => DefaultMode
-    }
-  }
-
   val jsError = Var[Option[String]](None)
 
   def applyEvents(events: Seq[ApiEvent]) = {
@@ -147,16 +127,16 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       events foreach {
         case ReplaceGraph(newGraph) =>
           assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
-          //TODO needed?
-          // assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
-          // assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
+        //TODO needed?
+        // assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
+        // assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
         case _ =>
       }
     }
 
     val (graphChangeEvents, otherEvents) = events partition {
       case NewGraphChanges(_) => true
-      case _ => false
+      case _                  => false
     }
 
     eventCache.addEvents(graphChangeEvents)

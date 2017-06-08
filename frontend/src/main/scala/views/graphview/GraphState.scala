@@ -3,7 +3,7 @@ package wust.frontend.views.graphview
 import rx._
 import rxext._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
@@ -15,7 +15,6 @@ import scala.scalajs.js.JSConverters._
 
 class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxDisplayGraph = state.displayGraph
-  val rxEditedPostId = state.editedPostId
   val rxCollapsedPostIds = state.collapsedPostIds
 
   def fontSizeByDepth(d: Int) = (Math.pow(0.65, d + 1) + 1) // 2..1

@@ -89,8 +89,6 @@ object Main extends js.JSApp {
       currentView.debug("currentView")
       displayGraph.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
       focusedPostId.debug("focusedPostId")
-      editedPostId.debug("editedPostId")
-      mode.debug("mode")
       selectedGroupId.debug("selectedGroupId")
       graphSelection.debug("graphSelection")
       viewConfig.debug("viewConfig")
