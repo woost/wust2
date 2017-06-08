@@ -44,7 +44,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
     } yield {
       val group = forClient(dbGroup)
-      respondWithEvents(group.id, NewMembership(dbMembership), NewGroup(group))
+      respondWithEvents(group.id, NewMembership(dbMembership))
     }
   }
 
@@ -53,7 +53,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       isGroupMember(groupId, user.id) {
         for {
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
-        } yield respondWithEvents(true, NewMembership(dbMembership), NewGroup(group))
+        } yield respondWithEvents(true, NewMembership(dbMembership))
       }(recover = respondWithEvents(false))
     }
   }
@@ -64,7 +64,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         for {
           Some(user) <- db.user.byName(userName)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
-        } yield respondWithEvents(true, NewMembership(dbMembership), NewGroup(group))
+        } yield respondWithEvents(true, NewMembership(dbMembership))
       ).recover { case _ => respondWithEvents(false) }
     }
   }
@@ -96,7 +96,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           db.group.addMember(group.id, user.id).map {
             case Some((_, dbMembership, dbGroup)) =>
               val group = forClient(dbGroup)
-              respondWithEvents(Option(group.id), NewMembership(dbMembership), NewGroup(group))
+              respondWithEvents(Option(group.id), NewMembership(dbMembership))
             case None => respondWithEvents[Option[GroupId]](None)
           }
         case None => Future.successful(respondWithEvents[Option[GroupId]](None))

@@ -42,11 +42,6 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       InternalServerError
   }
 
-  override def filterClientEvents(events: Seq[ApiEvent]) = events.filter {
-    case NewGraphChanges(_) => false
-    case _ => true
-  }
-
   override def publishEvents(sender: EventSender[RequestEvent], events: Seq[ApiEvent]) = distributor.publish(sender, events)
 
   override def transformIncomingEvent(event: RequestEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)

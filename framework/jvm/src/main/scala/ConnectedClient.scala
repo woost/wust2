@@ -30,10 +30,6 @@ trait RequestHandler[Event, PublishEvent, Error, State] {
   // remaining throwables will be thrown!
   def toError: PartialFunction[Throwable, Error]
 
-  // a request can return events, here you can filter which of the events
-  // will be send to this client itself.
-  def filterClientEvents(events: Seq[Event]): Seq[Event]
-
   // a request can return events, here you can distribute the events to all connected clients.
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
   def publishEvents(origin: EventSender[PublishEvent], events: Seq[Event]): Unit
@@ -108,9 +104,8 @@ class ConnectedClient[Event, PublishEvent, Error, State](
               if (events.nonEmpty) publishEvents(sender, events)
             }
 
-            switchState(state, holder.state, holder.events)
-            val (newState, events) = switchState(state, holder.state, holder.events)
-            sendEvents(events.map(filterClientEvents _))
+            val (newState, events) = switchState(state, holder.state)
+            sendEvents(events)
             context.become(withState(newState))
 
           case Left(error) =>
@@ -133,7 +128,7 @@ class ConnectedClient[Event, PublishEvent, Error, State](
         context.stop(self)
     }
 
-    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]]): (Future[State], Future[Seq[Event]]) = {
+    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]] = Future.successful(Seq.empty)): (Future[State], Future[Seq[Event]]) = {
       val events = for {
         state <- state
         newState <- newState

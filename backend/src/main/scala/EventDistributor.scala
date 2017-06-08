@@ -6,6 +6,7 @@ import collection.mutable
 import wust.ids._
 import wust.db.Db
 import scala.concurrent.{Future, ExecutionContext}
+import scala.util.{Success,Failure}
 
 class EventDistributor(db: Db) {
   val subscribers = mutable.HashSet.empty[EventSender[RequestEvent]]
@@ -21,9 +22,20 @@ class EventDistributor(db: Db) {
   def publish(sender: EventSender[RequestEvent], events: Seq[ApiEvent])(implicit ec: ExecutionContext) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
-    val receivers = subscribers - sender
-    postGroupsFromEvents(events).foreach { postGroups =>
-      receivers.foreach(_.send(RequestEvent(events, postGroups)))
+    // do not send graphchange events to origin of event
+    val nonGraphEvents = events.filter {
+      case NewGraphChanges(_) => false
+      case _ => true
+    }
+
+    postGroupsFromEvents(events).onComplete {
+      case Success(postGroups) =>
+        val receivers = subscribers - sender
+        sender.send(RequestEvent(nonGraphEvents, postGroups))
+        receivers.foreach(_.send(RequestEvent(events, postGroups)))
+      case Failure(t) =>
+        scribe.error(s"Error while getting post groups for events: $events")
+        scribe.error(t)
     }
   }
 
@@ -37,7 +49,7 @@ class EventDistributor(db: Db) {
 
     db.ctx.transaction { implicit ec =>
       //TODO: we know the groups for addPosts already => addOwnerships
-      //TODO dont query for each post? needs to be chained
+      //TODO dont query for each post? needs to be chained => stored procedure
       postIds.foldLeft(Future.successful(Map.empty[PostId, Set[GroupId]])) { (postGroups, postId) =>
         postGroups.flatMap { postGroups =>
           db.post.getGroups(postId).map(groups => postGroups + (postId -> groups.map(_.id).toSet))
