@@ -333,8 +333,7 @@ object MainView {
 
   def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
-      padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD",
-      AddPostForm(state)
+      padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD"
     )
   }
 
@@ -361,7 +360,7 @@ object MainView {
 
       topBar(state, viewPages)(ctx)(minHeight := "min-content"),
       router.map(viewPages)(flex := "1", overflow.auto),
-      bottomBar (state),
+      // bottomBar (state),
 
       feedbackForm(state),
       DevOnly { devPeek(state) }

@@ -3,12 +3,13 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.frontend.views.{ ViewConfig, ViewPage }
 import wust.ids._
 import wust.graph._
 import org.scalajs.dom.window
 import org.scalajs.dom.experimental.Notification
 import wust.util.EventTracker.sendEvent
+import vectory._
 
 sealed trait SyncMode
 object SyncMode {
@@ -24,6 +25,10 @@ object SyncMode {
   val all = Seq(Live, Offline)
 }
 
+case class PostCreatorMenu(pos: Vec2) {
+  var ySimPostOffset:Double = 50
+}
+
 class GlobalState(implicit ctx: Ctx.Owner) {
   import Client.storage
 
@@ -32,7 +37,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val syncMode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
   //TODO: why does triggerlater not work?
-  syncMode.foreach(storage.syncMode = _)
+  syncMode.foreach(storage.syncMode= _)
 
   val currentUser = RxVar[Option[User]](None)
 
@@ -100,6 +105,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       fp().filter(displayGraph().graph.postsById.isDefinedAt)
     })
   }
+
+  val postCreatorMenus = Var[List[PostCreatorMenu]](Nil)
 
   val jsError = Var[Option[String]](None)
 

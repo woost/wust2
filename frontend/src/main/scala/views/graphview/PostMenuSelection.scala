@@ -9,8 +9,8 @@ import wust.frontend._
 import wust.util.collection._
 import wust.ids._
 import wust.graph._
-import wust.frontend.views.{ Views, Elements }
-import org.scalajs.dom.raw.{ HTMLElement }
+import wust.frontend.views.{Views, Elements}
+import org.scalajs.dom.raw.{HTMLElement}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
@@ -24,31 +24,27 @@ import wust.frontend.Color._
 class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: Ctx.Owner) extends DataSelection[SimPost] {
   import graphState.state.persistence
 
-  val menuOuterRadius = 100.0
-  val menuInnerRadius = 30.0
-  val menuPaddingAngle = 2.0 * Pi / 200.0
-  val menuCornerRadius = 2.0
-
-  val menuActions = // TODO indication for toggle button? switch string/appearance on basis of value?
+  val menuActions = (
     MenuAction("Focus", { (p: SimPost) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
+    MenuAction(
+      "Collapse",
+      action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ + p.id),
+      showIf = (p: SimPost) => graphState.rxDisplayGraph.now.graph.hasChildren(p.id)
+    ) ::
       MenuAction(
-        "Collapse",
-        action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ + p.id),
-        showIf = (p: SimPost) => graphState.rxDisplayGraph.now.graph.hasChildren(p.id)
+        "Expand",
+        action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ - p.id),
+        showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now.contains(p.id)
       ) ::
-        MenuAction(
-          "Expand",
-          action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ - p.id),
-          showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now.contains(p.id)
-        ) ::
-          // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-          MenuAction("Delete", { (p: SimPost) => persistence.addChanges(delPosts = Set(p.id)); sendEvent("post", "delete", "api") }) ::
-          // MenuAction(
-          //   "Autopos",
-          //   { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
-          //   showIf = (p: SimPost) => p.fixedPos.isDefined
-          // ) ::
-          Nil
+        // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
+        MenuAction("Delete", { (p: SimPost) => persistence.addChanges(delPosts = Set(p.id)); sendEvent("post", "delete", "api") }) ::
+        // MenuAction(
+        //   "Autopos",
+        //   { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
+        //   showIf = (p: SimPost) => p.fixedPos.isDefined
+        // ) ::
+        Nil
+  )
 
   override val tag = "div"
   override def enter(menu: Enter[SimPost]) {
@@ -56,11 +52,11 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
       import graphState.rxFocusedSimPost
       import graphState.rxPostIdToSimPost
       import scalatags.JsDom.all._
-      import org.scalajs.dom.{ Event }
-      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
+      import org.scalajs.dom.{Event}
+      import org.scalajs.dom.raw.{HTMLTextAreaElement}
       import scalatags.rx.all._
       import graphState.state.persistence
-      import Elements.{ inlineTextarea, textareaWithEnter }
+      import Elements.{inlineTextarea, textareaWithEnter}
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
       def div = span(display.block) // this is a workaround to avoid using divs

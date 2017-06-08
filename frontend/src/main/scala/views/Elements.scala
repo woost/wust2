@@ -9,6 +9,7 @@ import scalatags.JsDom.all._
 import scalatags.JsDom.TypedTag
 import org.scalajs.dom.html.TextArea
 
+//TODO: merge with util.Tags
 object Elements {
   def textareaWithEnterSubmit = textareaWithEnter { elem =>
     val form = elem.parentNode.asInstanceOf[HTMLFormElement]

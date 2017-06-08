@@ -8,6 +8,7 @@ import rxext._
 import wust.util.EventTracker.sendEvent
 import wust.ids._
 import wust.graph.GraphSelection
+import org.scalajs.dom.ext.KeyCode
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -81,6 +82,13 @@ object Main extends js.JSApp {
     document.getElementById("container").appendChild(
       views.MainView(state).render
     )
+
+    document.onkeypress = { (e:KeyboardEvent) => 
+      if (e.keyCode == KeyCode.Escape) {
+        state.focusedPostId() = None
+        state.postCreatorMenus() = Nil
+      }
+    }
 
     DevOnly {
       import state._

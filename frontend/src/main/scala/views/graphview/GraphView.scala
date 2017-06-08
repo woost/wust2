@@ -4,10 +4,13 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.PostCreatorMenu
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.{console}
 import wust.graph._
 import wust.util.Pipe
 import scala.concurrent.ExecutionContext
+import vectory._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -21,6 +24,7 @@ object KeyImplicits {
   implicit val SimConnectionWithKey = new WithKey[SimConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val SimRedirectedConnectionWithKey = new WithKey[SimRedirectedConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
+  implicit val postCreatorMenuWithKey = new WithKey[PostCreatorMenu](_.toString)
 }
 
 object GraphView {
@@ -38,7 +42,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag, onPostDragEnd)
-  import state.{ displayGraph => rxDisplayGraph, _ }
+  import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -59,6 +63,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
   val postMenuLayer = container.append("div")
   val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
+  val postCreatorMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreatorMenus.map(_.toJSArray))(postMenuLayer.append("div"))
 
   val menuSvg = container.append("svg")
   val dropMenuLayer = menuSvg.append("g")
@@ -144,7 +149,11 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
       .clickDistance(5) // interpret short drags as clicks
     svg.call(d3State.zoom)
 
-    svg.on("click", () => focusedPostId() = None)
+    svg.on("click", { () =>
+      focusedPostId() = None
+      val pos = d3State.transform.invert(d3.mouse(svg.node))
+      state.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
+    })
     d3State.simulation.on("tick", draw _)
     d3State.simulation.on("end", { () =>
       rxSimPosts.now.foreach { simPost =>
@@ -160,6 +169,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", htmlTransformString)
     postMenuSelection.draw()
+    postCreatorMenu.draw()
   }
 
   private def draw() {

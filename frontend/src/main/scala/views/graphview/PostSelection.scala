@@ -30,6 +30,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
         DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
         sendEvent("post", "clicked", "postmenu")
         rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
+        graphState.state.postCreatorMenus() = Nil
       })
       .call(d3.drag[SimPost]()
         .clickDistance(5) // interpret short drags as clicks
