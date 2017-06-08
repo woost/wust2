@@ -45,9 +45,9 @@ case class GraphChanges(
 
   lazy val consistent = GraphChanges(
     addPosts.filterNot(p => delPosts(p.id)),
-    (addConnections -- delConnections).filterNot(c => delPosts(c.sourceId) || delPosts(c.targetId)),
-    (addContainments -- delContainments).filterNot(c => delPosts(c.parentId) || delPosts(c.childId)),
-    (addOwnerships -- delOwnerships).filterNot(o => delPosts(o.postId)),
+    (addConnections -- delConnections).filter(c => !delPosts(c.sourceId) && !delPosts(c.targetId) && c.sourceId != c.targetId),
+    (addContainments -- delContainments).filter(c => !delPosts(c.parentId) && !delPosts(c.childId) && c.parentId != c.childId),
+    (addOwnerships -- delOwnerships).filter(o => !delPosts(o.postId)),
     updatePosts,
     delPosts -- addPosts.map(_.id),
     delConnections -- addConnections,
