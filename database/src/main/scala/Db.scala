@@ -30,17 +30,22 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 
+  case class RawPost(id: PostId, title: String, isDeleted: Boolean)
+  object RawPost {
+    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.title, isDeleted)
+  }
+
   implicit class IngoreDuplicateKey[T](q: Insert[T]) {
     def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
   }
 
-  //TODO insert connection and update post fails when one of the posts was deleted => we should do soft deletes
   object post {
-    private val insert = quote { (post: Post) => query[Post].insert(post).ignoreDuplicates } //TODO FIXME this should only DO NOTHING if id and title are equal to db row. now this will hide conflict on post ids!!
+    private val insert = quote { (post: RawPost) => query[RawPost].insert(post).ignoreDuplicates } //TODO FIXME this should only DO NOTHING if id and title are equal to db row. now this will hide conflict on post ids!!
 
     def createPublic(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = createPublic(Set(post))
     def createPublic(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(insert(_)))
+      val rawPosts = posts.map(RawPost(_, false))
+      ctx.run(liftQuery(rawPosts.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
@@ -49,7 +54,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def createOwned(post: Post, groupId: GroupId)(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.transaction { implicit ec =>
         for {
-          1 <- ctx.run(query[Post].insert(lift(post)))
+          1 <- ctx.run(insert(lift(RawPost(post, false))))
           1 <- ctx.run(query[Ownership].insert(lift(Ownership(post.id, groupId))))
         } yield true
       }.recoverValue(false)
@@ -62,13 +67,19 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def update(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))
     def update(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(post => query[Post].filter(_.id == post.id).update(post)))
+      ctx.run(liftQuery(posts.toList).foreach(post => query[RawPost].filter(_.id == post.id).update(_.title -> post.title)))
         .map(_.forall(_ == 1))
     }
 
     def delete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
     def delete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(postIds.toList).foreach(postId => query[Post].filter(_.id == postId).delete))
+      ctx.run(liftQuery(postIds.toList).foreach(postId => query[RawPost].filter(_.id == postId).update(_.isDeleted -> lift(true))))
+        .map(_.forall(_ == 1))
+    }
+
+    def undelete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
+    def undelete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(postIds.toList).foreach(postId => query[RawPost].filter(_.id == postId).update(_.isDeleted -> lift(false))))
         .map(_.forall(_ <= 1))
     }
 
