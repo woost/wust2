@@ -57,7 +57,7 @@ migrate)
 prod.http)
     on_stage prod
     compose down
-    compose up -d nginx-http
+    compose up postgres db-migration wust nginx
     ;;
 prod)
     compose down
