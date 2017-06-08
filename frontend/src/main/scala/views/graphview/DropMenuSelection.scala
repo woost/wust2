@@ -12,7 +12,7 @@ import scala.math._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-class DropMenuSelection(dropActions: js.Array[DropAction]) extends DataSelection[SimPost] {
+class DropMenuSelection(dropActions: js.Array[DropAction], d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
@@ -52,6 +52,10 @@ class DropMenuSelection(dropActions: js.Array[DropAction]) extends DataSelection
   }
 
   override def draw(menu: Selection[SimPost]) {
-    menu.attr("transform", (p: SimPost) => s"translate(${p.x}, ${p.y})")
+    menu.attr("transform", { (p: SimPost) =>
+      val x = d3State.transform.applyX(p.x)
+      val y = d3State.transform.applyY(p.y)
+      s"translate(${x}, ${y})"
+    })
   }
 }

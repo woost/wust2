@@ -61,7 +61,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val postMenuLayer = menuSvg.append("g")
   val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = SelectData.rxDraw(new DropMenuSelection(postDrag.dropActions), postDrag.closestPosts)(dropMenuLayer.append("g"))
+  val dropMenuSelection = SelectData.rxDraw(new DropMenuSelection(postDrag.dropActions, d3State), postDrag.closestPosts)(dropMenuLayer.append("g"))
 
   val controls = container.append(() => div(
     position.absolute, left := 5, top := 100,
@@ -158,7 +158,6 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
     postMenuLayer.attr("transform", transform.toString)
-    dropMenuLayer.attr("transform", transform.toString)
   }
 
   private def draw() {
