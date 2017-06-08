@@ -85,12 +85,12 @@ object DevView {
             def randomContainment: Option[Containment] = if (graph.containments.size > 0) Option((graph.containments.toIndexedSeq)(rInt(graph.containments.size))) else None
             val events: Array[() => Option[GraphChanges]] = {
               val distribution: List[(Int, () => Option[GraphChanges])] = (
-                (1, () => Option(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20))))))) ::
-                (1, () => randomPostId.map(p => GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20))))))) ::
-                (1, () => randomPostId.map(p => GraphChanges(delPosts = Set(p)))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addConnections = Set(Connection(p1, p2)))) ::
+                (4, () => Option(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20))))))) ::
+                (3, () => randomPostId.map(p => GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20))))))) ::
+                (2, () => randomPostId.map(p => GraphChanges(delPosts = Set(p)))) ::
+                (3, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addConnections = Set(Connection(p1, p2)))) ::
                 (2, () => randomConnection.map(c => GraphChanges(delConnections = Set(c)))) ::
-                (2, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addContainments = Set(Containment(p1, p2)))) ::
+                (3, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addContainments = Set(Containment(p1, p2)))) ::
                 (2, () => randomContainment.map(c => GraphChanges(delContainments = Set(c)))) ::
                 Nil
               )
@@ -100,7 +100,7 @@ object DevView {
 
             def emitRandomEvent() {
               if (syncEvents.now) randomEvent.foreach(state.persistence.addChanges)
-              else state.onEvents(randomEvent.map(NewGraphChanges(_)).toSeq)
+              else state.applyEvents(randomEvent.map(NewGraphChanges(_)).toSeq)
             }
             var interval: Option[SetIntervalHandle] = None
             val intervals = (
