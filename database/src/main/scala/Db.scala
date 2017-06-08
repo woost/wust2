@@ -40,6 +40,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object post {
+    // post ids are unique, so the methods can assume that at max 1 row was touched in each operation
+
     private val insert = quote { (post: RawPost) => query[RawPost].insert(post).ignoreDuplicates } //TODO FIXME this should only DO NOTHING if id and title are equal to db row. now this will hide conflict on post ids!!
 
     def createPublic(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = createPublic(Set(post))
@@ -47,7 +49,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       val rawPosts = posts.map(RawPost(_, false))
       ctx.run(liftQuery(rawPosts.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
-        .recoverValue(false)
     }
 
     //TODO: only used in tests
@@ -57,7 +58,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           1 <- ctx.run(insert(lift(RawPost(post, false))))
           1 <- ctx.run(query[Ownership].insert(lift(Ownership(post.id, groupId))))
         } yield true
-      }.recoverValue(false)
+      }
     }
 
     def get(postId: PostId)(implicit ec: ExecutionContext): Future[Option[Post]] = {
@@ -100,7 +101,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(ownerships: Set[Ownership])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(ownerships.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
-        .recoverValue(false)
     }
 
     def delete(ownership: Ownership)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(ownership))
@@ -117,7 +117,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
-        .recoverValue(false)
     }
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
@@ -134,7 +133,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(containments.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
-        .recoverValue(false)
     }
 
     def delete(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(containment))
