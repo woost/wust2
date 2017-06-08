@@ -168,10 +168,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def createImplicitUser()(implicit ec: ExecutionContext): Future[User] = {
       val user = newImplicitUser()
       val q = quote { query[User].insert(lift(user)).returning(_.id) }
-      val dbUser = ctx.run(q).map(id => user.copy(id = id))
-
-      //TODO in user create transaction with one query?
-      dbUser.flatMap(user => group.createForUser(user.id).map(_ => user))
+      ctx.run(q).map(id => user.copy(id = id))
     }
 
     def activateImplicitUser(id: UserId, name: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
