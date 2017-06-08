@@ -1,6 +1,8 @@
 package wust.frontend.views
 
-import org.scalajs.dom.raw.{ HTMLElement, HTMLFormElement, HTMLInputElement, HTMLTextAreaElement }
+import org.scalajs.dom.console
+import org.scalajs.dom.Event
+import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.KeyboardEvent
 import scalatags.JsDom.all._
@@ -31,6 +33,23 @@ object Elements {
         f(elem)
     }
   })
+
+  def inlineTextarea(submit: HTMLTextAreaElement => Any, cancel: () => Any) = {
+    textarea(
+      onkeypress := { (e: KeyboardEvent) =>
+        e.keyCode match {
+          case KeyCode.Enter if !e.shiftKey =>
+            e.preventDefault()
+            e.stopPropagation()
+            submit(e.target.asInstanceOf[HTMLTextAreaElement])
+          case _ =>
+        }
+      },
+      onblur := { (e: Event) =>
+        submit(e.target.asInstanceOf[HTMLTextAreaElement])
+      }
+    )
+  }
 
   val inputText = input(`type` := "text")
   val inputPassword = input(`type` := "password")

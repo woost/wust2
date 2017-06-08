@@ -4,7 +4,7 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState}
+import wust.frontend.{ DevOnly, GlobalState }
 import wust.graph._
 import wust.util.Pipe
 import scala.concurrent.ExecutionContext
@@ -38,7 +38,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag, onPostDragEnd)
-  import state.{displayGraph => rxDisplayGraph, _}
+  import state.{ displayGraph => rxDisplayGraph, _ }
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -57,9 +57,10 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val postSelection = SelectData.rx(new PostSelection(graphState, d3State, postDrag), rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
+  val postMenuLayer = container.append("div")
+  val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
+
   val menuSvg = container.append("svg")
-  val postMenuLayer = menuSvg.append("g")
-  val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("g"))
   val dropMenuLayer = menuSvg.append("g")
   val dropMenuSelection = SelectData.rxDraw(new DropMenuSelection(postDrag.dropActions, d3State), postDrag.closestPosts)(dropMenuLayer.append("g"))
 
@@ -155,9 +156,10 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
 
   private def zoomed() {
     import d3State.transform
+    val htmlTransformString = s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
     svg.selectAll("g").attr("transform", transform.toString)
-    html.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
-    postMenuLayer.attr("transform", transform.toString)
+    html.style("transform", htmlTransformString)
+    postMenuSelection.draw()
   }
 
   private def draw() {
