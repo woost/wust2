@@ -49,9 +49,9 @@ class ConnectionElementSelection(graphState: GraphState) extends DataSelection[S
     element
       // .style("left", (e: SimConnection) => s"${e.x.get}px")
       // .style("top", (e: SimConnection) => s"${e.y.get}px")
-      .style("transform", {(e: SimConnection) =>
+      .style("transform", { (e: SimConnection) =>
         val center = (e.source.pos.get + e.target.pos.get) / 2
-          s"translate(${center.x}px,${center.y}px)"
+        s"translate(${center.x}px,${center.y}px)"
       })
   }
 }
