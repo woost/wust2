@@ -85,11 +85,13 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit 
     simulation.stop()
   }
 
+  def closestTo(pos:Vec2) = simulation.find(pos.x, pos.y, dragHitDetectRadius / d3State.transform.k).toOption
+
   def postDragged(p: SimPost) {
     val draggingPost = p.draggingPost.get
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
-    val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
+    val closest = closestTo(transformedEventPos)
 
     p.dragClosest.foreach(_.isClosest= false)
     closest match {
@@ -110,7 +112,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit 
     val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
     val transformedEventPos = dragging.dragStart + (eventPos - dragging.dragStart) / transform.k
 
-    val closest = simulation.find(transformedEventPos.x, transformedEventPos.y, dragHitDetectRadius).toOption
+    val closest = closestTo(transformedEventPos)
     closest match {
       case Some(target) if target.id != dragging.id =>
 
