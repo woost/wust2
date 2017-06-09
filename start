@@ -76,8 +76,8 @@ test.postgres)
     compose down
     ;;
 test.integration)
-    compose down
-    compose up -d
+    compose rm -f -v
+    compose up -d --force-recreate
     compose run db-migration
     create_wust_template
     # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
