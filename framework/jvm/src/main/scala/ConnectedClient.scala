@@ -99,10 +99,11 @@ class ConnectedClient[Event, PublishEvent, Error, State](
               .sideEffect(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-            holder.events.foreach { events =>
-              // sideeffect: publish event to others
-              if (events.nonEmpty) publishEvents(sender, events)
-            }
+            for {
+              _ <- response // wait for the response to finish
+              events <- holder.events
+              if (events.nonEmpty)
+            } publishEvents(sender, events)
 
             val (newState, events) = switchState(state, holder.state)
             sendEvents(events)
