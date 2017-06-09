@@ -28,7 +28,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     graph.posts.map { p =>
       val sp = new SimPost(p)
 
-      def parents = rawGraph.parents(p.id)
+      def parents = rawGraph.consistent.parents(p.id)
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map(baseColor))
       def hasChildren = graph.children(p.id).nonEmpty
