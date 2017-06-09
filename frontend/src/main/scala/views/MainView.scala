@@ -2,25 +2,26 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Event, document, console}
+import org.scalajs.dom.{ Event, document, console, Element }
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import wust.frontend.{ DevOnly, GlobalState }
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
+import scalatags.JsDom.TypedTag
 import wust.api._
 import wust.graph._
-import wust.frontend.{RichPostFactory, Client}
+import wust.frontend.{ RichPostFactory, Client }
 import wust.util.EventTracker.sendEvent
 import scala.util.Try
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{SyncStatus, SyncMode}
+import wust.frontend.{ SyncStatus, SyncMode }
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -231,7 +232,7 @@ object MainView {
         div("Feedback"),
         form(
           feedbackField, br(),
-          if(!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }) else span(),
+          if (!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }) else span(),
           input (tpe := "submit", value := "submit"),
           onsubmit := { () =>
             val text = feedbackField.value
@@ -306,9 +307,9 @@ object MainView {
     ).render
   }
 
-  def topBar(state: GlobalState, viewPages: List[(ViewPage, Modifier)])(implicit ctx: Ctx.Owner) = {
+  def topBar(state: GlobalState, viewPages: List[ViewPage])(implicit ctx: Ctx.Owner) = {
     val lockToGroup = state.viewConfig.now.lockToGroup
-    if(lockToGroup)  {
+    if (lockToGroup) {
       div(
         padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
         display.flex, alignItems.center, justifyContent.spaceBetween,
@@ -318,9 +319,9 @@ object MainView {
 
           upButton(state),
           focusedParents(state)
-          ),
+        ),
 
-        if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
+        if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
         else div()
       )
     } else {
@@ -338,16 +339,16 @@ object MainView {
           newGroupButton(state)
         ),
 
-      if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
-      else div(),
+        if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
+        else div(),
 
-      syncStatus(state),
+        syncStatus(state),
 
-      div(
-        display.flex, alignItems.center, justifyContent.flexEnd,
-        UserView.topBarUserStatus(state)
+        div(
+          display.flex, alignItems.center, justifyContent.flexEnd,
+          UserView.topBarUserStatus(state)
+        )
       )
-    )
     }
   }
 
@@ -358,13 +359,13 @@ object MainView {
   }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
-    val router = new ViewPageRouter(state.viewPage)
-
     val viewPages = (
-      ViewPage.Graph -> GraphView(state, disableSimulation) ::
-      ViewPage.Tree -> TreeView(state) ::
+      ViewPage.Graph -> (() => GraphView(state, disableSimulation)) ::
+      ViewPage.Tree -> (() => TreeView(state)) ::
       Nil
     )
+
+    val viewPagesMap: Map[ViewPage, () => TypedTag[Element]] = viewPages.toMap
 
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
@@ -378,11 +379,11 @@ object MainView {
       alignItems.stretch,
       alignContent.stretch,
 
-      topBar(state, viewPages)(ctx)(minHeight := "min-content"),
-      router.map(viewPages)(flex := "1", overflow.auto),
+      topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
+      state.viewPage.map { x => viewPagesMap(x)().render },
       // bottomBar (state),
 
-      feedbackForm(state),
+      feedbackForm (state),
       DevOnly { devPeek(state) }
     )
   }

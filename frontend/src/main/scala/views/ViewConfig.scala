@@ -44,7 +44,7 @@ object ViewConfig {
     }
     val group = config.groupIdOpt.map(groupId => "group" -> Tag.unwrap(groupId).toString)
     //invite is not listed here, because we don't need to see it after joining the group
-    val lockToGroup = if(config.lockToGroup) Some("locktogroup" -> "true") else None
+    val lockToGroup = if (config.lockToGroup) Some("locktogroup" -> "true") else None
     val options = Seq(selection, group, lockToGroup).flatten.toMap
     Path(name, options)
   }
@@ -61,18 +61,4 @@ object ViewConfig {
 
     ViewConfig(page, selection, groupId, invite, lockToGroup)
   }
-}
-
-class ViewPageRouter(page: Rx[ViewPage])(implicit ctx: Ctx.Owner) {
-  def toggleDisplay(f: ViewPage => Boolean): Rx[String] =
-    page.map(m => if (f(m)) "block" else "none")
-
-  def showOn(pages: ViewPage*)(elem: TypedTag[Element]) =
-    showIf(pages.toSet)(elem)
-
-  def showIf(predicate: ViewPage => Boolean)(elem: TypedTag[Element]) =
-    elem(display := toggleDisplay(predicate))
-
-  def map(mappings: Seq[(ViewPage, TypedTag[Element])]) =
-    div(mappings.map { case (page, elem) => showOn(page)(elem) }: _*)
 }
