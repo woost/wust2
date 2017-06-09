@@ -13,7 +13,7 @@ package object graph {
 
   case class Ownership(postId: PostId, groupId: GroupId)
   case class Membership(userId: UserId, groupId: GroupId)
-  @derive((id, isImplicit) => Equality)
+  @derive((id, revision) => Equality)
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
   case class Group(id: GroupId)
 
