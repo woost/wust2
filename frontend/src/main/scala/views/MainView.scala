@@ -378,7 +378,7 @@ object MainView {
       alignContent.stretch,
 
       topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      state.viewPage.map { x => viewPagesMap(x)().render },
+      state.viewPage.map { x => viewPagesMap(x)()(flex := "1", overflow.auto).render },
       // bottomBar (state),
 
       feedbackForm (state),
