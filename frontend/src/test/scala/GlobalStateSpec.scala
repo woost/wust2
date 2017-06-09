@@ -48,28 +48,6 @@ class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {
       state.focusedPostId.now mustEqual None
     }
 
-    "be consistent with edited" in {
-      val state = new GlobalState
-      state.editedPostId() = Option("grenom")
-      state.editedPostId.now mustEqual None
-
-      state.rawGraph() = Graph(posts = List(Post("grenom", "title")))
-      state.editedPostId.now mustEqual Option(PostId("grenom"))
-
-      state.rawGraph() = Graph.empty
-      state.editedPostId.now mustEqual None
-    }
-
-    "be consistent with mode" in {
-      val state = new GlobalState
-      state.editedPostId() = Option("grenom")
-      state.focusedPostId() = Option("grenom")
-      state.mode.now mustEqual DefaultMode
-
-      state.rawGraph() = Graph(posts = List(Post("grenom", "title")))
-      state.mode.now mustEqual EditMode("grenom")
-    }
-
     "have view" in {
       val state = new GlobalState
       state.rawGraph() = Graph(
