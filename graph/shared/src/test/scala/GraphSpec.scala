@@ -133,6 +133,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
       (graph + newContainment) mustEqual Graph(graph.posts, graph.connections, containment :+ newContainment)
     }
 
+    "filter" in {
+      val connection: List[Connection] = List(Connection(1, 2), Connection(2, 3))
+      val containment: List[Containment] = List(Containment(1, 2), Containment(2, 3))
+      val graph = Graph(List(1, 2, 3), connection, containment)
+      (graph filter Set(PostId(1))) mustEqual Graph(List(1))
+      (graph filter Set(PostId(1), PostId(2))) mustEqual Graph(List(1,2), List(Connection(1, 2)), List(Containment(1,2)))
+    }
+
     "remove post" in {
       val connection: List[Connection] = List(Connection(1, 2), Connection(2, 3))
       val containment: List[Containment] = List(Containment(1, 2), Containment(2, 3))

@@ -164,6 +164,17 @@ package object graph {
     def -(containment: Containment) = copy(containments = containments - containment)
     def -(ownership: Ownership) = copy(ownerships = ownerships - ownership)
 
+    def filter(p: PostId => Boolean) = {
+      val newPostsById = postsById.filterKeys(p)
+
+      copy(
+        postsById = newPostsById,
+        connections = connections.filter{ c => newPostsById.isDefinedAt(c.sourceId) && newPostsById.isDefinedAt(c.targetId) },
+        containments = containments.filter{ c => newPostsById.isDefinedAt(c.parentId) && newPostsById.isDefinedAt(c.childId) },
+        ownerships = ownerships.filter { o => newPostsById.isDefinedAt(o.postId) }
+      )
+    }
+
     def removePosts(ps: Iterable[PostId]) = {
       val postIds = ps.toSet
 
