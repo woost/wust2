@@ -46,8 +46,8 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
         val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)
         simPostOpt.foreach { simPost =>
           simPost.fx = postCreatorMenu.pos.x 
-          simPost.fy = postCreatorMenu.pos.y + postCreatorMenu.ySimPostOffset + simPost.size.height / 2
-          postCreatorMenu.ySimPostOffset += simPost.size.height + 10
+          simPost.fy = postCreatorMenu.pos.y + postCreatorMenu.ySimPostOffset / d3State.transform.k + simPost.size.height / 2
+          postCreatorMenu.ySimPostOffset += (simPost.size.height + 10) * d3State.transform.k
         }
         field.value = ""
         false
