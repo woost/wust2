@@ -3,14 +3,29 @@ package wust.db
 import org.scalatest._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future, ExecutionContext }
 
 import wust.db.data._
 import wust.ids._
 
+import io.getquill._
+
 // TODO: Query-Probing: https://github.com/getquill/quill#query-probing
 // "Query probing validates queries against the database at compile time, failing the compilation if it is not valid. The query validation does not alter the database state."
+object DbSpec {
+  def createOwned(db: Db, post: Post, groupId: GroupId)(implicit ec: ExecutionContext): Future[Boolean] = {
+    import db.ctx, ctx._
+    ctx.transaction { implicit ec =>
+      for {
+        true <- db.post.createPublic(post)
+        true <- db.ownership(Ownership(post.id, groupId))
+      } yield true
+    }
+  }
+}
+
 class DbSpec extends DbIntegrationTestSpec with MustMatchers {
+  import DbSpec._
   implicit def passwordToDigest(pw: String): Array[Byte] = pw.map(_.toByte).toArray
   implicit class EqualityByteArray(val arr: Array[Byte]) {
     def mustEqualDigest(pw: String) = arr mustEqual passwordToDigest(pw)
@@ -23,7 +38,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       val post = Post("ei-D", "dono")
       for {
-        success <- db.post.createPublic(post)
+        success <- db.post.createPublic(Set(post))
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
@@ -34,59 +49,89 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
     }
 
-    //TODO: see db.scala
-    // "create public post (existing id)" in { db =>
-    //   import db._, db.ctx, ctx._
-    //   val post = Post("ei-D", "dono")
-    //   for {
-    //     _ <- db.post.createPublic(post)
-    //     success <- db.post.createPublic(Post("ei-D", "dino"))
-
-    //     queriedPosts <- ctx.run(query[Post])
-    //     queriedOwnerships <- ctx.run(query[Ownership])
-    //   } yield {
-    //     success mustBe false
-    //     queriedPosts must contain theSameElementsAs List(post)
-    //     queriedOwnerships mustBe empty
-    //   }
-    // }
-
-    "create owned post" in { db =>
+    "create two public posts" in { db =>
       import db._, db.ctx, ctx._
-      val post = Post("woink", "klang")
+      val post = Post("ei-D", "dono")
+      val post2 = Post("yogo", "girko")
       for {
-        // groupId <- ctx.run(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
-        groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-        success <- db.post.createOwned(post, groupId)
+        success <- db.post.createPublic(Set(post, post2))
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         success mustBe true
-
-        queriedPosts must contain theSameElementsAs List(post)
-        queriedOwnerships must contain theSameElementsAs List(Ownership(post.id, groupId))
+        queriedPosts must contain theSameElementsAs List(post, post2)
+        queriedOwnerships mustBe empty
       }
     }
 
-    "create owned post (existing)" in { db =>
+    "create public post (existing, same title)" in { db =>
       import db._, db.ctx, ctx._
-      val post = Post("woink", "klang")
+      val post = Post("ei-D", "dino")
       for {
-        _ <- db.post.createPublic(post)
-        // groupId <- ctx.run(query[UserGroup].insert(lift(UserGroup())).returning(_.id))
-        groupId <- ctx.run(infix"insert into usergroup(id) values(DEFAULT)".as[Insert[UserGroup]].returning(_.id))
-        success <- db.post.createOwned(post, groupId)
+        _ <- db.post.createPublic(Set(post))
+        success <- db.post.createPublic(Set(Post("ei-D", "dino")))
+
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
+      } yield {
+        success mustBe true
+        queriedPosts must contain theSameElementsAs List(post)
+        queriedOwnerships mustBe empty
+      }
+    }
+
+    "create two public posts (one existing, same title)" in { db =>
+      import db._, db.ctx, ctx._
+      val post = Post("ei-D", "dino")
+      val post2 = Post("dero", "funa")
+      for {
+        _ <- db.post.createPublic(Set(post))
+        success <- db.post.createPublic(Set(Post("ei-D", "dino"), post2))
+
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
+      } yield {
+        success mustBe true
+        queriedPosts must contain theSameElementsAs List(post, post2)
+        queriedOwnerships mustBe empty
+      }
+    }
+
+
+    "create public post (existing but different title)" in { db =>
+      import db._, db.ctx, ctx._
+      val post = Post("ei-D", "dono")
+      for {
+        _ <- db.post.createPublic(Set(post))
+        success <- db.post.createPublic(Set(Post("ei-D", "dino")))
 
         queriedPosts <- ctx.run(query[Post])
         queriedOwnerships <- ctx.run(query[Ownership])
       } yield {
         success mustBe false
-
         queriedPosts must contain theSameElementsAs List(post)
         queriedOwnerships mustBe empty
       }
     }
+
+    "create two public posts (one existing but different title)" in { db =>
+      import db._, db.ctx, ctx._
+      val post = Post("ei-D", "dono")
+      val post2 = Post("heide", "haha")
+      for {
+        _ <- db.post.createPublic(Set(post))
+        success <- db.post.createPublic(Set(Post("ei-D", "dino"), post2))
+
+        queriedPosts <- ctx.run(query[Post])
+        queriedOwnerships <- ctx.run(query[Ownership])
+      } yield {
+        success mustBe false
+        queriedPosts must contain theSameElementsAs List(post)
+        queriedOwnerships mustBe empty
+      }
+    }
+
 
     "get existing post" in { db =>
       import db._, db.ctx, ctx._
@@ -151,7 +196,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         success <- db.post.delete("135481")
         queriedPosts <- ctx.run(query[Post])
       } yield {
-        success mustBe true
+        success mustBe false
         queriedPosts mustBe empty
       }
     }
@@ -737,7 +782,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           Some(user) <- db.user("u2", "123456")
           Some(user2) <- db.user("other", "123456")
           Some((_, _, group)) <- db.group.createForUser(user2.id)
-          true <- db.post.createOwned(post, group.id)
+          true <- createOwned(db, post, group.id)
           hasAccess <- db.group.hasAccessToPost(user.id, post.id)
         } yield hasAccess mustBe false
       }
@@ -747,7 +792,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         for {
           Some(user) <- db.user("u3", "123456")
           Some((_, _, group)) <- db.group.createForUser(user.id)
-          true <- db.post.createOwned(post, group.id)
+          true <- createOwned(db, post, group.id)
           hasAccess <- db.group.hasAccessToPost(user.id, post.id)
         } yield hasAccess mustBe true
       }
@@ -793,7 +838,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           true <- db.post.createPublic(postA)
           postB = Post("B", "cehen")
           ownershipB = Ownership(postB.id, group.id)
-          true <- db.post.createOwned(postB, group.id)
+          true <- createOwned(db, postB, group.id)
           postC = Post("C", "geh")
           true <- db.post.createPublic(postC)
           conn = Connection(postA.id, postB.id)
@@ -875,7 +920,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           postB = Post("b", "asd")
           ownershipB = Ownership(postB.id, group.id)
 
-          true <- db.post.createOwned(postB, group.id)
+          true <- createOwned(db, postB, group.id)
           postC = Post("C", "derlei")
           true <- db.post.createPublic(postC)
 
@@ -913,8 +958,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           ownershipB = Ownership(postB.id, group.id)
           postC = Post("2d", "shon")
           ownershipC = Ownership(postC.id, otherGroup.id)
-          true <- db.post.createOwned(postB, group.id)
-          true <- db.post.createOwned(postC, otherGroup.id)
+          true <- createOwned(db, postB, group.id)
+          true <- createOwned(db, postC, otherGroup.id)
 
           conn = Connection(postA.id, postB.id)
           true <- db.connection(conn)

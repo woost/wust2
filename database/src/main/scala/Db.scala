@@ -51,16 +51,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         .map(_.forall(_ <= 1))
     }
 
-    //TODO: only used in tests
-    def createOwned(post: Post, groupId: GroupId)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.transaction { implicit ec =>
-        for {
-          1 <- ctx.run(insert(lift(RawPost(post, false))))
-          1 <- ctx.run(query[Ownership].insert(lift(Ownership(post.id, groupId))))
-        } yield true
-      }
-    }
-
     def get(postId: PostId)(implicit ec: ExecutionContext): Future[Option[Post]] = {
       ctx.run(query[Post].filter(_.id == lift(postId)).take(1))
         .map(_.headOption)
@@ -115,8 +105,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def apply(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
+      // This is a quill batch action:
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
-        .map(_.forall(_ <= 1))
+        .map(_.forall(_ <= 1)).recoverValue(false)
     }
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
@@ -132,7 +123,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(containment))
     def apply(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(containments.toList).foreach(insert(_)))
-        .map(_.forall(_ <= 1))
+        .map(_.forall(_ <= 1)).recoverValue(false)
     }
 
     def delete(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(containment))
