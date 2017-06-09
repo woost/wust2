@@ -37,10 +37,10 @@ case class GraphChanges(
     delOwnerships -- other.delOwnerships
   )
 
-  def withoutPosts(postIds: Set[PostId]) = copy(
-    addPosts = addPosts.filterNot(p => postIds(p.id)),
-    updatePosts = updatePosts.filterNot(p => postIds(p.id)),
-    delPosts = delPosts -- postIds
+  def filter(postIds: Set[PostId]) = copy(
+    addPosts = addPosts.filter(p => postIds(p.id)),
+    updatePosts = updatePosts.filter(p => postIds(p.id)),
+    delPosts = delPosts.filter(postIds)
   ).consistent
 
   lazy val consistent = GraphChanges(

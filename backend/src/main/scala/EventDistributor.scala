@@ -28,7 +28,8 @@ class EventDistributor(db: Db) {
       case _ => true
     }
 
-    postGroupsFromEvents(events).onComplete {
+    val postIds = events.flatMap(postIdsInEvent _).toSet
+    db.post.getGroupIds(postIds).onComplete {
       case Success(postGroups) =>
         val receivers = subscribers - sender
         sender.send(RequestEvent(nonGraphEvents, postGroups))
@@ -42,19 +43,5 @@ class EventDistributor(db: Db) {
   def postIdsInEvent(event: ApiEvent): Set[PostId] = event match {
     case NewGraphChanges(changes) => changes.addPosts.map(_.id) ++ changes.updatePosts.map(_.id) ++ changes.delPosts
     case _ => Set.empty
-  }
-
-  def postGroupsFromEvents(events: Seq[ApiEvent])(implicit ec: ExecutionContext): Future[Map[PostId, Set[GroupId]]] = {
-    val postIds = events.flatMap(postIdsInEvent _)
-
-    db.ctx.transaction { implicit ec =>
-      //TODO: we know the groups for addPosts already => addOwnerships
-      //TODO dont query for each post? needs to be chained => stored procedure
-      postIds.foldLeft(Future.successful(Map.empty[PostId, Set[GroupId]])) { (postGroups, postId) =>
-        postGroups.flatMap { postGroups =>
-          db.post.getGroups(postId).map(groups => postGroups + (postId -> groups.map(_.id).toSet))
-        }
-      }
-    }
   }
 }

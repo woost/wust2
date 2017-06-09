@@ -98,13 +98,12 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
 
     val postIds = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
     val ownGroups = state.graph.groups.map(_.id).toSet
-    val disallowedPostIds = postIds.flatMap { postId =>
-      postGroups.get(postId).map { groups =>
-        if (groups.isEmpty || (groups intersect ownGroups).nonEmpty) None
-        else Some(postId)
-      }.getOrElse(Some(postId)) //no knowledge about group, forbid
+    val allowedPostIds = postIds.flatMap { postId =>
+      val allowed = postGroups.get(postId).map(_ exists ownGroups).getOrElse(true)
+      if (allowed) Some(postId)
+      else None
     }
 
-    changes.consistent.withoutPosts(disallowedPostIds)
+    changes.consistent.filter(allowedPostIds)
   }
 }

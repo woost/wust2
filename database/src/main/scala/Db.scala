@@ -49,7 +49,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       val rawPosts = posts.map(RawPost(_, false))
       ctx.run(liftQuery(rawPosts.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
-    }
+            }
 
     def get(postId: PostId)(implicit ec: ExecutionContext): Future[Option[Post]] = {
       ctx.run(query[Post].filter(_.id == lift(postId)).take(1))
@@ -81,6 +81,16 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           usergroup <- query[UserGroup].filter(_.id == ownership.groupId)
         } yield usergroup
       }
+    }
+
+    def getGroupIds(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[PostId, Set[GroupId]]] = {
+      val q = quote {
+        infix"""
+        select ownership.* from unnest(${lift(postIds.toList)} :: varchar(36)[]) inputPostId join ownership on ownership.postid = inputPostId
+      """.as[Query[Ownership]]
+      }
+
+      ctx.run(q).map(_.groupBy(_.postId).mapValues(_.map(_.groupId).toSet))
     }
   }
 
@@ -178,21 +188,21 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       // ctx.run(q).map(revision => Some(user.copy(revision = revision)))
       ctx
         .run(query[User].filter(u => u.id == lift(id) && u.isImplicit == true))
-        .flatMap(_.headOption
-          .map { user =>
-            val updatedUser = user.copy(
-              name = name,
-              isImplicit = false,
-              revision = user.revision + 1
-            )
-            for {
-              _ <- ctx.run(
-                query[User].filter(_.id == lift(id)).update(lift(updatedUser))
+          .flatMap(_.headOption
+            .map { user =>
+              val updatedUser = user.copy(
+                name = name,
+                isImplicit = false,
+                revision = user.revision + 1
               )
-              _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
-            } yield Option(updatedUser)
-          }
-          .getOrElse(Future.successful(None)))
+              for {
+                _ <- ctx.run(
+                  query[User].filter(_.id == lift(id)).update(lift(updatedUser))
+                )
+                _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
+              } yield Option(updatedUser)
+            }
+            .getOrElse(Future.successful(None)))
         .recoverValue(None)
     }
 
