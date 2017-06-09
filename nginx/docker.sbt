@@ -6,7 +6,9 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
 
     new Dockerfile {
       from("nginx:1.11.8-alpine")
-      copy(baseDirectory(_ / "reverse-proxy.conf").value, "/etc/nginx/conf.d/default.conf")
+      copy(baseDirectory(_ / ".." / "common.include").value, "/etc/nginx/conf.d/common.include")
+      copy(baseDirectory(_ / ".." / "extra.include").value, "/nginx/extra.include")
+      copy(baseDirectory(_ / "default.conf").value, "/etc/nginx/conf.d/default.conf")
       copy(assetFolder, "/public")
     }
   },
@@ -15,7 +17,6 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
     ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = tagPostfix) ::
     ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = Some(tagPostfix.map(_ + "-").getOrElse("") + version.value)) ::
     Nil
-
 )
 
 lazy val nginx = project.in(file("."))

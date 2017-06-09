@@ -1,0 +1,33 @@
+add_header X-Content-Type-Options nosniff;
+
+# https://jakearchibald.com/2016/caching-best-practices
+add_header Cache-Control no-cache;
+
+root /public;
+
+location ~* \.(css|js|html)$ {
+
+    gzip_static on;
+    gzip_types application/javascript text/css;
+}
+
+location = / {
+    index index.html;
+}
+
+location = /ws {
+    proxy_pass http://wust:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # corresponds to application idle timeout
+    proxy_read_timeout 120s;
+}
+
+include /nginx/extra.include;
