@@ -6,7 +6,7 @@ import wust.api._
 import wust.frontend.views.{ ViewConfig, ViewPage }
 import wust.ids._
 import wust.graph._
-import org.scalajs.dom.window
+import org.scalajs.dom.{ window, console }
 import org.scalajs.dom.experimental.Notification
 import wust.util.EventTracker.sendEvent
 import vectory._
@@ -26,7 +26,7 @@ object SyncMode {
 }
 
 case class PostCreatorMenu(pos: Vec2) {
-  var ySimPostOffset:Double = 50
+  var ySimPostOffset: Double = 50
 }
 
 class GlobalState(implicit ctx: Ctx.Owner) {
@@ -84,8 +84,15 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val displayGraph = {
+    val groupLockFilter: Graph => Graph = if (viewConfig.now.lockToGroup) {
+      { graph =>
+        val groupPosts = selectedGroupId.now.map(graph.postsByGroupId).getOrElse(Set.empty)
+        graph.filter(groupPosts)
+      }
+    } else identity
+
     RxVar(rawGraph, Rx {
-      val graph = rawGraph().consistent
+      val graph = groupLockFilter(rawGraph().consistent)
       graphSelection() match {
         case GraphSelection.Root =>
           Perspective(currentView(), graph)

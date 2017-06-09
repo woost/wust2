@@ -28,11 +28,12 @@ object ViewPage {
   }
 }
 
-case class ViewConfig(page: ViewPage, selection: GraphSelection, groupIdOpt: Option[GroupId], invite: Option[String])
+case class ViewConfig(page: ViewPage, selection: GraphSelection, groupIdOpt: Option[GroupId], invite: Option[String], lockToGroup: Boolean)
 object ViewConfig {
+  val default = ViewConfig(ViewPage.default, GraphSelection.default, None, None, false)
   def fromHash(hash: Option[String]): ViewConfig = hash.collect {
     case Path(path) => pathToViewConfig(path)
-  }.getOrElse(ViewConfig(ViewPage.default, GraphSelection.default, None, None))
+  }.getOrElse(default)
 
   def toHash(config: ViewConfig): String = viewConfigToPath(config).toString
 
@@ -42,8 +43,9 @@ object ViewConfig {
       case GraphSelection.Union(ids) => "select" -> PathOption.StringList.toString(ids.map(Tag.unwrap _).toSeq)
     }
     val group = config.groupIdOpt.map(groupId => "group" -> Tag.unwrap(groupId).toString)
-    //do not store invite key in url
-    val options = Seq(selection, group).flatten.toMap
+    //invite is not listed here, because we don't need to see it after joining the group
+    val lockToGroup = if(config.lockToGroup) Some("locktogroup" -> "true") else None
+    val options = Seq(selection, group, lockToGroup).flatten.toMap
     Path(name, options)
   }
 
@@ -55,8 +57,9 @@ object ViewConfig {
     }
     val invite = path.options.get("invite")
     val groupId = path.options.get("group").flatMap(str => Try(GroupId(str.toLong)).toOption)
+    val lockToGroup = path.options.get("locktogroup").map(PathOption.Flag.parse).getOrElse(false)
 
-    ViewConfig(page, selection, groupId, invite)
+    ViewConfig(page, selection, groupId, invite, lockToGroup)
   }
 }
 

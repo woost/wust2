@@ -83,7 +83,7 @@ object Main extends js.JSApp {
       views.MainView(state).render
     )
 
-    document.onkeypress = { (e:KeyboardEvent) => 
+    document.onkeypress = { (e: KeyboardEvent) =>
       if (e.keyCode == KeyCode.Escape) {
         state.focusedPostId() = None
         state.postCreatorMenus() = Nil

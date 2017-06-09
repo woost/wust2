@@ -190,6 +190,8 @@ object MainView {
   }
 
   def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val lockToGroup = state.viewConfig.now.lockToGroup
+
     //TODO: Don't hardcode feedback postId
     val feedbackPostId = PostId("82")
 
@@ -205,7 +207,7 @@ object MainView {
 
     show.foreach {
       if (_)
-        setTimeout(300) {
+        setTimeout(100) {
           feedbackField.focus()
         }
     }
@@ -229,7 +231,7 @@ object MainView {
         div("Feedback"),
         form(
           feedbackField, br(),
-          button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }),
+          if(!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }) else span(),
           input (tpe := "submit", value := "submit"),
           onsubmit := { () =>
             val text = feedbackField.value
@@ -305,19 +307,36 @@ object MainView {
   }
 
   def topBar(state: GlobalState, viewPages: List[(ViewPage, Modifier)])(implicit ctx: Ctx.Owner) = {
-    div(
-      padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
-      display.flex, alignItems.center, justifyContent.spaceBetween,
-
+    val lockToGroup = state.viewConfig.now.lockToGroup
+    if(lockToGroup)  {
       div(
-        display.flex, alignItems.center, justifyContent.flexStart,
+        padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
+        display.flex, alignItems.center, justifyContent.spaceBetween,
 
-        upButton(state),
-        focusedParents(state),
-        groupSelector(state),
-        invitePopup(state),
-        newGroupButton(state)
-      ),
+        div(
+          display.flex, alignItems.center, justifyContent.flexStart,
+
+          upButton(state),
+          focusedParents(state)
+          ),
+
+        if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
+        else div()
+      )
+    } else {
+      div(
+        padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
+        display.flex, alignItems.center, justifyContent.spaceBetween,
+
+        div(
+          display.flex, alignItems.center, justifyContent.flexStart,
+
+          upButton(state),
+          focusedParents(state),
+          groupSelector(state),
+          invitePopup(state),
+          newGroupButton(state)
+        ),
 
       if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages.map(_._1)))
       else div(),
@@ -329,6 +348,7 @@ object MainView {
         UserView.topBarUserStatus(state)
       )
     )
+    }
   }
 
   def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
