@@ -1,12 +1,17 @@
 BEGIN;
-SELECT plan(21);
+SELECT plan(26);
 
 /* structure */
-SELECT col_not_null('post', 'title');
+SELECT col_not_null('rawpost', 'title');
+SELECT col_not_null('rawpost', 'isdeleted');
 SELECT col_not_null('connection', 'sourceid');
 SELECT col_not_null('connection', 'targetid');
 SELECT col_not_null('containment', 'parentid');
 SELECT col_not_null('containment', 'childid');
+SELECT col_not_null('ownership', 'postid');
+SELECT col_not_null('ownership', 'groupid');
+SELECT col_not_null('membership', 'userid');
+SELECT col_not_null('membership', 'groupid');
 
 /* insert small graph */
 SELECT isnt_empty(
