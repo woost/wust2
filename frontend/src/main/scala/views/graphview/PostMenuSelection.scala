@@ -37,7 +37,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now.contains(p.id)
       ) ::
         // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-        MenuAction("Delete", { (p: SimPost) => persistence.addChanges(delPosts = Set(p.id)); sendEvent("post", "delete", "api") }) ::
+        MenuAction("Delete", { (p: SimPost) => persistence.addChangesEnriched(delPosts = Set(p.id)); sendEvent("post", "delete", "api") }) ::
         // MenuAction(
         //   "Autopos",
         //   { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
@@ -69,7 +69,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
 
       def submitInsert(field: HTMLTextAreaElement) = {
         val newPost = Post.newId(field.value)
-        persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(simPost.id, newPost.id)))
+        persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = Set(Containment(simPost.id, newPost.id)))
         field.value = ""
         false
       }
@@ -85,7 +85,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
 
       def submitConnect(field: HTMLTextAreaElement) = {
         val newPost = Post.newId(field.value)
-        persistence.addChanges(
+        persistence.addChangesEnriched(
           addPosts = Set(newPost),
           addConnections = Set(Connection(newPost.id, simPost.id)),
           addContainments = GraphSelection.toContainments(graphState.state.graphSelection.now, newPost.id)

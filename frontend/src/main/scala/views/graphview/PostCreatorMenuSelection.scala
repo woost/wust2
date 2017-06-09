@@ -34,7 +34,6 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
       import org.scalajs.dom.{Event}
       import org.scalajs.dom.raw.{HTMLTextAreaElement}
       import scalatags.rx.all._
-      import graphState.state.persistence
       import Elements.{inlineTextarea, textareaWithEnter}
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
@@ -42,10 +41,10 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
 
       def submitInsert(field: HTMLTextAreaElement) = {
         val newPost = Post.newId(field.value)
-        persistence.addChanges(addPosts = Set(newPost)) //, addContainments = Set(Containment(simPost.id, newPost.id)))
+        persistence.addChangesEnriched(addPosts = Set(newPost))
         val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)
         simPostOpt.foreach { simPost =>
-          simPost.fx = postCreatorMenu.pos.x 
+          simPost.fx = postCreatorMenu.pos.x
           simPost.fy = postCreatorMenu.pos.y + postCreatorMenu.ySimPostOffset / d3State.transform.k + simPost.size.height / 2
           postCreatorMenu.ySimPostOffset += (simPost.size.height + 10) * d3State.transform.k
         }

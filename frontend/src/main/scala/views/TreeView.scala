@@ -72,7 +72,7 @@ object TreeView {
     "✖",
     onclick := { () =>
       val containments = GraphSelection.toContainments(state.graphSelection.now, postId)
-      state.persistence.addChanges(delPosts = Seq(postId), delContainments = containments)
+      state.persistence.addChangesEnriched(delPosts = Seq(postId), delContainments = containments)
     }
   )
 
@@ -149,11 +149,11 @@ object TreeView {
         c.parentMap.get(tree) match {
           case Some(parentTree) =>
             val newContainment = Containment(parentTree.element.id, newPost.id)
-            state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(newContainment), updatePosts = updatedPost.toSet)
+            state.persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = Set(newContainment), updatePosts = updatedPost.toSet)
           case None =>
             val selection = state.graphSelection.now
             val containments = GraphSelection.toContainments(selection, newPost.id)
-            state.persistence.addChanges(addPosts = Set(newPost), addContainments = containments, updatePosts = updatedPost.toSet)
+            state.persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = containments, updatePosts = updatedPost.toSet)
         }
         false
       case KeyCode.Tab => event.shiftKey match {

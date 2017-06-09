@@ -89,6 +89,22 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     delContainments: Iterable[Containment] = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
   )(implicit ec: ExecutionContext): Unit = {
+    val newChanges = GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
+
+    addChanges(newChanges)
+  }
+
+  def addChangesEnriched(
+    addPosts:        Iterable[Post]        = Set.empty,
+    addConnections:  Iterable[Connection]  = Set.empty,
+    addContainments: Iterable[Containment] = Set.empty,
+    addOwnerships:   Iterable[Ownership]   = Set.empty,
+    updatePosts:     Iterable[Post]        = Set.empty,
+    delPosts:        Iterable[PostId]      = Set.empty,
+    delConnections:  Iterable[Connection]  = Set.empty,
+    delContainments: Iterable[Containment] = Set.empty,
+    delOwnerships:   Iterable[Ownership]   = Set.empty
+  )(implicit ec: ExecutionContext): Unit = {
     val newChanges = enrichChanges(
       GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
     )
