@@ -4,7 +4,6 @@ import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLElement
 import rxext._
 import wust.frontend._
-import wust.frontend.views.Views
 import wust.util.collection._
 import wust.util.EventTracker.sendEvent
 
@@ -17,7 +16,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
 
   override val tag = "div"
   override def enter(post: Enter[SimPost]) {
-    post.append((simPost: SimPost) => Views.post(simPost.post)(
+    post.append((simPost: SimPost) => GraphView.postView(simPost.post)(
       title := simPost.title,
       position.absolute,
       pointerEvents.auto, // reenable

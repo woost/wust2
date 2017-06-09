@@ -36,6 +36,15 @@ object GraphView {
       div().render sideEffect (new GraphView(state, _, disableSimulation))
     )
   }
+
+  def postView(post: Post) = div(
+    post.title,
+    maxWidth := "10em",
+    wordWrap := "break-word",
+    padding := "3px 5px",
+    border := "1px solid #444",
+    borderRadius := "3px"
+  )
 }
 
 class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {

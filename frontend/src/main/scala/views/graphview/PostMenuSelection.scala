@@ -9,8 +9,8 @@ import wust.frontend._
 import wust.util.collection._
 import wust.ids._
 import wust.graph._
-import wust.frontend.views.{Views, Elements}
-import org.scalajs.dom.raw.{HTMLElement}
+import wust.frontend.views.{ Elements }
+import org.scalajs.dom.raw.{ HTMLElement }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
@@ -52,11 +52,11 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
       import graphState.rxFocusedSimPost
       import graphState.rxPostIdToSimPost
       import scalatags.JsDom.all._
-      import org.scalajs.dom.{Event}
-      import org.scalajs.dom.raw.{HTMLTextAreaElement}
+      import org.scalajs.dom.{ Event }
+      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
       import scalatags.rx.all._
       import graphState.state.persistence
-      import Elements.{inlineTextarea, textareaWithEnter}
+      import Elements.{ inlineTextarea, textareaWithEnter }
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
       def div = span(display.block) // this is a workaround to avoid using divs

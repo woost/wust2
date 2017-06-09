@@ -3,7 +3,6 @@ package wust.frontend.views.graphview
 import org.scalajs.d3v4._
 import rx._
 import vectory._
-import wust.frontend.views.Views
 import autowire._
 import boopickle.Default._
 import wust.frontend.Client
@@ -19,7 +18,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
   override def enter(post: Enter[SimPost]) {
     post.append { (simPost: SimPost) =>
-      Views.post(simPost.post)(
+      GraphView.postView(simPost.post)(
         position.absolute,
         cursor.move,
         opacity := 0.5,
@@ -85,7 +84,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit 
     simulation.stop()
   }
 
-  def closestTo(pos:Vec2) = simulation.find(pos.x, pos.y, dragHitDetectRadius / d3State.transform.k).toOption
+  def closestTo(pos: Vec2) = simulation.find(pos.x, pos.y, dragHitDetectRadius / d3State.transform.k).toOption
 
   def postDragged(p: SimPost) {
     val draggingPost = p.draggingPost.get

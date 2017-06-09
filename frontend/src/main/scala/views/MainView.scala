@@ -53,14 +53,12 @@ object MainView {
     div(
       selection.parentIds.toSeq.map { parentId =>
         val post = graph.postsById(parentId)
-        Views.post(post)(
-          backgroundColor := baseColor(post.id).toString
-        // ,span(
-        //   "×",
-        //   padding := "0 0 0 3px",
-        //   cursor.pointer,
-        //   onclick := { () => state.graphSelection.updatef { _ remove parentId } }
-        // )
+        span(
+          post.title,
+          backgroundColor := baseColor(post.id).toString,
+          fontWeight.bold,
+          margin := "2px", padding := "1px 5px 1px 5px",
+          borderRadius := "2px"
         )
       }
     ).render
