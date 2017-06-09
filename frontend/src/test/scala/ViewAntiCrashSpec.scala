@@ -14,7 +14,7 @@ import scala.collection.immutable._
 
 class ViewsExamples extends Tables {
   DevOnly.enabled = false
-  def views = Table("views", AddPostForm(_), TreeView(_), GraphView(_: GlobalState, disableSimulation = true), MainView(_: GlobalState, disableSimulation = true))
+  def views = Table("views", TreeView(_), GraphView(_: GlobalState, disableSimulation = true), MainView(_: GlobalState, disableSimulation = true))
 }
 
 class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers with LocalStorageMock {
@@ -34,25 +34,6 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
       state.focusedPostId() = Option("heinz")
       view(state).render
       state.focusedPostId() = None
-    }
-  }
-
-  "editing post" in new ViewsExamples {
-    forAll(views) { view =>
-      val state = new GlobalState
-      state.rawGraph() = Graph(List(Post("heinz", "wust")))
-      view(state).render
-      state.editedPostId() = Option("heinz")
-    }
-  }
-
-  "stop editing post" in new ViewsExamples {
-    forAll(views) { view =>
-      val state = new GlobalState
-      state.rawGraph() = Graph(List(Post("heinz", "wust")))
-      state.editedPostId() = Option("heinz")
-      view(state).render
-      state.editedPostId() = None
     }
   }
 
@@ -129,31 +110,11 @@ class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with Mus
     }
   }
 
-  "deleting editing post" in new ViewsExamples {
-    forAll(views) { view =>
-      val state = new GlobalState
-      state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
-      state.editedPostId() = Option("heinz")
-      view(state).render
-      state.rawGraph.updatef(_ - PostId("heinz"))
-    }
-  }
-
   "updating focused post" in new ViewsExamples {
     forAll(views) { view =>
       val state = new GlobalState
       state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
       state.focusedPostId() = Option("heinz")
-      view(state).render
-      state.rawGraph.updatef(_ + Post("heinz", "wurst"))
-    }
-  }
-
-  "updating editing post" in new ViewsExamples {
-    forAll(views) { view =>
-      val state = new GlobalState
-      state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
-      state.editedPostId() = Option("heinz")
       view(state).render
       state.rawGraph.updatef(_ + Post("heinz", "wurst"))
     }
