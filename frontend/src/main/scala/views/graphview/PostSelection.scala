@@ -34,7 +34,11 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       })
       .call(d3.drag[SimPost]()
         .clickDistance(5) // interpret short drags as clicks
-        .on("start", postDragStarted _)
+        .on("start", { (simPost: SimPost) =>
+          graphState.state.focusedPostId() = None
+          graphState.state.postCreatorMenus() = Nil
+          postDragStarted(simPost)
+        })
         .on("drag", postDragged _)
         .on("end", postDragEnded _))
   }
