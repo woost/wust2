@@ -2,7 +2,7 @@
 set -e
 set -o pipefail
 
-script_file="$(readlink -f '$0')"
+script_file="$(readlink -f "$0")"
 script_dir="$(dirname $script_file)"
 
 stage="$1"
