@@ -158,10 +158,17 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
         state.postCreatorMenus() = Nil
       }
     })
-    d3State.simulation.on("tick", draw _)
+    var initialSimulation = true
+    container.style("display", "none")
+    d3State.simulation.on("tick", () => if (!initialSimulation) draw())
     d3State.simulation.on("end", { () =>
       rxSimPosts.now.foreach { simPost =>
         simPost.fixedPos = simPost.pos
+      }
+      if (initialSimulation) {
+        container.style("display", "block")
+        draw()
+        initialSimulation = false
       }
       DevOnly { println("simulation ended.") }
     })
