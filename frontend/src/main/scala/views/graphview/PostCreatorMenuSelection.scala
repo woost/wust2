@@ -80,7 +80,7 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
         )
       ).render
 
-      setTimeout(200) { // TODO: this is a workaround
+      setTimeout(100) { // TODO: this is a workaround
         insertField.focus()
       }
 
