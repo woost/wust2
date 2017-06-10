@@ -104,6 +104,7 @@ lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
+      "com.lihaoyi" %%% "sourcecode" % "0.1.3" ::
       Nil
     )
   )
