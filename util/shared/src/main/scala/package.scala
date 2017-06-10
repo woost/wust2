@@ -3,7 +3,6 @@ package wust
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
-import sourcecode.FullName
 
 package object util {
   implicit class Pipe[T](val v: T) extends AnyVal {
@@ -18,19 +17,19 @@ package object util {
 
   implicit class RichFuture[A](val fut: Future[A]) extends AnyVal {
     def recoverValueWithoutLog(a: A)(implicit ec: ExecutionContext) = fut.recover { case NonFatal(_) => a }
-    def recoverValue(a: A)(implicit ec: ExecutionContext, name: sourcecode.FullName) = fut.recover {
+    def recoverValue(a: A)(implicit ec: ExecutionContext, name: sourcecode.FullName, line: sourcecode.Line) = fut.recover {
       case NonFatal(e) =>
-        scribe.error(name)
+        scribe.error(s"${name.value}:${line}")
         scribe.error(e)
         a
     }
-    def log(topic: String)(implicit ec: ExecutionContext) = {
+    def log(implicit ec: ExecutionContext, name: sourcecode.FullName, line: sourcecode.Line) = {
       fut.onComplete {
         case Success(res) =>
-          scribe.info(topic)
+          scribe.info(s"${name.value}:${line.value}")
           scribe.info(res)
         case Failure(e) =>
-          scribe.error(topic)
+          scribe.error(s"${name.value}:${line.value}")
           scribe.error(e)
       }
       fut

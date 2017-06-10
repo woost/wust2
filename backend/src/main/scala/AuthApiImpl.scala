@@ -43,7 +43,7 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
         //TODO integrate result into response?
         implicitAuth.foreach { implicitAuth =>
           //TODO: propagate name change to the respective groups
-          db.user.mergeImplicitUser(implicitAuth.user.id, user.id).log("authapi login")
+          db.user.mergeImplicitUser(implicitAuth.user.id, user.id).log
         }
 
         (Some(JWT.generateAuthentication(user)), true)
