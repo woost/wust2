@@ -5,13 +5,17 @@ import wust.frontend.Color._
 
 import scala.collection.breakOut
 import scala.scalajs.js
+import Math._
+import vectory._
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
   val posts = children :+ parent
-  def maxRadius = (posts.maxBy(_.radius).radius) min 150 //TODO: global constant
+  val n = 32
+  val step = PI * 2.0 / n
+  def circleSamples(post: SimPost) = for (i <- 0 until n; a = i * step) yield { Vec2(cos(a), sin(a)) * post.radius + post.pos.get } //TODO: memoize
 
-  def positions: js.Array[js.Array[Double]] = posts.map(post => js.Array(post.x.asInstanceOf[Double], post.y.asInstanceOf[Double]))(breakOut)
+  def positions: js.Array[js.Array[Double]] = posts.flatMap(post => circleSamples(post).map(pos => js.Array(pos.x, pos.y)))(breakOut)
   def convexHull: js.Array[js.Array[Double]] = {
     val hull = d3.polygonHull(positions)
     //TODO: how to correctly handle scalajs union type?
@@ -40,8 +44,7 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   override def draw(hull: Selection[ContainmentCluster]) {
     hull
       .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
-      //TODO: maxRadius is calculated every frame, make it reactive
-      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius * 2 + cluster.depth * 15}px") // *2 because the stroke is half inward, half outward
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.depth * 15}px") // *2 because the stroke is half inward, half outward
       .style("opacity", (cluster: ContainmentCluster) => cluster.parent.opacity * 0.8)
   }
 }
@@ -66,7 +69,7 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
   override def draw(hull: Selection[ContainmentCluster]) {
     hull
       .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
-      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.maxRadius + cluster.depth * 15}px") //TODO: maxRadius is calculated every frame, make it reactive
+      .style("stroke-width", (cluster: ContainmentCluster) => s"${cluster.depth * 15}px")
       .style("opacity", (cluster: ContainmentCluster) => cluster.parent.opacity * 0.4)
   }
 }
