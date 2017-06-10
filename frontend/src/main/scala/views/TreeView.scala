@@ -244,7 +244,7 @@ object TreeView {
 
     //TODO: better?
     if (focusedPostId.map(_ == post.id).getOrElse(false)) {
-      setTimeout(40) { focusAndSetCursor(area) }
+      setTimeout(60) { focusAndSetCursor(area) }
     }
 
     div(
@@ -254,6 +254,35 @@ object TreeView {
       area,
       movePoint(post.id),
       deleteButton(state, post.id)
+    )
+  }
+
+  def newItem(state: GlobalState)(implicit ctx: Ctx.Owner): Frag = {
+    val area = textfield(
+      "",
+      onblur := { (event: Event) =>
+        val elem = event.target.asInstanceOf[HTMLElement]
+        val text = elem.textContent
+        if (text.nonEmpty) {
+          val addPost = Post.newId(text)
+          state.persistence.addChangesEnriched(addPosts = Set(addPost))
+        }
+      },
+      onkeydown := { (event: KeyboardEvent) =>
+        onKey(event) {
+          case KeyCode.Enter if !event.shiftKey =>
+            event.target.asInstanceOf[HTMLElement].blur()
+            false
+        }
+      }
+    ).render
+
+    setTimeout(60) { focusAndSetCursor(area) }
+
+    div(
+      display.flex,
+      "create new post: ",
+      area
     )
   }
 
@@ -285,9 +314,10 @@ object TreeView {
       val trees = rootPosts.map(redundantSpanningTree[Post](_, postChildren _))
       val context = new TreeContext(trees: _*)
 
+      val items = trees.map(postTreeItem(state, context, _))
       div(
         padding := "100px",
-        trees.map(postTreeItem(state, context, _))
+        if (items.isEmpty) Seq(newItem(state)) else items
       ).render
     })
   }
