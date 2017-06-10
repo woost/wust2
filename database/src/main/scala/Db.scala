@@ -149,28 +149,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     private def newRealUser(name: String): User = User(DEFAULT, name, isImplicit = false, initialRevision)
     private def newImplicitUser(): User = User(DEFAULT, implicitUserName, isImplicit = true, initialRevision)
 
-    private val createUserAndPassword = quote { (name: String, digest: Array[Byte]) =>
-      val revision = lift(initialRevision)
-      infix"""with ins as (
-        insert into "user"(id, name, isImplicit, revision) values(DEFAULT, $name, false, $revision) returning id
-      ) insert into password(id, digest) select id, $digest from ins"""
-        .as[Insert[User]]
-    }
-
-    private val createPasswordAndUpdateUser = quote {
-      (id: UserId, name: String, digest: Array[Byte]) =>
-        infix"""with ins as (
-        insert into password(id, digest) values($id, $digest)
-      ) update "user" where id = $id and isImplicit = true set name = $name, revision = revision + 1, isImplicit = false returning revision"""
-          .as[Query[Int]] //TODO update? but does not support returning?
-    }
-
-    def apply(name: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
+    def apply(name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
       val user = newRealUser(name)
-      val userIdQuote = quote {
-        createUserAndPassword(lift(name), lift(passwordDigest)).returning(_.id)
-      }
-      ctx.run(userIdQuote)
+      val q = quote { infix"""
+        with ins as (
+          insert into "user" values(DEFAULT, ${lift(user.name)}, ${lift(user.revision)}, false) returning id
+        ) insert into password(id, digest) select id, ${lift(digest)} from ins
+      """.as[Insert[User]].returning(_.id) }
+
+      ctx.run(q)
         .map(id => Option(user.copy(id = id)))
         .recoverValue(None)
     }
@@ -181,33 +168,41 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       ctx.run(q).map(id => user.copy(id = id))
     }
 
+    //TODO one query
     def activateImplicitUser(id: UserId, name: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-      //TODO
-      // val user = User(id, name)
-      // val q = quote { createPasswordAndUpdateUser(lift(id), lift(name), lift(passwordDigest)) }
-      // ctx.run(q).map(revision => Some(user.copy(revision = revision)))
-      ctx
-        .run(query[User].filter(u => u.id == lift(id) && u.isImplicit == true))
-          .flatMap(_.headOption
-            .map { user =>
-              val updatedUser = user.copy(
-                name = name,
-                isImplicit = false,
-                revision = user.revision + 1
-              )
-              for {
-                _ <- ctx.run(
-                  query[User].filter(_.id == lift(id)).update(lift(updatedUser))
-                )
-                _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
-              } yield Option(updatedUser)
-            }
-            .getOrElse(Future.successful(None)))
-        .recoverValue(None)
+      ctx.transaction { implicit ec =>
+        ctx.run(query[User].filter(u => u.id == lift(id) && u.isImplicit == true))
+          .flatMap(_.headOption.map { user =>
+            val updatedUser = user.copy(
+              name = name,
+              isImplicit = false,
+              revision = user.revision + 1
+            )
+            for {
+              _ <- ctx.run(query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
+              _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
+            } yield Option(updatedUser)
+          }.getOrElse(Future.successful(None)))
+      }.recoverValue(None)
     }
 
     //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
-    // def mergeImplicitUser(id: UserId, userId: UserId): Future[Boolean]
+    def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+      if (implicitId == userId) Future.successful(false)
+      else {
+        val q = quote { infix"""
+          with existingUser as (
+            DELETE FROM "user" WHERE id = ${lift(implicitId)} AND isimplicit = true AND EXISTS (SELECT id FROM "user" WHERE id = ${lift(userId)} AND isimplicit = false) RETURNING id
+          ), update as (
+            DELETE FROM membership using existingUser WHERE userid = existingUser.id RETURNING groupId
+          )
+          INSERT INTO membership select groupid, ${lift(userId)} from update ON CONFLICT DO NOTHING;
+        """.as[Delete[User]] }
+
+        //TODO: cannot detect failures?
+        ctx.run(q).map(_ => true)
+      }
+    }
 
     def get(id: UserId)(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.run(query[User].filter(_.id == lift(id)).take(1))

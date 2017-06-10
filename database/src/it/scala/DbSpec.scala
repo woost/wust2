@@ -534,6 +534,19 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
     }
 
+    "activate non-implicit user to non-existing" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(normalUser) <- db.user("perisol", "heulum")
+        None <- db.user.activateImplicitUser(normalUser.id, "ganiz", "faura")
+        queriedUserDigest <- db.user.getUserAndDigest("ganiz")
+        Some(queriedNormalUser) <- db.user.get(normalUser.id)
+      } yield {
+        queriedNormalUser mustEqual normalUser
+        queriedUserDigest mustEqual None
+      }
+    }
+
     "try to activate implicit user to existing with same password" in { db =>
       import db._, db.ctx, ctx._
       for {
@@ -565,6 +578,100 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         queriedPasswords.size mustEqual 1
         queriedUser mustEqual existingUser
         queriedDigest mustEqualDigest "heuriso"
+      }
+    }
+
+    "merge implicit user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        implUser <- db.user.createImplicitUser()
+        Some((`implUser`, membership, group)) <- db.group.createForUser(implUser.id)
+        Some(normalUser) <- db.user("harals", Array.empty[Byte])
+        success <- db.user.mergeImplicitUser(implUser.id, normalUser.id)
+        queriedImplUser <- db.user.get(implUser.id)
+        queriedNormalUser <- db.user.get(normalUser.id)
+        queryMemberships <- ctx.run(query[Membership])
+      } yield {
+        success mustEqual true
+        queriedImplUser mustEqual None
+        queriedNormalUser mustEqual Some(normalUser)
+        queryMemberships must contain theSameElementsAs List(Membership(normalUser.id, group.id))
+      }
+    }
+
+    "merge two implicit users" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        implUser <- db.user.createImplicitUser()
+        implUser2 <- db.user.createImplicitUser()
+        success <- db.user.mergeImplicitUser(implUser.id, implUser2.id)
+        queriedImplUser <- db.user.get(implUser.id)
+        queriedImplUser2 <- db.user.get(implUser2.id)
+      } yield {
+        success mustEqual true
+        queriedImplUser mustEqual Some(implUser)
+        queriedImplUser2 mustEqual Some(implUser2)
+      }
+    }
+
+    "merge real user with real user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        implUser <- db.user.createImplicitUser()
+        Some(normalUser) <- db.user("harals", Array.empty[Byte])
+        Some(normalUser2) <- db.user("rodora", Array.empty[Byte])
+        success <- db.user.mergeImplicitUser(normalUser.id, normalUser2.id)
+        queriedNormalUser <- db.user.get(normalUser.id)
+        queriedNormalUser2 <- db.user.get(normalUser2.id)
+      } yield {
+        success mustEqual true //TODO
+        queriedNormalUser mustEqual Some(normalUser)
+        queriedNormalUser2 mustEqual Some(normalUser2)
+      }
+    }
+
+    "merge implicit user with non-existing user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        implUser <- db.user.createImplicitUser()
+        success <- db.user.mergeImplicitUser(implUser.id, UserId(-1))
+        queriedImplUser <- db.user.get(implUser.id)
+      } yield {
+        success mustEqual true //TODO
+        queriedImplUser mustEqual Some(implUser)
+      }
+    }
+
+    "merge non-existing implicit user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        Some(normalUser) <- db.user("harals", Array.empty[Byte])
+        success <- db.user.mergeImplicitUser(UserId(-1), normalUser.id)
+        queriedNormalUser <- db.user.get(normalUser.id)
+      } yield {
+        success mustEqual true //TODO
+        queriedNormalUser mustEqual Some(normalUser)
+      }
+    }
+
+    "merge implicit user with both non-existing" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        success <- db.user.mergeImplicitUser(UserId(-1), UserId(-2))
+      } yield {
+        success mustEqual true //TODO
+      }
+    }
+
+    "merge same implicit user" in { db =>
+      import db._, db.ctx, ctx._
+      for {
+        implUser <- db.user.createImplicitUser()
+        success <- db.user.mergeImplicitUser(implUser.id, implUser.id)
+        queriedImplUser <- db.user.get(implUser.id)
+      } yield {
+        success mustEqual false
+        queriedImplUser mustEqual Some(implUser)
       }
     }
 

@@ -1,6 +1,7 @@
 package wust.backend
 
 import org.scalatest._
+import org.mockito.Mockito._
 import org.mockito.{ArgumentMatchers => Args}
 import wust.backend.auth.JWT
 import wust.graph._
@@ -119,6 +120,23 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       }
     }
 
+    "merge implicit user" in mockDb { db =>
+      db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
+      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
+      db.user.mergeImplicitUser(Args.eq(UserId(13)), Args.eq(UserId(0)))(Args.any()) returnsFuture true
+
+      val user = User(13, "reiter der tafelrunde", true, 0)
+      val auth = JWT.generateAuthentication(user)
+
+      onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map {
+        case (state, events, result) =>
+          verify(db.user, times(1)).mergeImplicitUser(UserId(13), UserId(0))
+          state.auth.map(_.user.name) mustEqual Some("torken")
+          events.size mustEqual 0
+          result mustEqual true
+      }
+    }
+
     "get fails and forgets real user" in mockDb { db =>
       db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture None
 
@@ -133,7 +151,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
       }
     }
 
-    "get fails and forgets implicit user" in mockDb { db =>
+    "get fails and remembers implicit user" in mockDb { db =>
       db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture None
 
       val user = User(13, "anonieter", true, 0)
@@ -141,7 +159,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
       onAuthApi(State.initial.copy(auth = Option(auth)), db = db)(_.login("torken", "sanh")).map {
         case (state, events, result) =>
-          state.auth mustEqual None
+          state.auth mustEqual Some(auth)
           events.size mustEqual 0
           result mustEqual false
       }
