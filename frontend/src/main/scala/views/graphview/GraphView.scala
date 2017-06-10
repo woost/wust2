@@ -159,12 +159,12 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     svg.call(d3State.zoom)
 
     svg.on("click", { () =>
-      focusedPostId() = None
-      if (state.postCreatorMenus.now.size == 0) {
+      if (state.postCreatorMenus.now.size == 0 && focusedPostId.now == None) {
         val pos = d3State.transform.invert(d3.mouse(svg.node))
         state.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
       } else {
         state.postCreatorMenus() = Nil
+        focusedPostId() = None
       }
     })
     var initialSimulation = true
