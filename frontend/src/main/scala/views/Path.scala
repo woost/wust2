@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import scala.util.Try
 
-case class Path(name: String, options: Map[String,String]) {
+case class Path(name: String, options: Map[String, String]) {
   override def toString: String = {
     if (options.isEmpty) name
     else name + "?" + mapToQuery(options)
@@ -12,20 +12,24 @@ case class Path(name: String, options: Map[String,String]) {
     query.map { case (k, v) => s"$k=$v" }.mkString("&")
 }
 object Path {
-  private val pathRe = "([^?]+)(?:\\?([^=]+=[^&]+(?:&[^=]+=[^&]+)*))?".r
+  // the regex allows a trailing "&"
+  private val pathRe = "([^?]+)(?:\\?([^=]+=[^&]+(?:&[^=]+=[^&]+)*))?\\&?".r
 
   def unapply(str: String): Option[Path] = str match {
     case pathRe(path, query) =>
       val map = Option(query).map(queryToMap).getOrElse(Map.empty)
       Option(Path(path, map))
-    case _ => None
+    case _ =>
+      None
   }
 
-  private def queryToMap(query: String): Map[String, String] =
-    query.split("&").map { parts =>
+  private def queryToMap(query: String): Map[String, String] = {
+    // nonEmpty is for the empty part after a trailing "&"
+    query.split("&").filter(_.nonEmpty).map { parts =>
       val Array(key, value) = parts.split("=")
       key -> value
     }.toMap
+  }
 }
 
 object PathOption {
