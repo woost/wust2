@@ -35,7 +35,7 @@ class PathSpec extends FreeSpec with MustMatchers {
     }
 
     "suffix &" in {
-      Path.unapply("graph?foo=bar&") mustEqual None
+      Path.unapply("graph?foo=bar&") mustEqual Some(Path("graph", Map("foo" -> "bar")))
     }
   }
 
