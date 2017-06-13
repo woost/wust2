@@ -48,7 +48,10 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       addPosts.map(p => Ownership(p.id, groupId))
     }
 
-    val toContain = addPosts.flatMap{p => GraphSelection.toContainments(state.graphSelection.now, p.id)}
+    val containedPosts = addContainments.map(_.childId)
+    val toContain = addPosts
+      .filterNot(p => containedPosts(p.id))
+      .flatMap(p => GraphSelection.toContainments(state.graphSelection.now, p.id))
 
     changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
   }
