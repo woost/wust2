@@ -5,8 +5,8 @@ import org.scalajs.dom
 import rx._
 import wust.frontend.Color._
 import wust.frontend.PostCreatorMenu
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.{ console }
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.{console}
 import wust.graph._
 import wust.util.Pipe
 import scala.concurrent.ExecutionContext
@@ -51,7 +51,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag, onPostDragEnd)
-  import state.{ displayGraph => rxDisplayGraph, _ }
+  import state.{displayGraph => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
@@ -155,7 +155,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   private def initEvents(): Unit = {
     d3State.zoom
       .on("zoom", zoomed _)
-      .clickDistance(5) // interpret short drags as clicks
+      .clickDistance(10) // interpret short drags as clicks
     svg.call(d3State.zoom)
 
     svg.on("click", { () =>
