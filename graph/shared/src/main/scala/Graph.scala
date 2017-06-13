@@ -64,6 +64,8 @@ package object graph {
     usersById:    Map[UserId, User],
     memberships:  Set[Membership]
   ) {
+    def isEmpty = postsById.isEmpty // && groups.isEmpty && users.isEmpty
+    def nonEmpty = !isEmpty
 
     lazy val posts: Iterable[Post] = postsById.values
     lazy val postIds: Iterable[PostId] = postsById.keys

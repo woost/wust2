@@ -16,15 +16,17 @@ object ViewPage {
   case object Graph extends ViewPage
   case object Tree extends ViewPage
   case object Chat extends ViewPage
+  case object Article extends ViewPage
 
   def default = Graph
 
   def toString(page: ViewPage) = page.toString.toLowerCase
   val fromString: String => ViewPage = {
-    case "graph" => ViewPage.Graph
-    case "tree"  => ViewPage.Tree
-    case "chat"  => ViewPage.Chat
-    case _       => ViewPage.default
+    case "graph"   => ViewPage.Graph
+    case "tree"    => ViewPage.Tree
+    case "chat"    => ViewPage.Chat
+    case "article" => ViewPage.Article
+    case _         => ViewPage.default
   }
 }
 

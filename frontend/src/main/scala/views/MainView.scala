@@ -2,26 +2,26 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{ Event, document, console, Element }
+import org.scalajs.dom.{Event, document, console, Element}
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import scalatags.JsDom.TypedTag
 import wust.api._
 import wust.graph._
-import wust.frontend.{ RichPostFactory, Client }
+import wust.frontend.{RichPostFactory, Client}
 import wust.util.EventTracker.sendEvent
 import scala.util.Try
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{ SyncStatus, SyncMode }
+import wust.frontend.{SyncStatus, SyncMode}
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -360,6 +360,7 @@ object MainView {
     val viewPages = (
       ViewPage.Graph -> (() => GraphView(state, disableSimulation)) ::
       ViewPage.Tree -> (() => TreeView(state)) ::
+      ViewPage.Article -> (() => ArticleView(state)) ::
       Nil
     )
 

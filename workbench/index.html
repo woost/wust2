@@ -38,6 +38,51 @@
       -moz-box-shadow: 0px 7px 21px -6px rgba(0,0,0,0.75);
       box-shadow: 0px 7px 21px -6px rgba(0,0,0,0.75);
   }
+
+  /* inspired by https://github.com/markdowncss/air/blob/master/index.css */
+  .article {
+      color: #444;
+      font-family: 'Open Sans', Helvetica, sans-serif;
+      font-weight: 300;
+      margin: 6rem auto 1rem;
+      max-width: 48rem;
+  }
+
+  .article p {
+      color: #777;
+  }
+
+  .article h1 {
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid #eaecef;
+  }
+
+ .article .focuslink {
+    float:left;
+    margin-left:-2em;
+    width: 2em;
+    text-align: right;
+    padding-right: 10px;
+    display: inline-block;
+    color: #BBB;
+    font-weight: normal;
+    cursor: pointer;
+  }
+
+  .article .focuslink > * {
+    visibility: hidden;
+  }
+
+  .article h1:hover .focuslink > *,
+  .article h2:hover .focuslink > *,
+  .article h3:hover .focuslink > *,
+  .article h4:hover .focuslink > *,
+  .article h5:hover .focuslink > *,
+  .article h6:hover .focuslink > *,
+  .article p:hover .focuslink > * {
+    visibility: visible;
+  }
+
   </style>
 
 </head>
