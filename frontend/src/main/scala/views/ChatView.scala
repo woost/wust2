@@ -51,6 +51,8 @@ object ChatView {
       graph.posts.toSeq.sortBy(p => Tag.unwrap(p.id))
     }
 
+    val latestPost = Rx { chatHistory().last }
+
     val chatHistoryDiv = div(
       height := "100%",
       overflow := "auto",
@@ -77,7 +79,10 @@ object ChatView {
 
     def submitInsert(field: HTMLTextAreaElement) = {
       val newPost = Post.newId(field.value)
-      state.persistence.addChangesEnriched(addPosts = Set(newPost))
+      state.persistence.addChangesEnriched(
+        addPosts = Set(newPost),
+        addConnections = Set(Connection(latestPost.now.id, newPost.id))
+      )
       field.value = ""
       false
     }
