@@ -87,7 +87,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         val newPost = Post.newId(field.value)
         persistence.addChangesEnriched(
           addPosts = Set(newPost),
-          addConnections = Set(Connection(newPost.id, simPost.id)),
+          addConnections = Set(Connection(simPost.id, newPost.id)),
           addContainments = GraphSelection.toContainments(graphState.state.graphSelection.now, newPost.id)
         )
         field.value = ""
