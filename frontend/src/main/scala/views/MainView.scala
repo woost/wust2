@@ -151,7 +151,7 @@ object MainView {
         case Some(groupId) =>
           Client.api.getGroupInviteToken(groupId).call().foreach {
             //TODO: we should not construct absolute paths here
-            case Some(token) => inviteLink() = Some(s"${location.href.split("#").head}#${ViewConfig.toHash(state.viewConfig())}&invite=$token")
+            case Some(token) => inviteLink() = Some(s"${location.href.split("#").head}#${ViewConfig.toHash(state.viewConfig())}&invite=$token&locktogroup=true")
             case None        =>
           }
         case None => inviteLink() = None
