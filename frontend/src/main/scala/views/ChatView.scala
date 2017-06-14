@@ -68,13 +68,21 @@ object ChatView {
       }
     ).render
 
+    def scrollToBottom() {
+      //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
+      try {
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
+      } catch { case _ => }
+    }
+
     setTimeout(200) {
       // initial scroll to bottom
-      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
+      scrollToBottom()
     }
+
     chatHistory.foreach { _ =>
-      // update scroll to bottom
-      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
+      // scroll to bottom for each update
+      scrollToBottom()
     }
 
     def submitInsert(field: HTMLTextAreaElement) = {
