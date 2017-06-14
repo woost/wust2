@@ -66,8 +66,13 @@ object ChatView {
       }
     ).render
 
+    setTimeout(200) {
+      // initial scroll to bottom
+      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
+    }
     chatHistory.foreach { _ =>
-      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight // scroll to bottom
+      // update scroll to bottom
+      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
     }
 
     def submitInsert(field: HTMLTextAreaElement) = {
