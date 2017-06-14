@@ -167,17 +167,19 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
         focusedPostId() = None
       }
     })
-    var initialSimulation = true
-    container.style("display", "none")
-    d3State.simulation.on("tick", () => if (!initialSimulation) draw())
+
+    val staticForceLayout = false
+    var inInitialSimulation = staticForceLayout
+    if (inInitialSimulation) container.style("visibility", "hidden")
+    d3State.simulation.on("tick", () => if (!inInitialSimulation) draw())
     d3State.simulation.on("end", { () =>
       rxSimPosts.now.foreach { simPost =>
         simPost.fixedPos = simPost.pos
       }
-      if (initialSimulation) {
-        container.style("display", "block")
+      if (inInitialSimulation) {
+        container.style("visibility", "visible")
         draw()
-        initialSimulation = false
+        inInitialSimulation = false
       }
       DevOnly { println("simulation ended.") }
     })
