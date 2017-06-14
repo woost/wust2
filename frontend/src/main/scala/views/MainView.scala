@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Event, document, console, Element}
+import org.scalajs.dom.{Event, document, window, console, Element}
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
@@ -113,8 +113,17 @@ object MainView {
 
   def newGroupButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     button("new group", onclick := { () =>
-      Client.api.addGroup().call().foreach { group =>
-        state.selectedGroupId() = Option(group)
+      val groupNameOpt = Option(window.prompt("Enter a name for the group", "New Group"))
+      groupNameOpt.foreach { groupName =>
+        Client.api.addGroup().call().foreach { groupId =>
+          state.selectedGroupId() = Option(groupId)
+          val newPost = Post.newId(groupName)
+          state.persistence.addChanges(
+            addPosts = Set(newPost),
+            addOwnerships = Set(Ownership(newPost.id, groupId))
+          )
+          state.graphSelection() = GraphSelection.Union(Set(newPost.id))
+        }
       }
       sendEvent("group", "created", "collaboration")
     }).render
