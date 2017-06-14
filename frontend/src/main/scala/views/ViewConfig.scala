@@ -14,18 +14,18 @@ import scalatags.rx.all._
 sealed trait ViewPage
 object ViewPage {
   case object Graph extends ViewPage
-  case object Tree extends ViewPage
-  case object Chat extends ViewPage
+  case object List extends ViewPage
   case object Article extends ViewPage
+  case object Chat extends ViewPage
 
   def default = Graph
 
   def toString(page: ViewPage) = page.toString.toLowerCase
   val fromString: String => ViewPage = {
     case "graph"   => ViewPage.Graph
-    case "tree"    => ViewPage.Tree
-    case "chat"    => ViewPage.Chat
+    case "list"    => ViewPage.List
     case "article" => ViewPage.Article
+    case "chat"    => ViewPage.Chat
     case _         => ViewPage.default
   }
 }

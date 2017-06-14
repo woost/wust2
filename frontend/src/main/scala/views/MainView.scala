@@ -359,8 +359,9 @@ object MainView {
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val viewPages = (
       ViewPage.Graph -> (() => GraphView(state, disableSimulation)) ::
-      ViewPage.Tree -> (() => TreeView(state)) ::
+      ViewPage.List -> (() => TreeView(state)) ::
       ViewPage.Article -> (() => ArticleView(state)) ::
+      ViewPage.Chat -> (() => ChatView(state)) ::
       Nil
     )
 
