@@ -361,6 +361,7 @@ object MainView {
       ViewPage.Graph -> (() => GraphView(state, disableSimulation)) ::
       ViewPage.List -> (() => TreeView(state)) ::
       ViewPage.Article -> (() => ArticleView(state)) ::
+      ViewPage.Code -> (() => CodeView(state)) ::
       ViewPage.Chat -> (() => ChatView(state)) ::
       Nil
     )

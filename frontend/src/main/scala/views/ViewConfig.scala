@@ -16,6 +16,7 @@ object ViewPage {
   case object Graph extends ViewPage
   case object List extends ViewPage
   case object Article extends ViewPage
+  case object Code extends ViewPage
   case object Chat extends ViewPage
 
   def default = Graph
@@ -25,6 +26,7 @@ object ViewPage {
     case "graph"   => ViewPage.Graph
     case "list"    => ViewPage.List
     case "article" => ViewPage.Article
+    case "code"    => ViewPage.Code
     case "chat"    => ViewPage.Chat
     case _         => ViewPage.default
   }
