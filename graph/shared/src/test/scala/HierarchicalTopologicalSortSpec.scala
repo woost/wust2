@@ -39,7 +39,6 @@ class HierarchicalTopologicalSortSpec extends FreeSpec with MustMatchers {
       }
 
       "2 vertices" in {
-        pending
         testBoth(List(1, 2), Set(1 -> 2), List(1, 2))
         testBoth(List(1, 2), Set(2 -> 1), List(2, 1))
       }

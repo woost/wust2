@@ -19,7 +19,9 @@ object HierarchicalTopologicalSort {
       if (unmarked(n)) {
         tempMarked += n
         unmarked -= n
-        for (m <- topologicalSort(children(n), successors)) visit(m)
+        // for (m <- topologicalSort(children(n), successors)) visit(m)
+        for (m <- children(n)) visit(m)
+        for (m <- successors(n)) visit(m)
         tempMarked -= n
         sorted ::= n
       }
