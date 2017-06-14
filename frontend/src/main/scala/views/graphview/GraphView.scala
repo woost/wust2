@@ -112,7 +112,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   initContainerDimensionsAndPositions()
   initEvents()
 
-  // set the background according to focused parents
+  // set the background and headings according to focused parents
   Rx {
     val focusedParentIds = state.graphSelection().parentIds
     val parents = focusedParentIds.map(state.rawGraph().postsById)

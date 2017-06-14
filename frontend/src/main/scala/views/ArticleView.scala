@@ -56,7 +56,6 @@ object ArticleView {
         val graph = dg.graph
         if (graph.isEmpty) div().render
         else {
-          println(graph)
           val sorted = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
           div(
             cls := "article",

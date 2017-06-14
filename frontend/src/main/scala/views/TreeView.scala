@@ -7,7 +7,7 @@ import wust.frontend._
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
-import wust.util.algorithm.{ TreeContext, Tree, redundantSpanningTree }
+import wust.util.algorithm.{TreeContext, Tree, redundantSpanningTree}
 import wust.util.collection._
 import autowire._
 import boopickle.Default._
@@ -16,16 +16,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
 import scala.math.Ordering
 
-import org.scalajs.dom.{ window, document, console }
-import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
+import org.scalajs.dom.{window, document, console}
+import org.scalajs.dom.raw.{Text, Element, HTMLElement}
 import scalatags.JsDom.all._
 import scala.scalajs.js
 import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.{ Event, KeyboardEvent }
+import org.scalajs.dom.{Event, KeyboardEvent}
 
-//TODO proper ordering
+//TODO proper ordering and move to wust.ids
 object PostOrdering extends Ordering[Post] {
   def compare(a: Post, b: Post) = Tag.unwrap(a.id) compare Tag.unwrap(b.id)
 }
@@ -174,7 +174,7 @@ object TreeView {
           } {
             val newContainments = grandParent match {
               case Some(grandParent) => Set(Containment(grandParent.element.id, post.id))
-              case None => GraphSelection.toContainments(state.graphSelection.now, post.id)
+              case None              => GraphSelection.toContainments(state.graphSelection.now, post.id)
             }
             val delContainment = Containment(parent.element.id, post.id)
             focusedPostId = Some(post.id)
