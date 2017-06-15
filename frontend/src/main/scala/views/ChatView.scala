@@ -27,6 +27,7 @@ import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{Event, KeyboardEvent}
+import scala.util.control.NonFatal
 
 object ChatView {
 
@@ -72,7 +73,7 @@ object ChatView {
       //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
       try {
         chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
-      } catch { case _ => }
+      } catch { case NonFatal(_) => }
     }
 
     setTimeout(200) {
