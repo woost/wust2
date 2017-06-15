@@ -32,6 +32,7 @@ object GraphSelection {
   }
 }
 
+//TODO: this is a general mathematical set. put it in util.
 trait Selector extends (PostId => Boolean) {
   import Selector._
   def intersect(that: Selector): Selector = Intersect(this, that)
@@ -47,7 +48,7 @@ object Selector {
   case object All extends Selector {
     override def apply(id: PostId) = true
   }
-  case class IdSet(set: Set[PostId]) extends Selector {
+  case class IdSet(set: PostId => Boolean) extends Selector {
     override def apply(id: PostId) = set(id)
   }
   case class Union(a: Selector, b: Selector) extends Selector {

@@ -3,7 +3,7 @@ package wust.frontend.views.graphview
 import rx._
 import rxext._
 import wust.frontend.Color._
-import wust.frontend.{ DevOnly, GlobalState }
+import wust.frontend.{DevOnly, GlobalState}
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
@@ -21,37 +21,38 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   def fontSizeByTransitiveChildren(n: Int) = Math.log(n + 1) + 0.5 // 1..~5
 
   val rxSimPosts: Rx[js.Array[SimPost]] = Rx {
-    val rawGraph = state.rawGraph()
+    val rawGraph = state.rawGraph().consistent
     val graph = rxDisplayGraph().graph
     val collapsedPostIds = rxCollapsedPostIds()
 
     graph.posts.map { p =>
       val sp = new SimPost(p)
 
-      def parents = rawGraph.consistent.parents(p.id)
+      def parents = rawGraph.parents(p.id)
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map(baseColor))
-      def hasChildren = graph.children(p.id).nonEmpty
+      def hasChildren = rawGraph.children(p.id).nonEmpty
 
       //TODO: move border and color to views.post()
       sp.border =
-        if (hasChildren)
-          s"10px solid ${baseColor(p.id)}"
-        else if (collapsedPostIds(p.id))
-          s"5px dotted rgba(0,0,0,0.5)"
-        else
+        if (hasChildren) {
+          if (collapsedPostIds(p.id))
+            s"5px dotted rgba(0,0,0,0.5)"
+          else
+            s"10px solid ${baseColor(p.id)}"
+        } else
           "2px solid rgba(0,0,0,0.2)" // no children
 
-      sp.fontSize = if (hasChildren || collapsedPostIds(p.id)) {
-        val factor = fontSizeByDepth(graph.parentDepth(p.id)) * fontSizeByTransitiveChildren(graph.transitiveChildren(p.id).size)
+      sp.fontSize = if (hasChildren) {
+        val factor = fontSizeByDepth(rawGraph.parentDepth(p.id)) * fontSizeByTransitiveChildren(rawGraph.transitiveChildren(p.id).size)
         s"${factor * 100.0}%"
       } else "100%"
 
       sp.color = (
-        //TODO collapsedPostIds is not sufficient for being a parent (butt currently no knowledge about collapsed children in graph)
-        if (hasChildren || collapsedPostIds(p.id))
-          baseColor(p.id)
-        else { // no children
+        //TODO collapsedPostIds is not sufficient for being a parent (but currently no knowledge about collapsed children in graph)
+        if (hasChildren) {
+            baseColor(p.id)
+        } else { // no children
           if (hasParents)
             mixColors(mixedDirectParentColors, postDefaultColor)
           else

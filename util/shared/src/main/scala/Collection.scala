@@ -21,6 +21,10 @@ package object collection {
     def toggle(a: A) = if (set(a)) set - a else set + a
   }
 
+  implicit class RichMap[A](val map: Map[A, Boolean]) extends AnyVal {
+    def toggle(a: A) = if (map(a)) map.updated(a, false) else map.updated(a, true)
+  }
+
   implicit class RichOption[A](val o: Option[A]) extends AnyVal {
     def setOrToggle(a: A) = o match {
       case Some(`a`) => None

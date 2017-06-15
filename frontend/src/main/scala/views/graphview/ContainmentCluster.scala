@@ -14,6 +14,7 @@ class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost],
   val n = 32
   val step = PI * 2.0 / n
   def circleSamples(post: SimPost) = for (i <- 0 until n; a = i * step) yield { Vec2(cos(a), sin(a)) * post.radius + post.pos.get } //TODO: memoize
+  // def circleSamples(post: SimPost) = AARect(post.pos.get, post.size).corners
 
   def positions: js.Array[js.Array[Double]] = posts.flatMap(post => circleSamples(post).map(pos => js.Array(pos.x, pos.y)))(breakOut)
   def convexHull: js.Array[js.Array[Double]] = {
