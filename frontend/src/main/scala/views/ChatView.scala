@@ -63,6 +63,8 @@ object ChatView {
       Rx {
         div(
           chatHistory().map { post =>
+            val time = state.postTimes.get(post.id).getOrElse(0)
+            val isMine = state.ownPosts(post.id)
             p(post.title)
           }
         ).render

@@ -116,6 +116,12 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = {
+    //TODO fake info about own posts when applying
+    state.ownPosts ++= newChanges.addPosts.map(_.id)
+    //TODO fake info about post creation
+    val currentTime = System.currentTimeMillis
+    state.postTimes ++= newChanges.addPosts.map(_.id -> currentTime)
+
     changes.updatef(_.copyF(cached = _ + newChanges.consistent))
     applyChangesToState(state.rawGraph.now)
     flush()
