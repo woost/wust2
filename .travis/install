@@ -22,6 +22,6 @@ else
     cd /tmp
     git clone http://github.com/cornerman/autowire --depth=1
     cd autowire
-    sbt ++2.11.8 publish-local
+    sbt ++2.12.2 publish-local
 )
 fi
