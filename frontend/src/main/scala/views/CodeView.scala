@@ -28,7 +28,6 @@ import org.scalajs.dom.{Event, KeyboardEvent}
 @js.native
 @JSGlobal
 object Prism extends js.Object {
-  def highlightElement(element: HTMLElement) = js.native
   def highlightAll(): Unit = js.native
 }
 
