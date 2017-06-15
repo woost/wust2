@@ -222,12 +222,23 @@ package object graph {
     )
 
     lazy val consistent = {
-      copy(
-        connections = connections.filter{ c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId },
-        containments = containments.filter{ c => postsById.isDefinedAt(c.parentId) && postsById.isDefinedAt(c.childId) && c.parentId != c.childId },
-        ownerships = ownerships.filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) },
-        memberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
-      )
+      val filteredConnections = connections.filter{ c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId }
+      val filteredContainments = containments.filter{ c => postsById.isDefinedAt(c.parentId) && postsById.isDefinedAt(c.childId) && c.parentId != c.childId }
+      val filteredOwnerships = ownerships.filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }
+      val filteredMemberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
+
+      if (connections.size != filteredConnections.size ||
+        containments.size != filteredContainments.size ||
+        ownerships.size != filteredOwnerships.size ||
+        memberships.size != filteredMemberships.size)
+        copy(
+          connections = filteredConnections,
+          containments = filteredContainments,
+          ownerships = filteredOwnerships,
+          memberships = filteredMemberships
+        )
+      else
+        this
     }
 
     lazy val childDepth = depth(children)
