@@ -84,20 +84,15 @@ test.integration)
     POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
     compose down
     ;;
-test.prod.http)
+local.prod.http)
     on_stage prod
     compose down
     compose up -d nginx-http
-    CI=true sbt_with_args systemTest/it:test
-    compose down
     ;;
-test.prod)
+local.prod)
     on_stage prod
     compose down
     compose up -d nginx
-    #TODO CI=true sbt_with_args systemTest/it:test
-    nc -z localhost 80 && nc -z localhost 443
-    compose down
     ;;
 *)
     cat <<EOF
@@ -117,8 +112,8 @@ test.prod)
     test
     test.postgres
     test.integration
-    test.prod.http
-    test.prod
+    local.prod.http
+    local.prod
 EOF
 
     exit 1
