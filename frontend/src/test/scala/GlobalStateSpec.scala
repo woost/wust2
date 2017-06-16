@@ -65,10 +65,10 @@ class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {
     "be consistent with collapsed" in {
       val state = new GlobalState
       state.collapsedPostIds() = Map(PostId("grenom") -> true)
-      state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set("grenom"))))
+      state.currentView.now.collapsed(PostId("grenom")) mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set("grenom")))).collapsed(PostId("grenom"))
 
       state.collapsedPostIds() = Map.empty
-      state.currentView.now mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set.empty)))
+      state.currentView.now.collapsed.apply(PostId("grenom")) mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set.empty))).collapsed(PostId("grenom"))
     }
   }
 }
