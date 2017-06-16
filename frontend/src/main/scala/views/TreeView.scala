@@ -7,7 +7,7 @@ import wust.frontend._
 import wust.ids._
 import wust.graph._
 import wust.util.Pipe
-import wust.util.algorithm.{TreeContext, Tree, redundantSpanningTree}
+import wust.util.algorithm.{ TreeContext, Tree, redundantSpanningTree }
 import wust.util.collection._
 import autowire._
 import boopickle.Default._
@@ -16,14 +16,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
 import scala.math.Ordering
 
-import org.scalajs.dom.{window, document, console}
-import org.scalajs.dom.raw.{Text, Element, HTMLElement}
+import org.scalajs.dom.{ window, document, console }
+import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
 import scalatags.JsDom.all._
 import scala.scalajs.js
 import scalatags.rx.all._
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.{Event, KeyboardEvent}
+import org.scalajs.dom.{ Event, KeyboardEvent }
 
 //TODO proper ordering and move to wust.ids
 object PostOrdering extends Ordering[Post] {
@@ -127,13 +127,15 @@ object TreeView {
   }
 
   def focusAndSetCursor(elem: HTMLElement) {
-    elem.focus()
-    val s = window.getSelection()
-    val r = document.createRange()
-    r.selectNodeContents(Option(elem.firstChild).getOrElse(elem))
-    r.collapse(false) // false: collapse to end, true: collapse to start
-    s.removeAllRanges()
-    s.addRange(r)
+    try {
+      elem.focus()
+      val s = window.getSelection()
+      val r = document.createRange()
+      r.selectNodeContents(Option(elem.firstChild).getOrElse(elem))
+      r.collapse(false) // false: collapse to end, true: collapse to start
+      s.removeAllRanges()
+      s.addRange(r)
+    } catch { case _: Throwable => } // https://github.com/tmpvar/jsdom/issues/317
   }
 
   def handleKey(state: GlobalState, c: TreeContext[Post], tree: Tree[Post], event: KeyboardEvent) = {
