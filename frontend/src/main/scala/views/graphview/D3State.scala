@@ -64,10 +64,10 @@ class D3State(disableSimulation: Boolean = false) {
   private val width = window.innerWidth.toInt
   private val height = window.innerHeight.toInt
 
-  val zoom = d3.zoom().on("zoom.settransform", zoomed _).scaleExtent(js.Array(0.1, 10))
+  val zoom = d3.zoom().on("zoom.settransform", () => zoomed()).scaleExtent(js.Array(0.1, 10))
   //TODO why does this not work on 2.12, works on 2.11. maybe scalajs function implicit?
   // private def zoomed() { _transform = d3.event.asInstanceOf[ZoomEvent].transform }
-  private val zoomed = () => { _transform = d3.event.asInstanceOf[ZoomEvent].transform }
+  private def zoomed() = { _transform = d3.event.asInstanceOf[ZoomEvent].transform }
   private var _transform: Transform = d3.zoomIdentity // stores current pan and zoom
   def transform = _transform
 
