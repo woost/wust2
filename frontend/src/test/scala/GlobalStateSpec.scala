@@ -29,8 +29,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {
       val state = new GlobalState
       state.rawGraph() = Graph(
         posts = List(Post("grenom", "title"), Post("zeilinda", "title2")),
-        connections = List(Connection("grenom", "zeilinda")),
-        containments = List(Containment("zeilinda", "grenom"))
+        connections = List(Connection("grenom", "zeilinda"))
       )
 
       state.rawGraph.now mustEqual state.displayGraph.now.graph
