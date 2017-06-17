@@ -28,13 +28,13 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
     MenuAction("Focus", { (p: SimPost) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
     MenuAction(
       "Collapse",
-      action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_.updated(p.id, true)),
-      showIf = (p: SimPost) => graphState.rxDisplayGraph.now.graph.hasChildren(p.id)
+      action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ + p.id),
+      showIf = (p: SimPost) => !graphState.rxCollapsedPostIds.now(p.id) && graphState.state.rawGraph.now.hasChildren(p.id)
     ) ::
       MenuAction(
         "Expand",
-        action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_.updated(p.id, false)),
-        showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now(p.id)
+        action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ - p.id),
+        showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now(p.id) && !graphState.rxDisplayGraph.now.graph.hasChildren(p.id)
       ) ::
         // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
         MenuAction("Delete", { (p: SimPost) => persistence.addChangesEnriched(delPosts = Set(p.id)); sendEvent("post", "delete", "api") }) ::

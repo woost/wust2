@@ -35,6 +35,10 @@ object Main extends js.JSApp {
       Client.api.getGraph(selection).call().foreach { newGraph =>
         // take changes into account, when we get a new graph
         state.persistence.applyChangesToState(newGraph)
+        if(selection == GraphSelection.Root) {
+          // on the frontpage all posts are collapsed per default
+          state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p) ))
+        }
       }
     }
 

@@ -77,12 +77,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   // be aware that this is a potential memory leak.
   // it contains all ids that have ever been collapsed in this session.
   // this is a wanted feature, because manually collapsing posts is preserved with navigation
-  val collapsedPostIds = RxVar[Map[PostId, Boolean]](Map.empty.withDefault(_ => graphSelection.now == GraphSelection.Root))
+  val collapsedPostIds = RxVar[Set[PostId]](Set.empty)
 
   val currentView = {
     val v = RxVar[Perspective](Perspective())
     RxVar(v, Rx {
-      v().union(Perspective(collapsed = Selector.IdSet(id => collapsedPostIds().getOrElse(id, false))))
+      v().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
     })
   }
 
