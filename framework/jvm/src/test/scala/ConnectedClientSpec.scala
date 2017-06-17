@@ -144,7 +144,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       val pickledResponse2 = AutowireServer.write[Boolean](true)
       val pickledResponse3 = AutowireServer.write[Option[String]](Option("anon"))
       expectMsgAllOf(
-        10 seconds,
+        1 seconds,
         CallResponse(1, Right(pickledResponse1)),
         CallResponse(2, Right(pickledResponse2)),
         CallResponse(3, Right(pickledResponse3)))
@@ -159,7 +159,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       val pickledResponse2 = AutowireServer.write[Boolean](true)
       val pickledResponse3 = AutowireServer.write[Option[String]](None)
       expectMsgAllOf(
-        10 seconds,
+        1 seconds,
         CallResponse(1, Right(pickledResponse1)),
         CallResponse(2, Right(pickledResponse2)),
         CallResponse(3, Right(pickledResponse3)))
@@ -170,7 +170,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
 
       val pickledResponse = AutowireServer.write[Boolean](true)
       expectMsgAllOf(
-        10 seconds,
+        1 seconds,
         "event-published",
         CallResponse(2, Right(pickledResponse)))
     }
