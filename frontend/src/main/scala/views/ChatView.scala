@@ -52,7 +52,7 @@ object ChatView {
       graph.posts.toSeq.sortBy(p => Tag.unwrap(p.id))
     }
 
-    val latestPost = Rx { chatHistory().last }
+    val latestPost = Rx { chatHistory().lastOption }
 
     val chatHistoryDiv = div(
       height := "100%",
@@ -104,7 +104,7 @@ object ChatView {
       val newPost = Post.newId(field.value)
       state.persistence.addChangesEnriched(
         addPosts = Set(newPost),
-        addConnections = Set(Connection(latestPost.now.id, newPost.id))
+        addConnections = latestPost.now.map(latest => Connection(latest.id, newPost.id)).toSet
       )
       field.value = ""
       false
