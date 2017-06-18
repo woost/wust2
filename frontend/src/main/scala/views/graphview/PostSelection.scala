@@ -27,7 +27,6 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
         DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
-        sendEvent("post", "clicked", "postmenu")
         rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
         graphState.state.postCreatorMenus() = Nil
       })

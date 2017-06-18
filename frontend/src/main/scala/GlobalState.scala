@@ -128,8 +128,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       case LoggedIn(auth) =>
         currentUser() = Option(auth.user)
         ClientCache.currentAuth = Option(auth)
-        if (auth.user.isImplicit)
-          sendEvent("login", "implicit", "auth")
+        if (auth.user.isImplicit) {
+          sendEvent("auth", "loginimplicit", "success")
+        }
       case LoggedOut =>
         currentUser() = None
         ClientCache.currentAuth = None

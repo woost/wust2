@@ -12,7 +12,7 @@ object EventTracker {
   def sendEvent(category: String, action: String, label: String): Unit = {
     if (isScriptLoaded) GoogleAnalytics.ga("send", "event", category, action, label)
   }
-  def sendEvent(category: String, action: String, label: String, value: String): Unit = {
+  def sendEvent(category: String, action: String, label: String, value: Int): Unit = {
     if (isScriptLoaded) GoogleAnalytics.ga("send", "event", category, action, label, value)
   }
 }

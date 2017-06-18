@@ -10,6 +10,7 @@ import boopickle.Default._
 import scala.concurrent.ExecutionContext
 import scala.util.Success
 import derive.derive
+import wust.util.EventTracker.sendEvent
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -35,7 +36,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     else SyncStatus.Done
   }
 
-  changes.map(_.all).foreach(storage.graphChanges = _)
+  changes.map(_.all).foreach(storage.graphChanges= _)
 
   private def enrichChanges(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
@@ -68,9 +69,17 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
         Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
             changes.updatef(_.copyF(sent = _ - newChanges))
+            if (newChanges.addPosts.nonEmpty) sendEvent("graphchanges", "addPosts", "success", newChanges.addPosts.size)
+            if (newChanges.addConnections.nonEmpty) sendEvent("graphchanges", "addConnections", "success", newChanges.addConnections.size)
+            if (newChanges.addContainments.nonEmpty) sendEvent("graphchanges", "addContainments", "success", newChanges.addContainments.size)
+            if (newChanges.updatePosts.nonEmpty) sendEvent("graphchanges", "updatePosts", "success", newChanges.updatePosts.size)
+            if (newChanges.delPosts.nonEmpty) sendEvent("graphchanges", "delPosts", "success", newChanges.delPosts.size)
+            if (newChanges.delConnections.nonEmpty) sendEvent("graphchanges", "delConnections", "success", newChanges.delConnections.size)
+            if (newChanges.delContainments.nonEmpty) sendEvent("graphchanges", "delContainments", "success", newChanges.delContainments.size)
           case _ =>
             changes.updatef(_.copyF(cached = _ + newChanges, sent = _ - newChanges))
             hasError() = true
+            sendEvent("graphchanges", "flush", "failure", newChanges.size)
         }
       case _ => println(s"caching changes: $newChanges")
     }
@@ -127,4 +136,3 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     flush()
   }
 }
-

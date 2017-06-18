@@ -7,8 +7,8 @@ import scalatags.rx.all._
 
 import autowire._
 import boopickle.Default._
-import wust.graph.{User, Group}
-import wust.frontend.{Client, GlobalState}
+import wust.graph.{ User, Group }
+import wust.frontend.{ Client, GlobalState }
 import wust.util.Pipe
 import wust.util.tags._
 import wust.ids._
@@ -27,18 +27,24 @@ object UserView {
     if (success) {
       userField.value = ""
       passwordField.value = ""
-      sendEvent(topic, "successful", "auth")
+      sendEvent("auth", topic, "success")
     } else {
-      sendEvent(topic, "failed", "auth")
+      sendEvent("auth", topic, "failure")
     }
   }
 
-  val registerButton = buttonClick("register",
-    Client.auth.register(userField.value, passwordField.value).call().foreach(handleAuthResponse("registration", _)))
-  val loginButton = buttonClick("login",
-    Client.auth.login(userField.value, passwordField.value).call().foreach(handleAuthResponse("login", _)))
-  val logoutButton = buttonClick("logout",
-    Client.auth.logout().call().foreach(handleAuthResponse("logout", _)))
+  val registerButton = buttonClick(
+    "register",
+    Client.auth.register(userField.value, passwordField.value).call().foreach(handleAuthResponse("register", _))
+  )
+  val loginButton = buttonClick(
+    "login",
+    Client.auth.login(userField.value, passwordField.value).call().foreach(handleAuthResponse("login", _))
+  )
+  val logoutButton = buttonClick(
+    "logout",
+    Client.auth.logout().call().foreach(handleAuthResponse("logout", _))
+  )
 
   //TODO: show existing in backend to revoke?
   //TODO: instead of this local var, get all tokens from backend

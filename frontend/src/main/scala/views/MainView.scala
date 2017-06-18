@@ -2,27 +2,27 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Event, document, window, console, Element}
+import org.scalajs.dom.{ Event, document, window, console, Element }
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
-import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
-import org.scalajs.dom.raw.{HTMLTextAreaElement}
+import wust.frontend.{ DevOnly, GlobalState }
+import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import org.scalajs.dom.raw.{ HTMLTextAreaElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import scalatags.JsDom.TypedTag
 import wust.api._
 import wust.graph._
-import wust.frontend.{RichPostFactory, Client}
+import wust.frontend.{ RichPostFactory, Client }
 import wust.util.EventTracker.sendEvent
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{SyncStatus, SyncMode}
+import wust.frontend.{ SyncStatus, SyncMode }
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -116,17 +116,20 @@ object MainView {
     button("new group", onclick := { () =>
       val groupNameOpt = Option(window.prompt("Enter a name for the group", "New Group"))
       groupNameOpt.foreach { groupName =>
-        Client.api.addGroup().call().foreach { groupId =>
-          state.selectedGroupId() = Option(groupId)
-          val newPost = Post.newId(groupName)
-          state.persistence.addChanges(
-            addPosts = Set(newPost),
-            addOwnerships = Set(Ownership(newPost.id, groupId))
-          )
-          state.graphSelection() = GraphSelection.Union(Set(newPost.id))
+        Client.api.addGroup().call().onComplete {
+          case Success(groupId) =>
+            state.selectedGroupId() = Option(groupId)
+            val newPost = Post.newId(groupName)
+            state.persistence.addChanges(
+              addPosts = Set(newPost),
+              addOwnerships = Set(Ownership(newPost.id, groupId))
+            )
+            state.graphSelection() = GraphSelection.Union(Set(newPost.id))
+            sendEvent("group", "created", "success")
+          case Failure(e) =>
+            sendEvent("group", "created", "failure")
         }
       }
-      sendEvent("group", "created", "collaboration")
     }).render
   }
 
@@ -137,9 +140,9 @@ object MainView {
         val userName = field.value
         state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).call().foreach { success =>
           field.value = ""
+          sendEvent("group", "invitebyname", if (success) "success" else "failure")
         })
 
-        sendEvent("group", "invitebyname", "collaboration")
         false
       }).render
     } else div().render)
@@ -214,7 +217,7 @@ object MainView {
       val newPost = Post.newId(text)
       state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackPostId, newPost.id)))
       field.value = ""
-      sendEvent("feedback", "submit", "api")
+      sendEvent("feedback", "submit", "")
       false
     }
     val feedbackField = textareaWithEnter(submitInsert)(
@@ -229,7 +232,6 @@ object MainView {
           feedbackField.focus()
         }
     }
-
 
     val feedbackForm = form(
       feedbackField, br(),
