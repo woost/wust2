@@ -11,6 +11,7 @@ import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{DevOnly, GlobalState}
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLSelectElement}
+import org.scalajs.dom.raw.{HTMLTextAreaElement}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
 import scalatags.JsDom.TypedTag
@@ -203,15 +204,24 @@ object MainView {
     //TODO: Don't hardcode feedback postId
     val feedbackPostId = PostId("82")
 
-    val feedbackField = textarea(
+    val show = Var(false)
+    val activeDisplay = display := show.map(if (_) "block" else "none")
+    val inactiveDisplay = display := show.map(if (_) "none" else "block")
+
+    def submitInsert(field: HTMLTextAreaElement) = {
+      val text = field.value
+      //TODO better handling of missing(?) feedbacknode
+      val newPost = Post.newId(text)
+      state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackPostId, newPost.id)))
+      field.value = ""
+      sendEvent("feedback", "submit", "api")
+      false
+    }
+    val feedbackField = textareaWithEnter(submitInsert)(
       rows := 5,
       cols := 30,
       placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
     ).render
-
-    val show = Var(false)
-    val activeDisplay = display := show.map(if (_) "block" else "none")
-    val inactiveDisplay = display := show.map(if (_) "none" else "block")
 
     show.foreach {
       if (_)
@@ -219,6 +229,17 @@ object MainView {
           feedbackField.focus()
         }
     }
+
+
+    val feedbackForm = form(
+      feedbackField, br(),
+      if (!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }) else span(),
+      input (tpe := "submit", value := "submit"),
+      onsubmit := { () =>
+        submitInsert(feedbackField)
+        false
+      }
+    )
 
     div(
       div(
@@ -237,22 +258,7 @@ object MainView {
         padding := "5px", background := "#F8F8F8", border := "1px solid #DDD", borderRight := "none",
         div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
         div("Feedback"),
-        form(
-          feedbackField, br(),
-          if (!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }) else span(),
-          input (tpe := "submit", value := "submit"),
-          onsubmit := { () =>
-            val text = feedbackField.value
-            if (text.nonEmpty) {
-              //TODO better handling of missing(?) feedbacknode
-              val newPost = Post.newId(text)
-              state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackPostId, newPost.id)))
-              feedbackField.value = ""
-              sendEvent("feedback", "submit", "api")
-            }
-            false
-          }
-        )
+        feedbackForm
       )
     )
   }
