@@ -215,6 +215,16 @@ package object graph {
     def +(membership: Membership) = copy(memberships = memberships + membership)
     def addMemberships(newMemberships: Iterable[Membership]) = copy(memberships = memberships ++ newMemberships)
 
+    def +(other: Graph) = copy (
+      postsById ++ other.postsById,
+      connections ++ other.connections,
+      containments ++ other.containments,
+      groupsById ++ other.groupsById,
+      ownerships ++ other.ownerships,
+      usersById ++ other.usersById,
+      memberships ++ other.memberships
+    )
+
     def withoutGroup(groupId: GroupId) = copy(
       groupsById = groupsById - groupId,
       ownerships = ownerships.filter(_.groupId != groupId),

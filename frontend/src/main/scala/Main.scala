@@ -7,7 +7,7 @@ import rx._
 import rxext._
 import wust.util.EventTracker.sendEvent
 import wust.ids._
-import wust.graph.GraphSelection
+import wust.graph.{GraphSelection,Graph}
 import org.scalajs.dom.ext.KeyCode
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -33,8 +33,16 @@ object Main extends js.JSApp {
 
     def getNewGraph(selection: GraphSelection) = {
       Client.api.getGraph(selection).call().foreach { newGraph =>
+        val oldSelectionGraph = selection match {
+          case GraphSelection.Union(ids) => state.rawGraph.now.filter(ids)
+          case _ => Graph.empty
+        }
+
+        //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
+        val newNonEmptyGraph = oldSelectionGraph + newGraph
+
         // take changes into account, when we get a new graph
-        state.persistence.applyChangesToState(newGraph)
+        state.persistence.applyChangesToState(newNonEmptyGraph)
         if(selection == GraphSelection.Root) {
           // on the frontpage all posts are collapsed per default
           state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p) ))
