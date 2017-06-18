@@ -10,6 +10,8 @@ import boopickle.Default._
 import scala.concurrent.ExecutionContext
 import scala.util.Success
 import derive.derive
+import concurrent.{ Promise, Future }
+import collection.mutable
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -27,6 +29,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   private val hasError = Var(false)
   private val changes = Var(KnownChanges(storage.graphChanges.getOrElse(GraphChanges.empty), GraphChanges.empty))
+  val flushPromises = mutable.ArrayBuffer.empty[Promise[Boolean]]
 
   val status: Rx[SyncStatus] = Rx {
     if (!changes().sent.isEmpty) SyncStatus.Sending
@@ -35,7 +38,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     else SyncStatus.Done
   }
 
-  changes.map(_.all).foreach(storage.graphChanges = _)
+  changes.map(_.all).foreach(storage.graphChanges= _)
 
   private def enrichChanges(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
@@ -68,6 +71,8 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
         Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
             changes.updatef(_.copyF(sent = _ - newChanges))
+            flushPromises.foreach{ p => p.success(true) }
+            flushPromises.clear()
           case _ =>
             changes.updatef(_.copyF(cached = _ + newChanges, sent = _ - newChanges))
             hasError() = true
@@ -91,7 +96,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     delConnections:  Iterable[Connection]  = Set.empty,
     delContainments: Iterable[Containment] = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
-  )(implicit ec: ExecutionContext): Unit = {
+  )(implicit ec: ExecutionContext): Future[GraphChanges] = {
     val newChanges = GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
 
     addChanges(newChanges)
@@ -107,7 +112,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     delConnections:  Iterable[Connection]  = Set.empty,
     delContainments: Iterable[Containment] = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
-  )(implicit ec: ExecutionContext): Unit = {
+  )(implicit ec: ExecutionContext): Future[GraphChanges] = {
     val newChanges = enrichChanges(
       GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
     )
@@ -115,16 +120,20 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     addChanges(newChanges)
   }
 
-  def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = {
+  def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Future[GraphChanges] = {
     //TODO fake info about own posts when applying
     state.ownPosts ++= newChanges.addPosts.map(_.id)
     //TODO fake info about post creation
     val currentTime = System.currentTimeMillis
     state.postTimes ++= newChanges.addPosts.map(_.id -> currentTime)
 
+    val promise = Promise[Boolean]()
+    flushPromises += promise
+
     changes.updatef(_.copyF(cached = _ + newChanges.consistent))
     applyChangesToState(state.rawGraph.now)
     flush()
+
+    promise.future.map(_ => newChanges)
   }
 }
-

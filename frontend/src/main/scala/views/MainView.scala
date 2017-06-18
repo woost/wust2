@@ -122,8 +122,9 @@ object MainView {
           state.persistence.addChanges(
             addPosts = Set(newPost),
             addOwnerships = Set(Ownership(newPost.id, groupId))
-          )
-          state.graphSelection() = GraphSelection.Union(Set(newPost.id))
+          ).foreach { _ =>
+            state.graphSelection() = GraphSelection.Union(Set(newPost.id))
+          }
         }
       }
       sendEvent("group", "created", "collaboration")
