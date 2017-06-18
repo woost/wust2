@@ -48,7 +48,7 @@ case class GraphChanges(
     (addConnections -- delConnections).filter(c => !delPosts(c.sourceId) && !delPosts(c.targetId) && c.sourceId != c.targetId),
     (addContainments -- delContainments).filter(c => !delPosts(c.parentId) && !delPosts(c.childId) && c.parentId != c.childId),
     (addOwnerships -- delOwnerships).filter(o => !delPosts(o.postId)),
-    updatePosts,
+    updatePosts.filterNot(p => delPosts(p.id)),
     delPosts -- addPosts.map(_.id),
     delConnections -- addConnections,
     delContainments -- addContainments,

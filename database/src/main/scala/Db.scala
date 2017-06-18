@@ -71,7 +71,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def undelete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
     def undelete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(postIds.toList).foreach(postId => query[RawPost].filter(_.id == postId).update(_.isDeleted -> lift(false))))
-        .map(_.forall(_ <= 1))
+        .map(_.forall(_ == 1))
     }
 
     def getGroups(postId: PostId)(implicit ec: ExecutionContext): Future[List[UserGroup]] = {
@@ -117,7 +117,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
       // This is a quill batch action:
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
-        .map(_.forall(_ <= 1)).recoverValue(false)
+        .map(_.forall(_ <= 1))
     }
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
@@ -133,7 +133,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(containment))
     def apply(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(containments.toList).foreach(insert(_)))
-        .map(_.forall(_ <= 1)).recoverValue(false)
+        .map(_.forall(_ <= 1))
     }
 
     def delete(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(containment))

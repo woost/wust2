@@ -30,7 +30,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         true <- db.containment.delete(delContainments)
         true <- db.ownership.delete(delOwnerships)
       } yield true
-    }//.recoverValue(false)
+    }.recover {
+      case t => 
+        scribe.error(s"unexpected error in apply graph change: $changes")
+        scribe.error(t)
+        false
+    }
 
     result.map(respondWithEventsIf(_, NewGraphChanges(changes.consistent)))
   }
