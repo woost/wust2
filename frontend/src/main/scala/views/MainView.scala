@@ -39,7 +39,7 @@ object MainView {
         val newParentIds = parentIds.flatMap(state.rawGraph().parents)
         val newParentNames = newParentIds.map(state.rawGraph().postsById(_).title).mkString(", ")
         val buttonTitle = if (newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
-        button("↑", padding := "1px 5px", title := buttonTitle,
+        button("↑", width := "2.5em", title := buttonTitle,
           onclick := { () =>
             state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
             else GraphSelection.Root
@@ -135,7 +135,7 @@ object MainView {
 
   def inviteUserToGroupField(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (if (state.selectedGroupId().isDefined) {
-      val field = input(placeholder := "invite user by name").render
+      val field = input(tpe := "text", placeholder := "invite user by name").render
       form(field, input(tpe := "submit", value := "invite"), onsubmit := { () =>
         val userName = field.value
         state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).call().foreach { success =>
@@ -286,7 +286,7 @@ object MainView {
         groupSelector(state),
         inviteUserToGroupField(state),
         currentGroupInviteLink(state).map(linkOpt => linkOpt.map{ link =>
-          val linkField = input(tpe := "text", value := link, size := (link.size + 1), readonly).render
+          val linkField = input(tpe := "text", value := link, readonly).render
           div(
             linkField,
             button("copy", onclick := { () => linkField.select(); document.execCommand("Copy") })

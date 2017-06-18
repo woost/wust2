@@ -78,24 +78,27 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val dropMenuLayer = menuSvg.append("g")
   val dropMenuSelection = SelectData.rxDraw(new DropMenuSelection(postDrag.dropActions, d3State), postDrag.closestPosts)(dropMenuLayer.append("g"))
 
-  val controls = container.append(() => div(
-    position.absolute, left := 5, top := 100,
-    button("⟳", title := "automatic layout", onclick := { () =>
-      rxSimPosts.now.foreach { simPost =>
-        simPost.fixedPos = js.undefined
-      }
-      d3State.simulation.alpha(1).restart()
-    }), br(),
-    button("+", title := "zoom in", onclick := { () =>
-      svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
-    }), br(),
-    button("0", title := "reset zoom", onclick := { () =>
-      svg.call(d3State.zoom.transform _, d3.zoomIdentity) //TODO: transition for smooth animation
-    }), br(),
-    button("-", title := "zoom out", onclick := { () =>
-      svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
-    })
-  ).render)
+  val controls = {
+    val iconButton = button(width := "2.5em", padding := "5px 10px")
+    container.append(() => div(
+      position.absolute, left := 5, top := 100,
+      iconButton("⟳", title := "automatic layout", onclick := { () =>
+        rxSimPosts.now.foreach { simPost =>
+          simPost.fixedPos = js.undefined
+        }
+        d3State.simulation.alpha(1).restart()
+      }), br(),
+      iconButton("+", title := "zoom in", onclick := { () =>
+        svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+      }), br(),
+      iconButton("0", title := "reset zoom", onclick := { () =>
+        svg.call(d3State.zoom.transform _, d3.zoomIdentity) //TODO: transition for smooth animation
+      }), br(),
+      iconButton("-", title := "zoom out", onclick := { () =>
+        svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+      })
+    ).render)
+  }
 
   // Arrows
   svg.append("svg:defs").append("svg:marker")

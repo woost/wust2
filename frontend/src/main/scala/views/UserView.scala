@@ -21,7 +21,7 @@ import wust.util.EventTracker.sendEvent
 object UserView {
   import Elements._
 
-  val userField = input(placeholder := "user name").render
+  val userField = input(tpe := "text", placeholder := "user name").render
   val passwordField = inputPassword(placeholder := "password").render
   def handleAuthResponse(topic: String, success: Boolean) = {
     if (success) {
