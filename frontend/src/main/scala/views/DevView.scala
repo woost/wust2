@@ -83,6 +83,7 @@ object DevView {
             def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postIds.toIndexedSeq)(rInt(graph.postsById.size))) else None
             def randomConnection: Option[Connection] = if (graph.connections.size > 0) Option((graph.connections.toIndexedSeq)(rInt(graph.connections.size))) else None
             def randomContainment: Option[Containment] = if (graph.containments.size > 0) Option((graph.containments.toIndexedSeq)(rInt(graph.containments.size))) else None
+            val numberOfConcurrentEvents = 3
             val events: Array[() => Option[GraphChanges]] = {
               val distribution: List[(Int, () => Option[GraphChanges])] = (
                 (4, () => Option(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20))))))) ::
@@ -99,8 +100,11 @@ object DevView {
             def randomEvent = events(rInt(events.size))()
 
             def emitRandomEvent() {
-              if (syncEvents.now) randomEvent.foreach(state.persistence.addChanges)
-              else state.applyEvents(randomEvent.map(NewGraphChanges(_)).toSeq)
+              val changes = List.fill(numberOfConcurrentEvents)(randomEvent)
+                .flatten
+                .foldLeft(GraphChanges.empty)(_ + _)
+              if (syncEvents.now) state.persistence.addChanges(changes)
+              else state.applyEvents(Seq(NewGraphChanges(changes)))
             }
             var interval: Option[SetIntervalHandle] = None
             val intervals = (
