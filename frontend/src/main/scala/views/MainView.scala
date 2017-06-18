@@ -39,7 +39,7 @@ object MainView {
         val newParentIds = parentIds.flatMap(state.rawGraph().parents)
         val newParentNames = newParentIds.map(state.rawGraph().postsById(_).title).mkString(", ")
         val buttonTitle = if (newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
-        button("↑", padding := "1px", title := buttonTitle,
+        button("↑", padding := "1px 5px", title := buttonTitle,
           onclick := { () =>
             state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
             else GraphSelection.Root

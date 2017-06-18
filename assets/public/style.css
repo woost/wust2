@@ -16,6 +16,13 @@ body {
     font-family: sans-serif;
 }
 
+button, input[type=button], input[type=submit], select {
+    background-color: #EEE;
+    border: 1px solid #BBB;
+    border-radius: 3px;
+    padding: 3px 10px;
+}
+
 .shadow {
     /* http://www.cssmatic.com/box-shadow */
     -webkit-box-shadow: 0px 7px 21px -6px rgba(0,0,0,0.75);
