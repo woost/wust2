@@ -31,7 +31,10 @@ object Elements {
     onKey(event) {
       case KeyCode.Enter if !event.shiftKey =>
         val elem = event.target.asInstanceOf[HTMLTextAreaElement]
-        f(elem)
+        if (elem.value.nonEmpty) {
+          f(elem)
+        }
+        else false
     }
   })
 
