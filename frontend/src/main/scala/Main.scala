@@ -7,12 +7,13 @@ import rx._
 import rxext._
 import wust.util.EventTracker.sendEvent
 import wust.ids._
-import wust.graph.{GraphSelection,Graph}
+import wust.graph.{ GraphSelection, Graph }
 import org.scalajs.dom.ext.KeyCode
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
+import scala.util.Success
 
 @js.native
 @JSGlobal("wustConfig")
@@ -35,7 +36,7 @@ object Main extends js.JSApp {
       Client.api.getGraph(selection).call().foreach { newGraph =>
         val oldSelectionGraph = selection match {
           case GraphSelection.Union(ids) => state.rawGraph.now.filter(ids)
-          case _ => Graph.empty
+          case _                         => Graph.empty
         }
 
         //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
@@ -43,9 +44,9 @@ object Main extends js.JSApp {
 
         // take changes into account, when we get a new graph
         state.persistence.applyChangesToState(newNonEmptyGraph)
-        if(selection == GraphSelection.Root) {
+        if (selection == GraphSelection.Root) {
           // on the frontpage all posts are collapsed per default
-          state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p) ))
+          state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p)))
         }
       }
     }
@@ -71,24 +72,29 @@ object Main extends js.JSApp {
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
 
-    state.rawGraphSelection.foreach(getNewGraph _)
+    state.viewConfig.foreach { viewConfig =>
+      viewConfig.invite match {
+        case Some(token) =>
+          Client.api.acceptGroupInvite(token).call().onComplete {
+            case Success(Some(_)) =>
+              getNewGraph(viewConfig.selection)
+              sendEvent("group", "invitelink", "success")
+            case failedResult =>
+              println(s"Failed to accept group invite: $failedResult")
+              sendEvent("group", "invitelink", "failure")
+          }
+
+        case None =>
+          getNewGraph(viewConfig.selection)
+      }
+
+    }
+
     state.syncMode.foreach {
       case SyncMode.Live =>
         state.eventCache.flush()
         state.persistence.flush()
       case _ =>
-    }
-
-    state.inviteToken.foreach {
-      case Some(token) =>
-        Client.api.acceptGroupInvite(token).call().foreach {
-          _.foreach { groupId =>
-            state.selectedGroupId() = Option(groupId)
-          }
-        }
-
-        sendEvent("group", "acceptinvite", "collaboration")
-      case None =>
     }
 
     document.getElementById("container").appendChild(
