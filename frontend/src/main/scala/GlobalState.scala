@@ -93,6 +93,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   } else identity
 
+  //TODO: when updating, both displayGraphs are recalculated
+  // if possible only recalculate when needed for visualization
   val displayGraphWithoutParents = {
     RxVar(rawGraph, Rx {
       val graph = groupLockFilter(rawGraph().consistent)
