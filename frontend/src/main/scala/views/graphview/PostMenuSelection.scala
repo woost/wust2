@@ -142,7 +142,12 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
           backgroundColor := baseColor(p.id).toString,
           margin := "2px", padding := "1px 0px 1px 5px",
           borderRadius := "2px",
-          span("×", onclick := { () => persistence.addChanges(delContainments = Set(Containment(p.id, simPost.id))) }, cursor.pointer, padding := "0px 5px")
+          span("×", onclick := { () =>
+            persistence.addChanges(
+              delContainments = Set(Containment(p.id, simPost.id)),
+              addContainments = graphState.state.displayGraphWithParents.now.graph.parents(p.id).map(Containment(_, simPost.id))
+        )
+          }, cursor.pointer, padding := "0px 5px")
         )
       }).render)
 
