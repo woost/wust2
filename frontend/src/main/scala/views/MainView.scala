@@ -168,6 +168,7 @@ object MainView {
     select(onchange := { (e: Event) =>
       val value = e.target.asInstanceOf[HTMLSelectElement].value
       state.viewPage() = ViewPage.fromString(value)
+      sendEvent("view", "select", value)
     }, pages.map { page =>
       val attrs = if (page == state.viewPage()) Seq(selected) else Seq.empty
       option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
