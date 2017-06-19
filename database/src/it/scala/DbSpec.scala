@@ -4,7 +4,6 @@ import org.scalatest._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future, ExecutionContext }
-import scala.util
 
 import wust.db.data._
 import wust.ids._
@@ -262,9 +261,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       val connection = Connection("t", "r")
       for {
         true <- db.post.createPublic(targetPost)
-        _ <- db.connection(connection).failed
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
+        success mustBe false
         connections mustBe empty
       }
     }
@@ -275,9 +275,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       val connection = Connection("r", "t")
       for {
         true <- db.post.createPublic(sourcePost)
-        _ <- db.connection(connection).failed
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
+        success mustBe false
         connections mustBe empty
       }
     }
@@ -286,9 +287,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       val connection = Connection("r", "t")
       for {
-        _ <- db.connection(connection).failed
+        success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
+        success mustBe false
         connections mustBe empty
       }
     }
@@ -382,9 +384,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       val containment = Containment("t", "r")
       for {
         true <- db.post.createPublic(child)
-        _ <- db.containment(containment).failed
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
+        success mustBe false
         containments mustBe empty
       }
     }
@@ -395,9 +398,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       val containment = Containment("t", "r")
       for {
         true <- db.post.createPublic(parent)
-        _ <- db.containment(containment).failed
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
+        success mustBe false
         containments mustBe empty
       }
     }
@@ -406,9 +410,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       val containment = Containment("t", "r")
       for {
-        _ <- db.containment(containment).failed
+        success <- db.containment(containment)
         containments <- ctx.run(query[Containment])
       } yield {
+        success mustBe false
         containments mustBe empty
       }
     }
