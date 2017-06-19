@@ -11,6 +11,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.Success
 import derive.derive
 import wust.util.EventTracker.sendEvent
+import scala.collection.mutable
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -28,6 +29,13 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   private val hasError = Var(false)
   private val changes = Var(KnownChanges(storage.graphChanges.getOrElse(GraphChanges.empty), GraphChanges.empty))
+
+  private val history = new mutable.Stack[GraphChanges]
+  private val revertedChanges = new mutable.Stack[GraphChanges]
+
+  //TODO better
+  val canUndo = Var(history.nonEmpty)
+  val canRedo = Var(revertedChanges.nonEmpty)
 
   val status: Rx[SyncStatus] = Rx {
     if (!changes().sent.isEmpty) SyncStatus.Sending
@@ -131,8 +139,57 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     val currentTime = System.currentTimeMillis
     state.postTimes ++= newChanges.addPosts.map(_.id -> currentTime)
 
+    revertedChanges.clear()
+    history.push(newChanges)
+    canUndo() = history.nonEmpty
+    canRedo() = revertedChanges.nonEmpty
+
     changes.updatef(_.copyF(cached = _ + newChanges.consistent))
     applyChangesToState(state.rawGraph.now)
     flush()
+  }
+
+  def undoChanges()(implicit ec: ExecutionContext): Unit = {
+    if (history.nonEmpty) {
+      val changesToRevert = history.pop()
+      revertedChanges.push(changesToRevert)
+      if (changes.now.cached.isEmpty) {
+        changes.updatef(_.copyF(cached = _ + changesToRevert.revert))
+        applyChangesToState(state.rawGraph.now)
+      } else {
+        changes.updatef(_.copyF(cached = _ - changesToRevert))
+        //TODO we need take care that the revert changes are applied to the current raw graph
+        //in order to remove them from local state, but we override the rawGraph :/
+        state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRevert.revert)
+      }
+
+      canUndo() = history.nonEmpty
+      canRedo() = revertedChanges.nonEmpty
+
+      flush()
+    }
+  }
+
+  def redoChanges()(implicit ec: ExecutionContext): Unit = {
+    if (revertedChanges.nonEmpty) {
+      val changesToRedo = revertedChanges.pop()
+      history.push(changesToRedo)
+      if (changes.now.cached.isEmpty) {
+        //TODO need to add undelete instead of addposts
+        val changesWithUndelete = changesToRedo.copy(undeletePosts = changesToRedo.addPosts.map(_.id))
+        changes.updatef(_.copyF(cached = _ + changesWithUndelete))
+        applyChangesToState(state.rawGraph.now)
+      } else {
+        changes.updatef(_.copyF(cached = _ - changesToRedo.revert))
+        //TODO we need take care that the revert changes are applied to the current raw graph
+        //in order to remove them from local state, but we override the rawGraph :/
+        state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRedo)
+      }
+
+      canUndo() = history.nonEmpty
+      canRedo() = revertedChanges.nonEmpty
+
+      flush()
+    }
   }
 }

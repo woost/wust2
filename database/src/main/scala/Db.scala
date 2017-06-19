@@ -39,6 +39,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
   }
 
+  //TODO should actually rollback transactions when batch action had partial error
   object post {
     // post ids are unique, so the methods can assume that at max 1 row was touched in each operation
 
@@ -49,11 +50,23 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       val rawPosts = posts.map(RawPost(_, false))
       ctx.run(liftQuery(rawPosts.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
-            }
+    }
 
     def get(postId: PostId)(implicit ec: ExecutionContext): Future[Option[Post]] = {
       ctx.run(query[Post].filter(_.id == lift(postId)).take(1))
         .map(_.headOption)
+    }
+
+    def get(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[Post]] = {
+      //TODO
+      //ctx.run(query[Post].filter(p => liftQuery(postIds) contains p.id))
+      val q = quote {
+        infix"""
+        select post.* from unnest(${lift(postIds.toList)} :: varchar(36)[]) inputPostId join post on post.id = inputPostId
+      """.as[Query[Post]]
+      }
+
+      ctx.run(q)
     }
 
     def update(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))

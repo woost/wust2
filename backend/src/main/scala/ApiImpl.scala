@@ -29,6 +29,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         true <- db.connection.delete(delConnections)
         true <- db.containment.delete(delContainments)
         true <- db.ownership.delete(delOwnerships)
+        true <- db.post.undelete(undeletePosts)
       } yield true
     }.recover {
       case t => 

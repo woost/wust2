@@ -133,6 +133,28 @@ object MainView {
     }).render
   }
 
+  def undoButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    val disableAttr = if (state.persistence.canUndo()) None else Some(attr("disabled") := "")
+    button(
+      "↶",
+      disableAttr,
+      onclick := { () =>
+        state.persistence.undoChanges()
+      }
+    ).render
+  }
+
+  def redoButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+    val disableAttr = if (state.persistence.canRedo()) None else Some(attr("disabled") := "")
+    button(
+      "↷",
+      disableAttr,
+      onclick := { () =>
+        state.persistence.redoChanges()
+      }
+    ).render
+  }
+
   def inviteUserToGroupField(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
     (if (state.selectedGroupId().isDefined) {
       val field = input(tpe := "text", placeholder := "invite user by name").render
@@ -338,7 +360,13 @@ object MainView {
         ),
 
         if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
-        else div()
+        else div(),
+
+        syncStatus(state),
+        div(
+          undoButton(state),
+          redoButton(state)
+        )
       )
     } else {
       div(
@@ -359,6 +387,10 @@ object MainView {
         else div(),
 
         syncStatus(state),
+        div(
+          undoButton(state),
+          redoButton(state)
+        ),
 
         div(
           display.flex, alignItems.center, justifyContent.flexEnd,
