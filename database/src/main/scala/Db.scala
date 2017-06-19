@@ -114,6 +114,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(ownerships: Set[Ownership])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(ownerships.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
+        .recoverValue(false)
     }
 
     def delete(ownership: Ownership)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(ownership))
@@ -131,6 +132,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       // This is a quill batch action:
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
+        .recoverValue(false)
     }
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
@@ -147,6 +149,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(containments.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
+        .recoverValue(false)
     }
 
     def delete(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(containment))

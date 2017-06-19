@@ -21,9 +21,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     val result = db.ctx.transaction { implicit ec =>
       for {
         true <- db.post.createPublic(addPosts)
-        true <- db.connection(addConnections)
-        true <- db.containment(addContainments)
-        true <- db.ownership(addOwnerships)
+        _ <- db.connection(addConnections)
+        _ <- db.containment(addContainments)
+        _ <- db.ownership(addOwnerships)
         true <- db.post.update(updatePosts)
         true <- db.post.delete(delPosts)
         true <- db.connection.delete(delConnections)
