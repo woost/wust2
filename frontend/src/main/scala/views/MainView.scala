@@ -381,6 +381,7 @@ object MainView {
       ViewPage.Article -> (() => ArticleView(state)) ::
       ViewPage.Code -> (() => CodeView(state)) ::
       ViewPage.Chat -> (() => ChatView(state)) ::
+      ViewPage.Board -> (() => BoardView(state)) ::
       Nil
     )
 
