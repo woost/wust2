@@ -9,8 +9,8 @@ import wust.frontend._
 import wust.util.collection._
 import wust.ids._
 import wust.graph._
-import wust.frontend.views.{ Elements }
-import org.scalajs.dom.raw.{ HTMLElement }
+import wust.frontend.views.{Elements}
+import org.scalajs.dom.raw.{HTMLElement}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
@@ -23,13 +23,14 @@ import wust.frontend.Color._
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: Ctx.Owner) extends DataSelection[SimPost] {
   import graphState.state.persistence
+  import graphState.state
 
   val menuActions = (
-    MenuAction("Focus", { (p: SimPost) => graphState.state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
+    MenuAction("Focus", { (p: SimPost) => state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
     MenuAction(
       "Collapse",
       action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ + p.id),
-      showIf = (p: SimPost) => !graphState.rxCollapsedPostIds.now(p.id) && graphState.state.rawGraph.now.hasChildren(p.id)
+      showIf = (p: SimPost) => !graphState.rxCollapsedPostIds.now(p.id) && state.rawGraph.now.hasChildren(p.id)
     ) ::
       MenuAction(
         "Expand",
@@ -52,19 +53,24 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
       import graphState.rxFocusedSimPost
       import graphState.rxPostIdToSimPost
       import scalatags.JsDom.all._
-      import org.scalajs.dom.{ Event }
-      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
+      import org.scalajs.dom.{Event}
+      import org.scalajs.dom.raw.{HTMLTextAreaElement}
       import scalatags.rx.all._
-      import graphState.state.persistence
-      import Elements.{ inlineTextarea, textareaWithEnter }
+      import state.persistence
+      import Elements.{inlineTextarea, textareaWithEnter}
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
       def div = span(display.block) // this is a workaround to avoid using divs
 
       // without default this crashes if removed from displaygraph (eg focus / delete)
       val rxSimPost = rxPostIdToSimPost.map(_.getOrElse(simPost.id, new SimPost(Post("", ""))))
-      val rxParents: Rx[Seq[Post]] = graphState.state.rawGraph.map{ graph =>
-        graph.parents.getOrElse(simPost.id, Set.empty).flatMap(graph.postsById.get)(breakOut)
+      val rxParents: Rx[Seq[Post]] = Rx {
+        val graph = graphState.state.displayGraphWithParents().graph
+        val directParentIds = graph.parents.getOrElse(simPost.id, Set.empty)
+        if (directParentIds == state.graphSelection().parentIds)
+          Nil
+        else
+          directParentIds.flatMap(graph.postsById.get)(breakOut)
       }
 
       def submitInsert(field: HTMLTextAreaElement) = {
@@ -88,7 +94,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         persistence.addChangesEnriched(
           addPosts = Set(newPost),
           addConnections = Set(Connection(simPost.id, newPost.id)),
-          addContainments = graphState.state.displayGraphWithoutParents.now.graph.parents(simPost.id).map(parentId => Containment(parentId, newPost.id))
+          addContainments = state.displayGraphWithoutParents.now.graph.parents(simPost.id).map(parentId => Containment(parentId, newPost.id))
         )
         field.value = ""
         false
@@ -145,8 +151,8 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
           span("×", onclick := { () =>
             persistence.addChanges(
               delContainments = Set(Containment(p.id, simPost.id)),
-              addContainments = graphState.state.displayGraphWithParents.now.graph.parents(p.id).map(Containment(_, simPost.id))
-        )
+              addContainments = state.displayGraphWithParents.now.graph.parents(p.id).map(Containment(_, simPost.id))
+            )
           }, cursor.pointer, padding := "0px 5px")
         )
       }).render)
