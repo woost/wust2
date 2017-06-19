@@ -36,7 +36,7 @@ class EventDistributor(db: Db) {
       val changes = graphChanges.reduce(_ + _)
       if (changes.undeletePosts.nonEmpty)
         db.post.get(changes.undeletePosts).map { posts =>
-          Option(NewGraphChanges(changes.copyF(addPosts = _ ++ posts.map(forClient _))))
+          Option(NewGraphChanges(changes.copyF(undeletePosts = _ => Set.empty, addPosts = _ ++ posts.map(forClient _))))
         }
       else Future.successful(Option(NewGraphChanges(changes)))
     } else Future.successful(None)
@@ -47,8 +47,10 @@ class EventDistributor(db: Db) {
       graphEvent <- graphEvent
     } yield {
       val receivers = subscribers - sender
-      sender.send(RequestEvent(nonGraphEvents, postGroups))
       val allEvents = nonGraphEvents ++ graphEvent.toSet
+      //TODO needs graph events for undeleted posts
+      // sender.send(RequestEvent(nonGraphEvents, postGroups))
+      sender.send(RequestEvent(allEvents, postGroups))
       receivers.foreach(_.send(RequestEvent(allEvents, postGroups)))
     }
 
