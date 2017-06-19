@@ -153,13 +153,13 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     if (history.nonEmpty) {
       val changesToRevert = history.pop()
       revertedChanges.push(changesToRevert)
-      if (changes.now.cached.isEmpty) {
+      val cachedChanges = changes.now.cached
+      val cachedChangesAfter = cachedChanges - changesToRevert
+      if (cachedChangesAfter.size == cachedChanges.size) {
         changes.updatef(_.copyF(cached = _ + changesToRevert.revert))
         applyChangesToState(state.rawGraph.now)
       } else {
-        changes.updatef(_.copyF(cached = _ - changesToRevert))
-        //TODO we need take care that the revert changes are applied to the current raw graph
-        //in order to remove them from local state, but we override the rawGraph :/
+        changes.now.copy(cached = cachedChangesAfter)
         state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRevert.revert)
       }
 
@@ -174,17 +174,17 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     if (revertedChanges.nonEmpty) {
       val changesToRedo = revertedChanges.pop()
       history.push(changesToRedo)
-      if (changes.now.cached.isEmpty) {
+      val cachedChanges = changes.now.cached
+      val cachedChangesAfter = cachedChanges - changesToRedo.revert
+      if (cachedChangesAfter.size == cachedChanges.size) {
         //TODO need to add undelete instead of addposts
-        val changesWithUndelete = changesToRedo.copy(undeletePosts = changesToRedo.addPosts.map(_.id))
+        val changesWithUndelete = changesToRedo.copy(addPosts = Set.empty, undeletePosts = changesToRedo.addPosts.map(_.id))
         changes.updatef(_.copyF(cached = _ + changesWithUndelete))
-        applyChangesToState(state.rawGraph.now)
       } else {
-        changes.updatef(_.copyF(cached = _ - changesToRedo.revert))
-        //TODO we need take care that the revert changes are applied to the current raw graph
-        //in order to remove them from local state, but we override the rawGraph :/
-        state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRedo)
+        changes.now.copy(cached = cachedChangesAfter)
       }
+
+      state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRedo)
 
       canUndo() = history.nonEmpty
       canRedo() = revertedChanges.nonEmpty
