@@ -45,8 +45,12 @@ object Main extends js.JSApp {
         // take changes into account, when we get a new graph
         state.persistence.applyChangesToState(newNonEmptyGraph)
         if (selection == GraphSelection.Root) {
-          // on the frontpage all posts are collapsed per default
-          state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p)))
+          if (state.viewPage.now == views.ViewPage.Graph) {
+            // on the frontpage all posts are collapsed per default
+            state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p)))
+          } else {
+            state.collapsedPostIds() = Set.empty
+          }
         }
       }
     }
