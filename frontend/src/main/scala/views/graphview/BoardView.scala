@@ -17,6 +17,8 @@ import scala.math.Ordering
 
 import org.scalajs.dom.{window, document, console}
 import org.scalajs.dom.raw.{Text, Element, HTMLElement}
+import org.scalajs.dom.raw.{HTMLTextAreaElement}
+import org.scalajs.dom.{Event}
 import scalatags.JsDom.all._
 import scala.scalajs.js
 import scalatags.rx.all._
@@ -26,6 +28,7 @@ import org.scalajs.dom.{DragEvent, KeyboardEvent}
 import collection.breakOut
 import wust.frontend.Color._
 import org.scalajs.d3v4._
+import Elements.{inlineTextarea, textareaWithEnter}
 
 object BoardView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -68,7 +71,7 @@ object BoardView {
               val columnColor = mixColors(List(baseColor(column.id), d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString
               div(
                 flexGrow := "1",
-                border := "1px solid #BBB",
+                border := "1px solid #989898",
                 borderRadius := "3px",
                 margin := "10px",
                 padding := "3px",
@@ -111,11 +114,54 @@ object BoardView {
                       addContainments = Set(Containment(column.id, itemId)),
                       )
                   }
+                },
+                {
+                  def submitInsert(field: HTMLTextAreaElement) = {
+                    val newPost = Post.newId(field.value)
+                    persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = Set(Containment(column.id, newPost.id)))
+                    field.value = ""
+                    false
+                  }
+                  val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Insert new post", width := "100%").render
+                  val insertForm = form(
+                    insertField,
+                    onsubmit := { (e: Event) =>
+                      submitInsert(insertField)
+                      e.preventDefault()
+                    }
+                    ).render
+                  div(
+                    margin := "5px",
+                    marginTop := "15px",
+                    insertForm
+                  )      
                 }
               ).render
-          }
+          },
         ).render
-      }
+      },
+
+                {
+                  def submitInsert(field: HTMLTextAreaElement) = {
+                    val newPost = Post.newId(field.value)
+                    persistence.addChangesEnriched(addPosts = Set(newPost))
+                    field.value = ""
+                    false
+                  }
+                  val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Add new column", width := "100%").render
+                  val insertForm = form(
+                    insertField,
+                    onsubmit := { (e: Event) =>
+                      submitInsert(insertField)
+                      e.preventDefault()
+                    }
+                    ).render
+                  div(
+                    margin := "10px",
+                    marginTop := "15px",
+                    insertForm
+                  )      
+                }
     )
   }
 }
