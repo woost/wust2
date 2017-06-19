@@ -53,7 +53,7 @@ object DevView {
           ).render
         },
         Rx {
-          val posts = scala.util.Random.shuffle(state.displayGraph().graph.postIds.toSeq)
+          val posts = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.postIds.toSeq)
           def deletePost(ids: Seq[PostId]) { state.persistence.addChanges(delPosts = ids) }
           div(
             button("delete random post", onclick := { () => deletePost(posts.take(1)) }),

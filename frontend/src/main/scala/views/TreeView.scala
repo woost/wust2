@@ -302,7 +302,7 @@ object TreeView {
   }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    div(state.displayGraph.map { dg =>
+    div(state.displayGraphWithParents.map { dg =>
       import dg.graph
       val rootPosts = graph.posts
         .filter(p => graph.parents(p.id).isEmpty)

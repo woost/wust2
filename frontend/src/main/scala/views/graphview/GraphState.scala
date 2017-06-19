@@ -14,7 +14,7 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
-  val rxDisplayGraph = state.displayGraph
+  val rxDisplayGraph = state.displayGraphWithoutParents
   val rxCollapsedPostIds = state.collapsedPostIds
 
   def fontSizeByDepth(d: Int) = (Math.pow(0.65, d + 1) + 1) // 2..1

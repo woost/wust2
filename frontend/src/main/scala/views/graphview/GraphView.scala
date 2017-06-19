@@ -51,7 +51,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag, onPostDragEnd)
-  import state.{ displayGraph => rxDisplayGraph, _ }
+  import state.{ displayGraphWithoutParents => rxDisplayGraph, _ }
   import graphState._
 
   // prepare containers where we will append elements depending on the data

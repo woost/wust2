@@ -58,7 +58,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     })
 
     // for each connected component give all posts the maximum collision radius within that component
-    val graph = graphState.state.displayGraph.now.graph
+    val graph = graphState.state.displayGraphWithoutParents.now.graph
     graph.connectedContainmentComponents.foreach { component =>
       val simPosts: List[SimPost] = component.map(graphState.rxPostIdToSimPost.now)(breakOut)
       val maxRadius = simPosts.maxBy(_.radius).radius

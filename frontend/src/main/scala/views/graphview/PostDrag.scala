@@ -44,7 +44,7 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit 
   val dropActions = js.Array(
     DropAction("connect", { (dropped: SimPost, target: SimPost) => persistence.addChanges(addConnections = Set(Connection(dropped.id, target.id))) }),
     DropAction("insert into", { (dropped: SimPost, target: SimPost) =>
-      val graph = graphState.state.displayGraph.now.graph
+      val graph = graphState.state.displayGraphWithoutParents.now.graph
       val containment = Containment(target.id, dropped.id)
       val intersectingParents = graph.parents(dropped.id).toSet intersect (graph.transitiveParents(target.id).toSet ++ graph.transitiveChildren(target.id).toSet)
       val removeContainments = intersectingParents.map(Containment(_, dropped.id)) intersect graph.containments

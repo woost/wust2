@@ -47,7 +47,7 @@ object ChatView {
       mixColors(List(mixedDirectParentColors, d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString
     }
 
-    val chatHistory = state.displayGraph.map{ dg =>
+    val chatHistory = state.displayGraphWithoutParents.map{ dg =>
       val graph = dg.graph
       graph.posts.toSeq.sortBy(p => Tag.unwrap(p.id))
     }

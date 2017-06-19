@@ -32,7 +32,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {
         connections = List(Connection("grenom", "zeilinda"))
       )
 
-      state.rawGraph.now mustEqual state.displayGraph.now.graph
+      state.rawGraph.now mustEqual state.displayGraphWithoutParents.now.graph
     }
 
     "be consistent with focused" in {
@@ -56,7 +56,7 @@ class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {
       )
       state.currentView() = Perspective(collapsed = Selector.IdSet(Set("grenom")))
 
-      state.displayGraph.now.graph mustEqual Graph(posts = List(Post("grenom", "title")))
+      state.displayGraphWithoutParents.now.graph mustEqual Graph(posts = List(Post("grenom", "title")))
     }
 
   }

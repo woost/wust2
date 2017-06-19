@@ -88,7 +88,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         persistence.addChangesEnriched(
           addPosts = Set(newPost),
           addConnections = Set(Connection(simPost.id, newPost.id)),
-          addContainments = graphState.state.displayGraph.now.graph.parents(simPost.id).map(parentId => Containment(parentId, newPost.id))
+          addContainments = graphState.state.displayGraphWithoutParents.now.graph.parents(simPost.id).map(parentId => Containment(parentId, newPost.id))
         )
         field.value = ""
         false

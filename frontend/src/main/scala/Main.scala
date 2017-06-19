@@ -117,7 +117,7 @@ object Main extends js.JSApp {
       rawGraph.debug(g => s"rawGraph: ${g.toSummaryString}")
       collapsedPostIds.debug("collapsedPostIds")
       currentView.debug("currentView")
-      displayGraph.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
+      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
       focusedPostId.debug("focusedPostId")
       selectedGroupId.debug("selectedGroupId")
       graphSelection.debug("graphSelection")

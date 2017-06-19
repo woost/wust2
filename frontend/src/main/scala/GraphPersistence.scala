@@ -42,7 +42,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     import changes.consistent._
 
     val toDelete = delPosts.flatMap { postId =>
-      Collapse.getHiddenPosts(state.displayGraph.now.graph removePosts state.graphSelection.now.parentIds, Set(postId))
+      Collapse.getHiddenPosts(state.displayGraphWithoutParents.now.graph removePosts state.graphSelection.now.parentIds, Set(postId))
     }
 
     val toOwn = state.selectedGroupId.now.toSet.flatMap { (groupId: GroupId) =>

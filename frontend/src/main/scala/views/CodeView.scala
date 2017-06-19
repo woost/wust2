@@ -34,32 +34,8 @@ object Prism extends js.Object {
 object CodeView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    //TODO: share code with displaygraph
-    val articleGraph = {
-      import state._
-      val groupLockFilter: Graph => Graph = if (viewConfig.now.lockToGroup) {
-        { graph =>
-          val groupPosts = selectedGroupId.now.map(graph.postsByGroupId).getOrElse(Set.empty)
-          graph.filter(groupPosts)
-        }
-      } else identity
-
-      RxVar(rawGraph, Rx {
-        val graph = groupLockFilter(rawGraph().consistent)
-        graphSelection() match {
-          case GraphSelection.Root =>
-            Perspective(currentView(), graph)
-
-          case GraphSelection.Union(parentIds) =>
-            val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds // -- parentIds <--- this is the only difference to displaygraph
-            val selectedGraph = graph.filter(transitiveChildren)
-            Perspective(currentView(), selectedGraph)
-        }
-      })
-    }
-
     div(
-      articleGraph.map{ dg =>
+      state.displayGraphWithParents.map{ dg =>
         val graph = dg.graph
         if (graph.isEmpty) div().render
         else {
