@@ -149,9 +149,13 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
           margin := "2px", padding := "1px 0px 1px 5px",
           borderRadius := "2px",
           span("×", onclick := { () =>
+            val addedGrandParents:Set[Containment] = if (parents.size == 1)
+              state.displayGraphWithParents.now.graph.parents(p.id).map(Containment(_, simPost.id))
+            else
+              Set.empty
             persistence.addChanges(
               delContainments = Set(Containment(p.id, simPost.id)),
-              addContainments = state.displayGraphWithParents.now.graph.parents(p.id).map(Containment(_, simPost.id))
+              addContainments = addedGrandParents
             )
           }, cursor.pointer, padding := "0px 5px")
         )
