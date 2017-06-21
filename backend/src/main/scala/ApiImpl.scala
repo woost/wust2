@@ -7,38 +7,45 @@ import wust.graph._
 import wust.framework.state._
 import wust.ids._
 import wust.util.{RandomUtil, RichFuture}
+import scala.util.control.NonFatal
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
   import holder._, dsl._
 
-  override def changeGraph(changes: GraphChanges): Future[Boolean] = withUserOrImplicit { (_, _) =>
+  override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO rights
-    import changes.consistent._
+    val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
+      changes.foldLeft(Future.successful(true)){ (previous, changes) =>
+        import changes.consistent._
 
-    //TODO error handling
-    val result = db.ctx.transaction { implicit ec =>
-      for {
-        true <- db.post.createPublic(addPosts)
-        _ <- db.connection(addConnections)
-        _ <- db.containment(addContainments)
-        _ <- db.ownership(addOwnerships)
-        true <- db.post.update(updatePosts)
-        true <- db.post.delete(delPosts)
-        true <- db.connection.delete(delConnections)
-        true <- db.containment.delete(delContainments)
-        true <- db.ownership.delete(delOwnerships)
-        true <- db.post.undelete(undeletePosts)
-      } yield true
-    }.recover {
-      case t => 
+        previous.flatMap { success =>
+          if (success) {
+            for {
+              true <- db.post.createPublic(addPosts)
+              _ <- db.connection(addConnections)
+              _ <- db.containment(addContainments)
+              _ <- db.ownership(addOwnerships)
+              true <- db.post.update(updatePosts)
+              true <- db.post.delete(delPosts)
+              true <- db.connection.delete(delConnections)
+              true <- db.containment.delete(delContainments)
+              true <- db.ownership.delete(delOwnerships)
+            } yield true
+          } else Future.successful(false)
+        }
+      }
+    }
+
+    val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
+    result
+      .recover { case NonFatal(t) =>
         scribe.error(s"unexpected error in apply graph change: $changes")
         scribe.error(t)
         false
-    }
-
-    result.map(respondWithEventsIf(_, NewGraphChanges(changes.consistent)))
+      }
+      .map(respondWithEventsIf(_, NewGraphChanges(compactChanges)))
   }
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access

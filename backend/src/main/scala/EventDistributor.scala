@@ -26,32 +26,18 @@ class EventDistributor(db: Db) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
     // do not send graphchange events to origin of event
-    val graphChanges = events.collect { case NewGraphChanges(changes) => changes }
     val nonGraphEvents = events.filter {
       case NewGraphChanges(_) => false
       case _ => true
     }
 
-    val graphEvent = if (graphChanges.nonEmpty) {
-      val changes = graphChanges.reduce(_ + _)
-      if (changes.undeletePosts.nonEmpty)
-        db.post.get(changes.undeletePosts).map { posts =>
-          Option(NewGraphChanges(changes.copyF(undeletePosts = _ => Set.empty, addPosts = _ ++ posts.map(forClient _))))
-        }
-      else Future.successful(Option(NewGraphChanges(changes)))
-    } else Future.successful(None)
-
     val postIds = events.flatMap(postIdsInEvent _).toSet
     val result = for {
       postGroups <- db.post.getGroupIds(postIds)
-      graphEvent <- graphEvent
     } yield {
       val receivers = subscribers - sender
-      val allEvents = nonGraphEvents ++ graphEvent.toSet
-      //TODO needs graph events for undeleted posts
-      // sender.send(RequestEvent(nonGraphEvents, postGroups))
-      sender.send(RequestEvent(allEvents, postGroups))
-      receivers.foreach(_.send(RequestEvent(allEvents, postGroups)))
+      sender.send(RequestEvent(nonGraphEvents, postGroups))
+      receivers.foreach(_.send(RequestEvent(events, postGroups)))
     }
 
     result.recover {

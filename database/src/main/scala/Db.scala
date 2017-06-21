@@ -43,7 +43,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   object post {
     // post ids are unique, so the methods can assume that at max 1 row was touched in each operation
 
-    private val insert = quote { (post: RawPost) => query[RawPost].insert(post).ignoreDuplicates } //TODO FIXME this should only DO NOTHING if id and title are equal to db row. now this will hide conflict on post ids!!
+    //TODO need to check rights before we can do this
+    private val insert = quote { (post: RawPost) =>
+      val q = query[RawPost].insert(post)
+      // when adding a new post, we undelete it in case it was already there
+      //TODO this approach hides conflicts on post ids!!
+      //TODO what about title
+      infix"$q ON CONFLICT(id) DO UPDATE SET isdeleted = false".as[Insert[RawPost]]
+    }
 
     def createPublic(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = createPublic(Set(post))
     def createPublic(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {

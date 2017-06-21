@@ -3,7 +3,6 @@ package wust.graph
 import wust.ids._
 import derive.derive
 
-@derive(copyF)
 case class GraphChanges(
   addPosts:        Set[Post]        = Set.empty,
   addConnections:  Set[Connection]  = Set.empty,
@@ -14,33 +13,21 @@ case class GraphChanges(
   delConnections:  Set[Connection]  = Set.empty,
   delContainments: Set[Containment] = Set.empty,
   delOwnerships:   Set[Ownership]   = Set.empty,
-  undeletePosts:   Set[PostId]      = Set.empty
 ) {
-  def +(other: GraphChanges) = GraphChanges(
-    addPosts ++ other.addPosts,
-    addConnections ++ other.addConnections,
-    addContainments ++ other.addContainments,
-    addOwnerships ++ other.addOwnerships,
-    updatePosts ++ other.updatePosts,
-    delPosts ++ other.delPosts,
-    delConnections ++ other.delConnections,
-    delContainments ++ other.delContainments,
-    delOwnerships ++ other.delOwnerships,
-    undeletePosts ++ other.undeletePosts
-  )
-
-  def -(other: GraphChanges) = GraphChanges(
-    addPosts -- other.addPosts,
-    addConnections -- other.addConnections,
-    addContainments -- other.addContainments,
-    addOwnerships -- other.addOwnerships,
-    updatePosts -- other.updatePosts,
-    delPosts -- other.delPosts,
-    delConnections -- other.delConnections,
-    delContainments -- other.delContainments,
-    delOwnerships -- other.delOwnerships,
-    undeletePosts -- other.undeletePosts
-  )
+  def merge(other: GraphChanges) = {
+    val otherAddPosts = other.addPosts.map(_.id)
+    GraphChanges(
+      addPosts.filterNot(p => other.delPosts(p.id)) ++ other.addPosts,
+      addConnections -- other.delConnections ++ other.addConnections,
+      addContainments -- other.delContainments ++ other.addContainments,
+      addOwnerships -- other.delOwnerships ++ other.addOwnerships,
+      updatePosts.filterNot(p => other.delPosts(p.id)) ++ other.updatePosts,
+      delPosts -- otherAddPosts ++ other.delPosts,
+      (delConnections -- other.addConnections).filter(c => !otherAddPosts(c.sourceId) && !otherAddPosts(c.targetId)) ++ other.delConnections,
+      (delContainments -- other.delContainments).filter(c => !otherAddPosts(c.parentId) && !otherAddPosts(c.childId)) ++ other.delContainments,
+      (delOwnerships -- other.addOwnerships).filter(o => !otherAddPosts(o.postId)) ++ other.delOwnerships,
+    )
+  }
 
   def filter(postIds: Set[PostId]) = copy(
     addPosts = addPosts.filter(p => postIds(p.id)),
@@ -48,38 +35,34 @@ case class GraphChanges(
     delPosts = delPosts.filter(postIds)
   ).consistent
 
-  lazy val revert = {
-    val addPostIds = addPosts.map(_.id)
-    GraphChanges(
-    Set.empty,
-    delConnections.filter(c => !addPostIds(c.sourceId) && !addPostIds(c.targetId)),
-    delContainments.filter(c => !addPostIds(c.parentId) && !addPostIds(c.childId)),
-    delOwnerships.filter(c => !addPostIds(c.postId)),
+  def revert(deletedPostsById: collection.Map[PostId,Post]) = GraphChanges(
+    delPosts.flatMap(deletedPostsById.get _),
+    delConnections,
+    delContainments,
+    delOwnerships,
     Set.empty, //TODO edit history
-    addPosts.map(_.id) ++ undeletePosts,
-    addConnections,
-    addContainments,
-    addOwnerships,
-    delPosts
+    addPosts.map(_.id),
+    addConnections -- delConnections,
+    addContainments -- delContainments,
+    addOwnerships -- delOwnerships,
   )
-  }
 
   lazy val consistent = GraphChanges(
-    addPosts.filter(p => !delPosts(p.id) && !undeletePosts(p.id)),
-    (addConnections -- delConnections).filter(c => !delPosts(c.sourceId) && !delPosts(c.targetId) && c.sourceId != c.targetId),
-    (addContainments -- delContainments).filter(c => !delPosts(c.parentId) && !delPosts(c.childId) && c.parentId != c.childId),
-    (addOwnerships -- delOwnerships).filter(o => !delPosts(o.postId)),
-    updatePosts.filterNot(p => delPosts(p.id)),
-    delPosts -- addPosts.map(_.id) -- undeletePosts,
-    delConnections -- addConnections,
-    delContainments -- addContainments,
-    delOwnerships -- addOwnerships,
-    undeletePosts,
+    addPosts,
+    (addConnections -- delConnections).filter(c => c.sourceId != c.targetId),
+    (addContainments -- delContainments).filter(c => c.parentId != c.childId),
+    addOwnerships -- delOwnerships,
+    updatePosts,
+    delPosts,
+    delConnections,
+    delContainments,
+    delOwnerships
   )
 
-  lazy val isEmpty = addPosts.isEmpty && addConnections.isEmpty && addContainments.isEmpty && addOwnerships.isEmpty && updatePosts.isEmpty && delPosts.isEmpty && delConnections.isEmpty && delContainments.isEmpty && delOwnerships.isEmpty && undeletePosts.isEmpty
+  def nonEmpty = !isEmpty
+  lazy val isEmpty = addPosts.isEmpty && addConnections.isEmpty && addContainments.isEmpty && addOwnerships.isEmpty && updatePosts.isEmpty && delPosts.isEmpty && delConnections.isEmpty && delContainments.isEmpty && delOwnerships.isEmpty
 
-  lazy val size = addPosts.size + addConnections.size + addContainments.size + addOwnerships.size + updatePosts.size + delPosts.size + delConnections.size + delContainments.size + delOwnerships.size + undeletePosts.size
+  lazy val size = addPosts.size + addConnections.size + addContainments.size + addOwnerships.size + updatePosts.size + delPosts.size + delConnections.size + delContainments.size + delOwnerships.size
 }
 object GraphChanges {
   def empty = GraphChanges()
@@ -93,7 +76,6 @@ object GraphChanges {
     delPosts:        Iterable[PostId]      = Set.empty,
     delConnections:  Iterable[Connection]  = Set.empty,
     delContainments: Iterable[Containment] = Set.empty,
-    delOwnerships:   Iterable[Ownership]   = Set.empty,
-    undeletePosts:   Iterable[PostId]      = Set.empty
-  ) = GraphChanges(addPosts.toSet, addConnections.toSet, addContainments.toSet, addOwnerships.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet, delContainments.toSet, delOwnerships.toSet, undeletePosts.toSet)
+    delOwnerships:   Iterable[Ownership]   = Set.empty
+  ) = GraphChanges(addPosts.toSet, addConnections.toSet, addContainments.toSet, addOwnerships.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet, delContainments.toSet, delOwnerships.toSet)
 }

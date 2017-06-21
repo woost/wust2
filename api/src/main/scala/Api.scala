@@ -6,7 +6,7 @@ import wust.ids._
 import scala.concurrent.Future
 
 trait Api {
-  def changeGraph(changes: GraphChanges): Future[Boolean]
+  def changeGraph(changes: List[GraphChanges]): Future[Boolean]
 
   def getPost(id: PostId): Future[Option[Post]]
   def getGraph(selection: GraphSelection): Future[Graph]

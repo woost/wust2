@@ -2,6 +2,7 @@ package wust.frontend
 
 import wust.graph._
 import wust.ids._
+import wust.util.collection._
 import rx._
 import rxext._
 
@@ -24,27 +25,26 @@ object SyncStatus {
 class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
-  @derive(copyF)
-  private case class KnownChanges(cached: GraphChanges, sent: GraphChanges) { val all = sent + cached }
-
   private val hasError = Var(false)
-  private val changes = Var(KnownChanges(storage.graphChanges.getOrElse(GraphChanges.empty), GraphChanges.empty))
+  private val isSending = Var(0)
+  private val localChanges = Var(storage.localGraphChanges)
 
-  private val history = new mutable.Stack[GraphChanges]
-  private val revertedChanges = new mutable.Stack[GraphChanges]
+  private val undoHistory = new mutable.Stack[GraphChanges]
+  private val redoHistory = new mutable.Stack[GraphChanges]
+  private val deletedPostsById = new mutable.HashMap[PostId, Post]
 
   //TODO better
-  val canUndo = Var(history.nonEmpty)
-  val canRedo = Var(revertedChanges.nonEmpty)
+  val canUndo = Var(undoHistory.nonEmpty)
+  val canRedo = Var(redoHistory.nonEmpty)
 
   val status: Rx[SyncStatus] = Rx {
-    if (!changes().sent.isEmpty) SyncStatus.Sending
+    if (isSending() > 0) SyncStatus.Sending
     else if (hasError()) SyncStatus.Error
-    else if (!changes().cached.isEmpty) SyncStatus.Pending
+    else if (!localChanges().isEmpty) SyncStatus.Pending
     else SyncStatus.Done
   }
 
-  changes.map(_.all).foreach(storage.graphChanges= _)
+  localChanges.foreach(storage.localGraphChanges = _)
 
   private def enrichChanges(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
@@ -62,40 +62,45 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
       .filterNot(p => containedPosts(p.id))
       .flatMap(p => GraphSelection.toContainments(state.graphSelection.now, p.id))
 
-    changes.consistent + GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
+    changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
   }
 
   def flush()(implicit ec: ExecutionContext): Unit = {
-    val current = changes.now
-    val newChanges = current.cached
+    val newChanges = localChanges.now
     state.syncMode.now match {
       case _ if newChanges.isEmpty => ()
       case SyncMode.Live =>
-        changes() = current.copy(cached = GraphChanges.empty, sent = current.sent + newChanges)
-        println(s"persisting changes: $newChanges")
+        localChanges() = List.empty
         hasError() = false
+        isSending.updatef(_ + 1)
+        println(s"persisting localChanges: $newChanges")
         Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
-            changes.updatef(_.copyF(sent = _ - newChanges))
-            if (newChanges.addPosts.nonEmpty) sendEvent("graphchanges", "addPosts", "success", newChanges.addPosts.size)
-            if (newChanges.addConnections.nonEmpty) sendEvent("graphchanges", "addConnections", "success", newChanges.addConnections.size)
-            if (newChanges.addContainments.nonEmpty) sendEvent("graphchanges", "addContainments", "success", newChanges.addContainments.size)
-            if (newChanges.updatePosts.nonEmpty) sendEvent("graphchanges", "updatePosts", "success", newChanges.updatePosts.size)
-            if (newChanges.delPosts.nonEmpty) sendEvent("graphchanges", "delPosts", "success", newChanges.delPosts.size)
-            if (newChanges.delConnections.nonEmpty) sendEvent("graphchanges", "delConnections", "success", newChanges.delConnections.size)
-            if (newChanges.delContainments.nonEmpty) sendEvent("graphchanges", "delContainments", "success", newChanges.delContainments.size)
+            isSending.updatef(_ - 1)
+
+            val compactChanges = newChanges.foldLeft(GraphChanges.empty)(_ merge _)
+            if (compactChanges.addPosts.nonEmpty) sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
+            if (compactChanges.addConnections.nonEmpty) sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
+            if (compactChanges.addContainments.nonEmpty) sendEvent("graphchanges", "addContainments", "success", compactChanges.addContainments.size)
+            if (compactChanges.updatePosts.nonEmpty) sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
+            if (compactChanges.delPosts.nonEmpty) sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
+            if (compactChanges.delConnections.nonEmpty) sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
+            if (compactChanges.delContainments.nonEmpty) sendEvent("graphchanges", "delContainments", "success", compactChanges.delContainments.size)
           case _ =>
-            changes.updatef(_.copyF(cached = _ + newChanges, sent = _ - newChanges))
+            localChanges.updatef(newChanges ++ _)
+            isSending.updatef(_ - 1)
             hasError() = true
+            println(s"failed to persist localChanges: $newChanges")
             sendEvent("graphchanges", "flush", "failure", newChanges.size)
         }
-      case _ => println(s"caching changes: $newChanges")
+      case _ => println(s"caching localChanges: $newChanges")
     }
   }
 
-  //TODO: change only the display graph in global state by adding the changes to the rawgraph
+  //TODO: change only the display graph in global state by adding the localChanges to the rawgraph
   def applyChangesToState(graph: Graph) {
-    state.rawGraph() = graph applyChanges changes.now.all
+    val compactChanges = localChanges.now.foldLeft(GraphChanges.empty)(_ merge _)
+    state.rawGraph() = graph applyChanges compactChanges
   }
 
   def addChanges(
@@ -132,64 +137,41 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     addChanges(newChanges)
   }
 
-  def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = {
+  def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = if (newChanges.nonEmpty) {
     //TODO fake info about own posts when applying
     state.ownPosts ++= newChanges.addPosts.map(_.id)
     //TODO fake info about post creation
     val currentTime = System.currentTimeMillis
     state.postTimes ++= newChanges.addPosts.map(_.id -> currentTime)
 
-    revertedChanges.clear()
-    history.push(newChanges)
-    canUndo() = history.nonEmpty
-    canRedo() = revertedChanges.nonEmpty
+    // we need store all deleted posts to be able to reconstruct them when
+    // undoing post deletion (need to add them again)
+    deletedPostsById ++= newChanges.delPosts.map(id => state.rawGraph.now.postsById(id)).by(_.id)
 
-    changes.updatef(_.copyF(cached = _ + newChanges.consistent))
+    redoHistory.clear()
+    undoHistory.push(newChanges)
+
+    saveAndApplyChanges(newChanges.consistent)
+  }
+
+  def undoChanges()(implicit ec: ExecutionContext): Unit = if (undoHistory.nonEmpty) {
+    val changesToRevert = undoHistory.pop()
+    redoHistory.push(changesToRevert)
+    saveAndApplyChanges(changesToRevert.revert(deletedPostsById))
+  }
+
+  def redoChanges()(implicit ec: ExecutionContext): Unit = if (redoHistory.nonEmpty) {
+    val changesToRedo = redoHistory.pop()
+    undoHistory.push(changesToRedo)
+    saveAndApplyChanges(changesToRedo)
+  }
+
+  private def saveAndApplyChanges(changes: GraphChanges)(implicit ec: ExecutionContext) {
+    canUndo() = undoHistory.nonEmpty
+    canRedo() = redoHistory.nonEmpty
+
+    localChanges.updatef(_ :+ changes)
     applyChangesToState(state.rawGraph.now)
     flush()
-  }
-
-  def undoChanges()(implicit ec: ExecutionContext): Unit = {
-    if (history.nonEmpty) {
-      val changesToRevert = history.pop()
-      revertedChanges.push(changesToRevert)
-      val cachedChanges = changes.now.cached
-      val cachedChangesAfter = cachedChanges - changesToRevert
-      if (cachedChangesAfter.size == cachedChanges.size) {
-        changes.updatef(_.copyF(cached = _ + changesToRevert.revert))
-        applyChangesToState(state.rawGraph.now)
-      } else {
-        changes.now.copy(cached = cachedChangesAfter)
-        state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRevert.revert)
-      }
-
-      canUndo() = history.nonEmpty
-      canRedo() = revertedChanges.nonEmpty
-
-      flush()
-    }
-  }
-
-  def redoChanges()(implicit ec: ExecutionContext): Unit = {
-    if (revertedChanges.nonEmpty) {
-      val changesToRedo = revertedChanges.pop()
-      history.push(changesToRedo)
-      val cachedChanges = changes.now.cached
-      val cachedChangesAfter = cachedChanges - changesToRedo.revert
-      if (cachedChangesAfter.size == cachedChanges.size) {
-        //TODO need to add undelete instead of addposts
-        val changesWithUndelete = changesToRedo.copy(addPosts = Set.empty, undeletePosts = changesToRedo.addPosts.map(_.id))
-        changes.updatef(_.copyF(cached = _ + changesWithUndelete))
-      } else {
-        changes.now.copy(cached = cachedChangesAfter)
-      }
-
-      state.rawGraph() = state.rawGraph.now applyChanges (changes.now.all + changesToRedo)
-
-      canUndo() = history.nonEmpty
-      canRedo() = revertedChanges.nonEmpty
-
-      flush()
-    }
   }
 }

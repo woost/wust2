@@ -10,7 +10,7 @@ import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 class ClientStorage(storage: Storage) {
   object keys {
     val token = "wust.auth.token"
-    val graphChanges = "wust.graph.changes"
+    val localGraphChanges = "wust.graph.changes"
     val syncMode = "wust.graph.syncMode"
   }
 
@@ -20,11 +20,11 @@ class ClientStorage(storage: Storage) {
     case None        => storage.remove(keys.token)
   }
 
-  def graphChanges: Option[GraphChanges] = storage(keys.graphChanges).flatMap { changesStr =>
-    decode[GraphChanges](changesStr).right.toOption
-  }
-  def graphChanges_=(changes: GraphChanges) = {
-    storage.update(keys.graphChanges, changes.asJson.noSpaces)
+  def localGraphChanges: List[GraphChanges] = storage(keys.localGraphChanges).flatMap { changesStr =>
+    decode[List[GraphChanges]](changesStr).right.toOption
+  }.getOrElse(List.empty)
+  def localGraphChanges_=(changes: List[GraphChanges]) = {
+    storage.update(keys.localGraphChanges, changes.asJson.noSpaces)
   }
 
   def syncMode: Option[SyncMode] = storage(keys.syncMode).flatMap(SyncMode.fromString.lift)

@@ -102,7 +102,7 @@ object DevView {
             def emitRandomEvent() {
               val changes = List.fill(numberOfConcurrentEvents)(randomEvent)
                 .flatten
-                .foldLeft(GraphChanges.empty)(_ + _)
+                .foldLeft(GraphChanges.empty)(_ merge _)
               if (syncEvents.now) state.persistence.addChanges(changes)
               else state.applyEvents(Seq(NewGraphChanges(changes)))
             }
