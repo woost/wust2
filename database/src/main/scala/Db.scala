@@ -85,7 +85,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def delete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
     def delete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(postIds.toList).foreach(postId => query[RawPost].filter(_.id == postId).update(_.isDeleted -> lift(true))))
-        .map(_.forall(_ == 1))
+        .map(_.forall(_ <= 1))
     }
 
     def undelete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
