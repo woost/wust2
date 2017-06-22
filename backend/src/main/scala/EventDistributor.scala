@@ -25,24 +25,18 @@ class EventDistributor(db: Db) {
   def publish(sender: EventSender[RequestEvent], events: Seq[ApiEvent])(implicit ec: ExecutionContext) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
-    // do not send graphchange events to origin of event
-    val nonGraphEvents = events.filter {
-      case NewGraphChanges(_) => false
-      case _ => true
-    }
-
     val postIds = events.flatMap(postIdsInEvent _).toSet
     val result = for {
       postGroups <- db.post.getGroupIds(postIds)
     } yield {
+      // do not send any graphchange event to origin of event
       val receivers = subscribers - sender
-      sender.send(RequestEvent(nonGraphEvents, postGroups))
       receivers.foreach(_.send(RequestEvent(events, postGroups)))
     }
 
     result.recover {
       case NonFatal(t) =>
-        scribe.error(s"Error while getting meta info for events: $events")
+        scribe.error(s"Error while getting post groups for events: $events")
         scribe.error(t)
     }
   }

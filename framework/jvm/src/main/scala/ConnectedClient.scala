@@ -34,6 +34,9 @@ trait RequestHandler[Event, PublishEvent, Error, State] {
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
   def publishEvents(origin: EventSender[PublishEvent], events: Seq[Event]): Unit
 
+  // a request can return events, here you can decide which of them will directly be sent to the connected client
+  def filterOwnEvents(event: Event): Boolean
+
   // whenever there is a new incoming event arrive, this method will be called.
   // events can trigger further events to provide missing data for the client
   // or to filter out certain events. Events have to be explicitly forwarded.
@@ -105,9 +108,7 @@ class ConnectedClient[Event, PublishEvent, Error, State](
               if (events.nonEmpty)
             } publishEvents(sender, events)
 
-            val (newState, events) = switchState(state, holder.state)
-            sendEvents(events)
-            context.become(withState(newState))
+          switchState(state, holder.state, holder.events, filterOwnEvents)
 
           case Left(error) =>
             outgoing ! CallResponse(seqId, Left(error))
@@ -120,16 +121,14 @@ class ConnectedClient[Event, PublishEvent, Error, State](
           events <- transformIncomingEvent(event, validatedState)
         } yield events
 
-        val (newState, events) = switchState(state, validatedState, newEvents)
-        sendEvents(events)
-        context.become(withState(newState))
+        switchState(state, validatedState, newEvents)
 
       case Stop =>
         state.foreach(onClientDisconnect(sender, _))
         context.stop(self)
     }
 
-    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]] = Future.successful(Seq.empty)): (Future[State], Future[Seq[Event]]) = {
+    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]] = Future.successful(Seq.empty), sendFilter: Event => Boolean = _ => true) {
       val events = for {
         state <- state
         newState <- newState
@@ -142,7 +141,8 @@ class ConnectedClient[Event, PublishEvent, Error, State](
         events <- events
       } yield if (events.isEmpty) state else applyEventsToState(events, state)
 
-      (switchState, events)
+      sendEvents(events.map(_.filter(sendFilter)))
+      context.become(withState(switchState))
     }
 
     def sendEvents(events: Future[Seq[Event]]) = {

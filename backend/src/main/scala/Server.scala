@@ -43,6 +43,11 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 
   override def publishEvents(sender: EventSender[RequestEvent], events: Seq[ApiEvent]) = distributor.publish(sender, events)
 
+  override def filterOwnEvents(event: ApiEvent) = event match {
+    case NewGraphChanges(_) => false
+    case _ => true
+  }
+
   override def transformIncomingEvent(event: RequestEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)
 
   override def applyEventsToState(events: Seq[ApiEvent], state: State) = stateInterpreter.applyEventsToState(state, events)

@@ -47,6 +47,8 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
 
   override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
 
+  override def filterOwnEvents(event: String) = true
+
   override def publishEvents(sender: EventSender[String], events: Seq[String]): Unit = { eventActor ! events.mkString("") + "-published" }
 
   override def transformIncomingEvent(event: String, state: Option[String]) = Future.successful(event match {
@@ -172,6 +174,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
       expectMsgAllOf(
         1 seconds,
         "event-published",
+        Notification(List("event")),
         CallResponse(2, Right(pickledResponse)))
     }
   }
