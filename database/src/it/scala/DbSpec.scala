@@ -197,7 +197,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         success <- db.post.delete("135481")
         queriedPosts <- ctx.run(query[Post])
       } yield {
-        success mustBe false
+        success mustBe true
         queriedPosts mustBe empty
       }
     }
