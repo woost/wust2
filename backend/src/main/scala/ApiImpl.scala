@@ -65,8 +65,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
+          Some(user) <- db.user.get(userId)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
-        } yield respondWithEvents(true, NewMembership(dbMembership))
+        } yield respondWithEvents(true, NewMembership(dbMembership), NewUser(user))
       }(recover = respondWithEvents(false))
     }
   }
@@ -77,7 +78,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         for {
           Some(user) <- db.user.byName(userName)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
-        } yield respondWithEvents(true, NewMembership(dbMembership))
+        } yield respondWithEvents(true, NewMembership(dbMembership), NewUser(user))
       ).recover { case _ => respondWithEvents(false) }
     }
   }

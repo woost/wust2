@@ -66,7 +66,6 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     import membership._
 
     def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
-    def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
     if (currentUserInvolved) {
       // query all other members of groupId
       val groupFut = db.group.get(groupId)
@@ -83,11 +82,6 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
         changes = Some(GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)).filterNot(_.isEmpty)
         event <- Seq(NewUser(user), NewMembership(membership)) ++ changes.map(NewGraphChanges(_))
       } yield event) :+ NewGroup(group)
-    } else if (ownGroupInvolved) {
-      for {
-        Some(user) <- db.user.get(userId)
-      } yield Seq(NewUser(user), NewMembership(membership))
-      // only forward new membership and user
     } else Future.successful(Nil)
   }
 
