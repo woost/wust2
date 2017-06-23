@@ -13,7 +13,7 @@ class AliveSpec(implicit ee: ExecutionEnv) extends mutable.Specification with Wu
     get("/").map { response =>
       response.status.isSuccess must beTrue
       val text = response.entity.toStrict(timeout).map(_.data.utf8String)
-      text must contain("Wust").await
+      text must contain("Woost").await
     } await
   }
 

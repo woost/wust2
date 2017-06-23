@@ -48,7 +48,7 @@ object WustConnection {
     retry(10, sleepMillis = 1000)(Await.ready(get(path), 5.second).value.get.filter(validate).isSuccess)
 
   lazy val ready = {
-    println("Waiting for Wust to be up...")
+    println("Waiting for Woost to be up...")
     pathIsUp("/", r => r.status.isSuccess) &&
       pathIsUp("/ws", _.status != StatusCodes.BadGateway)
   }
@@ -57,7 +57,7 @@ object WustConnection {
 trait WustReady extends mutable.Specification with AroundEach {
   def around[T: AsResult](t: => T): Result = {
     if (WustConnection.ready) ResultExecution.execute(AsResult(t))
-    else Failure("Wust is down")
+    else Failure("Woost is down")
   }
 }
 
