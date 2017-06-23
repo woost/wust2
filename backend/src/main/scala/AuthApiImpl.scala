@@ -42,7 +42,8 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
       case Some((user, userDigest)) if (digest hash = userDigest) =>
         //TODO integrate result into response?
         implicitAuth.foreach { implicitAuth =>
-          //TODO: propagate name change to the respective groups
+          //TODO propagate new groups into state?
+          //TODO: propagate name change to the respective groups and the connected clients
           db.user.mergeImplicitUser(implicitAuth.user.id, user.id).log
         }
 
