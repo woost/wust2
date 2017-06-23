@@ -75,7 +75,10 @@ object ChatView {
                 clear.both,
                 padding := "5px 10px",
                 borderRadius := "7px",
-                margin := "5px 0px"
+                margin := "5px 0px",
+                // TODO: What about curson when selecting text?
+                cursor.pointer,
+                onclick := { () => if(window.getSelection().toString().isEmpty) { state.graphSelection() = GraphSelection.Union(Set(post.id))} }
               )
             )
           }
