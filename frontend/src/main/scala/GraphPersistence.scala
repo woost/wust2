@@ -10,9 +10,9 @@ import autowire._
 import boopickle.Default._
 import scala.concurrent.ExecutionContext
 import scala.util.Success
-import derive.derive
 import wust.util.EventTracker.sendEvent
 import scala.collection.mutable
+import scala.scalajs.js.timers.setTimeout
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -26,11 +26,11 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
   private val hasError = Var(false)
-  private val isSending = Var(0)
+  private val isSending = Var(false)
   private val localChanges = Var(storage.localGraphChanges)
 
-  private val undoHistory = new mutable.Stack[GraphChanges]
-  private val redoHistory = new mutable.Stack[GraphChanges]
+  private var undoHistory: List[GraphChanges] = Nil
+  private var redoHistory: List[GraphChanges] = Nil
   private val deletedPostsById = new mutable.HashMap[PostId, Post]
 
   //TODO better
@@ -38,7 +38,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val canRedo = Var(redoHistory.nonEmpty)
 
   val status: Rx[SyncStatus] = Rx {
-    if (isSending() > 0) SyncStatus.Sending
+    if (isSending()) SyncStatus.Sending
     else if (hasError()) SyncStatus.Error
     else if (!localChanges().isEmpty) SyncStatus.Pending
     else SyncStatus.Done
@@ -65,18 +65,18 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
   }
 
-  def flush()(implicit ec: ExecutionContext): Unit = {
+  def flush()(implicit ec: ExecutionContext): Unit = if (!isSending.now) {
     val newChanges = localChanges.now
     state.syncMode.now match {
       case _ if newChanges.isEmpty => ()
       case SyncMode.Live =>
         localChanges() = List.empty
         hasError() = false
-        isSending.updatef(_ + 1)
+        isSending() = true
         println(s"persisting localChanges: $newChanges")
         Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
-            isSending.updatef(_ - 1)
+            isSending() = false
 
             val compactChanges = newChanges.foldLeft(GraphChanges.empty)(_ merge _)
             if (compactChanges.addPosts.nonEmpty) sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
@@ -86,12 +86,19 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
             if (compactChanges.delPosts.nonEmpty) sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
             if (compactChanges.delConnections.nonEmpty) sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
             if (compactChanges.delContainments.nonEmpty) sendEvent("graphchanges", "delContainments", "success", compactChanges.delContainments.size)
+
+            // flush changes that could not be sent during this transmission
+            setTimeout(0)(flush())
           case _ =>
             localChanges.updatef(newChanges ++ _)
-            isSending.updatef(_ - 1)
+            isSending() = false
             hasError() = true
+
             println(s"failed to persist localChanges: $newChanges")
             sendEvent("graphchanges", "flush", "failure", newChanges.size)
+
+            // flush changes that could not be sent during this transmission
+            setTimeout(0)(flush())
         }
       case _ => println(s"caching localChanges: $newChanges")
     }
@@ -148,21 +155,23 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     // undoing post deletion (need to add them again)
     deletedPostsById ++= newChanges.delPosts.map(id => state.rawGraph.now.postsById(id)).by(_.id)
 
-    redoHistory.clear()
-    undoHistory.push(newChanges)
+    redoHistory = Nil
+    undoHistory +:= newChanges
 
     saveAndApplyChanges(newChanges.consistent)
   }
 
   def undoChanges()(implicit ec: ExecutionContext): Unit = if (undoHistory.nonEmpty) {
-    val changesToRevert = undoHistory.pop()
-    redoHistory.push(changesToRevert)
+    val changesToRevert = undoHistory.head
+    undoHistory = undoHistory.tail
+    redoHistory +:= changesToRevert
     saveAndApplyChanges(changesToRevert.revert(deletedPostsById))
   }
 
   def redoChanges()(implicit ec: ExecutionContext): Unit = if (redoHistory.nonEmpty) {
-    val changesToRedo = redoHistory.pop()
-    undoHistory.push(changesToRedo)
+    val changesToRedo = redoHistory.head
+    redoHistory = redoHistory.tail
+    undoHistory +:= changesToRedo
     saveAndApplyChanges(changesToRedo)
   }
 
