@@ -26,8 +26,8 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import Client.storage
 
   private val hasError = Var(false)
-  private val isSending = Var(false)
   private val localChanges = Var(storage.localGraphChanges)
+  private val changesInTransit = Var(List.empty[GraphChanges])
 
   private var undoHistory: List[GraphChanges] = Nil
   private var redoHistory: List[GraphChanges] = Nil
@@ -38,13 +38,16 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   val canRedo = Var(redoHistory.nonEmpty)
 
   val status: Rx[SyncStatus] = Rx {
-    if (isSending()) SyncStatus.Sending
+    if (changesInTransit().nonEmpty) SyncStatus.Sending
     else if (hasError()) SyncStatus.Error
     else if (!localChanges().isEmpty) SyncStatus.Pending
     else SyncStatus.Done
   }
 
-  localChanges.foreach(storage.localGraphChanges = _)
+  //TODO this writes to localstorage then needed, once for localchanges changes and once for changesintransit changes
+  Rx {
+    storage.localGraphChanges = changesInTransit() ++ localChanges()
+  }
 
   private def enrichChanges(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
@@ -65,18 +68,18 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
   }
 
-  def flush()(implicit ec: ExecutionContext): Unit = if (!isSending.now) {
+  def flush()(implicit ec: ExecutionContext): Unit = if (changesInTransit.now.isEmpty) {
     val newChanges = localChanges.now
     state.syncMode.now match {
       case _ if newChanges.isEmpty => ()
       case SyncMode.Live =>
-        localChanges() = List.empty
+        localChanges() = Nil
+        changesInTransit() = newChanges
         hasError() = false
-        isSending() = true
         println(s"persisting localChanges: $newChanges")
         Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
-            isSending() = false
+            changesInTransit() = Nil
 
             val compactChanges = newChanges.foldLeft(GraphChanges.empty)(_ merge _)
             if (compactChanges.addPosts.nonEmpty) sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
@@ -91,7 +94,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
             setTimeout(0)(flush())
           case _ =>
             localChanges.updatef(newChanges ++ _)
-            isSending() = false
+            changesInTransit() = Nil
             hasError() = true
 
             println(s"failed to persist localChanges: $newChanges")
