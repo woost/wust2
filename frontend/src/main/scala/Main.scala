@@ -76,22 +76,25 @@ object Main extends js.JSApp {
 
     Client.run(s"$protocol://${location.hostname}:$port/ws")
 
+    //TODO: better?
+    var prevViewConfig: Option[views.ViewConfig] = None
     state.viewConfig.foreach { viewConfig =>
-      viewConfig.invite match {
-        case Some(token) =>
-          Client.api.acceptGroupInvite(token).call().onComplete {
-            case Success(Some(_)) =>
-              getNewGraph(viewConfig.selection)
-              sendEvent("group", "invitelink", "success")
-            case failedResult =>
-              println(s"Failed to accept group invite: $failedResult")
-              sendEvent("group", "invitelink", "failure")
-          }
-
-        case None =>
-          getNewGraph(viewConfig.selection)
+      viewConfig.invite foreach { token =>
+        Client.api.acceptGroupInvite(token).call().onComplete {
+          case Success(Some(_)) =>
+            sendEvent("group", "invitelink", "success")
+          case failedResult =>
+            println(s"Failed to accept group invite: $failedResult")
+            sendEvent("group", "invitelink", "failure")
+        }
       }
 
+      prevViewConfig match {
+        case Some(prev) if prev.selection == viewConfig.selection =>
+        case _ => getNewGraph(viewConfig.selection)
+      }
+
+      prevViewConfig = Some(viewConfig)
     }
 
     state.syncMode.foreach {
