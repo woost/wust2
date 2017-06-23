@@ -29,6 +29,10 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
+    case NewUser(user) =>
+        //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
+        Future.successful(Nil)
+
     case NewGraphChanges(changes) =>
       val visibleChanges = visibleChangesForState(state, changes, event.postGroups)
       Future.successful {
@@ -66,6 +70,7 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
     import membership._
 
     def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
+    def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
     if (currentUserInvolved) {
       // query all other members of groupId
       val groupFut = db.group.get(groupId)
@@ -82,6 +87,12 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
         changes = Some(GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)).filterNot(_.isEmpty)
         event <- Seq(NewUser(user), NewMembership(membership)) ++ changes.map(NewGraphChanges(_))
       } yield event) :+ NewGroup(group)
+    } else if (ownGroupInvolved) {
+      for {
+        //TODO we should not need this, the newuser should be in the events already
+        Some(user) <- db.user.get(userId)
+      } yield Seq(NewUser(user), NewMembership(membership))
+      // only forward new membership and user
     } else Future.successful(Nil)
   }
 
