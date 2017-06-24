@@ -246,7 +246,7 @@ object MainView {
     val feedbackField = textareaWithEnter(submitInsert)(
       rows := 5,
       cols := 30,
-      placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
+      placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying? Press Enter to submit."
     ).render
 
     show.foreach {

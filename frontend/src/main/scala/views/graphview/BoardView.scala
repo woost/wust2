@@ -122,7 +122,7 @@ object BoardView {
                     field.value = ""
                     false
                   }
-                  val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Insert new post", width := "100%").render
+                  val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Insert new post. Press Enter to submit.", width := "100%").render
                   val insertForm = form(
                     insertField,
                     onsubmit := { (e: Event) =>

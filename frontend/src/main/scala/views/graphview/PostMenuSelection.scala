@@ -79,7 +79,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         field.value = ""
         false
       }
-      val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Insert new post", width := "100%").render
+      val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Insert new post. Press Enter to submit.", width := "100%").render
       val insertForm = form(
         insertField,
         onsubmit := { (e: Event) =>
@@ -98,7 +98,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         field.value = ""
         false
       }
-      val connectField: HTMLTextAreaElement = textareaWithEnter(submitConnect)(placeholder := "Create new connected post", width := "100%").render
+      val connectField: HTMLTextAreaElement = textareaWithEnter(submitConnect)(placeholder := "Create new connected post. Press Enter to submit.", width := "100%").render
       val connectForm = form(
         connectField,
         onsubmit := { (e: Event) =>

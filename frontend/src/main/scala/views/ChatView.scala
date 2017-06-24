@@ -112,7 +112,7 @@ object ChatView {
       field.value = ""
       false
     }
-    val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Create new post", width := "100%").render
+    val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Create new post. Press Enter to submit.", width := "100%").render
     val insertForm = form(
       insertField,
       // input(tpe := "submit", "insert"),
