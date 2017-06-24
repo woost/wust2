@@ -2,13 +2,9 @@ package wust.frontend
 
 import wust.graph._
 
-case class Perspective(
-  collapsed: Selector = Selector.Nothing
-) {
+case class Perspective(collapsed: Selector = Selector.Nothing) {
   def intersect(that: Perspective) = copy(collapsed = this.collapsed intersect that.collapsed)
   def union(that: Perspective) = copy(collapsed = this.collapsed union that.collapsed)
-}
 
-object Perspective {
-  def apply(view: Perspective, graph: Graph) = Collapse(view.collapsed)(DisplayGraph(graph))
+  def applyOnGraph(graph: Graph) = Collapse(collapsed)(DisplayGraph(graph))
 }

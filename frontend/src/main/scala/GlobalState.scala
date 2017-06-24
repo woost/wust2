@@ -3,10 +3,10 @@ package wust.frontend
 import rx._
 import rxext._
 import wust.api._
-import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.frontend.views.{ ViewConfig, ViewPage }
 import wust.ids._
 import wust.graph._
-import org.scalajs.dom.{window, console}
+import org.scalajs.dom.{ window, console }
 import org.scalajs.dom.experimental.Notification
 import wust.util.EventTracker.sendEvent
 import vectory._
@@ -37,7 +37,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val syncMode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
   //TODO: why does triggerlater not work?
-  syncMode.foreach(storage.syncMode = _)
+  syncMode.foreach(storage.syncMode= _)
 
   val currentUser = RxVar[Option[User]](None)
 
@@ -99,12 +99,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       val graph = groupLockFilter(rawGraph().consistent)
       graphSelection() match {
         case GraphSelection.Root =>
-          Perspective(currentView(), graph)
+          currentView().applyOnGraph(graph)
 
         case GraphSelection.Union(parentIds) =>
           val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) -- parentIds
           val selectedGraph = graph.filter(transitiveChildren)
-          Perspective(currentView(), selectedGraph)
+          currentView().applyOnGraph(selectedGraph)
       }
     })
   }
@@ -120,12 +120,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       val graph = groupLockFilter(rawGraph().consistent)
       graphSelection() match {
         case GraphSelection.Root =>
-          Perspective(currentView(), graph)
+          currentView().applyOnGraph(graph)
 
         case GraphSelection.Union(parentIds) =>
           val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
           val selectedGraph = graph.filter(transitiveChildren)
-          Perspective(currentView(), selectedGraph)
+          currentView().applyOnGraph(selectedGraph)
       }
     })
   }
