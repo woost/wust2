@@ -86,17 +86,16 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     })
   }
 
-  val groupLockFilter: Graph => Graph = if (viewConfig.now.lockToGroup) {
-    { graph =>
-      val groupPosts = selectedGroupId.now.map(graph.postsByGroupId).getOrElse(Set.empty)
-      graph.filter(groupPosts)
-    }
-  } else identity
-
   //TODO: when updating, both displayGraphs are recalculated
   // if possible only recalculate when needed for visualization
   val displayGraphWithoutParents = {
     RxVar(rawGraph, Rx {
+      val groupLockFilter: Graph => Graph = if (viewConfig().lockToGroup) {
+        { graph =>
+          val groupPosts = selectedGroupId().map(graph.postsByGroupId).getOrElse(Set.empty)
+          graph.filter(groupPosts)
+        }
+      } else identity
       val graph = groupLockFilter(rawGraph().consistent)
       graphSelection() match {
         case GraphSelection.Root =>
@@ -112,6 +111,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val displayGraphWithParents = {
     RxVar(rawGraph, Rx {
+      val groupLockFilter: Graph => Graph = if (viewConfig().lockToGroup) {
+        { graph =>
+          val groupPosts = selectedGroupId().map(graph.postsByGroupId).getOrElse(Set.empty)
+          graph.filter(groupPosts)
+        }
+      } else identity
       val graph = groupLockFilter(rawGraph().consistent)
       graphSelection() match {
         case GraphSelection.Root =>
