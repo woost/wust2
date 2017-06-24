@@ -21,7 +21,6 @@ import scalatags.rx.all._
 object DevView {
   import scala.util.Random.{ nextInt => rInt, nextString => rStr }
   val apiEvents = RxVar[List[ApiEvent]](Nil)
-  val syncEvents = Var(false)
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     span(
@@ -64,18 +63,6 @@ object DevView {
         div(
           "Random Events:",
           br(),
-          "Sync enabled",
-          Rx {
-            input(
-              `type` := "checkbox",
-              value := syncEvents(),
-              onclick := { (event: Event) =>
-                val elem = event.target.asInstanceOf[HTMLInputElement]
-                syncEvents() = elem.checked
-              }
-            ).render
-          },
-          br(),
           {
             import scalajs.js.timers._
             def graph = state.rawGraph.now
@@ -103,8 +90,7 @@ object DevView {
               val changes = List.fill(numberOfConcurrentEvents)(randomEvent)
                 .flatten
                 .foldLeft(GraphChanges.empty)(_ merge _)
-              if (syncEvents.now) state.persistence.addChanges(changes)
-              else state.applyEvents(Seq(NewGraphChanges(changes)))
+              state.persistence.addChanges(changes)
             }
             var interval: Option[SetIntervalHandle] = None
             val intervals = (
