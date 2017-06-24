@@ -67,10 +67,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
       val rxParents: Rx[Seq[Post]] = Rx {
         val graph = graphState.state.displayGraphWithParents().graph
         val directParentIds = graph.parents.getOrElse(simPost.id, Set.empty)
-        if (directParentIds == state.graphSelection().parentIds)
-          Nil
-        else
-          directParentIds.flatMap(graph.postsById.get)(breakOut)
+        directParentIds.flatMap(graph.postsById.get)(breakOut)
       }
 
       def submitInsert(field: HTMLTextAreaElement) = {
