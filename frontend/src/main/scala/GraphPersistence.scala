@@ -99,9 +99,6 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
             println(s"failed to persist localChanges: $newChanges")
             sendEvent("graphchanges", "flush", "failure", newChanges.size)
-
-            // flush changes that could not be sent during this transmission
-            setTimeout(0)(flush())
         }
       case _ => println(s"caching localChanges: $newChanges")
     }
