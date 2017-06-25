@@ -8,7 +8,6 @@ package object rxext {
   }
 
   implicit class RichRxVar[S,A](val rxVar:RxVar[S,A]) extends AnyVal {
-    def writeProjection[T](to: T => S)(implicit ctx: Ctx.Owner): RxVar[T, A] = RxVar(WriteProjection(rxVar, to), rxVar.rx)
     def map[T](to: A => T)(implicit ctx: Ctx.Owner):RxVar[S,T] = RxVar(rxVar, rxVar.rx.map(to))
     def updatef(f: A => S) = rxVar() = f(rxVar.rx.now)
   }
@@ -25,14 +24,6 @@ package object rxext {
     }
     def debug(print: A => String)(implicit ctx: Ctx.Owner): Rx[A] = {
       rx sideEffect (_.foreach(x => println(print(x))))
-    }
-  }
-
-  object WriteProjection {
-    def apply[S, A](v: WriteVar[S], to: A => S)(implicit ctx: Ctx.Owner): WriteVar[A] = new WriteVar[A] {
-      def update(newValue: A) = v() = to(newValue)
-      def kill(): Unit = v.kill()
-      def recalc(): Unit = v.recalc()
     }
   }
 }
