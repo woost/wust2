@@ -109,10 +109,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         persistence.addChanges(updatePosts = Set(simPost.post.copy(title = field.value)))
         editMode() = false
       }
-      val editField = inlineTextarea(
-        submitEdit,
-        cancel = () => editMode() = false
-      )(width := "100%").render
+      val editField = inlineTextarea(submitEdit)(width := "100%").render
       val editForm = form(
         editField,
         onsubmit := { (e: Event) =>

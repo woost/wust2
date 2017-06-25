@@ -38,7 +38,7 @@ object Elements {
     }
   })
 
-  def inlineTextarea(submit: HTMLTextAreaElement => Any, cancel: () => Any) = {
+  def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
     textarea(
       onkeypress := { (e: KeyboardEvent) =>
         e.keyCode match {
