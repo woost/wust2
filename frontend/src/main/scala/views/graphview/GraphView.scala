@@ -17,7 +17,7 @@ import scala.scalajs.js.JSConverters._
 import scalatags.JsDom.all._
 
 case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
-case class DropAction(name: String, action: (SimPost, SimPost) => Unit)
+case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {
   implicit val SimPostWithKey = new WithKey[SimPost](_.id)
@@ -75,8 +75,8 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val postCreatorMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreatorMenus.map(_.toJSArray))(postMenuLayer.append("div"))
 
   val menuSvg = container.append("svg")
-  val dropMenuLayer = menuSvg.append("g")
-  val dropMenuSelection = SelectData.rxDraw(new DropMenuSelection(postDrag.dropActions, d3State), postDrag.closestPosts)(dropMenuLayer.append("g"))
+  val dragMenuLayer = menuSvg.append("g")
+  val dragMenuSelection = SelectData.rxDraw(new DragMenuSelection(postDrag.dragActions, d3State), postDrag.closestPosts)(dragMenuLayer.append("g"))
 
   val controls = {
     val iconButton = button(width := "2.5em", padding := "5px 10px")

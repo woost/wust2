@@ -12,7 +12,7 @@ import scala.math._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-class DropMenuSelection(dropActions: js.Array[DropAction], d3State: D3State) extends DataSelection[SimPost] {
+class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0
   val menuInnerRadius = 30.0
   val menuPaddingAngle = 2.0 * Pi / 200.0
@@ -29,7 +29,7 @@ class DropMenuSelection(dropActions: js.Array[DropAction], d3State: D3State) ext
       .outerRadius(menuOuterRadius)
       .cornerRadius(menuCornerRadius)
 
-    val pieData = dropActions
+    val pieData = dragActions
     val ringMenuArc = menu.selectAll("path")
       .data(pie(pieData))
     val ringMenuLabels = menu.selectAll("text")
@@ -37,18 +37,18 @@ class DropMenuSelection(dropActions: js.Array[DropAction], d3State: D3State) ext
 
     ringMenuArc.enter()
       .append("path")
-      .attr("d", (d: PieArcDatum[DropAction]) => arc(d))
+      .attr("d", (d: PieArcDatum[DragAction]) => arc(d))
       .attr("fill", "rgba(0,0,0,0.7)")
       .style("cursor", "pointer")
       .style("pointer-events", "all")
 
     ringMenuLabels.enter()
       .append("text")
-      .text((d: PieArcDatum[DropAction]) => d.data.name)
+      .text((d: PieArcDatum[DragAction]) => d.data.name)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
-      .attr("x", (d: PieArcDatum[DropAction]) => arc.centroid(d)(0))
-      .attr("y", (d: PieArcDatum[DropAction]) => arc.centroid(d)(1))
+      .attr("x", (d: PieArcDatum[DragAction]) => arc.centroid(d)(0))
+      .attr("y", (d: PieArcDatum[DragAction]) => arc.centroid(d)(1))
   }
 
   override def draw(menu: Selection[SimPost]) {
