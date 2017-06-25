@@ -2,7 +2,7 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLElement
-import rxext._
+import rx._, rxext._
 import wust.frontend._
 import wust.util.collection._
 import wust.util.EventTracker.sendEvent
@@ -27,14 +27,18 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .on("click", { (p: SimPost) =>
         //TODO: click should not trigger drag
         DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
-        rxFocusedSimPost.updatef(_.map(_.id).setOrToggle(p.id))
-        graphState.state.postCreatorMenus() = Nil
+        Var.set(
+          VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
+          VarTuple(graphState.state.postCreatorMenus, Nil)
+        )
       })
       .call(d3.drag[SimPost]()
         .clickDistance(10) // interpret short drags as clicks
         .on("start", { (simPost: SimPost) =>
-          graphState.state.focusedPostId() = None
-          graphState.state.postCreatorMenus() = Nil
+          Var.set(
+            VarTuple(graphState.state.focusedPostId, None),
+            VarTuple(graphState.state.postCreatorMenus, Nil)
+          )
           postDragStarted(simPost)
         })
         .on("drag", postDragged _)

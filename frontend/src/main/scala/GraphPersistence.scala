@@ -73,9 +73,11 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     state.syncMode.now match {
       case _ if newChanges.isEmpty => ()
       case SyncMode.Live =>
-        localChanges() = Nil
-        changesInTransit() = newChanges
-        hasError() = false
+        Var.set(
+          VarTuple(localChanges, Nil),
+          VarTuple(changesInTransit, newChanges),
+          VarTuple(hasError, false)
+        )
         println(s"persisting localChanges: $newChanges")
         Client.api.changeGraph(newChanges).call().onComplete {
           case Success(true) =>
@@ -93,9 +95,11 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
             // flush changes that could not be sent during this transmission
             setTimeout(0)(flush())
           case _ =>
-            localChanges.updatef(newChanges ++ _)
-            changesInTransit() = Nil
-            hasError() = true
+            Var.set(
+              VarTuple(localChanges, newChanges ++ localChanges.now),
+              VarTuple(changesInTransit, Nil),
+              VarTuple(hasError, true)
+            )
 
             println(s"failed to persist localChanges: $newChanges")
             sendEvent("graphchanges", "flush", "failure", newChanges.size)

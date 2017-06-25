@@ -166,8 +166,10 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
         val pos = d3State.transform.invert(d3.mouse(svg.node))
         state.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
       } else {
-        state.postCreatorMenus() = Nil
-        focusedPostId() = None
+        Var.set(
+          VarTuple(state.postCreatorMenus, Nil),
+          VarTuple(focusedPostId, None)
+        )
       }
     })
 

@@ -177,7 +177,6 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
             span(action.name),
             onclick := { () =>
               println(s"\nMenu ${action.name}: [${simPost.id}]${simPost.title}")
-              //TODO: change two reactive variables at once?
               rxFocusedSimPost() = None
               action.action(simPost)
             },
