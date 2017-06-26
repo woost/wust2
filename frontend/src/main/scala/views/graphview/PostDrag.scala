@@ -46,15 +46,22 @@ class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit 
     DragAction("insert into", { (dragging: SimPost, target: SimPost) =>
       val graph = graphState.state.displayGraphWithParents.now.graph
       val containment = Containment(target.id, dragging.id)
+      val removeContainments = (if (graph.transitiveParents(target.id).toSet contains dragging.id) { // cycle
+        Set.empty
+      } else { // no cycle
       val intersectingParents = graph.parents(dragging.id).toSet intersect (graph.transitiveParents(target.id).toSet ++ graph.transitiveChildren(target.id).toSet)
-      val removeContainments = intersectingParents.map(Containment(_, dragging.id)) intersect graph.containments
+        intersectingParents.map(Containment(_, dragging.id)) intersect graph.containments
+      })
       persistence.addChanges(addContainments = Set(containment), delContainments = removeContainments)
-      //TODO: if dragged into cycle, both posts lose their common parent
     }),
     DragAction("move into", { (dragging: SimPost, target: SimPost) =>
       val contextGraph = graphState.state.displayGraphWithoutParents.now.graph
       val newContainments = Set(Containment(target.id, dragging.id))
-      val removeContainments = ( contextGraph.parents(dragging.id) map (Containment(_, dragging.id))) - newContainments.head
+      val removeContainments = (if (graph.transitiveParents(target.id).toSet contains dragging.id) { // cycle
+        Set.empty
+      } else { // no cycle
+        ( contextGraph.parents(dragging.id) map (Containment(_, dragging.id))) - newContainments.head
+      })
       persistence.addChanges(addContainments = newContainments, delContainments = removeContainments)
     })
   // DragAction("merge", { (dragging: SimPost, target: SimPost) => /*Client.api.merge(target.id, dragging.id).call()*/ }),
