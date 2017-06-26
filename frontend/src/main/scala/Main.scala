@@ -42,7 +42,7 @@ object Main extends js.JSApp {
         //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
         val newNonEmptyGraph = oldSelectionGraph + newGraph
 
-        val nextCollapsedPostIds = if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
+        val newCollapsedPostIds: Set[PostId] = if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
           // on the frontpage all posts are collapsed per default
           state.collapsedPostIds.now ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p))
         } else Set.empty
@@ -112,7 +112,7 @@ object Main extends js.JSApp {
       if (e.keyCode == KeyCode.Escape) {
         Var.set(
           VarTuple(state.focusedPostId, None),
-          VarTuple(state.postCreateMenus, Nil)
+          VarTuple(state.postCreatorMenus, Nil)
         )
       }
     }

@@ -161,7 +161,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
     val newGraph = events.foldLeft(rawGraph.now)(GraphUpdate.onEvent(_, _))
     // take changes into account, when we get a new graph
-    persistence.applyChangesToState(newGraph)
+    rawGraph() = newGraph applyChanges persistence.currentChanges
   }
 
   def onEvents(events: Seq[ApiEvent]) = {

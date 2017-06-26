@@ -180,9 +180,9 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     Var.set(
       VarTuple(canUndo, undoHistory.nonEmpty),
       VarTuple(canRedo, redoHistory.nonEmpty),
-      VarTuple(localChanges, localChanges.now ++ changes),
+      VarTuple(localChanges, localChanges.now :+ changes),
       //TODO: change only the display graph in global state by adding the currentChanges to the rawgraph
-      VarTuple(state.rawGraph, state.rawGraph.now applyChanges (currentChanges merge newChanges))
+      VarTuple(state.rawGraph, state.rawGraph.now applyChanges (currentChanges merge changes))
     )
 
     flush()
