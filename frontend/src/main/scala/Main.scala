@@ -42,14 +42,16 @@ object Main extends js.JSApp {
         //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
         val newNonEmptyGraph = oldSelectionGraph + newGraph
 
-        // take changes into account, when we get a new graph
-        state.persistence.applyChangesToState(newNonEmptyGraph)
-        if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
+        val nextCollapsedPostIds = if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
           // on the frontpage all posts are collapsed per default
-          state.collapsedPostIds.updatef(_ ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p)))
-        } else {
-          state.collapsedPostIds() = Set.empty
-        }
+          state.collapsedPostIds.now ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p))
+        } else Set.empty
+
+        Var.set(
+          VarTuple(state.collapsedPostIds, newCollapsedPostIds),
+          // take changes into account, when we get a new graph
+          VarTuple(state.rawGraph, newNonEmptyGraph applyChanges state.persistence.currentChanges)
+        )
       }
     }
 
@@ -108,8 +110,10 @@ object Main extends js.JSApp {
 
     document.onkeypress = { (e: KeyboardEvent) =>
       if (e.keyCode == KeyCode.Escape) {
-        state.focusedPostId() = None
-        state.postCreatorMenus() = Nil
+        Var.set(
+          VarTuple(state.focusedPostId, None),
+          VarTuple(state.postCreateMenus, Nil)
+        )
       }
     }
 

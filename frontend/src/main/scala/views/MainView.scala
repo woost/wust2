@@ -41,8 +41,7 @@ object MainView {
         val buttonTitle = if (newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
         button("↑", width := "2.5em", title := buttonTitle,
           onclick := { () =>
-            state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds)
-            else GraphSelection.Root
+            state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds) else GraphSelection.Root
           })
     }).render
   }
@@ -118,13 +117,16 @@ object MainView {
       groupNameOpt.foreach { groupName =>
         Client.api.addGroup().call().onComplete {
           case Success(groupId) =>
-            state.selectedGroupId() = Option(groupId)
             val newPost = Post.newId(groupName)
             state.persistence.addChanges(
               addPosts = Set(newPost),
               addOwnerships = Set(Ownership(newPost.id, groupId))
             )
-            state.graphSelection() = GraphSelection.Union(Set(newPost.id))
+
+            Var.set(
+              VarTuple(state.selectedGroupId, Option(groupId)),
+              VarTuple(state.graphSelection, GraphSelection.Union(Set(newPost.id)))
+            )
             sendEvent("group", "created", "success")
           case Failure(e) =>
             sendEvent("group", "created", "failure")

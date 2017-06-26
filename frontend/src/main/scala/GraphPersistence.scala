@@ -33,6 +33,8 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   private var redoHistory: List[GraphChanges] = Nil
   private val deletedPostsById = new mutable.HashMap[PostId, Post]
 
+  def currentChanges = (changesInTransit.now ++ localChanges.now).foldLeft(GraphChanges.empty)(_ merge _)
+
   //TODO better
   val canUndo = Var(undoHistory.nonEmpty)
   val canRedo = Var(redoHistory.nonEmpty)
@@ -108,12 +110,6 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     }
   }
 
-  //TODO: change only the display graph in global state by adding the localChanges to the rawgraph
-  def applyChangesToState(graph: Graph) {
-    val compactChanges = localChanges.now.foldLeft(GraphChanges.empty)(_ merge _)
-    state.rawGraph() = graph applyChanges compactChanges
-  }
-
   def addChanges(
     addPosts:        Iterable[Post]        = Set.empty,
     addConnections:  Iterable[Connection]  = Set.empty,
@@ -179,12 +175,16 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
     saveAndApplyChanges(changesToRedo)
   }
 
+  //TODO how to allow setting additional changes in var.set with this one?///
   private def saveAndApplyChanges(changes: GraphChanges)(implicit ec: ExecutionContext) {
-    canUndo() = undoHistory.nonEmpty
-    canRedo() = redoHistory.nonEmpty
+    Var.set(
+      VarTuple(canUndo, undoHistory.nonEmpty),
+      VarTuple(canRedo, redoHistory.nonEmpty),
+      VarTuple(localChanges, localChanges.now ++ changes),
+      //TODO: change only the display graph in global state by adding the currentChanges to the rawgraph
+      VarTuple(state.rawGraph, state.rawGraph.now applyChanges (currentChanges merge newChanges))
+    )
 
-    localChanges.updatef(_ :+ changes)
-    applyChangesToState(state.rawGraph.now)
     flush()
   }
 }
