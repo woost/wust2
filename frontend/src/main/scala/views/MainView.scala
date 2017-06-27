@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{ Event, document, window, console, Element }
+import org.scalajs.dom.{Event, document, window, console, Element}
 import org.scalajs.dom.window.location
 import wust.util.tags._
 import rx._
@@ -22,7 +22,7 @@ import wust.util.Analytics
 import scala.util.{ Try, Success, Failure }
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{ SyncStatus, SyncMode }
+import wust.frontend.{SyncStatus, SyncMode}
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
@@ -446,7 +446,8 @@ object MainView {
       // bottomBar (state),
 
       feedbackForm (state),
-      DevOnly { devPeek(state) }
+      DevOnly { devPeek(state) },
+      DevOnly { DevView.jsError(state) }
     )
   }
 }

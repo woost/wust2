@@ -6,21 +6,38 @@ import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLInputElement, HTMLElement}
 import rx._
 import wust.api._
-import wust.frontend.{ Client, GlobalState, RichPostFactory }
+import wust.frontend.{Client, GlobalState, RichPostFactory}
 import wust.graph._
 import wust.ids._
 import wust.util.tags._
 
 import scala.collection.breakOut
-import scala.concurrent.duration.{ span => _, _ }
+import scala.concurrent.duration.{span => _, _}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scalatags.JsDom.all._
 import org.scalajs.dom.{Event, console}
 import scalatags.rx.all._
 
 object DevView {
-  import scala.util.Random.{ nextInt => rInt, nextString => rStr }
+  import scala.util.Random.{nextInt => rInt, nextString => rStr}
   val apiEvents = RxVar[List[ApiEvent]](Nil)
+
+  def jsError(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    span(
+      Rx {
+        (state.jsError() match {
+          case Some(error) =>
+            pre(
+              position.fixed, right := 0, bottom := 50,
+              border := "1px solid #FFD7D7", backgroundColor := "#FFF0F0", color := "#C41A16",
+              width := "90%", margin := 10, padding := 10, whiteSpace := "pre-wrap",
+              error
+            )
+          case None => span()
+        }).render
+      }
+    )
+  }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     span(
