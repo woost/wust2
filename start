@@ -16,7 +16,6 @@ function sbt_with_args() {
     WUST_STAGE=dev sbt -Dquill.macro.log=false $args
 }
 
-function self() { "$script_file" $@; }
 function compose() { "$script_dir/docker/compose" $stage $@; }
 
 function create_wust_template() {
@@ -26,76 +25,67 @@ function create_wust_template() {
 
 # CI=true => disable workbench
 
-case $stage in
-psql)
-    on_stage dev
-    # compose run db-migration
-    # PGPASSWORD=test psql -h localhost -U wust
-    docker exec -it wustdev_postgres_1 psql -h localhost -U wust ${@:2}
-    ;;
-pgdump)
-    on_stage dev
-    docker exec -i wustdev_postgres_1 pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
-    ;;
-pgrestore)
-    on_stage dev
-    docker exec -i wustdev_postgres_1 psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
-    ;;
-pgclean)
-    on_stage dev
-    docker exec -i wustdev_postgres_1 psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-    ;;
-dev)
-    compose up -d
-    sbt_with_args
-    ;;
-migrate)
-    on_stage dev
-    CI=true sbt dbMigration/docker
-    compose run db-migration
-    ;;
-prod.http)
-    on_stage prod
-    compose down
-    compose up postgres db-migration wust nginx
-    ;;
-prod)
-    compose down
-    compose up -d nginx
-    ;;
-test)
-    sbt docker
-    sbt_with_args test
-    self test.postgres
-    self test.integration
-    ;;
-test.postgres)
-    compose down
-    compose run db-migration
-    compose run test
-    compose down
-    ;;
-test.integration)
-    compose rm -f -v
-    compose up -d --force-recreate
-    compose run db-migration
-    create_wust_template
-    # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-    POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
-    compose down
-    ;;
-local.prod.http)
-    on_stage prod
-    compose down
-    compose up -d nginx-http
-    ;;
-local.prod)
-    on_stage prod
-    compose down
-    compose up -d nginx
-    ;;
-*)
-    cat <<EOF
+function self() {
+    case "$1" in
+    psql)
+        on_stage dev
+        # compose run db-migration
+        # PGPASSWORD=test psql -h localhost -U wust
+        docker exec -it wustdev_postgres_1 psql -h localhost -U wust ${@:2}
+        ;;
+    pgdump)
+        on_stage dev
+        docker exec -i wustdev_postgres_1 pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
+        ;;
+    pgrestore)
+        on_stage dev
+        docker exec -i wustdev_postgres_1 psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+        ;;
+    pgclean)
+        on_stage dev
+        docker exec -i wustdev_postgres_1 psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        ;;
+    dev)
+        compose up -d
+        sbt_with_args
+        ;;
+    migrate)
+        on_stage dev
+        CI=true sbt dbMigration/docker
+        compose run db-migration
+        ;;
+    prod.http)
+        on_stage prod
+        compose down
+        compose up -d nginx-http
+        ;;
+    prod)
+        compose down
+        compose up -d nginx
+        ;;
+    test)
+        sbt docker
+        sbt_with_args test
+        self test.postgres
+        self test.integration
+        ;;
+    test.postgres)
+        compose down
+        compose run db-migration
+        compose run test
+        compose down
+        ;;
+    test.integration)
+        compose rm -f -v
+        compose up -d --force-recreate
+        compose run db-migration
+        create_wust_template
+        # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
+        POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
+        compose down
+        ;;
+    *)
+        cat <<EOF
     unknown stage '$1', expected one of:
 
     dev
@@ -112,9 +102,10 @@ local.prod)
     test
     test.postgres
     test.integration
-    local.prod.http
-    local.prod
 EOF
+        exit 1
 
-    exit 1
-esac
+    esac
+}
+
+self "$stage"
