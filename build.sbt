@@ -240,6 +240,7 @@ lazy val frontend = project
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm
     enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
+    //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     emitSourceMaps := true,
     emitSourceMaps in fullOptJS := false,
     npmDependencies in Compile ++= (
