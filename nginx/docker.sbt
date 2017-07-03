@@ -6,8 +6,7 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
 
     new Dockerfile {
       from("nginx:1.11.8-alpine")
-      copy(baseDirectory(_ / ".." / "common.include").value, "/etc/nginx/conf.d/common.include")
-      copy(baseDirectory(_ / ".." / "extra.include").value, "/nginx/extra.include")
+      copy(baseDirectory(_ / ".." / "common").value, "/etc/nginx/conf.d/common")
       copy(baseDirectory(_ / "default.conf").value, "/etc/nginx/conf.d/default.conf")
       copy(assetFolder, "/public")
     }

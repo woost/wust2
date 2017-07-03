@@ -30,4 +30,4 @@ location = /ws {
     proxy_read_timeout 120s;
 }
 
-include /nginx/extra.include;
+include conf.d/common/extra.include;
