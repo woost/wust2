@@ -40,7 +40,8 @@ lazy val commonSettings = Seq(
     "-explaintypes" ::
     "-feature" ::
     "-language:_" ::
-    "-Ywarn-unused" ::
+    "-Xlint:-unused,_" ::
+    "-Ywarn-unused:-imports,-params,_" ::
     Nil
 
 // wartremoverErrors ++= (
