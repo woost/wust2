@@ -60,7 +60,7 @@ class HierarchicalTopologicalSortSpec extends FreeSpec with MustMatchers {
 
     "mixed edge types" - {
       "3 vertices: connection and containment" in {
-        tsort(List(1, 2, 3), succ = Set(1 -> 2), children = Set(1 -> 3)) mustEqual List(1, 3, 2)
+        tsort(List(1, 2, 3), succ = Set(1 -> 2), children = Set(1 -> 3)) mustEqual List(1, 2, 3)
       }
       "4 vertices: order parents" in {
         tsort(List(1, 2, 3, 4), succ = Set(1 -> 3), children = Set(1 -> 2, 3 -> 4)) mustEqual List(1, 2, 3, 4)
@@ -69,8 +69,7 @@ class HierarchicalTopologicalSortSpec extends FreeSpec with MustMatchers {
         tsort(List(1, 2, 3, 4), succ = Set(2 -> 4), children = Set(1 -> 2, 3 -> 4)) mustEqual List(1, 2, 3, 4)
       }
       "4 vertices: prioritize parent order over child order" in {
-        pending
-        tsort(List(1, 2, 3, 4), succ = Set(1 -> 3, 4 -> 2), children = Set(1 -> 2, 3 -> 4)) mustEqual List(1, 2, 3, 4)
+        tsort(List(1, 2, 3, 4), succ = Set(1 -> 3, 4 -> 2), children = Set(1 -> 2, 3 -> 4)) mustEqual List(1, 3, 4, 2)
       }
       "edge conflicts" - {
         "2 vertices: prioritize containment over connection" in {

@@ -138,22 +138,22 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
   }
 
   "topological sort" - {
-    "empty" - {
+    "empty" in {
       val list = topologicalSort[Int, Seq](Seq.empty, _ => Seq.empty)
       assert(list == List())
     }
 
-    "one vertex" - {
+    "one vertex" in {
       val list = topologicalSort[Int, Seq](Seq(0), _ => Seq.empty)
       assert(list == List(0))
     }
 
-    "with successor" - {
+    "with successor" in {
       val list = topologicalSort[Int, Seq](Seq(0, 1), _ => Seq(1)).toList
       assert(list == List(0, 1))
     }
 
-    "tolerate directed cycle" - {
+    "tolerate directed cycle" in {
       val edges = Map(
         0 -> Seq(1),
         1 -> Seq(2),
@@ -162,7 +162,72 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       )
 
       val list = topologicalSort[Int, Seq](Seq(0, 1, 2, 3), edges).toList
-      assert(list == List(0, 1, 2, 3))
+      assert(list == List(0, 2, 1, 3))
+    }
+
+   "stable" - {
+
+      "test 0" in {
+        val edges = Map(
+          0 -> Seq(3),
+          1 -> Seq(2),
+          2 -> Seq(3, 99),
+          5 -> Seq(6)
+          ).withDefaultValue(Seq.empty)
+
+        val list = topologicalSort[Int, Seq](Seq(3, 0, 2, 1, 3, 6, 4, 5, 99), edges).toList
+        assert(list == List(0, 1, 2, 3, 4, 5, 6, 99))
+      }
+
+      "test 1" in {
+        val edges = Map(
+          125755 -> Seq(-23),
+          -23 -> Seq(11231312)
+        ).withDefaultValue(Seq.empty)
+
+        val list = topologicalSort[Int, Seq](Seq(0, 11231312, 125755, -23, 12), edges).toList
+        assert(list == List(0, 125755, -23, 11231312, 12))
+      }
+
+      "test 2" in {
+        val edges = Map(
+          125755 -> Seq(-23),
+          -23 -> Seq(11231312)
+        ).withDefaultValue(Seq.empty)
+
+        val list = topologicalSort[Int, Seq](Seq(0, 11231312, 125755, -23, 12), edges).toList
+        assert(list == List(0, 125755, -23, 11231312, 12))
+      }
+
+      "test 3" in {
+        val edges = Map(
+          -18 -> Seq(-1000),
+          12 -> Seq(-1000, 7),
+        ).withDefaultValue(Seq.empty)
+
+        val list = topologicalSort[Int, Seq](Seq(-18, 7, 12, -1000, 4), edges).toList
+        assert(list == List(-18, 12, 7, -1000, 4))
+      }
+
+      "test 4" in {
+        val edges = Map(
+          1234 -> Seq(-1),
+          300033 -> Seq(-1, -133)
+        ).withDefaultValue(Seq.empty)
+
+        val list = topologicalSort[Int, Seq](Seq(1234, 300033, -133, 19, -1), edges).toList
+        assert(list == List(1234, 300033, -133, 19, -1))
+      }
+
+      "test 5" in {
+        val edges = Map(
+          -1334 -> Seq(99281),
+          99281 -> Seq(-1)
+        ).withDefaultValue(Seq.empty)
+
+        val list = topologicalSort[Int, Seq](Seq(-1334, 3321312, 99281, -1, 4), edges).toList
+        assert(list == List(-1334, 3321312, 99281, -1, 4))
+      }
     }
   }
 
