@@ -114,9 +114,9 @@ object algorithm {
     components
   }
 
-  def topologicalSort[V, COLL[V]](vertices: IterableLike[V, COLL[V]], successors: V => Iterable[V]): Seq[V] = {
+  def topologicalSort[V, COLL[V]](vertices: IterableLike[V, COLL[V]], successors: V => Iterable[V]): List[V] = {
     var sorted: List[V] = Nil
-    val unmarked = mutable.HashSet.empty[V] ++ vertices
+    val unmarked = mutable.LinkedHashSet.empty[V] ++ vertices.toList.reverse
     val tempMarked = mutable.HashSet.empty[V]
 
     while (unmarked.nonEmpty) visit(unmarked.head)
