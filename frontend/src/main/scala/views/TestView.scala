@@ -21,6 +21,7 @@ object TestView {
 
   def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner) = {
     div(
+      minHeight := "12px",
       border := "solid 1px",
       cursor.pointer,
       onclick := { () =>
