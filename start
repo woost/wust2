@@ -2,8 +2,7 @@
 set -e
 set -o pipefail
 
-script_file="$(readlink -f "$0")"
-script_dir="$(dirname $script_file)"
+script_dir="$(dirname $0)"
 
 stage="$1"
 function on_stage() { stage="$1"; }
