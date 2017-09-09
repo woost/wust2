@@ -23,7 +23,7 @@ object SyncStatus {
 }
 
 class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
-  import Client.storage
+  import ClientCache.storage
 
   private val hasError = Var(false)
   private val localChanges = Var(storage.localGraphChanges)

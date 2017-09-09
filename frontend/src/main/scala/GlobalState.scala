@@ -30,7 +30,7 @@ case class PostCreatorMenu(pos: Vec2) {
 }
 
 class GlobalState(implicit ctx: Ctx.Owner) {
-  import Client.storage
+  import ClientCache.storage
 
   val persistence = new GraphPersistence(this)
   val eventCache = new EventCache(this)

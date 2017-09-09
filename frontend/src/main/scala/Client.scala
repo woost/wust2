@@ -18,22 +18,19 @@ object Client {
     override def onEvents(events: Seq[ApiEvent]): Unit = eventHandler.foreach(_(events))
   }
 
-  val ws = new WebsocketClient[ApiEvent, ApiError](handler)
-
   private var connectHandler: Option[(String, Boolean) => Any] = None
   def onConnect(handler: (String, Boolean) => Any): Unit = connectHandler = Option(handler)
   private var eventHandler: Option[Seq[ApiEvent] => Any] = None
   def onEvents(handler: Seq[ApiEvent] => Any): Unit = eventHandler = Option(handler)
 
+  val ws = new WebsocketClient[ApiEvent, ApiError](handler)
   val api = ws.wire[Api]
   val auth = ws.wire[AuthApi]
   val run = ws.run _
-
-  val storage = new ClientStorage(LocalStorage)
 }
 
 object ClientCache {
-  import Client.storage
+  val storage = new ClientStorage(LocalStorage)
 
   private var _currentAuth: Option[Authentication] = None
   def currentAuth: Option[Authentication] = _currentAuth
