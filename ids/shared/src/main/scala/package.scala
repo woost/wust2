@@ -3,22 +3,19 @@ package wust
 import boopickle.Default._
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import scalaz._
-import wust.ids._
+import wust.idtypes._
 
 package object ids {
   type IdType = Long
   type UuidType = String
 
   // unboxed types with scalaz: http://eed3si9n.com/learning-scalaz/Tagged+type.html
-  sealed trait PostIdType
   type PostId = UuidType @@ PostIdType
   implicit def PostId(id: UuidType): PostId = Tag[UuidType, PostIdType](id)
 
-  sealed trait GroupIdType
   type GroupId = IdType @@ GroupIdType
   implicit def GroupId(id: IdType): GroupId = Tag[IdType, GroupIdType](id)
 
-  sealed trait UserIdType
   type UserId = IdType @@ UserIdType
   implicit def UserId(id: IdType): UserId = Tag[IdType, UserIdType](id)
 

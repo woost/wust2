@@ -18,7 +18,7 @@ object Db {
 }
 
 class Db(val ctx: PostgresAsyncContext[LowerCase]) {
-  import data._
+  import Data._
   import ctx._
 
   implicit val encodeGroupId = MappedEncoding[GroupId, IdType](Tag.unwrap _)
@@ -292,7 +292,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           _ <- ctx.run(infix"""insert into membership(groupId, userId) values (${lift(groupId)}, ${lift(userId)}) on conflict do nothing""".as[Insert[Membership]])
           user <- ctx.run(query[User].filter(_.id == lift(userId)))
           userGroup <- ctx.run(query[UserGroup].filter(_.id == lift(groupId)))
-        } yield Option(user.head, Membership(userId, groupId), userGroup.head)
+        } yield Option((user.head, Membership(userId, groupId), userGroup.head))
       }.recoverValue(None)
     }
 
