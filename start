@@ -19,6 +19,7 @@ function compose() { "$script_dir/docker/compose" $stage $@; }
 
 function create_wust_template() {
     name=$(echo $stage | tr -d ".")
+    docker exec -it "wust${name}_postgres_1" psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
     docker exec -it "wust${name}_postgres_1" psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
 }
 
