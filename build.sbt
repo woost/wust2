@@ -238,6 +238,7 @@ lazy val frontend = project
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
+    scalaJSUseMainModuleInitializer := true,
     jsDependencies += RuntimeDOM,
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm

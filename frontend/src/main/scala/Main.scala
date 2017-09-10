@@ -21,9 +21,9 @@ object Config extends js.Object {
   val wsPort: js.UndefOr[Int] = js.native
 }
 
-object Main extends js.JSApp {
+object Main {
 
-  def main(): Unit = {
+  def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
     import window.location
