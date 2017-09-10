@@ -12,7 +12,7 @@ import scala.concurrent.Future
 class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   object User {
     def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)
-    def data(id: Long, name: String): wust.db.Data.User = new wust.db.Data.User(id, name, isImplicit = false, 0)
+    def data(id: Long, name: String): Data.User = new Data.User(id, name, isImplicit = false, 0)
   }
 
   val user = User(14, "user")

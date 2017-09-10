@@ -13,7 +13,7 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
   object User {
     def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)
-    def data(id: Long, name: String): wust.db.Data.User = new wust.db.Data.User(id, name, isImplicit = false, 0)
+    def data(id: Long, name: String): Data.User = new Data.User(id, name, isImplicit = false, 0)
   }
 
   "getPost" in mockDb { db =>
