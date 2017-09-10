@@ -5,7 +5,7 @@ import org.scalatest._
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future, ExecutionContext }
 
-import wust.db.data._
+import wust.db.Data._
 import wust.ids._
 
 import io.getquill._
@@ -98,7 +98,6 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       }
     }
 
-
     //TODO
     // "create public post (existing but different title)" in { db =>
     //   import db._, db.ctx, ctx._
@@ -132,7 +131,6 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     //     queriedOwnerships mustBe empty
     //   }
     // }
-
 
     "get existing post" in { db =>
       import db._, db.ctx, ctx._
