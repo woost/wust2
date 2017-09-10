@@ -24,7 +24,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= (
     "org.scalameta" %%% "scalameta" % "1.8.0" % "provided" ::
     "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-    "com.outr" %%% "scribe" % "1.4.2" ::
+    "com.outr" %%% "scribe" % "1.4.5" ::
     Nil
   ),
 
@@ -92,21 +92,21 @@ lazy val root = project.in(file("."))
     watchSources ++= (watchSources in workbench).value
   )
 
-val akkaVersion = "2.4.18"
-val akkaHttpVersion = "10.0.7"
+val akkaVersion = "2.4.20"
+val akkaHttpVersion = "10.0.10"
 val circeVersion = "0.8.0"
-val specs2Version = "3.8.9"
-val scalaTestVersion = "3.0.3"
-val mockitoVersion = "2.7.22"
+val specs2Version = "3.9.5"
+val scalaTestVersion = "3.0.4"
+val mockitoVersion = "2.10.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
-val quillVersion = "1.2.1"
+val quillVersion = "1.4.0"
 
 lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "com.lihaoyi" %%% "sourcecode" % "0.1.3" ::
+      "com.lihaoyi" %%% "sourcecode" % "0.1.4" ::
       Nil
     )
   )
@@ -139,7 +139,7 @@ lazy val framework = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
-      "org.scala-js" %%% "scalajs-dom" % "0.9.2" ::
+      "org.scala-js" %%% "scalajs-dom" % "0.9.3" ::
       Nil
     )
   )
@@ -193,7 +193,7 @@ lazy val database = project
   .dependsOn(idsJVM, utilJVM)
   .settings(
     libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % "1.2.1" ::
+      "io.getquill" %% "quill-async-postgres" % quillVersion ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
   // parallelExecution in IntegrationTest := false
@@ -207,12 +207,12 @@ lazy val backend = project
   .settings(configSettings)
   .settings(
     libraryDependencies ++=
-      "org.typelevel" %% "cats" % "0.9.0" ::
+      "org.typelevel" %% "cats-core" % "1.0.0-MF" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
-      "com.pauldijou" %% "jwt-circe" % "0.12.1" ::
-      "javax.mail" % "javax.mail-api" % "1.5.6" ::
-      "com.sun.mail" % "javax.mail" % "1.5.6" ::
+      "com.pauldijou" %% "jwt-circe" % "0.14.0" ::
+      "javax.mail" % "javax.mail-api" % "1.6.0" ::
+      "com.sun.mail" % "javax.mail" % "1.6.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
