@@ -238,13 +238,15 @@ lazy val frontend = project
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
+    requiresDOM := true, // still required because of bundler: https://gitter.im/scala-js/scala-js?at=59b55f12177fb9fe7ea2beff
+    // jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(), // runs scalajs tests with node + jsdom. Requires jsdom to be installed
+
     scalaJSUseMainModuleInitializer := true,
-    jsDependencies += RuntimeDOM,
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm
-    enableReloadWorkflow := true, // https://scalacenter.github.io/scalajs-bundler/reference.html#reload-workflow
+    webpackBundlingMode := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
-    emitSourceMaps := true,
+    emitSourceMaps := false,
     emitSourceMaps in fullOptJS := false,
     npmDependencies in Compile ++= (
       "cuid" -> "1.3.8" ::
