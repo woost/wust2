@@ -11,6 +11,7 @@ lazy val commonSettings = Seq(
   resolvers ++= (
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
     Resolver.jcenterRepo ::
+    Resolver.bintrayRepo("daxten", "maven") :: // for Daxten/autowire
     Nil
   ),
 
@@ -123,7 +124,7 @@ lazy val framework = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "com.github.cornerman" %%% "autowire" % "0.2.6" ::
+      "de.daxten" %%% "autowire" % "0.3.1" ::
       "io.suzaku" %%% "boopickle" % boopickleVersion ::
       Nil
     )
