@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.backend.auth.JWT
 import wust.api._
 import wust.graph.{ Group, User }
-import wust.db.{ Db, data }
+import wust.db.{ Db, Data }
 import wust.ids._
 import org.mockito.Mockito._
 import wust.framework.state._
@@ -13,7 +13,7 @@ import wust.graph.{ Graph, Group }
 import scala.concurrent.Future
 
 class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
-  val implicitUserDb = data.User(14, "implicit", isImplicit = true, 0)
+  val implicitUserDb = Data.User(14, "implicit", isImplicit = true, 0)
   val implicitUser = DbConversions.forClient(implicitUserDb)
   val initialUser = User(11, "existing", isImplicit = false, 0)
 

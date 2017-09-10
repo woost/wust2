@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.backend.auth.JWT
 import wust.graph._
 import wust.ids._
-import wust.db.data
+import wust.db.Data
 import wust.api._
 
 import scala.concurrent.Future
@@ -13,12 +13,12 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
   object User {
     def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)
-    def data(id: Long, name: String): wust.db.data.User = new wust.db.data.User(id, name, isImplicit = false, 0)
+    def data(id: Long, name: String): wust.db.Data.User = new wust.db.Data.User(id, name, isImplicit = false, 0)
   }
 
   "getPost" in mockDb { db =>
     val postId = "goink"
-    db.post.get(postId) returnsFuture Option(data.Post(postId, "banga"))
+    db.post.get(postId) returnsFuture Option(Data.Post(postId, "banga"))
     onApi(State.initial, db)(_.getPost(postId)).map {
       case (state, events, result) =>
         state mustEqual State.initial
@@ -28,7 +28,7 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   }
 
   "addGroup" in mockDb { db =>
-    db.group.createForUser(UserId(23)) returnsFuture Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1)))
+    db.group.createForUser(UserId(23)) returnsFuture Option((User.data(23, "dieter"), Data.Membership(23, 1), Data.UserGroup(1)))
 
     val auth = JWT.generateAuthentication(User(23, "hans"))
     val state = State.initial.copy(auth = Some(auth))
@@ -42,12 +42,12 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
   // historic test
   "2x addGroup" in mockDb { db =>
-    db.group.createForUser(UserId(23)) returnsFuture Option((User.data(23, "dieter"), data.Membership(23, 1), data.UserGroup(1)))
+    db.group.createForUser(UserId(23)) returnsFuture Option((User.data(23, "dieter"), Data.Membership(23, 1), Data.UserGroup(1)))
 
     val auth = JWT.generateAuthentication(User(23, "hans"))
     val state = State.initial.copy(auth = Some(auth))
     onApi(state, db)(_.addGroup()).flatMap {
-      case (state1, events1, result1) =>
+      case (state1, events1 @ _, result1) =>
         onApi(state1, db = db)(_.addGroup()).map {
           case (state, events, result) =>
             state1.auth mustEqual Some(auth)

@@ -2,13 +2,13 @@ package wust.backend
 
 import org.scalatest._
 import org.mockito.Mockito._
-import org.mockito.{ArgumentMatchers => Args}
+import org.mockito.{ ArgumentMatchers => Args }
 import wust.backend.auth.JWT
 import wust.graph._
 import wust.ids._
-import wust.db.data
+import wust.db.Data
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration._
 import com.roundeights.hasher.Hasher
 
@@ -22,7 +22,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
     //TODO: username or password empty
     "no user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.apply(Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(data.User(0, "torken", false, 0))
+      db.user.apply(Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(Data.User(0, "torken", false, 0))
 
       onAuthApi(State.initial, db = db)(_.register("torken", "sanh")).map {
         case (state, events, result) =>
@@ -34,7 +34,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "override real user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.apply(Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(data.User(0, "torken", false, 0))
+      db.user.apply(Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(Data.User(0, "torken", false, 0))
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -49,7 +49,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "activate implicit user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(13)))(Args.any()) returnsFuture Nil
-      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(data.User(13, "torken", false, 0))
+      db.user.activateImplicitUser(Args.eq(UserId(13)), Args.eq("torken"), Args.any())(Args.any()) returnsFuture Option(Data.User(13, "torken", false, 0))
 
       val user = User(13, "anonieter", true, 0)
       val auth = JWT.generateAuthentication(user)
@@ -95,7 +95,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
   "login" - {
     "no user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
+      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((Data.User(0, "torken", false, 0), "sanh"))
 
       onAuthApi(State.initial, db = db)(_.login("torken", "sanh")).map {
         case (state, events, result) =>
@@ -107,7 +107,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "override real user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
+      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((Data.User(0, "torken", false, 0), "sanh"))
 
       val user = User(13, "dieter", false, 0)
       val auth = JWT.generateAuthentication(user)
@@ -122,7 +122,7 @@ class AuthApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
     "merge implicit user" in mockDb { db =>
       db.group.memberships(Args.eq(UserId(0)))(Args.any()) returnsFuture Nil
-      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((data.User(0, "torken", false, 0), "sanh"))
+      db.user.getUserAndDigest(Args.eq("torken"))(Args.any()) returnsFuture Option((Data.User(0, "torken", false, 0), "sanh"))
       db.user.mergeImplicitUser(Args.eq(UserId(13)), Args.eq(UserId(0)))(Args.any()) returnsFuture true
 
       val user = User(13, "reiter der tafelrunde", true, 0)

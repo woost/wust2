@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.backend.auth.JWT
 import wust.api._
 import wust.ids._
-import wust.db.{Db, data}
+import wust.db.{ Db, Data }
 import DbConversions._
 import wust.graph._
 import scala.concurrent.Future
@@ -12,7 +12,7 @@ import scala.concurrent.Future
 class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   object User {
     def apply(id: Long, name: String): User = new User(id, name, isImplicit = false, 0)
-    def data(id: Long, name: String): wust.db.data.User = new wust.db.data.User(id, name, isImplicit = false, 0)
+    def data(id: Long, name: String): wust.db.Data.User = new wust.db.Data.User(id, name, isImplicit = false, 0)
   }
 
   val user = User(14, "user")
@@ -36,7 +36,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
   }
 
   "stateEvents" - {
-    def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
+    def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.Containment], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
 
     "with auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(Some(user.id)) returnsFuture emptyGraph
@@ -76,7 +76,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
   }
 
   "stateChangeEvents" - {
-    def emptyGraph = (Seq.empty[data.Post], Seq.empty[data.Connection], Seq.empty[data.Containment], Seq.empty[data.UserGroup], Seq.empty[data.Ownership], Seq.empty[data.User], Seq.empty[data.Membership])
+    def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.Containment], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
 
     "same state" in mockDb { db =>
       val stateInterpreter = new StateInterpreter(db = db)
@@ -104,7 +104,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       } yield events must contain theSameElementsAs expected
     }
 
-      //TODO
+    //TODO
     "triggeredEvents" - {
       // "NewMembership with non-member user" in mockDb { db =>
       //   val stateInterpreter = new StateInterpreter(db = db)
@@ -132,10 +132,10 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       // }
 
       // "NewMembership with new member user" in mockDb { db =>
-      //   val postInGroup = data.Post("eidie", "harhar")
+      //   val postInGroup = Data.Post("eidie", "harhar")
       //   val aMember = User.data(777, "harals")
-      //   val aGroup = data.UserGroup(12)
-      //   val aMembership = data.Membership(aMember.id, aGroup.id)
+      //   val aGroup = Data.UserGroup(12)
+      //   val aMembership = Data.Membership(aMember.id, aGroup.id)
 
       //   db.group.get(aGroup.id) returnsFuture Some(aGroup)
       //   db.group.members(aGroup.id) returnsFuture List((aMember, aMembership))
