@@ -1,6 +1,5 @@
 package wust.framework
 
-import org.scalajs.dom.console
 import wust.framework.message._
 import wust.util.time.StopWatch
 
@@ -9,13 +8,22 @@ import scala.concurrent.{ExecutionContext, Promise}
 case object TimeoutException extends Exception
 
 object TimeoutPromise {
-  import scala.scalajs.js.timers._
+  import java.util.{Timer, TimerTask}
 
   def apply[T](timeoutMillis: Int)(implicit ctx: ExecutionContext): Promise[T] = {
     val promise = Promise[T]()
 
-    val timeout = setTimeout(timeoutMillis)(promise tryFailure TimeoutException)
-    promise.future.onComplete(_ => clearTimeout(timeout))
+    val timer = new Timer
+    val task = new TimerTask {
+      def run(): Unit = promise tryFailure TimeoutException
+    }
+
+    timer.schedule(task, timeoutMillis)
+
+    promise.future.onComplete { _ =>
+      timer.cancel()
+      timer.purge()
+    }
 
     promise
   }
@@ -38,9 +46,9 @@ class OpenRequests[T](timeoutMillis: Int = 60000) {
     openRequests += seqId -> promise
     promise.future onComplete { res =>
       openRequests -= seqId
-      console.log(s"Request $seqId: ${stopwatch.readMillis}ms")
+      println(s"Request $seqId: ${stopwatch.readMillis}ms")
       res.failed.foreach { case err =>
-        console.log(s"Request $seqId failed", err.toString)
+        println(s"Request $seqId failed: $err")
       }
     }
 

@@ -6,8 +6,10 @@ import org.scalajs.dom._
 import rx._
 import rxext._
 import wust.util.EventTracker.sendEvent
+import wust.api.ApiEvent
 import wust.ids._
 import wust.graph.{ GraphSelection, Graph }
+import wust.framework._
 import org.scalajs.dom.ext.KeyCode
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
@@ -55,26 +57,26 @@ object Main {
       }
     }
 
-    Client.onEvents(state.onEvents)
-
     // The first thing to be sent should be the auth-token
     ClientCache.storedToken.foreach { token =>
       Client.auth.loginToken(token).call()
     }
 
-    Client.onConnect { (location, isReconnect) =>
-      println(s"Connected to server: $location")
+    Client.run(s"$protocol://${location.hostname}:$port/ws", new ApiIncidentHandler {
+      override def onConnect(isReconnect: Boolean): Unit = {
+        println(s"Connected to websocket")
 
-      if (isReconnect) {
-        ClientCache.currentAuth.foreach { auth =>
-          Client.auth.loginToken(auth.token).call()
+        if (isReconnect) {
+          ClientCache.currentAuth.foreach { auth =>
+            Client.auth.loginToken(auth.token).call()
+          }
+
+          getNewGraph(state.rawGraphSelection.now)
         }
-
-        getNewGraph(state.rawGraphSelection.now)
       }
-    }
 
-    Client.run(s"$protocol://${location.hostname}:$port/ws")
+      override def onEvents(events: Seq[ApiEvent]): Unit = state.onEvents(events)
+    })
 
     //TODO: better?
     var prevViewConfig: Option[views.ViewConfig] = None
