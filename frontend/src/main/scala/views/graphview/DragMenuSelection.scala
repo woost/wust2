@@ -40,8 +40,8 @@ class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) ext
       .text((d: PieArcDatum[DragAction]) => d.data.name)
       .attr("text-anchor", "middle")
       .attr("fill", "white")
-      .attr("x", (d: PieArcDatum[DragAction]) => arc.centroid(d)(0))
-      .attr("y", (d: PieArcDatum[DragAction]) => arc.centroid(d)(1))
+      .attr("x", (d: PieArcDatum[DragAction]) => arc.centroid(d)._1)
+      .attr("y", (d: PieArcDatum[DragAction]) => arc.centroid(d)._2)
   }
 
   override def draw(menu: Selection[SimPost]) {

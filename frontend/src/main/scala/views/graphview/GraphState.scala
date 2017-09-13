@@ -25,15 +25,19 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val collapsedPostIds = rxCollapsedPostIds()
 
-    graph.posts.map { p =>
+    graph.posts.zipWithIndex.map { case (p,i) =>
       val sp = new SimPost(p)
+
+      //TODO: this is only to avoid the initial positions of d3.simulation, and do that in GraphView.recalculateBoundsAndZoom
+      // if we replace d3.simulation we can hopefully remove this.
+      sp.x = Constants.invalidPosition
+      sp.y = Constants.invalidPosition
 
       def parents = rawGraph.parents(p.id)
       def hasParents = parents.nonEmpty
       def mixedDirectParentColors = mixColors(parents.map(baseColor))
       def hasChildren = rawGraph.children(p.id).nonEmpty
 
-      //TODO: move border and color to views.post()
       sp.border =
         if (hasChildren) {
           if (collapsedPostIds(p.id))
@@ -65,7 +69,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
 
       sp
 
-    }.toJSArray
+    }.toJSArray // TODO: topological sort?
   }
 
   val rxPostIdToSimPost: Rx[Map[PostId, SimPost]] = rxSimPosts.fold(Map.empty[PostId, SimPost]) {
@@ -127,11 +131,9 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
-    val parents: Seq[PostId] = graph.containments.map(_.parentId)(breakOut).distinct
-
     // due to transitive containment visualisation,
     // inner posts should be drawn above outer ones.
-    val ordered = parents.topologicalSortBy(graph.children)
+    val ordered = graph.allParentIdsTopologicallySortedByChildren
 
     ordered.map { p =>
       new ContainmentCluster(

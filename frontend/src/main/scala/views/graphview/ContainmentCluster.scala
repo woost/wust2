@@ -11,22 +11,43 @@ import scala.scalajs.js
 
 class ContainmentCluster(val parent: SimPost, val children: IndexedSeq[SimPost], val depth: Int) {
   val id = parent.id
-  val posts = children :+ parent
-  val n = 32
-  val step = PI * 2.0 / n
-  def circleSamples(post: SimPost) = for (i <- 0 until n; a = i * step) yield { Vec2(cos(a), sin(a)) * post.radius + post.pos.get } //TODO: memoize
-  // def circleSamples(post: SimPost) = AARect(post.pos.get, post.size).corners
+  val posts: IndexedSeq[SimPost] = children :+ parent
 
-  def positions: js.Array[js.Array[Double]] = posts.flatMap(post => circleSamples(post).map(pos => js.Array(pos.x, pos.y)))(breakOut)
-  def convexHull: js.Array[js.Array[Double]] = {
-    val hull = d3.polygonHull(positions)
-    //TODO: how to correctly handle scalajs union type?
-    if (hull == null) positions
-    else hull.asInstanceOf[js.Array[js.Array[Double]]]
+  val postCount = posts.size
+  private val sn = 16 //TODO: on low numbers this leads to NaNs
+  private val step = PI * 2.0 / sn
+  private val positionSamples = new js.Array[js.Tuple2[Double, Double]](sn * posts.size)
+  private val padding = 0 // 15
+  private def regenerateCircleSamples() {
+    var i = 0
+    val n = postCount * sn
+    while (i < n) {
+      val a = (i % sn) * step
+      val post = posts(i / sn)
+      val radius = post.radius + padding
+      positionSamples(i) = js.Tuple2(
+        cos(a) * radius + post.x.getOrElse(0.0),
+        sin(a) * radius + post.y.getOrElse(0.0)
+      )
+      i += 1
+    }
   }
+
+  private var _convexHull: js.Array[js.Tuple2[Double, Double]] = null
+  def convexHull = _convexHull
+  def recalculateConvexHull() {
+    regenerateCircleSamples()
+    val hull = d3.polygonHull(positionSamples)
+    _convexHull = if (hull == null)
+      positionSamples
+    else
+      hull.asInstanceOf[js.Array[js.Tuple2[Double, Double]]]
+  }
+
+  recalculateConvexHull()
 }
 
-object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
+object ContainmentClusterSelection extends DataSelection[ContainmentCluster] {
   override val tag = "path"
   override def enterAppend(hull: Selection[ContainmentCluster]) {
     hull
@@ -41,6 +62,7 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   // https://github.com/d3/d3-shape#curves
   // val curve = d3.curveCardinalClosed
   val curve = d3.curveCatmullRomClosed.alpha(0.5)
+  // val curve = d3.curveLinearClosed
   // val curve = d3.curveNatural
 
   override def draw(hull: Selection[ContainmentCluster]) {
@@ -51,7 +73,9 @@ object ContainmentHullSelection extends DataSelection[ContainmentCluster] {
   }
 }
 
-object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluster] {
+object CollapsedContainmentClusterSelection extends DataSelection[ContainmentCluster] {
+  import ContainmentClusterSelection.curve
+
   override val tag = "path"
   override def enterAppend(hull: Selection[ContainmentCluster]) {
     hull
@@ -62,12 +86,6 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
     // .style("stroke-dasharray", "10 5")
   }
 
-  // https://codeplea.com/introduction-to-splines
-  // https://github.com/d3/d3-shape#curves
-  // val curve = d3.curveCardinalClosed
-  val curve = d3.curveCatmullRomClosed.alpha(0.5)
-  // val curve = d3.curveNatural
-
   override def draw(hull: Selection[ContainmentCluster]) {
     hull
       .attr("d", { (cluster: ContainmentCluster) => d3.line().curve(curve)(cluster.convexHull) })
@@ -75,3 +93,4 @@ object CollapsedContainmentHullSelection extends DataSelection[ContainmentCluste
       .style("opacity", (cluster: ContainmentCluster) => cluster.parent.opacity * 0.4)
   }
 }
+

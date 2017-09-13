@@ -15,8 +15,7 @@ object DraggingPostSelection extends DataSelection[SimPost] {
   override def enter(post: Enter[SimPost]) {
     post.append { (simPost: SimPost) =>
       GraphView.postView(simPost.post)(
-        position.absolute,
-        cursor.move,
+        cursor.move, //TODO: this is not working...
         opacity := 0.5,
         fontSize := simPost.fontSize,
         border := simPost.border,

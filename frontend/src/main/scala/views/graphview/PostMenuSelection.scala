@@ -79,6 +79,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
         val newPost = Post.newId(field.value)
         persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = Set(Containment(simPost.id, newPost.id)))
         field.value = ""
+        simPost.fixedPos = simPost.pos
         false
       }
       val insertField: HTMLTextAreaElement = textareaWithEnter(submitInsert)(placeholder := "Insert new post. Press Enter to submit.", width := "100%").render
@@ -98,6 +99,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
           addContainments = state.displayGraphWithoutParents.now.graph.parents(simPost.id).map(parentId => Containment(parentId, newPost.id))
         )
         field.value = ""
+        simPost.fixedPos = simPost.pos
         false
       }
       val connectField: HTMLTextAreaElement = textareaWithEnter(submitConnect)(placeholder := "Create new connected post. Press Enter to submit.", width := "100%").render

@@ -1,13 +1,15 @@
-package wust.graph
+package wust
 
 import derive.derive
 import wust.ids._
 import wust.util.Pipe
 import wust.util.algorithm._
 import wust.util.collection._
-
-import scala.collection.mutable
 import scalaz._
+
+import collection.mutable
+
+package object graph {
 
 case class Ownership(postId: PostId, groupId: GroupId)
 case class Membership(userId: UserId, groupId: GroupId)
@@ -71,6 +73,14 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val groupIds: Iterable[GroupId] = groupsById.keys
   lazy val users: Iterable[User] = usersById.values
   lazy val userIds: Iterable[UserId] = usersById.keys
+    lazy val postIdsTopologicalSortedByChildren:Iterable[PostId] = postIds.topologicalSortBy(children)
+    lazy val postIdsTopologicalSortedByParents:Iterable[PostId] = postIds.topologicalSortBy(parents)
+    lazy val allParentIds: Set[PostId] = containments.map(_.parentId)
+    lazy val allParents: Set[Post] = allParentIds.map(postsById)
+    // lazy val containmentIsolatedPostIds = postIds.toSet -- containments.map(_.parentId) -- containments.map(_.childId)
+    lazy val toplevelPostIds = postIds.toSet -- containments.map(_.childId)
+    lazy val allParentIdsTopologicallySortedByChildren:Iterable[PostId] = allParentIds.topologicalSortBy(children)
+    lazy val allParentIdsTopologicallySortedByParents:Iterable[PostId] = allParentIds.topologicalSortBy(parents) //TODO: ..ByChildren.reverse?
 
   override def toString =
     s"Graph(${posts.map(_.id).mkString(" ")},${connections.map(c => s"${c.sourceId}->${c.targetId}").mkString(", ")}, ${containments.map(c => s"${c.parentId}⊂${c.childId}").mkString(", ")},groups:${groupIds}, ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, users: ${userIds}, memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
@@ -273,5 +283,6 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
       getDepth(id)
     }
     tmpDepths
+    }
   }
 }

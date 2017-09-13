@@ -2,15 +2,17 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLElement
-import rx._
+import rx._, rxext._
 import wust.frontend._
 import wust.util.collection._
 import wust.util.Analytics
 
 import scala.collection.breakOut
 import scalatags.JsDom.all._
+import collection.breakOut
+import wust.frontend.Color._
 
-class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
+class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag, updatedNodeSizes: () => Any) extends DataSelection[SimPost] {
   import graphState.rxFocusedSimPost
   import postDrag._
 
@@ -25,20 +27,24 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       //TODO: http://bl.ocks.org/couchand/6394506 distinguish between click and doubleclick, https://stackoverflow.com/questions/42330521/distinguishing-click-and-double-click-in-d3-version-4
       //TODO: Doubleclick -> Focus
       .on("click", { (p: SimPost) =>
-        //TODO: click should not trigger drag
         DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
-        Var.set(
-          VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
-          VarTuple(graphState.state.postCreatorMenus, Nil)
-        )
+        // Var.set(
+        //   VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
+        //   VarTuple(graphState.state.postCreatorMenus, Nil)
+        // )
+        rxFocusedSimPost() = rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)
+        graphState.state.postCreatorMenus() = Nil
       })
       .call(d3.drag[SimPost]()
         .clickDistance(10) // interpret short drags as clicks
+        //TODO: click should not trigger drag
         .on("start", { (simPost: SimPost) =>
-          Var.set(
-            VarTuple(graphState.state.focusedPostId, None),
-            VarTuple(graphState.state.postCreatorMenus, Nil)
-          )
+          // Var.set(
+          //   VarTuple(graphState.state.focusedPostId, None),
+          //   VarTuple(graphState.state.postCreatorMenus, Nil)
+          // )
+          graphState.state.focusedPostId() = None
+          graphState.state.postCreatorMenus() = Nil
           postDragStarted(simPost)
         })
         .on("drag", postDragged _)
@@ -60,15 +66,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     post.each({ (node: HTMLElement, p: SimPost) =>
       p.recalculateSize(node, d3State.transform.k)
     })
-
-    // for each connected component give all posts the maximum collision radius within that component
-    val graph = graphState.state.displayGraphWithoutParents.now.graph
-    graph.connectedContainmentComponents.foreach { component =>
-      val simPosts: List[SimPost] = component.map(graphState.rxPostIdToSimPost.now)(breakOut)
-      val maxRadius = simPosts.maxBy(_.radius).radius
-      simPosts.foreach { _.collisionRadius = maxRadius }
-    }
-    d3State.forces.collision.initialize(post.data)
+    updatedNodeSizes()
   }
 
   private var draw = 0
@@ -86,15 +84,61 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
     }
     if (onePostHasSizeZero) {
       // if one post has size zero => all posts have size zero
-      // --> recalculate all visible sizes
+      // => recalculate all visible sizes
       recalculateNodeSizes(post)
     }
 
     post
-      // .style("left", (p: SimPost) => s"${p.x.get + p.centerOffset.x}px")
-      // .style("top", (p: SimPost) => s"${p.y.get + p.centerOffset.y}px")
       .style("transform", (p: SimPost) => s"translate(${p.x.get + p.centerOffset.x}px,${p.y.get + p.centerOffset.y}px)")
 
     draw += 1
+  }
+}
+
+class PostRadiusSelection(graphState: GraphState, d3State: D3State) extends DataSelection[SimPost] {
+  override val tag = "circle"
+  override def update(post: Selection[SimPost]) {
+    post
+      .attr("stroke", "#444")
+      .attr("fill", "transparent")
+  }
+
+  override def draw(post: Selection[SimPost]) {
+    post
+      .style("transform", (p: SimPost) => s"translate(${p.x.get}px,${p.y.get}px)")
+      .attr("r", (p: SimPost) => p.radius)
+  }
+}
+
+object PostCollisionRadiusSelection extends DataSelection[SimPost] {
+  override val tag = "circle"
+  override def update(post: Selection[SimPost]) {
+    post
+      .attr("stroke", "#666")
+      .attr("fill", "transparent")
+      .attr("stroke-dasharray", "7,7")
+  }
+
+  override def draw(post: Selection[SimPost]) {
+    post
+      .style("transform", (p: SimPost) => s"translate(${p.x.get}px,${p.y.get}px)")
+      .attr("r", (p: SimPost) => p.radius + Constants.nodePadding / 2)
+  }
+}
+
+object PostContainmentRadiusSelection extends DataSelection[SimPost] {
+  override val tag = "circle"
+  override def update(cluster: Selection[SimPost]) {
+    cluster
+      .attr("stroke", (simPost: SimPost) => baseColor(simPost.id))
+      .attr("fill", "transparent")
+      .attr("stroke-dasharray", "10,10")
+  }
+
+  override def draw(simPost: Selection[SimPost]) {
+    simPost
+      .style("transform", (c: SimPost) => s"translate(${c.x.get}px,${c.y.get}px)")
+      .attr("r", (p: SimPost) => p.containmentRadius)
+      .style("stroke-width", (p:SimPost) => if(p.collisionRadius != p.containmentRadius) "6px" else "0px")
   }
 }

@@ -1,13 +1,22 @@
 package wust.frontend.views.graphview
 
+import wust.util.time.time
+import wust.frontend.DevPrintln
 import org.scalajs.d3v4._
 import org.scalajs.dom
+import org.scalajs.dom.window
+import org.scalajs.dom.raw.HTMLElement
 import rx._
 import vectory._
 import wust.frontend.Color._
-import wust.frontend.{DevOnly, GlobalState, PostCreatorMenu}
+import wust.frontend.PostCreatorMenu
+import wust.frontend.{DevOnly, GlobalState}
+import org.scalajs.dom.{console}
 import wust.graph._
 import wust.util.Pipe
+import scala.concurrent.ExecutionContext
+import vectory._
+import scala.scalajs.js.timers.setTimeout
 
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
@@ -37,11 +46,7 @@ object GraphView {
 
   def postView(post: Post) = div(
     post.title,
-    maxWidth := "10em",
-    wordWrap := "break-word",
-    padding := "3px 5px",
-    border := "1px solid #444",
-    borderRadius := "3px"
+    cls := "graphpost"
   )
 }
 
@@ -57,15 +62,21 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   import KeyImplicits._
   val container = d3.select(element)
   val focusedParentsHeader = container.append(() => div(textAlign.center, marginTop := 10, fontSize := "200%", position.absolute, width := "100%").render)
+
   val svg = container.append("svg")
-  val containmentHullSelection = SelectData.rx(ContainmentHullSelection, rxContainmentCluster)(svg.append("g"))
-  val collapsedContainmentHullSelection = SelectData.rx(CollapsedContainmentHullSelection, rxCollapsedContainmentCluster)(svg.append("g"))
+  val containmentClusterSelection = SelectData.rx(ContainmentClusterSelection, rxContainmentCluster)(svg.append("g"))
+  val collapsedContainmentClusterSelection = SelectData.rx(CollapsedContainmentClusterSelection, rxCollapsedContainmentCluster)(svg.append("g"))
   val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnection)(svg.append("g"))
   val redirectedConnectionLineSelection = SelectData.rx(RedirectedConnectionLineSelection, rxSimRedirectedConnection)(svg.append("g"))
+  // useful for simulation debugging: (also uncomment in draw())
+  val postRadiusSelection = SelectData.rx(new PostRadiusSelection(graphState, d3State), rxSimPosts)(svg.append("g"))
+  val postCollisionRadiusSelection = SelectData.rx(PostCollisionRadiusSelection, rxSimPosts)(svg.append("g"))
+  val postContainmentRadiusSelection = SelectData.rx(PostContainmentRadiusSelection, rxSimPosts)(svg.append("g"))
 
   val html = container.append("div")
   val connectionElementSelection = SelectData.rx(new ConnectionElementSelection(graphState), rxSimConnection)(html.append("div"))
-  val postSelection = SelectData.rx(new PostSelection(graphState, d3State, postDrag), rxSimPosts)(html.append("div"))
+  val rawPostSelection = new PostSelection(graphState, d3State, postDrag, updatedNodeSizes _)
+  val postSelection = SelectData.rx(rawPostSelection, rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
   val postMenuLayer = container.append("div")
@@ -80,21 +91,46 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     val iconButton = button(width := "2.5em", padding := "5px 10px")
     container.append(() => div(
       position.absolute, left := 5, top := 100,
-      iconButton("⟳", title := "automatic layout", onclick := { () =>
-        rxSimPosts.now.foreach { simPost =>
-          simPost.fixedPos = js.undefined
-        }
-        d3State.simulation.alpha(1).restart()
-      }), br(),
-      iconButton("+", title := "zoom in", onclick := { () =>
-        svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
-      }), br(),
-      iconButton("0", title := "reset zoom", onclick := { () =>
-        svg.call(d3State.zoom.transform _, d3.zoomIdentity) //TODO: transition for smooth animation
-      }), br(),
-      iconButton("-", title := "zoom out", onclick := { () =>
-        svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
-      })
+      iconButton("⟳", title := "automatic layout",
+        onmousedown := { () =>
+          rxSimPosts.now.foreach { simPost =>
+            simPost.fixedPos = js.undefined
+          }
+          d3State.simulation.alpha(1).alphaTarget(1).restart()
+        },
+        onmouseup := { () =>
+          d3State.simulation.alphaTarget(0)
+        }), br(),
+      DevOnly {
+        div(
+          button("tick", onclick := { () =>
+            rxSimPosts.now.foreach { simPost =>
+              simPost.fixedPos = js.undefined
+            }
+            d3State.simulation.tick()
+            draw()
+          }), br(),
+          button("stop", onclick := { () =>
+            d3State.simulation.stop()
+            draw()
+          }), br(),
+          button("draw", onclick := { () =>
+            rxSimPosts.now.foreach { simPost =>
+              simPost.fixedPos = js.undefined
+            }
+            draw()
+          }), br(),
+          iconButton("+", title := "zoom in", onclick := { () =>
+            svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+          }), br(),
+          iconButton("0", title := "reset zoom", onclick := { () =>
+            recalculateBoundsAndZoom()
+          }), br(),
+          iconButton("-", title := "zoom out", onclick := { () =>
+            svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+          })
+        )
+      }
     ).render)
   }
 
@@ -108,10 +144,14 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     .attr("orient", "auto")
     .append("svg:path")
     .attr("d", "M 0,-3 L 10,-0.5 L 10,0.5 L0,3")
-    .style("fill", "#8F8F8F")
+    .style("fill", "#666")
 
   initContainerDimensionsAndPositions()
   initEvents()
+
+  setTimeout(100) { recalculateBoundsAndZoom() }
+
+  state.jsError.foreach { _ => d3State.simulation.stop() }
 
   // set the background and headings according to focused parents
   Rx {
@@ -125,31 +165,176 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
       .style("background-color", mixColors(List(mixedDirectParentColors, d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString)
   }
 
-  Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnection(); rxSimContainment() }.foreach { _ =>
+  val windowDimensions = Var(Vec2(window.innerWidth, window.innerHeight))
+  window.addEventListener("resize", { _: dom.Event =>
+    windowDimensions() = Vec2(window.innerWidth, window.innerHeight)
+  })
+
+  Rx {
+    windowDimensions();
+    recalculateBoundsAndZoom()
+  }
+
+  def recalculateBoundsAndZoom() {
+    import Math._
+    //TODO: react on size of div
+    // https://marcj.github.io/css-element-queries/
+    // val padding = 15
+    time("recalculateBoundsAndZoom") {
+      val rect = container.node.asInstanceOf[HTMLElement].getBoundingClientRect
+      val width = rect.width
+      val height = rect.height
+      if (width > 0 && height > 0 && rxSimPosts.now.size > 0 && rxSimPosts.now.head.radius > 0) {
+        // DevPrintln("    updating bounds and zoom")
+        val graph = rxDisplayGraph.now.graph
+        // DevPrintln(graph.allParentIds.map(postId => rxPostIdToSimPost.now(postId).containmentArea).toString)
+        // DevPrintln(rxSimPosts.now.map(_.collisionArea).toString)
+        // val postsArea = graph.toplevelPostIds.map( postId => rxPostIdToSimPost.now(postId).containmentArea ).sum
+        val arbitraryFactor = 1.3
+        val postsArea = rxSimPosts.now.foldLeft(0.0)((sum,post) => sum + post.collisionBoundingSquareArea) * arbitraryFactor
+        val scale = sqrt((width * height) / postsArea)  min 1.5   // scale = sqrt(ratio) because areas grow quadratically
+        // DevPrintln(s"    parentsArea: $postsArea, window: ${width * height}")
+        // DevPrintln(s"    scale: $scale")
+
+        svg.call(d3State.zoom.transform _, d3.zoomIdentity
+          .translate(width / 2, height / 2)
+          .scale(scale))
+
+        d3State.forces.meta.rectBound.xOffset = -width / 2 / scale
+        d3State.forces.meta.rectBound.yOffset = -height / 2 / scale
+        d3State.forces.meta.rectBound.width = width / scale
+        d3State.forces.meta.rectBound.height = height / scale
+        d3State.forces.meta.gravity.width = width / scale
+        d3State.forces.meta.gravity.height = height / scale
+        InitialPosition.width = width / scale
+        InitialPosition.height = height / scale
+
+        // rxSimPosts.now.foreach { simPost =>
+        //   simPost.fixedPos = js.undefined
+        // }
+        d3State.simulation.alpha(1).restart()
+      }
+    }
+  }
+
+  Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnection(); rxSimContainment(); rxContainmentCluster() }.foreach { _ =>
     val simPosts = rxSimPosts.now
     val simConnection = rxSimConnection.now
     val simRedirectedConnection = rxSimRedirectedConnection.now
     val simContainment = rxSimContainment.now
     val simCollapsedContainment = rxSimCollapsedContainment.now
+    val graph = rxDisplayGraph.now.graph
 
-    DevOnly {
-      println("    updating graph simulation")
-    }
+    DevPrintln("    updating graph simulation")
 
-    d3State.simulation.nodes(simPosts)
+    d3State.simulation.nodes(simPosts) // also sets initial positions if NaN
     d3State.forces.connection.links(simConnection)
     d3State.forces.redirectedConnection.links(simRedirectedConnection)
     d3State.forces.containment.links(simContainment)
     d3State.forces.collapsedContainment.links(simCollapsedContainment)
 
-    d3State.simulation.alpha(1).restart()
+    d3State.forces.meta.setConnections(rxSimConnection.now)
+    d3State.forces.meta.setContainments(rxSimContainment.now)
+    d3State.forces.meta.setContainmentClusters(rxContainmentCluster.now)
+
+    draw() // triggers updating node sizes
+    // wait for the drawcall and start simulation
+    window.requestAnimationFrame{ (_) =>
+      recalculateBoundsAndZoom()
+      d3State.simulation.alpha(1).restart()
+    }
   }
+
+  def updatedNodeSizes() {
+    DevPrintln("    updating node sizes")
+    d3State.forces.connection.initialize(rxSimPosts.now)
+    d3State.forces.redirectedConnection.initialize(rxSimPosts.now)
+    d3State.forces.containment.initialize(rxSimPosts.now)
+    d3State.forces.collapsedContainment.initialize(rxSimPosts.now)
+    rxContainmentCluster.now.foreach(_.recalculateConvexHull())
+
+    calculateRecursiveContainmentRadii()
+    d3State.forces.meta.updatedNodeSizes()
+    recalculateBoundsAndZoom()
+  }
+
+  def calculateRecursiveContainmentRadii() {
+    DevPrintln("       calculateRecursiveContainmentRadii")
+    def circleAreaToRadius(a: Double) = Math.sqrt(a / Math.PI) // a = PI*r^2 solved by r
+    def circleArea(r: Double) = Math.PI * r * r
+
+    val graph = rxDisplayGraph.now.graph
+    println("need-----------------")
+    for (postId <- graph.postIdsTopologicalSortedByParents) {
+      val post = rxPostIdToSimPost.now(postId)
+      val children = graph.children(postId)
+      if (children.nonEmpty) {
+        var childRadiusMax = 0.0
+        val childrenArea:Double = children.foldLeft(0.0){ (sum,childId) =>
+          val child = rxPostIdToSimPost.now(childId)
+          if (child.containmentRadius > childRadiusMax) {
+            childRadiusMax = child.containmentRadius
+            println(s"max: $childRadiusMax by ${child.title}")
+          }
+          // sum + child.containmentArea
+          val arbitraryFactor = 1.5 // 1.5 is arbitrary to have more space
+          sum + child.containmentBoundingSquareArea * arbitraryFactor
+        }
+
+        println(s"need children: ${children} ${children.map(rxPostIdToSimPost.now).map(_.containmentArea)}")
+        println(s"need sum: $childrenArea")
+
+        val neededArea = post.containmentArea + childrenArea
+        println(s"neededArea = ${post.containmentArea} + ${childrenArea} = $neededArea (${children.size} children)")
+        val neededRadius = post.containmentRadius + childRadiusMax * 2 // so that the largest node still fits in the bounding radius of the cluster
+        post.containmentRadius = circleAreaToRadius(neededArea) max neededRadius
+      }
+    }
+  }
+
+  // def calculateRecursiveContainmentRadii() {
+  //   DevPrintln("       calculateRecursiveContainmentRadii")
+  //   def circleAreaToRadius(a: Double) = Math.sqrt(a / (2 * Math.PI)) // a = 2*PI*r^2 solved by r
+  //   def circleArea(r: Double) = 2 * Math.PI * r * r
+
+  //   val graph = rxDisplayGraph.now.graph
+  //   val radii = for (rawPost <- graph.allParents) yield {
+  //     val post = rxPostIdToSimPost.now(rawPost.id)
+  //     val children = graph.transitiveChildren(post.id)
+  //     val childRadiusSum = children.foldLeft(0.0){ (sum,childId) =>
+  //       val child = rxPostIdToSimPost.now(childId)
+  //       sum + child.collisionRadius
+  //     }
+
+  //     val childDiameterSum = childRadiusSum * 2
+  //     val childCircumferenceSum = childDiameterSum// * Math.PI
+  //     val childDiameterAvg = childDiameterSum / children.size
+  //     import Math.{ceil, PI, sqrt, pow}
+
+  //     val d = childDiameterAvg
+  //     val D = childCircumferenceSum
+  //     val r = post.collisionRadius
+  //     // https://www.wolframalpha.com/input/?i=solve+D+%3D+sum(i%3D1,n)((i*d%2Br)*2*pi)+for+n
+  //     val n = (-d * PI - 2 * PI * r + sqrt(4 * d * D * PI + pow(-d * PI - 2 * PI * r, 2))) / (2 * d * PI)
+
+  //     println(s"nnn ${post.title}: $n")
+  //     val containmentRadius = post.collisionRadius + ceil(n) * childDiameterAvg
+
+  //     post -> containmentRadius
+  //   }
+
+  //   for ((post, radius) <- radii) {
+  //     post.containmentRadius = radius
+  //     post.containmentArea = circleArea(radius)
+  //   }
+  // }
 
   private def onPostDrag() {
     draggingPostSelection.draw()
   }
 
   private def onPostDragEnd() {
+    rxContainmentCluster.now.foreach{ _.recalculateConvexHull() }
     draw()
   }
 
@@ -157,17 +342,19 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     d3State.zoom
       .on("zoom", () => zoomed())
       .clickDistance(10) // interpret short drags as clicks
-    svg.call(d3State.zoom)
+    DevOnly { svg.call(d3State.zoom) } // activate pan + zoom on svg
 
     svg.on("click", { () =>
       if (state.postCreatorMenus.now.size == 0 && focusedPostId.now == None) {
         val pos = d3State.transform.invert(d3.mouse(svg.node))
         state.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
       } else {
-        Var.set(
-          VarTuple(state.postCreatorMenus, Nil),
-          VarTuple(focusedPostId, None)
-        )
+        // Var.set(
+        //   VarTuple(state.postCreatorMenus, Nil),
+        //   VarTuple(focusedPostId, None)
+        // )
+        state.postCreatorMenus() = Nil
+        focusedPostId() = None
       }
     })
 
@@ -176,9 +363,9 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
     if (inInitialSimulation) container.style("visibility", "hidden")
     d3State.simulation.on("tick", () => if (!inInitialSimulation) draw())
     d3State.simulation.on("end", { () =>
-      rxSimPosts.now.foreach { simPost =>
-        simPost.fixedPos = simPost.pos
-      }
+      // rxSimPosts.now.foreach { simPost =>
+      //   simPost.fixedPos = simPost.pos
+      // }
       if (inInitialSimulation) {
         container.style("visibility", "visible")
         draw()
@@ -198,13 +385,19 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   }
 
   private def draw() {
+    d3State.forces.meta.updateClusterConvexHulls()
+
     postSelection.draw()
-    postMenuSelection.draw()
     connectionLineSelection.draw()
     redirectedConnectionLineSelection.draw()
     connectionElementSelection.draw()
-    containmentHullSelection.draw()
-    collapsedContainmentHullSelection.draw()
+    containmentClusterSelection.draw()
+    collapsedContainmentClusterSelection.draw()
+
+    // debug draw:
+    postRadiusSelection.draw()
+    postCollisionRadiusSelection.draw()
+    postContainmentRadiusSelection.draw()
   }
 
   private def initContainerDimensionsAndPositions() {

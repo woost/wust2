@@ -115,3 +115,11 @@ select {
   -khtml-user-drag: element;
   -webkit-user-drag: element;
 }
+
+.graphpost {
+    position:absolute;
+    max-width : 10em;
+    word-wrap:break-word;
+    padding : 3px 5px;
+    border-radius : 3px;
+}

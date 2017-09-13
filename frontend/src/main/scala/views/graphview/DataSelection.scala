@@ -19,7 +19,7 @@ class WithKey[T](f: T => Any) extends (T => Any) {
   def apply(o: T) = f(o)
 }
 
-class SelectData[T: WithKey](component: DataSelection[T], container: Selection[dom.EventTarget]) {
+class SelectData[T: WithKey](component: DataSelection[T], val container: Selection[dom.EventTarget]) {
   private val keyFunction = implicitly[WithKey[T]]
   private def nodes = container.selectAll[T](component.tag)
 
