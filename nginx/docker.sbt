@@ -26,4 +26,3 @@ lazy val nginxHttps = project.in(file("https"))
 lazy val nginxHttp = project.in(file("http"))
   .enablePlugins(DockerPlugin)
   .settings(dockerNginx(Some("http")))
-

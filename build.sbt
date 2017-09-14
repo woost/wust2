@@ -32,7 +32,7 @@ lazy val commonSettings = Seq(
   test in assembly := {},
 
   // watch managed library dependencies (only works with scala 2.11 currently)
-  watchSources ++= (managedClasspath in Compile).map(_.files).value,
+  // watchSources ++= (managedClasspath in Compile).map(_.files).value,
 
   scalacOptions ++=
     "-encoding" :: "UTF-8" ::
@@ -81,18 +81,23 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("clean", "; root/clean; assets/clean; workbench/clean"),
+    addCommandAlias("clean", "; root/clean; assets/clean"),
 
-    addCommandAlias("devwatch", "~; backend/re-start; workbench/assets"),
-    addCommandAlias("dev", "; project root; devwatch"),
-    addCommandAlias("devfwatch", "~workbench/assets"),
-    addCommandAlias("devf", "; project root; backend/re-start; devfwatch"),
+    addCommandAlias("dev", "; project root; compile; frontend/fastOptJS::startWebpackDevServer; devwatch"),
+    addCommandAlias("devwatch", "~; backend/reStart; frontend/fastOptJS; frontend/copyFastOptJS"),
+
+    addCommandAlias("devf", "; project root; compile; backend/reStart; project frontend; fastOptJS::startWebpackDevServer; devfwatch"),
+    addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; frameworkJS/test; apiJS/test; frontend/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
     addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test"),
 
-    watchSources ++= (watchSources in workbench).value
+    // avoids watching files in root project
+    // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
+    // watchSources := Seq(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
+    
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in frameworkJS).value ++ (watchSources in frameworkJVM).value ++ (watchSources in frontend).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
   )
 
 val akkaVersion = "2.4.20"
@@ -225,6 +230,8 @@ lazy val backend = project
       Nil
   )
 
+lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
+
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(frameworkJS, apiJS, utilJS)
@@ -240,17 +247,16 @@ lazy val frontend = project
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
-    requiresDOM := true, // still required because of bundler: https://gitter.im/scala-js/scala-js?at=59b55f12177fb9fe7ea2beff
+    requiresDOM := true, // still required by bundler: https://gitter.im/scala-js/scala-js?at=59b55f12177fb9fe7ea2beff
     // jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(), // runs scalajs tests with node + jsdom. Requires jsdom to be installed
 
     scalaJSUseMainModuleInitializer := true,
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
-    useYarn := true, // instead of npm
-    //TODO: production needs to be bundled?
-    // webpackBundlingMode := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
-    emitSourceMaps := false,
+    // emitSourceMaps in fastOptJS := false,
     emitSourceMaps in fullOptJS := false,
+
+    useYarn := true, // instead of npm
     npmDependencies in Compile ++= (
       "cuid" -> "1.3.8" ::
       Nil
@@ -261,7 +267,24 @@ lazy val frontend = project
       "webpack-closure-compiler" -> "2.1.4" ::
       Nil
     ),
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "scalajsbundler.config.js") // renamed due to https://github.com/scalacenter/scalajs-bundler/issues/123
+
+    // artifactPath.in(Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value / "fastopt" / ((moduleName in fastOptJS).value + "-fastopt.js")),
+
+    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
+    // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
+    webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(),
+    webpackBundlingMode in fullOptJS := BundlingMode.Application,
+    webpackDevServerPort := 12345,
+    webpackDevServerExtraArgs := Seq("--progress", "--color"),
+
+    // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
+    copyFastOptJS := {
+      val inDir = (crossTarget in (Compile, fastOptJS)).value
+      val outDir = (crossTarget in (Compile, fastOptJS)).value / "fastopt"
+      val files = Seq("frontend-fastopt-loader.js", "frontend-fastopt.js", "frontend-fastopt.js.map") map { p =>   (inDir / p, outDir / p) }
+      IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
+    }
   )
 
 lazy val slackApp = project
@@ -273,31 +296,11 @@ lazy val slackApp = project
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.gilbertw1" %% "slack-scala-client" % "0.2.1" ::
       Nil
-  )
+    )
 
-lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)
-lazy val DevWorkbenchSettings = if (isCI) Seq.empty else Seq(
-  refreshBrowsers := (refreshBrowsers.triggeredBy(WebKeys.assets in Assets)).value //TODO: do not refresh if compilation failed
-)
 
-lazy val workbench = project
-  .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
-  .enablePlugins(DevWorkbenchPlugins: _*)
-  .settings(DevWorkbenchSettings: _*)
-  .settings(
-    // we have a symbolic link from src -> ../frontend/src
-    // to correct the paths in the source-map
-    scalaSource := baseDirectory.value / "src-not-found",
 
-    devCommands in scalaJSPipeline ++= Seq("assets"), // build assets in dev mode
-    unmanagedResourceDirectories in Assets += (baseDirectory in assets).value / "public", // include other assets
-
-    scalaJSProjects := Seq(frontend),
-    pipelineStages in Assets := Seq(scalaJSPipeline),
-
-    watchSources += baseDirectory.value / "index.html",
-    watchSources ++= (watchSources in assets).value
-  )
+//TODO: https://github.com/jantimon/html-webpack-plugin for asset checksums
 
 lazy val assets = project
   .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
@@ -307,14 +310,20 @@ lazy val assets = project
       IO.write(file, version.value)
       Seq(file)
     },
-    unmanagedResourceDirectories in Assets += baseDirectory.value / "public",
+    unmanagedResourceDirectories in Assets ++= (
+      baseDirectory.value / "public" ::
+      baseDirectory.value / "prod" ::
+      Nil
+    ),
     scalaJSProjects := Seq(frontend),
     npmAssets ++= {
       // without dependsOn, the file list is generated before webpack does its thing.
       // Which would mean that generated files by webpack do not land in the pipeline.
-      val assets = ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.gz") +++ ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.br")
+      val assets =
+        ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.gz") +++
+          ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.br")
       val nodeModules = (npmUpdate in (frontend, Compile)).value
-      assets.pair(relativeTo(nodeModules))
+      assets.pair(Path.relativeTo(nodeModules))
     },
     pipelineStages in Assets := Seq(scalaJSPipeline)
   //TODO: minify html

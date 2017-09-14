@@ -30,6 +30,7 @@ object Main {
 
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
+    //TODO: proxy with webpack devserver and only configure production port
     val port = Config.wsPort getOrElse location.port
 
     val state = new GlobalState

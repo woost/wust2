@@ -48,7 +48,7 @@ If you are only developing the frontend, you can also skip recompilation of the 
 > devf
 ```
 
-Access wust via http://localhost:12345/workbench/index.html
+Access wust via http://localhost:12345
 
 The start script is the central script for developers.
 From here, you can also run db migrations, access psql, run tests or start a production stack with test settings:
