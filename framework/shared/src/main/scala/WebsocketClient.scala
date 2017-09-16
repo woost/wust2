@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 import boopickle.Default._
 import wust.framework.message._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait IncidentHandler[Event, Error] {
   def fromError(error: Error): Throwable
@@ -21,13 +21,15 @@ class WebsocketClient[Event: Pickler, Error: Pickler](ws: WebsocketConnection)(i
 
   private val pingIdleMillis = 115 * 1000
   private val acknowledgeTraffic: () => Unit = {
-    import java.util.{Timer, TimerTask}
+    import java.util.{ Timer, TimerTask }
     val timer = new Timer
+    var currTask = Option.empty[TimerTask]
     () => {
-      timer.cancel()
+      currTask.foreach(_.cancel())
       timer.purge()
       val task = new TimerTask { def run() = send(Ping()) }
       timer.schedule(task, pingIdleMillis)
+      currTask = Some(task)
     }
   }
 
@@ -55,7 +57,7 @@ class WebsocketClient[Event: Pickler, Error: Pickler](ws: WebsocketConnection)(i
           result.fold(req tryFailure handler.fromError(_), req trySuccess _)
         }
         case Notification(events) => handler.onEvents(events)
-        case Pong() =>
+        case Pong()               =>
       }
     }
   })
