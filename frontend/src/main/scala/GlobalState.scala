@@ -141,8 +141,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val jsError = Var[Option[String]](None)
 
-  //TODO: hack for having authorship and creation time of post. this needs to be in the backend
-  val postTimes = new collection.mutable.HashMap[PostId, Long]
+  //TODO: hack for having authorship of post. this needs to be in the backend
   val ownPosts = new collection.mutable.HashSet[PostId]
 
   def applyEvents(events: Seq[ApiEvent]) = {
@@ -181,10 +180,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       case NewGraphChanges(_) => true
       case _                  => false
     }
-
-    //TODO fake info about post creation
-    val currentTime = System.currentTimeMillis
-    postTimes ++= graphChangeEvents.asInstanceOf[Seq[NewGraphChanges]].flatMap(_.changes.addPosts.map(_.id -> currentTime))
 
     eventCache.addEvents(graphChangeEvents)
     applyEvents(otherEvents)

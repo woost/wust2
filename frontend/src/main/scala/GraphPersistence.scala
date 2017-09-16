@@ -147,9 +147,6 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   def addChanges(newChanges: GraphChanges)(implicit ec: ExecutionContext): Unit = if (newChanges.nonEmpty) {
     //TODO fake info about own posts when applying
     state.ownPosts ++= newChanges.addPosts.map(_.id)
-    //TODO fake info about post creation
-    val currentTime = System.currentTimeMillis
-    state.postTimes ++= newChanges.addPosts.map(_.id -> currentTime)
 
     // we need store all deleted posts to be able to reconstruct them when
     // undoing post deletion (need to add them again)

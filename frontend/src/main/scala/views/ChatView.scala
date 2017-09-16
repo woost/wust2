@@ -64,7 +64,6 @@ object ChatView {
         val w = "60%"
         div(
           chatHistory().map { post =>
-            val time = state.postTimes.get(post.id).getOrElse(0)
             val isMine = state.ownPosts(post.id)
             div(
               p(
