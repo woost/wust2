@@ -7,6 +7,7 @@ import java.time.Duration
 
 @derive((endpoint, username) => toString)
 case class SmtpConfig(endpoint: String, username: String, password: String)
+@derive((enableImplicit, tokenLifetime) => toString)
 case class AuthConfig(enableImplicit: Boolean, tokenLifetime: Duration, secret: String)
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
