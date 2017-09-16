@@ -315,6 +315,6 @@ object TreeView {
         padding := "100px",
         if (items.isEmpty) Seq(newItem(state)) else items
       ).render
-    })
+    }).render
   }
 }

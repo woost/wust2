@@ -32,7 +32,7 @@ object GraphView {
       height := "100%",
 
       div().render sideEffect (new GraphView(state, _, disableSimulation))
-    )
+    ).render
   }
 
   def postView(post: Post) = div(

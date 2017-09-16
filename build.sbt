@@ -109,6 +109,7 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
+val outwatchVersion = "0.10.2"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -122,6 +123,8 @@ lazy val util = crossProject
   .jsSettings(
     libraryDependencies ++= (
       "com.lihaoyi" %%% "scalatags" % "0.6.7" ::
+      "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
+      "io.github.outwatch" %%% "outwatch" % outwatchVersion ::
       Nil
     )
   )
@@ -241,6 +244,7 @@ lazy val frontend = project
       ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll ExclusionRule("com.lihaoyi")) ::
       "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
       "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
+      "io.github.outwatch" %%% "outwatch" % outwatchVersion ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::

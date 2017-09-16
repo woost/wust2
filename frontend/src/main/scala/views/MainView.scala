@@ -26,6 +26,7 @@ import wust.frontend.{ SyncStatus, SyncMode }
 
 import scalatags.JsDom.all._
 import scalatags.rx.all._
+import wust.util.outwatchHelpers._
 
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
@@ -128,7 +129,7 @@ object MainView {
               VarTuple(state.graphSelection, GraphSelection.Union(Set(newPost.id)))
             )
             sendEvent("group", "created", "success")
-          case Failure(e) =>
+          case Failure(_) =>
             sendEvent("group", "created", "failure")
         }
       }
@@ -409,18 +410,17 @@ object MainView {
   }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
-    val viewPages = (
-      ViewPage.Graph -> (() => GraphView(state, disableSimulation)) ::
-      ViewPage.List -> (() => TreeView(state)) ::
-      ViewPage.Article -> (() => ArticleView(state)) ::
-      ViewPage.Code -> (() => CodeView(state)) ::
-      ViewPage.Chat -> (() => ChatView(state)) ::
-      ViewPage.Board -> (() => BoardView(state)) ::
-      ViewPage.Test -> (() => TestView(state)) ::
-      Nil
+    val viewPages: List[(ViewPage, () => Element)] = List(
+      ViewPage.Graph -> (() => GraphView(state, disableSimulation)),
+      ViewPage.List -> (() => TreeView(state)),
+      ViewPage.Article -> (() => ArticleView(state)),
+      ViewPage.Code -> (() => CodeView(state)),
+      ViewPage.Chat -> (() => ChatView(state)),
+      ViewPage.Board -> (() => BoardView(state)),
+      ViewPage.Test -> (() => TestView(state))
     )
 
-    val viewPagesMap: Map[ViewPage, () => TypedTag[Element]] = viewPages.toMap
+    val viewPagesMap: Map[ViewPage, () => Element] = viewPages.toMap
 
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
@@ -435,7 +435,7 @@ object MainView {
       alignContent.stretch,
 
       topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      state.viewPage.map { x => viewPagesMap(x)()(flex := "1", overflow.auto).render },
+      state.viewPage.map { x => viewPagesMap(x)() }, //(flex := "1", overflow.auto).render
       // bottomBar (state),
 
       feedbackForm (state),
