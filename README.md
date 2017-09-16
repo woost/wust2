@@ -35,7 +35,7 @@ Requirements:
 
 Starting all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
 ```
-$ ./start dev
+$ ./start sbt
 ```
 
 In the sbt prompt, you can then start watching sources and recompile while developing:
@@ -53,7 +53,7 @@ Access wust via http://localhost:12345/workbench/index.html
 The start script is the central script for developers.
 From here, you can also run db migrations, access psql, run tests or start a production stack with test settings:
 ```
-start [ dev, migrate, psql <options>, pgdump, pgrestore <file>, pgclean, prod.http, prod, test, test.postgres, test.integration ]
+start [ sbt, migrate, psql <options>, pgdump, pgrestore <file>, pgclean, prod.http, prod, test, test.postgres, test.integration ]
 ```
 
 

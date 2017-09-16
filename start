@@ -45,7 +45,8 @@ function self() {
         on_stage dev
         docker exec -i wustdev_postgres_1 psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         ;;
-    dev)
+    sbt)
+        on_stage dev
         compose up -d
         sbt_with_args
         ;;
@@ -88,7 +89,7 @@ function self() {
         cat <<EOF
     unknown stage '$1', expected one of:
 
-    dev
+    sbt
     migrate
 
     psql [options]
