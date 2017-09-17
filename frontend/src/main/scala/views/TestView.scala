@@ -9,11 +9,10 @@ import org.scalajs.dom.{window, document, console}
 import scala.scalajs.js
 
 import outwatch.dom._
-
 import wust.util.outwatchHelpers._
 
 object TestView {
-  def postItem(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner) = {
+  def postItem(state: GlobalState, post: Post) = {
     div(
       // minHeight := "12px",
       // border := "solid 1px",

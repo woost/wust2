@@ -1,31 +1,37 @@
 package wust.util
 
+import org.scalajs.dom.document
+
 package object outwatchHelpers {
   implicit class RichVNode(val vNode:outwatch.dom.VNode) {
     def render:org.scalajs.dom.Element = {
-      val container = scalatags.JsDom.all.div().render
+      val container = document.createElement("div")
       outwatch.dom.helpers.DomUtils.render(container, vNode)
+      // import snabbdom._
+      // patch(elem, render().asProxy)
       container
     }
   }
 
   implicit class ObservableRx[T](r:rx.Rx[T])(implicit ctx: rx.Ctx.Owner) {
-    def toObservable:rxscalajs.Observable[T] = {
-      val subject = rxscalajs.subjects.BehaviorSubject[T](r.now)
-      r.foreach(subject.next)
-      subject
+    def toObservable:rxscalajs.Observable[T] = rxscalajs.Observable.create { observer =>
+      r.foreach(observer.next)
+      ()
     }
+
   }
 
-  implicit def RxVarToSink[T](v:rx.RxVar[T,_])(implicit ctx: rx.Ctx.Owner):outwatch.Sink[T] = {
+  // implicit class RxSubjectBehavior[T](obs:rxscalajs.subjects.BehaviorSubject[T])(implicit ctx: rx.Ctx.Owner) {
+  //   def toRx:rx.Rx[T] = {
+  //     val rx = Var[T](obs.value)
+  //     obs(rx() = _)
+  //     rx
+  //   }
+  // }
+
+  implicit def RxVarToSink[T](v:rx.RxVar[T,_]):outwatch.Sink[T] = {
     val handler = outwatch.dom.createHandler[T]()
     handler(v() = _)
     handler
   }
-
-  // implicit def ObservableToRx[T](obs:Observable[T]):Rx[T] = {
-  //   val rx = Var[GraphSelection]()
-  //   rx.foreach subject.next
-  //   subject
-  // }
 }
