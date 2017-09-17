@@ -10,7 +10,7 @@ import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLInputElement, HTMLSelectElement }
+import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement }
 import org.scalajs.dom.raw.{ HTMLTextAreaElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
@@ -417,6 +417,7 @@ object MainView {
       ViewPage.Code -> (() => CodeView(state)),
       ViewPage.Chat -> (() => ChatView(state)),
       ViewPage.Board -> (() => BoardView(state)),
+      ViewPage.MyBoard -> (() => MyBoardView(state)),
       ViewPage.Test -> (() => TestView(state))
     )
 
@@ -435,7 +436,13 @@ object MainView {
       alignContent.stretch,
 
       topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      state.viewPage.map { x => viewPagesMap(x)() }, //(flex := "1", overflow.auto).render
+      state.viewPage.map { x => 
+        val element = viewPagesMap(x)().asInstanceOf[HTMLElement]
+        // element.style.flex = "1" // not supported yet by dom api
+        element.style.setProperty("flex","1")
+        element.style.overflow = "auto"
+        element
+      },
       // bottomBar (state),
 
       feedbackForm (state),

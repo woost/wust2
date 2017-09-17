@@ -14,12 +14,14 @@ object ViewPage {
   case object Code extends ViewPage
   case object Chat extends ViewPage
   case object Board extends ViewPage
+  case object MyBoard extends ViewPage
   case object Test extends ViewPage
 
   def default = Graph
 
   def toString(page: ViewPage) = page.toString.toLowerCase
   val fromString: String => ViewPage = {
+    case "myboard"   => ViewPage.MyBoard
     case "graph"   => ViewPage.Graph
     case "list"    => ViewPage.List
     case "article" => ViewPage.Article
