@@ -244,7 +244,8 @@ lazy val frontend = project
     scalaJSUseMainModuleInitializer := true,
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     useYarn := true, // instead of npm
-    webpackBundlingMode := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
+    //TODO: production needs to be bundled?
+    // webpackBundlingMode := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     emitSourceMaps := false,
     emitSourceMaps in fullOptJS := false,
