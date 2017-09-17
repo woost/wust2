@@ -20,15 +20,15 @@ trait ApiTestKit extends DbMocks {
     } yield (afterState, events, result)
   }
 
-  def onAuthApi[T](state: State, db: Db = mockedDb, enableImplicit: Boolean = false)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
+  def onAuthApi[T](state: State, jwt: JWT, db: Db = mockedDb, enableImplicit: Boolean = false)(f: AuthApi => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val holder = newStateHolder(state)
-    val impl = new AuthApiImpl(holder, new GuardDsl(db, enableImplicit), db)
+    val impl = new AuthApiImpl(holder, GuardDsl(jwt, db, enableImplicit), db, jwt)
     onResult(f(impl), holder)
   }
 
-  def onApi[T](state: State, db: Db = mockedDb, enableImplicit: Boolean = false)(f: Api => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
+  def onApi[T](state: State, jwt: JWT, db: Db = mockedDb, enableImplicit: Boolean = false)(f: Api => Future[T])(implicit ec: ExecutionContext): Future[(State, Seq[ApiEvent], T)] = {
     val holder = newStateHolder(state)
-    val impl = new ApiImpl(holder, new GuardDsl(db, enableImplicit), db)
+    val impl = new ApiImpl(holder, GuardDsl(jwt, db, enableImplicit), db)
     onResult(f(impl), holder)
   }
 }

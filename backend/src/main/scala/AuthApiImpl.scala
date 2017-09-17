@@ -10,7 +10,7 @@ import wust.util.RichFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends AuthApi {
+class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi {
   import holder._, dsl._
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt
@@ -25,10 +25,10 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
     val (auth, success) = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
         //TODO: propagate name change to the respective groups
-        val activated = db.user.activateImplicitUser(user.id, name, digest).map(_.map(u => JWT.generateAuthentication(u)))
+        val activated = db.user.activateImplicitUser(user.id, name, digest).map(_.map(u => jwt.generateAuthentication(u)))
         (activated.map(_.orElse(state.auth)), activated.map(_.isDefined))
       case _ =>
-        val newAuth = db.user(name, digest).map(_.map(u => JWT.generateAuthentication(u)))
+        val newAuth = db.user(name, digest).map(_.map(u => jwt.generateAuthentication(u)))
         (newAuth, newAuth.map(_.isDefined))
     }
 
@@ -47,7 +47,7 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
           db.user.mergeImplicitUser(implicitAuth.user.id, user.id).log
         }
 
-        (Some(JWT.generateAuthentication(user)), true)
+        (Some(jwt.generateAuthentication(user)), true)
       case _ => (implicitAuth, false)
     })
 
@@ -57,7 +57,7 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(i
   }
 
   def loginToken(token: Authentication.Token): Future[Boolean] = { (state: State) =>
-    val auth = JWT.authenticationFromToken(token).map { auth =>
+    val auth = jwt.authenticationFromToken(token).map { auth =>
       for (valid <- db.user.checkIfEqualUserExists(auth.user))
         yield if (valid) Option(auth) else None
     }.getOrElse(Future.successful(None))

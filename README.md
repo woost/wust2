@@ -78,7 +78,7 @@ All used docker services are defined in `docker/services.yml` and can be configu
 * **WUST_SMTP_USER**: smtp username (optional)
 * **WUST_SMTP_PASS**: smtp password (optional)
 
-The compose stack `docker/compose-prod.yml` is an example how to run wust in production with docker. Please adapt it to your needs, before actualy deploying to production.
+The compose stack `docker/compose-prod.yml` is an example how to run wust in docker.
 
 For HTTPS, the nginx container read-only mounts a directory with tls certificates to the path `/tls_certs/`. This directory contains two files fullchain.pem ([ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)) and privkey.pem ([ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)). See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl).
 

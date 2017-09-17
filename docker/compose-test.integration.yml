@@ -5,25 +5,18 @@ services:
     extends:
       file: services.yml
       service: postgres
-    environment: &pg_env
-      POSTGRES_PASSWORD: "test"
     ports:
-      - "5431:5432"
+      - "${POSTGRES_PORT}:5432"
   db-migration:
     extends:
       file: services.yml
       service: db-migration
-    environment:
-      <<: *pg_env
     depends_on:
       - postgres
   wust:
     extends:
       file: services.yml
       service: wust
-    environment:
-      <<: *pg_env
-      WUST_AUTH_SECRET: "secret"
     depends_on:
       - postgres
   nginx:

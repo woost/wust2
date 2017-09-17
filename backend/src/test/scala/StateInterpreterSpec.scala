@@ -8,6 +8,7 @@ import wust.db.{ Db, Data }
 import DbConversions._
 import wust.graph._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   object User {
@@ -15,20 +16,21 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     def data(id: Long, name: String): Data.User = new Data.User(id, name, isImplicit = false, 0)
   }
 
+  val jwt = new JWT("secret", 1 hours)
   val user = User(14, "user")
-  val auth = JWT.generateAuthentication(user)
+  val auth = jwt.generateAuthentication(user)
 
   "validate" - {
     "valid" in mockDb { db =>
       val state = State(auth = Some(auth), graph = Graph.empty)
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
       val newState = stateInterpreter.validate(state)
       newState mustEqual state
     }
 
     "invalid" in mockDb { db =>
       val state = State(auth = Some(auth.copy(expires = 0)), graph = Graph.empty)
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
       val newState = stateInterpreter.validate(state)
       newState.auth mustEqual None
       newState.graph.groupIds mustEqual state.graph.groupIds
@@ -40,7 +42,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
 
     "with auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(Some(user.id)) returnsFuture emptyGraph
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
       val events = stateInterpreter.stateEvents(state)
@@ -52,7 +54,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
 
     "with groupIds" in mockDb { db =>
       db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
 
       val state = State(auth = None, graph = Graph(groups = List(Group(1), Group(2))))
       val events = stateInterpreter.stateEvents(state)
@@ -63,7 +65,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     }
 
     "without auth" in mockDb { db =>
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
       db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
 
       val state = State(auth = None, graph = Graph.empty)
@@ -79,7 +81,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.Containment], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
 
     "same state" in mockDb { db =>
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
 
       val state = State(auth = Some(auth), graph = Graph.empty)
       val events = stateInterpreter.stateChangeEvents(state, state)
@@ -91,7 +93,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
 
     "different auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(None) returnsFuture emptyGraph
-      val stateInterpreter = new StateInterpreter(db = db)
+      val stateInterpreter = new StateInterpreter(db, jwt)
 
       val state = State(auth = Some(auth), graph = Graph(groups = List(Group(1), Group(2))))
       val newState = state.copy(auth = None)
@@ -107,7 +109,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
     //TODO
     "triggeredEvents" - {
       // "NewMembership with non-member user" in mockDb { db =>
-      //   val stateInterpreter = new StateInterpreter(db = db)
+      //   val stateInterpreter = new StateInterpreter(db, jwt)
 
       //   val state = State.initial.copy(auth = None)
       //   val event = NewMembership(Membership(1337, 12))
@@ -120,7 +122,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       //   val aMember = User.data(777, "harals")
 
       //   db.user.get(aMember.id) returnsFuture Some(aMember)
-      //   val stateInterpreter = new StateInterpreter(db = db)
+      //   val stateInterpreter = new StateInterpreter(db, jwt)
 
       //   val group = Group(12)
       //   val graph = Graph(users = Seq(aMember), groups = Seq(group), memberships = Seq(Membership(user.id, group.id)))
@@ -140,10 +142,10 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
       //   db.group.get(aGroup.id) returnsFuture Some(aGroup)
       //   db.group.members(aGroup.id) returnsFuture List((aMember, aMembership))
       //   db.group.getOwnedPosts(aGroup.id) returnsFuture List(postInGroup)
-      //   val stateInterpreter = new StateInterpreter(db = db)
+      //   val stateInterpreter = new StateInterpreter(db, jwt)
 
       //   val graph = Graph.empty
-      //   val aAuth = JWT.generateAuthentication(aMember)
+      //   val aAuth = jwt.generateAuthentication(aMember)
       //   val state = State(auth = Some(aAuth), graph = graph)
       //   val event = NewMembership(Membership(aMember.id, aGroup.id))
       //   stateInterpreter.triggeredEvents(state, event).map { events =>

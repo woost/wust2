@@ -8,8 +8,11 @@ import wust.backend.config.SmtpConfig
 
 import scala.util.Try
 
-class JavaMailClient(config: SmtpConfig)
-{
+trait MailClient {
+  def sendMessage(from: String, recipient: MailRecipient, mail: MailMessage): Try[Unit]
+}
+
+class JavaMailClient(config: SmtpConfig) extends MailClient {
   private val authenticator = new Authenticator {
     override protected def getPasswordAuthentication = new PasswordAuthentication(config.username, config.password)
   }

@@ -13,7 +13,7 @@ services:
       - postgres
   test:
     image: cornerman/docker-pgtap
-    command: -h postgres -u 'wust' -w 'test' -d 'wust'
+    command: -h postgres -u 'wust' -d 'wust'
     volumes:
       - "../dbMigration/tests/:/t"
     depends_on:

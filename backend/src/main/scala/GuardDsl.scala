@@ -9,12 +9,7 @@ import DbConversions._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class GuardDsl(db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext) {
-  private def createImplicitAuth() = enableImplicit match {
-    case true => db.user.createImplicitUser().map(u => JWT.generateAuthentication(forClient(u))).map(Option.apply)
-    case false => Future.successful(None)
-  }
-
+class GuardDsl(createImplicitAuth: () => Future[Option[JWTAuthentication]])(implicit ec: ExecutionContext) {
   private lazy val implicitAuth = createImplicitAuth()
 
   private def actualOrImplicitAuth(auth: Option[JWTAuthentication]): Future[Option[JWTAuthentication]] = auth match {
@@ -36,5 +31,19 @@ class GuardDsl(db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext) {
     val user = auth.map(userOrFail _)
     val response = newState.flatMap(newState => user.flatMap(f(newState, _)))
     StateEffect(newState, response)
+  }
+}
+
+object GuardDsl {
+  def apply(jwt: JWT, db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext): GuardDsl = {
+    def createImplicitAuth() = enableImplicit match {
+      case true => db.user.createImplicitUser().map { user =>
+        val auth = jwt.generateAuthentication(user)
+        Option(auth)
+      }
+      case false => Future.successful(None)
+    }
+
+    new GuardDsl(createImplicitAuth _)
   }
 }

@@ -11,21 +11,24 @@ import wust.framework.state._
 import wust.graph.{ Graph, Group }
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
   val implicitUserDb = Data.User(14, "implicit", isImplicit = true, 0)
   val implicitUser = DbConversions.forClient(implicitUserDb)
   val initialUser = User(11, "existing", isImplicit = false, 0)
+  val jwt = new JWT("secret", 1 hours)
 
   override def mockDb[T](f: Db => T) = super.mockDb { db =>
     db.user.createImplicitUser() returnsFuture implicitUserDb
     f(db)
   }
 
-  def implicitDsl(db: Db) = new GuardDsl(db, true)
-  def nonImplicitDsl(db: Db) = new GuardDsl(db, enableImplicit = false)
+  //TODO: use constructor without db and jwt
+  def implicitDsl(db: Db) = GuardDsl(jwt, db, true)
+  def nonImplicitDsl(db: Db) = GuardDsl(jwt, db, enableImplicit = false)
 
-  val authState = State(auth = Option(JWT.generateAuthentication(initialUser)), graph = Graph(groups = List(Group(1), Group(2))))
+  val authState = State(auth = Option(jwt.generateAuthentication(initialUser)), graph = Graph(groups = List(Group(1), Group(2))))
   val nonAuthState = State(auth = None, graph = Graph.empty)
 
   "withUser" - {

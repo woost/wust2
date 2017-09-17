@@ -5,8 +5,6 @@ services:
     extends:
       file: services.yml
       service: postgres
-    environment: &pg_env
-      POSTGRES_PASSWORD: "test"
     stdin_open: true
     tty: true
     ports:
@@ -17,8 +15,6 @@ services:
     extends:
       file: services.yml
       service: db-migration
-    environment:
-      <<: *pg_env
     stdin_open: true
     tty: true
     depends_on:

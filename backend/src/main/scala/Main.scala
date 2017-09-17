@@ -16,6 +16,10 @@ object Main extends App {
   Logger.root.clearHandlers()
   Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
-  scribe.info(s"Starting wust with Config: $Config")
-  Server.run(8080)
+  Config.load match {
+    case Left(error) => scribe.error(s"Cannot load config: $error")
+    case Right(config) =>
+      scribe.info(s"Starting wust with Config: $config")
+      Server.run(config, 8080)
+  }
 }

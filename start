@@ -4,7 +4,6 @@ set -o pipefail
 
 script_dir="$(dirname $0)"
 
-stage="$1"
 function on_stage() { stage="$1"; }
 
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
@@ -12,20 +11,22 @@ function sbt_with_args() {
     args="${@:1}"
     [ -n "$override_sbt_args" ] && args="$override_sbt_args"
 
-    WUST_STAGE=dev sbt -Dquill.macro.log=false $args
+    sbt -Dquill.macro.log=false $args
 }
 
 function compose() { "$script_dir/docker/compose" $stage $@; }
 
-function create_wust_template() {
+function postgres_command() {
     name=$(echo $stage | tr -d ".")
-    docker exec -it "wust${name}_postgres_1" psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
-    docker exec -it "wust${name}_postgres_1" psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+    docker exec -it "wust${name}_postgres_1" "$@"
 }
 
-# CI=true => disable workbench
+env_wust_secret="WUST_AUTH_SECRET=secret"
+env_postgres_secret="POSTGRES_PASSWORD=test"
+env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust"
 
 function self() {
+    on_stage "$1"
     case "$1" in
     psql)
         on_stage dev
@@ -35,32 +36,36 @@ function self() {
         ;;
     pgdump)
         on_stage dev
-        docker exec -i wustdev_postgres_1 pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
+        postgres_command pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
     pgrestore)
         on_stage dev
-        docker exec -i wustdev_postgres_1 psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+        postgres_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgclean)
         on_stage dev
-        docker exec -i wustdev_postgres_1 psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         ;;
     sbt)
         on_stage dev
+        export $env_postgres_secret $env_wust_secret $env_postgres_local
         compose up -d
         sbt_with_args
         ;;
     migrate)
         on_stage dev
+        export $env_postgres_secret
         CI=true sbt dbMigration/docker
         compose run db-migration
         ;;
     prod.http)
         on_stage prod
+        export $env_postgres_secret $env_wust_secret
         compose down
         compose up -d nginx-http
         ;;
     prod)
+        export $env_postgres_secret $env_wust_secret
         compose down
         compose up -d nginx
         ;;
@@ -77,17 +82,19 @@ function self() {
         compose down
         ;;
     test.integration)
+        # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
+        export $env_postgres_secret $env_wust_secret $env_postgres_local POSTGRES_PORT=5431
         compose rm -f -v
         compose up -d --force-recreate
         compose run db-migration
-        create_wust_template
-        # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-        POSTGRES_PORT=5431 CI=true sbt_with_args coverage it:test coverageReport
+        postgres_command psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
+        postgres_command psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+        CI=true sbt_with_args coverage it:test coverageReport
         compose down
         ;;
     *)
         cat <<EOF
-    unknown stage '$1', expected one of:
+    unknown option '$1', expected one of:
 
     sbt
     migrate
@@ -109,4 +116,4 @@ EOF
     esac
 }
 
-self "$stage"
+self "$1"

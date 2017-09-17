@@ -66,29 +66,38 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 }
 
-object Server {
-  import scala.concurrent.ExecutionContext.Implicits.global
+object WebsocketFactory {
+  import DbConversions._
 
-  private val ws = {
-    val db = Db(Config.db)
-    val stateInterpreter = new StateInterpreter(db)
+  def apply(config: Config)(implicit ec: ExecutionContext) = {
+    val db = Db(config.db)
+    val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
+    val stateInterpreter = new StateInterpreter(db, jwt)
 
     def api(holder: StateHolder[State, ApiEvent]) = {
-      val dsl = new GuardDsl(db, Config.auth.enableImplicit)
+      val dsl = GuardDsl(jwt, db, config.auth.enableImplicit)
       AutowireServer.route[Api](new ApiImpl(holder, dsl, db)) orElse
-        AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, db))
+        AutowireServer.route[AuthApi](new AuthApiImpl(holder, dsl, db, jwt))
     }
 
-    new WebsocketServer[ApiEvent, RequestEvent, ApiError, State](new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api _))
+    val handler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api _)
+    new WebsocketServer(handler)
   }
+}
 
-  private val route = (path("ws") & get) {
-    ws.websocketHandler
-  } ~ (path("health") & get) {
-    complete("ok")
-  }
+object Server {
+  import ExecutionContext.Implicits.global
 
-  def run(port: Int) = ws.run(route, "0.0.0.0", port).foreach { binding =>
-    scribe.info(s"Server online at ${binding.localAddress}")
+  def run(config: Config, port: Int) = {
+    val ws = WebsocketFactory(config)
+    val route = (path("ws") & get) {
+      ws.websocketHandler
+    } ~ (path("health") & get) {
+      complete("ok")
+    }
+
+    ws.run(route, "0.0.0.0", port).foreach { binding =>
+      scribe.info(s"Server online at ${binding.localAddress}")
+    }
   }
 }

@@ -19,13 +19,11 @@ object LoggingMailService extends MailService {
   }
 }
 
-class SmtpMailService(emailConfig: EmailConfig) extends MailService {
-  private val client = new JavaMailClient(emailConfig.smtp)
-
+class SendingMailService(fromAddress: String, client: MailClient) extends MailService {
   override def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean] = Future {
-    scribe.info(s"sending mail through smtp ($emailConfig):\n\tto: $recipient\n\tmail: $message")
+    scribe.info(s"sending mail:\n\tto: $recipient\n\tmail: $message")
 
-    client.sendMessage(emailConfig.fromAddress, recipient, message) match {
+    client.sendMessage(fromAddress, recipient, message) match {
       case Success(_) => true
       case Failure(t) =>
         scribe.error("failed to send mail")
@@ -36,9 +34,9 @@ class SmtpMailService(emailConfig: EmailConfig) extends MailService {
 }
 
 object MailService {
-  val default = {
-    Config.email.map { email =>
-      new SmtpMailService(email)
-    } getOrElse LoggingMailService
-  }
+  def apply(config: Option[EmailConfig]) =
+    config.fold[MailService](LoggingMailService) { config =>
+      import config._
+      new SendingMailService(fromAddress, new JavaMailClient(smtp))
+    }
 }

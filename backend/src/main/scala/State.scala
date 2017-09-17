@@ -20,7 +20,7 @@ object State {
   def initial = State(auth = None, graph = Graph.empty)
 }
 
-class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
+class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
   def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
     events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.onEvent(_, event)))
   }
@@ -45,7 +45,7 @@ class StateInterpreter(db: Db)(implicit ec: ExecutionContext) {
       Future.successful(Nil)
   }).map(_.flatten)
 
-  def validate(state: State): State = state.copyF(auth = _.filterNot(JWT.isExpired))
+  def validate(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
 
   def stateEvents(state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent]] = {
     db.graph.getAllVisiblePosts(state.user.map(_.id))

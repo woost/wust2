@@ -3,10 +3,10 @@ package wust.backend.auth
 import org.scalatest._
 import wust.graph.User
 import wust.ids._
-import java.time.Duration
+import scala.concurrent.duration._
 
 class JWTSpec extends FreeSpec with MustMatchers {
-  val jwt = new JWT("secret", Duration.ofHours(1))
+  val jwt = new JWT("secret", 1 hours)
 
   implicit def intToUserId(id: Int): UserId = UserId(id)
 
@@ -41,7 +41,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
 
   "expired auth is expired" in {
     val user = User("Frau Mahlzahn")
-    val jwt = new JWT("secret", tokenLifetime = Duration.ZERO)
+    val jwt = new JWT("secret", tokenLifetime = Duration.Zero)
     val auth = jwt.generateAuthentication(user)
     jwt.isExpired(auth) mustEqual true
   }
@@ -49,10 +49,10 @@ class JWTSpec extends FreeSpec with MustMatchers {
   "incompatible secret not valid" in {
     val user = User("Frau Mahlzahn")
 
-    val jwt1 = new JWT("gisela", tokenLifetime = Duration.ofHours(1))
+    val jwt1 = new JWT("gisela", tokenLifetime = 1 hours)
     val auth = jwt1.generateAuthentication(user)
 
-    val jwt2 = new JWT("hans", tokenLifetime = Duration.ofHours(1))
+    val jwt2 = new JWT("hans", tokenLifetime = 1 hours)
     val noAuth = jwt2.authenticationFromToken(auth.token)
 
     noAuth mustEqual None
