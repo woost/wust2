@@ -26,7 +26,7 @@ class StateHolder[State, Event](initialState: Future[State]) {
     case true => new RequestResponse[Boolean, Event](result, events)
     case false => new RequestResponse[Boolean, Event](result, Seq.empty)
   }
-  implicit def resultIsRequestResponse[T](result: T)(implicit ec: ExecutionContext): RequestResponse[T, Event] = RequestResponse(result)
+  implicit def resultIsRequestResponse[T](result: T): RequestResponse[T, Event] = RequestResponse(result)
   implicit def futureResultIsRequestResponse[T](result: Future[T])(implicit ec: ExecutionContext): Future[RequestResponse[T, Event]] = result.map(RequestResponse(_))
   implicit def resultFunctionIsExecuted[T](f: State => Future[T])(implicit ec: ExecutionContext): Future[T] = state.flatMap(f)
   implicit def responseFunctionIsExecuted[T](f: State => Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))

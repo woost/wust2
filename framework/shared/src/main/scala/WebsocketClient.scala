@@ -7,14 +7,14 @@ import wust.framework.message._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait IncidentHandler[Event, Error] {
-  def fromError(error: Error): Throwable
+trait IncidentHandler[Event, Failure] {
+  def fromError(error: Failure): Throwable
   def onConnect(reconnect: Boolean): Unit
   def onEvents(events: Seq[Event]): Unit
 }
 
-class WebsocketClient[Event: Pickler, Error: Pickler](ws: WebsocketConnection)(implicit ec: ExecutionContext) {
-  val messages = new Messages[Event, Error]
+class WebsocketClient[Event: Pickler, Failure: Pickler](ws: WebsocketConnection)(implicit ec: ExecutionContext) {
+  val messages = new Messages[Event, Failure]
   import messages._
 
   private val callRequests = new OpenRequests[ByteBuffer]
@@ -46,7 +46,7 @@ class WebsocketClient[Event: Pickler, Error: Pickler](ws: WebsocketConnection)(i
 
   val wire = new AutowireClient(call)
 
-  def run(location: String, handler: IncidentHandler[Event, Error]): Unit = ws.run(location, new WebsocketListener {
+  def run(location: String, handler: IncidentHandler[Event, Failure]): Unit = ws.run(location, new WebsocketListener {
     private var wasClosed = false
     def onConnect() = handler.onConnect(wasClosed)
     def onClose() = wasClosed = true

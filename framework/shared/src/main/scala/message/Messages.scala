@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 import boopickle.Default._
 
-class Messages[Event : Pickler, Error: Pickler] {
+class Messages[Event : Pickler, Failure: Pickler] {
   //TODO: fix double serialization of request/response through autowire
   // the map corresponds to the arguments for the called api method
   // maybe generic over h-list like autowire?
@@ -14,7 +14,7 @@ class Messages[Event : Pickler, Error: Pickler] {
 
   sealed trait ServerMessage
   case class Pong() extends ServerMessage
-  case class CallResponse(seqId: SequenceId, result: Either[Error, ByteBuffer]) extends ServerMessage
+  case class CallResponse(seqId: SequenceId, result: Either[Failure, ByteBuffer]) extends ServerMessage
   case class Notification(event: List[Event]) extends ServerMessage
 
   //TODO: case objects?

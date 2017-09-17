@@ -6,7 +6,7 @@ import wust.db.Db
 import wust.graph._
 import wust.framework.state._
 import wust.ids._
-import wust.util.{RandomUtil, RichFuture}
+import wust.util.{ RandomUtil, RichFuture }
 import scala.util.control.NonFatal
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -40,10 +40,11 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
     val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
     result
-      .recover { case NonFatal(t) =>
-        scribe.error(s"unexpected error in apply graph change: $changes")
-        scribe.error(t)
-        false
+      .recover {
+        case NonFatal(t) =>
+          scribe.error(s"unexpected error in apply graph change: $changes")
+          scribe.error(t)
+          false
       }
       .map(respondWithEventsIf(_, NewGraphChanges(compactChanges)))
   }
@@ -95,8 +96,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
-          case someToken @ Some(token) => Future.successful(someToken)
-          case None                    => setRandomGroupInviteToken(groupId)
+          case someToken @ Some(_) => Future.successful(someToken)
+          case None                => setRandomGroupInviteToken(groupId)
         }
       }(recover = None)
     }

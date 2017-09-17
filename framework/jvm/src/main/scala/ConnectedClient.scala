@@ -13,7 +13,7 @@ import wust.framework.state.StateHolder
 
 import scala.concurrent.Future
 
-trait RequestHandler[Event, PublishEvent, Error, State] {
+trait RequestHandler[Event, PublishEvent, Failure, State] {
   // initial state for a new client
   def initialState: State
 
@@ -24,11 +24,11 @@ trait RequestHandler[Event, PublishEvent, Error, State] {
   // a request is a (path: Seq[String], args: Map[String,ByteBuffer]), which needs to be mapped to a result.
   // if the request cannot be handled, you can return an error.
   // this is the integration point for, e.g., autowire.
-  def onRequest(holder: StateHolder[State, Event], request: Request[ByteBuffer]): Either[Error, Future[ByteBuffer]]
+  def onRequest(holder: StateHolder[State, Event], request: Request[ByteBuffer]): Either[Failure, Future[ByteBuffer]]
 
   // any exception that is thrown in your request handler is catched and can be mapped to an error type.
   // remaining throwables will be thrown!
-  def toError: PartialFunction[Throwable, Error]
+  def toError: PartialFunction[Throwable, Failure]
 
   // a request can return events, here you can distribute the events to all connected clients.
   // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
@@ -76,9 +76,9 @@ class EventSender[PublishEvent](private val actor: ActorRef) {
   override def hashCode = actor.hashCode
 }
 
-class ConnectedClient[Event, PublishEvent, Error, State](
-  messages: Messages[Event, Error],
-  handler: RequestHandler[Event, PublishEvent, Error, State]) extends Actor {
+class ConnectedClient[Event, PublishEvent, Failure, State](
+  messages: Messages[Event, Failure],
+  handler: RequestHandler[Event, PublishEvent, Failure, State]) extends Actor {
   import ConnectedClient._
   import handler._
   import messages._
@@ -128,7 +128,7 @@ class ConnectedClient[Event, PublishEvent, Error, State](
         context.stop(self)
     }
 
-    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]] = Future.successful(Seq.empty), sendFilter: Event => Boolean = _ => true) {
+    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]], sendFilter: Event => Boolean = _ => true) {
       val events = for {
         state <- state
         newState <- newState

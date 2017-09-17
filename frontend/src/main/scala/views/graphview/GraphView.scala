@@ -50,7 +50,7 @@ object GraphView {
 class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
-  val postDrag = new PostDrag(graphState, d3State, onPostDrag, onPostDragEnd)
+  val postDrag = new PostDrag(graphState, d3State, onPostDrag _, onPostDragEnd _)
   import state.{ displayGraphWithoutParents => rxDisplayGraph, _ }
   import graphState._
 
