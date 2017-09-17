@@ -43,3 +43,10 @@ services:
       - "80:80"
     depends_on:
       - wust
+  slack-app:
+    # restart: on-failure
+    extends:
+      file: services.yml
+      service: slack-app
+    depends_on:
+      - wust

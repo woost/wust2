@@ -22,11 +22,11 @@ function postgres_command() {
 }
 
 env_wust_secret="WUST_AUTH_SECRET=secret"
+env_wust_local="WUST_HOSTNAME=localhost WUST_USER=wust WUST_PASSWORD=wust"
 env_postgres_secret="POSTGRES_PASSWORD=test"
 env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust"
 
 function self() {
-    on_stage "$1"
     case "$1" in
     psql)
         on_stage dev
@@ -48,7 +48,7 @@ function self() {
         ;;
     sbt)
         on_stage dev
-        export $env_postgres_secret $env_wust_secret $env_postgres_local
+        export $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local
         compose up -d
         sbt_with_args
         ;;
@@ -58,16 +58,23 @@ function self() {
         CI=true sbt dbMigration/docker
         compose run db-migration
         ;;
+    prod)
+        on_stage prod
+        export $env_postgres_secret $env_wust_secret
+        compose down
+        compose up -d nginx
+        ;;
     prod.http)
         on_stage prod
         export $env_postgres_secret $env_wust_secret
         compose down
         compose up -d nginx-http
         ;;
-    prod)
+    prod.slack)
+        on_stage prod
         export $env_postgres_secret $env_wust_secret
         compose down
-        compose up -d nginx
+        compose up -d slack-app
         ;;
     test)
         sbt docker
@@ -76,12 +83,14 @@ function self() {
         self test.integration
         ;;
     test.postgres)
+        on_stage test.postgres
         compose down
         compose run db-migration
         compose run test
         compose down
         ;;
     test.integration)
+        on_stage test.integration
         # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
         export $env_postgres_secret $env_wust_secret $env_postgres_local POSTGRES_PORT=5431
         compose rm -f -v
@@ -104,8 +113,9 @@ function self() {
     pgrestore file
     pgclean
 
-    prod.http
     prod
+    prod.http
+    prod.slack
 
     test
     test.postgres

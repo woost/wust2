@@ -67,7 +67,7 @@ lazy val commonSettings = Seq(
 lazy val isCI = sys.env.get("CI").isDefined // set by travis
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration)
+  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
   .settings(
     publish := {},
     publishLocal := {},
@@ -81,7 +81,7 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; frameworkJS/test; apiJS/test; frontend/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test"),
 
     watchSources ++= (watchSources in workbench).value
   )
@@ -253,6 +253,17 @@ lazy val frontend = project
       Nil
     ),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "scalajsbundler.config.js") // renamed due to https://github.com/scalacenter/scalajs-bundler/issues/123
+  )
+
+lazy val slackApp = project
+  .settings(commonSettings)
+  .dependsOn(frameworkJVM, apiJVM, utilJVM)
+  .settings(
+    libraryDependencies ++=
+      "cool.graph" % "cuid-java" % "0.1.1" ::
+      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
+      "com.github.gilbertw1" %% "slack-scala-client" % "0.2.1" ::
+      Nil
   )
 
 lazy val DevWorkbenchPlugins = if (isCI) Seq.empty else Seq(WorkbenchPlugin)

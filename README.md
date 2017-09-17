@@ -53,7 +53,7 @@ Access wust via http://localhost:12345/workbench/index.html
 The start script is the central script for developers.
 From here, you can also run db migrations, access psql, run tests or start a production stack with test settings:
 ```
-start [ sbt, migrate, psql <options>, pgdump, pgrestore <file>, pgclean, prod.http, prod, test, test.postgres, test.integration ]
+start [ sbt, migrate, psql <options>, pgdump, pgrestore <file>, pgclean, prod, prod.http, prod.slack, test, test.postgres, test.integration ]
 ```
 
 

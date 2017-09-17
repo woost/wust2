@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 
 import boopickle.Default._
 import wust.framework.message._
+import scala.util.control.NonFatal
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NonFatal

@@ -10,3 +10,4 @@ docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 docker push woost/wust2
 docker push woost/wust2.db-migration
 docker push woost/wust2.nginx
+docker push woost/wust2.slack-app
