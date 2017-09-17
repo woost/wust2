@@ -5,30 +5,39 @@ import java.nio.ByteBuffer
 import akka.actor.ActorSystem
 import akka.Done
 import akka.http.scaladsl.Http
-import akka.stream.ActorMaterializer
+import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.stream.scaladsl._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ws._
 import akka.util.ByteString
 
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{ Promise, Future }
+
+object AkkaHelper {
+  implicit class PeekableSource[T, M](val src: Source[T, M]) extends AnyVal {
+    def peekMaterializedValue: (Source[T, M], Future[M]) = {
+      val p = Promise[M]
+      val s = src.mapMaterializedValue { m =>
+        p.trySuccess(m)
+        m
+      }
+      (s, p.future)
+    }
+  }
+}
+import AkkaHelper._
 
 class AkkaWebsocketConnection(implicit system: ActorSystem) extends WebsocketConnection {
   implicit val materializer = ActorMaterializer()
   import system.dispatcher
 
-  private val bufferSize = 100
-  private val overflowStrategy = akka.stream.OverflowStrategy.dropHead
-  private val (outgoing, queue) = peekMaterializedValue(Source.queue[Message](bufferSize, overflowStrategy))
-
-  private def peekMaterializedValue[T, M](src: Source[T, M]): (Source[T, M], Future[M]) = {
-    val p = Promise[M]
-    val s = src.mapMaterializedValue { m =>
-      p.trySuccess(m)
-      m
-    }
-    (s, p.future)
+  private val (outgoing, queue) = {
+    val bufferSize = 250
+    val overflowStrategy = OverflowStrategy.fail
+    val src = Source.queue[Message](bufferSize, overflowStrategy)
+    src.peekMaterializedValue
   }
+
 
   def send(bytes: ByteBuffer): Unit = queue.foreach { queue =>
     val message = BinaryMessage(ByteString(bytes))
@@ -56,10 +65,9 @@ class AkkaWebsocketConnection(implicit system: ActorSystem) extends WebsocketCon
         .toMat(incoming)(Keep.both)
         .run()
 
-    val connected = upgradeResponse.flatMap { upgrade =>
-      if (upgrade.response.status == StatusCodes.SwitchingProtocols) {
-        Future.successful(Done)
-      } else {
+    val connected = upgradeResponse.map { upgrade =>
+      if (upgrade.response.status == StatusCodes.SwitchingProtocols) Done
+      else {
         //TODO: error handling
         throw new RuntimeException(s"Connection failed: ${upgrade.response.status}")
       }
