@@ -3,18 +3,34 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import org.scalajs.dom._
-import scala.scalajs.js.typedarray.TypedArrayBufferOps._
-import scala.scalajs.js.typedarray._
+import scala.scalajs.js.typedarray._, TypedArrayBufferOps._
+import scala.util.Try
+
+class BufferedFunction[T](f: T => Boolean) extends (T => Unit) {
+  private var queue = List.empty[T]
+
+  def apply(value: T): Unit = queue = queue :+ value
+  def flush(): Unit = queue = queue.dropWhile(f)
+}
+object BufferedFunction {
+  def apply[T](f: T => Boolean): BufferedFunction[T] = new BufferedFunction(f)
+}
 
 class JsWebsocketConnection extends WebsocketConnection {
   private var wsOpt: Option[WebSocket] = None
 
-  def send(bytes: ByteBuffer) = wsOpt.foreach { ws =>
-    ws.send(bytes.arrayBuffer())
+  private val sendMessages = BufferedFunction[ArrayBuffer] { msg =>
+    wsOpt.fold(false) { ws =>
+      Try(ws.send(msg)).fold(_ => false, _ => true)
+    }
+  }
+
+  def send(bytes: ByteBuffer) = {
+    sendMessages(bytes.arrayBuffer())
+    sendMessages.flush()
   }
 
   def run(location: String, listener: WebsocketListener) {
-    if (wsOpt.isDefined) return
     import listener._
 
     val websocket = new WebSocket(location)
@@ -24,6 +40,7 @@ class JsWebsocketConnection extends WebsocketConnection {
     websocket.onopen = { (_: Event) =>
       wsOpt = Option(websocket)
       onConnect()
+      sendMessages.flush()
     }
 
     websocket.onclose = { (_: Event) =>

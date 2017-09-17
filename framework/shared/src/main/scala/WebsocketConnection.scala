@@ -17,44 +17,27 @@ trait WebsocketConnection {
 }
 
 class ReconnectingWebsocketConnection(connection: WebsocketConnection) extends WebsocketConnection {
-  private var connectionAttempts = 1
+  private var connectionAttempts = 0
   private def backoffInterval: Long = {
-    val maxInterval = (math.pow(2, connectionAttempts) - 1) * 1000.0
+    val maxInterval = math.pow(2, connectionAttempts) * 1000.0
     val truncated = maxInterval.min(60 * 1000).toInt
     (scala.util.Random.nextDouble * truncated).toLong
   }
 
-  private val messages = mutable.Queue.empty[ByteBuffer]
-  private def flush(): Unit = {
-    var sending = true
-    //TODO: on flush, remove ping/pong from messages
-    while (sending && messages.nonEmpty) {
-      try {
-        val bytes = messages.front
-        connection.send(bytes)
-        messages.dequeue()
-      } catch { case _: Exception => sending = false }
-    }
-  }
-
-  def send(bytes: ByteBuffer) {
-    messages.enqueue(bytes)
-    flush()
-  }
+  def send(bytes: ByteBuffer) = connection.send(bytes)
 
   def run(location: String, listener: WebsocketListener) = {
     val awareListener = new WebsocketListener { wsThis =>
       def onConnect(): Unit = {
-        println(s"websocket is open: $location")
-        connectionAttempts = 1
+        connectionAttempts = 0
         listener.onConnect()
-        flush()
+        println(s"websocket is open: $location")
       }
       def onMessage(bytes: ByteBuffer): Unit = listener.onMessage(bytes)
       def onClose(): Unit = {
-        println(s"websocket is closed, will attempt to reconnect in ${(backoffInterval / 1000.0).ceil} seconds")
         connectionAttempts += 1
         listener.onClose()
+        println(s"websocket is closed, will attempt to reconnect in ${(backoffInterval / 1000.0).ceil} seconds")
         val timer = new Timer
         val task = new TimerTask { def run() = connection.run(location, wsThis) }
         timer.schedule(task, backoffInterval)
