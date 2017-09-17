@@ -13,14 +13,36 @@ trait MyBoardViewComponents {
 
 
 	/// Renders a todo entry in the list view
-	def boardEntry(todo: String,
-								 remEntry : outwatch.Sink[String],
-								 dragStartEvents : outwatch.Sink[String]) = {
+	def boardEntry(text: String,
+				   remEntry : outwatch.Sink[String],
+				   dragStartEvents : outwatch.Sink[String],
+				   changeEvents : outwatch.Sink[String]) = {
+		val clickEvents = createBoolHandler()
+		val inputKeyUpEvents = createHandler[org.scalajs.dom.KeyboardEvent]()
+		val newEntryEvents = inputKeyUpEvents.map(keyEvent => {
+													  Seq(
+														  org.scalajs.dom.ext.KeyCode.Enter
+													  ).contains(keyEvent.keyCode.toInt)
+												  }).filter(_ == true)
+		val inputEvents = createStringHandler()
+		val sentTextEvents = newEntryEvents.combineLatestWith(inputEvents)((_, text) => text)
+		changeEvents <-- sentTextEvents
 		div(
+			click(true) --> clickEvents,
 			draggable := true,
-			dragstart(todo) --> dragStartEvents,
-			span(todo),
-			button(click(todo) --> remEntry, "X")
+			dragstart(text) --> dragStartEvents,
+			// either we have a span displaying the contents
+			span(
+				hidden <-- clickEvents.map(x => x),
+				text),
+			// or we have an input displaying the contents
+			input(
+				hidden <-- clickEvents.map(!_).startWith(true),
+				inputString --> inputEvents,
+				keyup --> inputKeyUpEvents,
+				value := text,
+				text),
+			button(click(text) --> remEntry, "X")
 		)
 	}
 
@@ -64,14 +86,16 @@ trait MyBoardViewComponents {
 
 	/// Displays a board with vertically aligned entries
 	def entryBoardComponent(title : String,
-										  entries : rxscalajs.Observable[Seq[String]],
-										  newEntries : outwatch.Sink[String],
-										  remEntries : outwatch.Sink[String],
-										  entryDragStartEvents : outwatch.Sink[String],
-										  entryDropEvents : outwatch.Sink[String]) = {
-		// val entries = store.map(_.todos.map(boardEntry) :+ inputBoardEntry())
+							entries : rxscalajs.Observable[Seq[String]],
+							newEntries : outwatch.Sink[String],
+							remEntries : outwatch.Sink[String],
+							entryDragStartEvents : outwatch.Sink[String],
+							entryDropEvents : outwatch.Sink[String],
+							entryChangeEvents : outwatch.Sink[(String, String)]) = {
 		def buildBoardEntry(text : String) = {
-			boardEntry(text, remEntries, entryDragStartEvents)
+			val changeEvents = createHandler[String]()
+			entryChangeEvents <-- changeEvents.map((title, _))
+			boardEntry(text, remEntries, entryDragStartEvents, changeEvents)
 		}
 		val entriesWrapped = entries.map(_.map(buildBoardEntry(_)) :+ inputBoardEntry(newEntries)).map(l => l.map(li(_)))
 		val dragOverEvents = createHandler[org.scalajs.dom.DragEvent]()
@@ -122,9 +146,11 @@ object MyBoardView extends MyBoardViewComponents {
 	case class RemFromBoard(board: String, text: String) extends Action
 	case class SetDragSource(board: String, text: String) extends Action
 	case class SetDragDest(board: String) extends Action
+	case class UpdateEntry(board: String, oldV : String, newV : String) extends Action
 
 	/// State used within this view
 	case class State(text: String,
+					 // TODO: entries need an id/position to disambiguate entries with same contents
 					 // TODO: We need a mapping from context (e.g. "Work")
 					 //       -> board (e.g. "In-Progress") -> entry (e.g. "Do Stuff")
 					 entryMap : Map[String, Seq[String]],
@@ -157,6 +183,12 @@ object MyBoardView extends MyBoardViewComponents {
 							  RemFromBoard(state.dragSource.get._1, state.dragSource.get._2))
 			}
 		}
+		case UpdateEntry(board, oldV, newV) => state.copy(
+			entryMap = state.entryMap + (board -> (state.entryMap.getOrElse(board, Seq.empty).map {
+													   case oldV => newV
+													   case other => other
+												   }))
+		)
 	}
 
 
@@ -179,19 +211,24 @@ object MyBoardView extends MyBoardViewComponents {
 		val remEntries = createStringHandler()
 		val entryDragStartEvents = createHandler[String]()
 		val entryDropEvents = createHandler[String]()
+		val entryChangeEvents = createHandler[(String, String)]()
 
 		// - connect outgoing streams to store via actions -
 		store.sink <-- newEntries.map(AddToBoard(name, _))
 		store.sink <-- remEntries.map(RemFromBoard(name, _))
 		store.sink <-- entryDragStartEvents.map(SetDragSource(name, _))
 		store.sink <-- entryDropEvents.map(_ => SetDragDest(name))
+		store.sink <-- entryChangeEvents.map {
+			case (oldV, newV) => UpdateEntry(name, oldV, newV)
+		}
 
 		entryBoardComponent(name,
 							store.map(_.entryMap.getOrElse(name, Seq.empty)).startWith(Seq.empty),
 							newEntries,
 							remEntries,
 							entryDragStartEvents,
-							entryDropEvents)
+							entryDropEvents,
+							entryChangeEvents)
 	}
 
 
