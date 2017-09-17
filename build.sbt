@@ -66,12 +66,6 @@ lazy val commonSettings = Seq(
 
 lazy val isCI = sys.env.get("CI").isDefined // set by travis
 
-lazy val config = file("config")
-lazy val configSettings = Seq(
-  unmanagedResourceDirectories in Runtime += config,
-  unmanagedResourceDirectories in Compile += config
-)
-
 lazy val root = project.in(file("."))
   .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration)
   .settings(
@@ -204,7 +198,6 @@ lazy val backend = project
   .dependsOn(frameworkJVM, apiJVM, database)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .settings(configSettings)
   .settings(
     libraryDependencies ++=
       "org.typelevel" %% "cats-core" % "1.0.0-MF" ::
