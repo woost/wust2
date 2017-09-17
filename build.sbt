@@ -100,6 +100,7 @@ lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
+      "com.github.pureconfig" %% "pureconfig" % "0.8.0" ::
       "com.lihaoyi" %%% "sourcecode" % "0.1.4" ::
       Nil
     )
@@ -210,7 +211,6 @@ lazy val backend = project
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
-      "com.github.pureconfig" %% "pureconfig" % "0.8.0" ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil
