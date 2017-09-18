@@ -19,10 +19,8 @@ object TimeoutPromise {
     }
 
     timer.schedule(task, timeoutMillis)
-
     promise.future.onComplete { _ =>
-      task.cancel()
-      timer.purge()
+      timer.cancel()
     }
 
     promise

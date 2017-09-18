@@ -6,6 +6,8 @@ import boopickle.Default._
 import wust.framework.message._
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.control.NonFatal
+import java.util.{ Timer, TimerTask }
 
 trait IncidentHandler[Event, Failure] {
   def fromError(error: Failure): Throwable
@@ -19,10 +21,9 @@ class WebsocketClient[Event: Pickler, Failure: Pickler](ws: WebsocketConnection)
 
   private val callRequests = new OpenRequests[ByteBuffer]
 
+  private val timer = new Timer
   private val pingIdleMillis = 115 * 1000
   private val acknowledgeTraffic: () => Unit = {
-    import java.util.{ Timer, TimerTask }
-    val timer = new Timer
     var currTask = Option.empty[TimerTask]
     () => {
       currTask.foreach(_.cancel())
@@ -61,4 +62,9 @@ class WebsocketClient[Event: Pickler, Failure: Pickler](ws: WebsocketConnection)
       }
     }
   })
+
+  def stop() {
+    timer.cancel()
+    //TODO: stop ws?
+  }
 }
