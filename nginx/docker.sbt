@@ -5,7 +5,7 @@ def dockerNginx(tagPostfix: Option[String]) = Seq(
     val assetFolder = (WebKeys.assets in assets).value
 
     new Dockerfile {
-      from("nginx:1.11.8-alpine")
+      from("nginx:1.13.5-alpine")
       copy(baseDirectory(_ / ".." / "common").value, "/etc/nginx/conf.d/common")
       copy(baseDirectory(_ / "default.conf").value, "/etc/nginx/conf.d/default.conf")
       copy(assetFolder, "/public")

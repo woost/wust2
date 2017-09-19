@@ -2,7 +2,7 @@ enablePlugins(DockerPlugin)
 
 dockerfile in docker := {
   new Dockerfile {
-    from("dhoer/flyway:4.0.3-alpine")
+    from("dhoer/flyway:4.2.0-alpine")
     run("adduser", "user", "-D", "-u", "1000")
     run("chown", "-R", "user:user", "/flyway")
     user("user")
