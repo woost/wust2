@@ -72,9 +72,9 @@ function self() {
         ;;
     prod.slack)
         on_stage prod
-        export $env_postgres_secret $env_wust_secret
+        export $env_postgres_secret $env_wust_secret $env_wust_local
         compose down
-        compose up -d slack-app
+        compose up -d slack-app nginx-http
         ;;
     test)
         sbt docker
