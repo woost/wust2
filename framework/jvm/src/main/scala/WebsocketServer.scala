@@ -48,8 +48,7 @@ object WebsocketFlow {
   }
 }
 
-class WebsocketServer[Event: Pickler, PublishEvent, Failure: Pickler, State](handler: RequestHandler[Event, PublishEvent, Failure, State]) {
-  private implicit val system = ActorSystem()
+class WebsocketServer[Event: Pickler, PublishEvent, Failure: Pickler, State](handler: RequestHandler[Event, PublishEvent, Failure, State])(implicit system: ActorSystem) {
   private implicit val materializer = ActorMaterializer()
 
   val messages = new Messages[Event, Failure]

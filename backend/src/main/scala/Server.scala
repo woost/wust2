@@ -3,6 +3,7 @@ package wust.backend
 import java.nio.ByteBuffer
 
 import akka.http.scaladsl.server.Directives._
+import akka.actor.ActorSystem
 import autowire.Core.Request
 import boopickle.Default._
 import wust.api._
@@ -69,7 +70,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 object WebsocketFactory {
   import DbConversions._
 
-  def apply(config: Config)(implicit ec: ExecutionContext) = {
+  def apply(config: Config)(implicit ec: ExecutionContext, system: ActorSystem) = {
     val db = Db(config.db)
     val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(db, jwt)
@@ -89,6 +90,7 @@ object Server {
   import ExecutionContext.Implicits.global
 
   def run(config: Config, port: Int) = {
+    implicit val system = ActorSystem("server")
     val ws = WebsocketFactory(config)
     val route = (path("ws") & get) {
       ws.websocketHandler
