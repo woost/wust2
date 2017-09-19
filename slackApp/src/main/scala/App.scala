@@ -48,7 +48,9 @@ class WustReceiver(client: WustClient) extends MessageReceiver {
 }
 
 object WustReceiver {
-  def run(config: WustConfig, slack: SlackClient): Future[Option[WustReceiver]] = {
+  type Result[T] = Either[String, T]
+
+  def run(config: WustConfig, slack: SlackClient): Future[Result[WustReceiver]] = {
     implicit val system = ActorSystem("wust")
 
     val location = s"ws://${config.host}:8080/ws"
@@ -73,12 +75,12 @@ object WustReceiver {
       changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack"))))).call()
       if changed
       graph <- client.api.getGraph(GraphSelection.Root).call()
-    } yield Some(new WustReceiver(client))
+    } yield Right(new WustReceiver(client))
 
-    res recover { case _ =>
+    res recover { case e =>
       client.stop()
       system.shutdown()
-      None
+      Left(e.getMessage)
     }
   }
 }
@@ -133,8 +135,8 @@ object App extends scala.App {
     case Right(config) =>
       val client = SlackClient(config.accessToken)
       WustReceiver.run(config.wust, client).foreach {
-        case Some(receiver) => client.run(receiver)
-        case None => println("Cannot connect to Wust")
+        case Right(receiver) => client.run(receiver)
+        case Left(err) => println(s"Cannot connect to Wust: $err")
       }
   }
 }
