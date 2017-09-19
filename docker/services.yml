@@ -29,7 +29,6 @@ services:
     image: woost/wust2.slack-app
     environment:
       WUST_SLACK_TOKEN: ${WUST_SLACK_TOKEN} # TODO: do not use static token in production
-      WUST_HOSTNAME: ${WUST_HOSTNAME}
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: "wust"
