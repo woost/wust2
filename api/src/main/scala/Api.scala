@@ -29,15 +29,20 @@ case class NotFound(path: Seq[String]) extends ApiError
 case object Unauthorized extends ApiError
 
 sealed trait ApiEvent
-case class NewUser(user: User) extends ApiEvent
-case class NewGroup(group: Group) extends ApiEvent
-case class NewMembership(membership: Membership) extends ApiEvent
-case class NewGraphChanges(changes: GraphChanges) extends ApiEvent {
+object ApiEvent {
+  sealed trait Public extends ApiEvent
+  sealed trait Private extends ApiEvent
+}
+
+final case class NewUser(user: User) extends ApiEvent.Public with ApiEvent.Private
+final case class NewGroup(group: Group) extends ApiEvent.Public with ApiEvent.Private
+final case class NewMembership(membership: Membership) extends ApiEvent.Public with ApiEvent.Private
+final case class NewGraphChanges(changes: GraphChanges) extends ApiEvent.Public {
   override def toString = s"NewGraphChanges(#changes: ${changes.size})"
 }
-case class LoggedIn(auth: Authentication) extends ApiEvent
-case object LoggedOut extends ApiEvent
-case class ReplaceGraph(graph: Graph) extends ApiEvent {
+final case class LoggedIn(auth: Authentication) extends ApiEvent.Private
+final case object LoggedOut extends ApiEvent.Private
+final case class ReplaceGraph(graph: Graph) extends ApiEvent.Private {
   override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
 }
 

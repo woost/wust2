@@ -15,66 +15,56 @@ import scala.concurrent.duration._
 import scala.collection.mutable
 
 class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, String, String, Option[String]] {
-  private val stupidPhrase = "the stupid guy"
-  private val stupidUser = Option(stupidPhrase)
-  private val otherUser = Option("anon")
-  val clients = mutable.ArrayBuffer.empty[EventSender[String]]
+  val clients = mutable.ArrayBuffer.empty[NotifiableClient[String]]
+  val events = mutable.ArrayBuffer.empty[String]
 
-  override def initialState = None
-
-  override def validate(state: Option[String]): Option[String] = state.filterNot(_ == stupidPhrase)
-
-  override def onRequest(state: Future[Option[String]], request: Request[ByteBuffer]) = {
-    implicit def convert[T : Pickler](t: T): ByteBuffer = Pickle.intoBytes[T](t)
-    val handler: PartialFunction[Request[ByteBuffer], Future[RequestResponse]] = {
-      case Request("api" :: Nil, args) => state.map { state =>
-        val arg = args.values.head
-        val str = Unpickle[String].fromBytes(arg)
-        RequestResponse(state, Seq.empty, str.reverse)
-      }
-      case Request("event" :: Nil, _) => state.map { state =>
-        RequestResponse(state, Seq("event"), true)
-      }
-      case Request("state" :: Nil, _) => state.map { state =>
-        RequestResponse(state, Seq.empty, state)
-      }
-      case Request("state" :: "change" :: Nil, _) => Future.successful {
-        RequestResponse(otherUser, Seq.empty, true)
-      }
-      case Request("state" :: "stupid" :: Nil, _) => Future.successful {
-        RequestResponse(stupidUser, Seq.empty, true)
-      }
-      case Request("broken" :: Nil, _) => Future.failed {
-        new Exception("an error")
-      }
+  override def onRequest(client: ClientIdentity, state: Future[Option[String]], request: Request[ByteBuffer]) = {
+    def response[S : Pickler](reaction: Reaction, ts: S): Response = {
+      val r = Future.successful(Right(Pickle.intoBytes[S](ts)))
+      Response(reaction, r)
     }
 
-    handler.lift(request).toRight("path not found")
+    def error(reaction: Reaction, ts: String): Response = {
+      val r = Future.successful(Left(ts))
+      Response(reaction, r)
+    }
+
+    val handler: PartialFunction[Request[ByteBuffer], Response] = {
+      case Request("api" :: Nil, args) =>
+        val arg = args.values.head
+        val str = Unpickle[String].fromBytes(arg)
+        response(Reaction(state), str.reverse)
+      case Request("event" :: Nil, _) =>
+        val events = Future.successful(Seq("event"))
+        response(Reaction(state, events), true)
+      case Request("state" :: Nil, _) =>
+        val pickledState = state.map(s => Right(Pickle.intoBytes(s)))
+        Response(Reaction(state), pickledState)
+      case Request("state" :: "change" :: Nil, _) =>
+        val otherUser = Future.successful(Option("anon"))
+        response(Reaction(otherUser), true)
+      case Request("broken" :: Nil, _) =>
+        error(Reaction(state), "an error")
+    }
+
+    handler.lift(request) getOrElse Response(Reaction(state), Future.successful(Left("path not found")))
   }
 
-  override def toError: PartialFunction[Throwable, String] = { case e => e.getMessage }
+  override def onEvent(client: ClientIdentity, state: Future[Option[String]], event: String) = {
+    events += event
+    val downstreamEvents = Seq(s"${event}-ok")
+    Reaction(state, Future.successful(downstreamEvents))
+  }
 
-  override def filterOwnEvents(event: String) = true
-
-  override def publishEvents(sender: EventSender[String], events: Seq[String]): Unit = { eventActor ! events.mkString("") + "-published" }
-
-  override def transformIncomingEvent(event: String, state: Option[String]) = Future.successful(event match {
-    case "FORBIDDEN" => Seq.empty
-    case other => Seq(other)
-  })
-
-  override def applyEventsToState(events: Seq[String], state: Option[String]) = state
-
-  override def onClientConnect(sender: EventSender[String], state: Option[String]) = {
-    sender.send("started")
-    clients += sender
+  override def onClientConnect(client: NotifiableClient[String]): Option[String] = {
+    client.notify(null, "started")
+    clients += client
+    None
+  }
+  override def onClientDisconnect(client: NotifiableClient[String], state: Future[Option[String]]) = {
+    clients -= client
     ()
   }
-  override def onClientDisconnect(sender: EventSender[String], state: Option[String]) = {
-    clients -= sender
-    ()
-  }
-  override def onClientInteraction(prevState: Option[String], state: Option[String]) = Future.successful(Seq.empty)
 }
 
 class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) with ImplicitSender with FreeSpecLike with MustMatchers {
@@ -85,7 +75,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
   def newActor(handler: TestRequestHandler = requestHandler): ActorRef = TestActorRef(new ConnectedClient(messages, handler))
   def connectActor(actor: ActorRef, shouldConnect: Boolean = true) = {
     actor ! ConnectedClient.Connect(self)
-    if (shouldConnect) expectMsg(Notification(List("started")))
+    if (shouldConnect) expectMsg(Notification(List("started-ok")))
     else expectNoMsg
   }
   def connectedActor(handler: TestRequestHandler = requestHandler): ActorRef = {
@@ -159,46 +149,14 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
         CallResponse(3, Right(pickledResponse3)))
     }
 
-    "no invalid state" in connectedActor { actor =>
-      actor ! CallRequest(1, Seq("state"), Map.empty)
-      actor ! CallRequest(2, Seq("state", "stupid"), Map.empty)
-      actor ! CallRequest(3, Seq("state"), Map.empty)
-
-      val pickledResponse1 = AutowireServer.write[Option[String]](None)
-      val pickledResponse2 = AutowireServer.write[Boolean](true)
-      val pickledResponse3 = AutowireServer.write[Option[String]](None)
-      expectMsgAllOf(
-        1 seconds,
-        CallResponse(1, Right(pickledResponse1)),
-        CallResponse(2, Right(pickledResponse2)),
-        CallResponse(3, Right(pickledResponse3)))
-    }
-
     "send event" in connectedActor { actor =>
       actor ! CallRequest(2, Seq("event"), Map.empty)
 
       val pickledResponse = AutowireServer.write[Boolean](true)
       expectMsgAllOf(
         1 seconds,
-        "event-published",
         Notification(List("event")),
         CallResponse(2, Right(pickledResponse)))
-    }
-  }
-
-  "event" - {
-    "allowed event" in {
-      val handler = requestHandler
-      val actor = connectedActor(handler)
-      handler.clients.foreach(_.send("something nice"))
-      expectMsg(Notification(List("something nice")))
-    }
-
-    "forbidden event" in {
-      val handler = requestHandler
-      val actor = connectedActor(handler)
-      handler.clients.foreach(_.send("FORBIDDEN"))
-      expectNoMsg
     }
   }
 

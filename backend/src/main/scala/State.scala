@@ -6,7 +6,6 @@ import wust.backend.DbConversions._
 import wust.backend.auth._
 import wust.db.Db
 import wust.ids._
-import wust.util.Pipe
 import wust.graph._
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -25,7 +24,7 @@ class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
     events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.onEvent(_, event)))
   }
 
-  def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent]] = Future.sequence(event.events.map {
+  def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent.Public]] = Future.sequence(event.events.map {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
@@ -47,26 +46,23 @@ class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
 
   def validate(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
 
-  def stateEvents(state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent]] = {
-    db.graph.getAllVisiblePosts(state.user.map(_.id))
-      .map(forClient(_).consistent)
-      .map(ReplaceGraph(_))
-      .map { event =>
-        val authEvent = state.auth
-          .map(_.toAuthentication |> LoggedIn)
-          .getOrElse(LoggedOut)
-
-        Seq(authEvent, event)
+  def stateEvents(state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent.Private]] = {
+    db.graph.getAllVisiblePosts(state.user.map(_.id)).map { dbGraph =>
+      val graph = forClient(dbGraph).consistent
+      val authEvent = state.auth.fold[ApiEvent.Private](LoggedOut) { auth =>
+        LoggedIn(auth.toAuthentication)
       }
+      ReplaceGraph(graph) :: authEvent :: Nil
+    }
   }
 
-  def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent]] =
+  def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent.Private]] =
     (prevState.auth == state.auth) match {
       case true  => Future.successful(Seq.empty)
       case false => stateEvents(state)
     }
 
-  private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent]] = {
+  private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent.Public]] = {
     import membership._
 
     def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)

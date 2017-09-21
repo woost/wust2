@@ -19,30 +19,10 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
-case class RequestEvent(events: Seq[ApiEvent], postGroups: Map[PostId, Set[GroupId]])
-
 class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Future[ByteBuffer]])(implicit ec: ExecutionContext) extends RequestHandler[ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
-  override def initialState = State.initial
-
-  override def validate(state: State) = stateInterpreter.validate(state)
-
-  override def onRequest(state: Future[State], request: Request[ByteBuffer]) = {
-    val holder = new StateHolder[State, ApiEvent](state)
-    val handler = api(holder).lift
-    handler(request)
-      .toRight(NotFound(request.path))
-      .map { response =>
-        for {
-          response <- response
-          state <- holder.state
-          events <- holder.events
-        } yield RequestResponse(state, events, response)
-      }
-  }
-
-  override val toError: PartialFunction[Throwable, ApiError] = {
+  private val toError: PartialFunction[Throwable, ApiError] = {
     case ApiException(error) => error
     case NonFatal(e) =>
       scribe.error("request handler threw exception")
@@ -50,30 +30,65 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       InternalServerError
   }
 
-  override def publishEvents(sender: EventSender[RequestEvent], events: Seq[ApiEvent]) = distributor.publish(sender, events)
+  private def reaction(oldState: Future[State], newState: Future[State], events: Future[Seq[ApiEvent]]) = {
+    val next: Future[(State, Seq[ApiEvent])] = for {
+      oldState <- oldState
+      newState <- newState
+      changeEvents <- stateChangeEvents(oldState, newState)
+      events <- events
+      allEvents = changeEvents ++ events
+      nextState = applyEventsToState(newState, allEvents)
+    } yield (nextState, allEvents)
 
-  override def filterOwnEvents(event: ApiEvent) = event match {
-    case NewGraphChanges(_) => false
-    case _ => true
+    Reaction(next.map(_._1), next.map(_._2))
   }
 
-  override def transformIncomingEvent(event: RequestEvent, state: State): Future[Seq[ApiEvent]] = stateInterpreter.triggeredEvents(state, event)
+  override def onRequest(client: ClientIdentity, originalState: Future[State], request: Request[ByteBuffer]) = {
+    val state = originalState.map(validate)
+    val holder = new StateHolder[State, ApiEvent](state)
+    val handler = api(holder).lift
+    val result = handler(request) match {
+      case None =>
+        val error = NotFound(request.path)
+        Response(Reaction(state), Future.successful(Left(error)))
+      case Some(response) =>
+        val newState = holder.state
+        val newEvents = holder.events.map { events =>
+          // send out public events
+          val publicEvents = events collect { case e: ApiEvent.Public => e }
+          distributor.publish(client, publicEvents)
 
-  override def applyEventsToState(events: Seq[ApiEvent], state: State) = stateInterpreter.applyEventsToState(state, events)
+          // return private events
+          val privateEvents = events collect { case e: ApiEvent.Private => e }
+          privateEvents
+        }
 
-  override def onClientInteraction(state: State, newState: State) = stateChangeEvents(state, newState)
+        val res = response.map(Right(_)).recover(toError andThen (Left(_)))
+        Response(reaction(originalState, newState, newEvents), res)
+    }
 
-  override def onClientConnect(sender: EventSender[RequestEvent], state: State) = {
-    scribe.info(s"client started: $state")
-    distributor.subscribe(sender)
-    Future.successful(state)
+    result
   }
 
-  override def onClientDisconnect(sender: EventSender[RequestEvent], state: State) = {
+  override def onEvent(client: ClientIdentity, originalState: Future[State], requestEvent: RequestEvent): Reaction = {
+    val state = originalState.map(validate)
+    val events = state.flatMap(triggeredEvents(_, requestEvent))
+    reaction(originalState, state, events)
+  }
+
+  override def onClientConnect(client: NotifiableClient[RequestEvent]): State = {
+    scribe.info(s"client started")
+    distributor.subscribe(client)
+    State.initial
+  }
+
+  override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
     scribe.info(s"client stopped: $state")
-    distributor.unsubscribe(sender)
+    distributor.unsubscribe(client)
   }
 }
+
+case class ApiResult[T](result: Future[T], state: Option[State] = None, events: Seq[ApiEvent] = Seq.empty)
 
 object WebsocketFactory {
   import DbConversions._

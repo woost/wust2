@@ -13,67 +13,33 @@ import wust.util.time.StopWatch
 import scala.concurrent.Future
 
 trait RequestHandler[Event, PublishEvent, Failure, State] {
-  case class RequestResponse(state: State, events: Seq[Event], value: ByteBuffer)
+  case class Reaction(state: Future[State], events: Future[Seq[Event]] = Future.successful(Seq.empty))
+  case class Response(reaction: Reaction, result: Future[Either[Failure, ByteBuffer]])
 
-  // initial state for a new client
-  def initialState: State
+  // called when a client connects to the websocket. this allows for
+  // managing/bookkeeping of connected clients and returning the initial state.
+  // the NotifiableClient can be used to send events to downstream.
+  def onClientConnect(client: NotifiableClient[PublishEvent]): State
 
-  // a new request from the client or a new upstream event has arrived.
-  // the validate method allows to sanitize the state, e.g., for expiring the authentication before actually handling the request or event.
-  def validate(state: State): State
+  // called when a client disconnects. this can be due to a timeout on the
+  // websocket connection or the client closed the connection.
+  def onClientDisconnect(client: NotifiableClient[PublishEvent], state: Future[State]): Unit
 
-  // a request is a (path: Seq[String], args: Map[String,ByteBuffer]), which needs to be mapped to a result.
-  // if the request cannot be handled, you can return an error.
-  // this is the integration point for, e.g., autowire.
-  def onRequest(state: Future[State], request: Request[ByteBuffer]): Either[Failure, Future[RequestResponse]]
+  // a request is a (path: Seq[String], args: Map[String,ByteBuffer]), which
+  // needs to be mapped to a result.  if the request cannot be handled, you can
+  // return an error. this is the integration point for, e.g., autowire.
+  def onRequest(client: ClientIdentity, state: Future[State], request: Request[ByteBuffer]): Response
 
-  // any exception that is thrown in your request handler is catched and can be mapped to an error type.
-  // remaining throwables will be thrown!
-  def toError: PartialFunction[Throwable, Failure]
-
-  // a request can return events, here you can distribute the events to all connected clients.
-  // e.g., you might keep a list of connected clients in the onClientConnect/onClientDisconnect and then distribute the event to all of them.
-  def publishEvents(origin: EventSender[PublishEvent], events: Seq[Event]): Unit
-
-  // a request can return events, here you can decide which of them will directly be sent to the connected client
-  def filterOwnEvents(event: Event): Boolean
-
-  // whenever there is a new incoming event arrive, this method will be called.
-  // events can trigger further events to provide missing data for the client
-  // or to filter out certain events. Events have to be explicitly forwarded.
-  // for example, returning Seq.empty will ignore the event.
-  def transformIncomingEvent(event: PublishEvent, state: State): Future[Seq[Event]]
-
-  // whenever there was an interaction with the client, the state might have changed.
-  // this does not mean, that the states are different; as we do not make assumption about state equality.
-  // here you can return additional events to be sent to the client.
-  def onClientInteraction(prevState: State, state: State): Future[Seq[Event]]
-
-  // when incoming or self-emitted events are received, they can be applied to the state.
-  // here you can return a new state.
-  def applyEventsToState(event: Seq[Event], state: State): State
-
-  // called when a client connects to the websocket.
-  // this allows for managing/bookkeeping of connected clients.
-  // the eventsender can be used to send events to downstream
-  def onClientConnect(sender: EventSender[PublishEvent], state: State): Unit
-
-  // called when a client disconnects.
-  // this can be due to a timeout on the websocket connection or the client closed the connection.
-  def onClientDisconnect(sender: EventSender[PublishEvent], state: State): Unit
+  // you can send events to the clients by calling send on the NotifiableClient.
+  // here you can map the state of each client when receiving a new event.
+  def onEvent(client: ClientIdentity, state: Future[State], request: PublishEvent): Reaction
 }
 
-class EventSender[PublishEvent](private val actor: ActorRef) {
+sealed trait ClientIdentity
+case class NotifiableClient[PublishEvent](actor: ActorRef) extends ClientIdentity {
   private[framework] case class Notify(event: PublishEvent)
-
-  def send(event: PublishEvent): Unit = actor ! Notify(event)
-
-  override def equals(other: Any) = other match {
-    case other: EventSender[_] => actor.equals(other.actor)
-    case _ => false
-  }
-
-  override def hashCode = actor.hashCode
+  // def notify(origin: ClientIdentity, event: PublishEvent)(implicit ec: origin !=:= this): Unit = actor ! Notify(event)
+  def notify(origin: ClientIdentity, event: PublishEvent): Unit = if (origin != this) actor ! Notify(event)
 }
 
 class ConnectedClient[Event, PublishEvent, Failure, State](
@@ -82,81 +48,41 @@ class ConnectedClient[Event, PublishEvent, Failure, State](
   import ConnectedClient._
   import handler._
   import messages._
-
   import context.dispatcher
 
-  def connected(outgoing: ActorRef): Receive = {
-    val sender = new EventSender[PublishEvent](self)
+  def connected(outgoing: ActorRef) = {
+    val client = new NotifiableClient[PublishEvent](self)
+    def sendEvents(events: Seq[Event]) = if (events.nonEmpty) outgoing ! Notification(events.toList)
 
     def withState(state: Future[State]): Receive = {
       case Ping() => outgoing ! Pong()
+
       case CallRequest(seqId, path, args) =>
-        val validatedState = state.map(validate)
         val timer = StopWatch.started
-        onRequest(validatedState, Request(path, args)) match {
-          case Right(response) =>
-            response.onComplete { _ => scribe.info(f"Succeeded CallRequest($seqId): ${timer.readMicros}us") }
+        val response = onRequest(client, state, Request(path, args))
+        import response._
 
-            val value = response.map(_.value)
-            val newState = response.map(_.state)
-            val newEvents = response.map(_.events)
+        result
+          .onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") }
 
-            value
-              .map(resp => CallResponse(seqId, Right(resp)))
-              .recover(toError andThen (err => CallResponse(seqId, Left(err))))
-              .pipeTo(outgoing)
+        result
+          .map(r => CallResponse(seqId, r))
+          .pipeTo(outgoing)
 
-            newEvents.foreach { events =>
-              if (events.nonEmpty) publishEvents(sender, events)
-            }
+        reaction.events.foreach(sendEvents)
+        context.become(withState(reaction.state))
 
-            switchState(state, newState, newEvents, filterOwnEvents)
-
-          case Left(error) =>
-            scribe.info(f"Failed CallRequest($seqId): ${timer.readMicros}us")
-            outgoing ! CallResponse(seqId, Left(error))
-        }
-
-      case sender.Notify(event) =>
-        val validatedState = state.map(validate)
-        val newEvents = for {
-          validatedState <- validatedState
-          events <- transformIncomingEvent(event, validatedState)
-        } yield events
-
-        switchState(state, validatedState, newEvents)
+      case client.Notify(event) =>
+        val reaction = onEvent(client, state, event)
+        reaction.events.foreach(sendEvents)
+        context.become(withState(reaction.state))
 
       case Stop =>
-        state.foreach(onClientDisconnect(sender, _))
+        onClientDisconnect(client, state)
         context.stop(self)
     }
 
-    def switchState(state: Future[State], newState: Future[State], initialEvents: Future[Seq[Event]], sendFilter: Event => Boolean = _ => true) {
-      val events = for {
-        state <- state
-        newState <- newState
-        initialEvents <- initialEvents
-        additionalEvents <- onClientInteraction(state, newState)
-      } yield initialEvents ++ additionalEvents
-
-      val switchState = for {
-        state <- newState
-        events <- events
-      } yield if (events.isEmpty) state else applyEventsToState(events, state)
-
-      sendEvents(events.map(_.filter(sendFilter)))
-      context.become(withState(switchState))
-    }
-
-    def sendEvents(events: Future[Seq[Event]]) = {
-      events.foreach { events =>
-        // sideeffect: send actual event to client
-        if (events.nonEmpty) outgoing ! Notification(events.toList)
-      }
-    }
-
-    val state = initialState
-    onClientConnect(sender, state)
+    val state = onClientConnect(client)
     withState(Future.successful(state))
   }
 

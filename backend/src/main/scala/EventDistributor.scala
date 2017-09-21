@@ -11,27 +11,27 @@ import scala.util.{Success,Failure}
 import scala.util.control.NonFatal
 import DbConversions._
 
+case class RequestEvent(events: Seq[ApiEvent.Public], postGroups: Map[PostId, Set[GroupId]])
+
 class EventDistributor(db: Db) {
-  val subscribers = mutable.HashSet.empty[EventSender[RequestEvent]]
+  val subscribers = mutable.HashSet.empty[NotifiableClient[RequestEvent]]
 
-  def subscribe(sender: EventSender[RequestEvent]) {
-    subscribers += sender
+  def subscribe(client: NotifiableClient[RequestEvent]) {
+    subscribers += client
   }
 
-  def unsubscribe(sender: EventSender[RequestEvent]) {
-    subscribers -= sender
+  def unsubscribe(client: NotifiableClient[RequestEvent]) {
+    subscribers -= client
   }
 
-  def publish(sender: EventSender[RequestEvent], events: Seq[ApiEvent])(implicit ec: ExecutionContext) {
+  def publish(origin: ClientIdentity, events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
     val postIds = events.flatMap(postIdsInEvent _).toSet
     val result = for {
       postGroups <- db.post.getGroupIds(postIds)
     } yield {
-      // do not send any graphchange event to origin of event
-      val receivers = subscribers - sender
-      receivers.foreach(_.send(RequestEvent(events, postGroups)))
+      subscribers.foreach(_.notify(origin, RequestEvent(events, postGroups)))
     }
 
     result.recover {
