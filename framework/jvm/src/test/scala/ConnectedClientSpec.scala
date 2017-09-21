@@ -8,7 +8,6 @@ import autowire.Core.Request
 import boopickle.Default._
 import org.scalatest._
 import wust.framework.message._
-import wust.framework.state._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -17,29 +16,37 @@ import scala.collection.mutable
 
 class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, String, String, Option[String]] {
   private val stupidPhrase = "the stupid guy"
-  private val stupidUser = Future.successful(Option(stupidPhrase))
-  private val otherUser = Future.successful(Option("anon"))
+  private val stupidUser = Option(stupidPhrase)
+  private val otherUser = Option("anon")
   val clients = mutable.ArrayBuffer.empty[EventSender[String]]
 
   override def initialState = None
 
   override def validate(state: Option[String]): Option[String] = state.filterNot(_ == stupidPhrase)
 
-  override def onRequest(holder: StateHolder[Option[String], String], request: Request[ByteBuffer]) = {
-    import holder._
-    val handler: PartialFunction[Request[ByteBuffer], Future[ByteBuffer]] = {
-      case Request("api" :: Nil, args) =>
-        (state: Option[String]) => Future.successful(args.values.headOption.map(Unpickle[String].fromBytes).map(_.reverse).map(s => Pickle.intoBytes(s)).get)
-      case Request("event" :: Nil, _) =>
-        (state: Option[String]) => Future.successful(respondWithEvents(Pickle.intoBytes[Boolean](true), "event"))
-      case Request("state" :: Nil, _) =>
-        (state: Option[String]) => Future.successful(Pickle.intoBytes[Option[String]](state))
-      case Request("state" :: "change" :: Nil, _) =>
-        (state: Option[String]) => StateEffect(otherUser, Future.successful(Pickle.intoBytes[Boolean](true)))
-      case Request("state" :: "stupid" :: Nil, _) =>
-        (state: Option[String]) => StateEffect(stupidUser, Future.successful(Pickle.intoBytes[Boolean](true)))
-      case Request("broken" :: Nil, _) =>
-        (state: Option[String]) => Future.failed(new Exception("an error"))
+  override def onRequest(state: Future[Option[String]], request: Request[ByteBuffer]) = {
+    implicit def convert[T : Pickler](t: T): ByteBuffer = Pickle.intoBytes[T](t)
+    val handler: PartialFunction[Request[ByteBuffer], Future[RequestResponse]] = {
+      case Request("api" :: Nil, args) => state.map { state =>
+        val arg = args.values.head
+        val str = Unpickle[String].fromBytes(arg)
+        RequestResponse(state, Seq.empty, str.reverse)
+      }
+      case Request("event" :: Nil, _) => state.map { state =>
+        RequestResponse(state, Seq("event"), true)
+      }
+      case Request("state" :: Nil, _) => state.map { state =>
+        RequestResponse(state, Seq.empty, state)
+      }
+      case Request("state" :: "change" :: Nil, _) => Future.successful {
+        RequestResponse(otherUser, Seq.empty, true)
+      }
+      case Request("state" :: "stupid" :: Nil, _) => Future.successful {
+        RequestResponse(stupidUser, Seq.empty, true)
+      }
+      case Request("broken" :: Nil, _) => Future.failed {
+        new Exception("an error")
+      }
     }
 
     handler.lift(request).toRight("path not found")
@@ -152,7 +159,7 @@ class ConnectedClientSpec extends TestKit(ActorSystem("ConnectedClientSpec")) wi
         CallResponse(3, Right(pickledResponse3)))
     }
 
-    "filter stupid after switch state" in connectedActor { actor =>
+    "no invalid state" in connectedActor { actor =>
       actor ! CallRequest(1, Seq("state"), Map.empty)
       actor ! CallRequest(2, Seq("state", "stupid"), Map.empty)
       actor ! CallRequest(3, Seq("state"), Map.empty)

@@ -9,11 +9,12 @@ import autowire.Core.Request
 import wust.framework.message._
 import wust.util.Pipe
 import wust.util.time.StopWatch
-import wust.framework.state.StateHolder
 
 import scala.concurrent.Future
 
 trait RequestHandler[Event, PublishEvent, Failure, State] {
+  case class RequestResponse(state: State, events: Seq[Event], value: ByteBuffer)
+
   // initial state for a new client
   def initialState: State
 
@@ -24,7 +25,7 @@ trait RequestHandler[Event, PublishEvent, Failure, State] {
   // a request is a (path: Seq[String], args: Map[String,ByteBuffer]), which needs to be mapped to a result.
   // if the request cannot be handled, you can return an error.
   // this is the integration point for, e.g., autowire.
-  def onRequest(holder: StateHolder[State, Event], request: Request[ByteBuffer]): Either[Failure, Future[ByteBuffer]]
+  def onRequest(state: Future[State], request: Request[ByteBuffer]): Either[Failure, Future[RequestResponse]]
 
   // any exception that is thrown in your request handler is catched and can be mapped to an error type.
   // remaining throwables will be thrown!
@@ -44,7 +45,6 @@ trait RequestHandler[Event, PublishEvent, Failure, State] {
   def transformIncomingEvent(event: PublishEvent, state: State): Future[Seq[Event]]
 
   // whenever there was an interaction with the client, the state might have changed.
-  // either the stateholder recorded a new state during a request or there were events.
   // this does not mean, that the states are different; as we do not make assumption about state equality.
   // here you can return additional events to be sent to the client.
   def onClientInteraction(prevState: State, state: State): Future[Seq[Event]]
@@ -93,24 +93,27 @@ class ConnectedClient[Event, PublishEvent, Failure, State](
       case CallRequest(seqId, path, args) =>
         val validatedState = state.map(validate)
         val timer = StopWatch.started
-        val holder = new StateHolder[State, Event](validatedState)
-        onRequest(holder, Request(path, args)) match {
+        onRequest(validatedState, Request(path, args)) match {
           case Right(response) =>
-            response
+            response.onComplete { _ => scribe.info(f"Succeeded CallRequest($seqId): ${timer.readMicros}us") }
+
+            val value = response.map(_.value)
+            val newState = response.map(_.state)
+            val newEvents = response.map(_.events)
+
+            value
               .map(resp => CallResponse(seqId, Right(resp)))
               .recover(toError andThen (err => CallResponse(seqId, Left(err))))
-              .sideEffect(_.onComplete { _ => scribe.info(f"CallRequest($seqId): ${timer.readMicros}us") })
               .pipeTo(outgoing)
 
-            for {
-              _ <- response // wait for the response to finish
-              events <- holder.events
-              if (events.nonEmpty)
-            } publishEvents(sender, events)
+            newEvents.foreach { events =>
+              if (events.nonEmpty) publishEvents(sender, events)
+            }
 
-          switchState(state, holder.state, holder.events, filterOwnEvents)
+            switchState(state, newState, newEvents, filterOwnEvents)
 
           case Left(error) =>
+            scribe.info(f"Failed CallRequest($seqId): ${timer.readMicros}us")
             outgoing ! CallResponse(seqId, Left(error))
         }
 

@@ -2,7 +2,6 @@ package wust.backend
 
 import wust.api._
 import wust.db.Db
-import wust.framework.state._
 import wust.backend.auth._
 import wust.graph._
 import DbConversions._

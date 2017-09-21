@@ -7,7 +7,6 @@ import wust.graph.{ Group, User }
 import wust.db.{ Db, Data }
 import wust.ids._
 import org.mockito.Mockito._
-import wust.framework.state._
 import wust.graph.{ Graph, Group }
 
 import scala.concurrent.Future

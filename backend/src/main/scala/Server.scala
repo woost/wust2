@@ -12,7 +12,6 @@ import wust.backend.auth._
 import wust.backend.config.Config
 import wust.db.Db
 import wust.framework._
-import wust.framework.state.StateHolder
 import wust.util.{ Pipe, RichFuture }
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -29,9 +28,18 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 
   override def validate(state: State) = stateInterpreter.validate(state)
 
-  override def onRequest(holder: StateHolder[State, ApiEvent], request: Request[ByteBuffer]) = {
+  override def onRequest(state: Future[State], request: Request[ByteBuffer]) = {
+    val holder = new StateHolder[State, ApiEvent](state)
     val handler = api(holder).lift
-    handler(request).toRight(NotFound(request.path))
+    handler(request)
+      .toRight(NotFound(request.path))
+      .map { response =>
+        for {
+          response <- response
+          state <- holder.state
+          events <- holder.events
+        } yield RequestResponse(state, events, response)
+      }
   }
 
   override val toError: PartialFunction[Throwable, ApiError] = {

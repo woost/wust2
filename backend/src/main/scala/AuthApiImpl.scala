@@ -4,7 +4,6 @@ import com.roundeights.hasher.Hasher
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._
-import wust.framework.state._
 import wust.db.Db
 import wust.util.RichFuture
 

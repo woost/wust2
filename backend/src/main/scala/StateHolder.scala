@@ -1,4 +1,5 @@
-package wust.framework.state
+package wust.backend
+
 import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration._
 

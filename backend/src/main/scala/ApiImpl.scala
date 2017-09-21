@@ -4,7 +4,6 @@ import wust.api._
 import wust.backend.DbConversions._
 import wust.db.Db
 import wust.graph._
-import wust.framework.state._
 import wust.ids._
 import wust.util.{ RandomUtil, RichFuture }
 import scala.util.control.NonFatal

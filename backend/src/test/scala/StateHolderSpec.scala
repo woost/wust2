@@ -1,4 +1,4 @@
-package wust.framework.state
+package wust.backend
 
 import org.scalatest._
 

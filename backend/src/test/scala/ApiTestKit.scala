@@ -3,7 +3,6 @@ package wust.backend
 import wust.api._
 import wust.backend.auth._
 import wust.db.Db
-import wust.framework.state._
 
 import scala.concurrent.{ExecutionContext, Future}
 
