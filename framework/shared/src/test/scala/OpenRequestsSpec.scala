@@ -3,7 +3,10 @@ package wust.framework
 import org.scalatest._
 
 class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {
+  implicit override def executionContext = scala.concurrent.ExecutionContext.Implicits.global
+
   "timeout promise" - {
+    //TODO: why does it need executionContext = global? also breaks grouping of tests in output
     "timeouts after some time" in {
       val promise = TimeoutPromise[Int](10)
       promise.future.failed.map(_ mustEqual TimeoutException)
