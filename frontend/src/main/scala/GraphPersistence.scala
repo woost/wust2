@@ -22,11 +22,25 @@ object SyncStatus {
   case object Error extends SyncStatus
 }
 
+sealed trait SyncMode
+object SyncMode {
+  case object Live extends SyncMode
+  case object Offline extends SyncMode
+
+  val fromString: PartialFunction[String, SyncMode] = {
+    case "Live"    => Live
+    case "Offline" => Offline
+  }
+
+  val default = Live
+  val all = Seq(Live, Offline)
+}
+
 class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
   import ClientCache.storage
 
   private val hasError = Var(false)
-  private val localChanges = Var(storage.localGraphChanges)
+  private val localChanges = Var(storage.graphChanges)
   private val changesInTransit = Var(List.empty[GraphChanges])
 
   private var undoHistory: List[GraphChanges] = Nil
@@ -48,7 +62,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   //TODO this writes to localstorage then needed, once for localchanges changes and once for changesintransit changes
   Rx {
-    storage.localGraphChanges = changesInTransit() ++ localChanges()
+    storage.graphChanges = changesInTransit() ++ localChanges()
   }
 
   private def enrichChanges(changes: GraphChanges): GraphChanges = {

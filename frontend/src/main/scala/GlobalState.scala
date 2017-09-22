@@ -11,20 +11,6 @@ import org.scalajs.dom.experimental.Notification
 import wust.util.EventTracker.sendEvent
 import vectory._
 
-sealed trait SyncMode
-object SyncMode {
-  case object Live extends SyncMode
-  case object Offline extends SyncMode
-
-  val fromString: PartialFunction[String, SyncMode] = {
-    case "Live"    => Live
-    case "Offline" => Offline
-  }
-
-  val default = Live
-  val all = Seq(Live, Offline)
-}
-
 case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
 }
