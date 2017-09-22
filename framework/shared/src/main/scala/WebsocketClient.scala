@@ -17,7 +17,7 @@ trait IncidentHandler[Event, Failure] {
 }
 
 class WebsocketClient[Event: Pickler, Failure: Pickler](ws: WebsocketConnection)(implicit ec: ExecutionContext) {
-  val messages = new Messages[Event, Failure]
+  private val messages = new Messages[Event, Failure]
   import messages._
 
   private val callRequests = new OpenRequests[ByteBuffer]

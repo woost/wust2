@@ -50,8 +50,8 @@ object WebsocketFlow {
 
 class WebsocketServer[Event: Pickler, PublishEvent, Failure: Pickler, State](handler: RequestHandler[Event, PublishEvent, Failure, State])(implicit system: ActorSystem) {
   private implicit val materializer = ActorMaterializer()
+  private val messages = new Messages[Event, Failure]
 
-  val messages = new Messages[Event, Failure]
   def websocketHandler = handleWebSocketMessages(WebsocketFlow(messages, handler))
 
   def run(route: Route, interface: String, port: Int): Future[ServerBinding] =
