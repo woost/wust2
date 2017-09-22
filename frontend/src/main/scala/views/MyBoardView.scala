@@ -10,6 +10,7 @@ import wust.frontend.Color._
 /// Reusable components that do not depend on a state
 trait MyBoardViewComponents {
 	import outwatch.dom._
+	import org.scalajs.dom.raw.{HTMLInputElement}
 
 
 	/// Renders a todo entry in the list view
@@ -17,29 +18,59 @@ trait MyBoardViewComponents {
 				   remEntry : outwatch.Sink[String],
 				   dragStartEvents : outwatch.Sink[String],
 				   changeEvents : outwatch.Sink[String]) = {
-		val clickEvents = createBoolHandler()
-		val inputKeyUpEvents = createHandler[org.scalajs.dom.KeyboardEvent]()
-		val newEntryEvents = inputKeyUpEvents.map(keyEvent => {
-													  Seq(
-														  org.scalajs.dom.ext.KeyCode.Enter
-													  ).contains(keyEvent.keyCode.toInt)
-												  }).filter(_ == true)
+		val inputFocusEvents = createHandler[outwatch.dom.helpers.InputEvent]()
+		val inputBlurEvents = createHandler[outwatch.dom.helpers.InputEvent]()
+		val inputChangeEvents = createHandler[outwatch.dom.helpers.InputEvent]()
+		val editModeEvents = createBoolHandler()
+		inputFocusEvents.subscribe(ev => {console.log(s"Focus event $ev")})
+		inputChangeEvents.subscribe(ev => {console.log(s"Change event $ev")})
+
+		// - When clicking on the main div, we want to enter edit mode -
+		val clickEvents = createHandler[org.scalajs.dom.MouseEvent]()
+		editModeEvents <-- clickEvents.map(_ => true)
+
+		/// FIXME: Isnt there a better way to aquire html elements than to give them a unique id?
+		val inputId = java.util.UUID.randomUUID().toString()
+		// - When losing focus, we want the input to vanish again
+		editModeEvents <-- inputBlurEvents.map(_ => false)
+
+		// - When clicking on the div, we want the input element to be focused and all its contents selected -
+		clickEvents.subscribe(ev => {
+								  document.getElementById(inputId) match {
+								  	  case htmlTag : HTMLInputElement if document.activeElement != htmlTag => {
+										  window.setTimeout(() => {
+																htmlTag.focus()
+																htmlTag.select()
+															}, 0)
+									  }
+								  	  case _ =>
+								  }
+							  })
+
+		// - Input changes are propagated outwards, which will cause a re-render of this entire component -
 		val inputEvents = createStringHandler()
-		val sentTextEvents = newEntryEvents.combineLatestWith(inputEvents)((_, text) => text)
+		val sentTextEvents = inputChangeEvents.combineLatestWith(inputEvents)((_, text) => text)
 		changeEvents <-- sentTextEvents
+
+		// - actual html code and event connections -
+		// FIXME: Isnt there some way to disconnect HTML layout from event chaining?
 		div(
-			click(true) --> clickEvents,
+			click --> clickEvents,
 			draggable := true,
 			dragstart(text) --> dragStartEvents,
 			// either we have a span displaying the contents
 			span(
-				hidden <-- clickEvents.map(x => x),
+				hidden <-- editModeEvents,
 				text),
+
 			// or we have an input displaying the contents
 			input(
-				hidden <-- clickEvents.map(!_).startWith(true),
+				id := inputId,
+				hidden <-- editModeEvents.map(!_).startWith(true),
+				focus --> inputFocusEvents,
+				blur --> inputBlurEvents,
+				change --> inputChangeEvents,
 				inputString --> inputEvents,
-				keyup --> inputKeyUpEvents,
 				value := text,
 				text),
 			button(click(text) --> remEntry, "X")
