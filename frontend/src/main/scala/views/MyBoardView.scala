@@ -11,13 +11,14 @@ import wust.frontend.Color._
 trait MyBoardViewComponents {
 	import outwatch.dom._
 	import org.scalajs.dom.raw.{HTMLInputElement}
+	import MyBoardView.{Entry}
 
 
 	/// Renders a todo entry in the list view
-	def boardEntry(text: String,
-				   remEntry : outwatch.Sink[String],
-				   dragStartEvents : outwatch.Sink[String],
-				   changeEvents : outwatch.Sink[String]) = {
+	def boardEntry(entry: Entry,
+				   remEntry : outwatch.Sink[Entry],
+				   dragStartEvents : outwatch.Sink[Entry],
+				   changeEvents : outwatch.Sink[Entry]) = {
 		val inputFocusEvents = createHandler[outwatch.dom.helpers.InputEvent]()
 		val inputBlurEvents = createHandler[outwatch.dom.helpers.InputEvent]()
 		val inputChangeEvents = createHandler[outwatch.dom.helpers.InputEvent]()
@@ -50,18 +51,18 @@ trait MyBoardViewComponents {
 		// - Input changes are propagated outwards, which will cause a re-render of this entire component -
 		val inputEvents = createStringHandler()
 		val sentTextEvents = inputChangeEvents.combineLatestWith(inputEvents)((_, text) => text)
-		changeEvents <-- sentTextEvents
+		changeEvents <-- sentTextEvents.map(Entry(_, entry.uuid))
 
 		// - actual html code and event connections -
 		// FIXME: Isnt there some way to disconnect HTML layout from event chaining?
 		div(
 			click --> clickEvents,
 			draggable := true,
-			dragstart(text) --> dragStartEvents,
+			dragstart(entry) --> dragStartEvents,
 			// either we have a span displaying the contents
 			span(
 				hidden <-- editModeEvents,
-				text),
+				entry.text),
 
 			// or we have an input displaying the contents
 			input(
@@ -71,32 +72,25 @@ trait MyBoardViewComponents {
 				blur --> inputBlurEvents,
 				change --> inputChangeEvents,
 				inputString --> inputEvents,
-				value := text,
-				text),
-			button(click(text) --> remEntry, "X")
+				value := entry.text,
+				entry.text),
+			button(click(entry) --> remEntry, "X")
 		)
 	}
 
 
 	/// returns a clickable entry that spawns an input field to enter a new text
-	def inputBoardEntry(newEntries: outwatch.Sink[String]) = {
+	def inputBoardEntry(newEntries: outwatch.Sink[Entry]) = {
 		val clickedEvents = createBoolHandler()
+		val inputChangeEvents = createHandler[outwatch.dom.helpers.InputEvent]()
 		val showNewEntryMessageEvents = clickedEvents.map(ev => {
 															  console.log(s"Click Event: $ev")
 															  ev
 														  })
 		val showInputEvents = clickedEvents.map(!_).startWith(true)
-		val inputKeyUpEvents = createHandler[org.scalajs.dom.KeyboardEvent]()
-		val newEntryEvents = inputKeyUpEvents.map(keyEvent => {
-													  val k = keyEvent.keyCode.toInt
-													  console.log(s"Key pressed: $k")
-													  Seq(
-														  org.scalajs.dom.ext.KeyCode.Enter
-													  ).contains(k)
-												  }).filter(_ == true)
 		val inputEvents = createStringHandler()
-		val sentTextEvents = newEntryEvents.combineLatestWith(inputEvents)((_, text) => text)
-		newEntries <-- sentTextEvents
+		val sentTextEvents = inputChangeEvents.combineLatestWith(inputEvents)((_, text) => text)
+		newEntries <-- sentTextEvents.map(Entry(_))
 		div(
 			// visible while no input visible
 			div(
@@ -106,9 +100,10 @@ trait MyBoardViewComponents {
 			),
 			// visible only after click
 			div(
+				// TODO: re-use input from boardEntry? (with focus/blur & select functionality)
 				input(
 					inputString --> inputEvents,
-					keyup --> inputKeyUpEvents
+					change --> inputChangeEvents
 				),
 				hidden <-- showInputEvents
 			))
@@ -117,16 +112,16 @@ trait MyBoardViewComponents {
 
 	/// Displays a board with vertically aligned entries
 	def entryBoardComponent(title : String,
-							entries : rxscalajs.Observable[Seq[String]],
-							newEntries : outwatch.Sink[String],
-							remEntries : outwatch.Sink[String],
-							entryDragStartEvents : outwatch.Sink[String],
+							entries : rxscalajs.Observable[Seq[Entry]],
+							newEntries : outwatch.Sink[Entry],
+							remEntries : outwatch.Sink[Entry],
+							entryDragStartEvents : outwatch.Sink[Entry],
 							entryDropEvents : outwatch.Sink[String],
-							entryChangeEvents : outwatch.Sink[(String, String)]) = {
-		def buildBoardEntry(text : String) = {
-			val changeEvents = createHandler[String]()
+							entryChangeEvents : outwatch.Sink[(String, Entry)]) = {
+		def buildBoardEntry(entry : Entry) = {
+			val changeEvents = createHandler[Entry]()
 			entryChangeEvents <-- changeEvents.map((title, _))
-			boardEntry(text, remEntries, entryDragStartEvents, changeEvents)
+			boardEntry(entry, remEntries, entryDragStartEvents, changeEvents)
 		}
 		val entriesWrapped = entries.map(_.map(buildBoardEntry(_)) :+ inputBoardEntry(newEntries)).map(l => l.map(li(_)))
 		val dragOverEvents = createHandler[org.scalajs.dom.DragEvent]()
@@ -173,37 +168,40 @@ object MyBoardView extends MyBoardViewComponents {
 
 	// - Actions on the view state -
 	sealed trait Action
-	case class AddToBoard(board: String, text: String) extends Action
-	case class RemFromBoard(board: String, text: String) extends Action
-	case class SetDragSource(board: String, text: String) extends Action
+	case class AddToBoard(board: String, entry: Entry) extends Action
+	case class RemFromBoard(board: String, entry: Entry) extends Action
+	case class SetDragSource(board: String, entry: Entry) extends Action
 	case class SetDragDest(board: String) extends Action
-	case class UpdateEntry(board: String, oldV : String, newV : String) extends Action
+	case class UpdateEntry(board: String, newEntry : Entry) extends Action
+
+	case class Entry(text : String,
+					 uuid : java.util.UUID = java.util.UUID.randomUUID())
 
 	/// State used within this view
 	case class State(text: String,
 					 // TODO: entries need an id/position to disambiguate entries with same contents
 					 // TODO: We need a mapping from context (e.g. "Work")
 					 //       -> board (e.g. "In-Progress") -> entry (e.g. "Do Stuff")
-					 entryMap : Map[String, Seq[String]],
-					 dragSource : Option[(String, String)] = None,
-					 dragDest : Option[(String, String)] = None)
+					 entryMap : Map[String, Seq[Entry]],
+					 dragSource : Option[(String, Entry)] = None,
+					 dragDest : Option[(String, Entry)] = None)
 	val initialState = State("",
-							 Map("Todo" -> Seq("Create Stuff"),
-								 "In-Progress" -> Seq("Create More Stuff", "Do Things"),
+							 Map("Todo" -> Seq(Entry("Create Stuff")),
+								 "In-Progress" -> Seq(Entry("Create More Stuff"), Entry("Do Things")),
 								 "Done" -> Seq.empty))
 	val store = Store(initialState, actionHandler)
 
 	/// Handler for actions sent to the store which update it
 	private[this] def actionHandler(state: State, action: Action) : State = action match {
-		case AddToBoard(board, text) => state.copy(
-			entryMap = state.entryMap + (board -> (state.entryMap.getOrElse(board, Seq.empty) ++ Seq(text)))
+		case AddToBoard(board, entry) => state.copy(
+			entryMap = state.entryMap + (board -> (state.entryMap.getOrElse(board, Seq.empty) ++ Seq(entry)))
 		)
-		case RemFromBoard(board, text) => state.copy(
-			entryMap = state.entryMap + (board -> (state.entryMap.getOrElse(board, Seq.empty).filter(_!=text)))
+		case RemFromBoard(board, entry) => state.copy(
+			entryMap = state.entryMap + (board -> (state.entryMap.getOrElse(board, Seq.empty).filter(_!=entry)))
 		)
-		case SetDragSource(board, text) => {
-			console.log(s"Setting dragSource to: $board $text")
-			state.copy(dragSource = Some((board, text)))
+		case SetDragSource(board, entry) => {
+			console.log(s"Setting dragSource to: $board $entry")
+			state.copy(dragSource = Some((board, entry)))
 		}
 		case SetDragDest(board) => {
 			console.log(s"Setting dragDest to: $board")
@@ -214,9 +212,9 @@ object MyBoardView extends MyBoardViewComponents {
 							  RemFromBoard(state.dragSource.get._1, state.dragSource.get._2))
 			}
 		}
-		case UpdateEntry(board, oldV, newV) => state.copy(
+		case UpdateEntry(board, newEntry) => state.copy(
 			entryMap = state.entryMap + (board -> (state.entryMap.getOrElse(board, Seq.empty).map {
-													   case oldV => newV
+													   case entry if entry.uuid == newEntry.uuid => newEntry
 													   case other => other
 												   }))
 		)
@@ -238,11 +236,11 @@ object MyBoardView extends MyBoardViewComponents {
 	import outwatch.dom._
 	/// construct an entryBoardComponent that is connected to the store
 	private[this] def buildConnectedBoardComponent(name : String) = {
-		val newEntries = createStringHandler()
-		val remEntries = createStringHandler()
-		val entryDragStartEvents = createHandler[String]()
+		val newEntries = createHandler[Entry]()
+		val remEntries = createHandler[Entry]()
+		val entryDragStartEvents = createHandler[Entry]()
 		val entryDropEvents = createHandler[String]()
-		val entryChangeEvents = createHandler[(String, String)]()
+		val entryChangeEvents = createHandler[(String, Entry)]()
 
 		// - connect outgoing streams to store via actions -
 		store.sink <-- newEntries.map(AddToBoard(name, _))
@@ -250,7 +248,7 @@ object MyBoardView extends MyBoardViewComponents {
 		store.sink <-- entryDragStartEvents.map(SetDragSource(name, _))
 		store.sink <-- entryDropEvents.map(_ => SetDragDest(name))
 		store.sink <-- entryChangeEvents.map {
-			case (oldV, newV) => UpdateEntry(name, oldV, newV)
+			case (board, newEntry) => UpdateEntry(board, newEntry)
 		}
 
 		entryBoardComponent(name,
