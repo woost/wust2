@@ -88,8 +88,6 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 }
 
-case class ApiResult[T](result: Future[T], state: Option[State] = None, events: Seq[ApiEvent] = Seq.empty)
-
 object WebsocketFactory {
   import DbConversions._
 
@@ -121,8 +119,9 @@ object Server {
       complete("ok")
     }
 
-    ws.run(route, "0.0.0.0", port).foreach { binding =>
-      scribe.info(s"Server online at ${binding.localAddress}")
+    ws.run(route, "0.0.0.0", port).onComplete {
+      case Success(binding) => scribe.info(s"Server online at ${binding.localAddress}")
+      case Failure(err) => scribe.error(s"Cannot start server: $err")
     }
   }
 }
