@@ -45,6 +45,6 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
   }
 
   def sendMessage(from: String, recipient: MailRecipient, mail: MailMessage): Try[Unit] = {
-    createMessage(from, recipient, mail).map(message => Try(Transport.send(message)))
+    createMessage(from, recipient, mail).flatMap(message => Try(Transport.send(message)))
   }
 }
