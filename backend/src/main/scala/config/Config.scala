@@ -11,7 +11,13 @@ case class AuthConfig(enableImplicit: Boolean, tokenLifetime: Duration, secret: 
 case class SmtpConfig(endpoint: String, username: String, password: String)
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
-case class Config(auth: AuthConfig, email: Option[EmailConfig], db: TConfig)
+case class Config(auth: AuthConfig, email: Option[EmailConfig], db: TConfig) {
+  override def toString = {
+    val cleanDb = db.withoutPath("password")
+    s"Config($auth, $email, $cleanDb)"
+  }
+}
+
 object Config {
   import pureconfig._
   import wust.util.Config._
