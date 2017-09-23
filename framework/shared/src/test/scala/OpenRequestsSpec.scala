@@ -42,7 +42,7 @@ class OpenRequestsSpec extends AsyncFreeSpec with MustMatchers {
       val requests = new OpenRequests[Int](10)
       val (_, promise) = requests.open()
       promise success 1
-      promise.future.value.flatMap(_.toOption) mustEqual Option(1)
+      promise.future.map(_ mustEqual 1)
     }
   }
 }
