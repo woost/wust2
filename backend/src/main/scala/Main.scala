@@ -17,9 +17,12 @@ object Main extends App {
   Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
   Config.load match {
-    case Left(error) => scribe.error(s"Cannot load config: $error")
+    case Left(error) =>
+      val sep = "\n\t- "
+      val errString = sep + error.toList.mkString(sep)
+      scribe.error(s"Cannot load config: $errString")
     case Right(config) =>
       scribe.info(s"Starting wust with Config: $config")
-      Server.run(config, 8080)
+      Server.run(config)
   }
 }

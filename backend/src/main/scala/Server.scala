@@ -110,7 +110,7 @@ object WebsocketFactory {
 object Server {
   import ExecutionContext.Implicits.global
 
-  def run(config: Config, port: Int) = {
+  def run(config: Config) = {
     implicit val system = ActorSystem("server")
     val ws = WebsocketFactory(config)
     val route = (path("ws") & get) {
@@ -119,7 +119,7 @@ object Server {
       complete("ok")
     }
 
-    ws.run(route, "0.0.0.0", port).onComplete {
+    ws.run(route, "0.0.0.0", config.server.port).onComplete {
       case Success(binding) => scribe.info(s"Server online at ${binding.localAddress}")
       case Failure(err) => scribe.error(s"Cannot start server: $err")
     }
