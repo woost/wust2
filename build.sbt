@@ -44,7 +44,7 @@ lazy val commonSettings = Seq(
     "-Xlint:-unused,_" ::
     "-Ywarn-unused:-imports,-params,_" ::
     Nil
-
+// To enable wartremover in all projects: https://github.com/wartremover/wartremover/issues/283#issuecomment-332927623
 // wartremoverErrors ++= (
 //   // http://www.wartremover.org/doc/warts.html
 //   // Wart.Equals :: // TODO: rather have a compiler plugin to transform == to ===
