@@ -41,9 +41,18 @@ lazy val commonSettings = Seq(
     "-explaintypes" ::
     "-feature" ::
     "-language:_" ::
-    "-Xlint:-unused,_" ::
-    "-Ywarn-unused:-imports,-params,_" ::
+    "-Xcheckinit" ::
+    "-Xfuture" ::
+    "-Xlint" ::
+    "-Yno-adapted-args" ::
+    // "-Ywarn-dead-code" :: // does not work with js.native
+    "-Ywarn-unused:-imports,-params,_" :: // -params does not work with js.native
+    "-Ywarn-extra-implicit" ::
+    "-Ywarn-infer-any" ::
+    "-Ywarn-nullary-override" ::
+    "-Ywarn-nullary-unit" ::
     Nil
+
 // To enable wartremover in all projects: https://github.com/wartremover/wartremover/issues/283#issuecomment-332927623
 // wartremoverErrors ++= (
 //   // http://www.wartremover.org/doc/warts.html
