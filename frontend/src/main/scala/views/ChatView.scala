@@ -24,6 +24,7 @@ import org.scalajs.dom.{ Event, KeyboardEvent }
 import scala.util.control.NonFatal
 
 import outwatch.dom._
+import outwatch.Sink
 import wust.util.outwatchHelpers._
 
 object ChatView {
@@ -50,54 +51,39 @@ object ChatView {
 
     val latestPost = Rx { chatHistory().lastOption }
 
+    def scrollToBottom(elem:Element) {
+      //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
+      try {
+        elem.scrollTop = elem.scrollHeight
+      } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
+    }
+
     val chatHistoryDiv = div(
-      // height := "100%",
-      // overflow := "auto",
-      // padding := "20px",
-      // backgroundColor := "white",
+      update --> {(e:Element) => println("update hook"); setTimeout(100) { scrollToBottom(e) }},
+      Style("height", "100%"),
+      Style("overflow", "auto"),
+      Style("padding", "20px"),
+      Style("backgroundColor", "white"),
 
-      {
-        val w = "60%"
+      children <-- chatHistory.toObservable.map { _.map{post =>
+        val isMine = state.ownPosts(post.id)
         div(
-          children <-- chatHistory.toObservable.map { _.map{post => 
-            val isMine = state.ownPosts(post.id)
-            div(
-              p(
-                // maxWidth := w,
-                post.title,
-                // backgroundColor := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
-                // float := (if (isMine) "right" else "left"),
-                // clear.both,
-                // padding := "5px 10px",
-                // borderRadius := "7px",
-                // margin := "5px 0px",
-                // TODO: What about curson when selecting text?
-                // cursor.pointer,
-                click(GraphSelection.Union(Set(post.id))) --> state.graphSelection 
-              )
-          )}
-          }
-        )
+          p(
+            Style("maxWidth", "60%"),
+            post.title,
+            Style("backgroundColor", (if (isMine) "rgb(192, 232, 255)" else "#EEE")),
+            Style("float", (if (isMine) "right" else "left")),
+            Style("clear", "both"),
+            Style("padding", "5px 10px"),
+            Style("borderRadius", "7px"),
+            Style("margin", "5px 0px"),
+            // TODO: What about curson when selecting text?
+            Style("cursor", "pointer"),
+            click(GraphSelection.Union(Set(post.id))) --> state.graphSelection
+          )
+      )}
       }
-    )
-
-    // def scrollToBottom() {
-    //   //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
-    //   try {
-    //d3Container.asProxy.elm.foreach { elem
-    //     chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight
-    //   } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
-    // }
-
-    // setTimeout(200) {
-    //   // initial scroll to bottom
-    //   scrollToBottom()
-    // }
-
-    // chatHistory.foreach { _ =>
-    //   // scroll to bottom for each update
-    //   scrollToBottom()
-    // }
+      )
 
     def submitInsert(field: HTMLTextAreaElement) = {
       val newPost = Post.newId(field.value)
@@ -110,7 +96,7 @@ object ChatView {
     }
     val insertFieldValue = createStringHandler()
     val insertField = textarea(placeholder := "Create new post. Press Enter to submit.",
-      // width := "100%"
+      Style("width", "100%")
       // changeValue --> insertFieldValue
       )
     val createPostHandler = createStringHandler()
@@ -126,20 +112,20 @@ object ChatView {
     )
 
     div(
-      // height := "100%",
-      // backgroundColor := bgColor,
+      Style("height", "100%"),
+      // bgColor.map(Style("backgroundColor", _)),
 
       div(
-        // margin := "0 auto",
-        // maxWidth := "48rem",
-        // width := "48rem",
-        // height := "100%",
+        Style("margin", "0 auto"),
+        Style("maxWidth", "48rem"),
+        Style("width", "48rem"),
+        Style("height", "100%"),
 
-        // display.flex,
-        // flexDirection.column,
-        // justifyContent.flexStart,
-        // alignItems.stretch,
-        // alignContent.stretch,
+        Style("display", "flex"),
+        Style("flexDirection", "column"),
+        Style("justifyContent", "flexStart"),
+        Style("alignItems", "stretch"),
+        Style("alignContent", "stretch"),
 
         h1(child <-- headLineText),
 

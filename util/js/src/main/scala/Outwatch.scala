@@ -1,15 +1,16 @@
 package wust.util
 
 import org.scalajs.dom.document
+import org.scalajs.dom.raw.Element
 
 package object outwatchHelpers {
   implicit class RichVNode(val vNode:outwatch.dom.VNode) {
     def render:org.scalajs.dom.Element = {
-      val container = document.createElement("div")
-      outwatch.dom.helpers.DomUtils.render(container, vNode)
-      // import snabbdom._
-      // patch(elem, render().asProxy)
-      container
+      val elem = document.createElement("div")
+      // outwatch.dom.helpers.DomUtils.render(elem, vNode)
+      import snabbdom._
+      patch(elem, vNode.asProxy)
+      elem
     }
   }
 
@@ -33,5 +34,15 @@ package object outwatchHelpers {
     val handler = outwatch.dom.createHandler[T]()
     handler(v() = _)
     handler
+  }
+
+  implicit def ElementFuncToSink[R](f:Element => R):outwatch.Sink[Element] = {
+    //TODO: outwatch: accept function => Any or R
+    outwatch.Sink.create[Element](e => {f(e); ()})
+  }
+
+  implicit def ElementFuncToSink2[R](f:Element => R):outwatch.Sink[(Element,Element)] = {
+    //TODO: outwatch: accept function => Any or R
+    outwatch.Sink.create[(Element,Element)]{case (before, after) => {f(after); ()}}
   }
 }

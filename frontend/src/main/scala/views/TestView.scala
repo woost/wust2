@@ -14,9 +14,9 @@ import wust.util.outwatchHelpers._
 object TestView {
   def postItem(state: GlobalState, post: Post) = {
     div(
-      // minHeight := "12px",
-      // border := "solid 1px",
-      // cursor.pointer,
+      Style("minHeight", "12px"),
+      Style("border", "solid 1px"),
+      Style("cursor", "pointer"),
       click(GraphSelection.Union(Set(post.id))) --> state.graphSelection,
       post.title
     )
@@ -24,7 +24,7 @@ object TestView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
-      // padding := "20px",
+      Style("padding", "20px"),
       children <--
       state.displayGraphWithoutParents.toObservable.map { dg =>
         val graph = dg.graph
