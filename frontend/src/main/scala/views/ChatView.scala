@@ -11,6 +11,9 @@ import wust.frontend._
 import wust.frontend.views.Elements.textareaWithEnter
 import wust.graph._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scalaz.Tag
+import scala.math.Ordering
+import org.scalajs.dom.ext.KeyCode
 
 import org.scalajs.dom.{ window, document, console }
 import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
@@ -24,6 +27,8 @@ import org.scalajs.dom.{ Event, KeyboardEvent }
 import scala.util.control.NonFatal
 
 import outwatch.dom._
+import rxscalajs.Subject
+import rxscalajs.Observable
 import outwatch.Sink
 import wust.util.outwatchHelpers._
 
@@ -77,39 +82,59 @@ object ChatView {
             Style("padding", "5px 10px"),
             Style("borderRadius", "7px"),
             Style("margin", "5px 0px"),
-            // TODO: What about curson when selecting text?
+            // TODO: What about cursor when selecting text?
             Style("cursor", "pointer"),
             click(GraphSelection.Union(Set(post.id))) --> state.graphSelection
           )
-      )}
-      }
-      )
+        )
+      }}
+    )
 
-    def submitInsert(field: HTMLTextAreaElement) = {
-      val newPost = Post.newId(field.value)
+    def textAreaWithEnter(actionSink:Sink[String]):VNode = {
+      // consistent across mobile + desktop
+      // textarea: enter emits keyCode for Enter
+      // input: Enter triggers submit
+      val insertFieldValue = createStringHandler()
+      val setInsertFieldValue = Subject[String]()
+      val submitHandler = createHandler[Event]()
+      val enterKeyHandler = createKeyboardHandler()
+      //TODO: actionHandler also triggers for empty text, but shouldn't
+      val actionHandler = submitHandler.merge(enterKeyHandler).withLatestFrom(insertFieldValue).filter({
+        case (event:Event, text:String) => text.nonEmpty
+      }:PartialFunction[(Event,String),Boolean])
+
+      actionHandler{ case (_,text) => println(s"ActionHandler: ${text}")}
+      insertFieldValue{ case text => println(s"Insertfield: ${text}")}
+      
+      actionSink <-- actionHandler.map{case (event, text) => text}
+      actionHandler{ case (event, text) =>
+        setInsertFieldValue.next("")
+        event.preventDefault()
+      }
+
+      // val createPostHandler = createStringHandler()
+      // insertFieldValueLl
+      form(
+        textarea(
+          placeholder := "Create new post. Press Enter to submit.",
+          Style("width", "100%"),
+          inputString --> insertFieldValue,
+          value <-- setInsertFieldValue,
+          keydown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
+        ),
+        input(tpe := "submit", "insert"),
+        submit --> submitHandler
+      )
+    }
+
+    val insertForm = textAreaWithEnter{ text:String =>
+      val newPost = Post.newId(text)
       state.persistence.addChangesEnriched(
         addPosts = Set(newPost),
         addConnections = latestPost.now.map(latest => Connection(latest.id, newPost.id)).toSet
       )
-      field.value = ""
-      false
     }
-    val insertFieldValue = createStringHandler()
-    val insertField = textarea(placeholder := "Create new post. Press Enter to submit.",
-      Style("width", "100%")
-      // changeValue --> insertFieldValue
-      )
-    val createPostHandler = createStringHandler()
-    // insertFieldValueLl
-    val insertForm = form(
-      insertField,
-      input(tpe := "submit", "insert"),
-      // submit(true) --> createPostHandler
-      // onsubmit := { (e: Event) =>
-      //   submitInsert(insertField)
-      //   e.preventDefault()
-      // }
-    )
+
 
     div(
       Style("height", "100%"),

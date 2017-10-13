@@ -36,9 +36,9 @@ package object outwatchHelpers {
     handler
   }
 
-  implicit def ElementFuncToSink[R](f:Element => R):outwatch.Sink[Element] = {
+  implicit def FuncToSink[T,R](f:T => R):outwatch.Sink[T] = {
     //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[Element](e => {f(e); ()})
+    outwatch.Sink.create[T](e => {f(e); ()})
   }
 
   implicit def ElementFuncToSink2[R](f:Element => R):outwatch.Sink[(Element,Element)] = {
