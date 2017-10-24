@@ -46,7 +46,7 @@ lazy val commonSettings = Seq(
     "-Xlint" ::
     "-Yno-adapted-args" ::
     // "-Ywarn-dead-code" :: // does not work with js.native
-    "-Ywarn-unused:-imports,-params,_" :: // -params does not work with js.native
+    "-Ywarn-unused:_,-imports,-params" :: // -params does not work with js.native
     "-Ywarn-extra-implicit" ::
     "-Ywarn-infer-any" ::
     "-Ywarn-nullary-override" ::
@@ -96,16 +96,16 @@ lazy val root = project.in(file("."))
     // avoids watching files in root project
     // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
     // watchSources := Seq(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    
+
     watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in frameworkJS).value ++ (watchSources in frameworkJVM).value ++ (watchSources in frontend).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
   )
 
 val akkaVersion = "2.4.20"
 val akkaHttpVersion = "10.0.10"
 val circeVersion = "0.8.0"
-val specs2Version = "3.9.5"
+val specs2Version = "4.0.1"
 val scalaTestVersion = "3.0.4"
-val mockitoVersion = "2.10.0"
+val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
@@ -121,7 +121,7 @@ lazy val util = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
-      "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
+      "com.lihaoyi" %%% "scalatags" % "0.6.7" ::
       Nil
     )
   )
@@ -133,7 +133,7 @@ lazy val framework = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "de.daxten" %%% "autowire" % "0.3.1" ::
+      "de.daxten" %%% "autowire" % "0.3.3" ::
       "io.suzaku" %%% "boopickle" % boopickleVersion ::
       Nil
     )
@@ -294,7 +294,7 @@ lazy val slackApp = project
     libraryDependencies ++=
       "cool.graph" % "cuid-java" % "0.1.1" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
-      "com.github.gilbertw1" %% "slack-scala-client" % "0.2.1" ::
+      "com.github.gilbertw1" %% "slack-scala-client" % "0.2.2" ::
       Nil
     )
 
