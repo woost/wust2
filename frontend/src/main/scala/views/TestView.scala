@@ -13,27 +13,31 @@ import wust.util.outwatchHelpers._
 
 object TestView {
   def postItem(state: GlobalState, post: Post) = {
-    div(
-      Style("minHeight", "12px"),
-      Style("border", "solid 1px"),
-      Style("cursor", "pointer"),
-      click(GraphSelection.Union(Set(post.id))) --> state.graphSelection,
-      post.title
-    )
+    for {
+      graphSelectionHandler <- (state.graphSelection: Handler[GraphSelection])
+      div <- div(
+        Style("minHeight", "12px"),
+        Style("border", "solid 1px"),
+        Style("cursor", "pointer"),
+        onClick(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler,
+        post.title
+      )
+    } yield div
   }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
       Style("padding", "20px"),
       children <--
-      state.displayGraphWithoutParents.toObservable.map { dg =>
-        val graph = dg.graph
-        val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
+        state.displayGraphWithoutParents.toObservable.map { dg =>
+          val graph = dg.graph
+          val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
 
-        sortedPosts.map { postId =>
-          val post = graph.postsById(postId)
-          postItem(state, post)
+          sortedPosts.map { postId =>
+            val post = graph.postsById(postId)
+            postItem(state, post)
+          }
         }
-      }).render
+    ).render
   }
 }

@@ -288,7 +288,7 @@ lazy val frontend = project
     copyFastOptJS := {
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "fastopt"
-      val files = Seq("frontend-fastopt-loader.js", "frontend-fastopt.js", "frontend-fastopt.js.map") map { p =>   (inDir / p, outDir / p) }
+      val files = Seq("frontend-fastopt-loader.js", "frontend-fastopt.js", "frontend-fastopt.js.map") map { p => (inDir / p, outDir / p) }
       IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
     }
   )
@@ -302,9 +302,7 @@ lazy val slackApp = project
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.gilbertw1" %% "slack-scala-client" % "0.2.2" ::
       Nil
-    )
-
-
+  )
 
 //TODO: https://github.com/jantimon/html-webpack-plugin for asset checksums
 

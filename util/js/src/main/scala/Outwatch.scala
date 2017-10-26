@@ -2,14 +2,15 @@ package wust.util
 
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.Element
+import cats.effect.IO
 
 package object outwatchHelpers {
   implicit class RichVNode(val vNode:outwatch.dom.VNode) {
     def render:org.scalajs.dom.Element = {
       val elem = document.createElement("div")
-      // outwatch.dom.helpers.DomUtils.render(elem, vNode)
-      import snabbdom._
-      patch(elem, vNode.asProxy)
+      outwatch.dom.helpers.DomUtils.render(elem, vNode).unsafeRunSync
+      // import snabbdom._
+      // patch(elem, vNode.value.asProxy.unsafeRunSync)
       elem
     }
   }
@@ -30,19 +31,19 @@ package object outwatchHelpers {
   //   }
   // }
 
-  implicit def RxVarToSink[T](v:rx.RxVar[T,_]):outwatch.Sink[T] = {
+  implicit def RxVarToSink[T](v:rx.RxVar[T,_]):outwatch.dom.Handler[T] = {
     val handler = outwatch.dom.createHandler[T]()
-    handler(v() = _)
+    handler.map(h => h(v() = _))
     handler
   }
 
   implicit def FuncToSink[T,R](f:T => R):outwatch.Sink[T] = {
     //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[T](e => {f(e); ()})
+    outwatch.Sink.create[T](e => {f(e); IO{()}})
   }
 
   implicit def ElementFuncToSink2[R](f:Element => R):outwatch.Sink[(Element,Element)] = {
     //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[(Element,Element)]{case (before, after) => {f(after); ()}}
+    outwatch.Sink.create[(Element,Element)]{case (before, after) => {f(after); IO{()}}}
   }
 }

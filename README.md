@@ -22,7 +22,7 @@ A directed graph stored in postgres accessed via rpc-calls over websockets and b
 * [akka](https://github.com/akka/akka) (message passing in backend, websocket server)
 * [autowire](https://github.com/lihaoyi/autowire) (type safe rpc calls for implementing frontend-to-backend api)
 * [boopickle](https://github.com/suzaku-io/boopickle) (fast and boilerplate-free binary serialization, similar to protobuf. Used for frontend/backend communication)
-* [scalatags-rx](https://github.com/rtimush/scalatags-rx) (UI-library for reactive programming bindings to DOM-Nodes)
+* [outwatch](https://github.com/outwatch/outwatch) (UI-library for reactive programming bindings to DOM-Nodes)
 * [d3](https://github.com/d3/d3) (visualization library, used for graph visualization and drag&drop)
 
 # Development
