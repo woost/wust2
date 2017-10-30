@@ -44,7 +44,7 @@ import wust.util.outwatchHelpers._
 // handler[A].map(A => B) should return Sink[A] with Observable[B]
 
 object ChatView {
-  def textAreaWithEnter(actionSink: Sink[String]): VNode = {
+  def textAreaWithEnter(actionSink: Sink[String]) = {
     // consistent across mobile + desktop
     // textarea: enter emits keyCode for Enter
     // input: Enter triggers submit
@@ -63,16 +63,17 @@ object ChatView {
         .map{case (_,text) => text}
         .filter(_.nonEmpty)
 
-      _ <- Pure(actionSink <-- actionHandler)
-      _ <- Pure(setInputValue <-- actionHandler) //TODO: only trigger clearHandler
-      _ <- Pure(IO{
+      _ <- (actionSink <-- actionHandler)
+      _ <- (setInputValue <-- actionHandler) //TODO: only trigger clearHandler
+      _ <- (IO{
         enterKeyHandler{ event => event.preventDefault() }
         // insertFieldValue { case text => println(s"Insertfield: '${text}'") }
         // enterKeyHandler { _ => println(s"EnterKeyHandler") }
         // submitHandler { _ => println(s"SumbitHandler") }
         // actionHandler { case (_, text) => println(s"ActionHandler: ${text}") }
       })
-      form <- form(
+    } yield {
+      form(
         textArea(
           placeholder := "Create new post. Press Enter to submit.",
           Style("width", "100%"),
@@ -83,8 +84,6 @@ object ChatView {
         input(tpe := "submit", "insert"),
         onSubmit --> submitHandler
       )
-    } yield {
-      form
     }
   }
 
@@ -118,8 +117,8 @@ object ChatView {
     }
 
     val chatHistoryDiv = for {
-      graphSelectionHandler <- (state.graphSelection: Handler[GraphSelection])
-      div <- div(
+      graphSelectionHandler <- (state.graphSelection: IO[Handler[GraphSelection]])
+    } yield div(
         update --> { (e: Element) => println("update hook"); setTimeout(100) { scrollToBottom(e) } },
         Style("height", "100%"),
         Style("overflow", "auto"),
@@ -147,7 +146,6 @@ object ChatView {
           }
         }
       )
-    } yield div
 
     val insertForm = textAreaWithEnter{ text: String =>
       // println(s"SUBMITTING: $text")
@@ -159,7 +157,9 @@ object ChatView {
     }
 
     (for {
-      chat <- div(
+      chatHistoryDiv <- chatHistoryDiv
+      insertForm <- insertForm
+    } yield div(
         Style("height", "100%"),
         backgroundColor <-- bgColor,
 
@@ -180,7 +180,6 @@ object ChatView {
           chatHistoryDiv,
           insertForm
         )
-      )
-    } yield chat).render
+      )).render
   }
 }

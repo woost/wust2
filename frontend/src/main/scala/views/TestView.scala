@@ -10,34 +10,39 @@ import scala.scalajs.js
 
 import outwatch.dom._
 import wust.util.outwatchHelpers._
+import cats.effect.IO
+
+import cats.instances.list._
+import cats.syntax.traverse._
 
 object TestView {
-  def postItem(state: GlobalState, post: Post) = {
-    for {
-      graphSelectionHandler <- (state.graphSelection: Handler[GraphSelection])
-      div <- div(
-        Style("minHeight", "12px"),
-        Style("border", "solid 1px"),
-        Style("cursor", "pointer"),
-        onClick(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler,
-        post.title
-      )
-    } yield div
+  def postItem(post: Post, graphSelectionHandler:Handler[GraphSelection]) = {
+    div(
+      Style("minHeight", "12px"),
+      Style("border", "solid 1px"),
+      Style("cursor", "pointer"),
+      onClick(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler,
+      post.title
+    )
+  }
+
+  def sortedPostItems(state: GlobalState, graphSelectionHandler:Handler[GraphSelection])(implicit ctx: Ctx.Owner) = state.displayGraphWithoutParents.toObservable.map { dg =>
+    val graph = dg.graph
+    val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
+
+    sortedPosts.map { postId =>
+      val post = graph.postsById(postId)
+      postItem(post, graphSelectionHandler)
+    }
   }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    div(
+    (for {
+      graphSelectionHandler <- state.graphSelection:IO[Handler[GraphSelection]]
+    } yield div(
       Style("padding", "20px"),
-      children <--
-        state.displayGraphWithoutParents.toObservable.map { dg =>
-          val graph = dg.graph
-          val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
-
-          sortedPosts.map { postId =>
-            val post = graph.postsById(postId)
-            postItem(state, post)
-          }
-        }
-    ).render
+      children <-- sortedPostItems(state, graphSelectionHandler)
+    ) 
+  ).render
   }
 }
