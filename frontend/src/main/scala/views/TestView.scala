@@ -18,10 +18,10 @@ import cats.syntax.traverse._
 object TestView {
   def postItem(post: Post, graphSelectionHandler:Handler[GraphSelection]) = {
     div(
-      Style("minHeight", "12px"),
-      Style("border", "solid 1px"),
-      Style("cursor", "pointer"),
-      onClick(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler,
+      stl("minHeight") := "12px",
+      stl("border") := "solid 1px",
+      stl("cursor") := "pointer",
+      click(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler,
       post.title
     )
   }
@@ -40,7 +40,7 @@ object TestView {
     (for {
       graphSelectionHandler <- state.graphSelection:IO[Handler[GraphSelection]]
     } yield div(
-      Style("padding", "20px"),
+      stl("padding") := "20px",
       children <-- sortedPostItems(state, graphSelectionHandler)
     ) 
   ).render

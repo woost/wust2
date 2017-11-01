@@ -109,7 +109,7 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
-val outwatchVersion = "0.11-SNAPSHOT"
+val outwatchVersion = "0.11.1-SNAPSHOT"
 
 lazy val util = crossProject
   .settings(commonSettings)

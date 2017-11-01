@@ -19,7 +19,7 @@ import org.scalajs.dom.{ window, document, console }
 import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
 import org.scalajs.dom.{ Event }
 import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-import Elements.{ inlineTextarea, textareaWithEnter }
+import Elements.{ inlineTextarea }
 import scala.scalajs.js
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode
@@ -45,9 +45,9 @@ import wust.util.outwatchHelpers._
 
 object ChatView {
   def textAreaWithEnter(actionSink: Sink[String]) = {
-    // consistent across mobile + desktop
-    // textarea: enter emits keyCode for Enter
-    // input: Enter triggers submit
+    // consistent across mobile + desktop:
+    // - textarea: enter emits keyCode for Enter
+    // - input: Enter triggers submit
     
     for {
       userInput <- createStringHandler()
@@ -59,7 +59,7 @@ object ChatView {
       enterKeyHandler <- createKeyboardHandler()
       actionHandler = submitHandler
         .merge(enterKeyHandler)
-        .withLatestFrom(insertFieldValue) // TODO: is there a transformation which directly forwards the last value without tuple?
+        .withLatestFrom(insertFieldValue)
         .map{case (_,text) => text}
         .filter(_.nonEmpty)
 
@@ -72,19 +72,18 @@ object ChatView {
         // submitHandler { _ => println(s"SumbitHandler") }
         // actionHandler { case (_, text) => println(s"ActionHandler: ${text}") }
       })
-    } yield {
-      form(
-        textArea(
+      form <- form(
+        textarea(
           placeholder := "Create new post. Press Enter to submit.",
-          Style("width", "100%"),
-          onInputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
+          stl("width") := "100%",
+          inputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
           value <-- clearHandler,
-          onKeyDown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
+          keydown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
         ),
         input(tpe := "submit", "insert"),
-        onSubmit --> submitHandler
+        submit --> submitHandler
       )
-    }
+    } yield form
   }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -118,34 +117,35 @@ object ChatView {
 
     val chatHistoryDiv = for {
       graphSelectionHandler <- (state.graphSelection: IO[Handler[GraphSelection]])
-    } yield div(
+      div <- div(
         update --> { (e: Element) => println("update hook"); setTimeout(100) { scrollToBottom(e) } },
-        Style("height", "100%"),
-        Style("overflow", "auto"),
-        Style("padding", "20px"),
-        Style("backgroundColor", "white"),
+        stl("height") := "100%",
+        stl("overflow") := "auto",
+        stl("padding") := "20px",
+        stl("backgroundColor") := "white",
 
         children <-- chatHistory.toObservable.map {
           _.map{ post =>
             val isMine = state.ownPosts(post.id)
             div(
               p(
-                Style("maxWidth", "60%"),
+                stl("maxWidth") := "60%",
                 post.title,
-                Style("backgroundColor", (if (isMine) "rgb(192, 232, 255)" else "#EEE")),
-                Style("float", (if (isMine) "right" else "left")),
-                Style("clear", "both"),
-                Style("padding", "5px 10px"),
-                Style("borderRadius", "7px"),
-                Style("margin", "5px 0px"),
+                stl("backgroundColor") := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
+                stl("float") := (if (isMine) "right" else "left"),
+                stl("clear") := "both",
+                stl("padding") := "5px 10px",
+                stl("borderRadius") := "7px",
+                stl("margin") := "5px 0px",
                 // TODO: What about cursor when selecting text?
-                Style("cursor", "pointer"),
-                onClick(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler //TODO: this is not triggered
+                stl("cursor") := "pointer",
+                click(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler
               )
             )
           }
         }
       )
+    } yield div
 
     val insertForm = textAreaWithEnter{ text: String =>
       // println(s"SUBMITTING: $text")
@@ -156,30 +156,27 @@ object ChatView {
       )
     }
 
-    (for {
-      chatHistoryDiv <- chatHistoryDiv
-      insertForm <- insertForm
-    } yield div(
-        Style("height", "100%"),
-        backgroundColor <-- bgColor,
+    div(
+      stl("height") := "100%",
+      stl("background-color") <-- bgColor,
 
-        div(
-          Style("margin", "0 auto"),
-          Style("maxWidth", "48rem"),
-          Style("width", "48rem"),
-          Style("height", "100%"),
+      div(
+        stl("margin") := "0 auto",
+        stl("maxWidth") := "48rem",
+        stl("width") := "48rem",
+        stl("height") := "100%",
 
-          Style("display", "flex"),
-          Style("flexDirection", "column"),
-          Style("justifyContent", "flexStart"),
-          Style("alignItems", "stretch"),
-          Style("alignContent", "stretch"),
+        stl("display") := "flex",
+        stl("flexDirection") := "column",
+        stl("justifyContent") := "flexStart",
+        stl("alignItems") := "stretch",
+        stl("alignContent") := "stretch",
 
-          h1(child <-- headLineText),
+        h1(child <-- headLineText),
 
-          chatHistoryDiv,
-          insertForm
-        )
-      )).render
+        chatHistoryDiv,
+        insertForm
+      )
+    ).render
   }
 }
