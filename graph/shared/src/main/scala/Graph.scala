@@ -155,6 +155,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     }
   }
 
+  // Get connected components by only considering containment edges
   lazy val connectedContainmentComponents: List[Set[PostId]] = {
     connectedComponents(postIds, containmentNeighbours)
   }
