@@ -132,8 +132,8 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   // Even better:
   // lazy val involvedInContainmentCycle:Set[PostId] = all posts involved in a cycle
 
-  def transitiveChildren(postId: PostId) = _transitiveChildren(postId)
-  private val _transitiveChildren: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
+  def descendants(postId: PostId) = _descendants(postId)
+  private val _descendants: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
     postsById.isDefinedAt(postId) match {
       case true =>
         depthFirstSearch(postId, children) |> { children =>
@@ -143,9 +143,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     }
   }
   //TODO: rename to transitiveParentIds:Iterable[PostId]
-  // Also provide transitiveParents:Iterable[Post]?
-  def transitiveParents(postId: PostId) = _transitiveParents(postId)
-  private val _transitiveParents: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
+  // Also provide ancestors:Iterable[Post]?
+  def ancestors(postId: PostId) = _ancestors(postId)
+  private val _ancestors: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
     postsById.keySet.contains(postId) match {
       case true =>
         depthFirstSearch(postId, parents) |> { parents =>

@@ -48,12 +48,12 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "have transitive parents in cycle" in {
       val graph = Graph(List(1, 2, 3), Nil, List(1 -> 2, 2 -> 3, 3 -> 1))
-      graph.transitiveParents(3).toSet mustEqual Set(3, 2, 1).map(PostId(_))
+      graph.ancestors(3).toSet mustEqual Set(3, 2, 1).map(PostId(_))
     }
 
     "have transitive children in cycle" in {
       val graph = Graph(List(1, 2, 3), Nil, List(1 -> 2, 2 -> 3, 3 -> 1))
-      graph.transitiveChildren(3).toSet mustEqual Set(3, 2, 1).map(PostId(_))
+      graph.descendants(3).toSet mustEqual Set(3, 2, 1).map(PostId(_))
     }
 
     "consistent on consistent graph" in {

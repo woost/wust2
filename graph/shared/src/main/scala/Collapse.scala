@@ -31,7 +31,7 @@ object Collapse {
   }
 
   def getHiddenPosts(graph: Graph, collapsingPosts: Set[PostId]): Set[PostId] = {
-    val candidates = collapsingPosts.flatMap(graph.transitiveChildren)
+    val candidates = collapsingPosts.flatMap(graph.descendants)
     candidates
       .filterNot { child =>
         involvedInCycleWithCollapsedPost(graph, child, collapsingPosts) ||
@@ -67,7 +67,7 @@ object Collapse {
       // children remain visible when:
       // - also contained in other uncollapsed post
       // - involved in containment cycle
-      val visibleChildren = graph.transitiveChildren(parent).filterNot { child =>
+      val visibleChildren = graph.descendants(parent).filterNot { child =>
         hiddenPosts(child) ||
           (!(graph.children(parent) contains child) && graph.involvedInContainmentCycle(child))
       }
@@ -76,11 +76,11 @@ object Collapse {
   }
 
   def involvedInCycleWithCollapsedPost(graph: Graph, child: PostId, collapsing: PostId => Boolean): Boolean = {
-    graph.involvedInContainmentCycle(child) && graph.transitiveChildren(child).exists(collapsing)
+    graph.involvedInContainmentCycle(child) && graph.descendants(child).exists(collapsing)
   }
 
   def hasOneUncollapsedTransitiveParent(graph: Graph, child: PostId, collapsing: Set[PostId]): Boolean = {
-    graph.transitiveParents(child).exists(parent => graph.parents(parent).isEmpty && !collapsing(parent) && reachableByUncollapsedPath(child, parent, graph, collapsing))
+    graph.ancestors(child).exists(parent => graph.parents(parent).isEmpty && !collapsing(parent) && reachableByUncollapsedPath(child, parent, graph, collapsing))
   }
 
   def reachableByUncollapsedPath(childId: PostId, parentId: PostId, graph: Graph, collapsing: Set[PostId]): Boolean = {
@@ -89,6 +89,6 @@ object Collapse {
   }
 
   def highestParents(graph: Graph, child: PostId, predicate: PostId => Boolean): Set[PostId] = {
-    graph.transitiveParents(child).filter(parent => predicate(parent) && graph.parents(parent).forall(!predicate(_))).toSet
+    graph.ancestors(child).filter(parent => predicate(parent) && graph.parents(parent).forall(!predicate(_))).toSet
   }
 }

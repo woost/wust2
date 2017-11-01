@@ -52,7 +52,7 @@ object BoardView {
       val graph = state.displayGraphWithoutParents().graph
       val columns = graph.postIds.filter(!graph.hasParents(_)).map(graph.postsById(_))(breakOut)
       columns.map{ column =>
-        val items = graph.transitiveChildren(column.id).map(graph.postsById(_))(breakOut)
+        val items = graph.descendants(column.id).map(graph.postsById(_))(breakOut)
         (column, items)
       }
     }

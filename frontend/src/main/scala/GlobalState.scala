@@ -88,8 +88,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           currentView().applyOnGraph(graph)
 
         case GraphSelection.Union(parentIds) =>
-          val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) -- parentIds
-          val selectedGraph = graph.filter(transitiveChildren)
+          val descendants = parentIds.flatMap(graph.descendants) -- parentIds
+          val selectedGraph = graph.filter(descendants)
           currentView().applyOnGraph(selectedGraph)
       }
     })
@@ -109,8 +109,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           currentView().applyOnGraph(graph)
 
         case GraphSelection.Union(parentIds) =>
-          val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-          val selectedGraph = graph.filter(transitiveChildren)
+          val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
+          val selectedGraph = graph.filter(descendants)
           currentView().applyOnGraph(selectedGraph)
       }
     })

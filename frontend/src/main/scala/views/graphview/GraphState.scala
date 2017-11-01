@@ -44,7 +44,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
           "2px solid rgba(0,0,0,0.2)" // no children
 
       sp.fontSize = if (hasChildren) {
-        val factor = fontSizeByDepth(rawGraph.parentDepth(p.id)) * fontSizeByTransitiveChildren(rawGraph.transitiveChildren(p.id).size)
+        val factor = fontSizeByDepth(rawGraph.parentDepth(p.id)) * fontSizeByTransitiveChildren(rawGraph.descendants(p.id).size)
         s"${factor * 100.0}%"
       } else "100%"
 
@@ -108,7 +108,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
-    val containments = graph.postIds.flatMap(parentId => graph.transitiveChildren(parentId).map(childId => Containment(parentId, childId)))
+    val containments = graph.postIds.flatMap(parentId => graph.descendants(parentId).map(childId => Containment(parentId, childId)))
 
     containments.map { c =>
       new SimContainment(c, postIdToSimPost(c.parentId), postIdToSimPost(c.childId))
@@ -136,7 +136,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     ordered.map { p =>
       new ContainmentCluster(
         parent = postIdToSimPost(p),
-        children = graph.transitiveChildren(p).map(p => postIdToSimPost(p))(breakOut),
+        children = graph.descendants(p).map(p => postIdToSimPost(p))(breakOut),
         depth = graph.childDepth(p)
       )
     }.toJSArray

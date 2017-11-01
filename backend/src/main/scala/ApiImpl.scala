@@ -145,9 +145,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
       val parentIds = rawParentIds filter graph.postsById.isDefinedAt
-      val transitiveChildren = parentIds.flatMap(graph.transitiveChildren) ++ parentIds
-      val transitiveChildrenWithDirectParents = transitiveChildren ++ parentIds.flatMap(graph.parents)
-      graph removePosts graph.postIds.filterNot(transitiveChildrenWithDirectParents)
+      val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
+      val descendantsWithDirectParents = descendants ++ parentIds.flatMap(graph.parents)
+      graph removePosts graph.postIds.filterNot(descendantsWithDirectParents)
     }
   }
 
