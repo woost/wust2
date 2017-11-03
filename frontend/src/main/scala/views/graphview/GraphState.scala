@@ -4,8 +4,8 @@ import rx._
 import rxext._
 import wust.frontend.Color._
 import wust.frontend.{DevOnly, GlobalState}
-import wust.ids._
 import wust.graph._
+import wust.ids._
 import wust.util.Pipe
 import wust.util.collection._
 

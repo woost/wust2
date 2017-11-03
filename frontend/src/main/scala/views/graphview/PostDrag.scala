@@ -3,16 +3,12 @@ package wust.frontend.views.graphview
 import org.scalajs.d3v4._
 import rx._
 import vectory._
-import autowire._
-import boopickle.Default._
-import wust.frontend.Client
-import wust.ids._
 import wust.graph._
 
+import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scalatags.JsDom.all._
-import scala.concurrent.ExecutionContext
 
 object DraggingPostSelection extends DataSelection[SimPost] {
   override val tag = "div"
@@ -38,8 +34,8 @@ object DraggingPostSelection extends DataSelection[SimPost] {
 }
 
 class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit = () => (), onPostDragEnd: () => Unit = () => ())(implicit ec: ExecutionContext) {
+  import d3State.{simulation, transform}
   import graphState.state.persistence
-  import d3State.{ simulation, transform }
 
   val dragActions = js.Array(
     DragAction("connect", { (dragging: SimPost, target: SimPost) => persistence.addChanges(addConnections = Set(Connection(dragging.id, target.id))) }),

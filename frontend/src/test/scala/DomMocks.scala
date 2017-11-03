@@ -1,8 +1,8 @@
 package wust.frontend
 
 trait LocalStorageMock {
-  import scala.scalajs.js
   import scala.collection.mutable
+  import scala.scalajs.js
 
   if(js.isUndefined(js.Dynamic.global.localStorage))
     js.Dynamic.global.updateDynamic("localStorage")(new js.Object {

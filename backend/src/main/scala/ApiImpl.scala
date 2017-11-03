@@ -5,13 +5,14 @@ import wust.backend.DbConversions._
 import wust.db.Db
 import wust.graph._
 import wust.ids._
-import wust.util.{ RandomUtil, RichFuture }
+import wust.util.RandomUtil
+
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-import scala.concurrent.{ ExecutionContext, Future }
-
 class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
-  import holder._, dsl._
+  import dsl._
+  import holder._
 
   override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO permissions

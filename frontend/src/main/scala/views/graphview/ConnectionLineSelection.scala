@@ -1,9 +1,7 @@
 package wust.frontend.views.graphview
 
-import boopickle.Default._
 import org.scalajs.d3v4._
 import wust.frontend._
-import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -38,7 +36,7 @@ class ConnectionElementSelection(graphState: GraphState) extends DataSelection[S
       .style("pointer-events", "auto") // parent has pointer-events disabled, enable explicitly for the x button.
       .style("cursor", "pointer")
       .on("click", { (e: SimConnection) =>
-        import autowire._
+
 
         DevPrintln(s"\nDelete Connection: ${e.sourceId} -> ${e.targetId}")
         persistence.addChanges(delConnections = Set(e.connection))

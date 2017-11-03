@@ -2,7 +2,7 @@ package wust.db
 
 import java.util.UUID.randomUUID
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
+import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.getquill._
 import org.scalatest._
 

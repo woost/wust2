@@ -3,16 +3,16 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import akka.actor._
-import akka.testkit.{ ImplicitSender, TestActorRef, TestKit }
+import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import autowire.Core.Request
 import boopickle.Default._
 import org.scalatest._
 import wust.framework.message._
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.collection.mutable
 
 class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, String, String, Option[String]] {
   val clients = mutable.ArrayBuffer.empty[NotifiableClient[String]]

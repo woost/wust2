@@ -1,9 +1,6 @@
 package wust.backend
 
-import scala.concurrent.{ Future, Await }
-import scala.concurrent.duration._
-
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 case class RequestResponse[T, Event](result: T, events: Seq[Event] = Seq.empty)
 case class StateEffect[State, T, Event](state: Future[State], response: Future[RequestResponse[T, Event]])

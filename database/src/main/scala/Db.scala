@@ -1,15 +1,12 @@
 package wust.db
 
+import com.typesafe.config.Config
 import io.getquill._
 import wust.ids._
-import com.typesafe.config.Config
-
-import scala.concurrent.{ ExecutionContext, Future, Await }
-import scala.concurrent.duration._
-import scalaz.Tag
-import wust.ids._
 import wust.util._
-import scala.util.{ Try, Success, Failure }
+
+import scala.concurrent.{ExecutionContext, Future}
+import scalaz.Tag
 
 object Db {
   def apply(config: Config) = {

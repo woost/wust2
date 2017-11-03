@@ -1,7 +1,7 @@
 package wust.util
 
-import scala.meta._
 import scala.collection.immutable.Seq
+import scala.meta._
 
 object CallLog {
   def valueWithLogs(typeName: Type.Name, value: Defn.Val, logger: Term, accTimeVar: Term.Name): Defn.Val = {

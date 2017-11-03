@@ -1,11 +1,6 @@
 package wust.frontend
 
-import org.scalajs.dom.window
-import org.scalajs.dom.experimental.{Notification, NotificationOptions}
-import scalajs.js
-import org.scalajs.dom._
-import scalajs.js.JSConverters._
-import wust.util.EventTracker.sendEvent
+import org.scalajs.dom.experimental.Notification
 
 object Notifications extends Notifications
 

@@ -1,8 +1,8 @@
 package wust
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Success, Failure }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 package object util {
   implicit class Pipe[T](val v: T) extends AnyVal {

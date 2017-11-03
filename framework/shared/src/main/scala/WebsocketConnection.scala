@@ -1,8 +1,6 @@
 package wust.framework
 
 import java.nio.ByteBuffer
-
-import scala.collection.mutable
 import java.util.{Timer, TimerTask}
 
 trait WebsocketListener {

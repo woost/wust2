@@ -3,11 +3,10 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import akka.actor._
-import akka.http.scaladsl.model.ws.{ Message => WSMessage }
+import akka.http.scaladsl.model.ws.{Message => WSMessage}
 import akka.pattern.pipe
 import autowire.Core.Request
 import wust.framework.message._
-import wust.util.Pipe
 import wust.util.time.StopWatch
 
 import scala.concurrent.Future
@@ -46,9 +45,9 @@ class ConnectedClient[Event, PublishEvent, Failure, State](
   messages: Messages[Event, Failure],
   handler: RequestHandler[Event, PublishEvent, Failure, State]) extends Actor {
   import ConnectedClient._
+  import context.dispatcher
   import handler._
   import messages._
-  import context.dispatcher
 
   def connected(outgoing: ActorRef) = {
     val client = new NotifiableClient[PublishEvent](self)

@@ -2,17 +2,16 @@ package wust.framework
 
 import java.nio.ByteBuffer
 
-import akka.actor.ActorSystem
 import akka.Done
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.stream.{ ActorMaterializer, OverflowStrategy }
-import akka.stream.KillSwitches
-import akka.stream.scaladsl._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ws._
+import akka.stream.scaladsl._
+import akka.stream.{ActorMaterializer, KillSwitches, OverflowStrategy}
 import akka.util.ByteString
 
-import scala.concurrent.{ Promise, Future }
+import scala.concurrent.{Future, Promise}
 
 object AkkaHelper {
   implicit class PeekableSource[T, M](val src: Source[T, M]) extends AnyVal {
@@ -23,7 +22,7 @@ object AkkaHelper {
     }
   }
 }
-import AkkaHelper._
+import wust.framework.AkkaHelper._
 
 class AkkaWebsocketConnection(implicit system: ActorSystem) extends WebsocketConnection {
   implicit val materializer = ActorMaterializer()

@@ -1,5 +1,6 @@
-import wust.util.callLog
 import org.scalatest._
+import wust.util.callLog
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @callLog(println)

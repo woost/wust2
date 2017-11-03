@@ -5,10 +5,10 @@ import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._
 import wust.db.Db
-import wust.ids._
 import wust.graph._
+import wust.ids._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 @derive(copyF)
 case class State(auth: Option[JWTAuthentication], graph: Graph) {

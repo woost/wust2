@@ -1,15 +1,13 @@
 package wust.backend
 
 import wust.api._
-import wust.framework._
-import collection.mutable
-import wust.ids._
 import wust.db.Db
-import wust.graph._
-import scala.concurrent.{Future, ExecutionContext}
-import scala.util.{Success,Failure}
+import wust.framework._
+import wust.ids._
+
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
-import DbConversions._
 
 case class RequestEvent(events: Seq[ApiEvent.Public], postGroups: Map[PostId, Set[GroupId]])
 

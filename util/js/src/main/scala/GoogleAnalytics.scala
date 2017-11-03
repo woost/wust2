@@ -1,7 +1,7 @@
 package wust.util
 
 import scala.scalajs.js
-import js.annotation.JSGlobalScope
+import scala.scalajs.js.annotation.JSGlobalScope
 
 // Google Analytics Event Tracking documentation:
 // https://developers.google.com/analytics/devguides/collection/analyticsjs/events

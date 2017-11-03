@@ -3,7 +3,6 @@ package wust.backend
 import org.scalatest._
 
 import scala.concurrent.Future
-import scala.collection.mutable
 
 class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   private def newStateHolder[T](state: T) = {
@@ -57,7 +56,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   "execute requestResponse function" in {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.{ respondWithEvents, responseFunctionIsExecuted }
+    import holder.{respondWithEvents, responseFunctionIsExecuted}
 
     val res: Future[Int] = { (state: String) =>
       Future.successful(respondWithEvents(2, 666))
@@ -73,7 +72,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   "execute stateEffect function" in {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.{ respondWithEvents, effectFunctionIsExecuted }
+    import holder.{effectFunctionIsExecuted, respondWithEvents}
 
     val nextState = "new"
     val res: Future[Int] = { (state: String) =>

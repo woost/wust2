@@ -1,13 +1,12 @@
 package wust.backend
 
 import org.scalatest._
-import wust.backend.auth.JWT
 import wust.api._
-import wust.ids._
-import wust.db.{ Db, Data }
-import DbConversions._
+import wust.backend.auth.JWT
+import wust.db.Data
 import wust.graph._
-import scala.concurrent.Future
+import wust.ids._
+
 import scala.concurrent.duration._
 
 class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks {

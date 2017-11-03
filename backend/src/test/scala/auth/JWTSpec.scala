@@ -3,6 +3,7 @@ package wust.backend.auth
 import org.scalatest._
 import wust.graph.User
 import wust.ids._
+
 import scala.concurrent.duration._
 
 class JWTSpec extends FreeSpec with MustMatchers {

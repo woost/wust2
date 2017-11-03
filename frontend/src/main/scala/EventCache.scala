@@ -1,7 +1,6 @@
 package wust.frontend
 
 import rx._
-import rxext._
 import wust.api._
 
 class EventCache(state: GlobalState)(implicit ctx: Ctx.Owner) {

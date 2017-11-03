@@ -1,25 +1,12 @@
 package wust.frontend.views.graphview
 
-import autowire._
-import boopickle.Default._
 import org.scalajs.d3v4._
 import rx._
-import rxext._
 import wust.frontend._
-import wust.util.collection._
-import wust.ids._
+import wust.frontend.views.Elements
 import wust.graph._
-import wust.frontend.views.{ Elements }
-import org.scalajs.dom.raw.{ HTMLElement }
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.math._
-import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
-import wust.graph.GraphSelection
-import wust.util.EventTracker.sendEvent
-import collection.breakOut
-import wust.frontend.Color._
 import scala.scalajs.js.timers.setTimeout
 
 class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: Ctx.Owner) extends DataSelection[PostCreatorMenu] {
@@ -28,13 +15,12 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
   override val tag = "div"
   override def enter(menu: Enter[PostCreatorMenu]) {
     menu.append { (postCreatorMenu: PostCreatorMenu) =>
-      import graphState.rxFocusedSimPost
+      import Elements.textareaWithEnter
       import graphState.rxPostIdToSimPost
+      import org.scalajs.dom.Event
+      import org.scalajs.dom.raw.HTMLTextAreaElement
+
       import scalatags.JsDom.all._
-      import org.scalajs.dom.{ Event }
-      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-      import scalatags.rx.all._
-      import Elements.{ inlineTextarea, textareaWithEnter }
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
       def div = span(display.block) // this is a workaround to avoid using divs

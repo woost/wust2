@@ -5,9 +5,9 @@ import wust.ids._
 import wust.util.Pipe
 import wust.util.algorithm._
 import wust.util.collection._
-import scalaz._
 
-import collection.mutable
+import scala.collection.mutable
+import scalaz._
 
 case class Ownership(postId: PostId, groupId: GroupId)
 case class Membership(userId: UserId, groupId: GroupId)

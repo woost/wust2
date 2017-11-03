@@ -1,15 +1,10 @@
 package wust.frontend.views
 
-import org.scalajs.dom._
-import rx._
 import wust.graph._
 import wust.ids._
-import scala.util.Try
 
+import scala.util.Try
 import scalaz.Tag
-import scalatags.JsDom.TypedTag
-import scalatags.JsDom.all._
-import scalatags.rx.all._
 
 sealed trait ViewPage
 object ViewPage {

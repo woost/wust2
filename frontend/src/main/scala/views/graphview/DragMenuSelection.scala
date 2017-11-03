@@ -1,16 +1,9 @@
 package wust.frontend.views.graphview
 
-import autowire._
-import boopickle.Default._
 import org.scalajs.d3v4._
-import wust.frontend._
-import wust.ids._
-import wust.api._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
 
 class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) extends DataSelection[SimPost] {
   val menuOuterRadius = 100.0

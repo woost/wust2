@@ -2,13 +2,12 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLElement
-import rx._, rxext._
+import rx._
 import wust.frontend._
 import wust.util.collection._
-import wust.util.EventTracker.sendEvent
 
+import scala.collection.breakOut
 import scalatags.JsDom.all._
-import collection.breakOut
 
 class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag) extends DataSelection[SimPost] {
   import graphState.rxFocusedSimPost

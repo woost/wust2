@@ -3,15 +3,13 @@ package wust.frontend.views.graphview
 import org.scalajs.d3v4._
 import org.scalajs.dom
 import rx._
+import vectory._
 import wust.frontend.Color._
-import wust.frontend.PostCreatorMenu
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.{ console }
+import wust.frontend.{DevOnly, GlobalState, PostCreatorMenu}
 import wust.graph._
 import wust.util.Pipe
-import scala.concurrent.ExecutionContext
-import vectory._
 
+import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scalatags.JsDom.all._
@@ -51,7 +49,7 @@ class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation
   val graphState = new GraphState(state)
   val d3State = new D3State(disableSimulation)
   val postDrag = new PostDrag(graphState, d3State, onPostDrag _, onPostDragEnd _)
-  import state.{ displayGraphWithoutParents => rxDisplayGraph, _ }
+  import state.{displayGraphWithoutParents => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data

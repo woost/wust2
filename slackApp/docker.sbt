@@ -1,7 +1,5 @@
 enablePlugins(DockerPlugin)
 
-import sbtdocker.Instructions.Raw
-
 dockerfile in docker := {
   val artifact: File = assembly.value
   val artifactPath = s"/app/${artifact.name}"

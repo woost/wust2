@@ -1,9 +1,9 @@
 package wust.backend
 
-import config.Config
 import scribe._
 import scribe.formatter.FormatterBuilder
 import scribe.writer.ConsoleWriter
+import wust.backend.config.Config
 
 object Main extends App {
   val formatter = FormatterBuilder()

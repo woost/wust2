@@ -2,14 +2,12 @@ package wust.frontend
 
 import rx._
 import rxext._
-import wust.api._
-import wust.frontend.views.{ ViewConfig, ViewPage }
-import wust.ids._
-import wust.graph._
-import org.scalajs.dom.{ window, console }
-import org.scalajs.dom.experimental.Notification
-import wust.util.EventTracker.sendEvent
 import vectory._
+import wust.api._
+import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.graph._
+import wust.ids._
+import wust.util.EventTracker.sendEvent
 
 case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50

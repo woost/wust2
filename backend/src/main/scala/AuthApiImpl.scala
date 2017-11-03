@@ -10,7 +10,7 @@ import wust.util.RichFuture
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi {
-  import holder._, dsl._
+  import holder._
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 

@@ -2,8 +2,8 @@ package wust.util
 
 import com.typesafe.config.ConfigValue
 import pureconfig._
-import pureconfig.syntax.PimpedConfigValue
 import pureconfig.error.KeyNotFound
+import pureconfig.syntax.PimpedConfigValue
 
 object Config {
   implicit def hint[T] =

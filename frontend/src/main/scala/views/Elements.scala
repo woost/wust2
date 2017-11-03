@@ -1,13 +1,12 @@
 package wust.frontend.views
 
-import org.scalajs.dom.console
-import org.scalajs.dom.Event
-import org.scalajs.dom.raw.{HTMLElement, HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
+import org.scalajs.dom.{Event, KeyboardEvent}
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.KeyboardEvent
-import scalatags.JsDom.all._
-import scalatags.JsDom.TypedTag
 import org.scalajs.dom.html.TextArea
+import org.scalajs.dom.raw.{HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
+
+import scalatags.JsDom.TypedTag
+import scalatags.JsDom.all._
 
 //TODO: merge with util.Tags
 object Elements {

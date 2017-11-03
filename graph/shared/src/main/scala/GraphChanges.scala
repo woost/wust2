@@ -1,7 +1,6 @@
 package wust.graph
 
 import wust.ids._
-import derive.derive
 
 case class GraphChanges(
   addPosts:        Set[Post]        = Set.empty,

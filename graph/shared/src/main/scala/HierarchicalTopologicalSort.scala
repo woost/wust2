@@ -1,9 +1,8 @@
 package wust.graph
 
-import wust.ids._
 import wust.util.algorithm._
 
-import scala.collection.{IterableLike, breakOut, mutable}
+import scala.collection.{IterableLike, mutable}
 
 // http://blog.gapotchenko.com/stable-topological-sort
 // https://en.wikipedia.org/wiki/Feedback_arc_set

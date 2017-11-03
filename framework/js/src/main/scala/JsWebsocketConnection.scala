@@ -3,7 +3,9 @@ package wust.framework
 import java.nio.ByteBuffer
 
 import org.scalajs.dom._
-import scala.scalajs.js.typedarray._, TypedArrayBufferOps._
+
+import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+import scala.scalajs.js.typedarray._
 import scala.util.Try
 
 class BufferedFunction[T](f: T => Boolean) extends (T => Unit) {

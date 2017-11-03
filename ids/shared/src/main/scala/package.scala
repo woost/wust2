@@ -1,9 +1,10 @@
 package wust
 
 import boopickle.Default._
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-import scalaz._
+import io.circe._
 import wust.idtypes._
+
+import scalaz._
 
 package object ids {
   type IdType = Long

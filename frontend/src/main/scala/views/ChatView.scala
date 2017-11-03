@@ -1,33 +1,20 @@
 package wust.frontend.views
 
-import wust.frontend.Color._
 import org.scalajs.d3v4._
+import org.scalajs.dom.raw.HTMLTextAreaElement
+import org.scalajs.dom.{Event, window}
 import rx._
 import rxext._
+import wust.frontend.Color._
 import wust.frontend._
-import wust.ids._
+import wust.frontend.views.Elements.textareaWithEnter
 import wust.graph._
-import wust.util.Pipe
-import wust.util.collection._
-import autowire._
-import boopickle.Default._
-import wust.api._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scalaz.Tag
-import scala.math.Ordering
 
-import org.scalajs.dom.{ window, document, console }
-import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
-import org.scalajs.dom.{ Event }
-import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-import Elements.{ inlineTextarea, textareaWithEnter }
-import scalatags.JsDom.all._
-import scala.scalajs.js
-import scalatags.rx.all._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.scalajs.js.timers.setTimeout
-import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.{ Event, KeyboardEvent }
-import scala.util.control.NonFatal
+import scalatags.JsDom.all._
+import scalatags.rx.all._
+import scalaz.Tag
 
 object ChatView {
 

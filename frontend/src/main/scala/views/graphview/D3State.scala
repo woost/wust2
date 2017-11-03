@@ -2,6 +2,7 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.window
+
 import scala.scalajs.js
 
 class Forces {

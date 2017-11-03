@@ -1,14 +1,12 @@
 package wust.framework
 
 import java.nio.ByteBuffer
+import java.util.{Timer, TimerTask}
 
 import boopickle.Default._
 import wust.framework.message._
-import scala.util.control.NonFatal
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.control.NonFatal
-import java.util.{ Timer, TimerTask }
+import scala.concurrent.{ExecutionContext, Future}
 
 trait IncidentHandler[Event, Failure] {
   def fromError(error: Failure): Throwable

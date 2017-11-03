@@ -1,13 +1,12 @@
 package wust.backend
 
 import org.scalatest._
+import wust.api._
 import wust.backend.auth.JWT
+import wust.db.Data
 import wust.graph._
 import wust.ids._
-import wust.db.Data
-import wust.api._
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {

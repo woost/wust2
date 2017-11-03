@@ -3,12 +3,12 @@ package wust.framework
 import wust.framework.message._
 import wust.util.time.StopWatch
 
-import scala.concurrent.{ ExecutionContext, Promise }
+import scala.concurrent.{ExecutionContext, Promise}
 
 case object TimeoutException extends Exception
 
 object TimeoutPromise {
-  import java.util.{ Timer, TimerTask }
+  import java.util.{Timer, TimerTask}
 
   def apply[T](timeoutMillis: Int)(implicit ctx: ExecutionContext): Promise[T] = {
     val promise = Promise[T]()

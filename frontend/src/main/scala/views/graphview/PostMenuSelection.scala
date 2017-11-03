@@ -1,29 +1,22 @@
 package wust.frontend.views.graphview
 
-import autowire._
-import boopickle.Default._
 import org.scalajs.d3v4._
+import org.scalajs.dom.raw.HTMLElement
 import rx._
 import rxext._
-import wust.frontend._
-import wust.util.collection._
-import wust.ids._
-import wust.graph._
-import wust.frontend.views.{Elements}
-import org.scalajs.dom.raw.{HTMLElement}
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.math._
-import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
-import wust.graph.GraphSelection
-import wust.util.EventTracker.sendEvent
-import collection.breakOut
 import wust.frontend.Color._
+import wust.frontend._
+import wust.frontend.views.Elements
+import wust.graph.{GraphSelection, _}
+import wust.ids._
+
+import scala.collection.breakOut
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.scalajs.js
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: Ctx.Owner) extends DataSelection[SimPost] {
-  import graphState.state.persistence
   import graphState.state
+  import graphState.state.persistence
 
   val menuActions = (
     MenuAction("Focus", { (p: SimPost) => state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
@@ -50,14 +43,14 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
   override val tag = "div"
   override def enter(menu: Enter[SimPost]) {
     menu.append { (simPost: SimPost) =>
-      import graphState.rxFocusedSimPost
-      import graphState.rxPostIdToSimPost
-      import scalatags.JsDom.all._
-      import org.scalajs.dom.{Event}
-      import org.scalajs.dom.raw.{HTMLTextAreaElement}
-      import scalatags.rx.all._
-      import state.persistence
       import Elements.{inlineTextarea, textareaWithEnter}
+      import graphState.{rxFocusedSimPost, rxPostIdToSimPost}
+      import org.scalajs.dom.Event
+      import org.scalajs.dom.raw.HTMLTextAreaElement
+      import state.persistence
+
+      import scalatags.JsDom.all._
+      import scalatags.rx.all._
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
       def div = span(display.block) // this is a workaround to avoid using divs

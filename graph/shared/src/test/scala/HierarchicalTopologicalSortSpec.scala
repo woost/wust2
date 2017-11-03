@@ -1,10 +1,6 @@
 package wust.graph
 
 import org.scalatest._
-import wust.ids._
-import wust.util._
-
-import scala.collection.breakOut
 
 class HierarchicalTopologicalSortSpec extends FreeSpec with MustMatchers {
   // implicit def intToUuidType(id: Int): UuidType = id.toString
