@@ -10,7 +10,7 @@ import autowire._
 import boopickle.Default._
 import scala.concurrent.ExecutionContext
 import scala.util.Success
-import wust.util.EventTracker.sendEvent
+import wust.util.Analytics
 import scala.collection.mutable
 import scala.scalajs.js.timers.setTimeout
 
@@ -100,13 +100,13 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
             changesInTransit() = Nil
 
             val compactChanges = newChanges.foldLeft(GraphChanges.empty)(_ merge _)
-            if (compactChanges.addPosts.nonEmpty) sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
-            if (compactChanges.addConnections.nonEmpty) sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
-            if (compactChanges.addContainments.nonEmpty) sendEvent("graphchanges", "addContainments", "success", compactChanges.addContainments.size)
-            if (compactChanges.updatePosts.nonEmpty) sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
-            if (compactChanges.delPosts.nonEmpty) sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
-            if (compactChanges.delConnections.nonEmpty) sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
-            if (compactChanges.delContainments.nonEmpty) sendEvent("graphchanges", "delContainments", "success", compactChanges.delContainments.size)
+            if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
+            if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
+            if (compactChanges.addContainments.nonEmpty) Analytics.sendEvent("graphchanges", "addContainments", "success", compactChanges.addContainments.size)
+            if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
+            if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
+            if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
+            if (compactChanges.delContainments.nonEmpty) Analytics.sendEvent("graphchanges", "delContainments", "success", compactChanges.delContainments.size)
 
             // flush changes that could not be sent during this transmission
             setTimeout(0)(flush())
@@ -118,7 +118,7 @@ class GraphPersistence(state: GlobalState)(implicit ctx: Ctx.Owner) {
             )
 
             println(s"failed to persist localChanges: $newChanges")
-            sendEvent("graphchanges", "flush", "failure", newChanges.size)
+            Analytics.sendEvent("graphchanges", "flush", "failure", newChanges.size)
         }
       case _ => println(s"caching localChanges: $newChanges")
     }

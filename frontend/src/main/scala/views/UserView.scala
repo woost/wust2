@@ -16,7 +16,7 @@ import wust.ids._
 import scala.concurrent.Future
 import scala.collection.mutable
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import wust.util.EventTracker.sendEvent
+import wust.util.Analytics
 
 object UserView {
   import Elements._
@@ -27,9 +27,9 @@ object UserView {
     if (success) {
       userField.value = ""
       passwordField.value = ""
-      sendEvent("auth", topic, "success")
+      Analytics.sendEvent("auth", topic, "success")
     } else {
-      sendEvent("auth", topic, "failure")
+      Analytics.sendEvent("auth", topic, "failure")
     }
   }
 

@@ -5,6 +5,7 @@ import org.scalajs.dom.raw.HTMLElement
 import rx._
 import wust.frontend._
 import wust.util.collection._
+import wust.util.Analytics
 
 import scala.collection.breakOut
 import scalatags.JsDom.all._

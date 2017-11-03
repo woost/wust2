@@ -7,7 +7,10 @@ import wust.api._
 import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.graph._
 import wust.ids._
-import wust.util.EventTracker.sendEvent
+import org.scalajs.dom.{ window, console }
+import org.scalajs.dom.experimental.Notification
+import wust.util.Analytics
+import vectory._
 
 case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
@@ -134,7 +137,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
         currentUser() = Option(auth.user)
         ClientCache.currentAuth = Option(auth)
         if (auth.user.isImplicit) {
-          sendEvent("auth", "loginimplicit", "success")
+          Analytics.sendEvent("auth", "loginimplicit", "success")
         }
       case LoggedOut =>
         currentUser() = None

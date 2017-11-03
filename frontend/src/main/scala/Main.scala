@@ -5,7 +5,7 @@ import boopickle.Default._
 import org.scalajs.dom._
 import rx._
 import rxext._
-import wust.util.EventTracker.sendEvent
+import wust.util.Analytics
 import wust.api.ApiEvent
 import wust.ids._
 import wust.graph.{ GraphSelection, Graph }
@@ -85,10 +85,10 @@ object Main {
       viewConfig.invite foreach { token =>
         Client.api.acceptGroupInvite(token).call().onComplete {
           case Success(Some(_)) =>
-            sendEvent("group", "invitelink", "success")
+            Analytics.sendEvent("group", "invitelink", "success")
           case failedResult =>
             println(s"Failed to accept group invite: $failedResult")
-            sendEvent("group", "invitelink", "failure")
+            Analytics.sendEvent("group", "invitelink", "failure")
         }
       }
 

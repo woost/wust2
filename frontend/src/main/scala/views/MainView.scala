@@ -18,7 +18,7 @@ import scalatags.JsDom.TypedTag
 import wust.api._
 import wust.graph._
 import wust.frontend.{ RichPostFactory, Client }
-import wust.util.EventTracker.sendEvent
+import wust.util.Analytics
 import scala.util.{ Try, Success, Failure }
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
@@ -128,9 +128,9 @@ object MainView {
               VarTuple(state.selectedGroupId, Option(groupId)),
               VarTuple(state.graphSelection, GraphSelection.Union(Set(newPost.id)))
             )
-            sendEvent("group", "created", "success")
+            Analytics.sendEvent("group", "created", "success")
           case Failure(_) =>
-            sendEvent("group", "created", "failure")
+            Analytics.sendEvent("group", "created", "failure")
         }
       }
     }).render
@@ -165,7 +165,7 @@ object MainView {
         val userName = field.value
         state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).call().foreach { success =>
           field.value = ""
-          sendEvent("group", "invitebyname", if (success) "success" else "failure")
+          Analytics.sendEvent("group", "invitebyname", if (success) "success" else "failure")
         })
 
         false
@@ -193,7 +193,7 @@ object MainView {
     select(onchange := { (e: Event) =>
       val value = e.target.asInstanceOf[HTMLSelectElement].value
       state.viewPage() = ViewPage.fromString(value)
-      sendEvent("view", "select", value)
+      Analytics.sendEvent("view", "select", value)
     }, pages.map { page =>
       val attrs = if (page == state.viewPage()) Seq(selected) else Seq.empty
       option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
@@ -243,7 +243,7 @@ object MainView {
       val newPost = Post.newId(text)
       state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackPostId, newPost.id)))
       field.value = ""
-      sendEvent("feedback", "submit", "")
+      Analytics.sendEvent("feedback", "submit", "")
       false
     }
     val feedbackField = textareaWithEnter(submitInsert)(
@@ -436,10 +436,10 @@ object MainView {
       alignContent.stretch,
 
       topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      state.viewPage.map { x => 
+      state.viewPage.map { x =>
         val element = viewPagesMap(x)().asInstanceOf[HTMLElement]
         // element.style.flex = "1" // not supported yet by dom api
-        element.style.setProperty("flex","1")
+        element.style.setProperty("flex", "1")
         element.style.overflow = "auto"
         element
       },

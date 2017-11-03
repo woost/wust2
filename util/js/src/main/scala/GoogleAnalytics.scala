@@ -7,8 +7,8 @@ import scala.scalajs.js.annotation.JSGlobalScope
 // https://developers.google.com/analytics/devguides/collection/analyticsjs/events
 
 // from https://gist.github.com/spaced/34544395414404b8036a
-object EventTracker {
-  def isScriptLoaded = js.Dynamic.global.ga.isInstanceOf[js.Function]
+object Analytics {
+  private def isScriptLoaded = js.Dynamic.global.ga.isInstanceOf[js.Function]
   def sendEvent(category: String, action: String, label: String): Unit = {
     if (isScriptLoaded) GoogleAnalytics.ga("send", "event", category, action, label)
   }

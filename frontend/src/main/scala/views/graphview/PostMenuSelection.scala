@@ -9,10 +9,18 @@ import wust.frontend._
 import wust.frontend.views.Elements
 import wust.graph.{GraphSelection, _}
 import wust.ids._
+import wust.graph._
+import wust.frontend.views.{Elements}
+import org.scalajs.dom.raw.{HTMLElement}
 
 import scala.collection.breakOut
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import wust.graph.GraphSelection
+import wust.util.Analytics
+import collection.breakOut
+import wust.frontend.Color._
 
 class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: Ctx.Owner) extends DataSelection[SimPost] {
   import graphState.state
@@ -50,7 +58,11 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
       import state.persistence
 
       import scalatags.JsDom.all._
+      import org.scalajs.dom.{ Event }
+      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
       import scalatags.rx.all._
+      import state.persistence
+      import Elements.{inlineTextarea, textareaWithEnter}
 
       //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
       def div = span(display.block) // this is a workaround to avoid using divs
@@ -134,7 +146,7 @@ class PostMenuSelection(graphState: GraphState, d3State: D3State)(implicit ctx: 
           margin := "2px", padding := "1px 0px 1px 5px",
           borderRadius := "2px",
           span("×", onclick := { () =>
-            val addedGrandParents:Set[Containment] = if (parents.size == 1)
+            val addedGrandParents: Set[Containment] = if (parents.size == 1)
               state.displayGraphWithParents.now.graph.parents(p.id).map(Containment(_, simPost.id))
             else
               Set.empty
