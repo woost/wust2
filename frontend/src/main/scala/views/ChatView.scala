@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLTextAreaElement
-import org.scalajs.dom.{Event, window}
+import org.scalajs.dom.{ Event, window }
 import rx._
 import rxext._
 import scalaz.Tag
@@ -48,42 +48,39 @@ object ChatView {
     // consistent across mobile + desktop:
     // - textarea: enter emits keyCode for Enter
     // - input: Enter triggers submit
-    
-    for {
-      userInput <- createStringHandler()
-      setInputValue <- createStringHandler()
-      clearHandler = setInputValue.map(_ => "")
-      insertFieldValue = userInput.merge(clearHandler)
 
-      submitHandler <- createHandler[Event]()
-      enterKeyHandler <- createKeyboardHandler()
-      actionHandler = submitHandler
-        .merge(enterKeyHandler)
-        .withLatestFrom(insertFieldValue)
-        .map{case (_,text) => text}
-        .filter(_.nonEmpty)
+    val userInput = createStringHandler():Handler[String]
+    val setInputValue = createStringHandler():Handler[String]
+    val clearHandler = setInputValue.map(_ => "")
+    val insertFieldValue = userInput.merge(clearHandler)
 
-      _ <- (actionSink <-- actionHandler)
-      _ <- (setInputValue <-- actionHandler) //TODO: only trigger clearHandler
-      _ <- (IO{
-        enterKeyHandler{ event => event.preventDefault() }
-        // insertFieldValue { case text => println(s"Insertfield: '${text}'") }
-        // enterKeyHandler { _ => println(s"EnterKeyHandler") }
-        // submitHandler { _ => println(s"SumbitHandler") }
-        // actionHandler { case (_, text) => println(s"ActionHandler: ${text}") }
-      })
-      form <- form(
-        textarea(
-          placeholder := "Create new post. Press Enter to submit.",
-          stl("width") := "100%",
-          inputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
-          value <-- clearHandler,
-          keydown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
-        ),
-        input(tpe := "submit", "insert"),
-        submit --> submitHandler
-      )
-    } yield form
+    val submitHandler = createHandler[Event]()
+    val enterKeyHandler = createKeyboardHandler()
+    val actionHandler = submitHandler
+      .merge(enterKeyHandler)
+      .withLatestFrom(insertFieldValue)
+      .map{ case (_, text) => text }
+      .filter(_.nonEmpty)
+
+    actionSink <-- actionHandler
+    setInputValue <-- actionHandler //TODO: only trigger clearHandler
+    enterKeyHandler{ event => event.preventDefault() }
+    // insertFieldValue { case text => println(s"Insertfield: '${text}'") }
+    // enterKeyHandler { _ => println(s"EnterKeyHandler") }
+    // submitHandler { _ => println(s"SumbitHandler") }
+    // actionHandler { case (_, text) => println(s"ActionHandler: ${text}") }
+
+    form(
+      textarea(
+        placeholder := "Create new post. Press Enter to submit.",
+        stl("width") := "100%",
+        inputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
+        value <-- clearHandler,
+        keydown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
+      ),
+      input(tpe := "submit", value := "insert"),
+      submit --> submitHandler
+    )
   }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -115,37 +112,34 @@ object ChatView {
       } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
     }
 
-    val chatHistoryDiv = for {
-      graphSelectionHandler <- (state.graphSelection: IO[Handler[GraphSelection]])
-      div <- div(
-        update --> { (e: Element) => println("update hook"); setTimeout(100) { scrollToBottom(e) } },
-        stl("height") := "100%",
-        stl("overflow") := "auto",
-        stl("padding") := "20px",
-        stl("backgroundColor") := "white",
+    val chatHistoryDiv = div(
+      update --> { (e: Element) => println("update hook"); setTimeout(100) { scrollToBottom(e) } },
+      stl("height") := "100%",
+      stl("overflow") := "auto",
+      stl("padding") := "20px",
+      stl("backgroundColor") := "white",
 
-        children <-- chatHistory.toObservable.map {
-          _.map{ post =>
-            val isMine = state.ownPosts(post.id)
-            div(
-              p(
-                stl("maxWidth") := "60%",
-                post.title,
-                stl("backgroundColor") := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
-                stl("float") := (if (isMine) "right" else "left"),
-                stl("clear") := "both",
-                stl("padding") := "5px 10px",
-                stl("borderRadius") := "7px",
-                stl("margin") := "5px 0px",
-                // TODO: What about cursor when selecting text?
-                stl("cursor") := "pointer",
-                click(GraphSelection.Union(Set(post.id))) --> graphSelectionHandler
-              )
+      children <-- chatHistory.toObservable.map {
+        _.map{ post =>
+          val isMine = state.ownPosts(post.id)
+          div(
+            p(
+              stl("maxWidth") := "60%",
+              post.title,
+              stl("backgroundColor") := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
+              stl("float") := (if (isMine) "right" else "left"),
+              stl("clear") := "both",
+              stl("padding") := "5px 10px",
+              stl("borderRadius") := "7px",
+              stl("margin") := "5px 0px",
+              // TODO: What about cursor when selecting text?
+              stl("cursor") := "pointer",
+              click(GraphSelection.Union(Set(post.id))) --> state.graphSelection
             )
-          }
+          )
         }
-      )
-    } yield div
+      }
+    )
 
     val insertForm = textAreaWithEnter{ text: String =>
       // println(s"SUBMITTING: $text")

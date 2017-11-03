@@ -10,13 +10,13 @@ import scala.scalajs.js
 
 import outwatch.dom._
 import wust.util.outwatchHelpers._
-import cats.effect.IO
 
 import cats.instances.list._
 import cats.syntax.traverse._
+import rxscalajs.Observable
 
 object TestView {
-  def postItem(post: Post, graphSelectionHandler:Handler[GraphSelection]) = {
+  def postItem(post: Post, graphSelectionHandler: Handler[GraphSelection]) = {
     div(
       stl("minHeight") := "12px",
       stl("border") := "solid 1px",
@@ -26,7 +26,7 @@ object TestView {
     )
   }
 
-  def sortedPostItems(state: GlobalState, graphSelectionHandler:Handler[GraphSelection])(implicit ctx: Ctx.Owner) = state.displayGraphWithoutParents.toObservable.map { dg =>
+  def sortedPostItems(state: GlobalState, graphSelectionHandler: Handler[GraphSelection])(implicit ctx: Ctx.Owner): Observable[Seq[VNode]] = state.displayGraphWithoutParents.toObservable.map { dg =>
     val graph = dg.graph
     val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
 
@@ -37,12 +37,15 @@ object TestView {
   }
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    (for {
-      graphSelectionHandler <- state.graphSelection:IO[Handler[GraphSelection]]
-    } yield div(
+    val ints = createHandler[Int](): Handler[Int]
+    val incs = ints.isomorphic[Int](_ + 1, _ - 1)
+    ints(i => println(s"ints: $i"))
+    incs(i => println(s"incs: $i"))
+    div(
+      input(placeholder := "ints", value := 2, value <-- ints, inputString(_.toInt) --> ints),
+      input(placeholder := "incs", value := 3, value <-- incs, inputString(_.toInt) --> incs),
       stl("padding") := "20px",
-      children <-- sortedPostItems(state, graphSelectionHandler)
-    ) 
-  ).render
+      children <-- sortedPostItems(state, state.graphSelection)
+    ).render
   }
 }

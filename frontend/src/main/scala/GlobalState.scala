@@ -7,16 +7,21 @@ import wust.api._
 import wust.frontend.views.{ViewConfig, ViewPage}
 import wust.graph._
 import wust.ids._
-import org.scalajs.dom.{ window, console }
+import org.scalajs.dom.{console, window}
 import org.scalajs.dom.experimental.Notification
+import outwatch.dom._
+import rxscalajs.subjects._
+import rxscalajs.facade._
 import wust.util.Analytics
 import vectory._
+import wust.util.outwatchHelpers._
 
 case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
 }
 
 class GlobalState(implicit ctx: Ctx.Owner) {
+
   import ClientCache.storage
 
   val persistence = new GraphPersistence(this)
@@ -24,10 +29,11 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val syncMode = Var[SyncMode](storage.syncMode.getOrElse(SyncMode.default))
   //TODO: why does triggerlater not work?
-  syncMode.foreach(storage.syncMode= _)
+  syncMode.foreach(storage.syncMode = _)
 
   val currentUser = RxVar[Option[User]](None)
 
+  //  val viewConfig = UrlRouter.variable.isomorphic[ViewConfig](ViewConfig.fromHash, (ViewConfig.toHash _) andThen Option.apply)
   val viewConfig = UrlRouter.variable
     .projection[ViewConfig]((ViewConfig.toHash _) andThen Option.apply, ViewConfig.fromHash)
 
@@ -165,7 +171,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
     val (graphChangeEvents, otherEvents) = events partition {
       case NewGraphChanges(_) => true
-      case _                  => false
+      case _ => false
     }
 
     eventCache.addEvents(graphChangeEvents)
