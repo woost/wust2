@@ -11,6 +11,8 @@ import wust.ids._
 import wust.graph.{ GraphSelection, Graph }
 import wust.framework._
 import org.scalajs.dom.ext.KeyCode
+import outwatch.dom._
+import rxscalajs.Observable
 
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
@@ -33,29 +35,31 @@ object Main {
     //TODO: proxy with webpack devserver and only configure production port
     val port = Config.wsPort getOrElse location.port
 
-    val state = new GlobalState
+    val apiEventHandler = createHandler[Seq[ApiEvent]]().unsafeRunSync()
+    val state = new GlobalState(apiEventHandler)
 
     def getNewGraph(selection: GraphSelection) = {
-      Client.api.getGraph(selection).call().foreach { newGraph =>
-        val oldSelectionGraph = selection match {
-          case GraphSelection.Union(ids) => state.rawGraph.now.filter(ids)
-          case _                         => Graph.empty
-        }
+      //TODO ???
+      // Client.api.getGraph(selection).call().foreach { newGraph =>
+      //   val oldSelectionGraph = selection match {
+      //     case GraphSelection.Union(ids) => state.rawGraph.now.filter(ids)
+      //     case _                         => Graph.empty
+      //   }
 
-        //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
-        val newNonEmptyGraph = oldSelectionGraph + newGraph
+      //   //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
+      //   val newNonEmptyGraph = oldSelectionGraph + newGraph
 
-        val newCollapsedPostIds: Set[PostId] = if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
-          // on the frontpage all posts are collapsed per default
-          state.collapsedPostIds.now ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p))
-        } else Set.empty
+      //   val newCollapsedPostIds: Set[PostId] = if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
+      //     // on the frontpage all posts are collapsed per default
+      //     state.collapsedPostIds.now ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p))
+      //   } else Set.empty
 
-        Var.set(
-          VarTuple(state.collapsedPostIds, newCollapsedPostIds),
-          // take changes into account, when we get a new graph
-          VarTuple(state.rawGraph, newNonEmptyGraph applyChanges state.persistence.currentChanges)
-        )
-      }
+      //   Var.set(
+      //     VarTuple(state.collapsedPostIds, newCollapsedPostIds),
+      //     // take changes into account, when we get a new graph
+      //     VarTuple(state.rawGraph, newNonEmptyGraph applyChanges state.persistence.currentChanges)
+      //   )
+      // }
     }
 
     // The first thing to be sent should be the auth-token
@@ -63,25 +67,30 @@ object Main {
       Client.auth.loginToken(token).call()
     }
 
-    Client.run(s"$protocol://${location.hostname}:$port/ws", new ApiIncidentHandler {
-      override def onConnect(isReconnect: Boolean): Unit = {
-        println(s"Connected to websocket")
+    {
+      val observable = Observable.create[Seq[ApiEvent]] { observer =>
+        Client.run(s"$protocol://${location.hostname}:$port/ws", new ApiIncidentHandler {
+          override def onConnect(isReconnect: Boolean): Unit = {
+            println(s"Connected to websocket")
 
-        if (isReconnect) {
-          ClientCache.currentAuth.foreach { auth =>
-            Client.auth.loginToken(auth.token).call()
+            if (isReconnect) {
+              ClientCache.currentAuth.foreach { auth =>
+                Client.auth.loginToken(auth.token).call()
+              }
+
+              //TODO
+              // getNewGraph(state.rawGraphSelection.now)
+            }
           }
 
-          getNewGraph(state.rawGraphSelection.now)
-        }
+          override def onEvents(events: Seq[ApiEvent]): Unit = observer.next(events)//state.onEvents(events)
+        })
       }
 
-      override def onEvents(events: Seq[ApiEvent]): Unit = state.onEvents(events)
-    })
+      apiEventHandler <-- observable
+    }
 
-    //TODO: better?
-    var prevViewConfig: Option[views.ViewConfig] = None
-    state.viewConfig.foreach { viewConfig =>
+    state.viewConfig.foldLeft(views.ViewConfig.default) { (prevViewConfig, viewConfig) =>
       viewConfig.invite foreach { token =>
         Client.api.acceptGroupInvite(token).call().onComplete {
           case Success(Some(_)) =>
@@ -92,17 +101,12 @@ object Main {
         }
       }
 
-      prevViewConfig match {
-        case Some(prev) if prev.selection == viewConfig.selection =>
-        case _ => getNewGraph(viewConfig.selection)
-      }
-
-      prevViewConfig = Some(viewConfig)
+      if (prevViewConfig.selection != viewConfig.selection) getNewGraph(viewConfig.selection)
+      viewConfig
     }
 
-    state.syncMode.foreach {
+    state.syncMode {
       case SyncMode.Live =>
-        state.eventCache.flush()
         state.persistence.flush()
       case _ =>
     }

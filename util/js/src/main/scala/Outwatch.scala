@@ -35,6 +35,26 @@ package object outwatchHelpers {
     }
   }
 
+  implicit class Richobservable[T](val o:rxscalajs.Observable[T]) extends AnyVal {
+    def replaceWithLatest[R](o2:rxscalajs.Observable[R]):rxscalajs.Observable[R] = {
+      o.combineLatestWith[R,R](o2)((_, text) => text)
+    }
+
+    def bufferUnless(predicates: Observable[Boolean]):Observable[List[T]] = {
+      val truePredicates = predicates.filter(_ == true)
+      val (trueEvents, falseEvents) = o.withLatestFrom(predicates).partition{ case (event, predicate) => predicate }
+      val toBeBufferedEvents = falseEvents.map { case (e,_) => e }
+      val bufferedEvents = toBeBufferedEvents.bufferWhen(() => truePredicates)
+      val flushEvents = trueEvents.map { case (x, _) => List(x) }
+      flushEvents merge bufferedEvents
+    }
+
+    def combineLatestWith[A, B, C, D, R](a: Observable[A], b: Observable[B], c: Observable[C], d: Observable[D])(f: (T, A, B, C, D) => R): Observable[R] = {
+      val combined = o.combineLatestWith[A, B, C, (T, A, B, C)](a, b, c)((o, a, b, c) => (o, a, b, c))
+      combined.combineLatestWith[D, R](d) { case ((o, a, b, c), d) => f(o, a, b, c, d) }
+    }
+  }
+
   // implicit class RxSubjectBehavior[T](obs:rxscalajs.subjects.BehaviorSubject[T])(implicit ctx: rx.Ctx.Owner) {
   //   def toRx:rx.Rx[T] = {
   //     val rx = Var[T](obs.value)

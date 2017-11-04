@@ -21,7 +21,7 @@ object State {
 
 class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
   def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
-    events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.onEvent(_, event)))
+    events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.applyEvent(_, event)))
   }
 
   def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent.Public]] = Future.sequence(event.events.map {

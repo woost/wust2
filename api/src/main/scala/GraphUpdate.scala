@@ -3,7 +3,7 @@ package wust.api
 import wust.graph._
 
 object GraphUpdate {
-  def onEvent(graph: Graph, event: ApiEvent): Graph = {
+  def applyEvent(graph: Graph, event: ApiEvent): Graph = {
     event match {
       case NewMembership(membership) => graph + membership
       case NewUser(user) => graph + user

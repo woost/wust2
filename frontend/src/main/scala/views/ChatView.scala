@@ -3,8 +3,6 @@ package wust.frontend.views
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLTextAreaElement
 import org.scalajs.dom.{ Event, window }
-import rx._
-import rxext._
 import scalaz.Tag
 import wust.frontend.Color._
 import wust.frontend._
@@ -83,27 +81,27 @@ object ChatView {
     )
   }
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState) = {
 
     val focusedParentIds = state.graphSelection.map(_.parentIds)
 
-    val headLineText = Rx {
-      val parents = focusedParentIds().map(state.rawGraph().postsById)
+    val headLineText = focusedParentIds.combineLatestWith(state.rawGraph) { (focusedParentIds, rawGraph) =>
+      val parents = focusedParentIds.map(rawGraph.postsById)
       val parentTitles = parents.map(_.title).mkString(", ")
       parentTitles
-    }.toObservable
+    }
 
-    val bgColor = Rx {
-      val mixedDirectParentColors = mixColors(focusedParentIds().map(baseColor))
+    val bgColor = focusedParentIds.map { focusedParentIds =>
+      val mixedDirectParentColors = mixColors(focusedParentIds.map(baseColor))
       mixColors(List(mixedDirectParentColors, d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString
-    }.toObservable
+    }
 
-    val chatHistory: Rx[Seq[Post]] = state.displayGraphWithoutParents.rx.map{ dg =>
+    val chatHistory = state.displayGraphWithoutParents.map{ dg =>
       val graph = dg.graph
       graph.posts.toSeq.sortBy(p => Tag.unwrap(p.id))
     }
 
-    val latestPost = Rx { chatHistory().lastOption }
+    val latestPost = chatHistory.map(_.lastOption)
 
     def scrollToBottom(elem: Element) {
       //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
@@ -119,7 +117,7 @@ object ChatView {
       stl("padding") := "20px",
       stl("backgroundColor") := "white",
 
-      children <-- chatHistory.toObservable.map {
+      children <-- chatHistory.map {
         _.map{ post =>
           val isMine = state.ownPosts(post.id)
           div(
