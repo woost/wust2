@@ -50,7 +50,7 @@ class GraphPersistence(state: GlobalState) {
 
   // storage.graphChanges <-- localChanges
 
-  private val bufferedChanges = localChanges.bufferUnless(state.syncMode.map(_ == SyncMode.Live))
+  private val bufferedChanges = localChanges.map(List(_))//TODO: .bufferUnless(state.syncMode.map(_ == SyncMode.Live))
 
   private val sendingChanges = bufferedChanges.expand { (changes, number) =>
     val success = sendChanges(changes)
