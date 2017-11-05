@@ -17,6 +17,14 @@ import vectory._
 import wust.util.outwatchHelpers._
 import rxscalajs.Observable
 
+//outwatch beispiel:
+  // def component(handler:Handler[ViewPage]) = {
+  //   div(
+  //     span(child <-- handler.map(_.toString)),
+  //     button(ViewPage("hallo")) --> handler
+  //   )
+  // }
+
 case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
 }
@@ -25,13 +33,12 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   import ClientCache.storage
 
-  val persistence = new GraphPersistence(this)
+  val syncMode: Observable[SyncMode] = createHandler[SyncMode](SyncMode.default).unsafeRunSync() //TODO storage.syncMode
+  val syncEnabled: Observable[Boolean] = syncMode.map(_ == SyncMode.Live)
 
-  val syncMode = createHandler[SyncMode](SyncMode.default).unsafeRunSync()
-  //TODO not correct, because storage observables only trigger once
-  // val syncMode = storage.SyncMode
+  val persistence = new GraphPersistence(syncEnabled)
 
-  val eventStream = {
+  val eventStream: Observable[ApiEvent] = {
     val partitionedEvents = rawEventStream.map(_.partition {
       case NewGraphChanges(_) => true
       case _ => false
@@ -39,38 +46,28 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
     val graphEvents = partitionedEvents.map(_._1)
     val otherEvents = partitionedEvents.map(_._2)
+    val bufferedGraphEvents = graphEvents.bufferUnless(syncEnabled).map(_.flatten)
 
-    val predicates = syncMode.map(_ == SyncMode.Live)
-    val bufferedGraphEvents = graphEvents.bufferUnless(predicates).map(_.flatten)
-
-    bufferedGraphEvents merge otherEvents
+    val events = bufferedGraphEvents merge otherEvents
+    events.flatMap(Observable.from(_))
   }
 
-  val currentUser = eventStream.map { events =>
-    events.collect {
-      case LoggedIn(auth) => Some(auth.user)
-      case LoggedOut => None
-    }.lastOption
-  }.collect { case Some(opt) => opt }.startWith(None)
+  val currentUser: Observable[Option[User]] = eventStream.collect {
+    case LoggedIn(auth) => Some(auth.user)
+    case LoggedOut => None
+  }.startWith(None)
 
-  val rawGraph = eventStream.foldLeft(Graph.empty) { (graph, events) =>
-    events.foldLeft(graph)(GraphUpdate.applyEvent(_, _))
+  val rawGraph = {
+    val localEvents = persistence.localChanges.map(NewGraphChanges(_))
+    val events = eventStream merge localEvents
+    events.foldLeft(Graph.empty)(GraphUpdate.applyEvent)
   }
 
+  val viewConfig: Handler[ViewConfig] = UrlRouter.variable.imapMap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
+  val viewPage: Handler[ViewPage] = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
 
-  val viewConfig = UrlRouter.variable.imapMap[ViewConfig](ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
-
-  val viewPage = viewConfig.lens[ViewPage](ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
-
-  // def component(handler:Handler[ViewPage]) = {
-  //   div(
-  //     span(child <-- handler.map(_.toString)),
-  //     button(ViewPage("hallo")) --> handler
-  //   )
-  // }
-
-  val rawGraphSelection = viewConfig.lens[GraphSelection](ViewConfig.default)(_.selection)((config, selection) => config.copy(selection = selection))
+  val rawGraphSelection: Handler[GraphSelection] = viewConfig.lens(ViewConfig.default)(_.selection)((config, selection) => config.copy(selection = selection))
 
   val inviteToken = viewConfig.map(_.invite)
 

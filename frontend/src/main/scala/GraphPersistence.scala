@@ -3,6 +3,7 @@ package wust.frontend
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
+import wust.api.ApiEvent
 
 import autowire._
 import boopickle.Default._
@@ -37,24 +38,23 @@ object SyncMode {
 
 // case class PersistencyState(undoHistory: Seq[GraphChanges], redoHistory: Seq[GraphChanges], changes: GraphChanges)
 
-class GraphPersistence(state: GlobalState) {
+class GraphPersistence(syncEnabled: Observable[Boolean]) {
   import ClientCache.storage
 
   val enrichChanges = createHandler[GraphChanges]().unsafeRunSync()
   val pureChanges = createHandler[GraphChanges]().unsafeRunSync()
-
-  private val localChanges = {
+  val localChanges: Observable[GraphChanges] = {
     val enrichedChanges = enrichChanges.map(applyEnrichmentToChanges)
-    enrichedChanges.merge(pureChanges).filter(_.nonEmpty)
+    val allChanges = enrichedChanges merge pureChanges
+    allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
   }
 
-  // storage.graphChanges <-- localChanges
+  // storage.graphChanges <-- localChanges //TODO
 
-  private val bufferedChanges = localChanges.map(List(_))//TODO: .bufferUnless(state.syncMode.map(_ == SyncMode.Live))
+  private val bufferedChanges = localChanges.bufferUnless(syncEnabled)
 
   private val sendingChanges = bufferedChanges.expand { (changes, number) =>
-    val success = sendChanges(changes)
-    val retryChanges = success.map {
+    val retryChanges = sendChanges(changes) map {
       case true => None
       case false => Some(changes)
     }
@@ -139,7 +139,7 @@ class GraphPersistence(state: GlobalState) {
 
         Success(success)
       case Failure(t) =>
-        println(s"api request failed: $changes")
+        println(s"api request failed '${t.getMessage}: $changes")
         Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
         Success(false)
