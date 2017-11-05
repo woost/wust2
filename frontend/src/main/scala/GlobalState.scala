@@ -48,7 +48,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     val bufferedGraphEvents = graphEvents.bufferUnless(syncEnabled).map(_.flatten)
 
     val events = bufferedGraphEvents merge otherEvents
-    events.flatMap(Observable.from(_))
+    events.flatMap(Observable.from(_)) //TODO flattening here is nice, but also pushes more updates?
   }
 
   val currentUser: Observable[Option[User]] = eventStream.collect {
