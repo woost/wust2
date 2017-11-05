@@ -35,8 +35,8 @@ package object outwatchHelpers {
     }
   }
 
-  implicit class Richobservable[T](val o:rxscalajs.Observable[T]) extends AnyVal {
-    def replaceWithLatest[R](o2:rxscalajs.Observable[R]):rxscalajs.Observable[R] = {
+  implicit class Richobservable[T](val o:Observable[T]) extends AnyVal {
+    def replaceWithLatest[R](o2:Observable[R]):Observable[R] = {
       o.combineLatestWith[R,R](o2)((_, text) => text)
     }
 
@@ -52,6 +52,16 @@ package object outwatchHelpers {
     def combineLatestWith[A, B, C, D, R](a: Observable[A], b: Observable[B], c: Observable[C], d: Observable[D])(f: (T, A, B, C, D) => R): Observable[R] = {
       val combined = o.combineLatestWith[A, B, C, (T, A, B, C)](a, b, c)((o, a, b, c) => (o, a, b, c))
       combined.combineLatestWith[D, R](d) { case ((o, a, b, c), d) => f(o, a, b, c, d) }
+    }
+
+    def debug:Observable[T] = { debug() }
+    def debug(name: String = "") = {
+      o(x => println(s"$name: $x"))
+      o
+    }
+    def debug(print: T => String) = {
+      o(x => println(print(x)))
+      o
     }
   }
 
