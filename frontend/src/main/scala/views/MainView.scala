@@ -5,8 +5,6 @@ import boopickle.Default._
 import org.scalajs.dom.{Event, document, window, console, Element}
 import org.scalajs.dom.window.location
 import wust.util.tags._
-import rx._
-import rxext._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{ DevOnly, GlobalState }
@@ -14,7 +12,6 @@ import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement }
 import org.scalajs.dom.raw.{ HTMLTextAreaElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import wust.ids._
-import scalatags.JsDom.TypedTag
 import wust.api._
 import wust.graph._
 import wust.frontend.{ RichPostFactory, Client }
@@ -24,8 +21,7 @@ import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
 import wust.frontend.{SyncStatus, SyncMode}
 
-import scalatags.JsDom.all._
-import scalatags.rx.all._
+import outwatch.dom._
 import wust.util.outwatchHelpers._
 
 //TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
@@ -403,13 +399,13 @@ object MainView {
   //   }
   // }
 
-  def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    div(
-      padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD"
-    )
-  }
+  // def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  //   div(
+  //     padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD"
+  //   )
+  // }
 
-  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, disableSimulation: Boolean = false) = {
     val viewPages: List[(ViewPage, () => Element)] = List(
       ViewPage.Graph -> (() => GraphView(state, disableSimulation)),
       // ViewPage.List -> (() => TreeView(state)),
@@ -426,17 +422,17 @@ object MainView {
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
     div(
-      width := "100%",
-      height := "100%",
+      // width := "100%",
+      // height := "100%",
 
-      display.flex,
-      flexDirection.column,
-      justifyContent.flexStart,
-      alignItems.stretch,
-      alignContent.stretch,
+      // display.flex,
+      // flexDirection.column,
+      // justifyContent.flexStart,
+      // alignItems.stretch,
+      // alignContent.stretch,
 
       // topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      state.viewPage.map { x =>
+      child <-- state.viewPage.map { x =>
         val element = viewPagesMap(x)().asInstanceOf[HTMLElement]
         // element.style.flex = "1" // not supported yet by dom api
         element.style.setProperty("flex", "1")
@@ -445,9 +441,9 @@ object MainView {
       },
       // bottomBar (state),
 
-      feedbackForm (state),
-      DevOnly { devPeek(state) },
-      DevOnly { DevView.jsError(state) }
+      // feedbackForm (state),
+      // DevOnly { devPeek(state) },
+      // DevOnly { DevView.jsError(state) }
     )
   }
 }
