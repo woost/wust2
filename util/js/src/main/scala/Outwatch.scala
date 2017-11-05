@@ -28,13 +28,6 @@ package object outwatchHelpers {
     }
   }
 
-  implicit class ObservableRx[T](r:rx.Rx[T])(implicit ctx: rx.Ctx.Owner) {
-    def toObservable:Observable[T] = Observable.create { observer =>
-      r.foreach(observer.next)
-      ()
-    }
-  }
-
   implicit class Richobservable[T](val o:Observable[T]) extends AnyVal {
     def replaceWithLatest[R](o2:Observable[R]):Observable[R] = {
       o.combineLatestWith[R,R](o2)((_, text) => text)
@@ -63,20 +56,6 @@ package object outwatchHelpers {
       o(x => println(print(x)))
       o
     }
-  }
-
-  // implicit class RxSubjectBehavior[T](obs:rxscalajs.subjects.BehaviorSubject[T])(implicit ctx: rx.Ctx.Owner) {
-  //   def toRx:rx.Rx[T] = {
-  //     val rx = Var[T](obs.value)
-  //     obs(rx() = _)
-  //     rx
-  //   }
-  // }
-
-  implicit def RxVarToSink[T](v:rx.RxVar[T,_]):Handler[T] = {
-    val handler = outwatch.dom.createHandler[T]().unsafeRunSync
-    handler(v() = _)
-    handler
   }
 
   implicit def FuncToSink[T,R](f:T => R):outwatch.Sink[T] = {

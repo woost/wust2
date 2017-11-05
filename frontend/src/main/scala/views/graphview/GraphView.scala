@@ -6,7 +6,6 @@ import org.scalajs.d3v4._
 import org.scalajs.dom
 import org.scalajs.dom.window
 import org.scalajs.dom.raw.HTMLElement
-import rx._
 import vectory._
 import wust.frontend.Color._
 import wust.frontend.PostCreatorMenu
@@ -14,14 +13,13 @@ import wust.frontend.{DevOnly, GlobalState}
 import org.scalajs.dom.{console}
 import wust.graph._
 import wust.util.Pipe
-import scala.concurrent.ExecutionContext
-import vectory._
-import scala.scalajs.js.timers.setTimeout
+import outwatch.dom._
+import wust.util.outwatchHelpers._
 
 import scala.concurrent.ExecutionContext
+import scala.scalajs.js.timers.setTimeout
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scalatags.JsDom.all._
 
 // case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
 // case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
@@ -37,17 +35,18 @@ import scalatags.JsDom.all._
 object GraphView {
   //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext) = {
-    div(
-      height := "100%",
+    div().render
+    // div(
+    //   height := "100%",
 
-      // div().render sideEffect (new GraphView(state, _, disableSimulation))
-    ).render
+    //   // div().render sideEffect (new GraphView(state, _, disableSimulation))
+    // ).render
   }
 
-  def postView(post: Post) = div(
-    post.title,
-    cls := "graphpost"
-  )
+  // def postView(post: Post) = div(
+    // post.title,
+    // cls := "graphpost"
+  // )
 }
 
 //class GraphView(state: GlobalState, element: dom.html.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {

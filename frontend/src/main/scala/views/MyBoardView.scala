@@ -1,6 +1,5 @@
 package wust.frontend.views
 
-import rx._
 import wust.frontend._
 
 import org.scalajs.dom.{window, document, console}
@@ -224,7 +223,7 @@ object MyBoardView /*extends MyBoardViewComponents*/ {
 
 
 	// /// Main method invoked to render this view
-	def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+	def apply(state: GlobalState) = {
 	// 	import state.persistence
 
 	// 	// we return a raw element, because that is what the main view can handle

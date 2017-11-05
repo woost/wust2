@@ -126,8 +126,6 @@ lazy val util = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
-      "com.lihaoyi" %%% "scalatags" % "0.6.7" ::
-      "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
       "io.github.outwatch" %%% "outwatch" % outwatchVersion ::
       Nil
     )
@@ -246,9 +244,6 @@ lazy val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      ("com.timushev" %%% "scalatags-rx" % "0.3.0" excludeAll ExclusionRule("com.lihaoyi")) ::
-      "com.lihaoyi" %%% "scalatags" % "0.6.5" ::
-      "com.github.fdietze" %%% "scalarx" % "0.3.3-SNAPSHOT" ::
       "io.github.outwatch" %%% "outwatch" % outwatchVersion ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT" ::

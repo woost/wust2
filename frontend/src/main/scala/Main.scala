@@ -3,8 +3,6 @@ package wust.frontend
 import autowire._
 import boopickle.Default._
 import org.scalajs.dom._
-import rx._
-import rxext._
 import wust.util.Analytics
 import wust.api.ApiEvent
 import wust.ids._
@@ -29,7 +27,6 @@ object Config extends js.Object {
 object Main {
 
   def main(args: Array[String]): Unit = {
-    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"

@@ -2,7 +2,6 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom
-import rx._
 
 import scala.scalajs.js
 
@@ -34,17 +33,17 @@ class SelectData[T: WithKey](component: DataSelection[T], val container: Selecti
 
 object SelectData {
   def apply[T: WithKey](component: DataSelection[T])(container: Selection[dom.EventTarget]) = new SelectData(component, container)
-  def rx[T: WithKey](component: DataSelection[T], rxData: Rx[js.Array[T]])(container: Selection[dom.EventTarget])(implicit ctx: Ctx.Owner): SelectData[T] = {
-    val select = new SelectData(component, container)
-    rxData.foreach(select.update)
-    select
-  }
-  def rxDraw[T: WithKey](component: DataSelection[T], rxData: Rx[js.Array[T]])(container: Selection[dom.EventTarget])(implicit ctx: Ctx.Owner): SelectData[T] = {
-    val select = new SelectData(component, container)
-    rxData.foreach { data =>
-      select.update(data)
-      select.draw()
-    }
-    select
-  }
+  // def rx[T: WithKey](component: DataSelection[T], rxData: Rx[js.Array[T]])(container: Selection[dom.EventTarget])(implicit ctx: Ctx.Owner): SelectData[T] = {
+  //   val select = new SelectData(component, container)
+  //   rxData.foreach(select.update)
+  //   select
+  // }
+  // def rxDraw[T: WithKey](component: DataSelection[T], rxData: Rx[js.Array[T]])(container: Selection[dom.EventTarget])(implicit ctx: Ctx.Owner): SelectData[T] = {
+  //   val select = new SelectData(component, container)
+  //   rxData.foreach { data =>
+  //     select.update(data)
+  //     select.draw()
+  //   }
+  //   select
+  // }
 }

@@ -1,7 +1,5 @@
 package wust.frontend
 
-import rx._
-import rxext._
 import vectory._
 import wust.api._
 import wust.frontend.views.{ViewConfig, ViewPage}

@@ -1,14 +1,10 @@
 package wust.frontend.views
 
-import rx._
-import rxext._
 import wust.frontend._
 import wust.graph._
 
 import org.scalajs.dom.{ window, document, console }
 import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
-import scalatags.JsDom.all._
-import scalatags.rx.all._
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal
 import scala.scalajs.js.timers.setTimeout
