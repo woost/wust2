@@ -31,11 +31,6 @@ object SyncMode {
   case object Live extends SyncMode
   case object Offline extends SyncMode
 
-  val fromString: PartialFunction[String, SyncMode] = {
-    case "Live"    => Live
-    case "Offline" => Offline
-  }
-
   val default = Live
   val all = Seq(Live, Offline)
 }
