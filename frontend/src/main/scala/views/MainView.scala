@@ -406,7 +406,7 @@ object MainView {
   // }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false) = {
-    val viewPages: List[(ViewPage, () => Element)] = List(
+    val viewPages: List[(ViewPage, () => VNode)] = List(
       ViewPage.Graph -> (() => GraphView(state, disableSimulation)),
       // ViewPage.List -> (() => TreeView(state)),
       // ViewPage.Article -> (() => ArticleView(state)),
@@ -417,7 +417,7 @@ object MainView {
       // ViewPage.Test -> (() => TestView(state))
     )
 
-    val viewPagesMap: Map[ViewPage, () => Element] = viewPages.toMap
+    val viewPagesMap: Map[ViewPage, () => VNode] = viewPages.toMap
 
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
@@ -433,12 +433,14 @@ object MainView {
 
       // topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
       child <-- state.viewPage.map { page =>
-        // val element = viewPagesMap(page)().asInstanceOf[HTMLElement]
-        // // element.style.flex = "1" // not supported yet by dom api
-        // element.style.setProperty("flex", "1")
-        // element.style.overflow = "auto"
-        // element
-        page
+        val vnode = viewPagesMap(page)()
+        for {
+          vnode <- vnode // unwrap IO
+          extended <- vnode(
+            stl("flex") := "1",
+            stl("overflow") := "auto"
+          )
+        } yield extended
       },
       // bottomBar (state),
 

@@ -35,7 +35,7 @@ import scala.scalajs.js.JSConverters._
 object GraphView {
   //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext) = {
-    div().render
+    div("GraphView")
     // div(
     //   height := "100%",
 
