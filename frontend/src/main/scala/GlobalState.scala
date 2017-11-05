@@ -28,7 +28,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
   val persistence = new GraphPersistence(this)
 
   val syncMode = createHandler[SyncMode](storage.syncMode.getOrElse(SyncMode.default)).unsafeRunSync()
-  syncMode(storage.syncMode = _) //TODO: use storage sink / observable
+  storage.syncMode <-- syncMode
 
 
 
