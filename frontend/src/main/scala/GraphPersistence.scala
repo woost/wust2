@@ -48,7 +48,7 @@ class GraphPersistence(state: GlobalState) {
     enrichedChanges.merge(pureChanges).filter(_.nonEmpty)
   }
 
-  storage.graphChanges <-- localChanges
+  // storage.graphChanges <-- localChanges
 
   private val bufferedChanges = localChanges.bufferUnless(state.syncMode.map(_ == SyncMode.Live))
 
