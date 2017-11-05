@@ -20,14 +20,15 @@ object Client {
 }
 
 object ClientCache {
+  //TODO
   val storage = new ClientStorage(LocalStorage)
 
   private var _currentAuth: Option[Authentication] = None
   def currentAuth: Option[Authentication] = _currentAuth
   def currentAuth_=(auth: Option[Authentication]) {
     _currentAuth = auth
-    storage.token = auth.map(_.token)
+    // storage.token = auth.map(_.token)
   }
 
-  def storedToken: Option[String] = storage.token
+  def storedToken: Option[String] = None//storage.token
 }
