@@ -88,19 +88,19 @@ object Main {
       apiEventHandler <-- observable
     }
 
-    state.viewConfig.foldLeft(views.ViewConfig.default) { (prevViewConfig, viewConfig) =>
-      viewConfig.invite foreach { token =>
-        Client.api.acceptGroupInvite(token).call().onComplete {
-          case Success(Some(_)) =>
-            Analytics.sendEvent("group", "invitelink", "success")
-          case failedResult =>
-            println(s"Failed to accept group invite: $failedResult")
-            Analytics.sendEvent("group", "invitelink", "failure")
+    state.viewConfig.foldLeft((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)) {
+      case (prevViewConfig, viewConfig) =>
+        viewConfig.invite foreach { token =>
+          Client.api.acceptGroupInvite(token).call().onComplete {
+            case Success(Some(_)) =>
+              Analytics.sendEvent("group", "invitelink", "success")
+            case failedResult =>
+              println(s"Failed to accept group invite: $failedResult")
+              Analytics.sendEvent("group", "invitelink", "failure")
+          }
         }
-      }
 
-      if (prevViewConfig.selection != viewConfig.selection) getNewGraph(viewConfig.selection)
-      viewConfig
+        if (prevViewConfig.selection != viewConfig.selection) getNewGraph(viewConfig.selection)
     }
 
     document.getElementById("container").appendChild(
