@@ -18,6 +18,7 @@ import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import scala.util.Success
+import wust.util.outwatchHelpers._
 
 @js.native
 @JSGlobal("wustConfig")
