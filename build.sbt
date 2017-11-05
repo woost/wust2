@@ -41,7 +41,7 @@ lazy val commonSettings = Seq(
   
     "-encoding" :: "UTF-8" ::
     "-unchecked" ::// Enable additional warnings where generated code depends on assumptions
-    // "-deprecation" ::
+    "-deprecation" ::
     "-explaintypes" :: // Explain type errors in more detail
     "-feature" ::
     "-language:_" ::
