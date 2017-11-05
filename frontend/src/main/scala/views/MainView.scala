@@ -432,12 +432,13 @@ object MainView {
       // alignContent.stretch,
 
       // topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      child <-- state.viewPage.map { x =>
-        val element = viewPagesMap(x)().asInstanceOf[HTMLElement]
-        // element.style.flex = "1" // not supported yet by dom api
-        element.style.setProperty("flex", "1")
-        element.style.overflow = "auto"
-        element
+      child <-- state.viewPage.map { page =>
+        // val element = viewPagesMap(page)().asInstanceOf[HTMLElement]
+        // // element.style.flex = "1" // not supported yet by dom api
+        // element.style.setProperty("flex", "1")
+        // element.style.overflow = "auto"
+        // element
+        page
       },
       // bottomBar (state),
 
