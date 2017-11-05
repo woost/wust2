@@ -10,6 +10,7 @@ package object ids {
   type IdType = Long
   type UuidType = String
 
+  //TODO: simpler tagged types: https://github.com/acjay/taggy
   // unboxed types with scalaz: http://eed3si9n.com/learning-scalaz/Tagged+type.html
   type PostId = UuidType @@ PostIdType
   implicit def PostId(id: UuidType): PostId = Tag[UuidType, PostIdType](id)
