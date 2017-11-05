@@ -31,9 +31,10 @@ case class PostCreatorMenu(pos: Vec2) {
 
 class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
+  import StateHelpers._
   import ClientCache.storage
 
-  val syncMode: Observable[SyncMode] = createHandler[SyncMode](SyncMode.default).unsafeRunSync() //TODO storage.syncMode
+  val syncMode: Observable[SyncMode] = createHandler(SyncMode.default).unsafeRunSync() //TODO storage.syncMode
   val syncEnabled: Observable[Boolean] = syncMode.map(_ == SyncMode.Live)
 
   val persistence = new GraphPersistence(syncEnabled)
@@ -57,7 +58,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     case LoggedOut => None
   }.startWith(None)
 
-  val rawGraph = {
+  val rawGraph: Observable[Graph] = {
     val localEvents = persistence.localChanges.map(NewGraphChanges(_))
     val events = eventStream merge localEvents
     events.foldLeft(Graph.empty)(GraphUpdate.applyEvent)
@@ -79,31 +80,33 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     }
   }}
 
-  val rawSelectedGroupId = viewConfig.lens[Option[GroupId]](ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
+  val rawSelectedGroupId: Handler[Option[GroupId]] = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
 
-  val selectedGroupId = rawSelectedGroupId.comap( _.combineLatestWith(rawGraph){ (groupIdOpt, graph) =>
+  val selectedGroupId: Handler[Option[GroupId]] = rawSelectedGroupId.comap( _.combineLatestWith(rawGraph){ (groupIdOpt, graph) =>
     groupIdOpt.filter(graph.groupsById.isDefinedAt)
   })
 
   // be aware that this is a potential memory leak.
   // it contains all ids that have ever been collapsed in this session.
   // this is a wanted feature, because manually collapsing posts is preserved with navigation
-  val collapsedPostIds = createHandler[Set[PostId]](Set.empty).unsafeRunSync()
+  val collapsedPostIds: Handler[Set[PostId]] = createHandler(Set.empty[PostId]).unsafeRunSync()
 
-  val currentView = createHandler(Perspective()).unsafeRunSync()
+  val currentView: Handler[Perspective] = createHandler(Perspective()).unsafeRunSync()
     .comap(_.combineLatestWith(collapsedPostIds){ (perspective, collapsedPostIds) =>
       perspective.union(Perspective(collapsed = Selector.IdSet(collapsedPostIds)))
     })
 
-  private def groupLockFilter(viewConfig: ViewConfig, selectedGroupId: Option[GroupId], graph: Graph):Graph = if (viewConfig.lockToGroup) {
-    val groupPosts = selectedGroupId.map(graph.postsByGroupId).getOrElse(Set.empty)
-    graph.filter(groupPosts)
-  } else graph
-
   //TODO: when updating, both displayGraphs are recalculated
   // if possible only recalculate when needed for visualization
-  val displayGraphWithoutParents = rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
-    (rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
+  val displayGraphWithoutParents: Observable[DisplayGraph] =// rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
+    //(rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
+    for {
+      rawGraph <- rawGraph
+      viewConfig <- viewConfig
+      selectedGroupId <- selectedGroupId
+      graphSelection <- graphSelection
+      currentView <- currentView
+    } yield {
       val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
       graphSelection match {
         case GraphSelection.Root =>
@@ -117,8 +120,15 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
   }
 
 
-  val displayGraphWithParents = rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
-    (rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
+  val displayGraphWithParents: Observable[DisplayGraph] = //rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
+    //(rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
+    for {
+      rawGraph <- rawGraph
+      viewConfig <- viewConfig
+      selectedGroupId <- selectedGroupId
+      graphSelection <- graphSelection
+      currentView <- currentView
+    } yield {
       val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
       graphSelection match {
         case GraphSelection.Root =>
@@ -131,20 +141,19 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
       }
   }
 
-  val focusedPostId = {
-    val handler = createHandler[Option[PostId]](None).unsafeRunSync()
+  val focusedPostId: Handler[Option[PostId]] = {
+    val handler = createHandler(Option.empty[PostId]).unsafeRunSync()
     handler.comap(_.combineLatestWith(displayGraphWithoutParents){ (focusedPostId, displayGraphWithoutParents) =>
       focusedPostId.filter(displayGraphWithoutParents.graph.postsById.isDefinedAt)
     })
   }
 
-  val postCreatorMenus = createHandler[List[PostCreatorMenu]](Nil).unsafeRunSync()
+  val postCreatorMenus: Handler[List[PostCreatorMenu]] = createHandler(List.empty[PostCreatorMenu]).unsafeRunSync()
 
-  val jsError = createHandler[Option[String]](None).unsafeRunSync
+  val jsError: Handler[Option[String]] = createHandler(Option.empty[String]).unsafeRunSync
 
   //TODO: hack for having authorship of post. this needs to be in the backend
   val ownPosts = new collection.mutable.HashSet[PostId]
-
 
 
   //events!!
@@ -170,4 +179,12 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     //   }
     // }
   // }
+}
+
+object StateHelpers {
+  def groupLockFilter(viewConfig: ViewConfig, selectedGroupId: Option[GroupId], graph: Graph): Graph =
+    if (viewConfig.lockToGroup) {
+      val groupPosts = selectedGroupId.map(graph.postsByGroupId).getOrElse(Set.empty)
+      graph.filter(groupPosts)
+    } else graph
 }
