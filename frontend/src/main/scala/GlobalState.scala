@@ -27,10 +27,8 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val persistence = new GraphPersistence(this)
 
-  val syncMode = createHandler[SyncMode](storage.syncMode.getOrElse(SyncMode.default)).unsafeRunSync()
-  storage.syncMode <-- syncMode
-
-
+  //TODO not correct, because storage observables only trigger once
+  val syncMode = storage.SyncMode
 
   val eventStream = {
     val partitionedEvents = rawEventStream.map(_.partition {
