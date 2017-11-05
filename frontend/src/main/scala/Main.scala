@@ -85,7 +85,7 @@ object Main {
         })
       }
 
-      apiEventHandler <-- observable
+      (apiEventHandler <-- observable).unsafeRunSync()
     }
 
     state.viewConfig.foldLeft((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)) {

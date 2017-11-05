@@ -24,7 +24,7 @@ object UrlRouter {
       }
     }.distinctUntilChanged
 
-    handler <-- observable
+    (handler <-- observable).unsafeRunSync()
     handler
   }
 }
