@@ -36,7 +36,7 @@ import scalatags.JsDom.all._
 
 object GraphView {
   //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
-  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext) = {
     div(
       height := "100%",
 

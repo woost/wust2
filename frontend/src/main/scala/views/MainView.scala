@@ -409,7 +409,7 @@ object MainView {
     val viewPages: List[(ViewPage, () => Element)] = List(
       ViewPage.Graph -> (() => GraphView(state, disableSimulation)),
       // ViewPage.List -> (() => TreeView(state)),
-      ViewPage.Article -> (() => ArticleView(state)),
+      // ViewPage.Article -> (() => ArticleView(state)),
       // ViewPage.Code -> (() => CodeView(state)),
       // ViewPage.Chat -> (() => ChatView(state)),
       // ViewPage.Board -> (() => BoardView(state)),

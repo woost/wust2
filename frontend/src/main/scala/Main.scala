@@ -106,41 +106,36 @@ object Main {
       viewConfig
     }
 
-    state.syncMode {
-      case SyncMode.Live =>
-        state.persistence.flush()
-      case _ =>
-    }
-
     document.getElementById("container").appendChild(
       views.MainView(state).render
     )
 
-    document.onkeypress = { (e: KeyboardEvent) =>
-      if (e.keyCode == KeyCode.Escape) {
-        Var.set(
-          VarTuple(state.focusedPostId, None),
-          VarTuple(state.postCreatorMenus, Nil)
-        )
-      }
-    }
+    //TODO: create global keyevent observer:
+    // document.onkeypress = { (e: KeyboardEvent) =>
+    //   if (e.keyCode == KeyCode.Escape) {
+    //     Var.set(
+    //       VarTuple(state.focusedPostId, None),
+    //       VarTuple(state.postCreatorMenus, Nil)
+    //     )
+    //   }
+    // }
 
-    DevOnly {
-      import state._
-      rawGraph.debug(g => s"rawGraph: ${g.toSummaryString}")
-      collapsedPostIds.debug("collapsedPostIds")
-      currentView.debug("currentView")
-      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
-      focusedPostId.debug("focusedPostId")
-      selectedGroupId.debug("selectedGroupId")
-      graphSelection.debug("graphSelection")
-      viewConfig.debug("viewConfig")
-      currentUser.debug("\ncurrentUser")
+    //DevOnly {
+    //  import state._
+    //  rawGraph.debug(g => s"rawGraph: ${g.toSummaryString}")
+    //  collapsedPostIds.debug("collapsedPostIds")
+    //  currentView.debug("currentView")
+    //  displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
+    //  focusedPostId.debug("focusedPostId")
+    //  selectedGroupId.debug("selectedGroupId")
+    //  graphSelection.debug("graphSelection")
+    //  viewConfig.debug("viewConfig")
+    //  currentUser.debug("\ncurrentUser")
 
-      window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
-        //TODO: send and log js errors in backend
-        state.jsError() = Option(msg.toString)
-      }
-    }
+    //  window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
+    //    //TODO: send and log js errors in backend
+    //    state.jsError() = Option(msg.toString)
+    //  }
+    //}
   }
 }
