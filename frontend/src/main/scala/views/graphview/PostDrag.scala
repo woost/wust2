@@ -1,14 +1,12 @@
 package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
-import rx._
 import vectory._
 import wust.graph._
 
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scalatags.JsDom.all._
 
 // object DraggingPostSelection extends DataSelection[SimPost] {
 //   override val tag = "div"

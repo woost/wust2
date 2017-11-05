@@ -1,7 +1,6 @@
 package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
-import rx._
 import wust.frontend._
 import wust.frontend.views.Elements
 import wust.graph._
@@ -26,7 +25,6 @@ import scala.scalajs.js.timers.setTimeout
 //      import org.scalajs.dom.Event
 //      import org.scalajs.dom.raw.HTMLTextAreaElement
 
-//      import scalatags.JsDom.all._
 
 //      //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
 //      def div = span(display.block) // this is a workaround to avoid using divs

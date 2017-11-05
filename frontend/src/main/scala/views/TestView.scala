@@ -1,7 +1,5 @@
 package wust.frontend.views
 
-import rx._
-import rxext._
 import wust.frontend._
 import wust.graph._
 

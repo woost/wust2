@@ -3,8 +3,6 @@ package wust.frontend.views
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLElement, Text}
 import org.scalajs.dom._
-import rx._
-import rxext._
 import wust.frontend._
 import wust.graph._
 import wust.ids._
@@ -15,8 +13,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math.Ordering
 import scala.scalajs.js
 import scala.scalajs.js.timers.setTimeout
-import scalatags.JsDom.all._
-import scalatags.rx.all._
 import scalaz.Tag
 
 //TODO proper ordering and move to wust.ids

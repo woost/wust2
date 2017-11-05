@@ -2,8 +2,6 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLElement
-import rx._
-import rxext._
 import wust.frontend.Color._
 import wust.frontend._
 import wust.frontend.views.Elements
@@ -57,10 +55,8 @@ import wust.frontend.Color._
 //      import org.scalajs.dom.raw.HTMLTextAreaElement
 //      import state.persistence
 
-//      import scalatags.JsDom.all._
 //      import org.scalajs.dom.{ Event }
 //      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-//      import scalatags.rx.all._
 //      import state.persistence
 //      import Elements.{inlineTextarea, textareaWithEnter}
 

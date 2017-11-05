@@ -6,7 +6,6 @@ import org.scalajs.dom.{ Event, window }
 import scalaz.Tag
 import wust.frontend.Color._
 import wust.frontend._
-import wust.frontend.views.Elements.textareaWithEnter
 import wust.graph._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.Tag
@@ -17,7 +16,6 @@ import org.scalajs.dom.{ window, document, console }
 import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
 import org.scalajs.dom.{ Event }
 import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-import Elements.{ inlineTextarea }
 import scala.scalajs.js
 import scala.scalajs.js.timers.setTimeout
 import org.scalajs.dom.ext.KeyCode

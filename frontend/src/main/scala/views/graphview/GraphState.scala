@@ -1,7 +1,5 @@
 package wust.frontend.views.graphview
 
-import rx._
-import rxext._
 import wust.frontend.Color._
 import wust.frontend.{DevOnly, GlobalState}
 import wust.graph._

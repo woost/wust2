@@ -103,9 +103,7 @@ object Main {
         if (prevViewConfig.selection != viewConfig.selection) getNewGraph(viewConfig.selection)
     }
 
-    document.getElementById("container").appendChild(
-      views.MainView(state).render
-    )
+    OutWatch.render("#container", views.MainView(state)).unsafeRunSync()
 
     //TODO: create global keyevent observer:
     // document.onkeypress = { (e: KeyboardEvent) =>

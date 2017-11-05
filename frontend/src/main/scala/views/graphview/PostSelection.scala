@@ -2,13 +2,11 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import org.scalajs.dom.raw.HTMLElement
-import rx._, rxext._
 import wust.frontend._
 import wust.util.collection._
 import wust.util.Analytics
 
 import scala.collection.breakOut
-import scalatags.JsDom.all._
 import collection.breakOut
 import wust.frontend.Color._
 

@@ -1,9 +1,6 @@
 package wust.frontend.views
 
-import rx._
 import org.scalajs.dom.window.location
-import scalatags.JsDom.all._
-import scalatags.rx.all._
 
 import autowire._
 import boopickle.Default._

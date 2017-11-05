@@ -113,7 +113,7 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
-val outwatchVersion = "0.11.1-SNAPSHOT"
+val outwatch = "com.github.fdietze" % "outwatch" % "isomorphic-SNAPSHOT"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -126,7 +126,7 @@ lazy val util = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
-      "io.github.outwatch" %%% "outwatch" % outwatchVersion ::
+      outwatch ::
       Nil
     )
   )
@@ -244,9 +244,9 @@ lazy val frontend = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "io.github.outwatch" %%% "outwatch" % outwatchVersion ::
+      outwatch ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      "com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT" ::
+      "com.github.fdietze" %% "scala-js-d3v4" % "master-SNAPSHOT" :: // needs %% because %%% does not work on jitpack - https://github.com/jitpack/jitpack.io/issues/372
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
