@@ -15,10 +15,10 @@ class StopWatch {
   def now = System.nanoTime
   def passed = now - startTime
 
-  def reset() { totalPassedTime = 0 }
-  def start() { startTime = now }
-  def restart() { reset(); start() }
-  def stop() { totalPassedTime += passed }
+  def reset():Unit = { totalPassedTime = 0 }
+  def start():Unit = { startTime = now }
+  def restart():Unit = { reset(); start() }
+  def stop():Unit = { totalPassedTime += passed }
 
   def measure[A](code: => A) = {
     start()

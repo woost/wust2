@@ -121,7 +121,7 @@ object algorithm {
 
     while (unmarked.nonEmpty) visit(unmarked.head)
 
-    def visit(n: V) {
+    def visit(n: V):Unit = {
       if (unmarked(n)) {
         tempMarked += n
         unmarked -= n

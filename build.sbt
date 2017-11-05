@@ -35,22 +35,25 @@ lazy val commonSettings = Seq(
   // watchSources ++= (managedClasspath in Compile).map(_.files).value,
 
   scalacOptions ++=
+    // https://www.threatstack.com/blog/useful-scalac-options-for-better-scala-development-part-1/
+    // https://tpolecat.github.io/2017/04/25/scalac-flags.html
+  
     "-encoding" :: "UTF-8" ::
-    "-unchecked" ::
-    "-deprecation" ::
-    "-explaintypes" ::
+    "-unchecked" ::// Enable additional warnings where generated code depends on assumptions
+    // "-deprecation" ::
+    "-explaintypes" :: // Explain type errors in more detail
     "-feature" ::
     "-language:_" ::
     "-Xcheckinit" ::
     "-Xfuture" ::
-    "-Xlint" ::
-    "-Yno-adapted-args" ::
+    // "-Xlint" ::
+    // "-Yno-adapted-args" ::
     // "-Ywarn-dead-code" :: // does not work with js.native
-    "-Ywarn-unused:_,-imports,-params" :: // -params does not work with js.native
-    "-Ywarn-extra-implicit" ::
-    "-Ywarn-infer-any" ::
-    "-Ywarn-nullary-override" ::
-    "-Ywarn-nullary-unit" ::
+    // "-Ywarn-unused:_,-imports,-params" :: // -params does not work with js.native
+    // "-Ywarn-extra-implicit" ::
+    // "-Ywarn-infer-any" ::
+    // "-Ywarn-nullary-override" ::
+    // "-Ywarn-nullary-unit" ::
     Nil
 
 // To enable wartremover in all projects: https://github.com/wartremover/wartremover/issues/283#issuecomment-332927623
