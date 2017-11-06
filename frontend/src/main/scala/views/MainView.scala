@@ -24,7 +24,6 @@ import wust.frontend.{SyncStatus, SyncMode}
 import outwatch.dom._
 import wust.util.outwatchHelpers._
 
-//TODO: let scalatagst-rx accept Rx(div()) instead of only Rx{(..).render}
 object MainView {
   import Elements._
 
@@ -185,16 +184,20 @@ object MainView {
   //  inviteLink
   //}
 
-  //def viewSelection(state: GlobalState, pages: Seq[ViewPage])(implicit ctx: Ctx.Owner) = Rx {
-  //  select(onchange := { (e: Event) =>
-  //    val value = e.target.asInstanceOf[HTMLSelectElement].value
-  //    state.viewPage() = ViewPage.fromString(value)
-  //    Analytics.sendEvent("view", "select", value)
-  //  }, pages.map { page =>
-  //    val attrs = if (page == state.viewPage()) Seq(selected) else Seq.empty
-  //    option(page.toString, value := ViewPage.toString(page))(attrs: _*).render
-  //  }).render
-  //}
+  def viewSelection(allViews: Seq[View], selectedView:Handler[View]) = {
+    val viewHandler = createHandler[View]().unsafeRunSync()
+    viewHandler(currentView => Analytics.sendEvent("view", "select", currentView.toString))
+    (selectedView <-- viewHandler).unsafeRunSync()
+
+    select(inputString(View.fromString) --> viewHandler,
+      children <-- selectedView.map{ selectedView => allViews.map { view =>
+        option(
+          view.toString,
+          value := View.toString(view),
+          if (view == selectedView) Some(selected := true) else None
+        )
+      }} )
+  }
 
   //def devPeek(state: GlobalState)(implicit ctx: Ctx.Owner) = {
   //  val show = Var(false)
@@ -344,60 +347,60 @@ object MainView {
   //   ).render
   // }
 
-  // def topBar(state: GlobalState, viewPages: List[ViewPage])(implicit ctx: Ctx.Owner) = {
-  //   val lockToGroup = state.viewConfig.now.lockToGroup
-  //   if (lockToGroup) {
-  //     div(
-  //       padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
-  //       display.flex, alignItems.center, justifyContent.spaceBetween,
+   def topBar(state: GlobalState, viewPages: List[View]) = {
+//     val lockToGroup = state.viewConfig.now.lockToGroup
+//     if (lockToGroup) {
+//       div(
+//         padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
+//         display.flex, alignItems.center, justifyContent.spaceBetween,
+//
+//         div(
+//           display.flex, alignItems.center, justifyContent.flexStart,
+//
+//           upButton(state),
+//           focusedParents(state)
+//         ),
+//
+//         if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
+//         else div(),
+//
+//         syncStatus(state),
+//         div(
+//           undoButton(state),
+//           redoButton(state)
+//         )
+//       )
+//     } else {
+       div(
+//         padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
+//         display.flex, alignItems.center, justifyContent.spaceBetween,
 
-  //       div(
-  //         display.flex, alignItems.center, justifyContent.flexStart,
+//         div(
+//           display.flex, alignItems.center, justifyContent.flexStart,
+//
+//           upButton(state),
+//           focusedParents(state),
+//           groupSelector(state),
+//           invitePopup(state),
+//           newGroupButton(state)
+//         ),
 
-  //         upButton(state),
-  //         focusedParents(state)
-  //       ),
+         if (viewPages.size > 1) div("view: ")(viewSelection(viewPages, state.view))
+         else div(),
 
-  //       if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
-  //       else div(),
-
-  //       syncStatus(state),
-  //       div(
-  //         undoButton(state),
-  //         redoButton(state)
-  //       )
-  //     )
-  //   } else {
-  //     div(
-  //       padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
-  //       display.flex, alignItems.center, justifyContent.spaceBetween,
-
-  //       div(
-  //         display.flex, alignItems.center, justifyContent.flexStart,
-
-  //         upButton(state),
-  //         focusedParents(state),
-  //         groupSelector(state),
-  //         invitePopup(state),
-  //         newGroupButton(state)
-  //       ),
-
-  //       if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
-  //       else div(),
-
-  //       syncStatus(state),
-  //       div(
-  //         undoButton(state),
-  //         redoButton(state)
-  //       ),
-
-  //       div(
-  //         display.flex, alignItems.center, justifyContent.flexEnd,
-  //         UserView.topBarUserStatus(state)
-  //       )
-  //     )
-  //   }
-  // }
+//         syncStatus(state),
+//         div(
+//           undoButton(state),
+//           redoButton(state)
+//         ),
+//
+//         div(
+//           display.flex, alignItems.center, justifyContent.flexEnd,
+//           UserView.topBarUserStatus(state)
+//         )
+       )
+//     }
+   }
 
   // def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
   //   div(
@@ -406,18 +409,18 @@ object MainView {
   // }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false) = {
-    val viewPages: List[(ViewPage, () => VNode)] = List(
-      ViewPage.Graph -> (() => GraphView(state, disableSimulation)),
+    val viewPages: List[(View, () => VNode)] = List(
+      View.Graph -> (() => GraphView(state, disableSimulation)),
       // ViewPage.List -> (() => TreeView(state)),
       // ViewPage.Article -> (() => ArticleView(state)),
       // ViewPage.Code -> (() => CodeView(state)),
       // ViewPage.Chat -> (() => ChatView(state)),
       // ViewPage.Board -> (() => BoardView(state)),
       // ViewPage.MyBoard -> (() => MyBoardView(state)),
-      // ViewPage.Test -> (() => TestView(state))
+       View.Test -> (() => TestView(state))
     )
 
-    val viewPagesMap: Map[ViewPage, () => VNode] = viewPages.toMap
+    val viewPagesMap: Map[View, () => VNode] = viewPages.toMap
 
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
@@ -431,16 +434,13 @@ object MainView {
       // alignItems.stretch,
       // alignContent.stretch,
 
-      // topBar(state, viewPages.map(_._1))(ctx)(minHeight := "min-content"),
-      child <-- state.viewPage.map { page =>
+      topBar(state, viewPages.map(_._1))(stl("minHeight") := "min-content"),
+      child <-- state.view.map { page =>
         val vnode = viewPagesMap(page)()
-        for {
-          vnode <- vnode // unwrap IO
-          extended <- vnode(
-            stl("flex") := "1",
-            stl("overflow") := "auto"
-          )
-        } yield extended
+        vnode(
+          stl("flex") := "1",
+          stl("overflow") := "auto"
+        )
       },
       // bottomBar (state),
 

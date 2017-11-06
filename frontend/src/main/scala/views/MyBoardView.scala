@@ -231,7 +231,7 @@ object MyBoardView /*extends MyBoardViewComponents*/ {
 	// 	import snabbdom._
 	// 	patch(elem, render().asProxy)
 	// 	elem
-      div().render
+      div()
 	}
 
 

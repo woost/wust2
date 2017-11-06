@@ -19,15 +19,16 @@ object TestView {
   def apply(state: GlobalState) = {
     import state._
     val graph = displayGraphWithoutParents.map(_.graph)
-    graph(g => println(s"TestView: got graph update"))
+    graph(g => println(s"TestView: got graph update. If this is shown more than once per graph update, this is a leak."))
     component(graph, graphSelection)
   }
 
   def component(graph:Observable[Graph], graphSelection:Sink[GraphSelection]) = {
     div(
       stl("padding") := "20px",
+      h1("Test View"),
       children <-- sortedPostItems(graph, graphSelection)
-    ).render
+    )
   }
 
   def sortedPostItems(graph:Observable[Graph], graphSelection:Sink[GraphSelection]): Observable[Seq[VNode]] = graph.map { graph =>

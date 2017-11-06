@@ -113,7 +113,9 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
-val outwatch = "com.github.fdietze" % "outwatch" % "isomorphic-SNAPSHOT"
+val outwatch = "com.github.fdietze" % "outwatch" % "d4bc335953"
+//val outwatch = "com.github.fdietze" % "outwatch" % "isomorphic-SNAPSHOT"
+//val outwatch = "io.github.outwatch" %% "outwatch_sjs0.6" % "0.11.1-SNAPSHOT"
 
 lazy val util = crossProject
   .settings(commonSettings)

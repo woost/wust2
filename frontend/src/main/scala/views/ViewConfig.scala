@@ -6,36 +6,36 @@ import wust.ids._
 import scala.util.Try
 import scalaz.Tag
 
-sealed trait ViewPage
-object ViewPage {
-  case object Graph extends ViewPage
-  case object List extends ViewPage
-  case object Article extends ViewPage
-  case object Code extends ViewPage
-  case object Chat extends ViewPage
-  case object Board extends ViewPage
-  case object MyBoard extends ViewPage
-  case object Test extends ViewPage
+sealed trait View
+object View {
+  case object Graph extends View
+  case object List extends View
+  case object Article extends View
+  case object Code extends View
+  case object Chat extends View
+  case object Board extends View
+  case object MyBoard extends View
+  case object Test extends View
 
   def default = Graph
 
-  def toString(page: ViewPage) = page.toString.toLowerCase
-  val fromString: String => ViewPage = {
-    case "myboard"   => ViewPage.MyBoard
-    case "graph"   => ViewPage.Graph
-    case "list"    => ViewPage.List
-    case "article" => ViewPage.Article
-    case "code"    => ViewPage.Code
-    case "chat"    => ViewPage.Chat
-    case "board"    => ViewPage.Board
-    case "test"    => ViewPage.Test
-    case _         => ViewPage.default
+  def toString(page: View) = page.toString.toLowerCase
+  val fromString: String => View = {
+    case "myboard"   => View.MyBoard
+    case "graph"   => View.Graph
+    case "list"    => View.List
+    case "article" => View.Article
+    case "code"    => View.Code
+    case "chat"    => View.Chat
+    case "board"    => View.Board
+    case "test"    => View.Test
+    case _         => View.default
   }
 }
 
-case class ViewConfig(page: ViewPage, selection: GraphSelection, groupIdOpt: Option[GroupId], invite: Option[String], lockToGroup: Boolean)
+case class ViewConfig(view: View, selection: GraphSelection, groupIdOpt: Option[GroupId], invite: Option[String], lockToGroup: Boolean)
 object ViewConfig {
-  val default = ViewConfig(ViewPage.default, GraphSelection.default, None, None, false)
+  val default = ViewConfig(View.default, GraphSelection.default, None, None, false)
   def fromHash(hash: Option[String]): ViewConfig = hash.collect {
     case Path(path) => pathToViewConfig(path)
   }.getOrElse(default)
@@ -43,7 +43,7 @@ object ViewConfig {
   def toHash(config: ViewConfig): String = viewConfigToPath(config).toString
 
   private def viewConfigToPath(config: ViewConfig) = {
-    val name = ViewPage.toString(config.page)
+    val name = View.toString(config.view)
     val selection = Option(config.selection) collect {
       case GraphSelection.Union(ids) => "select" -> PathOption.StringList.toString(ids.map(Tag.unwrap _).toSeq)
     }
@@ -55,7 +55,7 @@ object ViewConfig {
   }
 
   private def pathToViewConfig(path: Path) = {
-    val page = ViewPage.fromString(path.name)
+    val page = View.fromString(path.name)
     val selection = path.options.get("select").map(PathOption.StringList.parse) match {
       case Some(ids) => GraphSelection.Union(ids.map(PostId _).toSet)
       case None      => GraphSelection.default

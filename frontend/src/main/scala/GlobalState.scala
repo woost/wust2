@@ -2,7 +2,7 @@ package wust.frontend
 
 import vectory._
 import wust.api._
-import wust.frontend.views.{ViewConfig, ViewPage}
+import wust.frontend.views.{ViewConfig, View}
 import wust.graph._
 import wust.ids._
 import org.scalajs.dom.{console, window}
@@ -64,7 +64,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val viewConfig: Handler[ViewConfig] = UrlRouter.variable.imapMap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
-  val viewPage: Handler[ViewPage] = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
+  val view: Handler[View] = viewConfig.lens(ViewConfig.default)(_.view)((config, view) => config.copy(view = view))
 
   val rawGraphSelection: Handler[GraphSelection] = viewConfig.lens(ViewConfig.default)(_.selection)((config, selection) => config.copy(selection = selection))
 
