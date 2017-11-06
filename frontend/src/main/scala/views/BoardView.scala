@@ -1,19 +1,19 @@
-package wust.frontend.views
+// package wust.frontend.views
 
-import org.scalajs.d3v4._
-import org.scalajs.dom.{DragEvent, Event}
-import org.scalajs.dom.raw.HTMLTextAreaElement
-import wust.frontend.Color._
-import wust.frontend._
-import wust.graph._
-import wust.ids._
+// import org.scalajs.d3v4._
+// import org.scalajs.dom.{DragEvent, Event}
+// import org.scalajs.dom.raw.HTMLTextAreaElement
+// import wust.frontend.Color._
+// import wust.frontend._
+// import wust.graph._
+// import wust.ids._
 
-import scala.collection.breakOut
-import scala.concurrent.ExecutionContext.Implicits.global
-import scalaz.Tag
+// import scala.collection.breakOut
+// import scala.concurrent.ExecutionContext.Implicits.global
+// import scalaz.Tag
 
-import outwatch.dom._
-import wust.util.outwatchHelpers._
+// import outwatch.dom._
+// import wust.util.outwatchHelpers._
 
 //object BoardView {
 //  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {

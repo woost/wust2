@@ -1,9 +1,9 @@
-package wust.frontend.views.graphview
+// package wust.frontend.views.graphview
 
-import org.scalajs.d3v4._
+// import org.scalajs.d3v4._
 
-import scala.math._
-import scala.scalajs.js
+// import scala.math._
+// import scala.scalajs.js
 
 // class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) extends DataSelection[SimPost] {
 //   val menuOuterRadius = 100.0

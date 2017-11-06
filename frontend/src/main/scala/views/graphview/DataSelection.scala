@@ -7,11 +7,11 @@ import scala.scalajs.js
 
 trait DataSelection[T] {
   val tag: String
-  def enterAppend(selection: Selection[T]) {}
-  def enter(selection: Enter[T]) { enterAppend(selection.append(tag)) }
-  def update(selection: Selection[T]) {}
-  def exit(selection: Selection[T]) { selection.remove() }
-  def draw(selection: Selection[T]) {}
+  def enterAppend(selection: Selection[T]):Unit = {}
+  def enter(selection: Enter[T]):Unit = { enterAppend(selection.append(tag)) }
+  def update(selection: Selection[T]):Unit = {}
+  def exit(selection: Selection[T]):Unit = { selection.remove() }
+  def draw(selection: Selection[T]):Unit = {}
 }
 
 class WithKey[T](f: T => Any) extends (T => Any) {

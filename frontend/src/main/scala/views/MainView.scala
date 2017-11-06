@@ -4,7 +4,7 @@ import autowire._
 import boopickle.Default._
 import org.scalajs.dom.{Event, document, window, console, Element}
 import org.scalajs.dom.window.location
-import wust.util.tags._
+// import wust.util.tags._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{ DevOnly, GlobalState }

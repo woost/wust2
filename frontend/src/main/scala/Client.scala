@@ -25,7 +25,7 @@ object ClientCache {
 
   private var _currentAuth: Option[Authentication] = None
   def currentAuth: Option[Authentication] = _currentAuth
-  def currentAuth_=(auth: Option[Authentication]) {
+  def currentAuth_=(auth: Option[Authentication]):Unit = {
     _currentAuth = auth
     // storage.token = auth.map(_.token)
   }

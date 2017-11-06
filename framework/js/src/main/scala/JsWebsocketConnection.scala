@@ -32,7 +32,7 @@ class JsWebsocketConnection extends WebsocketConnection {
     sendMessages.flush()
   }
 
-  def run(location: String, listener: WebsocketListener) {
+  def run(location: String, listener: WebsocketListener): Unit = {
     import listener._
 
     val websocket = new WebSocket(location)

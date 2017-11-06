@@ -1,19 +1,19 @@
-package wust.frontend.views
+// package wust.frontend.views
 
-import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.{HTMLElement, Text}
-import org.scalajs.dom._
-import wust.frontend._
-import wust.graph._
-import wust.ids._
-import wust.util.algorithm.{Tree, TreeContext, redundantSpanningTree}
-import wust.util.collection._
+// import org.scalajs.dom.ext.KeyCode
+// import org.scalajs.dom.raw.{HTMLElement, Text}
+// import org.scalajs.dom._
+// import wust.frontend._
+// import wust.graph._
+// import wust.ids._
+// import wust.util.algorithm.{Tree, TreeContext, redundantSpanningTree}
+// import wust.util.collection._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.math.Ordering
-import scala.scalajs.js
-import scala.scalajs.js.timers.setTimeout
-import scalaz.Tag
+// import scala.concurrent.ExecutionContext.Implicits.global
+// import scala.math.Ordering
+// import scala.scalajs.js
+// import scala.scalajs.js.timers.setTimeout
+// import scalaz.Tag
 
 //TODO proper ordering and move to wust.ids
 //object PostOrdering extends Ordering[Post] {

@@ -96,7 +96,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   //TODO: when updating, both displayGraphs are recalculated
   // if possible only recalculate when needed for visualization
-  val displayGraphWithoutParents: Observable[DisplayGraph] =// rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
+  val displayGraphWithoutParents: Observable[DisplayGraph] = // rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
     //(rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
     for {
       rawGraph <- rawGraph

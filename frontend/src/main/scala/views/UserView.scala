@@ -1,19 +1,19 @@
-package wust.frontend.views
+// package wust.frontend.views
 
-import org.scalajs.dom.window.location
+// import org.scalajs.dom.window.location
 
-import autowire._
-import boopickle.Default._
-import wust.graph.{ User, Group }
-import wust.frontend.{ Client, GlobalState }
-import wust.util.Pipe
-import wust.util.tags._
-import wust.ids._
+// import autowire._
+// import boopickle.Default._
+// import wust.graph.{ User, Group }
+// import wust.frontend.{ Client, GlobalState }
+// import wust.util.Pipe
+// import wust.util.tags._
+// import wust.ids._
 
-import scala.concurrent.Future
-import scala.collection.mutable
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import wust.util.Analytics
+// import scala.concurrent.Future
+// import scala.collection.mutable
+// import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+// import wust.util.Analytics
 
 //object UserView {
 //  import Elements._

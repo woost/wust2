@@ -1,19 +1,19 @@
-package wust.frontend.views
+// package wust.frontend.views
 
-import autowire._
-import boopickle.Default._
-import org.scalajs.dom.document
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLElement}
-import wust.api._
-import wust.frontend.{Client, GlobalState, RichPostFactory}
-import wust.graph._
-import wust.ids._
-import wust.util.tags._
+// import autowire._
+// import boopickle.Default._
+// import org.scalajs.dom.document
+// import org.scalajs.dom.raw.{HTMLInputElement, HTMLElement}
+// import wust.api._
+// import wust.frontend.{Client, GlobalState, RichPostFactory}
+// import wust.graph._
+// import wust.ids._
+// import wust.util.tags._
 
-import scala.collection.breakOut
-import scala.concurrent.duration.{span => _, _}
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import org.scalajs.dom.{Event, console}
+// import scala.collection.breakOut
+// import scala.concurrent.duration.{span => _, _}
+// import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+// import org.scalajs.dom.{Event, console}
 
 // object DevView {
 //   import scala.util.Random.{nextInt => rInt, nextString => rStr}

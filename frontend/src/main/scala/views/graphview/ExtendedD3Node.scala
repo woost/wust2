@@ -1,10 +1,10 @@
-package wust.frontend.views.graphview
+// package wust.frontend.views.graphview
 
-import org.scalajs.d3v4._
-import org.scalajs.dom.raw.HTMLElement
-import vectory._
+// import org.scalajs.d3v4._
+// import org.scalajs.dom.raw.HTMLElement
+// import vectory._
 
-import scala.scalajs.js
+// import scala.scalajs.js
 
 // trait ExtendedD3Node extends SimulationNode {
 //   def pos = for (x <- x; y <- y) yield Vec2(x, y)

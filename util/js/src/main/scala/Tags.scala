@@ -1,4 +1,4 @@
-package wust.util
+// package wust.util
 
 // http://www.lihaoyi.com/scalatags/#Cross-backendCode
 

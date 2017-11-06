@@ -1,9 +1,9 @@
-package wust.frontend.views.graphview
+// package wust.frontend.views.graphview
 
-import org.scalajs.d3v4._
-import wust.frontend._
+// import org.scalajs.d3v4._
+// import wust.frontend._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+// import scala.concurrent.ExecutionContext.Implicits.global
 
 // object ConnectionLineSelection extends DataSelection[SimConnection] {
 //   override val tag = "line"

@@ -14,15 +14,15 @@ case class RequestEvent(events: Seq[ApiEvent.Public], postGroups: Map[PostId, Se
 class EventDistributor(db: Db) {
   val subscribers = mutable.HashSet.empty[NotifiableClient[RequestEvent]]
 
-  def subscribe(client: NotifiableClient[RequestEvent]) {
+  def subscribe(client: NotifiableClient[RequestEvent]): Unit = {
     subscribers += client
   }
 
-  def unsubscribe(client: NotifiableClient[RequestEvent]) {
+  def unsubscribe(client: NotifiableClient[RequestEvent]): Unit = {
     subscribers -= client
   }
 
-  def publish(origin: ClientIdentity, events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext) {
+  def publish(origin: ClientIdentity, events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
     val postIds = events.flatMap(postIdsInEvent _).toSet

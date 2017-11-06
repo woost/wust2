@@ -14,7 +14,7 @@ class Notifications {
   def notificationsGranted = Notification.permission == "granted"
   def notificationsDenied = Notification.permission == "denied"
 
-  def notify(title: String, body: Option[String] = None, onclick: Notification => Any = _ => ()) {
+  def notify(title: String, body: Option[String] = None, onclick: Notification => Any = _ => ()):Unit = {
     // def fire() {
     //   Analytics.sendEvent("notification", "fired", "pwa")
     //   val n = new Notification(title, NotificationOptions(body = body.orUndefined))

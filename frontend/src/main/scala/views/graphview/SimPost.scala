@@ -1,11 +1,11 @@
-package wust.frontend.views.graphview
+// package wust.frontend.views.graphview
 
-import delegert.delegert
-import org.scalajs.d3v4._
-import wust.graph.Post
-import wust.util.Pipe
+// import delegert.delegert
+// import org.scalajs.d3v4._
+// import wust.graph.Post
+// import wust.util.Pipe
 
-import scala.math._
+// import scala.math._
 
 //class SimPost(@delegert(vals) val post: Post) extends ExtendedD3Node with SimulationNodeImpl {
 //  var color = "red"

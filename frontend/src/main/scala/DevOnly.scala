@@ -12,7 +12,7 @@ object DevOnly {
 }
 
 object DevPrintln {
-  def apply(code: => String) {
+  def apply(code: => String):Unit = {
     DevOnly { println(code) }
   }
 }

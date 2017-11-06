@@ -62,7 +62,7 @@ class WebsocketClient[Event: Pickler, Failure: Pickler](ws: WebsocketConnection)
     }
   })
 
-  def stop() {
+  def stop(): Unit = {
     timer.cancel()
     //TODO: stop ws?
   }
