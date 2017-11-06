@@ -51,7 +51,7 @@ class GraphPersistence(syncEnabled: Observable[Boolean]) {
 
   // storage.graphChanges <-- localChanges //TODO
 
-  private val bufferedChanges = localChanges.bufferUnless(syncEnabled)
+  private val bufferedChanges = localChanges.map(List(_))//.bufferUnless(syncEnabled)
 
   private val sendingChanges = bufferedChanges.expand { (changes, number) =>
     val retryChanges = sendChanges(changes) map {
@@ -61,6 +61,7 @@ class GraphPersistence(syncEnabled: Observable[Boolean]) {
 
     observableFromFutureOption(retryChanges)
   }
+  sendingChanges(_ => ()) // trigger sendingChanges
 
   def observableFromFutureOption[T](future: Future[Option[T]]): Observable[T] = {
     import scala.scalajs.js
