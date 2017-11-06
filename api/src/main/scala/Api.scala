@@ -9,7 +9,7 @@ trait Api {
   def changeGraph(changes: List[GraphChanges]): Future[Boolean]
 
   def getPost(id: PostId): Future[Option[Post]]
-  def getGraph(selection: GraphSelection): Future[Graph]
+  def getGraph(selection: Page): Future[Graph]
   def getUser(userId: UserId): Future[Option[User]]
   def addGroup(): Future[GroupId]
   def addMember(groupId: GroupId, userId: UserId): Future[Boolean]

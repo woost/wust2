@@ -2,8 +2,9 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Event, document, window, console, Element}
+import org.scalajs.dom.{Element, Event, console, document, window}
 import org.scalajs.dom.window.location
+import rxscalajs.Observable
 // import wust.util.tags._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
@@ -42,23 +43,26 @@ object MainView {
   //  }).render
   //}
 
-  //def focusedParents(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  val selection = state.graphSelection()
-  //  val graph = state.rawGraph()
+  def focusedParents(state: GlobalState) = {
+    //TODO: move to globalstate?
+    val posts:Observable[Seq[Post]] = for {
+      selection <- state.page
+      graph <- state.rawGraph
+    } yield selection.parentIds.toSeq.map ( graph.postsById )
 
-  //  div(
-  //    selection.parentIds.toSeq.map { parentId =>
-  //      val post = graph.postsById(parentId)
-  //      span(
-  //        post.title,
-  //        backgroundColor := baseColor(post.id).toString,
-  //        fontWeight.bold,
-  //        margin := "2px", padding := "1px 5px 1px 5px",
-  //        borderRadius := "2px"
-  //      )
-  //    }
-  //  ).render
-  //}
+    div(
+      children <-- posts.map { posts => posts.map { post =>
+          span(
+            post.title,
+            stl("backgroundColor") := baseColor(post.id).toString,
+            stl("fontWeight") := "bold",
+            stl("margin") := "2px", stl("padding") := "1px 5px 1px 5px",
+            stl("borderRadius") := "2px"
+          )
+        }
+      }
+    )
+  }
 
   //def groupSelector(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
   //  div(" group: ", state.rawGraph.map { graph =>
@@ -372,18 +376,18 @@ object MainView {
 //       )
 //     } else {
        div(
-//         padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
-//         display.flex, alignItems.center, justifyContent.spaceBetween,
+         stl("padding") := "5px", stl("background") := "#FAFAFA", stl("borderBottom") := "1px solid #DDD",
+         stl("display") := "flex", stl("alignItems") := "center", stl("justifyContent") := "spaceBetween",
 
-//         div(
-//           display.flex, alignItems.center, justifyContent.flexStart,
-//
+         div(
+           stl("display") := "flex", stl("alignItems") := "center", stl("justifyContent") := "flexStart",
+
 //           upButton(state),
-//           focusedParents(state),
+           focusedParents(state),
 //           groupSelector(state),
 //           invitePopup(state),
 //           newGroupButton(state)
-//         ),
+         ),
 
          if (viewPages.size > 1) div("view: ")(viewSelection(viewPages, state.view))
          else div(),
@@ -411,12 +415,12 @@ object MainView {
   def apply(state: GlobalState, disableSimulation: Boolean = false) = {
     val viewPages: List[(View, () => VNode)] = List(
       View.Graph -> (() => GraphView(state, disableSimulation)),
-      // ViewPage.List -> (() => TreeView(state)),
-      // ViewPage.Article -> (() => ArticleView(state)),
-      // ViewPage.Code -> (() => CodeView(state)),
-      // ViewPage.Chat -> (() => ChatView(state)),
-      // ViewPage.Board -> (() => BoardView(state)),
-      // ViewPage.MyBoard -> (() => MyBoardView(state)),
+      // View.List -> (() => TreeView(state)),
+      // View.Article -> (() => ArticleView(state)),
+      // View.Code -> (() => CodeView(state)),
+       View.Chat -> (() => ChatView(state)),
+      // View.Board -> (() => BoardView(state)),
+      // View.MyBoard -> (() => MyBoardView(state)),
        View.Test -> (() => TestView(state))
     )
 
@@ -425,14 +429,14 @@ object MainView {
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
     div(
-      // width := "100%",
-      // height := "100%",
+       stl("width") := "100%",
+       stl("height") := "100%",
 
-      // display.flex,
-      // flexDirection.column,
-      // justifyContent.flexStart,
-      // alignItems.stretch,
-      // alignContent.stretch,
+       stl("display") := "flex",
+       stl("flexDirection") := "column",
+       stl("justifyContent") := "flexStart",
+       stl("alignItems") := "stretch",
+       stl("alignContent") := "stretch",
 
       topBar(state, viewPages.map(_._1))(stl("minHeight") := "min-content"),
       child <-- state.view.map { page =>

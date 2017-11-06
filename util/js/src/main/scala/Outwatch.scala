@@ -29,8 +29,8 @@ package object outwatchHelpers {
   }
 
   implicit class Richobservable[T](val o:Observable[T]) extends AnyVal {
-    def replaceWithLatest[R](o2:Observable[R]):Observable[R] = {
-      o.combineLatestWith[R,R](o2)((_, text) => text)
+    def replaceWithLatestFrom[R](o2:Observable[R]):Observable[R] = {
+      o.withLatestFrom(o2).map(_._2)
     }
 
     def bufferUnless(predicates: Observable[Boolean]):Observable[List[T]] = {
@@ -62,8 +62,6 @@ package object outwatchHelpers {
     //TODO: outwatch: accept function => Any or R
     outwatch.Sink.create[T](e => {f(e); IO{()}})
   }
-
-  implicit def unwrapIOHandler[T](h:IO[Handler[T]]):Handler[T] = h.unsafeRunSync()
 
   implicit def ElementFuncToSink2[R](f:Element => R):outwatch.Sink[(Element,Element)] = {
     //TODO: outwatch: accept function => Any or R

@@ -2,19 +2,19 @@ package wust.graph
 import derive.derive
 import wust.ids._
 
-sealed trait GraphSelection {
-  def add(parentId: PostId): GraphSelection
-  def remove(parentId: PostId): GraphSelection
+sealed trait Page {
+  def add(parentId: PostId): Page
+  def remove(parentId: PostId): Page
   def parentIds: Set[PostId]
 }
 
-object GraphSelection {
-  case object Root extends GraphSelection {
+object Page {
+  case object Root extends Page {
     def add(parentId: PostId) = Union(Set(parentId))
     def remove(parentId: PostId) = Root
     def parentIds = Set.empty
   }
-  case class Union(parentIds: Set[PostId]) extends GraphSelection {
+  case class Union(parentIds: Set[PostId]) extends Page {
     def add(parentId: PostId) = copy(parentIds + parentId)
     def remove(parentId: PostId) = {
       val newParentIds = parentIds - parentId
@@ -25,9 +25,9 @@ object GraphSelection {
 
   def default = Root
 
-  def toContainments(selection: GraphSelection, postId: PostId): Seq[Containment] = {
-    selection match {
-      case GraphSelection.Union(parentIds) => parentIds.toSeq.map(Containment(_, postId))
+  def toContainments(page: Page, postId: PostId): Seq[Containment] = {
+    page match {
+      case Page.Union(parentIds) => parentIds.toSeq.map(Containment(_, postId))
       case _                               => Seq.empty
     }
   }

@@ -4,35 +4,50 @@ import org.scalajs.dom.{Event, KeyboardEvent}
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.html.TextArea
 import org.scalajs.dom.raw.{HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
+import outwatch.Sink
+import outwatch.dom._
+import wust.util.outwatchHelpers._
 
 //TODO: merge with util.Tags
 object Elements {
-  //def textareaWithEnterSubmit = textareaWithEnter { elem =>
-  //  val form = elem.parentNode.asInstanceOf[HTMLFormElement]
-  //  //TODO: calling submit directly skips onSubmit handlers
-  //  // form.submit()
-  //  form.querySelector("""input[type="submit"]""").asInstanceOf[HTMLInputElement].click()
-  //  false
-  //}
 
-  //def onKey(e: KeyboardEvent)(f: PartialFunction[Long, Boolean]) = {
-  //  val shouldHandle = f.lift(e.keyCode).getOrElse(true)
-  //  if (!shouldHandle) {
-  //    e.preventDefault()
-  //    e.stopPropagation()
-  //  }
-  //}
+  def textAreaWithEnter(actionSink: Sink[String]) = {
+    // consistent across mobile + desktop:
+    // - textarea: enter emits keyCode for Enter
+    // - input: Enter triggers submit
 
-  //def textareaWithEnter(f: HTMLTextAreaElement => Boolean): TypedTag[TextArea] = textarea(onkeydown := { (event: KeyboardEvent) =>
-  //  onKey(event) {
-  //    case KeyCode.Enter if !event.shiftKey =>
-  //      val elem = event.target.asInstanceOf[HTMLTextAreaElement]
-  //      if (elem.value.nonEmpty) {
-  //        f(elem)
-  //      }
-  //      else false
-  //  }
-  //})
+    val userInput = createStringHandler().unsafeRunSync()
+    val setInputValue = createStringHandler().unsafeRunSync()
+    val clearHandler = setInputValue.map(_ => "")
+    val insertFieldValue = userInput.merge(clearHandler)
+
+    val submitHandler = createHandler[Event]().unsafeRunSync()
+    val enterKeyHandler = createKeyboardHandler().unsafeRunSync()
+    val actionHandler = submitHandler
+      .merge(enterKeyHandler)
+      .replaceWithLatestFrom(insertFieldValue)
+      .filter(_.nonEmpty)
+
+    (actionSink <-- actionHandler).unsafeRunSync()
+    (setInputValue <-- actionHandler).unsafeRunSync() //TODO: only trigger clearHandler
+    enterKeyHandler( event => event.preventDefault() )
+    //     insertFieldValue { text => println(s"Insertfield: '${text}'") }
+    //     enterKeyHandler { _ => println(s"EnterKeyHandler") }
+    //     submitHandler { _ => println(s"SumbitHandler") }
+    //     actionHandler { text => println(s"ActionHandler: ${text}") }
+
+    form(
+      textarea(
+        placeholder := "Create new post. Press Enter to submit.",
+        stl("width") := "100%",
+        inputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
+        value <-- clearHandler,
+        keydown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
+      ),
+      input(tpe := "submit", value := "insert"),
+      submit --> submitHandler
+    )
+  }
 
   //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
   //  textarea(

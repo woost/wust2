@@ -33,9 +33,9 @@ object View {
   }
 }
 
-case class ViewConfig(view: View, selection: GraphSelection, groupIdOpt: Option[GroupId], invite: Option[String], lockToGroup: Boolean)
+case class ViewConfig(view: View, page: Page, groupIdOpt: Option[GroupId], invite: Option[String], lockToGroup: Boolean)
 object ViewConfig {
-  val default = ViewConfig(View.default, GraphSelection.default, None, None, false)
+  val default = ViewConfig(View.default, Page.default, None, None, false)
   def fromHash(hash: Option[String]): ViewConfig = hash.collect {
     case Path(path) => pathToViewConfig(path)
   }.getOrElse(default)
@@ -44,8 +44,8 @@ object ViewConfig {
 
   private def viewConfigToPath(config: ViewConfig) = {
     val name = View.toString(config.view)
-    val selection = Option(config.selection) collect {
-      case GraphSelection.Union(ids) => "select" -> PathOption.StringList.toString(ids.map(Tag.unwrap _).toSeq)
+    val selection = Option(config.page) collect {
+      case Page.Union(ids) => "select" -> PathOption.StringList.toString(ids.map(Tag.unwrap _).toSeq)
     }
     val group = config.groupIdOpt.map(groupId => "group" -> Tag.unwrap(groupId).toString)
     //invite is not listed here, because we don't need to see it after joining the group
@@ -57,8 +57,8 @@ object ViewConfig {
   private def pathToViewConfig(path: Path) = {
     val page = View.fromString(path.name)
     val selection = path.options.get("select").map(PathOption.StringList.parse) match {
-      case Some(ids) => GraphSelection.Union(ids.map(PostId _).toSet)
-      case None      => GraphSelection.default
+      case Some(ids) => Page.Union(ids.map(PostId _).toSet)
+      case None      => Page.default
     }
     val invite = path.options.get("invite")
     val groupId = path.options.get("group").flatMap(str => Try(GroupId(str.toLong)).toOption)

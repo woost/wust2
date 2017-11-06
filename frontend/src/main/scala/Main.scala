@@ -6,7 +6,7 @@ import org.scalajs.dom._
 import wust.util.Analytics
 import wust.api.ApiEvent
 import wust.ids._
-import wust.graph.{ GraphSelection, Graph }
+import wust.graph.{ Page, Graph }
 import wust.framework._
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
@@ -36,7 +36,7 @@ object Main {
     val apiEventHandler = createHandler[Seq[ApiEvent]]().unsafeRunSync()
     val state = new GlobalState(apiEventHandler)
 
-    def getNewGraph(selection: GraphSelection) = {
+    def getNewGraph(selection: Page) = {
       //TODO ???
       // Client.api.getGraph(selection).call().foreach { newGraph =>
       //   val oldSelectionGraph = selection match {
@@ -100,7 +100,7 @@ object Main {
           }
         }
 
-        if (prevViewConfig.selection != viewConfig.selection) getNewGraph(viewConfig.selection)
+        if (prevViewConfig.page != viewConfig.page) getNewGraph(viewConfig.page)
     }
 
     OutWatch.render("#container", views.MainView(state)).unsafeRunSync()

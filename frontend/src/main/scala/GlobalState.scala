@@ -66,14 +66,14 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val view: Handler[View] = viewConfig.lens(ViewConfig.default)(_.view)((config, view) => config.copy(view = view))
 
-  val rawGraphSelection: Handler[GraphSelection] = viewConfig.lens(ViewConfig.default)(_.selection)((config, selection) => config.copy(selection = selection))
+  val rawPage: Handler[Page] = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
 
   val inviteToken = viewConfig.map(_.invite)
 
-  val graphSelection = rawGraphSelection.comap { _.combineLatestWith(rawGraph){ (selection, graph) =>
-    selection match {
-      case GraphSelection.Union(ids) =>
-        GraphSelection.Union(ids.filter(graph.postsById.isDefinedAt))
+  val page = rawPage.comap { _.combineLatestWith(rawGraph){ (page, graph) =>
+    page match {
+      case Page.Union(ids) =>
+        Page.Union(ids.filter(graph.postsById.isDefinedAt))
       case s => s
     }
   }}
@@ -102,15 +102,15 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
       rawGraph <- rawGraph
       viewConfig <- viewConfig
       selectedGroupId <- selectedGroupId
-      graphSelection <- graphSelection
+      page <- page
       currentView <- currentView
     } yield {
       val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
-      graphSelection match {
-        case GraphSelection.Root =>
+      page match {
+        case Page.Root =>
           currentView.applyOnGraph(graph)
 
-        case GraphSelection.Union(parentIds) =>
+        case Page.Union(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) -- parentIds
           val selectedGraph = graph.filter(descendants)
           currentView.applyOnGraph(selectedGraph)
@@ -124,15 +124,15 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
       rawGraph <- rawGraph
       viewConfig <- viewConfig
       selectedGroupId <- selectedGroupId
-      graphSelection <- graphSelection
+      page <- page
       currentView <- currentView
     } yield {
       val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
-      graphSelection match {
-        case GraphSelection.Root =>
+      page match {
+        case Page.Root =>
           currentView.applyOnGraph(graph)
 
-        case GraphSelection.Union(parentIds) =>
+        case Page.Union(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
           val selectedGraph = graph.filter(descendants)
           currentView.applyOnGraph(selectedGraph)

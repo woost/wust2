@@ -119,12 +119,12 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def getGraph(selection: GraphSelection): Future[Graph] = { (state: State) =>
+  def getGraph(selection: Page): Future[Graph] = { (state: State) =>
     val userIdOpt = state.user.map(_.id)
     val graph = selection match {
-      case GraphSelection.Root =>
+      case Page.Root =>
         db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
-      case GraphSelection.Union(parentIds) =>
+      case Page.Union(parentIds) =>
         getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
     }
 
