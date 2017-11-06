@@ -28,7 +28,7 @@ class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
-    case NewUser(user) =>
+    case NewUser(_) =>
         //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
         Future.successful(Nil)
 

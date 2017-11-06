@@ -35,7 +35,7 @@ package object outwatchHelpers {
 
     def bufferUnless(predicates: Observable[Boolean]):Observable[List[T]] = {
       val truePredicates = predicates.filter(_ == true)
-      val (trueEvents, falseEvents) = o.withLatestFrom(predicates).partition{ case (event, predicate) => predicate }
+      val (trueEvents, falseEvents) = o.withLatestFrom(predicates).partition{ case (_, predicate) => predicate }
       val toBeBufferedEvents = falseEvents.map { case (e,_) => e }
       val bufferedEvents = toBeBufferedEvents.bufferWhen(() => truePredicates)
       val flushEvents = trueEvents.map { case (x, _) => List(x) }

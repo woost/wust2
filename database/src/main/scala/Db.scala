@@ -384,7 +384,11 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
 
       val publicPosts = quote {
-        query[Post].leftJoin(query[Ownership]).on((p, o) => p.id == o.postId).filter { case (p, o) => o.isEmpty }.map { case (p, o) => p }
+        query[Post]
+          .leftJoin(query[Ownership])
+          .on((p, o) => p.id == o.postId)
+          .filter { case (_, o) => o.isEmpty }
+          .map { case (p, _) => p }
       }
 
       userIdOpt match {

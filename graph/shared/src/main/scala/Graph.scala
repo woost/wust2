@@ -1,4 +1,4 @@
-package wust
+package wust.graph
 
 import derive.derive
 import wust.ids._
@@ -9,15 +9,13 @@ import scalaz._
 
 import collection.mutable
 
-package object graph {
-
 case class Ownership(postId: PostId, groupId: GroupId)
 case class Membership(userId: UserId, groupId: GroupId)
 @derive((id, revision) => Equality)
 case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
 case class Group(id: GroupId)
 
-//TODO: rename Post -> ???
+//TODO: rename Post -> Item?
 final case class Post(id: PostId, title: String)
 final case class Connection(sourceId: PostId, targetId: PostId)
 final case class Containment(parentId: PostId, childId: PostId)
@@ -285,4 +283,3 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     tmpDepths
     }
   }
-}

@@ -3,9 +3,9 @@ package wust.backend
 import scala.concurrent.{ExecutionContext, Future}
 
 case class RequestResponse[T, Event](result: T, events: Seq[Event] = Seq.empty)
-case class StateEffect[State, T, Event](state: Future[State], response: Future[RequestResponse[T, Event]])
+case class StateEffect[StateType, T, Event](state: Future[StateType], response: Future[RequestResponse[T, Event]])
 
-class StateHolder[State, Event](initialState: Future[State]) {
+class StateHolder[StateType, Event](initialState: Future[StateType]) {
   private var actualState = initialState
   private var actualEvents = Future.successful(Seq.empty[Event])
   // TODO: private[framework] def state = actualState
@@ -26,9 +26,9 @@ class StateHolder[State, Event](initialState: Future[State]) {
   }
   implicit def resultIsRequestResponse[T](result: T): RequestResponse[T, Event] = RequestResponse(result)
   implicit def futureResultIsRequestResponse[T](result: Future[T])(implicit ec: ExecutionContext): Future[RequestResponse[T, Event]] = result.map(RequestResponse(_))
-  implicit def resultFunctionIsExecuted[T](f: State => Future[T])(implicit ec: ExecutionContext): Future[T] = state.flatMap(f)
-  implicit def responseFunctionIsExecuted[T](f: State => Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))
-  implicit def effectFunctionIsExecuted[T](f: State => StateEffect[State, T, Event])(implicit ec: ExecutionContext): Future[T] = {
+  implicit def resultFunctionIsExecuted[T](f: StateType => Future[T])(implicit ec: ExecutionContext): Future[T] = state.flatMap(f)
+  implicit def responseFunctionIsExecuted[T](f: StateType => Future[RequestResponse[T, Event]])(implicit ec: ExecutionContext): Future[T] = returnResult(state.flatMap(f))
+  implicit def effectFunctionIsExecuted[T](f: StateType => StateEffect[StateType, T, Event])(implicit ec: ExecutionContext): Future[T] = {
     val effect = state.map(f)
     val newState = effect.flatMap(_.state)
     val response = effect.flatMap(_.response)

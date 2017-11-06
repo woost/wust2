@@ -38,7 +38,7 @@ class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db, j
     val digest = passwordDigest(password)
     val implicitAuth = state.auth.filter(_.user.isImplicit)
     val result = db.user.getUserAndDigest(name).map(_ match {
-      case Some((user, userDigest)) if (digest hash = userDigest) =>
+      case Some((user, userDigest)) if (digest.hash = userDigest) =>
         //TODO integrate result into response?
         implicitAuth.foreach { implicitAuth =>
           //TODO propagate new groups into state?
