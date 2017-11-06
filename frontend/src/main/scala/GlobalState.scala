@@ -32,7 +32,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
   import StateHelpers._
   import ClientCache.storage
 
-  val syncMode: Observable[SyncMode] = createHandler(SyncMode.default).unsafeRunSync() //TODO storage.syncMode
+  val syncMode: Handler[SyncMode] = createHandler[SyncMode](SyncMode.default).unsafeRunSync() //TODO storage.syncMode
   val syncEnabled: Observable[Boolean] = syncMode.map(_ == SyncMode.Live)
 
   val persistence = new GraphPersistence(syncEnabled)
@@ -58,9 +58,10 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val rawGraph: Observable[Graph] = {
     val localEvents = persistence.localChanges.map(NewGraphChanges(_))
-    val events = eventStream merge localEvents
-    events.foldLeft(Graph.empty)(GraphUpdate.applyEvent)
+    val events = /*eventStream merge */localEvents
+    events.scan(Graph.empty)(GraphUpdate.applyEvent)
   }
+  rawGraph { g => println("graph "  + g) }
 
   val viewConfig: Handler[ViewConfig] = UrlRouter.variable.imapMap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
