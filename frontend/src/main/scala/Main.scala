@@ -88,7 +88,7 @@ object Main {
       (apiEventHandler <-- observable).unsafeRunSync()
     }
 
-    state.viewConfig.foldLeft((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)) {
+    state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)) {
       case (prevViewConfig, viewConfig) =>
         viewConfig.invite foreach { token =>
           Client.api.acceptGroupInvite(token).call().onComplete {
