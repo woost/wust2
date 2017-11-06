@@ -2,7 +2,7 @@ package wust.frontend
 
 import vectory._
 import wust.api._
-import wust.frontend.views.{ViewConfig, View}
+import wust.frontend.views.{PageStyle, View, ViewConfig}
 import wust.graph._
 import wust.ids._
 import org.scalajs.dom.{console, window}
@@ -14,6 +14,8 @@ import wust.util.Analytics
 import vectory._
 import wust.util.outwatchHelpers._
 import rxscalajs.Observable
+
+import scalaz.Tag
 
 //outwatch beispiel:
   // def component(handler:Handler[ViewPage]) = {
@@ -67,11 +69,11 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val viewConfig: Handler[ViewConfig] = UrlRouter.variable.imapMap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
+  val inviteToken = viewConfig.map(_.invite)
+
   val view: Handler[View] = viewConfig.lens(ViewConfig.default)(_.view)((config, view) => config.copy(view = view))
 
   val rawPage: Handler[Page] = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
-
-  val inviteToken = viewConfig.map(_.invite)
 
   val page = rawPage.comap { _.combineLatestWith(rawGraph){ (page, graph) =>
     page match {
@@ -80,6 +82,8 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
       case s => s
     }
   }}
+
+  val pageStyle = page.combineLatestWith(rawGraph){case (page,graph) => PageStyle(page,graph)}
 
   val rawSelectedGroupId: Handler[Option[GroupId]] = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
 
@@ -140,6 +144,11 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
           val selectedGraph = graph.filter(descendants)
           currentView.applyOnGraph(selectedGraph)
       }
+  }
+
+  val chronologicalPostsAscending = displayGraphWithoutParents.map { dg =>
+    val graph = dg.graph
+    graph.posts.toSeq.sortBy(p => Tag.unwrap(p.id))
   }
 
   val focusedPostId: Handler[Option[PostId]] = {

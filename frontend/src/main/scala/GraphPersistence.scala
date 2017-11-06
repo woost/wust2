@@ -4,17 +4,19 @@ import wust.graph._
 import wust.ids._
 import wust.util.collection._
 import wust.api.ApiEvent
-
 import autowire._
 import boopickle.Default._
+import io.circe.Decoder.state
+import outwatch.Sink
+
 import scala.concurrent.ExecutionContext
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 import wust.util.Analytics
+
 import scala.collection.mutable
 import scala.scalajs.js.timers.setTimeout
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import outwatch.dom._
 import rxscalajs.Observable
 import wust.util.outwatchHelpers._
@@ -47,6 +49,11 @@ class GraphPersistence(syncEnabled: Observable[Boolean]) {
     val enrichedChanges = enrichChanges.map(applyEnrichmentToChanges)
     val allChanges = enrichedChanges merge pureChanges
     allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
+  }
+
+  val addPost:Sink[String] = enrichChanges.redirectMap { text =>
+    val newPost = Post.newId(text)
+    GraphChanges(addPosts = Set(newPost))
   }
 
   // storage.graphChanges <-- localChanges //TODO

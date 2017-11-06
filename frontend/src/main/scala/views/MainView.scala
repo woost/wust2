@@ -413,7 +413,7 @@ object MainView {
   // }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false) = {
-    val viewPages: List[(View, () => VNode)] = List(
+    val views: List[(View, () => VNode)] = List(
       View.Graph -> (() => GraphView(state, disableSimulation)),
       // View.List -> (() => TreeView(state)),
       // View.Article -> (() => ArticleView(state)),
@@ -424,7 +424,7 @@ object MainView {
        View.Test -> (() => TestView(state))
     )
 
-    val viewPagesMap: Map[View, () => VNode] = viewPages.toMap
+    val viewPagesMap: Map[View, () => VNode] = views.toMap
 
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
@@ -438,7 +438,7 @@ object MainView {
        stl("alignItems") := "stretch",
        stl("alignContent") := "stretch",
 
-      topBar(state, viewPages.map(_._1))(stl("minHeight") := "min-content"),
+      topBar(state, views.map(_._1))(stl("minHeight") := "min-content"),
       child <-- state.view.map { page =>
         val vnode = viewPagesMap(page)()
         vnode(

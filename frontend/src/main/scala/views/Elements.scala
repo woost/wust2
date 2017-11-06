@@ -1,15 +1,20 @@
 package wust.frontend.views
 
-import org.scalajs.dom.{Event, KeyboardEvent}
+import org.scalajs.dom.Event
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.html.TextArea
-import org.scalajs.dom.raw.{HTMLFormElement, HTMLInputElement, HTMLTextAreaElement}
+import org.scalajs.dom.raw.Element
 import outwatch.Sink
 import outwatch.dom._
 import wust.util.outwatchHelpers._
 
 //TODO: merge with util.Tags
 object Elements {
+  def scrollToBottom(elem: Element) {
+    //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
+    try {
+      elem.scrollTop = elem.scrollHeight
+    } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
+  }
 
   def textAreaWithEnter(actionSink: Sink[String]) = {
     // consistent across mobile + desktop:
@@ -69,4 +74,9 @@ object Elements {
   //val inputText = input(`type` := "text")
   //val inputPassword = input(`type` := "password")
   //def buttonClick(name: String, handler: => Any) = button(name, onclick := handler _)
+
+
+  //   val radio = input(`type` := "radio")
+  //   def labelfor(id: String) = label(`for` := id)
+  //   def aUrl(url:String) = a(href := url, url)
 }

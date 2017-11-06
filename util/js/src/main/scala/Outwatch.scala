@@ -9,6 +9,18 @@ import outwatch.Sink
 
 import scala.scalajs.js
 
+
+// Outwatch TODOs:
+// when writing: sink <-- obs; obs(action)
+// action is always triggered first, even though it is registered after subscribe(<--)
+//
+// observable.filter does not accept partial functions.filter{case (_,text) => text.nonEmpty}
+//
+// like Handler, Subject needs to be wrapped in IO
+//
+// handler[A].map(A => B) should return Sink[A] with Observable[B]
+
+
 package object outwatchHelpers {
   implicit class RichVNode(val vNode:VNode) {
 //    def render:org.scalajs.dom.Element = {

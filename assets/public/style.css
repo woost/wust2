@@ -21,7 +21,7 @@ input[readonly=readonly] {
     color: #666;
 }
 
-input[type=text], input[type=password], button, input[type=button], input[type=submit], select {
+input[type=text], input[type=password], button, input[type=button], input[type=submit], textarea, select {
     border: 1px solid #BBB;
     border-radius: 3px;
     padding: 3px 10px;
