@@ -31,10 +31,10 @@ object ChatView {
     import state._
     val newPostHandler = createStringHandler().unsafeRunSync()
 
-    state.persistence.enrichChanges <-- newPostHandler.map{ text =>
+    (state.persistence.enrichChanges <-- newPostHandler.map{ text =>
       val newPost = Post.newId(text)
       GraphChanges( addPosts = Set(newPost) )
-    }
+    }).unsafeRunSync()
 
     component(rawGraph, displayGraphWithoutParents, newPostHandler, page, ownPosts)
   }
