@@ -35,8 +35,6 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
   val syncMode: Handler[SyncMode] = createHandler[SyncMode](SyncMode.default).unsafeRunSync() //TODO storage.syncMode
   val syncEnabled: Observable[Boolean] = syncMode.map(_ == SyncMode.Live)
 
-  val persistence = new GraphPersistence(syncEnabled)
-
   val eventStream: Observable[ApiEvent] = {
     val partitionedEvents = rawEventStream.map(_.partition {
       case NewGraphChanges(_) => true
@@ -45,7 +43,9 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
     val graphEvents = partitionedEvents.map(_._1)
     val otherEvents = partitionedEvents.map(_._2)
-    val bufferedGraphEvents = graphEvents.bufferUnless(syncEnabled).map(_.flatten)
+    //TODO bufferunless here will crash merge for rawGraph with infinite loop.
+    // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
+    val bufferedGraphEvents = graphEvents//.bufferUnless(syncEnabled).map(_.flatten)
 
     val events = bufferedGraphEvents merge otherEvents
     events.flatMap(Observable.from(_)) //TODO flattening here is nice, but also pushes more updates?
@@ -56,9 +56,11 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     case LoggedOut => None
   }.startWith(None)
 
+  val persistence = new GraphPersistence(syncEnabled)
+
   val rawGraph: Observable[Graph] = {
     val localEvents = persistence.localChanges.map(NewGraphChanges(_))
-    val events = /*eventStream merge */localEvents
+    val events = eventStream merge localEvents
     events.scan(Graph.empty)(GraphUpdate.applyEvent)
   }
   rawGraph { g => println("graph "  + g) }
