@@ -9,11 +9,15 @@ import wust.frontend.views.Elements._
 import wust.graph._
 import wust.ids.PostId
 import wust.util.outwatchHelpers._
+import Color._
 
 import scala.scalajs.js.timers.setTimeout
 
-object ChatView {
-  def apply(state: GlobalState) = {
+object ChatView extends View {
+  override val key = "chat"
+  override val displayName = "Chat"
+
+  override def apply(state: GlobalState) = {
     import state._
 
     component(chronologicalPostsAscending, state.persistence.addPost, page, ownPosts, pageStyle)
@@ -35,6 +39,10 @@ object ChatView {
 
         chatHistory(chronologicalPostsAscending, page, ownPosts),
         inputField(newPostSink),
+
+        stl("border-left") := "1px solid",
+        stl("border-right") := "1px solid",
+        stl("border-color") <-- pageStyle.map(_.accentLineColor),
 
         stl("margin") := "0 auto",
         stl("maxWidth") := "48rem",

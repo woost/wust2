@@ -189,18 +189,22 @@ object MainView {
   //}
 
   def viewSelection(allViews: Seq[View], selectedView:Handler[View]) = {
+    //TODO: instead of select show something similar to tabs (require only one click to change)
     val viewHandler = createHandler[View]().unsafeRunSync()
     viewHandler(currentView => Analytics.sendEvent("view", "select", currentView.toString))
     (selectedView <-- viewHandler).unsafeRunSync()
 
-    select(inputString(View.fromString) --> viewHandler,
+    select(
+      inputString(View.fromString) --> viewHandler,
       children <-- selectedView.map{ selectedView => allViews.map { view =>
         option(
-          view.toString,
-          value := View.toString(view),
-          if (view == selectedView) Some(selected := true) else None
+          view.displayName,
+          value := view.key,
+          key := view.key,
+          if (view.key == selectedView.key) Some(selected := true) else None
         )
-      }} )
+      }}
+    )
   }
 
   //def devPeek(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -351,7 +355,7 @@ object MainView {
   //   ).render
   // }
 
-   def topBar(state: GlobalState, viewPages: List[View]) = {
+   def topBar(state: GlobalState, allViews: Seq[View]) = {
 //     val lockToGroup = state.viewConfig.now.lockToGroup
 //     if (lockToGroup) {
 //       div(
@@ -389,7 +393,7 @@ object MainView {
 //           newGroupButton(state)
          ),
 
-         if (viewPages.size > 1) div("view: ")(viewSelection(viewPages, state.view))
+         if (allViews.size > 1) div("view: ")(viewSelection(allViews, state.view))
          else div(),
 
 //         syncStatus(state),
@@ -413,19 +417,6 @@ object MainView {
   // }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false) = {
-    val views: List[(View, () => VNode)] = List(
-      View.Graph -> (() => GraphView(state, disableSimulation)),
-      // View.List -> (() => TreeView(state)),
-      // View.Article -> (() => ArticleView(state)),
-      // View.Code -> (() => CodeView(state)),
-       View.Chat -> (() => ChatView(state)),
-      // View.Board -> (() => BoardView(state)),
-      // View.MyBoard -> (() => MyBoardView(state)),
-       View.Test -> (() => TestView(state))
-    )
-
-    val viewPagesMap: Map[View, () => VNode] = views.toMap
-
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
     div(
@@ -438,9 +429,9 @@ object MainView {
        stl("alignItems") := "stretch",
        stl("alignContent") := "stretch",
 
-      topBar(state, views.map(_._1))(stl("minHeight") := "min-content"),
-      child <-- state.view.map { page =>
-        val vnode = viewPagesMap(page)()
+      topBar(state, View.list)(stl("minHeight") := "min-content"),
+      child <-- state.view.map { view =>
+        val vnode = view(state)
         vnode(
           stl("flex") := "1",
           stl("overflow") := "auto"

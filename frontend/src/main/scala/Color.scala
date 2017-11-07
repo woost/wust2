@@ -24,4 +24,6 @@ object Color {
     val colorCount = colors.size
     d3.lab(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
   }
+
+  implicit def d3ColorToString(c:Color) = c.toString
 }

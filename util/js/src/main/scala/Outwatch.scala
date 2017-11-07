@@ -22,6 +22,7 @@ import scala.scalajs.js
 
 
 package object outwatchHelpers {
+
   implicit class RichVNode(val vNode:VNode) {
 //    def render:org.scalajs.dom.Element = {
 //      val elem = document.createElement("div")

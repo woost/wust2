@@ -8,8 +8,10 @@ import outwatch.dom._
 import outwatch.Sink
 import wust.util.outwatchHelpers._
 
-object TestView {
-  def apply(state: GlobalState) = {
+object TestView extends View {
+  override val key = "test"
+  override val displayName = "Test"
+  override def apply(state: GlobalState) = {
     import state._
     val graph = displayGraphWithoutParents.map(_.graph)
     graph(g => println(s"TestView: got graph update. If this is shown more than once per graph update, this is a leak."))

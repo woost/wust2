@@ -1,5 +1,6 @@
 package wust.frontend.views.graphview
 
+import io.circe.Decoder.state
 import wust.util.time.time
 import wust.frontend.DevPrintln
 import org.scalajs.d3v4._
@@ -10,10 +11,11 @@ import vectory._
 import wust.frontend.Color._
 import wust.frontend.PostCreatorMenu
 import wust.frontend.{DevOnly, GlobalState}
-import org.scalajs.dom.{console}
+import org.scalajs.dom.console
 import wust.graph._
 import wust.util.Pipe
 import outwatch.dom._
+import wust.frontend.views.View
 import wust.util.outwatchHelpers._
 
 import scala.concurrent.ExecutionContext
@@ -32,9 +34,11 @@ import scala.scalajs.js.JSConverters._
 //   implicit val postCreatorMenuWithKey = new WithKey[PostCreatorMenu](_.toString)
 // }
 
-object GraphView {
-  //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
-  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit ec: ExecutionContext) = {
+//TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
+class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContext) extends View {
+    override val key = "graph"
+    override val displayName = "Mindmap"
+    override def apply(state: GlobalState) = {
     div("GraphView")
     // div(
     //   height := "100%",

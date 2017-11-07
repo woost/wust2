@@ -9,7 +9,7 @@ import wust.util.outwatchHelpers._
 
 //TODO: merge with util.Tags
 object Elements {
-  def scrollToBottom(elem: Element) {
+  def scrollToBottom(elem: Element):Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
     try {
       elem.scrollTop = elem.scrollHeight

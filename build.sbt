@@ -248,7 +248,7 @@ lazy val frontend = project
     libraryDependencies ++= (
       outwatch ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      "com.github.fdietze" %% "scala-js-d3v4" % "master-SNAPSHOT" :: // needs %% because %%% does not work on jitpack - https://github.com/jitpack/jitpack.io/issues/372
+      "com.github.fdietze" %% "scala-js-d3v4" % "e9beff4" :: // needs %% because %%% does not work on jitpack - https://github.com/jitpack/jitpack.io/issues/372
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
