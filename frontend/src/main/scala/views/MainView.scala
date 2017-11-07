@@ -51,6 +51,7 @@ object MainView {
     } yield selection.parentIds.toSeq.map ( graph.postsById )
 
     div(
+      "Page:",
       children <-- posts.map { posts => posts.map { post =>
           span(
             post.title,

@@ -1,11 +1,12 @@
 package wust.frontend
 
+import io.circe.Decoder.state
 import vectory._
 import wust.api._
 import wust.frontend.views.{PageStyle, View, ViewConfig}
 import wust.graph._
 import wust.ids._
-import org.scalajs.dom.{console, window}
+import org.scalajs.dom.{Event, console, window}
 import org.scalajs.dom.experimental.Notification
 import outwatch.dom._
 import rxscalajs.subjects._
@@ -65,7 +66,6 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     val events = eventStream merge localEvents
     events.scan(Graph.empty)(GraphUpdate.applyEvent)
   }
-  rawGraph { g => println("graph "  + g) }
 
   val viewConfig: Handler[ViewConfig] = UrlRouter.variable.imapMap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
@@ -83,7 +83,11 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     }
   }}
 
-  val pageStyle = page.combineLatestWith(rawGraph){case (page,graph) => PageStyle(page,graph)}
+  val pageStyle = page.combineLatestWith(rawGraph){case (page,graph) =>
+    //TODO: this is a diamond case. How does outwach handle this?
+    println(s"calculating page style: \n  $page, \n  $graph.postIds")
+    PageStyle(page,graph)
+  }
 
   val rawSelectedGroupId: Handler[Option[GroupId]] = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
 
@@ -160,9 +164,18 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val postCreatorMenus: Handler[List[PostCreatorMenu]] = createHandler(List.empty[PostCreatorMenu]).unsafeRunSync()
 
-  val jsError: Handler[Option[String]] = createHandler(Option.empty[String]).unsafeRunSync
+  val jsErrors: Handler[Seq[String]] = createHandler(Seq.empty[String]).unsafeRunSync()
+  DevOnly {
+    val errorMessage = Observable.create[String] { observer =>
+      window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
+        //TODO: send and log production js errors in backend
+        observer.next(msg.toString)
+      }
+    }
+    jsErrors <-- errorMessage.scan(Vector.empty[String])((acc,msg) => acc :+ msg)
+  }
 
-  //TODO: hack for having authorship of post. this needs to be in the backend
+  //TODO: hack for having authorship of post. this needs to be encoded in the graph / versioning scheme
   val ownPosts = new collection.mutable.HashSet[PostId]
 
 
@@ -189,6 +202,21 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     //   }
     // }
   // }
+
+
+  DevOnly {
+    rawGraph.debug((g:Graph) => s"rawGraph: ${g.toSummaryString}")
+    //      collapsedPostIds.debug("collapsedPostIds")
+    currentView.debug("currentView")
+    //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
+    //      focusedPostId.debug("focusedPostId")
+    //      selectedGroupId.debug("selectedGroupId")
+    rawPage.debug("rawPage")
+    page.debug("page")
+    viewConfig.debug("viewConfig")
+    //      currentUser.debug("\ncurrentUser")
+
+  }
 }
 
 object StateHelpers {

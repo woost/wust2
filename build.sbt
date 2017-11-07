@@ -260,7 +260,7 @@ lazy val frontend = project
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     // emitSourceMaps in fastOptJS := false,
-    emitSourceMaps in fullOptJS := false,
+    emitSourceMaps in fullOptJS := true,
 
     useYarn := true, // instead of npm
     npmDependencies in Compile ++= (

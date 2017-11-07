@@ -105,7 +105,7 @@ object Main {
 
     OutWatch.render("#container", views.MainView(state)).unsafeRunSync()
 
-    //TODO: create global keyevent observer:
+    //TODO: create global keyevent observer (in outwatch?):
     // document.onkeypress = { (e: KeyboardEvent) =>
     //   if (e.keyCode == KeyCode.Escape) {
     //     Var.set(
@@ -115,22 +115,5 @@ object Main {
     //   }
     // }
 
-    //DevOnly {
-    //  import state._
-    //  rawGraph.debug(g => s"rawGraph: ${g.toSummaryString}")
-    //  collapsedPostIds.debug("collapsedPostIds")
-    //  currentView.debug("currentView")
-    //  displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
-    //  focusedPostId.debug("focusedPostId")
-    //  selectedGroupId.debug("selectedGroupId")
-    //  graphSelection.debug("graphSelection")
-    //  viewConfig.debug("viewConfig")
-    //  currentUser.debug("\ncurrentUser")
-
-    //  window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
-    //    //TODO: send and log js errors in backend
-    //    state.jsError() = Option(msg.toString)
-    //  }
-    //}
   }
 }
