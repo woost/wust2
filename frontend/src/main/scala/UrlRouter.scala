@@ -10,6 +10,7 @@ object UrlRouter {
 
   val variable: Handler[Option[String]] = {
     val handler: Handler[Option[String]] = createHandler[Option[String]](locationHash).unsafeRunSync()
+
     handler { hash =>
       if (locationHash != hash) {
         val current = hash.getOrElse("")

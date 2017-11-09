@@ -20,7 +20,7 @@ import wust.util.Analytics
 import scala.util.{ Try, Success, Failure }
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{SyncStatus, SyncMode}
+import wust.frontend.{SyncStatus, SyncMode, UrlRouter}
 
 import outwatch.dom._
 import wust.util.outwatchHelpers._
@@ -43,7 +43,7 @@ object MainView {
   //  }).render
   //}
 
-  def focusedParents(state: GlobalState) = {
+  def showPage(state: GlobalState) = {
     //TODO: move to globalstate?
     val posts:Observable[Seq[Post]] = for {
       selection <- state.page
@@ -51,7 +51,7 @@ object MainView {
     } yield selection.parentIds.toSeq.map ( graph.postsById )
 
     div(
-      "Page:",
+      "Page: ",
       children <-- posts.map { posts => posts.map { post =>
           span(
             post.title,
@@ -330,31 +330,33 @@ object MainView {
   //  )
   //}
 
-  // def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //   val mode = state.syncMode()
-  //   val persistStatus = state.persistence.status()
-  //   val hasEvents = state.eventCache.hasEvents()
+  def syncStatus(state: GlobalState) = {
+    val mode = state.syncMode
+    // val persistStatus = state.persistence.status
+    // val hasEvents = state.eventCache.hasEvents
 
-  //   div(
-  //     select {
-  //       SyncMode.all.map { m =>
-  //         val s = m.toString
-  //         val opt = option(s, value := s)
-  //         if (mode == m) opt(selected) else opt
-  //       }
-  //     }(
-  //       onchange := { (e: Event) =>
-  //         val value = e.target.asInstanceOf[HTMLSelectElement].value
-  //         SyncMode.fromString.lift(value).foreach { mode =>
-  //           state.syncMode() = mode
-  //         }
-  //       }
-  //     ),
-  //     persistStatus.toString,
-  //     " | ",
-  //     if (hasEvents) "new-events" else "up-to-date"
-  //   ).render
-  // }
+    div(
+      "Syncmode: ",
+      child <-- mode
+      // select {
+      //   SyncMode.all.map { m =>
+      //     val s = m.toString
+      //     val opt = option(s, value := s)
+      //     if (mode == m) opt(selected) else opt
+      //   }
+      // }(
+      //   onchange := { (e: Event) =>
+      //     val value = e.target.asInstanceOf[HTMLSelectElement].value
+      //     SyncMode.fromString.lift(value).foreach { mode =>
+      //       state.syncMode() = mode
+      //     }
+      //   }
+      // ),
+      // persistStatus.toString,
+      // " | ",
+      // if (hasEvents) "new-events" else "up-to-date"
+    )
+  }
 
    def topBar(state: GlobalState, allViews: Seq[View]) = {
 //     val lockToGroup = state.viewConfig.now.lockToGroup
@@ -367,7 +369,7 @@ object MainView {
 //           display.flex, alignItems.center, justifyContent.flexStart,
 //
 //           upButton(state),
-//           focusedParents(state)
+//           showPage(state)
 //         ),
 //
 //         if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
@@ -388,7 +390,7 @@ object MainView {
            stl("display") := "flex", stl("alignItems") := "center", stl("justifyContent") := "flexStart",
 
 //           upButton(state),
-           focusedParents(state),
+           showPage(state),
 //           groupSelector(state),
 //           invitePopup(state),
 //           newGroupButton(state)
@@ -397,7 +399,7 @@ object MainView {
          if (allViews.size > 1) div("view: ")(viewSelection(allViews, state.view))
          else div(),
 
-//         syncStatus(state),
+        syncStatus(state),
 //         div(
 //           undoButton(state),
 //           redoButton(state)
