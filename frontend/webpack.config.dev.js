@@ -16,7 +16,7 @@ module.exports.devServer = {
     ],
     watchContentBase: true,
     // watchOptions: { poll: true },
-    open: true, // open page in browser
+    open: false, // open page in browser
     hot: true
 };
 
