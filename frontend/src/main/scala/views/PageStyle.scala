@@ -2,20 +2,14 @@ package wust.frontend.views
 
 import org.scalajs.d3v4.{Color, d3}
 import wust.frontend.Color._
-import wust.graph.{Graph, Page}
+import wust.graph.{Graph, Page, Post}
 
 object PageStyle {
-  def apply(page:Page, rawGraph:Graph) = {
+  def apply(page:Page, parents:Set[Post]) = {
 
-    val focusedParentIds = page.parentIds
+    val title = parents.map(_.title).mkString(", ")
 
-    val title = {
-      val parents = focusedParentIds.map(rawGraph.postsById)
-      val parentTitles = parents.map(_.title).mkString(", ")
-      parentTitles
-    }
-
-    val mixedDirectParentColors = mixColors(focusedParentIds.map(baseColor))
+    val mixedDirectParentColors = mixColors(page.parentIds.map(baseColor))
     val baseHue = d3.hcl(mixedDirectParentColors).h
 
     val accentLineColor = d3.hcl(baseHue, 50, 50)

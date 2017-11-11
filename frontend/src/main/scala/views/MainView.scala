@@ -44,15 +44,9 @@ object MainView {
   //}
 
   def showPage(state: GlobalState) = {
-    //TODO: move to globalstate?
-    val posts:Observable[Seq[Post]] = for {
-      selection <- state.page
-      graph <- state.rawGraph
-    } yield selection.parentIds.toSeq.map ( graph.postsById )
-
     div(
       "Page: ",
-      children <-- posts.map { posts => posts.map { post =>
+      children <-- state.pageParentPosts.map { posts => posts.toSeq.map { post =>
           span(
             post.title,
             stl("backgroundColor") := baseColor(post.id).toString,

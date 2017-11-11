@@ -83,10 +83,12 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     }
   }}
 
-  val pageStyle = page.combineLatestWith(rawGraph){case (page,graph) =>
+  val pageParentPosts = page.zipWith(rawGraph){case (page,rawGraph) => page.parentIds.map(rawGraph.postsById)}
+
+  val pageStyle = page.zipWith(pageParentPosts){case (page,parents) =>
     //TODO: this is a diamond case. How does outwach handle this?
-    println(s"calculating page style: \n  $page, \n  $graph.postIds")
-    PageStyle(page,graph)
+    println(s"calculating page style: ($page, $parents)")
+    PageStyle(page,parents)
   }
 
   val rawSelectedGroupId: Handler[Option[GroupId]] = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
