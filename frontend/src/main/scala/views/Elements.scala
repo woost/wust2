@@ -36,6 +36,7 @@ object Elements {
     (actionSink <-- actionHandler).unsafeRunSync()
     (setInputValue <-- actionHandler).unsafeRunSync() //TODO: only trigger clearHandler
     enterKeyHandler( event => event.preventDefault() )
+    submitHandler( event => event.preventDefault() )
     //     insertFieldValue { text => println(s"Insertfield: '${text}'") }
     //     enterKeyHandler { _ => println(s"EnterKeyHandler") }
     //     submitHandler { _ => println(s"SumbitHandler") }
