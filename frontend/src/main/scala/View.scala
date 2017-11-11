@@ -21,7 +21,7 @@ object View {
     ChatView ::
       //    BoardView ::
       //    MyBoardView ::
-      //    ArticleView ::
+         ArticleView ::
       //    CodeView ::
       //    ListView ::
       new GraphView() ::

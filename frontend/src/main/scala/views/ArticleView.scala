@@ -1,55 +1,61 @@
-// package wust.frontend.views
+package wust.frontend.views
 
-// import wust.frontend._
-// import wust.graph._
+import org.scalajs.dom.raw.Element
+import outwatch.Sink
+import outwatch.dom._
+import rxscalajs.Observable
+import wust.frontend._
+import wust.frontend.views.Elements._
+import wust.graph._
+import wust.ids.PostId
+import wust.util.outwatchHelpers._
+import Color._
 
-// import org.scalajs.dom.{ window, document, console }
-// import org.scalajs.dom.raw.{ Text, Element, HTMLElement }
-// import scala.scalajs.js.timers.setTimeout
-// import org.scalajs.dom.ext.KeyCode
-// import org.scalajs.dom.{Event, KeyboardEvent}
-// import scala.scalajs.js.timers.setTimeout
-// import org.scalajs.dom.ext.KeyCode
-// import org.scalajs.dom.{ Event, KeyboardEvent }
+import scala.scalajs.js.timers.setTimeout
 
-// import outwatch.dom._
-// import wust.util.outwatchHelpers._
+object ArticleView extends View {
+  override val key = "article"
+  override val displayName = "Article"
 
-// object ArticleView {
+  override def apply(state: GlobalState) = {
+    import state._
 
-//   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-//     div(
-//       state.displayGraphWithParents.map{ dg =>
-//         val graph = dg.graph
-//         if (graph.isEmpty) div().render
-//         else {
-//           val sorted = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
-//           div(
-//             cls := "article",
-//             sorted.map { postId =>
-//               val depth = graph.parentDepth(postId)
-//               val tag = if (graph.children(postId).size == 0) p()
-//               else if (depth == 0) h1()
-//               else if (depth == 1) h2()
-//               else if (depth == 2) h3()
-//               else if (depth == 3) h4()
-//               else if (depth == 4) h5()
-//               else if (depth == 5) h6()
-//               else h6 ()
-//               val focusLink = span(
-//                 span("#"),
-//                 attr("aria-hidden") := "true",
-//                 cls := "focuslink",
-//                 onclick := { () => state.graphSelection() = GraphSelection.Union(Set(postId)) }
-//               ).render
-//               tag(
-//                 focusLink,
-//                 graph.postsById(postId).title
-//               )
-//             }
-//           ).render
-//         }
-//       }
-//     ).render
-//   }
-// }
+    component(displayGraphWithParents, page, pageStyle)
+  }
+
+  def component(dgo:Observable[DisplayGraph], graphSelection:Sink[Page], pageStyle: Observable[PageStyle]) = {
+    div(
+      stl("height") := "100%",
+      stl("background-color") <-- pageStyle.map(_.bgColor),
+      div(
+        cls := "article",
+        children <-- dgo.map {
+          dg =>
+            val sortedPosts = HierarchicalTopologicalSort(dg.graph.postIds, successors = dg.graph.successors, children = dg.graph.children)
+
+            sortedPosts.map { postId =>
+              val post = dg.graph.postsById(postId)
+              val depth = dg.graph.parentDepth(postId)
+              val tag = if (dg.graph.children(postId).size == 0) p()
+                else if (depth == 0) h1()
+                else if (depth == 1) h2()
+                else if (depth == 2) h3()
+                else if (depth == 3) h4()
+                else if (depth == 4) h5()
+                else if (depth == 5) h6()
+                else h6 ()
+
+              tag(
+                span(
+                  span("#"),
+                  cls := "focuslink",
+                  click(Page.Union(Set(post.id))) --> graphSelection
+                ),
+                post.title
+              )
+            }
+        }
+      )
+    )
+  }
+}
