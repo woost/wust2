@@ -109,15 +109,8 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   //TODO: when updating, both displayGraphs are recalculated
   // if possible only recalculate when needed for visualization
-  val displayGraphWithoutParents: Observable[DisplayGraph] = // rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
-    //(rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
-    for {
-      rawGraph <- rawGraph
-      viewConfig <- viewConfig
-      selectedGroupId <- selectedGroupId
-      page <- page
-      currentView <- currentView
-    } yield {
+  val displayGraphWithoutParents: Observable[DisplayGraph] = rawGraph.combineLatestWith(viewConfig, selectedGroupId, page, currentView){
+    (rawGraph, viewConfig, selectedGroupId, page, currentView) =>
       val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
       page match {
         case Page.Root =>
@@ -131,15 +124,8 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
   }
 
 
-  val displayGraphWithParents: Observable[DisplayGraph] = //rawGraph.combineLatestWith(viewConfig, selectedGroupId, graphSelection, currentView){
-    //(rawGraph, viewConfig, selectedGroupId, graphSelection, currentView) =>
-    for {
-      rawGraph <- rawGraph
-      viewConfig <- viewConfig
-      selectedGroupId <- selectedGroupId
-      page <- page
-      currentView <- currentView
-    } yield {
+  val displayGraphWithParents: Observable[DisplayGraph] = rawGraph.combineLatestWith(viewConfig, selectedGroupId, page, currentView){
+    (rawGraph, viewConfig, selectedGroupId, page, currentView) =>
       val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
       page match {
         case Page.Root =>
