@@ -1,0 +1,101 @@
+digraph woost {
+    /* rankdir = "LR" */
+
+    subgraph cluster_GraphPersistance {
+		label = "GraphPersistance"
+		style=filled
+		fillcolor="#EEEEEE"
+		color="#666666"
+		node [style=filled,color=black,fillcolor=white]
+        localChanges
+        enrichChanges [style=filled,fillcolor="#AAFFAA"]
+        enrichChanges -> localChanges
+        pureChanges [style=filled,fillcolor="#AAFFAA"]
+        pureChanges -> localChanges
+        addPost [style=filled,fillcolor="#AAFFAA"]
+        addPost -> enrichChanges
+        localChanges -> bufferedChanges
+        bufferedChanges -> sendingChanges
+	}
+
+    Backend [style=filled,fillcolor="#AAAAFF"]
+
+    rawEventStream
+    sendingChanges -> Backend
+    Backend -> rawEventStream
+
+    syncMode [style=filled,fillcolor="#AAFFAA"]
+    syncEnabled
+    syncMode -> syncEnabled
+    syncEnabled -> bufferedChanges
+
+    subgraph cluster_eventStream {
+		label = "eventStream"
+		style=filled
+		fillcolor="#EEEEEE"
+		color="#666666"
+		node [style=filled,color=black,fillcolor=white]
+        partitionedEvents -> graphEvents
+        partitionedEvents -> otherEvents
+        graphEvents -> bufferedGraphEvents
+        bufferedGraphEvents -> events
+        otherEvents -> events
+        events -> eventStream
+	}
+    rawEventStream -> partitionedEvents
+
+    currentUser
+    eventStream -> currentUser
+
+
+    rawGraph
+    eventStream -> rawGraph
+    localChanges -> rawGraph
+
+    viewConfig [style=filled,fillcolor="#AAFFAA"]
+    UrlRouter [style=filled,fillcolor="#AAFFAA"]
+    UrlRouter -> viewConfig [dir="both"]
+    viewConfig -> inviteToken
+    view [style=filled,fillcolor="#AAFFAA"]
+    viewConfig -> view [dir="both"]
+
+    page [style=filled,fillcolor="#AAFFAA"]
+    viewConfig -> page [dir="both"]
+    rawGraph -> page
+
+    pageParentPosts
+    page -> pageParentPosts
+    rawGraph -> pageParentPosts
+
+    pageStyle
+    page -> pageStyle
+    pageParentPosts -> pageStyle
+
+    selectedGroupId [style=filled,fillcolor="#AAFFAA"]
+    viewConfig -> selectedGroupId [dir="both"]
+    rawGraph -> selectedGroupId
+
+    collapsedPostIds [style=filled,fillcolor="#AAFFAA"]
+
+    currentView [style=filled,fillcolor="#AAFFAA"]
+    collapsedPostIds -> currentView
+
+    displayGraphWithoutParents
+    viewConfig -> displayGraphWithoutParents
+    page -> displayGraphWithoutParents
+    rawGraph -> displayGraphWithoutParents
+    currentView -> displayGraphWithoutParents
+    selectedGroupId -> displayGraphWithoutParents
+
+    /* displayGraphWithParents */
+    /* viewConfig -> displayGraphWithParents */
+    /* page -> displayGraphWithParents */
+    /* rawGraph -> displayGraphWithParents */
+    /* currentView -> displayGraphWithParents */
+    /* selectedGroupId -> displayGraphWithParents */
+
+    displayGraphWithoutParents -> chronologicalPostsAscending
+
+    focusedPostId [style=filled,fillcolor="#AAFFAA"]
+    displayGraphWithoutParents -> focusedPostId
+}
