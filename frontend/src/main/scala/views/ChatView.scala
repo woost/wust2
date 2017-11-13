@@ -96,6 +96,8 @@ object ChatView extends View {
 
   def inputField(newPostSink: Sink[String]) = {
     textAreaWithEnter(newPostSink)(
+      //TODO: add resize:none to inner textarea. Requires outwatch vnode.apply with path
+      stl("flex") := "0 0 3em",
       stl("display") := "flex",
       stl("alignItems") := "stretch"
     )
