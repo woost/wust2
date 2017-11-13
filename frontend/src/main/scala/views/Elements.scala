@@ -48,7 +48,7 @@ object Elements {
         stl("width") := "100%",
         inputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
         value <-- clearHandler,
-        keydown.filter(_.keyCode == KeyCode.Enter) --> enterKeyHandler //TODO: not shift key
+        keydown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey) --> enterKeyHandler
       ),
       input(tpe := "submit", value := "insert"),
       submit --> submitHandler
