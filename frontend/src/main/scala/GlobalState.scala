@@ -62,7 +62,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
   val persistence = new GraphPersistence(syncEnabled)
 
   val rawGraph: Observable[Graph] = {
-    val localEvents = persistence.localChanges.map(NewGraphChanges(_))
+    val localEvents = persistence.localChanges.map(NewGraphChanges)
     val events = eventStream merge localEvents
     events.scan(Graph.empty)(GraphUpdate.applyEvent)
   }
@@ -73,15 +73,17 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val view: Handler[View] = viewConfig.lens(ViewConfig.default)(_.view)((config, view) => config.copy(view = view))
 
-  val rawPage: Handler[Page] = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
 
-  val page = rawPage.comap { _.combineLatestWith(rawGraph){ (page, graph) =>
+  val page: Handler[Page] = {
+    val rawPage = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
+    rawPage.comap { _.combineLatestWith(rawGraph){ (page, graph) =>
     page match {
       case Page.Union(ids) =>
         Page.Union(ids.filter(graph.postsById.isDefinedAt))
       case s => s
     }
   }}
+  }
 
   val pageParentPosts = page.zipWith(rawGraph){case (page,rawGraph) => page.parentIds.map(rawGraph.postsById)}
 
@@ -91,11 +93,14 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     PageStyle(page,parents)
   }
 
-  val rawSelectedGroupId: Handler[Option[GroupId]] = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
+  val selectedGroupId: Handler[Option[GroupId]] = {
+    val rawSelectedGroupId = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
 
-  val selectedGroupId: Handler[Option[GroupId]] = rawSelectedGroupId.comap( _.combineLatestWith(rawGraph){ (groupIdOpt, graph) =>
+    rawSelectedGroupId.comap( _.combineLatestWith(rawGraph){ (groupIdOpt, graph) =>
     groupIdOpt.filter(graph.groupsById.isDefinedAt)
   })
+  }
+
 
   // be aware that this is a potential memory leak.
   // it contains all ids that have ever been collapsed in this session.
@@ -140,7 +145,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
 
   val chronologicalPostsAscending = displayGraphWithoutParents.map { dg =>
     val graph = dg.graph
-    graph.posts.toSeq.sortBy(p => Tag.unwrap(p.id))
+    graph.posts.toList.sortBy(p => Tag.unwrap(p.id))
   }
 
   val focusedPostId: Handler[Option[PostId]] = {
