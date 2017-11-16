@@ -268,6 +268,8 @@ lazy val frontend = project
       Nil
     ),
 
+    //TODO: scalaJSStage in Test := FullOptStage,
+
     // artifactPath.in(Compile, fastOptJS) := ((crossTarget in (Compile, fastOptJS)).value / "fastopt" / ((moduleName in fastOptJS).value + "-fastopt.js")),
 
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
