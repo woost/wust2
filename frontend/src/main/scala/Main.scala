@@ -18,6 +18,8 @@ import scala.scalajs.js.annotation._
 import scala.util.Success
 import wust.util.outwatchHelpers._
 
+import rx.Ctx
+
 @js.native
 @JSGlobal("wustConfig")
 object Config extends js.Object {
@@ -27,13 +29,14 @@ object Config extends js.Object {
 object Main {
 
   def main(args: Array[String]): Unit = {
+    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
     //TODO: proxy with webpack devserver and only configure production port
     val port = Config.wsPort getOrElse location.port.toInt
 
-    val apiEventHandler = createHandler[Seq[ApiEvent]]().unsafeRunSync()
+    val apiEventHandler = Handler.create[Seq[ApiEvent]]().unsafeRunSync()
     val state = new GlobalState(apiEventHandler)
 
     def getNewGraph(selection: Page) = {

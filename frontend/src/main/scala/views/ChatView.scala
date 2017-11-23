@@ -20,7 +20,13 @@ object ChatView extends View {
   override def apply(state: GlobalState) = {
     import state._
 
-    component(chronologicalPostsAscending, state.persistence.addPost, page, ownPosts, pageStyle)
+    component(
+      chronologicalPostsAscending,
+      state.persistence.addPost,
+      page,
+      ownPosts,
+      pageStyle
+    )
   }
 
   def component(

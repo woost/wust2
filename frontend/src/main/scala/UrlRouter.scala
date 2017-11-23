@@ -2,16 +2,14 @@ package wust.frontend
 
 import org.scalajs.dom.raw.HashChangeEvent
 import org.scalajs.dom.window
-import outwatch.dom._
-import rxscalajs.Observable
+import rx._
 
 object UrlRouter {
   private def locationHash = Option(window.location.hash).map(_.drop(1)).filterNot(_.isEmpty)
 
-  val variable: Handler[Option[String]] = {
-    val handler: Handler[Option[String]] = createHandler[Option[String]](locationHash).unsafeRunSync()
-
-    handler { hash =>
+  val variable: Var[Option[String]] = {
+    val hash = Var[Option[String]](locationHash)
+    hash.foreach { hash =>
       if (locationHash != hash) {
         val current = hash.getOrElse("")
         // instead of setting window.hash_=, pushState does not emit a hashchange event
@@ -19,13 +17,12 @@ object UrlRouter {
       }
     }
 
-    val observable = Observable.create[Option[String]] { observer =>
-      window.onhashchange = { ev: HashChangeEvent =>
-        observer.next(locationHash)
-      }
-    }.distinctUntilChanged
+    window.onhashchange = { ev: HashChangeEvent =>
+      val current = locationHash
+      if (hash.now != current)
+        hash() = current
+    }
 
-    (handler <-- observable).unsafeRunSync()
-    handler
+    hash
   }
 }

@@ -183,15 +183,16 @@ object MainView {
   //  inviteLink
   //}
 
-  def viewSelection(allViews: Seq[View], selectedView:Handler[View]) = {
+  def viewSelection(state:GlobalState, allViews: Seq[View]) = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
-    val viewHandler = createHandler[View]().unsafeRunSync()
+    val viewHandler = Handler.create[View]().unsafeRunSync()
     viewHandler(currentView => Analytics.sendEvent("view", "select", currentView.toString))
-    (selectedView <-- viewHandler).unsafeRunSync()
+    viewHandler.debug("selected view")
+    (state.view <-- viewHandler).unsafeRunSync()
 
     select(
-      inputString(View.fromString) --> viewHandler,
-      children <-- selectedView.map{ selectedView => allViews.map { view =>
+      inputString.map(View.fromString) --> viewHandler,
+      children <-- state.view.map{ selectedView => allViews.map { view =>
         option(
           view.displayName,
           value := view.key,
@@ -325,13 +326,12 @@ object MainView {
   //}
 
   def syncStatus(state: GlobalState) = {
-    val mode = state.syncMode
     // val persistStatus = state.persistence.status
     // val hasEvents = state.eventCache.hasEvents
 
     div(
       "Syncmode: ",
-      child <-- mode
+      child <-- state.syncMode
       // select {
       //   SyncMode.all.map { m =>
       //     val s = m.toString
@@ -390,7 +390,7 @@ object MainView {
 //           newGroupButton(state)
          ),
 
-         if (allViews.size > 1) div("view: ")(viewSelection(allViews, state.view))
+         if (allViews.size > 1) div("view: ")(viewSelection(state, allViews))
          else div(),
 
         syncStatus(state),
@@ -425,8 +425,7 @@ object MainView {
        stl("justifyContent") := "flexStart",
        stl("alignItems") := "stretch",
        stl("alignContent") := "stretch",
-
-      topBar(state, View.list)(stl("minHeight") := "min-content"),
+       topBar(state, View.list)(stl("minHeight") := "min-content"),
       child <-- state.view.map { view =>
         val vnode = view(state)
         vnode(

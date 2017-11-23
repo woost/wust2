@@ -43,8 +43,8 @@ object SyncMode {
 class GraphPersistence(syncEnabled: Observable[Boolean]) {
   import ClientCache.storage
 
-  val enrichChanges = createHandler[GraphChanges]().unsafeRunSync()
-  val pureChanges = createHandler[GraphChanges]().unsafeRunSync()
+  val enrichChanges = Handler.create[GraphChanges]().unsafeRunSync()
+  val pureChanges = Handler.create[GraphChanges]().unsafeRunSync()
   val localChanges: Observable[GraphChanges] = {
     val enrichedChanges = enrichChanges.map(applyEnrichmentToChanges)
     val allChanges = enrichedChanges merge pureChanges

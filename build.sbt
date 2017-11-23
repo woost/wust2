@@ -106,21 +106,22 @@ lazy val root = project.in(file("."))
 
 val akkaVersion = "2.4.20"
 val akkaHttpVersion = "10.0.10"
-val circeVersion = "0.8.0"
+val circeVersion = "0.9.0-M2"
 val specs2Version = "4.0.1"
 val scalaTestVersion = "3.0.4"
 val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
-val outwatch = "com.github.fdietze" % "outwatch" % "d4bc335953"
-//val outwatch = "com.github.fdietze" % "outwatch" % "isomorphic-SNAPSHOT"
-//val outwatch = "io.github.outwatch" %% "outwatch_sjs0.6" % "0.11.1-SNAPSHOT"
+val outwatch = "com.github.fdietze" % "outwatch" % "5546b14"
+val duality = "com.github.fdietze" % "duality" % "112f0ad"
+val catsVersion = "1.0.0-RC1"
 
 lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
+      duality ::
       "com.github.pureconfig" %% "pureconfig" % "0.8.0" ::
       "com.lihaoyi" %%% "sourcecode" % "0.1.4" ::
       Nil
@@ -222,10 +223,9 @@ lazy val backend = project
   .settings(Defaults.itSettings)
   .settings(
     libraryDependencies ++=
-      "org.typelevel" %% "cats-core" % "1.0.0-MF" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
-      "com.pauldijou" %% "jwt-circe" % "0.14.0" ::
+      "com.pauldijou" %% "jwt-circe" % "0.14.1" ::
       "javax.mail" % "javax.mail-api" % "1.6.0" ::
       "com.sun.mail" % "javax.mail" % "1.6.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
@@ -247,6 +247,7 @@ lazy val frontend = project
   .settings(
     libraryDependencies ++= (
       outwatch ::
+      duality ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %% "scala-js-d3v4" % "d0ebae65ca" :: // needs %% because %%% does not work on jitpack - https://github.com/jitpack/jitpack.io/issues/372
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::

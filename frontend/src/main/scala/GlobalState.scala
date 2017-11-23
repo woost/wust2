@@ -15,6 +15,7 @@ import wust.util.Analytics
 import vectory._
 import wust.util.outwatchHelpers._
 import rxscalajs.Observable
+import rx._
 
 import scalaz.Tag
 
@@ -30,13 +31,11 @@ case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
 }
 
-class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
+class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._
   import ClientCache.storage
 
-  val syncMode: Handler[SyncMode] = createHandler[SyncMode](SyncMode.default).unsafeRunSync() //TODO storage.syncMode
-  val syncEnabled: Observable[Boolean] = syncMode.map(_ == SyncMode.Live)
 
   val eventStream: Observable[ApiEvent] = {
     val partitionedEvents = rawEventStream.map(_.partition {
@@ -48,7 +47,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     val otherEvents = partitionedEvents.map(_._2)
     //TODO bufferunless here will crash merge for rawGraph with infinite loop.
     // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
-    val bufferedGraphEvents = graphEvents//.bufferUnless(syncEnabled).map(_.flatten)
+    val bufferedGraphEvents = graphEvents //.bufferUnless(syncEnabled).map(_.flatten)
 
     val events = bufferedGraphEvents merge otherEvents
     events.concatMap(Observable.from(_)) //TODO flattening here is nice, but also pushes more updates?
@@ -59,101 +58,123 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     case LoggedOut => None
   }.startWith(None)
 
-  val persistence = new GraphPersistence(syncEnabled)
+  private val inner = new {
+    val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
+    val syncEnabled = syncMode.map(_ == SyncMode.Live)
 
-  val rawGraph: Observable[Graph] = {
-    val localEvents = persistence.localChanges.map(NewGraphChanges)
-    val events = eventStream merge localEvents
-    events.scan(Graph.empty)(GraphUpdate.applyEvent)
-  }
+    val persistence = new GraphPersistence(syncEnabled.toObservable)
 
-  val viewConfig: Handler[ViewConfig] = UrlRouter.variable.imapMap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
-
-  val inviteToken = viewConfig.map(_.invite)
-
-  val view: Handler[View] = viewConfig.lens(ViewConfig.default)(_.view)((config, view) => config.copy(view = view))
-
-
-  val page: Handler[Page] = {
-    val rawPage = viewConfig.lens(ViewConfig.default)(_.page)((config, page) => config.copy(page = page))
-    rawPage.comap { _.combineLatestWith(rawGraph){ (page, graph) =>
-    page match {
-      case Page.Union(ids) =>
-        Page.Union(ids.filter(graph.postsById.isDefinedAt))
-      case s => s
+    val rawGraph: Rx[Graph] = {
+      val localEvents = persistence.localChanges.map(NewGraphChanges)
+      val events = eventStream merge localEvents
+      events.scan(Graph.empty)(GraphUpdate.applyEvent).toRx(seed = Graph.empty)
     }
-  }}
-  }
 
-  val pageParentPosts = page.zipWith(rawGraph){case (page,rawGraph) => page.parentIds.map(rawGraph.postsById)}
+    val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
-  val pageStyle = page.zipWith(pageParentPosts){case (page,parents) =>
-    //TODO: this is a diamond case. How does outwach handle this?
-    println(s"calculating page style: ($page, $parents)")
-    PageStyle(page,parents)
-  }
+    val inviteToken = viewConfig.map(_.invite)
 
-  val selectedGroupId: Handler[Option[GroupId]] = {
-    val rawSelectedGroupId = viewConfig.lens(ViewConfig.default)(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
-
-    rawSelectedGroupId.comap( _.combineLatestWith(rawGraph){ (groupIdOpt, graph) =>
-    groupIdOpt.filter(graph.groupsById.isDefinedAt)
-  })
-  }
+    val view: Var[View] = viewConfig.zoom(_.view)((config, view) => config.copy(view = view))
 
 
-  // be aware that this is a potential memory leak.
-  // it contains all ids that have ever been collapsed in this session.
-  // this is a wanted feature, because manually collapsing posts is preserved with navigation
-  val collapsedPostIds: Handler[Set[PostId]] = createHandler(Set.empty[PostId]).unsafeRunSync()
+    val page: Var[Page] = {
+      val rawPage = viewConfig.zoom(_.page)((config, page) => config.copy(page = page))
+      new Var.Composed(rawPage, Rx {
+        rawPage() match {
+          case Page.Union(ids) =>
+            Page.Union(ids.filter(rawGraph().postsById.isDefinedAt))
+          case s => s
+        }
+      })
+    }
 
-  val currentView: Handler[Perspective] = createHandler(Perspective()).unsafeRunSync()
-    .comap(_.combineLatestWith(collapsedPostIds){ (perspective, collapsedPostIds) =>
-      perspective.union(Perspective(collapsed = Selector.IdSet(collapsedPostIds)))
-    })
+    val pageParentPosts: Rx[Set[Post]] = Rx {
+      page().parentIds.map(rawGraph().postsById)
+    }
 
-  //TODO: when updating, both displayGraphs are recalculated
-  // if possible only recalculate when needed for visualization
-  val displayGraphWithoutParents: Observable[DisplayGraph] = rawGraph.combineLatestWith(viewConfig, selectedGroupId, page, currentView){
-    (rawGraph, viewConfig, selectedGroupId, page, currentView) =>
-      val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
-      page match {
+    val pageStyle = Rx {
+      println(s"calculating page style: (${page()}, ${pageParentPosts()})")
+      PageStyle(page(), pageParentPosts())
+    }
+
+    val selectedGroupId: Var[Option[GroupId]] = {
+      val rawSelectedGroupId = viewConfig.zoom(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
+      new Var.Composed(rawSelectedGroupId, Rx {
+        rawSelectedGroupId().filter(rawGraph().groupsById.isDefinedAt)
+      })
+    }
+
+
+    // be aware that this is a potential memory leak.
+    // it contains all ids that have ever been collapsed in this session.
+    // this is a wanted feature, because manually collapsing posts is preserved with navigation
+    val collapsedPostIds: Var[Set[PostId]] = Var(Set.empty)
+
+    val currentView: Var[Perspective] = {
+      val rawPerspective = Var(Perspective())
+      new Var.Composed(rawPerspective, Rx {
+        rawPerspective().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
+      })
+    }
+
+    //TODO: when updating, both displayGraphs are recalculated
+    // if possible only recalculate when needed for visualization
+    val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
+      val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
+      page() match {
         case Page.Root =>
-          currentView.applyOnGraph(graph)
+          currentView().applyOnGraph(graph)
 
         case Page.Union(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) -- parentIds
           val selectedGraph = graph.filter(descendants)
-          currentView.applyOnGraph(selectedGraph)
+          currentView().applyOnGraph(selectedGraph)
       }
-  }
+    }
 
 
-  val displayGraphWithParents: Observable[DisplayGraph] = rawGraph.combineLatestWith(viewConfig, selectedGroupId, page, currentView){
-    (rawGraph, viewConfig, selectedGroupId, page, currentView) =>
-      val graph = groupLockFilter(viewConfig, selectedGroupId, rawGraph.consistent)
-      page match {
+    val displayGraphWithParents: Rx[DisplayGraph] = Rx {
+      val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
+      page() match {
         case Page.Root =>
-          currentView.applyOnGraph(graph)
+          currentView().applyOnGraph(graph)
 
         case Page.Union(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
           val selectedGraph = graph.filter(descendants)
-          currentView.applyOnGraph(selectedGraph)
+          currentView().applyOnGraph(selectedGraph)
       }
+    }
+
+    val chronologicalPostsAscending = displayGraphWithoutParents.map { dg =>
+      val graph = dg.graph
+      graph.posts.toList.sortBy(p => Tag.unwrap(p.id))
+    }
+
+    val focusedPostId: Var[Option[PostId]] = {
+      val rawFocusedPostId = Var(Option.empty[PostId])
+      new Var.Composed(rawFocusedPostId, Rx {
+        rawFocusedPostId().filter(displayGraphWithoutParents().graph.postsById.isDefinedAt)
+      })
+    }
   }
 
-  val chronologicalPostsAscending = displayGraphWithoutParents.map { dg =>
-    val graph = dg.graph
-    graph.posts.toList.sortBy(p => Tag.unwrap(p.id))
-  }
+  val persistence = inner.persistence
 
-  val focusedPostId: Handler[Option[PostId]] = {
-    val handler = createHandler(Option.empty[PostId]).unsafeRunSync()
-    handler.comap(_.combineLatestWith(displayGraphWithoutParents){ (focusedPostId, displayGraphWithoutParents) =>
-      focusedPostId.filter(displayGraphWithoutParents.graph.postsById.isDefinedAt)
-    })
-  }
+  val rawGraph = inner.rawGraph.toObservable
+  val viewConfig = inner.viewConfig.toHandler
+  val currentView = inner.currentView.toHandler
+  val page = inner.page.toHandler
+  val pageStyle = inner.pageStyle.toObservable
+  val view = inner.view.toHandler
+  val pageParentPosts = inner.pageParentPosts.toObservable
+  val syncMode = inner.syncMode.toHandler
+  val syncEnabled = inner.syncEnabled.toObservable
+  val displayGraphWithParents = inner.displayGraphWithParents.toObservable
+  val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
+  val chronologicalPostsAscending = inner.chronologicalPostsAscending.toObservable
+
+
 
   val postCreatorMenus: Handler[List[PostCreatorMenu]] = createHandler(List.empty[PostCreatorMenu]).unsafeRunSync()
 
@@ -196,7 +217,6 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     // }
   // }
 
-
   DevOnly {
     rawGraph.debug((g:Graph) => s"rawGraph: ${g.toSummaryString}")
     //      collapsedPostIds.debug("collapsedPostIds")
@@ -204,12 +224,13 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]]) {
     //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
     //      focusedPostId.debug("focusedPostId")
     //      selectedGroupId.debug("selectedGroupId")
-    rawPage.debug("rawPage")
+    // rawPage.debug("rawPage")
     page.debug("page")
     viewConfig.debug("viewConfig")
     //      currentUser.debug("\ncurrentUser")
 
   }
+
 }
 
 object StateHelpers {
