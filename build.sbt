@@ -113,8 +113,8 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
-val outwatch = "com.github.fdietze" % "outwatch" % "5546b14"
-val duality = "com.github.fdietze" % "duality" % "112f0ad"
+val outwatch = "io.github.outwatch" %% "outwatch_sjs0.6" % "0.11.1-local-SNAPSHOT"
+val duality = "com.github.fdietze" % "duality" %   "112f0ad"
 val catsVersion = "1.0.0-RC1"
 
 lazy val util = crossProject

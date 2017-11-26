@@ -49,10 +49,10 @@ object MainView {
       children <-- state.pageParentPosts.map { posts => posts.toSeq.map { post =>
           span(
             post.title,
-            stl("backgroundColor") := baseColor(post.id).toString,
-            stl("fontWeight") := "bold",
-            stl("margin") := "2px", stl("padding") := "1px 5px 1px 5px",
-            stl("borderRadius") := "2px"
+            backgroundColor := baseColor(post.id).toString,
+            fontWeight.bold,
+            margin := "2px", padding := "1px 5px 1px 5px",
+            borderRadius := "2px"
           )
         }
       }
@@ -191,7 +191,7 @@ object MainView {
     (state.view <-- viewHandler).unsafeRunSync()
 
     select(
-      inputString.map(View.fromString) --> viewHandler,
+      onInputString.map(View.fromString) --> viewHandler,
       children <-- state.view.map{ selectedView => allViews.map { view =>
         option(
           view.displayName,
@@ -331,7 +331,7 @@ object MainView {
 
     div(
       "Syncmode: ",
-      child <-- state.syncMode
+      child <-- state.syncMode.map(_.toString)
       // select {
       //   SyncMode.all.map { m =>
       //     val s = m.toString
@@ -377,11 +377,11 @@ object MainView {
 //       )
 //     } else {
        div(
-         stl("padding") := "5px", stl("background") := "#FAFAFA", stl("borderBottom") := "1px solid #DDD",
-         stl("display") := "flex", stl("alignItems") := "center", stl("justifyContent") := "spaceBetween",
+         padding := "5px", background := "#FAFAFA", borderBottom := "1px solid #DDD",
+         display := "flex", alignItems := "center", justifyContent := "spaceBetween",
 
          div(
-           stl("display") := "flex", stl("alignItems") := "center", stl("justifyContent") := "flexStart",
+           display := "flex", alignItems := "center", justifyContent := "flexStart",
 
 //           upButton(state),
            showPage(state),
@@ -417,20 +417,20 @@ object MainView {
     // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
     // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
     div(
-       stl("width") := "100%",
-       stl("height") := "100%",
+       width := "100%",
+       height := "100%",
 
-       stl("display") := "flex",
-       stl("flexDirection") := "column",
-       stl("justifyContent") := "flexStart",
-       stl("alignItems") := "stretch",
-       stl("alignContent") := "stretch",
-       topBar(state, View.list)(stl("minHeight") := "min-content"),
+       display := "flex",
+       flexDirection := "column",
+       justifyContent := "flexStart",
+       alignItems := "stretch",
+       alignContent := "stretch",
+       topBar(state, View.list)(minHeight := "min-content"),
       child <-- state.view.map { view =>
         val vnode = view(state)
         vnode(
-          stl("flex") := "1",
-          stl("overflow") := "auto"
+          flex := "1",
+          overflow := "auto"
         )
       },
       // bottomBar (state),

@@ -20,7 +20,7 @@ object TestView extends View {
 
   def component(graph:Observable[Graph], graphSelection:Sink[Page]) = {
     div(
-      stl("padding") := "20px",
+      padding := "20px",
       h1("Test View"),
       children <-- sortedPostItems(graph, graphSelection)
     )
@@ -38,10 +38,11 @@ object TestView extends View {
   def postItem(post: Post, graphSelection: Sink[Page]) = {
     div(
       post.title,
-      stl("minHeight") := "12px",
-      stl("border") := "solid 1px",
-      stl("cursor") := "pointer",
-      click(Page.Union(Set(post.id))) --> graphSelection
+
+      minHeight := "12px",
+      border := "solid 1px",
+      cursor.pointer,
+      onClick(Page.Union(Set(post.id))) --> graphSelection
     )
   }
 }

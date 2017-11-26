@@ -176,9 +176,9 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
 
 
 
-  val postCreatorMenus: Handler[List[PostCreatorMenu]] = createHandler(List.empty[PostCreatorMenu]).unsafeRunSync()
+  val postCreatorMenus: Handler[List[PostCreatorMenu]] = Handler.create(List.empty[PostCreatorMenu]).unsafeRunSync()
 
-  val jsErrors: Handler[Seq[String]] = createHandler(Seq.empty[String]).unsafeRunSync()
+  val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
   DevOnly {
     val errorMessage = Observable.create[String] { observer =>
       window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>

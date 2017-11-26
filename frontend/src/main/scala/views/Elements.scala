@@ -1,15 +1,14 @@
 package wust.frontend.views
 
-import org.scalajs.dom.Event
+import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.Element
 import outwatch.Sink
 import outwatch.dom._
 import wust.util.outwatchHelpers._
 
 //TODO: merge with util.Tags
 object Elements {
-  def scrollToBottom(elem: Element):Unit = {
+  def scrollToBottom(elem: dom.Element):Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
     try {
       elem.scrollTop = elem.scrollHeight
@@ -21,37 +20,43 @@ object Elements {
     // - textarea: enter emits keyCode for Enter
     // - input: Enter triggers submit
 
-    val userInput = createStringHandler().unsafeRunSync()
-    val setInputValue = createStringHandler().unsafeRunSync()
-    val clearHandler = setInputValue.map(_ => "")
-    val insertFieldValue = userInput.merge(clearHandler)
+    // val userInput = Handler.create[String]().unsafeRunSync()
+    val setInputValue = Handler.create[String]().unsafeRunSync()
+    // val clearHandler = setInputValue.map(_ => "a")
+    // val insertFieldValue = userInput.merge(clearHandler)
 
-    val submitHandler = createHandler[Event]().unsafeRunSync()
-    val enterKeyHandler = createKeyboardHandler().unsafeRunSync()
-    val actionHandler = submitHandler
-      .merge(enterKeyHandler)
-      .replaceWithLatestFrom(insertFieldValue)
-      .filter(_.nonEmpty)
+    // val submitHandler = Handler.create[dom.Event]().unsafeRunSync()
+    // val enterKeyHandler = Handler.create[dom.KeyboardEvent]().unsafeRunSync()
+    // val actionHandler = submitHandler
+    //   .merge(enterKeyHandler)
+    //   // .replaceWithLatestFrom(insertFieldValue)
+    //   .withLatestFrom(insertFieldValue).map(_._2)
+    //   .filter(_.nonEmpty)
 
-    (actionSink <-- actionHandler).unsafeRunSync()
-    (setInputValue <-- actionHandler).unsafeRunSync() //TODO: only trigger clearHandler
-    enterKeyHandler( event => event.preventDefault() )
-    submitHandler( event => event.preventDefault() )
-    //     insertFieldValue { text => println(s"Insertfield: '${text}'") }
-    //     enterKeyHandler { _ => println(s"EnterKeyHandler") }
-    //     submitHandler { _ => println(s"SumbitHandler") }
-    //     actionHandler { text => println(s"ActionHandler: ${text}") }
+    // (actionSink <-- actionHandler).unsafeRunSync()
+    // (setInputValue <-- actionHandler.delay(1000).map(_ => "")).unsafeRunSync() //TODO: only trigger clearHandler
+    // (setInputValue <-- Observable.interval(1000).map(_.toString)).unsafeRunSync()
+    // enterKeyHandler( event => event.preventDefault() )
+    // submitHandler( event => event.preventDefault() )
+        // insertFieldValue { text => println(s"Insertfield: '${text}'") }
+        // enterKeyHandler { _ => println(s"EnterKeyHandler") }
+        // submitHandler { _ => println(s"SumbitHandler") }
+        // actionHandler { text => println(s"ActionHandler: ${text}") }
 
+    setInputValue.debug("setInputValue")
     form(
-      textarea(
+      // input(tpe := "checkbox", checked <-- rxscalajs.Observable.interval(5000).map(_ % 2 == 0)),//clearHandler.map(_ => false)),
+      button(tpe := "button", "clear", onClick("A") --> setInputValue),
+      textArea(
+        tpe := "text", //TODO: dom-types attribute enums
         placeholder := "Create new post. Press Enter to submit.",
-        stl("width") := "100%",
-        inputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
-        value <-- clearHandler,
-        keydown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey) --> enterKeyHandler
+        width := "100%",
+        // onInputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
+        value <-- setInputValue,
+        onKeyDown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey).apply("ENTER") --> setInputValue
       ),
       input(tpe := "submit", value := "insert"),
-      submit --> submitHandler
+      // onSubmit --> submitHandler
     )
   }
 
@@ -66,7 +71,7 @@ object Elements {
   //        case _ =>
   //      }
   //    },
-  //    onblur := { (e: Event) =>
+  //    onblur := { (e: dom.Event) =>
   //      submit(e.target.asInstanceOf[HTMLTextAreaElement])
   //    }
   //  )

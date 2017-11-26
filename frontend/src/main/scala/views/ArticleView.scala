@@ -25,8 +25,8 @@ object ArticleView extends View {
 
   def component(dgo:Observable[DisplayGraph], graphSelection:Sink[Page], pageStyle: Observable[PageStyle]) = {
     div(
-      stl("height") := "100%",
-      stl("background-color") <-- pageStyle.map(_.bgColor),
+      height := "100%",
+      backgroundColor <-- pageStyle.map(_.bgColor),
       div(
         cls := "article",
         children <-- dgo.map {
@@ -49,7 +49,7 @@ object ArticleView extends View {
                 span(
                   span("#"),
                   cls := "focuslink",
-                  click(Page.Union(Set(post.id))) --> graphSelection
+                  onClick(Page.Union(Set(post.id))) --> graphSelection
                 ),
                 post.title
               )

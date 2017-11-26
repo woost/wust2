@@ -37,8 +37,8 @@ object ChatView extends View {
                  pageStyle: Observable[PageStyle]
                ) = {
     div(
-      stl("height") := "100%",
-      stl("background-color") <-- pageStyle.map(_.bgColor),
+      height := "100%",
+      backgroundColor <-- pageStyle.map(_.bgColor),
 
       div(
         h1(child <-- pageStyle.map(_.title)),
@@ -46,30 +46,30 @@ object ChatView extends View {
         chatHistory(chronologicalPostsAscending, page, ownPosts),
         inputField(newPostSink),
 
-        stl("border-left") := "1px solid",
-        stl("border-right") := "1px solid",
-        stl("border-color") <-- pageStyle.map(_.accentLineColor),
+        borderLeft := "1px solid",
+        borderRight := "1px solid",
+        borderColor <-- pageStyle.map(_.accentLineColor),
 
-        stl("margin") := "0 auto",
-        stl("maxWidth") := "48rem",
-        stl("width") := "48rem",
-        stl("height") := "100%",
+        margin := "0 auto",
+        maxWidth := "48rem",
+        width := "48rem",
+        height := "100%",
 
-        stl("display") := "flex",
-        stl("flexDirection") := "column",
-        stl("justifyContent") := "flexStart",
-        stl("alignItems") := "stretch",
-        stl("alignContent") := "stretch"
+        display.flex,
+        flexDirection.column,
+        justifyContent.flexStart,
+        alignItems.stretch,
+        alignContent.stretch
       )
     )
   }
 
   def chatHistory(chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], ownPosts: PostId => Boolean) = {
     div(
-      stl("height") := "100%",
-      stl("overflow") := "auto",
-      stl("padding") := "20px",
-      stl("backgroundColor") := "white",
+      height := "100%",
+      overflow.auto,
+      padding := "20px",
+      backgroundColor := "white", //TODO: .white
 
       children <-- chronologicalPosts.map(posts => posts.map(chatMessage(_, page, ownPosts))),
 
@@ -86,16 +86,16 @@ object ChatView extends View {
     div(
       p(
         post.title,
-        click(Page.Union(Set(post.id))) --> page,
-        stl("maxWidth") := "60%",
-        stl("backgroundColor") := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
-        stl("float") := (if (isMine) "right" else "left"),
-        stl("clear") := "both",
-        stl("padding") := "5px 10px",
-        stl("borderRadius") := "7px",
-        stl("margin") := "5px 0px",
+        onClick(Page.Union(Set(post.id))) --> page,
+        maxWidth := "60%",
+        backgroundColor := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
+        float := (if (isMine) "right" else "left"),
+        clear.both,
+        padding := "5px 10px",
+        borderRadius := "7px",
+        margin := "5px 0px",
 
-        stl("cursor") := "pointer" // TODO: What about cursor when selecting text?
+        cursor.pointer // TODO: What about cursor when selecting text?
       )
     )
   }
@@ -103,9 +103,9 @@ object ChatView extends View {
   def inputField(newPostSink: Sink[String]) = {
     textAreaWithEnter(newPostSink)(
       //TODO: add resize:none to inner textarea. Requires outwatch vnode.apply with path
-      stl("flex") := "0 0 3em",
-      stl("display") := "flex",
-      stl("alignItems") := "stretch"
+      flex := "0 0 3em",
+      display.flex,
+      alignItems.stretch
     )
   }
 }
