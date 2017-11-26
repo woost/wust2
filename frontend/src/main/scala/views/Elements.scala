@@ -48,12 +48,15 @@ object Elements {
       // input(tpe := "checkbox", checked <-- rxscalajs.Observable.interval(5000).map(_ % 2 == 0)),//clearHandler.map(_ => false)),
       button(tpe := "button", "clear", onClick("A") --> setInputValue),
       textArea(
+        onKeyDown.map(_.toString) --> setInputValue
+      ),
+      textArea(
         tpe := "text", //TODO: dom-types attribute enums
         placeholder := "Create new post. Press Enter to submit.",
         width := "100%",
         // onInputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
         value <-- setInputValue,
-        onKeyDown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey).apply("ENTER") --> setInputValue
+        onKeyDown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey).map(_.toString) --> setInputValue
       ),
       input(tpe := "submit", value := "insert"),
       // onSubmit --> submitHandler
