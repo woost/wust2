@@ -1,6 +1,7 @@
 package wust.frontend
 
 import io.circe.Decoder.state
+import monocle.macros.GenLens
 import vectory._
 import wust.api._
 import wust.frontend.views.{PageStyle, View, ViewConfig}
@@ -74,11 +75,11 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
 
     val inviteToken = viewConfig.map(_.invite)
 
-    val view: Var[View] = viewConfig.zoom(_.view)((config, view) => config.copy(view = view))
+    val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
 
 
     val page: Var[Page] = {
-      val rawPage = viewConfig.zoom(_.page)((config, page) => config.copy(page = page))
+      val rawPage = viewConfig.zoom(GenLens[ViewConfig](_.page))
       new Var.Composed(rawPage, Rx {
         rawPage() match {
           case Page.Union(ids) =>
@@ -98,7 +99,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
     }
 
     val selectedGroupId: Var[Option[GroupId]] = {
-      val rawSelectedGroupId = viewConfig.zoom(_.groupIdOpt)((config, groupIdOpt) => config.copy(groupIdOpt = groupIdOpt))
+      val rawSelectedGroupId = viewConfig.zoom(GenLens[ViewConfig](_.groupIdOpt))
       new Var.Composed(rawSelectedGroupId, Rx {
         rawSelectedGroupId().filter(rawGraph().groupsById.isDefinedAt)
       })
