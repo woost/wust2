@@ -45,7 +45,6 @@ lazy val commonSettings = Seq(
       "-explaintypes" :: // Explain type errors in more detail
       "-feature" ::
       "-language:_" ::
-      "-Xcheckinit" ::
       "-Xfuture" ::
       "-Xlint" ::
       "-Yno-adapted-args" ::
