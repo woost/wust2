@@ -32,46 +32,20 @@ case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
 }
 
+
 class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._
   import ClientCache.storage
 
-
-  val eventStream: Observable[ApiEvent] = {
-    val partitionedEvents = rawEventStream.map(_.partition {
-      case NewGraphChanges(_) => true
-      case _ => false
-    })
-
-    val graphEvents = partitionedEvents.map(_._1)
-    val otherEvents = partitionedEvents.map(_._2)
-    //TODO bufferunless here will crash merge for rawGraph with infinite loop.
-    // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
-    val bufferedGraphEvents = graphEvents //.bufferUnless(syncEnabled).map(_.flatten)
-
-    val events = bufferedGraphEvents merge otherEvents
-    events.concatMap(Observable.from(_)) //TODO flattening here is nice, but also pushes more updates?
-  }
-
-  val currentUser: Observable[Option[User]] = eventStream.collect {
-    case LoggedIn(auth) => Some(auth.user)
-    case LoggedOut => None
-  }.startWith(None)
-
   private val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncEnabled = syncMode.map(_ == SyncMode.Live)
-
-    val persistence = new GraphPersistence(syncEnabled.toObservable)
-
-    val rawGraph: Rx[Graph] = {
-      val localEvents = persistence.localChanges.map(NewGraphChanges)
-      val events = eventStream merge localEvents
-      events.scan(Graph.empty)(GraphUpdate.applyEvent).toRx(seed = Graph.empty)
-    }
-
     val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
+
+    val eventProcessor = EventProcessor(rawEventStream, syncEnabled.toObservable, viewConfig.toObservable)
+    val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
+    val currentUser:Rx[Option[User]] = eventProcessor.currentUser.toRx(seed = None)
 
     val inviteToken = viewConfig.map(_.invite)
 
@@ -148,7 +122,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
     }
   }
 
-  val persistence = inner.persistence
+  val eventProcessor = inner.eventProcessor
 
   val rawGraph = inner.rawGraph.toObservable
   val viewConfig = inner.viewConfig.toHandler
@@ -182,8 +156,8 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
 
 
   //events!!
-  //TODO persistence?
-  // rawGraph() = newGraph applyChanges persistence.currentChanges
+  //TODO eventProcessor?
+  // rawGraph() = newGraph applyChanges eventProcessor.currentChanges
   //TODO: on user login:
   //     ClientCache.currentAuth = Option(auth)
   //     if (auth.user.isImplicit) {

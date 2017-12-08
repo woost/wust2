@@ -3,11 +3,12 @@ package wust.frontend
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
-import wust.api.ApiEvent
+import wust.api._
 import autowire._
 import boopickle.Default._
 import io.circe.Decoder.state
 import outwatch.Sink
+import wust.frontend.views.ViewConfig
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -18,7 +19,7 @@ import scala.scalajs.js.timers.setTimeout
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import outwatch.dom._
-import rxscalajs.Observable
+import rxscalajs.{Subject, Observable}
 import wust.util.outwatchHelpers._
 
 sealed trait SyncStatus
@@ -40,23 +41,72 @@ object SyncMode {
 
 // case class PersistencyState(undoHistory: Seq[GraphChanges], redoHistory: Seq[GraphChanges], changes: GraphChanges)
 
-class GraphPersistence(syncEnabled: Observable[Boolean]) {
-  import ClientCache.storage
-
-  val enrichChanges = Handler.create[GraphChanges]().unsafeRunSync()
-  val pureChanges = Handler.create[GraphChanges]().unsafeRunSync()
-  val localChanges: Observable[GraphChanges] = {
-    val enrichedChanges = enrichChanges.map(applyEnrichmentToChanges)
-    val allChanges = enrichedChanges merge pureChanges
-    allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
-  }
-
-  val addPost:Sink[String] = enrichChanges.redirectMap { text =>
+trait ChangeHandlers {
+  //TODO: sinks?
+  val changes = Handler.create[GraphChanges]().unsafeRunSync()
+  val addPost: Sink[String] = changes.redirectMap { text =>
     val newPost = Post.newId(text)
     GraphChanges(addPosts = Set(newPost))
   }
+}
 
+object EventProcessor {
+  def apply(rawEventStream: Observable[Seq[ApiEvent]], syncEnabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
+    val eventStream: Observable[Seq[ApiEvent]] = {
+      val partitionedEvents = rawEventStream.map(_.partition {
+        case NewGraphChanges(_) => true
+        case _ => false
+      })
+
+      val graphEvents = partitionedEvents.map(_._1)
+      val otherEvents = partitionedEvents.map(_._2)
+      //TODO bufferunless here will crash merge for rawGraph with infinite loop.
+      // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
+      val bufferedGraphEvents = graphEvents //.bufferUnless(syncEnabled).map(_.flatten)
+
+      bufferedGraphEvents merge otherEvents
+    }
+
+    new EventProcessor(eventStream, viewConfig)
+  }
+}
+class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig]) extends ChangeHandlers {
+  // import ClientCache.storage
   // storage.graphChanges <-- localChanges //TODO
+
+  object enriched extends ChangeHandlers
+
+  val currentUser: Observable[Option[User]] = eventStream.map(_.reverse.collectFirst { //TODO: meh
+    case LoggedIn(auth) => Some(auth.user)
+    case LoggedOut => None
+  }).collect { case Some(user) => user }.startWith(None)
+
+
+  // public reader
+  val (localChanges: Observable[GraphChanges], rawGraph: Observable[Graph]) = {
+
+    // events  withLatestFrom
+    // --------O----------------> localchanges
+    //         ^          |
+    //         |          v
+    //         -----------O---->--
+    //            graph
+
+    val rawGraph = Subject[Graph]()
+
+    val enrichedChanges = enriched.changes.withLatestFrom(rawGraph.startWith(Graph.empty)).withLatestFrom(viewConfig).map { case ((c,g), v) => applyEnrichmentToChanges(c,g,v) }
+    val allChanges = enrichedChanges merge changes
+    val localChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
+
+    val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
+    val events:Observable[Seq[ApiEvent]] = eventStream merge localEvents
+
+    val graphWithChanges: Observable[Graph] = events.scan(Graph.empty) { (graph: Graph, events: Seq[ApiEvent]) => events.foldLeft(graph)(GraphUpdate.applyEvent) }
+
+    graphWithChanges subscribe rawGraph
+
+    (localChanges, rawGraph)
+  }
 
   private val bufferedChanges = localChanges.map(List(_))//.bufferUnless(syncEnabled)
 
@@ -107,25 +157,28 @@ class GraphPersistence(syncEnabled: Observable[Boolean]) {
   //   storage.graphChanges = changesInTransit() ++ localChanges()
   // }
 
-  private def applyEnrichmentToChanges(changes: GraphChanges): GraphChanges = {
+  private def applyEnrichmentToChanges(changes: GraphChanges, graph: Graph, viewConfig: ViewConfig): GraphChanges = {
     import changes.consistent._
 
-    changes
-    //TODO
-    // val toDelete = delPosts.flatMap { postId =>
-    //   Collapse.getHiddenPosts(state.displayGraphWithoutParents.now.graph removePosts state.graphSelection.now.parentIds, Set(postId))
-    // }
+    println("DA CHANGA" + changes)
 
-    // val toOwn = state.selectedGroupId.now.toSet.flatMap { (groupId: GroupId) =>
-    //   addPosts.map(p => Ownership(p.id, groupId))
-    // }
+    val toDelete = delPosts.flatMap { postId =>
+      Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
+    }
 
-    // val containedPosts = addContainments.map(_.childId)
-    // val toContain = addPosts
-    //   .filterNot(p => containedPosts(p.id))
-    //   .flatMap(p => GraphSelection.toContainments(state.graphSelection.now, p.id))
+    val toOwn = viewConfig.groupIdOpt.toSet.flatMap { (groupId: GroupId) =>
+      addPosts.map(p => Ownership(p.id, groupId))
+    }
 
-    // changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
+    val containedPosts = addContainments.map(_.childId)
+    val toContain = addPosts
+      .filterNot(p => containedPosts(p.id))
+      .flatMap(p => Page.toContainments(viewConfig.page, p.id))
+
+    val p = changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
+
+    println("BORROWS GRAPH: " +p )
+    p
   }
 
   private def sendChanges(changes: List[GraphChanges]): Future[Boolean] = {

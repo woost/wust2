@@ -16,6 +16,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, _) =>
     //TODO permissions
+
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
       changes.foldLeft(Future.successful(true)){ (previous, changes) =>
         import changes.consistent._

@@ -22,7 +22,7 @@ object ChatView extends View {
 
     component(
       chronologicalPostsAscending,
-      state.persistence.addPost,
+      state.eventProcessor.enriched.addPost,
       page,
       ownPosts,
       pageStyle
