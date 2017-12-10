@@ -113,14 +113,13 @@ val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "1.4.0"
 val outwatch = "io.github.outwatch" % "outwatch" % "3cf80fb"
-val duality = "com.github.fdietze" % "duality" %   "ed9dbd4"
+val duality = "com.github.fdietze.duality" % "duality_sjs0.6_2.12" % "1d08620"
 val catsVersion = "1.0.0-RC1"
 
 lazy val util = crossProject
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      duality ::
       "com.github.pureconfig" %% "pureconfig" % "0.8.0" ::
       "com.lihaoyi" %%% "sourcecode" % "0.1.4" ::
       Nil
@@ -128,6 +127,7 @@ lazy val util = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
+      duality ::
       outwatch ::
       Nil
     )
@@ -247,6 +247,7 @@ lazy val frontend = project
     libraryDependencies ++= (
       outwatch ::
       duality ::
+      "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
       "com.github.fdietze" %%% "vectory" % "0.1.0" ::
       "com.github.fdietze" %% "scala-js-d3v4" % "d0ebae65ca" :: // needs %% because %%% does not work on jitpack - https://github.com/jitpack/jitpack.io/issues/372
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
