@@ -1,4 +1,6 @@
 package wust.frontend.views
+
+import cats.effect.IO
 import monix.execution.Scheduler.Implicits.global
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -162,11 +164,11 @@ object MainView {
   def viewSelection(state:GlobalState, allViews: Seq[View]) = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
     val viewHandler = Handler.create[View]().unsafeRunSync()
-    viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString))
-    viewHandler.debug("selected view")
-    (state.view <-- viewHandler).unsafeRunSync()
 
     div(
+      managed(viewHandler.debug("selected view")),
+      managed(IO(viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString)))),
+      managed(state.view <-- viewHandler),
       display.flex,
       allViews.map{ view =>
         div(

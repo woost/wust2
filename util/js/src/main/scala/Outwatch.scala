@@ -47,7 +47,6 @@ package object outwatchHelpers {
     def toHandler: Handler[T] = {
       import cats._, cats.data._, cats.implicits._
 
-
       val h = Handler.create[T](rx.now).unsafeRunSync()
       implicit val eqFoo: Eq[T] = Eq.fromUniversalEquals
       val hDistinct = h.distinctUntilChanged
@@ -100,14 +99,17 @@ package object outwatchHelpers {
     //   combined.combineLatestWith[D, R](d) { case ((o, a, b, c), d) => f(o, a, b, c, d) }
     // }
 
-    def debug:Observable[T] = { debug() }
-    def debug(name: String = ""): Observable[T] = {
-      o.foreach(x => println(s"$name: $x"))
-      o
-    }
-    def debug(print: T => String): Observable[T] = {
-      o.foreach(x => println(print(x)))
-      o
-    }
+    // def debug:Observable[T] = { debug() }
+    // def debug(name: String = "") = {
+    //   o(x => println(s"$name: $x"))
+    //   o
+    // }
+    // def debug(print: T => String) = {
+    //   o(x => println(print(x)))
+    //   o
+    // }
+    def debug: IO[Cancelable] = debug()
+    def debug(name: String = "") = IO { o.foreach(x => println(s"$name: $x")) }
+    def debug(print: T => String) = IO { o.foreach(x => println(print(x))) }
   }
 }
