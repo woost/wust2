@@ -120,6 +120,16 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
     val focusedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead{ focusedPostId =>
         focusedPostId().filter(displayGraphWithoutParents().graph.postsById.isDefinedAt)
     }
+
+    val upButtonTargetPage:Rx[Option[Page]] = Rx {
+      //TODO: handle containment cycles
+      page() match {
+        case Page.Root => None
+        case Page.Union(parentIds) =>
+          val newParentIds = parentIds.flatMap(rawGraph().parents)
+          Some(if (newParentIds.nonEmpty) Page.Union(newParentIds) else Page.Root)
+      }
+    }
   }
 
   val eventProcessor = inner.eventProcessor
@@ -136,6 +146,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
   val displayGraphWithParents = inner.displayGraphWithParents.toObservable
   val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
   val chronologicalPostsAscending = inner.chronologicalPostsAscending.toObservable
+  val upButtonTargetPage = inner.upButtonTargetPage.toObservable
 
 
   val postCreatorMenus: Handler[List[PostCreatorMenu]] = Handler.create(List.empty[PostCreatorMenu]).unsafeRunSync()

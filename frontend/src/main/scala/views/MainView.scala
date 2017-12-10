@@ -28,24 +28,17 @@ import wust.util.outwatchHelpers._
 object MainView {
   import Elements._
 
-  //def upButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  //TODO: handle containment cycles
-  //  (state.graphSelection() match {
-  //    case GraphSelection.Root => span()
-  //    case GraphSelection.Union(parentIds) =>
-  //      val newParentIds = parentIds.flatMap(state.rawGraph().parents)
-  //      val newParentNames = newParentIds.map(state.rawGraph().postsById(_).title).mkString(", ")
-  //      val buttonTitle = if (newParentIds.nonEmpty) s"Focus $newParentNames" else "Remove Focus"
-  //      button("↑", width := "2.5em", title := buttonTitle,
-  //        onclick := { () =>
-  //          state.graphSelection() = if (newParentIds.nonEmpty) GraphSelection.Union(newParentIds) else GraphSelection.Root
-  //        })
-  //  }).render
-  //}
+  def upButton(state: GlobalState) = {
+    //TODO: outwatch child <-- Option[VNode]
+    span(
+      children <-- state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
+          button("↑", width := "2.5em", onClick(upTarget) --> state.page)
+      ))
+    )
+  }
 
   def showPage(state: GlobalState) = {
     div(
-      "Page: ",
       children <-- state.pageParentPosts.map { posts => posts.toSeq.map { post =>
           span(
             post.title,
@@ -383,7 +376,7 @@ object MainView {
          div(
            display := "flex", alignItems := "center", justifyContent := "flexStart",
 
-//           upButton(state),
+          upButton(state),
            showPage(state),
 //           groupSelector(state),
 //           invitePopup(state),
