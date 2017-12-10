@@ -10,6 +10,10 @@ import monix.execution.Scheduler.Implicits.global
 
 //TODO: merge with util.Tags
 object Elements {
+  // Enter-behavior which is consistent across mobile and desktop:
+  // - textarea: enter emits keyCode for Enter
+  // - input: Enter triggers submit
+
   def scrollToBottom(elem: dom.Element):Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
     try {
@@ -18,42 +22,17 @@ object Elements {
   }
 
   def textAreaWithEnter(actionSink: Sink[String]) = {
-    // consistent across mobile + desktop:
-    // - textarea: enter emits keyCode for Enter
-    // - input: Enter triggers submit
-
     val userInput = Handler.create[String].unsafeRunSync()
-    val setInputValue = Handler.create[String].unsafeRunSync()
-    val clearHandler = setInputValue.map(_ => "")//scala.util.Random.nextInt.toString)
-    val insertFieldValue = Observable.merge(userInput, clearHandler)
+    val clearHandler = userInput.map(_ => "")
 
-    val submitHandler = Handler.create[dom.Event]().unsafeRunSync()
-    val enterKeyHandler = Handler.create[dom.KeyboardEvent]().unsafeRunSync()
-    val actionHandler = Observable.merge(submitHandler, enterKeyHandler)
-      .replaceWithLatestFrom(insertFieldValue)
-      .filter(_.nonEmpty)
-
-    (actionSink <-- actionHandler).unsafeRunSync()
-    (setInputValue <-- actionHandler).unsafeRunSync() //TODO: only trigger clearHandler
-    enterKeyHandler.foreach( event => event.preventDefault() )
-    submitHandler.foreach( event => event.preventDefault() )
-    //     insertFieldValue { text => println(s"Insertfield: '${text}'") }
-    //     enterKeyHandler { _ => println(s"EnterKeyHandler") }
-    //     submitHandler { _ => println(s"SumbitHandler") }
-    //     actionHandler { text => println(s"ActionHandler: ${text}") }
-
-    form(
-      textArea(
-        placeholder := "Create new post. Press Enter to submit.",
-        // data.bla <-- Observable.interval(2000).map(_.toString),
-        // div(child <-- clearHandler),
-        width := "100%",
-        onInput.value --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
-        value <-- clearHandler,
-        onKeyDown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey) --> enterKeyHandler
-      ),
-      input(tpe := "submit", value := "insert"),
-      onSubmit --> submitHandler
+    textArea(
+      placeholder := "Create new post. Press Enter to submit.",
+      width := "100%",
+      value <-- clearHandler,
+      managed(actionSink <-- userInput),
+      onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey =>
+        e.preventDefault(); e.target.asInstanceOf[dom.html.TextArea].value
+      } --> userInput
     )
   }
 
