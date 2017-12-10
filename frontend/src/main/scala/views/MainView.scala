@@ -183,17 +183,28 @@ object MainView {
     viewHandler.debug("selected view")
     (state.view <-- viewHandler).unsafeRunSync()
 
-    select(
-      onInputString.map(View.fromString) --> viewHandler,
-      children <-- state.view.map{ selectedView => allViews.map { view =>
-        option(
+    div(
+      display.flex,
+      allViews.map{ view => 
+        div(
           view.displayName,
-          value := view.key,
-          key := view.key,
-          if (view.key == selectedView.key) Some(selected := true) else None
+          padding := "8px",
+          cursor.pointer,
+          backgroundColor <-- state.view.map(selectedView => if (selectedView == view) "#EAEAEA" else "transparent"),
+          onClick(view) --> viewHandler,
         )
-      }}
+      }
     )
+    // select(
+    //   onInputString.map(View.fromString) --> viewHandler,
+    //   allViews.map{view => 
+    //     option(
+    //       view.displayName,
+    //       value := view.key,
+    //       selected <-- state.view.map(_ == view)
+    //     )
+    //   }
+    // )
   }
 
   //def devPeek(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -376,15 +387,14 @@ object MainView {
          div(
            display := "flex", alignItems := "center", justifyContent := "flexStart",
 
-          upButton(state),
+           upButton(state),
            showPage(state),
+           viewSelection(state, allViews),
 //           groupSelector(state),
 //           invitePopup(state),
 //           newGroupButton(state)
          ),
 
-         if (allViews.size > 1) div("view: ")(viewSelection(state, allViews))
-         else div(),
 
         syncStatus(state),
 //         div(
