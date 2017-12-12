@@ -3,7 +3,6 @@ package wust.frontend.views
 import org.scalatest._
 import org.scalatest.prop._
 import rx.Ctx.Owner.Unsafe._
-import rxext._
 import wust.frontend._
 import wust.frontend.views.graphview.GraphView
 import wust.ids._

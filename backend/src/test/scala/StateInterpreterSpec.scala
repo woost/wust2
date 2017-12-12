@@ -37,7 +37,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
   }
 
   "stateEvents" - {
-    def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.Containment], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
+    def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
 
     "with auth" in mockDb { db =>
       db.graph.getAllVisiblePosts(Some(user.id)) returnsFuture emptyGraph
@@ -77,7 +77,7 @@ class StateInterpreterSpec extends AsyncFreeSpec with MustMatchers with DbMocks 
   }
 
   "stateChangeEvents" - {
-    def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.Containment], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
+    def emptyGraph = (Seq.empty[Data.Post], Seq.empty[Data.Connection], Seq.empty[Data.UserGroup], Seq.empty[Data.Ownership], Seq.empty[Data.User], Seq.empty[Data.Membership])
 
     "same state" in mockDb { db =>
       val stateInterpreter = new StateInterpreter(db, jwt)
