@@ -2,3 +2,4 @@ target/
 /phantomjsdriver.log
 workbench/src
 node_modules
+/*-backup.sql*
