@@ -31,6 +31,9 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
     def mustEqualDigest(pw: String) = arr mustEqual passwordToDigest(pw)
   }
 
+  def Connection(sourceId: PostId, targetId: PostId) = new Connection(sourceId, "my-fucking-test-label", targetId)
+  def Containment(sourceId: PostId, targetId: PostId) = new Connection(sourceId, Label.parent, targetId)
+
   //TODO: still throw exceptions on for example database connection errors
 
   "post" - {
@@ -243,8 +246,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         true <- db.post.createPublic(sourcePost)
         true <- db.post.createPublic(targetPost)
-        true <- db.containment(Containment(sourcePost.id, targetPost.id))
-        true <- db.containment(Containment(targetPost.id, sourcePost.id))
+        true <- db.connection(Containment(sourcePost.id, targetPost.id))
+        true <- db.connection(Containment(targetPost.id, sourcePost.id))
         success <- db.connection(connection)
         connections <- ctx.run(query[Connection])
       } yield {
@@ -333,8 +336,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         true <- db.post.createPublic(parent)
         true <- db.post.createPublic(child)
-        success <- db.containment(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustBe true
         containments must contain theSameElementsAs List(containment)
@@ -349,9 +352,9 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         true <- db.post.createPublic(parent)
         true <- db.post.createPublic(child)
-        true <- db.containment(containment)
-        success <- db.containment(containment)
-        containments <- ctx.run(query[Containment])
+        true <- db.connection(containment)
+        success <- db.connection(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustBe true
         containments must contain theSameElementsAs List(containment)
@@ -368,8 +371,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         true <- db.post.createPublic(child)
         true <- db.connection(Connection(parent.id, child.id))
         true <- db.connection(Connection(child.id, parent.id))
-        success <- db.containment(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustBe true
         containments must contain theSameElementsAs List(containment)
@@ -382,8 +385,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       val containment = Containment("t", "r")
       for {
         true <- db.post.createPublic(child)
-        success <- db.containment(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustBe false
         containments mustBe empty
@@ -396,8 +399,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       val containment = Containment("t", "r")
       for {
         true <- db.post.createPublic(parent)
-        success <- db.containment(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustBe false
         containments mustBe empty
@@ -408,8 +411,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       val containment = Containment("t", "r")
       for {
-        success <- db.containment(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustBe false
         containments mustBe empty
@@ -424,10 +427,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       for {
         true <- db.post.createPublic(parent)
         true <- db.post.createPublic(child)
-        true <- db.containment(containment)
+        true <- db.connection(containment)
 
-        success <- db.containment.delete(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection.delete(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustEqual true
         containments mustBe empty
@@ -438,8 +441,8 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
       import db._, db.ctx, ctx._
       val containment = Containment("t", "r")
       for {
-        success <- db.containment.delete(containment)
-        containments <- ctx.run(query[Containment])
+        success <- db.connection.delete(containment)
+        containments <- ctx.run(query[Connection])
       } yield {
         success mustEqual true
         containments mustBe empty
@@ -919,14 +922,12 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           conn = Connection(postA.id, postB.id)
           cont = Containment(postB.id, postC.id)
           true <- db.connection(conn)
-          true <- db.containment(cont)
+          true <- db.connection(cont)
 
-          (posts, connections, containments,
-            userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
+          (posts, connections, userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
         } yield {
           posts must contain theSameElementsAs List(postA, postB, postC)
-          connections must contain theSameElementsAs List(conn)
-          containments must contain theSameElementsAs List(cont)
+          connections must contain theSameElementsAs List(conn, cont)
           userGroups mustBe empty
           ownerships mustBe empty
           users mustBe empty
@@ -950,14 +951,12 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           conn = Connection(postA.id, postB.id)
           cont = Containment(postB.id, postC.id)
           true <- db.connection(conn)
-          true <- db.containment(cont)
+          true <- db.connection(cont)
 
-          (posts, connections, containments,
-            userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
+          (posts, connections, userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(None)
         } yield {
           posts must contain theSameElementsAs List(postA, postC)
           connections must contain theSameElementsAs List()
-          containments must contain theSameElementsAs List()
           userGroups mustBe empty
           ownerships mustBe empty
           users mustBe empty
@@ -980,14 +979,12 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           conn = Connection(postA.id, postB.id)
           cont = Containment(postB.id, postC.id)
           true <- db.connection(conn)
-          true <- db.containment(cont)
+          true <- db.connection(cont)
 
-          (posts, connections, containments,
-            userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
+          (posts, connections, userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List(postA, postB, postC)
-          connections must contain theSameElementsAs List(conn)
-          containments must contain theSameElementsAs List(cont)
+          connections must contain theSameElementsAs List(conn, cont)
           userGroups mustBe empty
           ownerships mustBe empty
           users must contain theSameElementsAs List(user)
@@ -1001,12 +998,10 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           Some(user) <- db.user("heigo", "parwin")
           Some((_, membership, group)) <- db.group.createForUser(user.id)
 
-          (posts, connections, containments,
-            userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
+          (posts, connections, userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List()
           connections must contain theSameElementsAs List()
-          containments must contain theSameElementsAs List()
           userGroups mustEqual List(group)
           ownerships mustBe empty
           users must contain theSameElementsAs List(user)
@@ -1033,14 +1028,12 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           conn = Connection(postA.id, postB.id)
           true <- db.connection(conn)
           cont = Containment(postB.id, postC.id)
-          true <- db.containment(cont)
+          true <- db.connection(cont)
 
-          (posts, connections, containments,
-            userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
+          (posts, connections, userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List(postA, postB, postC)
-          connections must contain theSameElementsAs List(conn)
-          containments must contain theSameElementsAs List(cont)
+          connections must contain theSameElementsAs List(conn, cont)
           userGroups must contain theSameElementsAs List(group)
           ownerships must contain theSameElementsAs List(ownershipB)
           users must contain theSameElementsAs List(user)
@@ -1070,14 +1063,12 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
           conn = Connection(postA.id, postB.id)
           true <- db.connection(conn)
           cont = Containment(postB.id, postC.id)
-          true <- db.containment(cont)
+          true <- db.connection(cont)
 
-          (posts, connections, containments,
-            userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
+          (posts, connections, userGroups, ownerships, users, memberships) <- db.graph.getAllVisiblePosts(Option(user.id))
         } yield {
           posts must contain theSameElementsAs List(postA, postB)
           connections must contain theSameElementsAs List(conn)
-          containments must contain theSameElementsAs List()
           userGroups must contain theSameElementsAs List(group)
           ownerships must contain theSameElementsAs List(ownershipB)
           users must contain theSameElementsAs List(user)
