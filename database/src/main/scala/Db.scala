@@ -134,6 +134,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def apply(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
       // This is a quill batch action:
+      //TODO: insert label
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
         .recoverValue(false)
@@ -142,23 +143,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
     def delete(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.targetId == connection.targetId).delete))
-        .map(_.forall(_ <= 1))
-    }
-  }
-
-  object containment {
-    private val insert = quote { (containment: Containment) => query[Containment].insert(containment).ignoreDuplicates }
-
-    def apply(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(containment))
-    def apply(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(containments.toList).foreach(insert(_)))
-        .map(_.forall(_ <= 1))
-        .recoverValue(false)
-    }
-
-    def delete(containment: Containment)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(containment))
-    def delete(containments: Set[Containment])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(containments.toList).foreach(containment => query[Containment].filter(c => c.parentId == containment.parentId && c.childId == containment.childId).delete))
         .map(_.forall(_ <= 1))
     }
   }
@@ -417,7 +401,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           val userFut = ctx.run(query[User].filter(_.id == lift(userId)))
           val postsFut = for (owned <- ctx.run(ownedPosts(visibleOwnerships)); public <- ctx.run(publicPosts)) yield owned ++ public
           val connectionsFut = ctx.run(query[Connection])
-          val containmentsFut = ctx.run(query[Containment])
           val myGroupsFut = ctx.run(myMemberships.map(_.groupId))
           val myGroupsMembersFut = ctx.run(myGroupsMembers)
           val myGroupsMembershipsFut = ctx.run(myGroupsMemberships)
@@ -426,7 +409,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           for {
             posts <- postsFut
             connection <- connectionsFut
-            containments <- containmentsFut
             myGroups <- myGroupsFut
             ownerships <- ownershipsFut
             user <- userFut
@@ -437,7 +419,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
             (
               posts,
               connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
-              containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
               myGroups.map(UserGroup.apply),
               ownerships,
               (users ++ user).toSet,
@@ -448,17 +429,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         case None => // not logged in, can only see posts of public groups
           val postsFut = ctx.run(publicPosts)
           val connectionsFut = ctx.run(query[Connection])
-          val containmentsFut = ctx.run(query[Containment])
           for {
             posts <- postsFut
             connection <- connectionsFut
-            containments <- containmentsFut
           } yield {
             val postSet = posts.map(_.id).toSet
             (
               posts,
               connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
-              containments.filter(c => (postSet contains c.parentId) && (postSet contains c.childId)),
               Nil, Nil, Nil, Nil
             )
           }
