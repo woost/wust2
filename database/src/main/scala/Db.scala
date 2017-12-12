@@ -24,6 +24,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId _)
   implicit val encodePostId = MappedEncoding[PostId, UuidType](Tag.unwrap _)
   implicit val decodePostId = MappedEncoding[UuidType, PostId](PostId _)
+  implicit val encodeLabel = MappedEncoding[Label, String](Tag.unwrap _)
+  implicit val decodeLabel = MappedEncoding[String, Label](Label _)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
 

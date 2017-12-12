@@ -205,7 +205,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def applyChanges(c: GraphChanges) = {
     copy(
       postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
-      connectionsByLabel = connections ++ c.addConnections -- c.delConnections,
+      connectionsByLabel = connectionsByLabel ++ (c.addConnections -- c.delConnections).groupBy(_.label),
       ownerships = ownerships ++ c.addOwnerships -- c.delOwnerships
     )
   }
@@ -227,8 +227,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   def +(other: Graph) = copy (
     postsById ++ other.postsById,
-    connections ++ other.connections,
-    containments ++ other.containments,
+    connectionsByLabel ++ other.connectionsByLabel,
     groupsById ++ other.groupsById,
     ownerships ++ other.ownerships,
     usersById ++ other.usersById,
@@ -242,18 +241,15 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   )
 
   lazy val consistent = {
-    val filteredConnections = connections.filter{ c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId }
-    val filteredContainments = containments.filter{ c => postsById.isDefinedAt(c.targetId) && postsById.isDefinedAt(c.sourceId) && c.targetId != c.sourceId }
+    val filteredConnections = connectionsByLabel.mapValues(_.filter(c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId))
     val filteredOwnerships = ownerships.filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }
     val filteredMemberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
 
-    if (connections.size != filteredConnections.size ||
-      containments.size != filteredContainments.size ||
+    if (connectionsByLabel.size != filteredConnections.size ||
       ownerships.size != filteredOwnerships.size ||
       memberships.size != filteredMemberships.size)
       copy(
-        connections = filteredConnections,
-        containments = filteredContainments,
+        connectionsByLabel = filteredConnections,
         ownerships = filteredOwnerships,
         memberships = filteredMemberships
       )

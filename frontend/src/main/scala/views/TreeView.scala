@@ -61,7 +61,7 @@
 //    paddingLeft := "5px", paddingRight := "5px", cursor := "pointer",
 //    "✖",
 //    onclick := { () =>
-//      val containments = GraphSelection.toContainments(state.graphSelection.now, postId)
+//      val containments = GraphSelection.toParentConnections(state.graphSelection.now, postId)
 //      state.persistence.addChangesEnriched(delPosts = Seq(postId), delContainments = containments)
 //    }
 //  )
@@ -144,7 +144,7 @@
 //            state.persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = Set(newContainment), updatePosts = updatedPost.toSet)
 //          case None =>
 //            val selection = state.graphSelection.now
-//            val containments = GraphSelection.toContainments(selection, newPost.id)
+//            val containments = GraphSelection.toParentConnections(selection, newPost.id)
 //            state.persistence.addChangesEnriched(addPosts = Set(newPost), addContainments = containments, updatePosts = updatedPost.toSet)
 //        }
 //        false
@@ -166,7 +166,7 @@
 //          } {
 //            val newContainments = grandParent match {
 //              case Some(grandParent) => Set(Containment(grandParent.element.id, post.id))
-//              case None              => GraphSelection.toContainments(state.graphSelection.now, post.id)
+//              case None              => GraphSelection.toParentConnections(state.graphSelection.now, post.id)
 //            }
 //            val delContainment = Containment(parent.element.id, post.id)
 //            focusedPostId = Some(post.id)

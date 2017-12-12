@@ -22,7 +22,7 @@ object DbConversions {
   implicit def forDbOwnerships(cs: Set[Ownership]) = cs.map(forDb _)
 
   def forClient(tuple: Data.Graph): Graph = {
-    val (posts, connections, containments, groups, ownerships, users, memberships) = tuple
+    val (posts, connections, groups, ownerships, users, memberships) = tuple
     Graph(
       posts.map(forClient),
       connections.map(forClient),

@@ -5,12 +5,10 @@ import wust.ids._
 case class GraphChanges(
   addPosts:        Set[Post]        = Set.empty,
   addConnections:  Set[Connection]  = Set.empty,
-  addContainments: Set[Containment] = Set.empty,
   addOwnerships:   Set[Ownership]   = Set.empty,
   updatePosts:     Set[Post]        = Set.empty,
   delPosts:        Set[PostId]      = Set.empty,
   delConnections:  Set[Connection]  = Set.empty,
-  delContainments: Set[Containment] = Set.empty,
   delOwnerships:   Set[Ownership]   = Set.empty,
 ) {
   def merge(other: GraphChanges) = {
@@ -18,12 +16,10 @@ case class GraphChanges(
     GraphChanges(
       addPosts.filterNot(p => other.delPosts(p.id)) ++ other.addPosts,
       addConnections -- other.delConnections ++ other.addConnections,
-      addContainments -- other.delContainments ++ other.addContainments,
       addOwnerships -- other.delOwnerships ++ other.addOwnerships,
       updatePosts.filterNot(p => other.delPosts(p.id)) ++ other.updatePosts,
       delPosts -- otherAddPosts ++ other.delPosts,
       (delConnections -- other.addConnections).filter(c => !otherAddPosts(c.sourceId) && !otherAddPosts(c.targetId)) ++ other.delConnections,
-      (delContainments -- other.delContainments).filter(c => !otherAddPosts(c.parentId) && !otherAddPosts(c.childId)) ++ other.delContainments,
       (delOwnerships -- other.addOwnerships).filter(o => !otherAddPosts(o.postId)) ++ other.delOwnerships,
     )
   }
@@ -37,28 +33,24 @@ case class GraphChanges(
   def revert(deletedPostsById: collection.Map[PostId,Post]) = GraphChanges(
     delPosts.flatMap(deletedPostsById.get _),
     delConnections,
-    delContainments,
     delOwnerships,
     Set.empty, //TODO edit history
     addPosts.map(_.id),
     addConnections -- delConnections,
-    addContainments -- delContainments,
     addOwnerships -- delOwnerships,
   )
 
   lazy val consistent = GraphChanges(
     addPosts,
     (addConnections -- delConnections).filter(c => c.sourceId != c.targetId),
-    (addContainments -- delContainments).filter(c => c.parentId != c.childId),
     addOwnerships -- delOwnerships,
     updatePosts,
     delPosts,
     delConnections,
-    delContainments,
     delOwnerships
   )
 
-  private val allProps = addPosts :: addConnections :: addContainments :: addOwnerships :: updatePosts :: delPosts :: delConnections :: delContainments :: delOwnerships :: Nil
+  private val allProps = addPosts :: addConnections :: addOwnerships :: updatePosts :: delPosts :: delConnections :: delOwnerships :: Nil
 
   lazy val isEmpty = allProps.forall(s => s.isEmpty)
   def nonEmpty = !isEmpty
@@ -70,12 +62,10 @@ object GraphChanges {
   def from(
     addPosts:        Iterable[Post]        = Set.empty,
     addConnections:  Iterable[Connection]  = Set.empty,
-    addContainments: Iterable[Containment] = Set.empty,
     addOwnerships:   Iterable[Ownership]   = Set.empty,
     updatePosts:     Iterable[Post]        = Set.empty,
     delPosts:        Iterable[PostId]      = Set.empty,
     delConnections:  Iterable[Connection]  = Set.empty,
-    delContainments: Iterable[Containment] = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
-  ) = GraphChanges(addPosts.toSet, addConnections.toSet, addContainments.toSet, addOwnerships.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet, delContainments.toSet, delOwnerships.toSet)
+  ) = GraphChanges(addPosts.toSet, addConnections.toSet, addOwnerships.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet, delOwnerships.toSet)
 }

@@ -13,7 +13,7 @@ object Collapse {
     val hiddenPosts: Set[PostId] = getHiddenPosts(graph, collapsingPosts)
     val alternativePosts: Map[PostId, Set[PostId]] = getAlternativePosts(graph, hiddenPosts, collapsingPosts)
     val redirectedConnections: Set[LocalConnection] = getRedirectedConnections(graph, alternativePosts)
-    val hiddenContainments: Set[Containment] = collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
+    val hiddenContainments: Set[Connection] = collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
     val collapsedLocalContainments: Set[LocalContainment] = getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
 
     // println("collapsingPosts: " + collapsingPosts)
@@ -24,7 +24,7 @@ object Collapse {
     // println("collapsedLocalContainments: " + collapsedLocalContainments)
 
     displayGraph.copy(
-      graph = graph removePosts hiddenPosts removeContainments hiddenContainments,
+      graph = graph removePosts hiddenPosts removeConnections hiddenContainments,
       redirectedConnections = redirectedConnections,
       collapsedContainments = collapsedLocalContainments
     )
@@ -41,11 +41,11 @@ object Collapse {
 
   def getAlternativePosts(graph: Graph, hiddenPosts: Set[PostId], collapsingPosts: Set[PostId]): Map[PostId, Set[PostId]] = {
     hiddenPosts.flatMap(graph.incidentParentContainments)
-      .groupBy(_.childId)
+      .groupBy(_.sourceId)
       .mapValues(_.flatMap { c =>
-        if (hiddenPosts(c.parentId))
-          highestParents(graph, c.childId, collapsingPosts)
-        else Option(c.parentId)
+        if (hiddenPosts(c.targetId))
+          highestParents(graph, c.sourceId, collapsingPosts)
+        else Option(c.targetId)
       }(breakOut): Set[PostId])
       .withDefault(post => Set(post))
   }
@@ -62,7 +62,7 @@ object Collapse {
       .filterNot(c => graph.successors(c.sourceId) contains c.targetId) // drop already existing connections
   }
 
-  def getLocalContainments(graph: Graph, hiddenPosts: Set[PostId], hiddenContainments: Set[Containment], collapsingPosts: Set[PostId]): Set[LocalContainment] = {
+  def getLocalContainments(graph: Graph, hiddenPosts: Set[PostId], hiddenContainments: Set[Connection], collapsingPosts: Set[PostId]): Set[LocalContainment] = {
     collapsingPosts.flatMap { parent =>
       // children remain visible when:
       // - also contained in other uncollapsed post
@@ -83,9 +83,9 @@ object Collapse {
     graph.ancestors(child).exists(parent => graph.parents(parent).isEmpty && !collapsing(parent) && reachableByUncollapsedPath(child, parent, graph, collapsing))
   }
 
-  def reachableByUncollapsedPath(childId: PostId, parentId: PostId, graph: Graph, collapsing: Set[PostId]): Boolean = {
-    val space = graph removePosts (collapsing - childId)
-    depthFirstSearch(childId, space.parents).iterator contains parentId
+  def reachableByUncollapsedPath(sourceId: PostId, targetId: PostId, graph: Graph, collapsing: Set[PostId]): Boolean = {
+    val space = graph removePosts (collapsing - sourceId)
+    depthFirstSearch(sourceId, space.parents).iterator contains targetId
   }
 
   def highestParents(graph: Graph, child: PostId, predicate: PostId => Boolean): Set[PostId] = {

@@ -37,9 +37,9 @@ class WustReceiver(client: WustClient) extends MessageReceiver {
     println(s"new message: msg")
     val id = PostId(Cuid.createCuid())
     val post = Post(id, msg.title)
-    val containment = Containment(Constants.slackId, id)
+    val connection = Connection(id, Label.parent, Constants.slackId)
 
-    val changes = List(GraphChanges(addPosts = Set(post), addContainments = Set(containment)))
+    val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
     client.api.changeGraph(changes).call().map { success =>
       if (success) Right(post)
       else Left("Failed to create post")

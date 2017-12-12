@@ -170,12 +170,12 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
       addPosts.map(p => Ownership(p.id, groupId))
     }
 
-    val containedPosts = addContainments.map(_.childId)
+    val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
     val toContain = addPosts
       .filterNot(p => containedPosts(p.id))
-      .flatMap(p => Page.toContainments(viewConfig.page, p.id))
+      .flatMap(p => Page.toParentConnections(viewConfig.page, p.id))
 
-    val p = changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addContainments = toContain)
+    val p = changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
 
     println("BORROWS GRAPH: " +p )
     p
@@ -188,11 +188,9 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
           val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
           if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
           if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
-          if (compactChanges.addContainments.nonEmpty) Analytics.sendEvent("graphchanges", "addContainments", "success", compactChanges.addContainments.size)
           if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
           if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
           if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
-          if (compactChanges.delContainments.nonEmpty) Analytics.sendEvent("graphchanges", "delContainments", "success", compactChanges.delContainments.size)
         } else {
           Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
           println(s"api request returned false: $changes")
@@ -224,11 +222,9 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
   //           val compactChanges = newChanges.foldLeft(GraphChanges.empty)(_ merge _)
   //           if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
   //           if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
-  //           if (compactChanges.addContainments.nonEmpty) Analytics.sendEvent("graphchanges", "addContainments", "success", compactChanges.addContainments.size)
   //           if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
   //           if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
   //           if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
-  //           if (compactChanges.delContainments.nonEmpty) Analytics.sendEvent("graphchanges", "delContainments", "success", compactChanges.delContainments.size)
 
   //           // flush changes that could not be sent during this transmission
   //           setTimeout(0)(flush())
@@ -249,15 +245,13 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
   // def addChanges(
   //   addPosts:        Iterable[Post]        = Set.empty,
   //   addConnections:  Iterable[Connection]  = Set.empty,
-  //   addContainments: Iterable[Containment] = Set.empty,
   //   addOwnerships:   Iterable[Ownership]   = Set.empty,
   //   updatePosts:     Iterable[Post]        = Set.empty,
   //   delPosts:        Iterable[PostId]      = Set.empty,
   //   delConnections:  Iterable[Connection]  = Set.empty,
-  //   delContainments: Iterable[Containment] = Set.empty,
   //   delOwnerships:   Iterable[Ownership]   = Set.empty
   // )(implicit ec: ExecutionContext): Unit = {
-  //   val newChanges = GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
+  //   val newChanges = GraphChanges.from(addPosts, addConnections, addOwnerships, updatePosts, delPosts, delConnections, delOwnerships)
 
   //   addChanges(newChanges)
   // }
@@ -265,16 +259,14 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
   // def addChangesEnriched(
   //   addPosts:        Iterable[Post]        = Set.empty,
   //   addConnections:  Iterable[Connection]  = Set.empty,
-  //   addContainments: Iterable[Containment] = Set.empty,
   //   addOwnerships:   Iterable[Ownership]   = Set.empty,
   //   updatePosts:     Iterable[Post]        = Set.empty,
   //   delPosts:        Iterable[PostId]      = Set.empty,
   //   delConnections:  Iterable[Connection]  = Set.empty,
-  //   delContainments: Iterable[Containment] = Set.empty,
   //   delOwnerships:   Iterable[Ownership]   = Set.empty
   // )(implicit ec: ExecutionContext): Unit = {
   //   val newChanges = applyEnrichmentToChanges(
-  //     GraphChanges.from(addPosts, addConnections, addContainments, addOwnerships, updatePosts, delPosts, delConnections, delContainments, delOwnerships)
+  //     GraphChanges.from(addPosts, addConnections, addOwnerships, updatePosts, delPosts, delConnections, delOwnerships)
   //   )
 
   //   addChanges(newChanges)

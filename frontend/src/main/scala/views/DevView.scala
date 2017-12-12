@@ -56,7 +56,7 @@
 //         Rx {
 //           def addRandomPost(count: Int) {
 //             val newPosts = List.fill(count)(Post.newId(rStr(1 + rInt(20))))
-//             val containments = newPosts.flatMap(p => GraphSelection.toContainments(state.graphSelection.now, p.id))
+//             val containments = newPosts.flatMap(p => GraphSelection.toParentConnections(state.graphSelection.now, p.id))
 //             state.persistence.addChanges(addPosts = newPosts, addContainments = containments)
 //           }
 //           div(

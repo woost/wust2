@@ -25,9 +25,9 @@ object Page {
 
   def default = Root
 
-  def toContainments(page: Page, postId: PostId): Seq[Containment] = {
+  def toParentConnections(page: Page, postId: PostId): Seq[Connection] = {
     page match {
-      case Page.Union(parentIds) => parentIds.toSeq.map(Containment(_, postId))
+      case Page.Union(parentIds) => parentIds.toSeq.map(Connection(postId, Label.parent, _))
       case _                               => Seq.empty
     }
   }

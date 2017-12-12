@@ -26,12 +26,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
             for {
               true <- db.post.createPublic(addPosts)
               true <- db.connection(addConnections)
-              true <- db.containment(addContainments)
               true <- db.ownership(addOwnerships)
               true <- db.post.update(updatePosts)
               true <- db.post.delete(delPosts)
               true <- db.connection.delete(delConnections)
-              true <- db.containment.delete(delContainments)
               true <- db.ownership.delete(delOwnerships)
             } yield true
           } else Future.successful(false)
