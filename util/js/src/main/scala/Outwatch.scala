@@ -81,13 +81,13 @@ package object outwatchHelpers {
 //    }
   }
 
-  implicit class RichVNodeIO(val vNode:IO[VNode]) {
-    def render:org.scalajs.dom.Element = {
-      val elem = document.createElement("div")
-      vNode.flatMap(vNode => outwatch.dom.helpers.DomUtils.render(elem, vNode)).unsafeRunSync
-      elem
-    }
-  }
+  // implicit class RichVNodeIO(val vNode:IO[VNode]) {
+  //   def render:org.scalajs.dom.Element = {
+  //     val elem = document.createElement("div")
+  //     vNode.flatMap(vNode => outwatch.dom.helpers.DomUtils.render(elem, vNode)).unsafeRunSync
+  //     elem
+  //   }
+  // }
 
 
 //  implicit class RichHandler[T](val o:Handler[T]) extends AnyVal {
