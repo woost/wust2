@@ -81,7 +81,12 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val allParentIdsTopologicallySortedByParents:Iterable[PostId] = allParentIds.topologicalSortBy(parents) //TODO: ..ByChildren.reverse?
 
   override def toString =
-    s"Graph(${posts.map(_.id).mkString(" ")},${connectionsByLabel.values.flatten.map(c => s"${c.sourceId}-[${c.label}]->${c.targetId}").mkString(", ")}, groups:${groupIds}, ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, users: ${userIds}, memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
+    s"Graph(${posts.map(_.id).mkString(" ")}, " +
+    s"${connectionsByLabel.values.flatten.map(c => s"${c.sourceId}-[${c.label}]->${c.targetId}").mkString(", ")}, " +
+    s"groups:${groupIds}, " +
+    s"ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, " +
+    s"users: ${userIds}, " +
+    s"memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
   def toSummaryString = s"Graph(posts: ${posts.size}, connections: ${connections.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
   private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
@@ -182,7 +187,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
     copy(
       postsById = newPostsById,
-      connectionsByLabel = connectionsByLabel.mapValues(_.filter(c => exists(c.sourceId) && exists(c.targetId))),
+      connectionsByLabel = connectionsByLabel.mapValues(_.filter(c => exists(c.sourceId) && exists(c.targetId))).filter(_._2.nonEmpty),
       ownerships = ownerships.filter { o => exists(o.postId) }
     )
   }
@@ -192,11 +197,11 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
     copy(
       postsById = postsById -- ps,
-      connectionsByLabel = connectionsByLabel.mapValues( _.filterNot( c => postIds(c.sourceId) || postIds(c.targetId)) ),
+      connectionsByLabel = connectionsByLabel.mapValues( _.filterNot( c => postIds(c.sourceId) || postIds(c.targetId)) ).filter(_._2.nonEmpty),
       ownerships = ownerships.filterNot { o => postIds(o.postId) }
     )
   }
-  def removeConnections(cs: Iterable[Connection]): Graph = copy(connectionsByLabel = connectionsByLabel.mapValues(_ -- cs))
+  def removeConnections(cs: Iterable[Connection]): Graph = copy(connectionsByLabel = connectionsByLabel.mapValues(_ -- cs).filter(_._2.nonEmpty))
   def removeOwnerships(cs: Iterable[Ownership]): Graph = copy(ownerships = ownerships -- cs)
   def addPosts(cs: Iterable[Post]): Graph = copy(postsById = postsById ++ cs.map(p => p.id -> p))
   def addConnections(cs: Iterable[Connection]): Graph = cs.foldLeft(this)((g,c) => g + c) // todo: more efficient
@@ -241,11 +246,11 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   )
 
   lazy val consistent = {
-    val filteredConnections = connectionsByLabel.mapValues(_.filter(c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId))
+    val filteredConnections = connectionsByLabel.mapValues(_.filter(c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId)).filter(_._2.nonEmpty)
     val filteredOwnerships = ownerships.filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }
     val filteredMemberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
 
-    if (connectionsByLabel.size != filteredConnections.size ||
+    if (connectionsByLabel.values.flatten.size != filteredConnections.values.flatten.size ||
       ownerships.size != filteredOwnerships.size ||
       memberships.size != filteredMemberships.size)
       copy(
