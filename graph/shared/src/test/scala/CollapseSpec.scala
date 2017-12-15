@@ -12,22 +12,23 @@ class CollapseSpec extends FreeSpec with MustMatchers {
   def containments(ts: List[(Int, Int)]): List[Connection] = ts.map(Containment)
   implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(id => PostId(id.toString)))
   def PostIds(ids: Int*): Set[PostId] = ids.map(id => PostId(id.toString))(breakOut)
+
   implicit class RichConnection(con: Connection) {
     def toLocal = {
       if (con.label != Label.parent) throw new Exception("Connection is not containment!")
-      LocalContainment(con.sourceId, con.targetId)
+      LocalConnection(con.sourceId, con.label, con.targetId)
     }
   }
-  def Containment(ts: (Int, Int)): Connection = new Connection(ts._1.toString, Label.parent, ts._2.toString)
+  def Containment(ts: (Int, Int)): Connection = new Connection(ts._2.toString, Label.parent, ts._1.toString)
   def Connection(ts: (Int, Int)): Connection = new Connection(ts._1.toString, "a-test-label", ts._2.toString)
 
   "collapse" - {
 
     def collapse(collapsing: Selector, graph: Graph): DisplayGraph = Collapse(collapsing)(DisplayGraph(graph))
-    def dg(graph: Graph, redirected: Set[(Int, Int)] = Set.empty, collapsedContainments: Set[LocalContainment] = Set.empty) = {
+    def dg(graph: Graph, redirected: Set[(Int, Int)] = Set.empty, collapsedContainments: Set[LocalConnection] = Set.empty) = {
       DisplayGraph(
         graph,
-        redirectedConnections = redirected.map { case (source, target) => LocalConnection(source, target) },
+        redirectedConnections = redirected.map { case (source, target) => LocalConnection(source, Label("redirected"), target) },
         collapsedContainments = collapsedContainments
       )
     }
@@ -40,7 +41,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
             posts = List(1, 11),
             containments(List(1 -> 11))
           )
-          hidden(graph, Set()) mustEqual PostIds()
+          hidden(graph, Set()) mustEqual PostIds() // if none are collapsed, none are hidden
           hidden(graph, Set(1)) mustEqual PostIds(11)
         }
 
@@ -163,6 +164,25 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           hidden(graph, Set(2)) mustEqual PostIds()
           hidden(graph, Set(1, 2)) mustEqual PostIds(2, 3, 11)
           hidden(graph, Set(2, 3)) mustEqual PostIds(11)
+        }
+      }
+
+      "involvedInContainmentCycleWithCollapsedPost" - {
+        import Collapse.{involvedInCycleWithCollapsedPost => inCycle}
+        "involved" in {
+          val graph = Graph(
+            posts = List(11, 12, 13),
+            containments(List(11 -> 12, 12 -> 13, 13 -> 11)) // containment cycle
+          )
+          inCycle(graph, PostId(11), PostIds(12)) mustEqual true
+        }
+
+        "not involved" in {
+          val graph = Graph(
+            posts = List(11, 12, 13, 14),
+            containments(List(11 -> 12, 12 -> 13, 13 -> 14, 13 -> 11)) // containment cycle
+          )
+          inCycle(graph, PostId(14), PostIds(12)) mustEqual false
         }
       }
 
@@ -416,7 +436,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
       }
 
       "redirect and split incoming edge while collapsing two parents (one transitive)" in {
-        val containment1 = Containment(1 -> 11)
+        val containment1 = Containment(1 ->11)
         val containment2 = Containment(2 -> 3)
         val containment3 = Containment(3 -> 11)
         val connection = Connection(20 -> 11)
@@ -425,7 +445,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           List(containment1, containment2, containment3) ::: List(connection)
         )
         collapse(Set(1), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
-        collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalContainment(2, 11)))
+        collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalConnection(11, Label.parent, 2)))
         collapse(Set(3), graph) mustEqual dg(graph - containment3, collapsedContainments = Set(containment3.toLocal))
         collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 2))
         collapse(Set(1, 2, 3), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 2))
@@ -441,7 +461,7 @@ class CollapseSpec extends FreeSpec with MustMatchers {
           posts = List(1, 2, 3, 4, 11, 20),
           List(containment1, containment2, containment3, containment4) ::: List(connection)
         )
-        collapse(Set(1, 2), graph) mustEqual dg(graph - containment1- containment2, collapsedContainments = Set(containment1.toLocal, containment2.toLocal, LocalContainment(2, 11)))
+        collapse(Set(1, 2), graph) mustEqual dg(graph - containment1- containment2, collapsedContainments = Set(containment1.toLocal, containment2.toLocal, LocalConnection(11, Label.parent, 2)))
         collapse(Set(1, 2, 3), graph) mustEqual dg((graph removePosts PostIds(11)) - containment2, Set(20 -> 1, 20 -> 3), collapsedContainments = Set(containment2.toLocal))
         collapse(Set(1, 3), graph) mustEqual dg(graph removePosts PostIds(11), Set(20 -> 1, 20 -> 3))
         collapse(Set(1, 2, 4), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 4, 20 -> 2))

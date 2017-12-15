@@ -14,7 +14,7 @@ object Collapse {
     val alternativePosts: Map[PostId, Set[PostId]] = getAlternativePosts(graph, hiddenPosts, collapsingPosts)
     val redirectedConnections: Set[LocalConnection] = getRedirectedConnections(graph, alternativePosts)
     val hiddenContainments: Set[Connection] = collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
-    val collapsedLocalContainments: Set[LocalContainment] = getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
+    val collapsedLocalContainments: Set[LocalConnection] = getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
 
     // println("collapsingPosts: " + collapsingPosts)
     // println("hiddenPosts: " + hiddenPosts)
@@ -55,14 +55,14 @@ object Collapse {
       graph.incidentConnections(post).flatMap { c =>
         //TODO: assert(c.targetId is PostId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId)) yield {
-          LocalConnection(sourceId = altSource, targetId = altTarget)
+          LocalConnection(sourceId = altSource, Label("redirected"), targetId = altTarget)
         }
       }
     }(breakOut): Set[LocalConnection])
       .filterNot(c => graph.successors(c.sourceId) contains c.targetId) // drop already existing connections
   }
 
-  def getLocalContainments(graph: Graph, hiddenPosts: Set[PostId], hiddenContainments: Set[Connection], collapsingPosts: Set[PostId]): Set[LocalContainment] = {
+  def getLocalContainments(graph: Graph, hiddenPosts: Set[PostId], hiddenContainments: Set[Connection], collapsingPosts: Set[PostId]): Set[LocalConnection] = {
     collapsingPosts.flatMap { parent =>
       // children remain visible when:
       // - also contained in other uncollapsed post
@@ -71,7 +71,7 @@ object Collapse {
         hiddenPosts(child) ||
           (!(graph.children(parent) contains child) && graph.involvedInContainmentCycle(child))
       }
-      visibleChildren.map(LocalContainment(parent, _))
+      visibleChildren.map(LocalConnection(_, Label.parent, parent))
     }
   }
 
