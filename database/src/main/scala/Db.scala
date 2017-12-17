@@ -144,7 +144,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
     def delete(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.targetId == connection.targetId).delete))
+      ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.label == connection.label && c.targetId == connection.targetId).delete))
         .map(_.forall(_ <= 1))
     }
   }
