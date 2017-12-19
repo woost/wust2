@@ -41,8 +41,14 @@ CREATE OR REPLACE FUNCTION vc_insert()
         BEGIN
             _lid = insert_label(NEW.label);
 
-            INSERT INTO rawconnection (sourceid, targetid, label)
-                VALUES (NEW.sourceid, NEW.targetid, _lid);
+        INSERT INTO rawconnection (sourceid, targetid, label)
+            SELECT NEW.sourceid, NEW.targetid, _lid
+                WHERE NOT EXISTS (
+                    SELECT TRUE FROM rawconnection
+                        WHERE sourceid = NEW.sourceid
+                        AND targetid = NEW.targetid
+                        AND label = _lid
+                );
 
             GET DIAGNOSTICS row_count = ROW_COUNT;
             RAISE NOTICE 'Inserted % row(s) FROM rawconnection', row_count;
