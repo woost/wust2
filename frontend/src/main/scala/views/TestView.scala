@@ -3,10 +3,10 @@ package wust.frontend.views
 import wust.frontend._
 import wust.graph._
 
-import rxscalajs.Observable
 import outwatch.dom._
 import outwatch.Sink
 import wust.util.outwatchHelpers._
+import monix.execution.Scheduler.Implicits.global
 
 object TestView extends View {
   override val key = "test"
@@ -14,7 +14,7 @@ object TestView extends View {
   override def apply(state: GlobalState) = {
     import state._
     val graph = displayGraphWithoutParents.map(_.graph)
-    graph(g => println(s"TestView: got graph update. If this is shown more than once per graph update, this is a leak."))
+    graph.foreach(g => println(s"TestView: got graph update. If this is shown more than once per graph update, this is a leak."))
     component(graph, page)
   }
 

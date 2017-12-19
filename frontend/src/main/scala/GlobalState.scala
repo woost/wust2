@@ -1,6 +1,7 @@
 package wust.frontend
 
 import io.circe.Decoder.state
+import monix.execution.Cancelable
 import monocle.macros.GenLens
 import vectory._
 import wust.api._
@@ -9,13 +10,12 @@ import wust.graph._
 import wust.ids._
 import org.scalajs.dom.{Event, console, window}
 import org.scalajs.dom.experimental.Notification
+import monix.execution.Scheduler.Implicits.global
+import monix.reactive.OverflowStrategy.Unbounded
 import outwatch.dom._
-import rxscalajs.subjects._
-import rxscalajs.facade._
 import wust.util.Analytics
 import vectory._
 import wust.util.outwatchHelpers._
-import rxscalajs.Observable
 import rx._
 
 import scalaz.Tag
@@ -153,11 +153,12 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
   DevOnly {
-    val errorMessage = Observable.create[String] { observer =>
+    val errorMessage = Observable.create[String](Unbounded) { observer =>
       window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
         //TODO: send and log production js errors in backend
-        observer.next(msg.toString)
+        observer.onNext(msg.toString)
       }
+      Cancelable()
     }
     jsErrors <-- errorMessage.scan(Vector.empty[String])((acc, msg) => acc :+ msg)
   }

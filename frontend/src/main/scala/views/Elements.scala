@@ -5,6 +5,7 @@ import org.scalajs.dom.ext.KeyCode
 import outwatch.Sink
 import outwatch.dom._
 import wust.util.outwatchHelpers._
+import monix.execution.Scheduler.Implicits.global
 
 //TODO: merge with util.Tags
 object Elements {
@@ -23,19 +24,18 @@ object Elements {
     val userInput = Handler.create[String].unsafeRunSync()
     val setInputValue = Handler.create[String].unsafeRunSync()
     val clearHandler = setInputValue.map(_ => "")//scala.util.Random.nextInt.toString)
-    val insertFieldValue = userInput.merge(clearHandler)
+    val insertFieldValue = Observable.merge(userInput, clearHandler)
 
     val submitHandler = Handler.create[dom.Event]().unsafeRunSync()
     val enterKeyHandler = Handler.create[dom.KeyboardEvent]().unsafeRunSync()
-    val actionHandler = submitHandler
-      .merge(enterKeyHandler)
+    val actionHandler = Observable.merge(submitHandler, enterKeyHandler)
       .replaceWithLatestFrom(insertFieldValue)
       .filter(_.nonEmpty)
 
     (actionSink <-- actionHandler).unsafeRunSync()
     (setInputValue <-- actionHandler).unsafeRunSync() //TODO: only trigger clearHandler
-    enterKeyHandler( event => event.preventDefault() )
-    submitHandler( event => event.preventDefault() )
+    enterKeyHandler.foreach( event => event.preventDefault() )
+    submitHandler.foreach( event => event.preventDefault() )
     //     insertFieldValue { text => println(s"Insertfield: '${text}'") }
     //     enterKeyHandler { _ => println(s"EnterKeyHandler") }
     //     submitHandler { _ => println(s"SumbitHandler") }

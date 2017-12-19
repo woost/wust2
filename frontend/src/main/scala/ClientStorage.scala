@@ -4,27 +4,35 @@ import cats.effect.IO
 import org.scalajs.dom.ext.Storage
 import outwatch.Sink
 import outwatch.dom.Handler
-import rxscalajs.Observable
+import monix.reactive.{Observable, Observer}
+import monix.reactive.OverflowStrategy.Unbounded
+import monix.execution.Cancelable
+import monix.execution.Ack.Continue
+import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api.Authentication
 import wust.graph.GraphChanges
 import scala.util.Try
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 
-  // def store(key: String, value: String): Unit = storage.update(key, value)
-  // def load(key: String): Option[String] = storage(key)
-  // def remove(key: String): Unit = storage.remove(key)
+// def store(key: String, value: String): Unit = storage.update(key, value)
+// def load(key: String): Option[String] = storage(key)
+// def remove(key: String): Unit = storage.remove(key)
+
 object StorageReader {
   def apply(storage: Storage)(key: String): Observable[Option[String]] = {
-    Observable.create[Option[String]](observer => observer.next(storage(key)))
+    Observable.create[Option[String]](Unbounded){observer =>
+      observer.onNext(storage(key))
+      Cancelable() //TODO
+    }
   }
 }
 
 object StorageWriter {
   def apply(storage: Storage)(key: String): Sink[Option[String]] = {
     Sink.create[Option[String]](data => data match {
-      case Some(data) => IO(storage.update(key, data))
-      case None => IO(storage.remove(key))
+      case Some(data) => IO{storage.update(key, data); Continue}
+      case None => IO{storage.remove(key); Continue}
     })
   }
 }

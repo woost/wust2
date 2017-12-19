@@ -2,22 +2,22 @@ package wust.frontend
 
 import autowire._
 import boopickle.Default._
+import monix.execution.Cancelable
+import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom._
 import wust.util.Analytics
 import wust.api.ApiEvent
 import wust.ids._
-import wust.graph.{ Page, Graph }
+import wust.graph.{Graph, Page}
 import wust.framework._
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
-import rxscalajs.Observable
 
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import monix.execution.Scheduler.Implicits.global
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import scala.util.Success
 import wust.util.outwatchHelpers._
-
 import rx.Ctx
 
 @js.native
@@ -69,7 +69,7 @@ object Main {
     }
 
     {
-      val observable = Observable.create[Seq[ApiEvent]] { observer =>
+      val observable = Observable.create[Seq[ApiEvent]](Unbounded) { observer =>
         Client.run(s"$protocol://${location.hostname}:$port/ws", new ApiIncidentHandler {
           override def onConnect(isReconnect: Boolean): Unit = {
             println(s"Connected to websocket")
@@ -84,14 +84,15 @@ object Main {
             }
           }
 
-          override def onEvents(events: Seq[ApiEvent]): Unit = observer.next(events)//state.onEvents(events)
+          override def onEvents(events: Seq[ApiEvent]): Unit = observer.onNext(events)//state.onEvents(events)
         })
+        Cancelable()
       }
 
       (apiEventHandler <-- observable).unsafeRunSync()
     }
 
-    state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)) {
+    state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)).foreach {
       case (prevViewConfig, viewConfig) =>
         viewConfig.invite foreach { token =>
           Client.api.acceptGroupInvite(token).call().onComplete {

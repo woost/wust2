@@ -18,8 +18,14 @@ import scala.collection.mutable
 import scala.scalajs.js.timers.setTimeout
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import monix.execution.Scheduler.Implicits.global
+import monix.reactive.{Observable, Observer}
+import monix.reactive.subjects.{PublishSubject}
+import monix.reactive.OverflowStrategy.Unbounded
+import monix.execution.Cancelable
+import monix.execution.Ack.Continue
+import monix.execution.Scheduler.Implicits.global
 import outwatch.dom._
-import rxscalajs.{Subject, Observable}
 import wust.util.outwatchHelpers._
 
 sealed trait SyncStatus
@@ -42,6 +48,7 @@ object SyncMode {
 // case class PersistencyState(undoHistory: Seq[GraphChanges], redoHistory: Seq[GraphChanges], changes: GraphChanges)
 
 trait ChangeHandlers {
+  import monix.execution.Scheduler.Implicits.global
   //TODO: sinks?
   val changes = Handler.create[GraphChanges]().unsafeRunSync()
   val addPost: Sink[String] = changes.redirectMap { text =>
@@ -53,7 +60,7 @@ trait ChangeHandlers {
 object EventProcessor {
   def apply(rawEventStream: Observable[Seq[ApiEvent]], syncEnabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
-      val partitionedEvents = rawEventStream.map(_.partition {
+      val partitionedEvents:Observable[(Seq[ApiEvent], Seq[ApiEvent])] = rawEventStream.map(_.partition {
         case NewGraphChanges(_) => true
         case _ => false
       })
@@ -64,13 +71,15 @@ object EventProcessor {
       // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
       val bufferedGraphEvents = graphEvents //.bufferUnless(syncEnabled).map(_.flatten)
 
-      bufferedGraphEvents merge otherEvents
+      Observable.merge(bufferedGraphEvents, otherEvents)
     }
 
     new EventProcessor(eventStream, viewConfig)
   }
 }
+
 class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig]) extends ChangeHandlers {
+  import monix.execution.Scheduler.Implicits.global
   // import ClientCache.storage
   // storage.graphChanges <-- localChanges //TODO
 
@@ -79,7 +88,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
   val currentUser: Observable[Option[User]] = eventStream.map(_.reverse.collectFirst { //TODO: meh
     case LoggedIn(auth) => Some(auth.user)
     case LoggedOut => None
-  }).collect { case Some(user) => user }.startWith(None)
+  }).collect { case Some(user) => user }.startWith(Seq(None))
 
 
   // public reader
@@ -92,14 +101,14 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
     //         -----------O---->--
     //            graph
 
-    val rawGraph = Subject[Graph]()
+    val rawGraph = PublishSubject[Graph]()
 
-    val enrichedChanges = enriched.changes.withLatestFrom(rawGraph.startWith(Graph.empty)).withLatestFrom(viewConfig).map { case ((c,g), v) => applyEnrichmentToChanges(c,g,v) }
-    val allChanges = enrichedChanges merge changes
+    val enrichedChanges = enriched.changes.withLatestFrom2(rawGraph.startWith(Seq(Graph.empty)), viewConfig){ case (c,g, v) => applyEnrichmentToChanges(c,g,v) }
+    val allChanges = Observable.merge(enrichedChanges, changes)
     val localChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
 
     val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
-    val events:Observable[Seq[ApiEvent]] = eventStream merge localEvents
+    val events:Observable[Seq[ApiEvent]] = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = events.scan(Graph.empty) { (graph: Graph, events: Seq[ApiEvent]) => events.foldLeft(graph)(GraphUpdate.applyEvent) }
 
@@ -110,26 +119,13 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
 
   private val bufferedChanges = localChanges.map(List(_))//.bufferUnless(syncEnabled)
 
-  private val sendingChanges = bufferedChanges.expand { (changes, number) =>
-    val retryChanges = sendChanges(changes) map {
-      case true => None
-      case false => Some(changes)
+  private val sendingChanges = Observable.tailRecM(bufferedChanges) { changes =>
+    changes.flatMap(c => Observable.fromFuture(sendChanges(c))) map {
+      case true => Left(Observable.empty)
+      case false => Right(Some(changes))
     }
-
-    observableFromFutureOption(retryChanges)
   }
-  sendingChanges(_ => ()) // trigger sendingChanges
-
-  def observableFromFutureOption[T](future: Future[Option[T]]): Observable[T] = {
-    import scala.scalajs.js
-
-    Observable.create[T](observer => {
-      future onComplete {
-        case Success(value) => value.foreach(observer.next(_)); observer.complete()
-        case Failure(err) => observer.error(err.asInstanceOf[js.Any]); observer.complete()
-      }
-    })
-  }
+  sendingChanges.foreach(_ => ()) // trigger sendingChanges
 
   // private val hasError = createHandler[Boolean](false)
   // private val localChanges = Var(storage.graphChanges)

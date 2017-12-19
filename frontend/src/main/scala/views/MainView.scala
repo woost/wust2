@@ -4,7 +4,6 @@ import autowire._
 import boopickle.Default._
 import org.scalajs.dom.{Element, Event, console, document, window}
 import org.scalajs.dom.window.location
-import rxscalajs.Observable
 // import wust.util.tags._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
@@ -12,6 +11,7 @@ import wust.frontend.{ DevOnly, GlobalState }
 import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement }
 import org.scalajs.dom.raw.{ HTMLTextAreaElement }
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api._
 import wust.graph._
@@ -179,7 +179,7 @@ object MainView {
   def viewSelection(state:GlobalState, allViews: Seq[View]) = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
     val viewHandler = Handler.create[View]().unsafeRunSync()
-    viewHandler(currentView => Analytics.sendEvent("view", "select", currentView.toString))
+    viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString))
     viewHandler.debug("selected view")
     (state.view <-- viewHandler).unsafeRunSync()
 
