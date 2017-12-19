@@ -11,8 +11,6 @@ import wust.ids.PostId
 import wust.util.outwatchHelpers._
 import Color._
 
-import scala.scalajs.js.timers.setTimeout
-
 object ChatView extends View {
   override val key = "chat"
   override val displayName = "Chat"
@@ -74,9 +72,9 @@ object ChatView extends View {
       children <-- chronologicalPosts.map(posts => posts.map(chatMessage(_, page, ownPosts))),
 
       //TODO: the update hook triggers too early. Try the postpatch-hook from snabbdom instead
-      update --> { (e: Element) =>
-        println("update hook");
-        setTimeout(100) { scrollToBottom(e) }
+      onPostpatch --> { (e: Element) =>
+        println("postpatch hook");
+        scrollToBottom(e) 
       }
     )
   }
