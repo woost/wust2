@@ -10,7 +10,7 @@ import scalaz.Tag
 
 object Db {
   def apply(config: Config) = {
-    new Db(new PostgresAsyncContext[LowerCase](config))
+    new Db(new PostgresAsyncContext(LowerCase, config))
   }
 }
 

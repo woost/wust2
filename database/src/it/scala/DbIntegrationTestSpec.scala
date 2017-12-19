@@ -11,7 +11,7 @@ object DbIntegrationTestSpec {
   private val config = ConfigFactory.load()
   private val dbConfig = config.getConfig("testDb")
 
-  val controlCtx = new PostgresAsyncContext[LowerCase](configWithDb("postgres"))
+  val controlCtx = new PostgresAsyncContext(LowerCase, configWithDb("postgres"))
   def configWithDb(database: String) = dbConfig.withValue("database", ConfigValueFactory.fromAnyRef(database))
 }
 
