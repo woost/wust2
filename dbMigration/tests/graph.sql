@@ -1,11 +1,12 @@
 BEGIN;
 SELECT plan(19);
+-- SELECT plan(8);
 
 /* structure */
 SELECT col_not_null('rawpost', 'title');
 SELECT col_not_null('rawpost', 'isdeleted');
-SELECT col_not_null('connection', 'sourceid');
-SELECT col_not_null('connection', 'targetid');
+SELECT col_not_null('rawconnection', 'sourceid');
+SELECT col_not_null('rawconnection', 'targetid');
 SELECT col_not_null('ownership', 'postid');
 SELECT col_not_null('ownership', 'groupid');
 SELECT col_not_null('membership', 'userid');
@@ -14,9 +15,9 @@ SELECT col_not_null('membership', 'groupid');
 /* insert label */
 SELECT isnt_empty(
   'INSERT INTO
-    label (id, name)
+    label (name)
   VALUES
-    ($$charals$$, $$labello$$)
+    ($$labello$$)
    RETURNING
     (id, name);',
   'insert post'
@@ -59,7 +60,7 @@ SELECT throws_ok(
   VALUES
     (3, $$charals$$, 3);',
   23514,
-  'new row for relation "connection" violates check constraint "selfloop"',
+  'new row for relation "rawconnection" violates check constraint "selfloop"',
   'connection self-loop constraint'
 );
 
