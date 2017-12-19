@@ -252,7 +252,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         connections <- ctx.run(query[Connection])
       } yield {
         success mustBe true
-        connections must contain theSameElementsAs List(connection)
+        connections must contain theSameElementsAs List(connection) :+ Containment(sourcePost.id, targetPost.id) :+ Containment(targetPost.id, sourcePost.id)
       }
     }
 
@@ -375,7 +375,7 @@ class DbSpec extends DbIntegrationTestSpec with MustMatchers {
         containments <- ctx.run(query[Connection])
       } yield {
         success mustBe true
-        containments must contain theSameElementsAs List(containment)
+        containments must contain theSameElementsAs List(containment) :+ Connection(parent.id, child.id) :+ Connection(child.id, parent.id)
       }
     }
 
