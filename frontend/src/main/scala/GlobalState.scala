@@ -20,14 +20,6 @@ import rx._
 
 import scalaz.Tag
 
-//outwatch beispiel:
-// def component(handler:Handler[ViewPage]) = {
-//   div(
-//     span(child <-- handler.map(_.toString)),
-//     button(ViewPage("hallo")) --> handler
-//   )
-// }
-
 case class PostCreatorMenu(pos: Vec2) {
   var ySimPostOffset: Double = 50
 }
@@ -38,7 +30,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
   import StateHelpers._
   import ClientCache.storage
 
-  private val inner = new {
+  val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncEnabled = syncMode.map(_ == SyncMode.Live)
     val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
@@ -130,6 +122,8 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
           Some(if (newParentIds.nonEmpty) Page.Union(newParentIds) else Page.Root)
       }
     }
+
+    val postCreatorMenus:Var[List[PostCreatorMenu]] = Var(Nil)
   }
 
   val eventProcessor = inner.eventProcessor
@@ -147,9 +141,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
   val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
   val chronologicalPostsAscending = inner.chronologicalPostsAscending.toObservable
   val upButtonTargetPage = inner.upButtonTargetPage.toObservable
-
-
-  val postCreatorMenus: Handler[List[PostCreatorMenu]] = Handler.create(List.empty[PostCreatorMenu]).unsafeRunSync()
+  val postCreatorMenus = inner.postCreatorMenus.toHandler
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
   DevOnly {

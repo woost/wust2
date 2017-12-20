@@ -9,7 +9,7 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
 import monix.execution.Scheduler.Implicits.global
-import outwatch.dom.{Handler, VNode}
+import outwatch.dom.{Handler, OutWatch, VNode}
 import outwatch.{ObserverSink, Sink}
 import rx._
 
@@ -79,13 +79,11 @@ package object outwatchHelpers {
 
 
   implicit class RichVNode(val vNode:VNode) {
-//    def render:org.scalajs.dom.Element = {
-//      val elem = document.createElement("div")
-//      outwatch.dom.helpers.DomUtils.render(elem, vNode).unsafeRunSync
-//      // import snabbdom._
-//      // patch(elem, vNode.value.asProxy.unsafeRunSync)
-//      elem
-//    }
+    def render:org.scalajs.dom.Element = {
+      val elem = document.createElement("div")
+      OutWatch.renderReplace(elem, vNode).unsafeRunSync()
+      elem
+    }
   }
 
   // implicit class RichVNodeIO(val vNode:IO[VNode]) {
@@ -141,13 +139,18 @@ package object outwatchHelpers {
     }
   }
 
+//  implicit def FuncToSink[T,R](f: => R):outwatch.Sink[T] = {
+//    //TODO: outwatch: accept function => Any or R
+//    outwatch.Sink.create[T](e => {IO{f; Continue}})
+//  }
+
   implicit def FuncToSink[T,R](f:T => R):outwatch.Sink[T] = {
     //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[T](e => {f(e); IO{(); Continue}})
+    outwatch.Sink.create[T](e => {IO{f(e);  Continue}})
   }
 
   implicit def ElementFuncToSink2[R](f:Element => R):outwatch.Sink[(Element,Element)] = {
     //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[(Element,Element)]{case (_, after) => f(after); IO{(); Continue} }
+    outwatch.Sink.create[(Element,Element)]{case (_, after) =>  IO{f(after); Continue} }
   }
 }

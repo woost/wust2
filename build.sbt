@@ -113,7 +113,7 @@ val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "2.3.1"
 val outwatch = "io.github.mariusmuja" % "outwatch" % "3a29dd0"
-val duality = "com.github.fdietze.duality" % "duality_sjs0.6_2.12" % "1d08620"
+val dualityVersion =  "50a1b4e"
 val catsVersion = "1.0.0-RC1"
 
 lazy val util = crossProject
@@ -127,7 +127,7 @@ lazy val util = crossProject
   )
   .jsSettings(
     libraryDependencies ++= (
-      duality ::
+      "com.github.fdietze" % "duality" % dualityVersion ::
       outwatch ::
       Nil
     )
@@ -246,16 +246,18 @@ lazy val frontend = project
   .settings(
     libraryDependencies ++= (
       outwatch ::
-      duality ::
+      "com.github.fdietze.duality" %%% "duality" % dualityVersion ::
+      "com.github.fdietze.vectory" %%% "vectory" % "3232833" ::
+      "com.github.fdietze" %% "scala-js-d3v4" % "579b9df" :: 
       "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
-      "com.github.fdietze" %%% "vectory" % "0.1.0" ::
-      "com.github.fdietze" %% "scala-js-d3v4" % "d0ebae65ca" :: // needs %% because %%% does not work on jitpack - https://github.com/jitpack/jitpack.io/issues/372
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
       "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
       Nil
     ),
     requiresDOM := true, // still required by bundler: https://gitter.im/scala-js/scala-js?at=59b55f12177fb9fe7ea2beff
     // jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(), // runs scalajs tests with node + jsdom. Requires jsdom to be installed
+
+    scalacOptions += "-P:scalajs:sjsDefinedByDefault",
 
     scalaJSUseMainModuleInitializer := true,
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
