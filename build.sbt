@@ -113,7 +113,7 @@ val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "2.3.1"
 val outwatch = "io.github.mariusmuja" % "outwatch" % "3a29dd0"
-val dualityVersion =  "50a1b4e"
+val dualityVersion =  "9dd5e01649"
 val catsVersion = "1.0.0-RC1"
 
 lazy val util = crossProject
@@ -246,8 +246,8 @@ lazy val frontend = project
   .settings(
     libraryDependencies ++= (
       outwatch ::
-      "com.github.fdietze.duality" %%% "duality" % dualityVersion ::
-      "com.github.fdietze.vectory" %%% "vectory" % "3232833" ::
+      "com.github.fdietze" % "duality" % dualityVersion ::
+      "com.github.fdietze" % "vectory" % "3232833" ::
       "com.github.fdietze" %% "scala-js-d3v4" % "579b9df" :: 
       "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
       "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
