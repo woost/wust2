@@ -14,11 +14,13 @@ object PageStyle {
 
     val accentLineColor = d3.hcl(baseHue, 50, 50)
 
+    val darkBgColor = d3.hcl(baseHue, 14.55109, 26.76950)
+
     val bgColor = mixColors(List(mixedDirectParentColors, d3.lab("#FFFFFF"), d3.lab("#FFFFFF")))
-    new PageStyle(title, baseHue, bgColor, accentLineColor)
+    new PageStyle(title, baseHue, bgColor, accentLineColor, darkBgColor)
   }
 }
 
-case class PageStyle(title:String, baseHue:Double, bgColor:Color, accentLineColor:Color)
+case class PageStyle(title:String, baseHue:Double, bgColor:Color, accentLineColor:Color, darkBgColor:Color)
 
 

@@ -19,16 +19,7 @@ import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.timers.setTimeout
 
-case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
-case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
 
-object KeyImplicits {
-  implicit val SimPostWithKey = new WithKey[SimPost](_.id)
-  implicit val SimConnectionWithKey = new WithKey[SimConnection](c => s"${c.sourceId} ${c.targetId}")
-  implicit val SimRedirectedConnectionWithKey = new WithKey[SimRedirectedConnection](c => s"${c.sourceId} ${c.targetId}")
-  implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
-  implicit val postCreatorMenuWithKey = new WithKey[PostCreatorMenu](_.toString)
-}
 
 //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
 class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContext, owner: Ctx.Owner) extends View {
@@ -37,8 +28,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
   override def apply(state: GlobalState) = {
     div(
       height := "100%",
-      onPostpatch --> { (e:dom.Element) =>
-        println("AAAAAAAAAAAAAAAAAAAA")
+      onInsert --> { (e:dom.Element) =>
         new GraphViewInstance(state, e, disableSimulation)
       }
     )
@@ -50,6 +40,18 @@ object GraphView {
     post.title,
     cls := "graphpost"
   )
+}
+
+
+case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
+case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
+
+object KeyImplicits {
+  implicit val SimPostWithKey = new WithKey[SimPost](_.id)
+  implicit val SimConnectionWithKey = new WithKey[SimConnection](c => s"${c.sourceId} ${c.targetId}")
+  implicit val SimRedirectedConnectionWithKey = new WithKey[SimRedirectedConnection](c => s"${c.sourceId} ${c.targetId}")
+  implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
+  implicit val postCreatorMenuWithKey = new WithKey[PostCreatorMenu](_.toString)
 }
 
 class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {

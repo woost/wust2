@@ -107,7 +107,7 @@ object Main {
         if (prevViewConfig.page != viewConfig.page) getNewGraph(viewConfig.page)
     }
 
-    OutWatch.renderInto("#container", views.MainView(state)).unsafeRunSync()
+    OutWatch.renderReplace("#container", views.MainView(state)).unsafeRunSync()
 
     //TODO: create global keyevent observer (in outwatch?):
     // document.onkeypress = { (e: KeyboardEvent) =>

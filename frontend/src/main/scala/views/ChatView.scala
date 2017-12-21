@@ -34,8 +34,11 @@ object ChatView extends View {
                  pageStyle: Observable[PageStyle]
                ) = {
     div(
-      height := "100%",
+      // height := "100%",
       backgroundColor <-- pageStyle.map(_.bgColor),
+
+      borderRight := "1px solid",
+      borderColor <-- pageStyle.map(_.accentLineColor),
 
       div(
         h1(child <-- pageStyle.map(_.title)),
@@ -43,13 +46,9 @@ object ChatView extends View {
         chatHistory(chronologicalPostsAscending, page, ownPosts),
         inputField(newPostSink),
 
-        borderLeft := "1px solid",
-        borderRight := "1px solid",
-        borderColor <-- pageStyle.map(_.accentLineColor),
 
         margin := "0 auto",
         maxWidth := "48rem",
-        width := "48rem",
         height := "100%",
 
         display.flex,

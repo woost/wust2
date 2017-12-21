@@ -5,11 +5,18 @@
     box-sizing: border-box;
 }
 
-html, body, #container {
+html, body, #pagegrid {
     width:100%;
     height:100%;
     margin: 0;
     padding: 0;
+}
+
+#pagegrid {
+    display: grid;
+    grid-template-columns: 220px 1fr 1fr;
+    grid-gap: 0px;
+    grid-auto-rows: minmax(100px, auto);
 }
 
 body {

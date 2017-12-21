@@ -10,7 +10,6 @@ import wust.frontend.views.graphview.GraphView
 import wust.frontend.{ DevOnly, GlobalState }
 import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement }
 import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api._
@@ -21,6 +20,7 @@ import scala.util.{ Try, Success, Failure }
 import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
 import wust.frontend.{SyncStatus, SyncMode, UrlRouter}
+import rx._
 
 import outwatch.dom._
 import wust.util.outwatchHelpers._
@@ -389,7 +389,7 @@ object MainView {
 
            upButton(state),
            showPage(state),
-           viewSelection(state, allViews),
+           // viewSelection(state, allViews),
 //           groupSelector(state),
 //           invitePopup(state),
 //           newGroupButton(state)
@@ -415,28 +415,32 @@ object MainView {
   //     padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD"
   //   )
   // }
-
-  def apply(state: GlobalState, disableSimulation: Boolean = false) = {
-    // https://jsfiddle.net/MadLittleMods/LmYay/ (flexbox 100% height: header, content, footer)
-    // https://jsfiddle.net/gmxf11u5/ (flexbox 100% height: header, content (absolute positioned elements), footer)
+  //
+  def channels(state:GlobalState) = {
     div(
-       width := "100%",
-       height := "100%",
+      backgroundColor <-- state.pageStyle.map(_.darkBgColor),
+      padding := "15px",
+      div(
+        "Woost",
+        fontWeight.bold,
+        color := "white",
+        fontSize := "20px",
+        marginBottom := "10px"
+      ),
+      div(
+        color := "#C4C4CA",
+        "#channels"
+      )
+    )
+  }
 
-       display := "flex",
-       flexDirection := "column",
-       justifyContent := "flexStart",
-       alignItems := "stretch",
-       alignContent := "stretch",
-       topBar(state, View.list)(minHeight := "min-content"),
-      child <-- state.view.map { view =>
-        val vnode = view(state)
-        vnode(
-          flex := "1",
-          overflow := "auto"
-        )
-      },
-      // bottomBar (state),
+  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner) = {
+    div(
+      id := "pagegrid",
+
+      channels(state),
+      ChatView(state),
+      new GraphView().apply(state),
 
       // feedbackForm (state),
       // DevOnly { devPeek(state) },
