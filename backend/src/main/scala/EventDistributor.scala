@@ -6,8 +6,8 @@ import wust.framework._
 import wust.ids._
 
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
-import scala.util.control.NonFatal
+import scala.concurrent.{Future, ExecutionContext}
+import scala.util.Failure
 
 case class RequestEvent(events: Seq[ApiEvent.Public], postGroups: Map[PostId, Set[GroupId]])
 
@@ -26,20 +26,26 @@ class EventDistributor(db: Db) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
     val postIds = events.flatMap(postIdsInEvent _).toSet
-    val result = for {
-      postGroups <- db.post.getGroupIds(postIds)
+    for {
+      postGroups <- getGroupIds(postIds)
     } yield {
       subscribers.foreach(_.notify(origin, RequestEvent(events, postGroups)))
     }
-
-    result.recover {
-      case NonFatal(t) =>
-        scribe.error(s"Error while getting post groups for events: $events")
-        scribe.error(t)
-    }
   }
 
-  def postIdsInEvent(event: ApiEvent): Set[PostId] = event match {
+  private def getGroupIds(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[PostId, Set[GroupId]]] = {
+    val groups = db.post.getGroupIds(postIds)
+    groups.onComplete {
+      case Failure(t) =>
+        scribe.error(s"Error while getting post groups for posts: $postIds")
+        scribe.error(t)
+      case _ =>
+    }
+
+    groups
+  }
+
+  private def postIdsInEvent(event: ApiEvent): Set[PostId] = event match {
     case NewGraphChanges(changes) => changes.addPosts.map(_.id) ++ changes.updatePosts.map(_.id) ++ changes.delPosts
     case _ => Set.empty
   }
