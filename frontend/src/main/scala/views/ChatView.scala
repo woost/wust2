@@ -37,7 +37,7 @@ object ChatView extends View {
       // height := "100%",
       backgroundColor <-- pageStyle.map(_.bgColor),
 
-      borderRight := "1px solid",
+      borderRight := "2px solid",
       borderColor <-- pageStyle.map(_.accentLineColor),
 
       div(
@@ -65,7 +65,6 @@ object ChatView extends View {
       height := "100%",
       overflow.auto,
       padding := "20px",
-      backgroundColor := "white", //TODO: .white
 
       children <-- chronologicalPosts.map(posts => posts.map(chatMessage(_, page, ownPosts))),
 
@@ -89,6 +88,7 @@ object ChatView extends View {
         clear.both,
         padding := "5px 10px",
         borderRadius := "7px",
+        border := "1px solid gray",
         margin := "5px 0px",
 
         cursor.pointer // TODO: What about cursor when selecting text?

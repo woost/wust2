@@ -158,15 +158,8 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   state.jsErrors.foreach { _ => d3State.simulation.stop() }
 
   // set the background and headings according to focused parents
-  Rx {
-    val focusedParentIds = state.inner.page().parentIds
-    val parents = focusedParentIds.map(state.inner.rawGraph().postsById)
-    val parentTitles = parents.map(_.title).mkString(", ")
-    focusedParentsHeader.text(parentTitles)
-
-    val mixedDirectParentColors = mixColors(focusedParentIds.map(baseColor))
-    container
-      .style("background-color", mixColors(List(mixedDirectParentColors, d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString)
+  state.pageStyle.foreach { pageStyle =>
+    container.style("background-color", pageStyle.bgColor)
   }
 
   val windowDimensions = Var(Vec2(window.innerWidth, window.innerHeight))
