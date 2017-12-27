@@ -18,7 +18,7 @@ trait RequestHandler[Event, PublishEvent, Failure, State] {
   // called when a client connects to the websocket. this allows for
   // managing/bookkeeping of connected clients and returning the initial state.
   // the NotifiableClient can be used to send events to downstream.
-  def onClientConnect(client: NotifiableClient[PublishEvent]): State
+  def onClientConnect(client: NotifiableClient[PublishEvent]): Reaction
 
   // called when a client disconnects. this can be due to a timeout on the
   // websocket connection or the client closed the connection.
@@ -81,8 +81,9 @@ class ConnectedClient[Event, PublishEvent, Failure, State](
         context.stop(self)
     }
 
-    val state = onClientConnect(client)
-    withState(Future.successful(state))
+    val initial = onClientConnect(client)
+    initial.events.foreach(sendEvents)
+    withState(initial.state)
   }
 
   def receive = {

@@ -19,7 +19,10 @@ object State {
   def initial = State(auth = None, graph = Graph.empty)
 }
 
+//TODO: please refactor me.
 class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
+  def getInitialGraph(): Future[Graph] = db.graph.getAllVisiblePosts(userId = None).map(forClient)
+
   def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
     events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.applyEvent(_, event)))
   }

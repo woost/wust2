@@ -76,10 +76,17 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     reaction(originalState, state, events)
   }
 
-  override def onClientConnect(client: NotifiableClient[RequestEvent]): State = {
+  override def onClientConnect(client: NotifiableClient[RequestEvent]): Reaction = {
     scribe.info(s"client started")
     distributor.subscribe(client)
-    State.initial
+
+    // send an initial graph
+    val initialEvents = stateInterpreter
+      .getInitialGraph()
+      .map(graph => Seq(ReplaceGraph(graph)))
+
+    val initialState = Future.successful(State.initial)
+    reaction(initialState, initialState, initialEvents)
   }
 
   override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {

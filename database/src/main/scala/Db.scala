@@ -354,7 +354,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    def getAllVisiblePosts(userIdOpt: Option[UserId])(implicit ec: ExecutionContext): Future[Graph] = {
+    def getAllVisiblePosts(userId: Option[UserId])(implicit ec: ExecutionContext): Future[Graph] = {
       def ownerships(groupIds: Quoted[Query[GroupId]]) = quote {
         for {
           gid <- groupIds
@@ -377,7 +377,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           .map { case (p, _) => p }
       }
 
-      userIdOpt match {
+      userId match {
         case Some(userId) =>
           val myMemberships = quote {
             query[Membership].filter(m => m.userId == lift(userId))

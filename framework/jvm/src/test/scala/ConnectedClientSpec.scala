@@ -56,10 +56,10 @@ class TestRequestHandler(eventActor: ActorRef) extends RequestHandler[String, St
     Reaction(state, Future.successful(downstreamEvents))
   }
 
-  override def onClientConnect(client: NotifiableClient[String]): Option[String] = {
+  override def onClientConnect(client: NotifiableClient[String]): Reaction = {
     client.notify(null, "started")
     clients += client
-    None
+    Reaction(Future.successful(None), Future.successful(Seq.empty))
   }
   override def onClientDisconnect(client: NotifiableClient[String], state: Future[Option[String]]) = {
     clients -= client
