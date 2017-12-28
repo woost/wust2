@@ -29,6 +29,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
   override def apply(state: GlobalState) = {
     div(
       height := "100%",
+      backgroundColor <-- state.pageStyle.map(_.bgColor),
       onInsert --> { (e:dom.Element) =>
         new GraphViewInstance(state, e, disableSimulation)
       }
@@ -66,7 +67,6 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   // order is important
   import KeyImplicits._
   val container = d3.select(element)
-  val focusedParentsHeader = container.append(() => div(textAlign.center, marginTop := "10px", fontSize := "200%", position.absolute, width := "100%").render)
 
   val svg = container.append("svg")
   val containmentClusterSelection = SelectData.rx(ContainmentClusterSelection, rxContainmentCluster)(svg.append("g"))
@@ -157,11 +157,6 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   setTimeout(100) { recalculateBoundsAndZoom() }
 
   state.jsErrors.foreach { _ => d3State.simulation.stop() }
-
-  // set the background and headings according to focused parents
-  state.pageStyle.foreach { pageStyle =>
-    container.style("background-color", pageStyle.bgColor)
-  }
 
   events.window.onResize.foreach(_ => recalculateBoundsAndZoom())
 
