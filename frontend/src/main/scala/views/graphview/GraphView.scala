@@ -18,7 +18,6 @@ import wust.util.time.time
 
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
-import scala.scalajs.js.timers.setTimeout
 
 
 
@@ -82,7 +81,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   val connectionElementSelection = SelectData.rx(new ConnectionElementSelection(graphState), rxSimConnection)(html.append("div"))
   val rawPostSelection = new PostSelection(graphState, d3State, postDrag, updatedNodeSizes _)
   val postSelection = SelectData.rx(rawPostSelection, rxSimPosts)(html.append("div"))
-  // val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
+  val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
   val postMenuLayer = container.append("div")
   // val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
@@ -154,16 +153,14 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   initContainerDimensionsAndPositions()
   initEvents()
 
-  setTimeout(100) { recalculateBoundsAndZoom() }
-
   state.jsErrors.foreach { _ => d3State.simulation.stop() }
 
+  //TODO: react on size of div
+  // https://marcj.github.io/css-element-queries/
   events.window.onResize.foreach(_ => recalculateBoundsAndZoom())
 
   def recalculateBoundsAndZoom(): Unit = {
     import Math._
-    //TODO: react on size of div
-    // https://marcj.github.io/css-element-queries/
     // val padding = 15
     time("recalculateBoundsAndZoom") {
       val rect = container.node.asInstanceOf[HTMLElement].getBoundingClientRect
@@ -315,7 +312,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   // }
 
   private def onPostDrag(): Unit = {
-//    draggingPostSelection.draw()
+   draggingPostSelection.draw()
   }
 
   private def onPostDragEnd(): Unit = {
