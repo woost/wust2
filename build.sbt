@@ -247,6 +247,7 @@ lazy val frontend = project
   .settings(
     libraryDependencies ++= (
       outwatch ::
+      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M11" ::
       "com.github.fdietze" % "duality" % dualityVersion ::
       "com.github.fdietze" % "vectory" % "3232833" ::
       "com.github.fdietze" %% "scala-js-d3v4" % "579b9df" :: 
