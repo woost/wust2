@@ -163,15 +163,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
     container.style("background-color", pageStyle.bgColor)
   }
 
-  val windowDimensions = Var(Vec2(window.innerWidth, window.innerHeight))
-  window.addEventListener("resize", { _: dom.Event =>
-    windowDimensions() = Vec2(window.innerWidth, window.innerHeight)
-  })
-
-  Rx {
-    windowDimensions();
-    recalculateBoundsAndZoom()
-  }
+  events.window.onResize.foreach(_ => recalculateBoundsAndZoom())
 
   def recalculateBoundsAndZoom(): Unit = {
     import Math._
