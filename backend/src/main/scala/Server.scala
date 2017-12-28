@@ -85,8 +85,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       .getInitialGraph()
       .map(graph => Seq(ReplaceGraph(graph)))
 
-    val initialState = Future.successful(State.initial)
-    reaction(initialState, initialState, initialEvents)
+    Reaction(Future.successful(State.initial), initialEvents)
   }
 
   override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
