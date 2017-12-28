@@ -3,6 +3,7 @@
  import org.scalajs.d3v4._
  import org.scalajs.dom.raw.HTMLElement
  import outwatch.dom._
+ import outwatch.dom.dsl._
  import wust.frontend.Color._
  import wust.frontend._
  import wust.util.outwatchHelpers._

@@ -6,6 +6,7 @@ import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.{Element, window, console}
 import outwatch.dom._
+import outwatch.dom.dsl._
 import rx._
 import vectory._
 import wust.frontend.Color._

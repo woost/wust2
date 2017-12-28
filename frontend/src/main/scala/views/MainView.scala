@@ -23,6 +23,7 @@ import wust.frontend.{SyncStatus, SyncMode, UrlRouter}
 import rx._
 
 import outwatch.dom._
+import outwatch.dom.dsl._
 import wust.util.outwatchHelpers._
 
 object MainView {

@@ -5,6 +5,7 @@ import wust.frontend._
 import org.scalajs.dom.{window, document, console}
 import wust.frontend.Color._
 import outwatch.dom._
+import outwatch.dom.dsl._
 import wust.util.outwatchHelpers._
 
 

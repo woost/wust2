@@ -2,6 +2,7 @@
 
  import org.scalajs.d3v4._
  import outwatch.dom._
+ import outwatch.dom.dsl._
  import rx._
  import vectory._
  import wust.util.outwatchHelpers._

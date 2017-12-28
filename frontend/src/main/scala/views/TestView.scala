@@ -4,6 +4,7 @@ import wust.frontend._
 import wust.graph._
 
 import outwatch.dom._
+import outwatch.dom.dsl._
 import outwatch.Sink
 import wust.util.outwatchHelpers._
 import monix.execution.Scheduler.Implicits.global

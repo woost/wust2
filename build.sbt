@@ -113,7 +113,7 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "2.3.1"
-val outwatch = "io.github.mariusmuja" % "outwatch" % "3a29dd0"
+val outwatch = "io.github.outwatch" % "outwatch" % "411c8e1"
 val dualityVersion =  "9dd5e01649"
 val catsVersion = "1.0.0-RC1"
 

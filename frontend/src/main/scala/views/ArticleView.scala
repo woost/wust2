@@ -3,6 +3,7 @@ package wust.frontend.views
 import org.scalajs.dom.raw.Element
 import outwatch.Sink
 import outwatch.dom._
+import outwatch.dom.dsl._
 import wust.frontend._
 import wust.frontend.views.Elements._
 import wust.graph._

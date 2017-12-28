@@ -4,6 +4,7 @@ import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import outwatch.Sink
 import outwatch.dom._
+import outwatch.dom.dsl._
 import wust.util.outwatchHelpers._
 import monix.execution.Scheduler.Implicits.global
 
