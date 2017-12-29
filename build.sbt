@@ -1,11 +1,10 @@
 name := "wust"
 
-enablePlugins(GitVersioning)
-git.useGitDescribe := true
-git.baseVersion := "0.1.0"
-git.uncommittedSignifier := None // TODO: appends SNAPSHOT to version, but is always(!) active.
-
 scalaVersion in ThisBuild := "2.12.4"
+
+// docker versions do not allow '+'
+version in ThisBuild ~= (_.replace('+', '-'))
+ dynver in ThisBuild ~= (_.replace('+', '-'))
 
 lazy val commonSettings = Seq(
   resolvers ++= (
