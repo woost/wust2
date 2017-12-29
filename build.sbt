@@ -9,7 +9,7 @@ scalaVersion in ThisBuild := "2.12.4"
 
 lazy val commonSettings = Seq(
   resolvers ++= (
-    ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
+    /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
     Resolver.jcenterRepo ::
     Resolver.bintrayRepo("daxten", "maven") :: // for Daxten/autowire
     ("jitpack" at "https://jitpack.io") ::
@@ -116,6 +116,8 @@ val quillVersion = "2.3.1"
 val outwatch = "io.github.outwatch" % "outwatch" % "411c8e1"
 val dualityVersion =  "9dd5e01649"
 val catsVersion = "1.0.0-RC1"
+val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
+val delegert = "io.github.cornerman" %% "delegert" % "b74ccf6" % "provided"
 
 lazy val util = crossProject
   .settings(commonSettings)
@@ -184,7 +186,7 @@ lazy val graph = crossProject
   .dependsOn(ids)
   .settings(
     libraryDependencies ++= (
-      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
+      derive ::
       Nil
     )
   )
@@ -230,8 +232,8 @@ lazy val backend = project
       "com.sun.mail" % "javax.mail" % "1.6.0" ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
-      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
-      "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
+      derive ::
+      delegert ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil,
@@ -252,8 +254,8 @@ lazy val frontend = project
       "com.github.fdietze" % "vectory" % "3232833" ::
       "com.github.fdietze" %% "scala-js-d3v4" % "579b9df" :: 
       "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
-      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
-      "com.github.cornerman" %% "delegert" % "0.1.0-SNAPSHOT" ::
+      derive ::
+      delegert ::
       Nil
     ),
     requiresDOM := true, // still required by bundler: https://gitter.im/scala-js/scala-js?at=59b55f12177fb9fe7ea2beff
@@ -306,7 +308,7 @@ lazy val slackApp = project
   .settings(
     libraryDependencies ++=
       "cool.graph" % "cuid-java" % "0.1.1" ::
-      "com.github.cornerman" %% "derive" % "0.1.0-SNAPSHOT" ::
+      derive ::
       "com.github.gilbertw1" %% "slack-scala-client" % "0.2.2" ::
       Nil
   )
