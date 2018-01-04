@@ -46,17 +46,18 @@ package object outwatchHelpers {
     }
   }
 
+  def unsafeSink[T](sink: Sink[T]): ObserverSink[T] = {
+    val subject = PublishSubject[T]
+    val newSink = ObserverSink(subject)
+
+    (sink <-- subject).unsafeRunSync()
+    newSink
+  }
+
   implicit class RichVar[T](rx:Var[T])(implicit ctx: Ctx.Owner) {
     def toHandler: Handler[T] = {
       import cats._, cats.data._, cats.implicits._
 
-      def unsafeSink(sink: Sink[T]): ObserverSink[T] = {
-        val subject = PublishSubject[T]
-        val newSink = ObserverSink(subject)
-
-        (sink <-- subject).unsafeRunSync()
-        newSink
-      }
 
       val h = Handler.create[T](rx.now).unsafeRunSync()
       val sink = unsafeSink(h)
@@ -95,12 +96,15 @@ package object outwatchHelpers {
   // }
 
 
-//  implicit class RichHandler[T](val o:Handler[T]) extends AnyVal {
-//    def toVar(seed:T)(implicit ctx: Ctx.Owner):rx.Rx[T] = {
-//      val rx = Var[T](seed)
-//      o(rx() = _)
-//      rx
-//    }
+ implicit class RichHandler[T](val o:Handler[T]) extends AnyVal {
+   def toVar(seed:T)(implicit ctx: Ctx.Owner):rx.Var[T] = {
+     val rx = Var[T](seed)
+     o.foreach(rx() = _)
+     val sink = unsafeSink(o)
+     rx.foreach(sink.observer.onNext)
+     rx
+   }
+ }
 
   implicit class RichObservable[T](val o:Observable[T]) extends AnyVal {
     def toRx(seed:T)(implicit ctx: Ctx.Owner):rx.Rx[T] = {
