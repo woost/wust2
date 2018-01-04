@@ -48,4 +48,6 @@ package object ids {
   implicit val decodeUserId: Decoder[UserId] = Decoder.decodeLong.map(UserId(_))
   implicit val encodeLabel: Encoder[Label] = Encoder.encodeString.contramap[Label](Tag.unwrap _)
   implicit val decodeLabel: Decoder[Label] = Decoder.decodeString.map(Label(_))
+  implicit val encodeLocalDateTime: Encoder[LocalDateTime] = Encoder.encodeLong.contramap[LocalDateTime](toMillis)
+  implicit val decodeLocalDateTime: Decoder[LocalDateTime] = Decoder.decodeLong.map(fromMillis)
 }
