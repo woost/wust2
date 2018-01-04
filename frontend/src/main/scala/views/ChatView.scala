@@ -18,12 +18,14 @@ object ChatView extends View {
   override def apply(state: GlobalState) = {
     import state._
 
+    state
     component(
       chronologicalPostsAscending,
-      state.eventProcessor.enriched.addPost,
+      eventProcessor.enriched.addPost,
       page,
       ownPosts,
-      pageStyle
+      pageStyle,
+      displayGraphWithParents.map(_.graph)
     )
   }
 
@@ -32,7 +34,8 @@ object ChatView extends View {
                  newPostSink: Sink[String],
                  page: Sink[Page],
                  ownPosts: PostId => Boolean,
-                 pageStyle: Observable[PageStyle]
+                 pageStyle: Observable[PageStyle],
+                 graph: Observable[Graph]
                ) = {
     div(
       // height := "100%",
@@ -44,7 +47,7 @@ object ChatView extends View {
       div(
         h1(child <-- pageStyle.map(_.title)),
 
-        chatHistory(chronologicalPostsAscending, page, ownPosts),
+        chatHistory(chronologicalPostsAscending, page, ownPosts, graph),
         inputField(newPostSink),
 
 
@@ -61,13 +64,13 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], ownPosts: PostId => Boolean) = {
+  def chatHistory(chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], ownPosts: PostId => Boolean, graph: Observable[Graph]) = {
     div(
       height := "100%",
       overflow.auto,
       padding := "20px",
 
-      children <-- chronologicalPosts.map(posts => posts.map(chatMessage(_, page, ownPosts))),
+      children <-- chronologicalPosts.combineLatestMap(graph)((posts, graph) => posts.map(chatMessage(_, page, ownPosts, graph))),
 
       //TODO: the update hook triggers too early. Try the postpatch-hook from snabbdom instead
       onPostpatch --> { (e: Element) =>
@@ -77,11 +80,11 @@ object ChatView extends View {
     )
   }
 
-  def chatMessage(post: Post, page: Sink[Page], ownPosts: PostId => Boolean) = {
+  def chatMessage(post: Post, page: Sink[Page], ownPosts: PostId => Boolean, graph: Graph) = {
     val isMine = ownPosts(post.id)
     div(
       p(
-        post.title,
+        post.content,
         onClick(Page.Union(Set(post.id))) --> page,
         maxWidth := "60%",
         backgroundColor := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),

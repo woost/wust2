@@ -7,6 +7,7 @@ import wust.db.Data
 import wust.graph._
 import wust.ids._
 
+import java.time.LocalDateTime
 import scala.concurrent.duration._
 
 class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
@@ -20,12 +21,12 @@ class ApiImplSpec extends AsyncFreeSpec with MustMatchers with ApiTestKit {
 
   "getPost" in mockDb { db =>
     val postId = "goink"
-    db.post.get(postId) returnsFuture Option(Data.Post(postId, "banga"))
+    db.post.get(postId) returnsFuture Option(Data.Post(postId, "banga", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11)))
     onApi(State.initial, jwt, db)(_.getPost(postId)).map {
       case (state, events, result) =>
         state mustEqual State.initial
         events must contain theSameElementsAs List()
-        result mustEqual Option(Post(postId, "banga"))
+        result mustEqual Option(Post(postId, "banga", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11)))
     }
   }
 

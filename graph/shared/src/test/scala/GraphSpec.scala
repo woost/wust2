@@ -3,12 +3,13 @@ package wust.graph
 import org.scalatest._
 import wust.ids._
 import wust.util.collection._
+import java.time.LocalDateTime
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToUuidType(id: Int): UuidType = id.toString
   implicit def intToPostId(id: Int): PostId = PostId(id.toString)
   implicit def intToGroupId(id: Int): GroupId = GroupId(id)
-  implicit def idToPost(id: Int): Post = Post(id.toString, "")
+  implicit def idToPost(id: Int): Post = Post(id.toString, "", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11))
   implicit def idToGroup(id: Int): Group = Group(id)
   implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
   implicit def tupleIsConnection(t: (Int, Int)): Connection = Connection(t._1.toString, t._2.toString)
@@ -35,7 +36,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "directed cycle" in {
       val graph = Graph(
-        posts = List(Post(1, "title"), Post(11, "title2"), Post(12, "test3")),
+        posts = List(Post(1, "title", 0), Post(11, "title2", 0), Post(12, "test3", 0)),
         connections = List(Containment(1, 11), Containment(11, 12), Containment(12, 1))
       )
 
@@ -43,7 +44,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
     }
 
     "one contain" in {
-      val graph = Graph(List(Post(1, "title"), Post(11, "title2")), List(Containment(1, 11)))
+      val graph = Graph(List(Post(1, "title", 0), Post(11, "title2", 0)), List(Containment(1, 11)))
       graph.involvedInContainmentCycle(1) mustEqual false
     }
 
@@ -106,7 +107,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "add post" in {
       val posts: List[Post] = List(1, 2, 3)
-      val newPost = Post(99, "hans")
+      val newPost = Post(99, "hans", 0)
       val graph = Graph(posts, List[Connection](1 -> 2, 2 -> 3) ++ List(1 cont 2, 2 cont 3))
       (graph + newPost) mustEqual Graph(posts :+ newPost, graph.connections ++ graph.containments)
     }
@@ -191,7 +192,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "successors of post" in {
       val graph = Graph(
-        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")),
+        posts = List(Post(1, "bier", 0), Post(11, "wein", 0), Post(12, "schnaps", 0), Post(13, "wasser", 0), Post(14, "nichts", 0)),
         connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
@@ -201,7 +202,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "predecessors of post" in {
       val graph = Graph(
-        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")),
+        posts = List(Post(1, "bier", 0), Post(11, "wein", 0), Post(12, "schnaps", 0), Post(13, "wasser", 0), Post(14, "nichts", 0)),
         connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
@@ -211,7 +212,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "neighbours of post" in {
       val graph = Graph(
-        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")),
+        posts = List(Post(1, "bier", 0), Post(11, "wein", 0), Post(12, "schnaps", 0), Post(13, "wasser", 0), Post(14, "nichts", 0)),
         connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
@@ -221,7 +222,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "children of post" in {
       val graph = Graph(
-        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")),
+        posts = List(Post(1, "bier", 0), Post(11, "wein", 0), Post(12, "schnaps", 0), Post(13, "wasser", 0), Post(14, "nichts", 0)),
         connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
@@ -231,7 +232,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "parents of post" in {
       val graph = Graph(
-        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")),
+        posts = List(Post(1, "bier", 0), Post(11, "wein", 0), Post(12, "schnaps", 0), Post(13, "wasser", 0), Post(14, "nichts", 0)),
         connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
@@ -241,7 +242,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "containment neighbours of post" in {
       val graph = Graph(
-        posts = List(Post(1, "bier"), Post(11, "wein"), Post(12, "schnaps"), Post(13, "wasser"), Post(14, "nichts")),
+        posts = List(Post(1, "bier", 0), Post(11, "wein", 0), Post(12, "schnaps", 0), Post(13, "wasser", 0), Post(14, "nichts", 0)),
         connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 

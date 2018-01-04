@@ -1,7 +1,7 @@
 package wust
 
 import wust.graph.Post
-import wust.ids.PostId
+import wust.ids.{PostId, UserId}
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
@@ -14,9 +14,9 @@ object Cuid extends js.Object {
 
 package object frontend {
   implicit class RichPostFactory(val postFactory: Post.type) extends AnyVal {
-    def newId(title: String) = {
+    def newId(content: String, author: UserId) = {
       val id = Cuid()
-      postFactory.apply(PostId(id), title)
+      postFactory.apply(PostId(id), content, author)
     }
   }
 }

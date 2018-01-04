@@ -38,7 +38,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
 
 object GraphView {
   def postView(post: Post) = div(
-    post.title,
+    post.content,
     cls := "graphpost"
   )
 }
@@ -256,7 +256,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
           val child = rxPostIdToSimPost.now(childId)
           if (child.containmentRadius > childRadiusMax) {
             childRadiusMax = child.containmentRadius
-            println(s"max: $childRadiusMax by ${child.title}")
+            println(s"max: $childRadiusMax by ${child.content}")
           }
           // sum + child.containmentArea
           val arbitraryFactor = 1.5 // 1.5 is arbitrary to have more space
@@ -299,7 +299,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   //     // https://www.wolframalpha.com/input/?i=solve+D+%3D+sum(i%3D1,n)((i*d%2Br)*2*pi)+for+n
   //     val n = (-d * PI - 2 * PI * r + sqrt(4 * d * D * PI + pow(-d * PI - 2 * PI * r, 2))) / (2 * d * PI)
 
-  //     println(s"nnn ${post.title}: $n")
+  //     println(s"nnn ${post.content}: $n")
   //     val containmentRadius = post.collisionRadius + ceil(n) * childDiameterAvg
 
   //     post -> containmentRadius

@@ -14,7 +14,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
   override val tag = "div"
   override def enter(post: Enter[SimPost]): Unit = {
     post.append((simPost: SimPost) => GraphView.postView(simPost.post)(
-      title := simPost.title,
+      content := simPost.content,
       position.absolute,
       pointerEvents.auto, // reenable
       cursor.default
@@ -22,7 +22,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       //TODO: http://bl.ocks.org/couchand/6394506 distinguish between click and doubleclick, https://stackoverflow.com/questions/42330521/distinguishing-click-and-double-click-in-d3-version-4
       //TODO: Doubleclick -> Focus
       .on("click", { (p: SimPost) =>
-        DevPrintln(s"\nClicked Post: ${p.id} ${p.title}")
+        DevPrintln(s"\nClicked Post: ${p.id} ${p.content}")
         // Var.set(
         //   VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
         //   VarTuple(graphState.state.postCreatorMenus, Nil)
@@ -53,7 +53,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
       .style("opacity", (p: SimPost) => p.opacity)
-      .text((p: SimPost) => p.title)
+      .text((p: SimPost) => p.content)
 
     recalculateNodeSizes(post)
   }

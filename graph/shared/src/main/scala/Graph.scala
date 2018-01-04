@@ -7,6 +7,7 @@ import wust.util.algorithm._
 import wust.util.collection._
 import scalaz._
 
+import java.time.LocalDateTime
 import collection.mutable
 import collection.breakOut
 
@@ -17,7 +18,23 @@ case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
 case class Group(id: GroupId)
 
 //TODO: rename Post -> Item?
-final case class Post(id: PostId, title: String)
+object Post {
+  def apply(
+             id: PostId,
+             content: String,
+             author: UserId) = {
+      val currTime = LocalDateTime.now();
+      new Post(
+        id,
+        content,
+        author,
+        currTime,
+        currTime
+      )
+  }
+}
+
+final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 final case class Connection(sourceId: PostId, label:Label, targetId: PostId)
 object Graph {
   def empty =

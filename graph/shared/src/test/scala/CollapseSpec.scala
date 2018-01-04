@@ -8,7 +8,7 @@ import scala.collection.breakOut
 class CollapseSpec extends FreeSpec with MustMatchers {
   implicit def intToUuidType(id: Int): UuidType = id.toString
   implicit def intToPostId(id: Int): PostId = PostId(id.toString)
-  implicit def intToPost(id: Int): Post = Post(id.toString, "title")
+  implicit def intToPost(id: Int): Post = Post(id.toString, "title", 0)
   def containments(ts: List[(Int, Int)]): List[Connection] = ts.map(Containment)
   implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(id => PostId(id.toString)))
   def PostIds(ids: Int*): Set[PostId] = ids.map(id => PostId(id.toString))(breakOut)

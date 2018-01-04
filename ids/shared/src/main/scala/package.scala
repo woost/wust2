@@ -3,6 +3,7 @@ package wust
 import boopickle.Default._
 import io.circe._
 import wust.idtypes._
+import java.time.{ZoneId, Instant, LocalDateTime}
 
 import scalaz._
 
@@ -28,10 +29,16 @@ package object ids {
     val parent = Label("parent")
   }
 
+  //TODO: LocalDateTime is internally stored as two Longs, does the precision loss matter?
+  def toMillis(ldt: LocalDateTime) = ldt.atZone(ZoneId.systemDefault).toInstant.toEpochMilli
+  def fromMillis(millis: Long) = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault).toLocalDateTime
+  implicit val ldtPickler: Pickler[LocalDateTime] = transformPickler((t: Long) => fromMillis(t))(x => toMillis(x))
+
   implicit def PostIdPickler = transformPickler[PostId, UuidType](PostId _)(Tag.unwrap _)
   implicit def GroupIdPickler = transformPickler[GroupId, IdType](GroupId _)(Tag.unwrap _)
   implicit def UserIdPickler = transformPickler[UserId, IdType](UserId _)(Tag.unwrap _)
   implicit def LabelPickler = transformPickler[Label, String](Label _)(Tag.unwrap _)
+  implicit val dateTimePickler = transformPickler((t: Long) => new java.util.Date(t))(_.getTime)
 
   implicit val encodePostId: Encoder[PostId] = Encoder.encodeString.contramap[PostId](Tag.unwrap _)
   implicit val decodePostId: Decoder[PostId] = Decoder.decodeString.map(PostId(_))

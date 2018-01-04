@@ -38,5 +38,5 @@ class SimPost(@delegert(vals) val post: Post) extends ExtendedD3Node with Simula
   var draggingPost: Option[SimPost] = None
 
   //TODO: derive @derive((post, x, y) => toString)
-  override def toString = s"SimPost($post, $title, $x, $y)"
+  override def toString = s"SimPost($post, $content, $x, $y)"
 }

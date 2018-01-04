@@ -14,17 +14,20 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   import dsl._
   import holder._
 
-  override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, _) =>
+  override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, user) =>
     //TODO permissions
 
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
       changes.foldLeft(Future.successful(true)){ (previous, changes) =>
         import changes.consistent._
 
+        val postsWithUser: Set[Post] =
+          addPosts.map(post => if(post.author == UserId(1)) post.copy(author = user.id) else post);
+
         previous.flatMap { success =>
           if (success) {
             for {
-              true <- db.post.createPublic(addPosts)
+              true <- db.post.createPublic(postsWithUser)
               true <- db.connection(addConnections)
               true <- db.ownership(addOwnerships)
               true <- db.post.update(updatePosts)

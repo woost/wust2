@@ -42,7 +42,7 @@ object MainView {
     div(
       children <-- state.pageParentPosts.map { posts => posts.toSeq.map { post =>
           span(
-            post.title,
+            post.content,
             backgroundColor := baseColor(post.id).toString,
             fontWeight.bold,
             margin := "2px", padding := "1px 5px 1px 5px",

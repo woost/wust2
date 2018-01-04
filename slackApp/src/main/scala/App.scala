@@ -22,21 +22,21 @@ object Constants {
   val slackId = "wust-slack"
 }
 
-case class ExchangeMessage(title: String)
+case class ExchangeMessage(content: String)
 
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
 
-  def push(msg: ExchangeMessage): Result[Post]
+  def push(msg: ExchangeMessage, author: UserId): Result[Post]
 }
 
 class WustReceiver(client: WustClient) extends MessageReceiver {
   import cool.graph.cuid.Cuid
 
-  def push(msg: ExchangeMessage) = {
+  def push(msg: ExchangeMessage, author: UserId) = {
     println(s"new message: msg")
     val id = PostId(Cuid.createCuid())
-    val post = Post(id, msg.title)
+    val post = Post(id, msg.content, author)
     val connection = Connection(id, Label.parent, Constants.slackId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
@@ -60,7 +60,7 @@ object WustReceiver {
         println(s"Got events: $events")
         val changes = events collect { case NewGraphChanges(changes) => changes }
         val posts = changes.flatMap(_.addPosts)
-        posts.map(p => ExchangeMessage(p.title)).foreach { msg =>
+        posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
           slack.send(msg).foreach { success =>
             println(s"Send message success: $success")
           }
@@ -72,14 +72,14 @@ object WustReceiver {
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password).call()
       if loggedIn
-      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack"))))).call()
+      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", UserId(1)))))).call()
       if changed
       graph <- client.api.getGraph(Page.Root).call()
     } yield Right(new WustReceiver(client))
 
     res recover { case e =>
       client.stop()
-      system.shutdown()
+      system.terminate()
       Left(e.getMessage)
     }
   }
@@ -90,7 +90,7 @@ class SlackClient(client: SlackRtmClient) {
 
   def send(msg: ExchangeMessage): Future[Boolean] = {
     val channelId = client.state.getChannelIdForName("general").get //TODO
-    val text = msg.title
+    val text = msg.content
 
     client
       .sendMessage(channelId, text)
@@ -109,7 +109,7 @@ class SlackClient(client: SlackRtmClient) {
         val mentionedIds = SlackUtil.extractMentionedIds(e.text)
         if(mentionedIds.contains(selfId)) {
           val message = ExchangeMessage(e.text)
-          receiver.push(message) foreach {
+          receiver.push(message, UserId(1)) foreach { // Using unknown user
             case Left(error) => respond(s"Failed to sync with wust: $error")
             case Right(post) => respond(s"Created post: $post")
           }

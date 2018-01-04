@@ -38,7 +38,7 @@ object TestView extends View {
 
   def postItem(post: Post, graphSelection: Sink[Page]) = {
     div(
-      post.title,
+      post.content,
 
       minHeight := "12px",
       border := "solid 1px",

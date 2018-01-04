@@ -5,6 +5,8 @@ import io.getquill._
 import wust.ids._
 import wust.util._
 
+import java.time.LocalDateTime
+
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.Tag
 
@@ -28,10 +30,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val decodeLabel = MappedEncoding[String, Label](Label _)
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
+  // Set timestamps in backend
+  // implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
 
-  case class RawPost(id: PostId, title: String, isDeleted: Boolean)
+  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime)
   object RawPost {
-    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.title, isDeleted)
+    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified)
   }
 
   implicit class IngoreDuplicateKey[T](q: Insert[T]) {
@@ -77,7 +81,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def update(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))
     def update(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(post => query[RawPost].filter(_.id == post.id).update(_.title -> post.title)))
+      ctx.run(liftQuery(posts.toList).foreach(post => query[RawPost].filter(_.id == post.id).update(_.content -> post.content)))
         .map(_.forall(_ == 1))
     }
 
@@ -197,7 +201,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       if (implicitId == userId) Future.successful(false)
       else {
         val q = quote { infix"""
-          with existingUser as (
+          with postOwner as (
+            UPDATE rawpost SET author = ${lift(userId)} WHERE author = ${lift(implicitId)} RETURNING author
+          ), existingUser as (
             DELETE FROM "user" WHERE id = ${lift(implicitId)} AND isimplicit = true AND EXISTS (SELECT id FROM "user" WHERE id = ${lift(userId)} AND isimplicit = false) RETURNING id
           ), update as (
             DELETE FROM membership using existingUser WHERE userid = existingUser.id RETURNING groupId

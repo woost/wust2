@@ -15,7 +15,7 @@ object PageStyle {
 
   def apply(page:Page, parents:Set[Post]) = {
 
-    val title = parents.map(_.title).mkString(", ")
+    val title = parents.map(_.content).mkString(", ")
 
     val mixedDirectParentColors = mixColors(page.parentIds.map(baseColor))
     val baseHue = d3.hcl(mixedDirectParentColors).h

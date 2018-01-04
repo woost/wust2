@@ -47,14 +47,22 @@ object SyncMode {
 
 // case class PersistencyState(undoHistory: Seq[GraphChanges], redoHistory: Seq[GraphChanges], changes: GraphChanges)
 
-trait ChangeHandlers {
+abstract class ChangeHandlers(currentUser: Observable[Option[User]]) {
   import monix.execution.Scheduler.Implicits.global
   //TODO: sinks?
   val changes = Handler.create[GraphChanges]().unsafeRunSync()
-  val addPost: Sink[String] = changes.redirectMap { text =>
-    val newPost = Post.newId(text)
-    GraphChanges(addPosts = Set(newPost))
+  val addPost: Sink[String] = changes.redirectMap { text: String =>
+   val newPost = Post.newId(text, author = 1)
+   GraphChanges(addPosts = Set(newPost))
   }
+  // val addPost: Sink[String] = changes.redirectMap { text: String => currentUser.map { userOpt: Option[User] =>
+  //   userOpt match {
+  //     case Some(user) =>
+  //       val newPost = Post.newId(text, author = user.id)
+  //       GraphChanges(addPosts = Set(newPost))
+  //     case None => Post.newId(text, author = 1) //TODO: Johannes: implicit user erzeugen...
+  //   }
+  // }}
 }
 
 object EventProcessor {
@@ -74,21 +82,23 @@ object EventProcessor {
       Observable.merge(bufferedGraphEvents, otherEvents)
     }
 
-    new EventProcessor(eventStream, viewConfig)
+
+    val currentUser: Observable[Option[User]] = eventStream.map(_.reverse.collectFirst { //TODO: meh
+      case LoggedIn(auth) => Some(auth.user)
+      case LoggedOut => None
+    }).collect { case Some(user) => user }.startWith(Seq(None))
+
+
+    new EventProcessor(eventStream, viewConfig, currentUser)
   }
 }
 
-class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig]) extends ChangeHandlers {
+class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
   import monix.execution.Scheduler.Implicits.global
   // import ClientCache.storage
   // storage.graphChanges <-- localChanges //TODO
 
-  object enriched extends ChangeHandlers
-
-  val currentUser: Observable[Option[User]] = eventStream.map(_.reverse.collectFirst { //TODO: meh
-    case LoggedIn(auth) => Some(auth.user)
-    case LoggedOut => None
-  }).collect { case Some(user) => user }.startWith(Seq(None))
+  object enriched extends ChangeHandlers(currentUser)
 
 
   // public reader
