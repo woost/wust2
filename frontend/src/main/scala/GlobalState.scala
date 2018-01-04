@@ -38,6 +38,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
     val eventProcessor = EventProcessor(rawEventStream, syncEnabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
     val currentUser:Rx[Option[User]] = eventProcessor.currentUser.toRx(seed = None)
+    val currentAuth:Rx[Option[Authentication]] = eventProcessor.currentAuth.toRx(seed = None)
 
     val inviteToken = viewConfig.map(_.invite)
 
@@ -128,6 +129,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
 
   val eventProcessor = inner.eventProcessor
 
+  val currentUser = inner.currentUser.toObservable
   val rawGraph = inner.rawGraph.toObservable
   val viewConfig = inner.viewConfig.toHandler
   val currentView = inner.currentView.toHandler

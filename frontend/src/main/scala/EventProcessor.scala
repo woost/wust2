@@ -17,7 +17,6 @@ import wust.util.Analytics
 import scala.collection.mutable
 import scala.scalajs.js.timers.setTimeout
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import monix.execution.Scheduler.Implicits.global
 import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{PublishSubject}
@@ -51,21 +50,18 @@ abstract class ChangeHandlers(currentUser: Observable[Option[User]]) {
   import monix.execution.Scheduler.Implicits.global
   //TODO: sinks?
   val changes = Handler.create[GraphChanges]().unsafeRunSync()
-  val addPost: Sink[String] = changes.redirectMap { text: String =>
-   val newPost = Post.newId(text, author = 1)
-   GraphChanges(addPosts = Set(newPost))
-  }
-  // val addPost: Sink[String] = changes.redirectMap { text: String => currentUser.map { userOpt: Option[User] =>
-  //   userOpt match {
-  //     case Some(user) =>
-  //       val newPost = Post.newId(text, author = user.id)
-  //       GraphChanges(addPosts = Set(newPost))
-  //     case None => Post.newId(text, author = 1) //TODO: Johannes: implicit user erzeugen...
-  //   }
-  // }}
+
+  val addPost: Sink[String] = changes.redirect { _.withLatestFrom(currentUser) { (text: String, userOpt: Option[User]) =>
+    val newPost = userOpt match {
+      case Some(user) => Post.newId(text, author = user.id)
+      case None => Post.newId(text, author = 1) //Replaced in backend after creation of implicit user
+    }
+    GraphChanges(addPosts = Set(newPost))
+  } }
 }
 
 object EventProcessor {
+
   def apply(rawEventStream: Observable[Seq[ApiEvent]], syncEnabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
       val partitionedEvents:Observable[(Seq[ApiEvent], Seq[ApiEvent])] = rawEventStream.map(_.partition {
@@ -82,18 +78,18 @@ object EventProcessor {
       Observable.merge(bufferedGraphEvents, otherEvents)
     }
 
-
-    val currentUser: Observable[Option[User]] = eventStream.map(_.reverse.collectFirst { //TODO: meh
-      case LoggedIn(auth) => Some(auth.user)
+    val currentAuth: Observable[Option[Authentication]] = eventStream.map(_.reverse.collectFirst {
+      case LoggedIn(auth) => Some(auth)
       case LoggedOut => None
-    }).collect { case Some(user) => user }.startWith(Seq(None))
+    }).collect { case Some(auth) => auth }.startWith(Seq(None))
 
+    val currentUser: Observable[Option[User]] = currentAuth.map(_.map(_.user))
 
-    new EventProcessor(eventStream, viewConfig, currentUser)
+    new EventProcessor(eventStream, viewConfig, currentAuth, currentUser)
   }
 }
 
-class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
+class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig], val currentAuth: Observable[Option[Authentication]], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
   import monix.execution.Scheduler.Implicits.global
   // import ClientCache.storage
   // storage.graphChanges <-- localChanges //TODO

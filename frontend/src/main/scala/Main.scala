@@ -17,6 +17,7 @@ import monix.execution.Scheduler.Implicits.global
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 import scala.util.Success
+import concurrent.Future
 import wust.util.outwatchHelpers._
 import rx.Ctx
 
@@ -64,9 +65,20 @@ object Main {
     }
 
     // The first thing to be sent should be the auth-token
-    ClientCache.storedToken.foreach { token =>
-      Client.auth.loginToken(token).call()
+    // TODO: Reactive?
+    {
+      val loginSuccess = ClientCache.storage.token.now match {
+        case Some(token) => Client.auth.loginToken(token).call()
+        case None => Future.successful(false)
+      }
+
+      loginSuccess.foreach { _ =>
+        state.inner.currentAuth.foreach { auth =>
+          ClientCache.storage.token() = auth.map(_.token)
+        }
+      }
     }
+
 
     {
       val observable = Observable.create[Seq[ApiEvent]](Unbounded) { observer =>
@@ -75,7 +87,7 @@ object Main {
             println(s"Connected to websocket")
 
             if (isReconnect) {
-              ClientCache.currentAuth.foreach { auth =>
+              state.inner.currentAuth.now.foreach { auth =>
                 Client.auth.loginToken(auth.token).call()
               }
 
