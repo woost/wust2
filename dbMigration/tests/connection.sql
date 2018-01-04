@@ -1,9 +1,14 @@
 BEGIN;
-SELECT plan(10);
+SELECT plan(11);
 
 /* structure */
 SELECT col_not_null('rawconnection', 'sourceid');
 SELECT col_not_null('rawconnection', 'targetid');
+
+SELECT isnt_empty(
+    $$ INSERT INTO "user" (name) VALUES ('Rolufus') RETURNING (id, name) $$,
+    'insert user'
+);
 
 SELECT isnt_empty(
     $$ INSERT INTO label (name) VALUES ('labello') RETURNING (id, name) $$,
@@ -17,12 +22,14 @@ SELECT results_eq(
 );
 
 SELECT isnt_empty(
-    $$ INSERT INTO post (id, title) VALUES ('hester', 'Schneider') RETURNING (id, title) $$,
+    $$ INSERT INTO post (id, content, author, created, modified)
+        VALUES ('hester', 'Schneider', 1, NOW(), NOW())
+        RETURNING (id, content, author, created, modified) $$,
     'insert post'
 );
 
 SELECT isnt_empty(
-    $$ INSERT INTO post (id, title) VALUES ('invester', 'Schneider2') RETURNING (id, title) $$,
+    $$ INSERT INTO post (id, content, author, created, modified) VALUES ('invester', 'Schneider2', 1, NOW(), NOW()) RETURNING (id, content, author, created, modified) $$,
     'insert second post'
 );
 

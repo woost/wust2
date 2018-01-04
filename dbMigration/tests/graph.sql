@@ -3,7 +3,7 @@ SELECT plan(19);
 -- SELECT plan(8);
 
 /* structure */
-SELECT col_not_null('rawpost', 'title');
+SELECT col_not_null('rawpost', 'content');
 SELECT col_not_null('rawpost', 'isdeleted');
 SELECT col_not_null('rawconnection', 'sourceid');
 SELECT col_not_null('rawconnection', 'targetid');
@@ -14,51 +14,36 @@ SELECT col_not_null('membership', 'groupid');
 
 /* insert label */
 SELECT isnt_empty(
-  'INSERT INTO
-    label (name)
-  VALUES
-    ($$labello$$)
-   RETURNING
-    (id, name);',
+  $$ INSERT INTO label (name) VALUES ('labello')
+   RETURNING (id, name) $$,
   'insert post'
 );
 
 /* insert small graph */
 SELECT isnt_empty(
-  'INSERT INTO
-    post (id, title)
-  VALUES
-    ($$hester$$, $$Schneider$$)
-   RETURNING
-    (id, title);',
-  'insert post'
+    $$ INSERT INTO post (id, content, author, created, modified)
+        VALUES ('hester', 'Schneider', 1, NOW(), NOW())
+        RETURNING (id, content, author, created, modified) $$,
+    'insert post'
 );
 
 SELECT isnt_empty(
-  'INSERT INTO
-    post (id, title)
-  VALUES
-    ($$invester$$, $$Schneider2$$)
-   RETURNING
-    (id, title);',
-  'insert second post'
+    $$ INSERT INTO post (id, content, author, created, modified)
+        VALUES ('invester', 'Schneider2', 1, NOW(), NOW())
+        RETURNING (id, content, author, created, modified) $$,
+    'insert second post'
 );
 
 SELECT isnt_empty(
-  'INSERT INTO
-    connection (sourceid, label, targetid)
-  VALUES
-    ($$hester$$, $$charals$$, $$invester$$)
-   RETURNING
-    (sourceid, targetid);',
+  $$ INSERT INTO connection (sourceid, label, targetid)
+    VALUES ('hester', 'charals', 'invester')
+   RETURNING (sourceid, targetid) $$,
   'insert connection'
 );
 
 SELECT throws_ok(
-  'INSERT INTO
-    connection (sourceid, label, targetid)
-  VALUES
-    (3, $$charals$$, 3);',
+  $$ INSERT INTO connection (sourceid, label, targetid)
+    VALUES (3, 'charals', 3) $$,
   23514,
   'new row for relation "rawconnection" violates check constraint "selfloop"',
   'connection self-loop constraint'
@@ -66,39 +51,36 @@ SELECT throws_ok(
 
 /* delete edges */
 SELECT lives_ok(
-  'delete from connection where true',
+  $$ DELETE FROM connection WHERE TRUE $$,
   'delete connection'
 );
 
 select is_empty(
-  'select * from connection',
+  $$ SELECT * FROM connection $$,
   'connection is empty'
 );
 
 /* insert edges again */
 SELECT isnt_empty(
-  'INSERT INTO
-    connection (sourceid, label, targetid)
-  VALUES
-    ($$hester$$, $$charals$$, $$invester$$)
-   RETURNING
-    (sourceid, targetid);',
+  $$ INSERT INTO connection (sourceid, label, targetid)
+    VALUES ('hester', 'charals', 'invester')
+    RETURNING (sourceid, targetid) $$,
   'insert connection after delete'
 );
 
 /* delete post and collapse on edges */
 SELECT lives_ok(
-  'delete from post where true',
+  $$ DELETE FROM post WHERE TRUE $$,
   'delete post'
 );
 
 select is_empty(
-  'select * from post',
+  $$ SELECT * FROM post $$,
   'post is empty'
 );
 
 select is_empty(
-  'select * from connection',
+  $$ select * from connection $$,
   'connection is empty after post collapse'
 );
 
