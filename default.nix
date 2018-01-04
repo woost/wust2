@@ -17,7 +17,6 @@ in
 
     # TODO: how to use installPhase to install dependencies only once?
     shellHook=''
-    .travis/install
     npm list jsdom || npm install jsdom
     echo --- Welcome to woost! ---
     echo "Make sure you have the docker service running and added your user to the group 'docker'."

@@ -104,7 +104,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = implicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user) =>
+      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user, wasCreated) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
@@ -125,7 +125,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = nonImplicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user) =>
+      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user, wasCreated) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
@@ -146,7 +146,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = implicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user) =>
+      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user, wasCreated) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
@@ -168,7 +168,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = nonImplicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user) =>
+      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user, wasCreated) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
@@ -188,7 +188,7 @@ class GuardDslSpec extends AsyncFreeSpec with MustMatchers with DbMocks {
       val dsl = implicitDsl(db)
       import dsl._
 
-      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user) =>
+      val fun: State => StateEffect[State, String, ApiEvent] = withUserOrImplicit { (state, user, wasCreated) =>
         state.auth.map(_.user) mustEqual Option(user)
         Future.successful(RequestResponse("str"))
       }
