@@ -186,7 +186,7 @@ object MainView {
 
     div(
       display.flex,
-      allViews.map{ view => 
+      allViews.map{ view =>
         div(
           view.displayName,
           padding := "8px",
@@ -198,7 +198,7 @@ object MainView {
     )
     // select(
     //   onInputString.map(View.fromString) --> viewHandler,
-    //   allViews.map{view => 
+    //   allViews.map{view =>
     //     option(
     //       view.displayName,
     //       value := view.key,
@@ -421,13 +421,15 @@ object MainView {
     div(
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
       padding := "15px",
+      color := "white",
       div(
         "Woost",
         fontWeight.bold,
-        color := "white",
         fontSize := "20px",
         marginBottom := "10px"
       ),
+    div( "User: ", child <-- state.currentUser.map(_.fold("")(u => s"${u.id}, ${u.name}" ))),
+      div( "Sync Mode: ", child <-- state.syncMode.map(_.toString)),
       div(
         color := "#C4C4CA",
         "#channels"
