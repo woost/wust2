@@ -75,7 +75,7 @@ object ChatView extends View {
       //TODO: the update hook triggers too early. Try the postpatch-hook from snabbdom instead
       onPostpatch --> { (e: Element) =>
         println("postpatch hook");
-        scrollToBottom(e) 
+        scrollToBottom(e)
       }
     )
   }
@@ -83,6 +83,12 @@ object ChatView extends View {
   def chatMessage(post: Post, page: Sink[Page], ownPosts: PostId => Boolean, graph: Graph) = {
     val isMine = ownPosts(post.id)
     div(
+      display.block,
+      clear.both,
+      width := "100%",
+      borderBottom := "1px solid gray",
+      padding := "5px 10px",
+      margin := "5px 0px",
       p(
         post.content,
         onClick(Page.Union(Set(post.id))) --> page,
@@ -96,6 +102,25 @@ object ChatView extends View {
         margin := "5px 0px",
 
         cursor.pointer // TODO: What about cursor when selecting text?
+      ),
+      div(
+        float := (if (isMine) "right" else "left"),
+        h3("Post data"),
+        p(
+          s"post content: ${post.content}",
+          br(),
+          s"post author: ${post.author.toString}",
+          br(),
+          s"get username from graph: ${graph.usersById.get(post.author).toString}",
+          br(),
+          s"graph user names: ${graph.users.map(_.name).toString}",
+          br(),
+          s"graph user ids: ${graph.userIds.toString}",
+          br(),
+          s"creation time: ${post.created.toString}",
+          br(),
+          s"modification time: ${post.modified.toString}"
+        )
       )
     )
   }
