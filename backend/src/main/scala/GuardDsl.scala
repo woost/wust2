@@ -11,9 +11,9 @@ import scala.concurrent.{ ExecutionContext, Future }
 class GuardDsl(createImplicitAuth: () => Future[Option[JWTAuthentication]])(implicit ec: ExecutionContext) {
   private lazy val implicitAuth = createImplicitAuth()
 
-  private def actualOrImplicitAuth(auth: Option[JWTAuthentication]): Future[Option[JWTAuthentication]] = auth match {
-    case None => implicitAuth
-    case auth => Future.successful(auth)
+  private def actualOrImplicitAuth(auth: Option[JWTAuthentication]): (Future[Option[JWTAuthentication]], Boolean) = auth match {
+    case None => (implicitAuth, true)
+    case auth => (Future.successful(auth), false)
   }
 
   private def userOrFail(auth: Option[JWTAuthentication]): User =
@@ -24,11 +24,11 @@ class GuardDsl(createImplicitAuth: () => Future[Option[JWTAuthentication]])(impl
     f(state, user)
   }
 
-  def withUserOrImplicit[T](f: (State, User) => Future[RequestResponse[T, ApiEvent]]): State => StateEffect[State, T, ApiEvent] = state => {
-    val auth = actualOrImplicitAuth(state.auth)
+  def withUserOrImplicit[T](code: (State, User, Boolean) => Future[RequestResponse[T, ApiEvent]]): State => StateEffect[State, T, ApiEvent] = state => {
+    val (auth, wasCreated) = actualOrImplicitAuth(state.auth)
     val newState = auth.map(auth => state.copy(auth = auth))
     val user = auth.map(userOrFail _)
-    val response = newState.flatMap(newState => user.flatMap(f(newState, _)))
+    val response = newState.flatMap(newState => user.flatMap(code(newState, _, wasCreated)))
     StateEffect(newState, response)
   }
 }

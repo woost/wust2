@@ -14,7 +14,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   import dsl._
   import holder._
 
-  override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, user) =>
+  override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, user, wasCreated) =>
     //TODO permissions
 
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
@@ -22,7 +22,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         import changes.consistent._
 
         val postsWithUser: Set[Post] =
-          addPosts.map(post => if(post.author == UserId(1)) post.copy(author = user.id) else post);
+          addPosts.map { post =>
+            if(!wasCreated) assert(post.author == user.id, s"(Post author id) ${post.author} != ${user.id} (user id)")
+            post.copy(author = user.id)
+          };
 
         previous.flatMap { success =>
           if (success) {
@@ -54,7 +57,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
   def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
 
-  def addGroup(): Future[GroupId] = withUserOrImplicit { (_, user) =>
+  def addGroup(): Future[GroupId] = withUserOrImplicit { (_, user, _) =>
     for {
       //TODO: simplify db.createForUser return values
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
@@ -64,7 +67,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, user) =>
+  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
@@ -75,7 +78,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUserOrImplicit { (_, _) =>
+  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUserOrImplicit { (_, _, _) =>
     db.ctx.transaction { implicit ec =>
       (
         for {
@@ -86,7 +89,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user) =>
+  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         setRandomGroupInviteToken(groupId)
@@ -94,7 +97,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def getGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user) =>
+  def getGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
@@ -105,7 +108,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUserOrImplicit { (_, user) =>
+  def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUserOrImplicit { (_, user, _) =>
     //TODO optimize into one request?
     db.ctx.transaction { implicit ec =>
       db.group.fromInvite(token).flatMap {
