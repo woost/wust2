@@ -75,7 +75,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
+  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
   .settings(
     publish := {},
     publishLocal := {},
@@ -97,7 +97,7 @@ lazy val root = project.in(file("."))
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
     // watchSources := Seq(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in frameworkJS).value ++ (watchSources in frameworkJVM).value ++ (watchSources in frontend).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in frameworkJS).value ++ (watchSources in frameworkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
   )
 
 lazy val util = crossProject
@@ -165,14 +165,13 @@ lazy val idsJVM = ids.jvm
 
 lazy val graph = crossProject
   .settings(commonSettings)
-  .dependsOn(ids)
+  .dependsOn(ids, util)
   .settings(
     libraryDependencies ++= (
       derive ::
       Nil
     )
   )
-  .dependsOn(util)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
