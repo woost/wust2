@@ -5,10 +5,9 @@ language: scala
 jdk: oraclejdk8
 node_js: 7
 
-install:
-    - set -e
-    # - .travis/install
-    - set +e
+branches:
+  only:
+  - master
 
 script:
     - set -e
