@@ -19,8 +19,8 @@ class StateHolder[StateType, Event](initialState: Future[StateType]) {
     response.map(_.result)
   }
 
-  def respondWithEvents[T](result: T, events: Event*) = new RequestResponse[T, Event](result, events)
-  def respondWithEventsIf(result: Boolean, events: Event*) = result match {
+  def respondWithEventsToAllButMe[T](result: T, events: Event*) = new RequestResponse[T, Event](result, events)
+  def respondWithEventsIfToAllButMe(result: Boolean, events: Event*) = result match {
     case true => new RequestResponse[Boolean, Event](result, events)
     case false => new RequestResponse[Boolean, Event](result, Seq.empty)
   }

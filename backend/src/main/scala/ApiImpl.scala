@@ -51,7 +51,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           scribe.error(t)
           false
       }
-      .map(respondWithEventsIf(_, NewGraphChanges(compactChanges)))
+      .map(respondWithEventsIfToAllButMe(_, NewGraphChanges(compactChanges)))
   }
 
   def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
@@ -63,7 +63,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
     } yield {
       val group = forClient(dbGroup)
-      respondWithEvents(group.id, NewMembership(dbMembership))
+      respondWithEventsToAllButMe(group.id, NewMembership(dbMembership))
     }
   }
 
@@ -73,8 +73,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         for {
           Some(user) <- db.user.get(userId)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
-        } yield respondWithEvents(true, NewMembership(dbMembership), NewUser(user))
-      }(recover = respondWithEvents(false))
+        } yield respondWithEventsToAllButMe(true, NewMembership(dbMembership), NewUser(user))
+      }(recover = respondWithEventsToAllButMe(false))
     }
   }
 
@@ -84,8 +84,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         for {
           Some(user) <- db.user.byName(userName)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
-        } yield respondWithEvents(true, NewMembership(dbMembership), NewUser(user))
-      ).recover { case _ => respondWithEvents(false) }
+        } yield respondWithEventsToAllButMe(true, NewMembership(dbMembership), NewUser(user))
+      ).recover { case _ => respondWithEventsToAllButMe(false) }
     }
   }
 
@@ -116,10 +116,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           db.group.addMember(group.id, user.id).map {
             case Some((_, dbMembership, dbGroup)) =>
               val group = forClient(dbGroup)
-              respondWithEvents(Option(group.id), NewMembership(dbMembership))
-            case None => respondWithEvents[Option[GroupId]](None)
+              respondWithEventsToAllButMe(Option(group.id), NewMembership(dbMembership))
+            case None => respondWithEventsToAllButMe[Option[GroupId]](None)
           }
-        case None => Future.successful(respondWithEvents[Option[GroupId]](None))
+        case None => Future.successful(respondWithEventsToAllButMe[Option[GroupId]](None))
       }
     }
   }

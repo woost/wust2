@@ -56,10 +56,10 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   "execute requestResponse function" in {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.{respondWithEvents, responseFunctionIsExecuted}
+    import holder.{respondWithEventsToAllButMe, responseFunctionIsExecuted}
 
     val res: Future[Int] = { (state: String) =>
-      Future.successful(respondWithEvents(2, 666))
+      Future.successful(respondWithEventsToAllButMe(2, 666))
     }
 
     holder.state.map(_ mustEqual initialState)
@@ -72,12 +72,12 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   "execute stateEffect function" in {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.{effectFunctionIsExecuted, respondWithEvents}
+    import holder.{effectFunctionIsExecuted, respondWithEventsToAllButMe}
 
     val nextState = "new"
     val res: Future[Int] = { (state: String) =>
       val newState = Future.successful(nextState)
-      val response = Future.successful(respondWithEvents(2, 666))
+      val response = Future.successful(respondWithEventsToAllButMe(2, 666))
       StateEffect(newState, response)
     }
 
@@ -96,7 +96,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
     val nextState = "new"
     val res: Future[String] = { (state: String) =>
       val newState = Future.successful(nextState)
-      val response = Future.successful(respondWithEvents("response2", 777))
+      val response = Future.successful(respondWithEventsToAllButMe("response2", 777))
       StateEffect(newState, response)
     }
 
@@ -113,7 +113,7 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
       val nextState = "new2"
       val res: Future[String] = { (state: String) =>
         val newState = Future.successful(nextState)
-        val response = Future.successful(respondWithEvents("response", 666))
+        val response = Future.successful(respondWithEventsToAllButMe("response", 666))
         StateEffect(newState, response)
       }
 
@@ -128,17 +128,17 @@ class StateHolderSpec extends AsyncFreeSpec with MustMatchers {
   "RequestResponse" - {
     val initialState = ""
     val holder = newStateHolder(initialState)
-    import holder.respondWithEventsIf
+    import holder.respondWithEventsIfToAllButMe
 
     "respondWithEventsIf true" in {
-      val response = respondWithEventsIf(true, 666)
+      val response = respondWithEventsIfToAllButMe(true, 666)
 
       response.result mustEqual true
       holder.events.map(_.size mustEqual 0)
     }
 
     "respondWithEventsIf false" in {
-      val response = respondWithEventsIf(false, 666)
+      val response = respondWithEventsIfToAllButMe(false, 666)
 
       response.result mustEqual false
       holder.events.map(_.size mustEqual 0)
