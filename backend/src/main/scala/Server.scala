@@ -126,7 +126,11 @@ object Server {
     }
 
     ws.run(route, "0.0.0.0", config.server.port).onComplete {
-      case Success(binding) => scribe.info(s"Server online at ${binding.localAddress}")
+      case Success(binding) => {
+        val separator = "\n" + ("#" * 50)
+        val readyMsg = s"\n##### Server online at ${binding.localAddress} #####"
+        scribe.info(s"$separator$readyMsg$separator")
+      }
       case Failure(err) => scribe.error(s"Cannot start server: $err")
     }
   }
