@@ -8,8 +8,8 @@ import org.scalajs.dom.window.location
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement }
-import org.scalajs.dom.raw.HTMLTextAreaElement
+import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement, HTMLButtonElement }
+import org.scalajs.dom.raw.{ HTMLTextAreaElement }
 import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api._
@@ -417,23 +417,52 @@ object MainView {
   //   )
   // }
   //
-  def channels(state:GlobalState) = {
+  def sidebar(state:GlobalState) = {
     div(
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
       padding := "15px",
       color := "white",
+      title,
+      br(),
+      user(state),
+      br(),
+      syncMode(state),
+      br(),
+      dataImport(state),
+      br(),
+      channels(state),
+    )
+  }
+
+  val title = {
       div(
         "Woost",
         fontWeight.bold,
         fontSize := "20px",
         marginBottom := "10px"
-      ),
-    div( "User: ", child <-- state.currentUser.map(_.fold("")(u => s"${u.id}, ${u.name}" ))),
-      div( "Sync Mode: ", child <-- state.syncMode.map(_.toString)),
+      )
+  }
+
+  def channels(state: GlobalState) = {
       div(
         color := "#C4C4CA",
         "#channels"
       )
+  }
+
+  def user(state: GlobalState) = {
+    div( "User: ", child <-- state.currentUser.map(_.fold("")(u => s"${u.id}, ${u.name}" )))
+  }
+
+  def syncMode(state: GlobalState) = {
+    div( "Sync Mode: ", child <-- state.syncMode.map(_.toString)),
+  }
+
+    div(
+      "Import",
+      fontWeight.bold,
+      fontSize := "20px",
+      marginBottom := "10px",
     )
   }
 
@@ -441,7 +470,7 @@ object MainView {
     div(
       id := "pagegrid",
 
-      channels(state),
+      sidebar(state),
       ChatView(state),
       new GraphView().apply(state),
 
