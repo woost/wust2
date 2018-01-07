@@ -21,9 +21,10 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       changes.foldLeft(Future.successful(true)){ (previousSuccess, changes) =>
         import changes.consistent._
 
+        // val postsWithUser: Set[Post] = enrichPostWithUser(addPosts);
         val postsWithUser: Set[Post] =
           addPosts.map { post =>
-            if(!wasCreated) assert(post.author == user.id, s"(Post author id) ${post.author} != ${user.id} (user id)")
+            // if(!wasCreated) assert(post.author == user.id, s"(Post author id) ${post.author} != ${user.id} (user id)")
             post.copy(author = user.id)
           };
 
@@ -171,4 +172,98 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       result <- code
     } yield result).recover { case _ => recover }
   }
+
+  def importGithubUrl(url: String): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
+
+    object GitHubImporter {
+      import github4s.Github
+      import github4s.Github._
+      import github4s.jvm.Implicits._
+      import scalaj.http.HttpResponse
+      import github4s.free.domain.{Comment, Issue, SearchIssuesResult, User => GHUser}
+
+      val accessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
+
+      def getIssues(orga: String = "GRBurst", repo: String = "purple-gnome-keyring", issueNumber: Option[Int] = None): Future[(Set[Post], Set[Connection])] = {
+        
+        val listIssues = Github(accessToken).issues.listIssues(orga, repo)
+
+        // val sets: Future[(Set[Post], Set[Connection])] = listIssues.execFuture[HttpResponse[String]]().map {
+        val f_response: Future[github4s.GithubResponses.GHResponse[List[github4s.free.domain.Issue]]] = listIssues.execFuture[HttpResponse[String]]()
+
+        val res:Future[(Set[Post], Set[Connection])] = f_response.map { response => 
+          val zippedTuples: Set[(Set[Post], Set[Connection])] = response.map {
+            right => {
+              val tuples: Set[(Set[Post], Set[Connection])] = right.result.map { issue =>
+                issueNumber match {
+                  case Some(inum) if inum != issue.number => {
+                    (Set.empty[Post], Set.empty[Connection])
+                  }
+                  case _ => {
+                    val userId = UserId(issue.user match {
+                      case None => 1
+                      case Some(githubUser: GHUser) => githubUser.id
+                    }) //TODO: create this user
+                    val tempUserId = user.id
+                    val title = Post(PostId(issue.id.toString), issue.title, tempUserId)
+                    val body = Post(PostId(issue.number.toString), issue.body, tempUserId)
+                    val conn = Connection(body.id, Label.parent, title.id)
+                    val cont = Connection(title.id, "title", body.id)
+                    val comments = issue.comments_url
+                    println(s"Comments url = $comments")
+                    val pair: (Set[Post], Set[Connection]) = (Set[Post](title, body), Set[Connection](conn, cont))
+                    // println(s"pair: $pair")
+                    pair
+                  }
+                }
+              }.toSet
+              // println(s"tuples: $tuples")
+              tuples
+            }
+          }.getOrElse(Set((Set.empty[Post], Set.empty[Connection])))
+
+          val (posts, conns) = zippedTuples.unzip
+          // println(s"posts: ${posts.flatten}")
+          // println(s"conns: ${conns.flatten}")
+          (posts.flatten, conns.flatten)
+
+        }
+        res
+      }
+    }
+
+    // TODO: Reuse graph changes instead
+    // val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, UserId(1)))
+    // changeGraph(List(GraphChanges(addPosts = postsOfUrl)))
+
+    val _url = url.stripLineEnd.stripMargin.trim.stripPrefix("https://").stripPrefix("http://").stripPrefix("github.com/").stripSuffix("/")
+    val numEndPattern = "issues/[0-9]+$".r
+    val issueNumGiven = numEndPattern.findFirstIn(_url).getOrElse("/").split("/")
+    val issueNum = if (issueNumGiven.isEmpty) None else Some(issueNumGiven(1).toInt)
+    val urlData = _url.stripSuffix("/").stripSuffix((if(issueNum.isDefined) issueNum.get.toString else "")).stripSuffix("/").stripSuffix("/issues").split("/")
+
+    println(s"urlData: orga = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum.getOrElse(-1)}")
+
+    assert(urlData.size == 2, "Could not extract url")
+    val postsOfUrl = GitHubImporter.getIssues(urlData(0), urlData(1), issueNum)
+
+    // val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    val result: Future[Boolean] = postsOfUrl.flatMap { case (posts, connections) =>
+      db.ctx.transaction { implicit ec =>
+        for {
+          true <- db.post.createPublic(posts)
+          true <- db.connection(connections)
+        } yield true
+      }
+    }
+
+    result.recover {
+      case NonFatal(t) =>
+        scribe.error(s"unexpected error in import")
+        scribe.error(t)
+        false
+    }//.map(respondWithEventsIfToAllButMe(_, NewGraphChanges(GraphChanges(addPosts = postsOfUrl)))) //<-- not working for import
+
+  }
+
 }

@@ -17,6 +17,8 @@ trait Api {
   def getGroupInviteToken(groupId: GroupId): Future[Option[String]]
   def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]]
   def acceptGroupInvite(token: String): Future[Option[GroupId]]
+
+  def importGithubUrl(url: String): Future[Boolean]
 }
 
 case class ApiException(error: ApiError) extends Exception {

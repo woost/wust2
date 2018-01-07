@@ -458,11 +458,20 @@ object MainView {
     div( "Sync Mode: ", child <-- state.syncMode.map(_.toString)),
   }
 
+  def dataImport(state:GlobalState) = {
+    val urlImporter = Handler.create[String].unsafeRunSync()
+    def importGithubUrl(url: String) = {
+      println(s"call client api importGithubUrl $url")
+      Client.api.importGithubUrl(url).call().foreach(res => println("Api call succeeded: " + res.toString))
+    }
+
     div(
       "Import",
       fontWeight.bold,
       fontSize := "20px",
       marginBottom := "10px",
+      input(tpe := "text", width:= "100%", onInputString --> urlImporter),
+      button("GitHub Issue", width := "100%", onClick(urlImporter) --> ((url:String) => importGithubUrl(url))),
     )
   }
 
