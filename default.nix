@@ -6,6 +6,7 @@ in
   pkgs.stdenv.mkDerivation {
     name = "Woost";
     buildInputs = with pkgs; [
+      scala
       sbt
       docker docker_compose
       nodejs yarn
