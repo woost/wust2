@@ -18,7 +18,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     //TODO permissions
 
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-      changes.foldLeft(Future.successful(true)){ (previous, changes) =>
+      changes.foldLeft(Future.successful(true)){ (previousSuccess, changes) =>
         import changes.consistent._
 
         val postsWithUser: Set[Post] =
@@ -27,7 +27,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
             post.copy(author = user.id)
           };
 
-        previous.flatMap { success =>
+        previousSuccess.flatMap { success =>
           if (success) {
             for {
               true <- db.post.createPublic(postsWithUser)
