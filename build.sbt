@@ -216,7 +216,7 @@ lazy val backend = project
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       // "com.47deg" %% "github4s" % "0.17.0" :: // only temporarly here
-      "io.github.GRBurst" % "github4s" % "aa684f7" ::
+      "io.github.GRBurst" % "github4s" % "73cef89" ::
       Nil,
 
     javaOptions in reStart += "-Xmx50m"

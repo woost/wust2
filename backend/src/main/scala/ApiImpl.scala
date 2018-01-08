@@ -198,14 +198,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
                 issueNumber match {
                   case Some(inum) if inum != issue.number => {
                     (Set.empty[Post], Set.empty[Connection])
-                  }
+              }
                   case _ => {
-                    val userId = UserId(issue.user match {
-                      case None => 1
-                      case Some(githubUser: GHUser) => githubUser.id
-                    }) //TODO: create this user
-                    val tempUserId = user.id
-                    val title = Post(PostId(issue.id.toString), issue.title, tempUserId)
+            val userId = UserId(issue.user match {
+              case None => 1
+              case Some(githubUser: GHUser) => githubUser.id
+            }) //TODO: create this user
+            val tempUserId = user.id
+            val title = Post(PostId(issue.id.toString), issue.title, tempUserId)
                     val body = Post(PostId(issue.number.toString), issue.body, tempUserId)
                     val conn = Connection(body.id, Label.parent, title.id)
                     val cont = Connection(title.id, "title", body.id)
@@ -214,7 +214,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
                     val pair: (Set[Post], Set[Connection]) = (Set[Post](title, body), Set[Connection](conn, cont))
                     // println(s"pair: $pair")
                     pair
-                  }
+        }
                 }
               }.toSet
               // println(s"tuples: $tuples")
@@ -227,9 +227,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           // println(s"conns: ${conns.flatten}")
           (posts.flatten, conns.flatten)
 
-        }
-        res
       }
+        res
+    }
     }
 
     // TODO: Reuse graph changes instead
@@ -256,6 +256,13 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         } yield true
       }
     }
+    // val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    // val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
+    //   for {
+    //     true <- db.post.createPublic(postsOfUrl)
+    //   } yield true
+
+    // }
 
     result.recover {
       case NonFatal(t) =>
@@ -266,4 +273,26 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   }
 
+  def importGitterUrl(url: String): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
+
+    // object GitHubImporter {
+
+    // }
+
+    // TODO: Reuse graph changes instead
+    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
+      for {
+        true <- db.post.createPublic(postsOfUrl)
+      } yield true
+
+    }
+    result.recover {
+      case NonFatal(t) =>
+        scribe.error(s"unexpected error in import")
+        scribe.error(t)
+        false
+    } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
+  }
+    
 }
