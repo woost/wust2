@@ -20,6 +20,7 @@ trait Api {
 
   def importGithubUrl(url: String): Future[Boolean]
   def importGitterUrl(url: String): Future[Boolean]
+  def getRestructuringTask(): Future[RestructuringTask]
 }
 
 case class ApiException(error: ApiError) extends Exception {

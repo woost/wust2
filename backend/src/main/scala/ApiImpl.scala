@@ -195,7 +195,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       val gitAccessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
 
       def getIssues(owner: String = "GRBurst", repo: String = "purple-gnome-keyring", issueNumber: Option[Int] = None): Future[(Set[Post], Set[Connection])] = {
-        
+
         val emptyResult = (Set.empty[Post], Set.empty[Connection])
 
         val issueList: Future[List[Issue]] =
@@ -214,7 +214,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
         val issueWithComments: Future[List[(Issue, List[Comment])]] = {
           issueList.flatMap( inner => Future.sequence(inner.map( issue => {
-            val issueComments: Future[(Issue, List[Comment])] = 
+            val issueComments: Future[(Issue, List[Comment])] =
               Github(gitAccessToken).issues.listComments(owner, repo, issue.number)
                 .execFuture[HttpResponse[String]]().map( response => response match {
                   case Right(GHResult(result, _, _)) => (issue, result)
@@ -338,5 +338,11 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
         false
     } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
-    
+
+  def getRestructuringTask(): Future[RestructuringTask] = {
+
+    Future { RestructuringTaskChooser()}
+
+  }
+
 }
