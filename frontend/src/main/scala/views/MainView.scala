@@ -2,7 +2,7 @@ package wust.frontend.views
 
 import autowire._
 import boopickle.Default._
-import org.scalajs.dom.{Element, Event, console, document, window}
+import org.scalajs.dom.{Element, Event, console, document, window, MouseEvent}
 import org.scalajs.dom.window.location
 // import wust.util.tags._
 import wust.frontend.Color._
@@ -430,6 +430,8 @@ object MainView {
       br(),
       dataImport(state),
       br(),
+      taskDisplay(state),
+      br(),
       channels(state),
     )
   }
@@ -480,13 +482,57 @@ object MainView {
     )
   }
 
+  def taskDisplay(state: GlobalState) = {
+    // val taskDisplayer = Handler.create[MouseEvent].unsafeRunSync()
+    val taskDisplayer = Handler.create[Boolean].unsafeRunSync()
+    
+    val show = taskDisplayer.map(d => {
+      println(s"display task! ${d.toString}")
+      if(d == true) {
+        div(
+          // show,
+          div(
+            span("&times;", onClick(false) --> taskDisplayer),
+            p("Task text"),
+            margin := "15% auto",
+            padding := "20px",
+            border := "1px solid #888",
+            width := "80%"
+          ),
+        position.fixed,
+        overflow.auto,
+        zIndex := 1000,
+        left := "0",
+        top := "0",
+        width := "100%",
+        height := "100%",
+        backgroundColor := "red",
+        )
+    } else {
+      div(
+        // show,
+        backgroundColor := "black",
+        span("Tasks"),
+        fontWeight.bold,
+        fontSize := "20px",
+        marginBottom := "10px",
+        button("Task me!", width := "100%", onClick(true) --> taskDisplayer),
+        ),
+      }
+    })
+
+    div(
+      child <-- show,
+    )
+  }
+
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner) = {
     div(
       id := "pagegrid",
 
       sidebar(state),
-      ChatView(state),
       new GraphView().apply(state),
+      ChatView(state),
 
       // feedbackForm (state),
       // DevOnly { devPeek(state) },
