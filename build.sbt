@@ -217,6 +217,7 @@ lazy val backend = project
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       // "com.47deg" %% "github4s" % "0.17.0" :: // only temporarly here
       "io.github.GRBurst.github4s" %% "github4s" % "73cef89" :: // master + comments
+      "com.github.xuwei-k" %% "gitter-scala" % "0.3.0" ::
       Nil,
 
     javaOptions in reStart += "-Xmx50m"

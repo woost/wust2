@@ -19,6 +19,7 @@ trait Api {
   def acceptGroupInvite(token: String): Future[Option[GroupId]]
 
   def importGithubUrl(url: String): Future[Boolean]
+  def importGitterUrl(url: String): Future[Boolean]
 }
 
 case class ApiException(error: ApiError) extends Exception {

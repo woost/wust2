@@ -14,6 +14,15 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   import dsl._
   import holder._
 
+  // TODO: Abstract over user id
+  // private def enrichPostWithUser(posts: Set[Post]) = withUserOrImplicit { (_, user, wasCreated) =>
+  //     posts.map { post =>
+  //       if(!wasCreated) assert(post.author == user.id, s"(Post author id) ${post.author} != ${user.id} (user id)")
+  //       post.copy(author = user.id)
+  //     }
+  // }
+  // TODO: createPost function for api
+
   override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, user, wasCreated) =>
     //TODO permissions
 
@@ -247,14 +256,14 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
             (posts, connections)
 
           }).toSet)
-            }
+        }
 
         postAndConnection.map(zipped => {
           val (posts, conns) = zipped.unzip
           (posts.flatten, conns.flatten)
         })
 
-    }
+      }
     }
 
     // TODO: Reuse graph changes instead
@@ -299,12 +308,23 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   def importGitterUrl(url: String): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
 
-    // object GitHubImporter {
+    object GitterImporter {
+      import gitter._
 
-    // }
+      def getMessages(roomId: String = "5a2c177dd73408ce4f828d9d") = {
+//        val res: FreeF[IList[Message]] = Gitter.messages(roomId)
+//        val res = Gitter.messages(roomId)
+          println(Gitter.messages(roomId))
+//        for {
+//          msgList <- res
+//        } yield println(msgList.toString())
+      }
+
+    }
 
     // TODO: Reuse graph changes instead
     val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    GitterImporter.getMessages()
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
       for {
         true <- db.post.createPublic(postsOfUrl)

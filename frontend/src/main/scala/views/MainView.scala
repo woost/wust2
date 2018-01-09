@@ -464,6 +464,10 @@ object MainView {
       println(s"call client api importGithubUrl $url")
       Client.api.importGithubUrl(url).call().foreach(res => println("Api call succeeded: " + res.toString))
     }
+    def importGitterUrl(url: String) = {
+      println(s"call client api importGitterUrl $url")
+      Client.api.importGitterUrl(url).call().foreach(res => println("Api call succeeded: " + res.toString))
+    }
 
     div(
       "Import",
@@ -472,6 +476,7 @@ object MainView {
       marginBottom := "10px",
       input(tpe := "text", width:= "100%", onInputString --> urlImporter),
       button("GitHub Issue", width := "100%", onClick(urlImporter) --> ((url:String) => importGithubUrl(url))),
+      button("Gitter", width := "100%", onClick(urlImporter) --> ((url:String) => importGitterUrl(url))),
     )
   }
 
