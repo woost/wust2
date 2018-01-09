@@ -19,7 +19,6 @@ val quillVersion = "2.3.1"
 val outwatch = "io.github.GRBurst" % "outwatch" % "0b6af6e"
 val dualityVersion =  "9dd5e01649"
 val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
-val delegert = "io.github.cornerman" %% "delegert" % "b74ccf6" % "provided"
 
 
 lazy val commonSettings = Seq(
@@ -214,7 +213,6 @@ lazy val backend = project
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       derive ::
-      delegert ::
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       Nil,
@@ -236,7 +234,6 @@ lazy val frontend = project
       "com.github.fdietze" %% "scala-js-d3v4" % "579b9df" ::
       "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
       derive ::
-      delegert ::
       Nil
     ),
     npmDependencies in Compile ++= (
