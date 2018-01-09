@@ -11,6 +11,7 @@ import monix.execution.Ack.Continue
 import monix.execution.Scheduler.Implicits.global
 import outwatch.dom.{Handler, OutWatch, VNode}
 import outwatch.{ObserverSink, Sink}
+import monix.execution.Scheduler
 import rx._
 
 import scala.scalajs.js
@@ -22,10 +23,6 @@ import scala.scalajs.js
 //
 // observable.filter does not accept partial functions.filter{case (_,text) => text.nonEmpty}
 //
-// like Handler, Subject needs to be wrapped in IO
-//
-// handler[A].map(A => B) should return Sink[A] with Observable[B]
-
 
 package object outwatchHelpers {
 
@@ -70,52 +67,34 @@ package object outwatchHelpers {
     }
   }
 
-//     implicit class RxSubjectBehavior[T](obs:subjects.BehaviorSubject[T])(implicit ctx: rx.Ctx.Owner) {
-//     def toRx:rx.Rx[T] = {
-//       val rx = Var[T](obs.value)
-//       obs(rx() = _)
-//       rx
-//     }
-//   }
-
-
-  implicit class RichVNode(val vNode:VNode) {
-    def render:org.scalajs.dom.Element = {
+  implicit class RichVNode(val vNode: VNode) {
+    def render: org.scalajs.dom.Element = {
       val elem = document.createElement("div")
       OutWatch.renderReplace(elem, vNode).unsafeRunSync()
       elem
     }
   }
 
-  // implicit class RichVNodeIO(val vNode:IO[VNode]) {
-  //   def render:org.scalajs.dom.Element = {
-  //     val elem = document.createElement("div")
-  //     vNode.flatMap(vNode => outwatch.dom.helpers.DomUtils.render(elem, vNode)).unsafeRunSync
-  //     elem
-  //   }
-  // }
+  implicit class RichHandler[T](val o: Handler[T]) extends AnyVal {
+    def toVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
+      val rx = Var[T](seed)
+      o.foreach(rx() = _)
+      val sink = unsafeSink(o)
+      rx.foreach(sink.observer.onNext)
+      rx
+    }
+  }
 
-
- implicit class RichHandler[T](val o:Handler[T]) extends AnyVal {
-   def toVar(seed:T)(implicit ctx: Ctx.Owner):rx.Var[T] = {
-     val rx = Var[T](seed)
-     o.foreach(rx() = _)
-     val sink = unsafeSink(o)
-     rx.foreach(sink.observer.onNext)
-     rx
-   }
- }
-
-  implicit class RichObservable[T](val o:Observable[T]) extends AnyVal {
-    def toRx(seed:T)(implicit ctx: Ctx.Owner):rx.Rx[T] = {
+  implicit class RichObservable[T](val o: Observable[T]) extends AnyVal {
+    def toRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {
       val rx = Var[T](seed)
       o.foreach(rx() = _)
       rx
     }
 
     //TODO: still needed with monix?
-    def replaceWithLatestFrom[R](o2:Observable[R]):Observable[R] = {
-      o.withLatestFrom(o2)((_,second) => second)
+    def replaceWithLatestFrom[R](o2: Observable[R]): Observable[R] = {
+      o.withLatestFrom(o2)((_, second) => second)
     }
 
     // def bufferUnless(predicates: Observable[Boolean]):Observable[List[T]] = {
@@ -143,18 +122,10 @@ package object outwatchHelpers {
     }
   }
 
-//  implicit def FuncToSink[T,R](f: => R):outwatch.Sink[T] = {
-//    //TODO: outwatch: accept function => Any or R
-//    outwatch.Sink.create[T](e => {IO{f; Continue}})
-//  }
-
-  implicit def FuncToSink[T,R](f:T => R):outwatch.Sink[T] = {
-    //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[T](e => {IO{f(e);  Continue}})
-  }
-
-  implicit def ElementFuncToSink2[R](f:Element => R):outwatch.Sink[(Element,Element)] = {
-    //TODO: outwatch: accept function => Any or R
-    outwatch.Sink.create[(Element,Element)]{case (_, after) =>  IO{f(after); Continue} }
-  }
+  def sideEffect[T](f: T => Unit)(implicit s: Scheduler): Sink[T] = Sink.create[T] { e =>
+    IO {
+      f(e)
+      Continue
+    }
+  }(s)
 }

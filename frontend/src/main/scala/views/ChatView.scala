@@ -1,11 +1,13 @@
 package wust.frontend.views
 
+import org.scalajs.dom
 import org.scalajs.dom.raw.Element
 import outwatch.Sink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend._
 import wust.frontend.views.Elements._
+import monix.execution.Scheduler.Implicits.global
 import wust.graph._
 import wust.ids.PostId
 import wust.util.outwatchHelpers._
@@ -71,12 +73,7 @@ object ChatView extends View {
       padding := "20px",
 
       children <-- chronologicalPosts.combineLatestMap(graph)((posts, graph) => posts.map(chatMessage(_, page, ownPosts, graph))),
-
-      //TODO: the update hook triggers too early. Try the postpatch-hook from snabbdom instead
-      onPostpatch --> { (e: Element) =>
-        println("postpatch hook");
-        scrollToBottom(e)
-      }
+      onPostpatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
 

@@ -29,9 +29,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
     div(
       height := "100%",
       backgroundColor <-- state.pageStyle.map(_.bgColor),
-      onInsert --> { (e:dom.Element) =>
-        new GraphViewInstance(state, e, disableSimulation)
-      }
+      onInsert --> sideEffect(new GraphViewInstance(state, _, disableSimulation))
     )
   }
 }
