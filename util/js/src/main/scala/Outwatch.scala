@@ -121,11 +121,4 @@ package object outwatchHelpers {
       o
     }
   }
-
-  def sideEffect[T](f: T => Unit)(implicit s: Scheduler): Sink[T] = Sink.create[T] { e =>
-    IO {
-      f(e)
-      Continue
-    }
-  }(s)
 }

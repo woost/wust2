@@ -28,7 +28,7 @@ case class PostCreatorMenu(pos: Vec2) {
 class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._
-  import ClientCache.storage
+  import Client.storage
 
   val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode

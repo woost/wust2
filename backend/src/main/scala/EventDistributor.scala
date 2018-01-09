@@ -2,8 +2,8 @@ package wust.backend
 
 import wust.api._
 import wust.db.Db
-import wust.framework._
 import wust.ids._
+import mycelium.server._
 
 import scala.collection.mutable
 import scala.concurrent.{Future, ExecutionContext}
@@ -22,14 +22,14 @@ class EventDistributor(db: Db) {
     subscribers -= client
   }
 
-  def publish(origin: ClientIdentity, events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = {
+  def publish(origin: NotifiableClient[RequestEvent], events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
     val postIds = events.flatMap(postIdsInEvent _).toSet
     for {
       postGroups <- getGroupIds(postIds)
-    } yield {
-      subscribers.foreach(_.notify(origin, RequestEvent(events, postGroups)))
+    } yield subscribers.foreach { client =>
+      if (client != origin) client.notify(RequestEvent(events, postGroups))
     }
   }
 
@@ -46,7 +46,7 @@ class EventDistributor(db: Db) {
   }
 
   private def postIdsInEvent(event: ApiEvent): Set[PostId] = event match {
-    case NewGraphChanges(changes) => changes.addPosts.map(_.id) ++ changes.updatePosts.map(_.id) ++ changes.delPosts
+    case ApiEvent.NewGraphChanges(changes) => changes.addPosts.map(_.id) ++ changes.updatePosts.map(_.id) ++ changes.delPosts
     case _ => Set.empty
   }
 }

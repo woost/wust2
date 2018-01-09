@@ -23,34 +23,37 @@ trait Api {
   def getRestructuringTask(): Future[RestructuringTask]
 }
 
-case class ApiException(error: ApiError) extends Exception {
-  override def toString = error.toString
-}
-
+case class ApiException(error: ApiError) extends Exception
 sealed trait ApiError
-case object InternalServerError extends ApiError
-case class NotFound(path: Seq[String]) extends ApiError
-case object Unauthorized extends ApiError
+object ApiError {
+  case object InternalServerError extends ApiError
+  case class NotFound(path: Seq[String]) extends ApiError
+  case class ProtocolError(msg: String) extends ApiError
+  case object Unauthorized extends ApiError
+}
 
 sealed trait ApiEvent
 object ApiEvent {
   sealed trait Public extends ApiEvent
   sealed trait Private extends ApiEvent
+
+  //TODO: move into object ApiEvent
+  final case class NewUser(user: User) extends Public with Private
+  final case class NewGroup(group: Group) extends Public with Private
+  final case class NewMembership(membership: Membership) extends Public with Private
+  final case class NewGraphChanges(changes: GraphChanges) extends Public {
+    override def toString = s"NewGraphChanges(#changes: ${changes.size})"
+  }
+  final case class LoggedIn(auth: Authentication) extends Private
+  final case object LoggedOut extends Private
+  final case class ReplaceGraph(graph: Graph) extends Private {
+    override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
+  }
 }
 
-final case class NewUser(user: User) extends ApiEvent.Public with ApiEvent.Private
-final case class NewGroup(group: Group) extends ApiEvent.Public with ApiEvent.Private
-final case class NewMembership(membership: Membership) extends ApiEvent.Public with ApiEvent.Private
-final case class NewGraphChanges(changes: GraphChanges) extends ApiEvent.Public {
-  override def toString = s"NewGraphChanges(#changes: ${changes.size})"
-}
-final case class LoggedIn(auth: Authentication) extends ApiEvent.Private
-final case object LoggedOut extends ApiEvent.Private
-final case class ReplaceGraph(graph: Graph) extends ApiEvent.Private {
-  override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
-}
 
 trait AuthApi {
+  //TODO: simplify implicit login by handshake with a token or userid and an initial graph. persist new implicit user when used first time.
   def register(name: String, password: String): Future[Boolean]
   def login(name: String, password: String): Future[Boolean]
   def loginToken(token: Authentication.Token): Future[Boolean]

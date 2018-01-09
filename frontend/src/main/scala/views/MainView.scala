@@ -1,6 +1,5 @@
 package wust.frontend.views
 
-import autowire._
 import boopickle.Default._
 import org.scalajs.dom.{Element, Event, console, document, window, MouseEvent}
 import org.scalajs.dom.window.location
@@ -88,7 +87,7 @@ object MainView {
   //        if (value == "public") {
   //          state.selectedGroupId() = None
   //        } else if (value == "newgroup") {
-  //          Client.api.addGroup().call().foreach { group =>
+  //          Client.api.addGroup().foreach { group =>
   //            state.selectedGroupId() = Option(group)
   //          }
   //        } else { // probably groupId
@@ -104,7 +103,7 @@ object MainView {
   //  button("new group", onclick := { () =>
   //    val groupNameOpt = Option(window.prompt("Enter a name for the group", "New Group"))
   //    groupNameOpt.foreach { groupName =>
-  //      Client.api.addGroup().call().onComplete {
+  //      Client.api.addGroup().onComplete {
   //        case Success(groupId) =>
   //          val newPost = Post.newId(groupName)
   //          state.persistence.addChanges(
@@ -151,7 +150,7 @@ object MainView {
   //    val field = input(tpe := "text", placeholder := "invite user by name").render
   //    form(field, input(tpe := "submit", value := "invite"), onsubmit := { () =>
   //      val userName = field.value
-  //      state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).call().foreach { success =>
+  //      state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).foreach { success =>
   //        field.value = ""
   //        Analytics.sendEvent("group", "invitebyname", if (success) "success" else "failure")
   //      })
@@ -166,7 +165,7 @@ object MainView {
   //  Rx {
   //    state.selectedGroupId() match {
   //      case Some(groupId) =>
-  //        Client.api.getGroupInviteToken(groupId).call().foreach {
+  //        Client.api.getGroupInviteToken(groupId).foreach {
   //          //TODO: we should not construct absolute paths here
   //          case Some(token) => inviteLink() = Some(s"${location.href.split("#").head}#${ViewConfig.toHash(state.viewConfig())}&invite=$token")
   //          case None        =>
@@ -464,11 +463,11 @@ object MainView {
     val urlImporter = Handler.create[String].unsafeRunSync()
     def importGithubUrl(url: String) = {
       println(s"call client api importGithubUrl $url")
-      Client.api.importGithubUrl(url).call().foreach(res => println("Api call succeeded: " + res.toString))
+      Client.api.importGithubUrl(url).foreach(res => println("Api call succeeded: " + res.toString))
     }
     def importGitterUrl(url: String) = {
       println(s"call client api importGitterUrl $url")
-      Client.api.importGitterUrl(url).call().foreach(res => println("Api call succeeded: " + res.toString))
+      Client.api.importGitterUrl(url).foreach(res => println("Api call succeeded: " + res.toString))
     }
 
     div(

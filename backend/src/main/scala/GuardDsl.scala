@@ -17,7 +17,7 @@ class GuardDsl(createImplicitAuth: () => Future[Option[JWTAuthentication]])(impl
   }
 
   private def userOrFail(auth: Option[JWTAuthentication]): User =
-    auth.map(_.user).getOrElse(throw ApiException(Unauthorized))
+    auth.map(_.user).getOrElse(throw ApiException(ApiError.Unauthorized))
 
   def withUser[T](f: (State, User) => Future[RequestResponse[T, ApiEvent]]): State => Future[RequestResponse[T, ApiEvent]] = state => {
     val user = userOrFail(state.auth)

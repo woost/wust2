@@ -7,7 +7,8 @@ version in ThisBuild ~= (_.replace('+', '-'))
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
 scalaVersion in ThisBuild := "2.12.4"
-val akkaVersion = "2.4.20"
+import Def.{setting => dep}
+
 val akkaHttpVersion = "10.0.11"
 val circeVersion = "0.9.0-M3" //jwt: "0.8.0"
 val specs2Version = "4.0.2"
@@ -16,16 +17,18 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "2.3.1"
-val outwatch = "io.github.GRBurst" % "outwatch" % "0b6af6e"
+val outwatch = "io.github.GRBurst" % "outwatch" % "09b622b"
 val dualityVersion =  "9dd5e01649"
 val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
 
+val slothVersion = "ada51f9"
+val slothBoopickle = dep("io.github.cornerman.sloth" %%% "sloth-boopickle" % slothVersion)
+val slothMycelium = dep("io.github.cornerman.sloth" %%% "sloth-mycelium" % slothVersion)
 
 lazy val commonSettings = Seq(
   resolvers ++= (
     /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
     /* Resolver.jcenterRepo :: */
-    Resolver.bintrayRepo("daxten", "maven") :: // for Daxten/autowire
     ("jitpack" at "https://jitpack.io") ::
     Nil
   ),
@@ -74,7 +77,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
+  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
   .settings(
     publish := {},
     publishLocal := {},
@@ -88,15 +91,15 @@ lazy val root = project.in(file("."))
     addCommandAlias("devf", "; project root; compile; backend/reStart; project frontend; fastOptJS::startWebpackDevServer; devfwatch; devstop; backend/reStop"),
     addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
-    addCommandAlias("testJS", "; utilJS/test; graphJS/test; frameworkJS/test; apiJS/test; frontend/test"),
+    addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; frontend/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; frameworkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test"),
 
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
-    // watchSources := Seq(apiJS, apiJVM, database, backend, frameworkJS, frameworkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in frameworkJS).value ++ (watchSources in frameworkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
+    // watchSources := Seq(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
   )
 
 lazy val util = crossProject
@@ -118,33 +121,19 @@ lazy val util = crossProject
 lazy val utilJS = util.js
 lazy val utilJVM = util.jvm
 
-lazy val framework = crossProject
-  .dependsOn(util)
+lazy val sdk = crossProject
+  .dependsOn(api)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
-      "de.daxten" %%% "autowire" % "0.3.3" ::
-      "io.suzaku" %%% "boopickle" % boopickleVersion ::
-      Nil
-    )
-  )
-  .jvmSettings(
-    libraryDependencies ++= (
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion ::
-      "com.typesafe.akka" %% "akka-actor" % akkaVersion ::
-      "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test" ::
-      Nil
-    )
-  )
-  .jsSettings(
-    libraryDependencies ++= (
-      "org.scala-js" %%% "scalajs-dom" % "0.9.3" ::
+      slothMycelium.value ::
+      slothBoopickle.value ::
       Nil
     )
   )
 
-lazy val frameworkJS = framework.js
-lazy val frameworkJVM = framework.jvm
+lazy val sdkJS = sdk.js
+lazy val sdkJVM = sdk.jvm
 
 lazy val ids = crossProject
   .settings(commonSettings)
@@ -200,11 +189,13 @@ lazy val database = project
 
 lazy val backend = project
   .settings(commonSettings)
-  .dependsOn(frameworkJVM, apiJVM, database)
+  .dependsOn(apiJVM, database)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(
     libraryDependencies ++=
+      slothBoopickle.value ::
+      slothMycelium.value ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "com.pauldijou" %% "jwt-circe" % "0.14.1" ::
@@ -228,7 +219,7 @@ lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files t
 
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(frameworkJS, apiJS, utilJS)
+  .dependsOn(sdkJS, utilJS)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= (
@@ -281,7 +272,7 @@ lazy val frontend = project
 
 lazy val slackApp = project
   .settings(commonSettings)
-  .dependsOn(frameworkJVM, apiJVM, utilJVM)
+  .dependsOn(sdkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       "cool.graph" % "cuid-java" % "0.1.1" ::
@@ -325,7 +316,6 @@ lazy val systemTest = project
   .settings(
     libraryDependencies ++=
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion % "it" ::
-      "com.typesafe.akka" %% "akka-actor" % akkaVersion % "it" ::
       "org.specs2" %% "specs2-core" % specs2Version % "it" ::
       "org.seleniumhq.selenium" % "selenium-java" % "3.3.1" % "it" ::
       Nil,

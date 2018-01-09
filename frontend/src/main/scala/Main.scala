@@ -1,48 +1,30 @@
 package wust.frontend
 
-import autowire._
 import boopickle.Default._
-import monix.execution.Cancelable
-import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom._
 import wust.util.Analytics
 import wust.api.ApiEvent
 import wust.ids._
 import wust.graph.{Graph, Page}
-import wust.framework._
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 
 import monix.execution.Scheduler.Implicits.global
-import scala.scalajs.js
-import scala.scalajs.js.annotation._
 import scala.util.Success
 import concurrent.Future
 import wust.util.outwatchHelpers._
 import rx.Ctx
-
-@js.native
-@JSGlobal("wustConfig")
-object Config extends js.Object {
-  val wsPort: js.UndefOr[Int] = js.native
-}
 
 object Main {
 
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-    import window.location
-    val protocol = if (location.protocol == "https:") "wss" else "ws"
-    //TODO: proxy with webpack devserver and only configure production port
-    val port = Config.wsPort getOrElse location.port.toInt
-
-    val apiEventHandler = Handler.create[Seq[ApiEvent]]().unsafeRunSync()
-    val state = new GlobalState(apiEventHandler)
+    val state = new GlobalState(Client.eventObservable)
 
     def getNewGraph(selection: Page) = {
       //TODO ???
-      // Client.api.getGraph(selection).call().foreach { newGraph =>
+      // Client.api.getGraph(selection).foreach { newGraph =>
       //   val oldSelectionGraph = selection match {
       //     case GraphSelection.Union(ids) => state.rawGraph.now.filter(ids)
       //     case _                         => Graph.empty
@@ -67,47 +49,22 @@ object Main {
     // The first thing to be sent should be the auth-token
     // TODO: Reactive?
     {
-      val loginSuccess = ClientCache.storage.token.now match {
-        case Some(token) => Client.auth.loginToken(token).call()
+      val loginSuccess = Client.storage.token.now match {
+        case Some(token) => Client.auth.loginToken(token)
         case None => Future.successful(false)
       }
 
       loginSuccess.foreach { _ =>
         state.inner.currentAuth.foreach { auth =>
-          ClientCache.storage.token() = auth.map(_.token)
+          Client.storage.token() = auth.map(_.token)
         }
       }
-    }
-
-
-    {
-      val observable = Observable.create[Seq[ApiEvent]](Unbounded) { observer =>
-        Client.run(s"$protocol://${location.hostname}:$port/ws", new ApiIncidentHandler {
-          override def onConnect(isReconnect: Boolean): Unit = {
-            println(s"Connected to websocket")
-
-            if (isReconnect) {
-              state.inner.currentAuth.now.foreach { auth =>
-                Client.auth.loginToken(auth.token).call()
-              }
-
-              //TODO
-              // getNewGraph(state.rawGraphSelection.now)
-            }
-          }
-
-          override def onEvents(events: Seq[ApiEvent]): Unit = observer.onNext(events)//state.onEvents(events)
-        })
-        Cancelable()
-      }
-
-      (apiEventHandler <-- observable).unsafeRunSync()
     }
 
     state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)).foreach {
       case (prevViewConfig, viewConfig) =>
         viewConfig.invite foreach { token =>
-          Client.api.acceptGroupInvite(token).call().onComplete {
+          Client.api.acceptGroupInvite(token).onComplete {
             case Success(Some(_)) =>
               Analytics.sendEvent("group", "invitelink", "success")
             case failedResult =>

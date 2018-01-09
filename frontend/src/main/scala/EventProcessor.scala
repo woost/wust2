@@ -3,8 +3,7 @@ package wust.frontend
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
-import wust.api._
-import autowire._
+import wust.api._, ApiEvent._
 import boopickle.Default._
 import io.circe.Decoder.state
 import outwatch.Sink
@@ -91,7 +90,7 @@ object EventProcessor {
 
 class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig], val currentAuth: Observable[Option[Authentication]], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
   import monix.execution.Scheduler.Implicits.global
-  // import ClientCache.storage
+  // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
   object enriched extends ChangeHandlers(currentUser)
@@ -184,7 +183,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
   }
 
   private def sendChanges(changes: List[GraphChanges]): Future[Boolean] = {
-    Client.api.changeGraph(changes).call().transform {
+    Client.api.changeGraph(changes).transform {
       case Success(success) =>
         if (success) {
           val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)

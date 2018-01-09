@@ -3,18 +3,16 @@ package wust.slack
 import slack.SlackUtil
 import slack.models._
 import slack.rtm.SlackRtmClient
-import akka.actor.ActorSystem
-import autowire._
-import boopickle.Default._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
+import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
-import wust.graph._
-import wust.framework._
+import mycelium.client.IncidentHandler
 
-import scala.util.{Success, Failure}
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 object Constants {
@@ -30,7 +28,7 @@ trait MessageReceiver {
   def push(msg: ExchangeMessage, author: UserId): Result[Post]
 }
 
-class WustReceiver(client: WustClient) extends MessageReceiver {
+class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
   import cool.graph.cuid.Cuid
 
   def push(msg: ExchangeMessage, author: UserId) = {
@@ -40,7 +38,7 @@ class WustReceiver(client: WustClient) extends MessageReceiver {
     val connection = Connection(id, Label.parent, Constants.slackId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
-    client.api.changeGraph(changes).call().map { success =>
+    client.api.changeGraph(changes).map { success =>
       if (success) Right(post)
       else Left("Failed to create post")
     }
@@ -50,15 +48,16 @@ class WustReceiver(client: WustClient) extends MessageReceiver {
 object WustReceiver {
   type Result[T] = Either[String, T]
 
-  def run(config: WustConfig, slack: SlackClient): Future[Result[WustReceiver]] = {
+  def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext): Future[Result[WustReceiver]] = {
     implicit val system = ActorSystem("wust")
+    implicit val materializer = ActorMaterializer()
 
     val location = s"ws://${config.host}:8080/ws"
-    val handler = new ApiIncidentHandler {
+    val handler = new IncidentHandler[ApiEvent] {
       override def onConnect(isReconnect: Boolean): Unit = println(s"Connected to websocket")
       override def onEvents(events: Seq[ApiEvent]): Unit = {
         println(s"Got events: $events")
-        val changes = events collect { case NewGraphChanges(changes) => changes }
+        val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
         val posts = changes.flatMap(_.addPosts)
         posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
           slack.send(msg).foreach { success =>
@@ -70,15 +69,14 @@ object WustReceiver {
     val client = WustClient(location, handler)
 
     val res = for {
-      loggedIn <- client.auth.login(config.user, config.password).call()
+      loggedIn <- client.auth.login(config.user, config.password)
       if loggedIn
-      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", UserId(1)))))).call()
+      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", UserId(1))))))
       if changed
-      graph <- client.api.getGraph(Page.Root).call()
+      graph <- client.api.getGraph(Page.Root)
     } yield Right(new WustReceiver(client))
 
     res recover { case e =>
-      client.stop()
       system.terminate()
       Left(e.getMessage)
     }
@@ -86,7 +84,7 @@ object WustReceiver {
 }
 
 
-class SlackClient(client: SlackRtmClient) {
+class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
 
   def send(msg: ExchangeMessage): Future[Boolean] = {
     val channelId = client.state.getChannelIdForName("general").get //TODO
@@ -98,7 +96,7 @@ class SlackClient(client: SlackRtmClient) {
       .recover { case NonFatal(_) => false }
   }
 
-  def run(receiver: MessageReceiver) = {
+  def run(receiver: MessageReceiver): Unit = {
     val selfId = client.state.self.id
     client.onEvent {
       case e: Message =>
@@ -122,7 +120,7 @@ class SlackClient(client: SlackRtmClient) {
 }
 
 object SlackClient {
-  def apply(accessToken: String): SlackClient = {
+  def apply(accessToken: String)(implicit ec: ExecutionContext): SlackClient = {
     implicit val system = ActorSystem("slack")
     val client = SlackRtmClient(accessToken)
     new SlackClient(client)
@@ -130,6 +128,8 @@ object SlackClient {
 }
 
 object App extends scala.App {
+  import scala.concurrent.ExecutionContext.Implicits.global
+
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>

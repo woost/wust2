@@ -1,6 +1,5 @@
 // package wust.frontend.views
 
-// import autowire._
 // import boopickle.Default._
 // import org.scalajs.dom.document
 // import org.scalajs.dom.raw.{HTMLInputElement, HTMLElement}
