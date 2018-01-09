@@ -2,6 +2,8 @@
 
  import org.scalajs.d3v4._
  import wust.frontend._
+ import wust.graph._
+ import wust.util.outwatchHelpers._
 
  object ConnectionLineSelection extends DataSelection[SimConnection] {
    override val tag = "line"
@@ -22,6 +24,7 @@
  }
 
  class ConnectionElementSelection(graphState: GraphState) extends DataSelection[SimConnection] {
+   import graphState.state
 
    override val tag = "div"
    override def enterAppend(element: Selection[SimConnection]): Unit = {
@@ -34,10 +37,8 @@
        .style("pointer-events", "auto") // parent has pointer-events disabled, enable explicitly for the x button.
        .style("cursor", "pointer")
        .on("click", { (e: SimConnection) =>
-
-
          DevPrintln(s"\nDelete Connection: ${e.sourceId} -> ${e.targetId}")
-// TODO        persistence.addChanges(delConnections = Set(e.connection))
+         unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(delConnections = Set(e.connection)))
        })
    }
 
