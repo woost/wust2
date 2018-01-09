@@ -9,7 +9,7 @@ lazy val isCI = sys.env.get("CI").isDefined // set by travis
 scalaVersion in ThisBuild := "2.12.4"
 val akkaVersion = "2.4.20"
 val akkaHttpVersion = "10.0.11"
-val circeVersion = "0.9.0-M3"
+val circeVersion = "0.9.0-M3" //jwt: "0.8.0"
 val specs2Version = "4.0.2"
 val scalaTestVersion = "3.0.4"
 val mockitoVersion = "2.11.0"
@@ -216,7 +216,7 @@ lazy val backend = project
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       // "com.47deg" %% "github4s" % "0.17.0" :: // only temporarly here
-      "io.github.GRBurst" % "github4s" % "73cef89" ::
+      "io.github.GRBurst.github4s" %% "github4s" % "73cef89" :: // master + comments
       Nil,
 
     javaOptions in reStart += "-Xmx50m"
