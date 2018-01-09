@@ -66,7 +66,6 @@ object Graph {
   }
 }
 
-// @wust.util.callLog(println)
 final case class Graph( //TODO: costom pickler over lists instead of maps to save traffic
   postsById:    Map[PostId, Post],
   connectionsByLabel:  Map[Label, Set[Connection]],
