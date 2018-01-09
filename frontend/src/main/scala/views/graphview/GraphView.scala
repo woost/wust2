@@ -87,7 +87,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
 
   val menuSvg = container.append("svg")
   val dragMenuLayer = menuSvg.append("g")
-  // val dragMenuSelection = SelectData.rxDraw(new DragMenuSelection(postDrag.dragActions, d3State), postDrag.closestPosts)(dragMenuLayer.append("g"))
+  val dragMenuSelection = SelectData.rxDraw(new DragMenuSelection(postDrag.dragActions, d3State), postDrag.closestPosts)(dragMenuLayer.append("g"))
 
 //  val controls = {
 //    val iconButton = button(width := "2.5em", padding := "5px 10px")

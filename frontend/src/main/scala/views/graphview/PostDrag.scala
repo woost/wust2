@@ -6,6 +6,8 @@
  import rx._
  import vectory._
  import wust.util.outwatchHelpers._
+ import wust.graph._
+ import wust.ids._
 
  import scala.concurrent.ExecutionContext
  import scala.scalajs.js
@@ -35,32 +37,33 @@
 
  class PostDrag(graphState: GraphState, d3State: D3State, onPostDrag: () => Unit = () => (), onPostDragEnd: () => Unit = () => ())(implicit ec: ExecutionContext) {
    import d3State.{simulation, transform}
+   import graphState.state
 
-//   val dragActions = js.Array(
-//     DragAction("connect", { (dragging: SimPost, target: SimPost) => persistence.addChanges(addConnections = Set(Connection(dragging.id, target.id))) }),
-//     DragAction("insert into", { (dragging: SimPost, target: SimPost) =>
-//       val graph = graphState.state.displayGraphWithParents.now.graph
-//       val containment = Containment(target.id, dragging.id)
-//       val removeContainments = (if (graph.ancestors(target.id).toSet contains dragging.id) { // cycle
-//         Set.empty
-//       } else { // no cycle
-//       val intersectingParents = graph.parents(dragging.id).toSet intersect (graph.ancestors(target.id).toSet ++ graph.descendants(target.id).toSet)
-//         intersectingParents.map(Containment(_, dragging.id)) intersect graph.containments
-//       })
-//       persistence.addChanges(addContainments = Set(containment), delContainments = removeContainments)
-//     }),
-//     DragAction("move into", { (dragging: SimPost, target: SimPost) =>
-//       val contextGraph = graphState.state.displayGraphWithoutParents.now.graph
-//       val newContainments = Set(Containment(target.id, dragging.id))
-//       val removeContainments = (if (graph.ancestors(target.id).toSet contains dragging.id) { // cycle
-//         Set.empty
-//       } else { // no cycle
-//         ( contextGraph.parents(dragging.id) map (Containment(_, dragging.id))) - newContainments.head
-//       })
-//       persistence.addChanges(addContainments = newContainments, delContainments = removeContainments)
-//     })
-//   // DragAction("merge", { (dragging: SimPost, target: SimPost) => /*Client.api.merge(target.id, dragging.id).call()*/ }),
-//   )
+  val dragActions = js.Array(
+    DragAction("connect", { (dragging: SimPost, target: SimPost) => unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(addConnections = Set(Connection(dragging.id, Label("woo"), target.id)))) }),
+    DragAction("insert into", { (dragging: SimPost, target: SimPost) =>
+      val graph = graphState.state.inner.displayGraphWithParents.now.graph
+      val containment = Connection(dragging.id, Label.parent, target.id)
+      val removeContainments:Set[Connection] = (if (graph.ancestors(target.id).toSet contains dragging.id) { // cycle
+        Set.empty
+      } else { // no cycle
+      val intersectingParents = graph.parents(dragging.id).toSet intersect (graph.ancestors(target.id).toSet ++ graph.descendants(target.id).toSet)
+        intersectingParents.map(Connection(dragging.id, Label.parent, _)) intersect graph.containments
+      })
+      unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(addConnections = Set(containment), delConnections = removeContainments))
+    }),
+    DragAction("move into", { (dragging: SimPost, target: SimPost) =>
+      val contextGraph = graphState.state.inner.displayGraphWithoutParents.now.graph
+      val newContainments = Set(Connection(dragging.id, Label.parent, target.id))
+      val removeContainments:Set[Connection] = (if (graph.ancestors(target.id).toSet contains dragging.id) { // cycle
+        Set.empty
+      } else { // no cycle
+        ( contextGraph.parents(dragging.id) map (Connection(dragging.id, Label.parent, _))) - newContainments.head
+      })
+      unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(addConnections = newContainments, delConnections = removeContainments))
+    })
+  // DragAction("merge", { (dragging: SimPost, target: SimPost) => /*Client.api.merge(target.id, dragging.id).call()*/ }),
+  )
 
    private val _draggingPosts: Var[js.Array[SimPost]] = Var(js.Array())
    private val _closestPosts: Var[js.Array[SimPost]] = Var(js.Array())
@@ -124,9 +127,9 @@
      closest match {
        case Some(target) if target.id != dragging.id =>
 
-//         val dragAction = dragActions(target.dropIndex(dragActions.length))
-//         println(s"\nDropped ${dragAction.name}: [${dragging.id}]${dragging.title} -> [${target.id}]${target.title}")
-//         dragAction.action(dragging, target)
+        val dragAction = dragActions(target.dropIndex(dragActions.length))
+        println(s"\nDropped ${dragAction.name}: [${dragging.id}]${dragging.content} -> [${target.id}]${target.content}")
+        dragAction.action(dragging, target)
 
          target.isClosest = false
          dragging.fixedPos = js.undefined
