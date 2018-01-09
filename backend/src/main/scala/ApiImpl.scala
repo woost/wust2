@@ -178,57 +178,82 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     object GitHubImporter {
       import github4s.Github
       import github4s.Github._
+      import github4s.GithubResponses.GHResult
       import github4s.jvm.Implicits._
       import scalaj.http.HttpResponse
       import github4s.free.domain.{Comment, Issue, SearchIssuesResult, User => GHUser}
 
-      val accessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
+      val gitAccessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
 
-      def getIssues(orga: String = "GRBurst", repo: String = "purple-gnome-keyring", issueNumber: Option[Int] = None): Future[(Set[Post], Set[Connection])] = {
+      def getIssues(owner: String = "GRBurst", repo: String = "purple-gnome-keyring", issueNumber: Option[Int] = None): Future[(Set[Post], Set[Connection])] = {
         
-        val listIssues = Github(accessToken).issues.listIssues(orga, repo)
+        val emptyResult = (Set.empty[Post], Set.empty[Connection])
 
-        // val sets: Future[(Set[Post], Set[Connection])] = listIssues.execFuture[HttpResponse[String]]().map {
-        val f_response: Future[github4s.GithubResponses.GHResponse[List[github4s.free.domain.Issue]]] = listIssues.execFuture[HttpResponse[String]]()
-
-        val res:Future[(Set[Post], Set[Connection])] = f_response.map { response => 
-          val zippedTuples: Set[(Set[Post], Set[Connection])] = response.map {
-            right => {
-              val tuples: Set[(Set[Post], Set[Connection])] = right.result.map { issue =>
+        val issueList: Future[List[Issue]] =
+          Github(gitAccessToken).issues.listIssues(owner, repo)
+            .execFuture[HttpResponse[String]]().map ( response => response match {
+              case Right(GHResult(result, _, _)) => result.filter( issue => {
                 issueNumber match {
-                  case Some(inum) if inum != issue.number => {
-                    (Set.empty[Post], Set.empty[Connection])
+                  case Some(inum) if inum != issue.number => false
+                  case _ => true
+              }})
+              case _ => {
+                println("Error getting Issues")
+                List.empty[Issue]
               }
+            })
+
+        val issueWithComments: Future[List[(Issue, List[Comment])]] = {
+          issueList.flatMap( inner => Future.sequence(inner.map( issue => {
+            val issueComments: Future[(Issue, List[Comment])] = 
+              Github(gitAccessToken).issues.listComments(owner, repo, issue.number)
+                .execFuture[HttpResponse[String]]().map( response => response match {
+                  case Right(GHResult(result, _, _)) => (issue, result)
                   case _ => {
+                    println("Error getting Issues")
+                    (issue, List.empty[Comment])
+                  }
+                })
+              issueComments
+          })))
+        }
+
+        val postAndConnection: Future[Set[(Set[Post], Set[Connection])]] = {
+          issueWithComments.map(_.map( issueData => {
+            val issue = issueData._1
+            val commentsList = issueData._2
+
             val userId = UserId(issue.user match {
               case None => 1
               case Some(githubUser: GHUser) => githubUser.id
             }) //TODO: create this user
             val tempUserId = user.id
+
             val title = Post(PostId(issue.id.toString), issue.title, tempUserId)
-                    val body = Post(PostId(issue.number.toString), issue.body, tempUserId)
-                    val conn = Connection(body.id, Label.parent, title.id)
-                    val cont = Connection(title.id, "title", body.id)
-                    val comments = issue.comments_url
-                    println(s"Comments url = $comments")
-                    val pair: (Set[Post], Set[Connection]) = (Set[Post](title, body), Set[Connection](conn, cont))
-                    // println(s"pair: $pair")
-                    pair
-        }
-                }
-              }.toSet
-              // println(s"tuples: $tuples")
-              tuples
+            val desc = Post(PostId(issue.number.toString), issue.body, tempUserId)
+            val cont = Connection(desc.id, Label.parent, title.id)
+            val conn = Connection(desc.id, "describes", title.id)
+
+            val comments: List[(Post, Connection)] = commentsList.map(comment => {
+                val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId)
+                val cconn = Connection(cpost.id, Label.parent, title.id)
+                (cpost, cconn)
+            })
+
+            val (commentPosts, commentConnections) = comments.unzip
+
+            val posts = Set[Post](title, desc) ++ commentPosts.toSet
+            val connections = Set[Connection](conn, cont) ++ commentConnections.toSet
+            (posts, connections)
+
+          }).toSet)
             }
-          }.getOrElse(Set((Set.empty[Post], Set.empty[Connection])))
 
-          val (posts, conns) = zippedTuples.unzip
-          // println(s"posts: ${posts.flatten}")
-          // println(s"conns: ${conns.flatten}")
+        postAndConnection.map(zipped => {
+          val (posts, conns) = zipped.unzip
           (posts.flatten, conns.flatten)
+        })
 
-      }
-        res
     }
     }
 
@@ -242,12 +267,11 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     val issueNum = if (issueNumGiven.isEmpty) None else Some(issueNumGiven(1).toInt)
     val urlData = _url.stripSuffix("/").stripSuffix((if(issueNum.isDefined) issueNum.get.toString else "")).stripSuffix("/").stripSuffix("/issues").split("/")
 
-    println(s"urlData: orga = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum.getOrElse(-1)}")
+    println(s"urlData: owner = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum.getOrElse(-1)}")
 
     assert(urlData.size == 2, "Could not extract url")
-    val postsOfUrl = GitHubImporter.getIssues(urlData(0), urlData(1), issueNum)
 
-    // val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    val postsOfUrl = GitHubImporter.getIssues(urlData(0), urlData(1), issueNum)
     val result: Future[Boolean] = postsOfUrl.flatMap { case (posts, connections) =>
       db.ctx.transaction { implicit ec =>
         for {
