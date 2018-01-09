@@ -29,10 +29,14 @@ object StorageReader {
 
 object StorageWriter {
   def apply(storage: Storage)(key: String): Sink[Option[String]] = {
-    Sink.create[Option[String]](data => data match {
-      case Some(data) => IO{storage.update(key, data); Continue}
-      case None => IO{storage.remove(key); Continue}
-    })
+    Sink.create[Option[String]] {
+      case Some(data) => IO {
+        storage.update(key, data); Continue
+      }
+      case None => IO {
+        storage.remove(key); Continue
+      }
+    }
   }
 }
 
@@ -58,7 +62,7 @@ class ClientStorage(storage: Storage)(implicit owner: Ctx.Owner) {
   val graphChanges: Handler[List[GraphChanges]] = {
     val obs: Observable[List[GraphChanges]] = {
       reader(keys.graphChanges)
-      .map( _.flatMap (fromJson[List[GraphChanges]](_)).getOrElse(Nil))
+      .map( _.flatMap (fromJson[List[GraphChanges]]).getOrElse(Nil))
     }
     val sink: Sink[List[GraphChanges]] = writer(keys.graphChanges) redirectMap {
       changes => Option(toJson(changes))
@@ -69,7 +73,7 @@ class ClientStorage(storage: Storage)(implicit owner: Ctx.Owner) {
   val syncMode: Handler[Option[SyncMode]] = {
     val obs: Observable[Option[SyncMode]] = {
       reader(keys.syncMode)
-      .map( _.flatMap (fromJson[SyncMode](_)))
+      .map( _.flatMap (fromJson[SyncMode]))
     }
     val sink: Sink[Option[SyncMode]] = writer(keys.syncMode) redirectMap {
       mode => mode map (toJson(_))

@@ -62,10 +62,10 @@ lazy val commonSettings = Seq(
       "-feature" ::
       "-language:_" ::
       "-Xfuture" ::
-      "-Xlint" ::
+      "-Xlint:-unused,_" ::
       "-Yno-adapted-args" ::
-      // "-Ywarn-dead-code" :: // does not work with js.native
-      "-Ywarn-unused:-imports,-explicits,-implicits,_" ::
+      "-Ywarn-unused:-imports" ::
+        // "-Ywarn-dead-code" :: // does not work with js.native
       "-Ywarn-extra-implicit" ::
       "-Ywarn-infer-any" ::
       "-Ywarn-nullary-override" ::

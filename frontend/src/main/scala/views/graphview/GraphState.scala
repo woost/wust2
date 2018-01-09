@@ -16,7 +16,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxDisplayGraph = state.inner.displayGraphWithoutParents
   val rxCollapsedPostIds = state.inner.collapsedPostIds
 
-  def fontSizeByDepth(d: Int) = (Math.pow(0.65, d + 1) + 1) // 2..1
+  def fontSizeByDepth(d: Int) = Math.pow(0.65, d + 1) + 1 // 2..1
   def fontSizeByTransitiveChildren(n: Int) = Math.log(n + 1) + 0.5 // 1..~5
 
   val rxSimPosts: Rx[js.Array[SimPost]] = Rx {

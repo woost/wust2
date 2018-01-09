@@ -164,7 +164,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
       val rect = container.node.asInstanceOf[HTMLElement].getBoundingClientRect
       val width = rect.width
       val height = rect.height
-      if (width > 0 && height > 0 && rxSimPosts.now.size > 0 && rxSimPosts.now.head.radius > 0) {
+      if (width > 0 && height > 0 && rxSimPosts.now.nonEmpty && rxSimPosts.now.head.radius > 0) {
         // DevPrintln("    updating bounds and zoom")
         val graph = rxDisplayGraph.now.graph
         // DevPrintln(graph.allParentIds.map(postId => rxPostIdToSimPost.now(postId).containmentArea).toString)
@@ -261,11 +261,11 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
           sum + child.containmentBoundingSquareArea * arbitraryFactor
         }
 
-        println(s"need children: ${children} ${children.map(rxPostIdToSimPost.now).map(_.containmentArea)}")
+        println(s"need children: $children ${children.map(rxPostIdToSimPost.now).map(_.containmentArea)}")
         println(s"need sum: $childrenArea")
 
         val neededArea = post.containmentArea + childrenArea
-        println(s"neededArea = ${post.containmentArea} + ${childrenArea} = $neededArea (${children.size} children)")
+        println(s"neededArea = ${post.containmentArea} + $childrenArea = $neededArea (${children.size} children)")
         val neededRadius = post.containmentRadius + childRadiusMax * 2 // so that the largest node still fits in the bounding radius of the cluster
         post.containmentRadius = circleAreaToRadius(neededArea) max neededRadius
       }
@@ -325,7 +325,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
     DevOnly { svg.call(d3State.zoom) } // activate pan + zoom on svg
 
     svg.on("click", { () =>
-      if (state.inner.postCreatorMenus.now.size == 0 && focusedPostId.now == None) {
+      if (state.inner.postCreatorMenus.now.isEmpty && focusedPostId.now.isEmpty) {
         val pos = d3State.transform.invert(d3.mouse(svg.node))
         state.inner.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
       } else {

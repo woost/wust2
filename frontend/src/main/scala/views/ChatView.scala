@@ -20,7 +20,6 @@ object ChatView extends View {
   override def apply(state: GlobalState) = {
     import state._
 
-    state
     component(
       chronologicalPostsAscending,
       eventProcessor.enriched.addPost,

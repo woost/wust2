@@ -14,7 +14,6 @@ object Constants {
   val invalidPosition = -999999999.99
 }
 
-@ScalaJSDefined
 abstract class CustomForce[N <: SimulationNode] extends js.Object {
   def initialize(nodes: js.Array[N]): Unit = {}
   def force(alpha: Double): Unit
@@ -34,6 +33,7 @@ object ForceUtil {
         def isLeaf = !n.length.isDefined
         var node = n
         if (isLeaf) {
+          //noinspection ComparingUnrelatedTypes
           do {
             code(node.data)
             node = node.next
@@ -49,6 +49,7 @@ object ForceUtil {
     }
   }
 
+  //noinspection ComparingUnrelatedTypes
   def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(code: Int => Any): Unit = {
     quadtree.visit{
       (n: QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>
@@ -135,11 +136,11 @@ class KeepDistance {
     while (ai2 < n2) {
       val ai = ai2 / 2
       var ax = pos(ai2)
-      var ay = pos(ai2 + 1)
+      val ay = pos(ai2 + 1)
       forAllPointsInCircle(quadtree, ax, ay, radius(ai) + distance + maxRadius){ bi2 =>
         if (bi2 != ai2) {
           var bx = pos(bi2)
-          var by = pos(bi2 + 1)
+          val by = pos(bi2 + 1)
 
           if (ax == bx && ay == by) {
             ax += distance * 0.5 + jitter
@@ -340,7 +341,7 @@ class ConnectionDistance {
       if (distanceSq > targetDistanceSq) {
         //TODO: avoid Vec2 allocation and sqrt
         val distanceDiff = Vec2.length(dx, dy) - targetDistance
-        val velocity = (distanceDiff * 0.5)
+        val velocity = distanceDiff * 0.5
         val targetDir = Vec2(dx, dy).normalized * (velocity * alpha)
         val sourceDir = -targetDir
 
@@ -376,7 +377,6 @@ class Gravity {
   }
 }
 
-@ScalaJSDefined
 class MetaForce extends CustomForce[SimPost] {
   var n: Int = 0
   var n2: Int = 0
@@ -538,7 +538,7 @@ class MetaForce extends CustomForce[SimPost] {
         //read pos + vel from simpost
         i = 0
         i2 = 0
-        if (nodes.size > 0 && (nodes(0).x == js.undefined || nodes(0).x.get.isNaN || nodes(0).x.get == Constants.invalidPosition)) {
+        if (nodes.nonEmpty && (nodes(0).x == js.undefined || nodes(0).x.get.isNaN || nodes(0).x.get == Constants.invalidPosition)) {
           println("initial position!")
           println(InitialPosition.width)
           println(InitialPosition.height)
@@ -656,17 +656,17 @@ object InitialPosition {
   val initialRadius = 150
   val initialAngle = Math.PI * (3 - Math.sqrt(5))
 
-  def strengthX = width / height.toDouble // longer direction should be farther away
+  def strengthX = width / height // longer direction should be farther away
 
   def x(i: Int) = {
-    var radius = initialRadius * Math.sqrt(i)
+    val radius = initialRadius * Math.sqrt(i)
     val angle = i * initialAngle
     val factor = Math.cos(angle)
     radius * strengthX * factor
   }
 
   def y(i: Int) = {
-    var radius = initialRadius * Math.sqrt(i)
+    val radius = initialRadius * Math.sqrt(i)
     val angle = i * initialAngle
     val factor = Math.sin(angle)
     radius * factor
@@ -680,7 +680,7 @@ object Simulation {
     val forceFactor = 0.1
     d3.forceSimulation[SimPost]()
       .alphaMin(alphaMin)
-      .alphaDecay(1 - Math.pow(alphaMin, (1.0 / ticks)))
+      .alphaDecay(1 - Math.pow(alphaMin, 1.0 / ticks))
       .velocityDecay(1 - forceFactor) // (1 - velocityDecay) is multiplied before the velocities get applied to the positions https://github.com/d3/d3-force/issues/100
       .force("meta", forces.meta)
   }

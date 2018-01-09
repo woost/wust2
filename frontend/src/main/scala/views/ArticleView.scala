@@ -36,7 +36,7 @@ object ArticleView extends View {
             sortedPosts.map { postId =>
               val post = dg.graph.postsById(postId)
               val depth = dg.graph.parentDepth(postId)
-              val tag = if (dg.graph.children(postId).size == 0) p()
+              val tag = if (dg.graph.children(postId).isEmpty) p()
                 else if (depth == 0) h1()
                 else if (depth == 1) h2()
                 else if (depth == 2) h3()

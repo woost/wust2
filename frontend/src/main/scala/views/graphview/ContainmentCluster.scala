@@ -31,7 +31,7 @@
      }
    }
 
-   private var _convexHull: js.Array[js.Tuple2[Double, Double]] = null
+   private var _convexHull: js.Array[js.Tuple2[Double, Double]] = _
    def convexHull = _convexHull
    def recalculateConvexHull(): Unit = {
      regenerateCircleSamples()

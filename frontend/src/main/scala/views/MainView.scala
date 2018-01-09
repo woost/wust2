@@ -9,7 +9,7 @@ import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.frontend.{ DevOnly, GlobalState }
 import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement }
-import org.scalajs.dom.raw.{ HTMLTextAreaElement }
+import org.scalajs.dom.raw.HTMLTextAreaElement
 import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api._
