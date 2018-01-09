@@ -477,15 +477,15 @@ object MainView {
       fontSize := "20px",
       marginBottom := "10px",
       input(tpe := "text", width:= "100%", onInputString --> urlImporter),
-      button("GitHub Issue", width := "100%", onClick(urlImporter) --> ((url:String) => importGithubUrl(url))),
-      button("Gitter", width := "100%", onClick(urlImporter) --> ((url:String) => importGitterUrl(url))),
+      button("GitHub Issue", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGithubUrl(url))),
+      button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGitterUrl(url))),
     )
   }
 
   def taskDisplay(state: GlobalState) = {
     // val taskDisplayer = Handler.create[MouseEvent].unsafeRunSync()
-    val taskDisplayer = Handler.create[Boolean].unsafeRunSync()
-    
+    val taskDisplayer = Handler.create[Boolean](false).unsafeRunSync()
+
     val show = taskDisplayer.map(d => {
       println(s"display task! ${d.toString}")
       if(d == true) {
