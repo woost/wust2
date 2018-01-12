@@ -26,6 +26,8 @@ trait Api {
 case class ApiException(error: ApiError) extends Exception
 sealed trait ApiError
 object ApiError {
+  implicit def ApiErrorIsException(error: ApiError): ApiException = ApiException(error)
+
   case object InternalServerError extends ApiError
   case class NotFound(path: Seq[String]) extends ApiError
   case class ProtocolError(msg: String) extends ApiError
