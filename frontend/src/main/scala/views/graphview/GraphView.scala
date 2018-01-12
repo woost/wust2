@@ -1,6 +1,7 @@
 package wust.frontend.views.graphview
 
 import monix.execution.Scheduler.Implicits.global
+import scala.scalajs.js.JSConverters._
 import org.scalajs.d3v4._
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
@@ -83,7 +84,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
 
   val postMenuLayer = container.append("div")
   // val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
-  // val postCreatorMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreatorMenus.map(_.toJSArray))(postMenuLayer.append("div"))
+  val postCreatorMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreatorMenus.map(_.toJSArray))(postMenuLayer.append("div"))
 
   val menuSvg = container.append("svg")
   val dragMenuLayer = menuSvg.append("g")
@@ -361,7 +362,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", htmlTransformString)
 //    postMenuSelection.draw()
-//    postCreatorMenu.draw()
+   postCreatorMenu.draw()
   }
 
   private def draw(): Unit = {
