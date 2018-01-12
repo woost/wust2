@@ -199,19 +199,33 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
         val emptyResult = (Set.empty[Post], Set.empty[Connection])
 
-        val issueList: Future[List[Issue]] =
-          Github(gitAccessToken).issues.listIssues(owner, repo)
-            .execFuture[HttpResponse[String]]().map ( response => response match {
-              case Right(GHResult(result, _, _)) => result.filter( issue => {
-                issueNumber match {
-                  case Some(inum) if inum != issue.number => false
-                  case _ => true
-              }})
+        // TODO: Deduplication
+        def getSingleIssue(number: Int): Future[List[Issue]] = 
+          Github(gitAccessToken).issues.getIssue(owner, repo, number)
+            .execFuture[HttpResponse[String]]()
+            .map( response => response match {
+              case Right(GHResult(result, _, _)) => List(result)
               case _ => {
-                println("Error getting Issues")
+                println("Error getting Issue")
                 List.empty[Issue]
               }
             })
+
+        def getIssueList: Future[List[Issue]] =
+          Github(gitAccessToken).issues.listIssues(owner, repo)
+            .execFuture[HttpResponse[String]]()
+            .map ( response => response match {
+              case Right(GHResult(result, _, _)) => result
+              case _ => {
+                println("Error getting List of Issues")
+                List.empty[Issue]
+              }
+            })
+
+        val issueList = issueNumber match {
+          case Some(number) => getSingleIssue(number)
+          case _ => getIssueList
+        }
 
         val issueWithComments: Future[List[(Issue, List[Comment])]] = {
           issueList.flatMap( inner => Future.sequence(inner.map( issue => {
@@ -277,7 +291,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     val issueNum = if (issueNumGiven.isEmpty) None else Some(issueNumGiven(1).toInt)
     val urlData = _url.stripSuffix("/").stripSuffix((if(issueNum.isDefined) issueNum.get.toString else "")).stripSuffix("/").stripSuffix("/issues").split("/")
 
-    println(s"urlData: owner = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum.getOrElse(-1)}")
+    println(s"url ${url}")
+    println(s"urlData: owner = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum}")
 
     assert(urlData.size == 2, "Could not extract url")
 
