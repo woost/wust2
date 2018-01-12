@@ -12,7 +12,7 @@ class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) ext
   val menuCornerRadius = 2.0
 
   override val tag = "g"
-  override def enterAppend(menu: Selection[SimPost]) {
+  override def enterAppend(menu: Selection[SimPost]):Unit = {
     val pie = d3.pie()
       .value(1)
       .padAngle(menuPaddingAngle)
@@ -44,7 +44,7 @@ class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) ext
       .attr("y", (d: PieArcDatum[DragAction]) => arc.centroid(d)._2)
   }
 
-  override def draw(menu: Selection[SimPost]) {
+  override def draw(menu: Selection[SimPost]):Unit = {
     menu.attr("transform", { (p: SimPost) =>
       val x = d3State.transform.applyX(p.x)
       val y = d3State.transform.applyY(p.y)
