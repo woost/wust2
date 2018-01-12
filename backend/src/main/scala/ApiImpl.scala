@@ -10,10 +10,9 @@ import wust.util.RandomUtil
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api {
+class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiResult.Function] {
   import ApiEvent._, ApiError._
   import dsl._
-  import holder._
 
   // TODO: Abstract over user id
   // private def enrichPostWithUser(posts: Set[Post]) = withUserOrImplicit { (_, user, wasCreated) =>
@@ -24,7 +23,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
   // }
   // TODO: createPost function for api
 
-  override def changeGraph(changes: List[GraphChanges]): Future[Boolean] = withUserOrImplicit { (_, user, wasCreated) =>
+  override def changeGraph(changes: List[GraphChanges]): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, wasCreated) =>
     //TODO permissions
 
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
@@ -54,53 +53,52 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
       }
     }
 
-    val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
-    result
-      .recover {
-        case NonFatal(t) =>
-          scribe.error(s"unexpected error in apply graph change: $changes")
-          scribe.error(t)
-          false
-      }
-      .map(respondWithEventsIfToAllButMe(_, NewGraphChanges(compactChanges)))
+    result.map { success =>
+      if (success) {
+        val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
+        ApiCall(true, Seq(NewGraphChanges(compactChanges)))
+      } else ApiCall(false)
+    }
   }
 
-  def getPost(id: PostId): Future[Option[Post]] = db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
-  def getUser(id: UserId): Future[Option[User]] = db.user.get(id).map(_.map(forClient))
+  def getPost(id: PostId): ApiResult.Function[Option[Post]] = _ => db.post.get(id).map(_.map(forClient)) //TODO: check if public or user has access
+  def getUser(id: UserId): ApiResult.Function[Option[User]] = _ => db.user.get(id).map(_.map(forClient))
 
-  def addGroup(): Future[GroupId] = withUserOrImplicit { (_, user, _) =>
+  //TODO: error handling
+  def addGroup(): ApiResult.Function[GroupId] = withUserOrImplicit { (_, user, _) =>
     for {
       //TODO: simplify db.createForUser return values
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
     } yield {
       val group = forClient(dbGroup)
-      respondWithEventsToAllButMe(group.id, NewMembership(dbMembership))
+      ApiCall(group.id, Seq(NewMembership(dbMembership)))
     }
   }
 
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
+  //TODO: error handling
+  def addMember(groupId: GroupId, userId: UserId): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
           Some(user) <- db.user.get(userId)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
-        } yield respondWithEventsToAllButMe(true, NewMembership(dbMembership), NewUser(user))
-      }(recover = respondWithEventsToAllButMe(false))
+        } yield ApiCall(true, Seq(NewMembership(dbMembership), NewUser(user)))
+      }(recover = ApiCall(false))
     }
   }
 
-  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean] = withUserOrImplicit { (_, _, _) =>
+  def addMemberByName(groupId: GroupId, userName: String): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
-      (
+      isGroupMember(groupId, user.id) {
         for {
           Some(user) <- db.user.byName(userName)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
-        } yield respondWithEventsToAllButMe(true, NewMembership(dbMembership), NewUser(user))
-      ).recover { case _ => respondWithEventsToAllButMe(false) }
+        } yield ApiCall(true, Seq(NewMembership(dbMembership), NewUser(user)))
+      }(recover = ApiCall(false))
     }
   }
 
-  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user, _) =>
+  def recreateGroupInviteToken(groupId: GroupId): ApiResult.Function[Option[String]] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         setRandomGroupInviteToken(groupId)
@@ -108,7 +106,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def getGroupInviteToken(groupId: GroupId): Future[Option[String]] = withUserOrImplicit { (_, user, _) =>
+  def getGroupInviteToken(groupId: GroupId): ApiResult.Function[Option[String]] = withUserOrImplicit { (_, user, _) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
@@ -119,7 +117,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     }
   }
 
-  def acceptGroupInvite(token: String): Future[Option[GroupId]] = withUserOrImplicit { (_, user, _) =>
+  def acceptGroupInvite(token: String): ApiResult.Function[Option[GroupId]] = withUserOrImplicit { (_, user, _) =>
     //TODO optimize into one request?
     db.ctx.transaction { implicit ec =>
       db.group.fromInvite(token).flatMap {
@@ -127,15 +125,15 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
           db.group.addMember(group.id, user.id).map {
             case Some((_, dbMembership, dbGroup)) =>
               val group = forClient(dbGroup)
-              respondWithEventsToAllButMe(Option(group.id), NewMembership(dbMembership))
-            case None => respondWithEventsToAllButMe[Option[GroupId]](None)
+              ApiCall(Option(group.id), Seq(NewMembership(dbMembership)))
+            case None => ApiCall(Option.empty[GroupId])
           }
-        case None => Future.successful(respondWithEventsToAllButMe[Option[GroupId]](None))
+        case None => Future.successful(ApiCall(Option.empty[GroupId]))
       }
     }
   }
 
-  def getGraph(selection: Page): Future[Graph] = { (state: State) =>
+  def getGraph(selection: Page): ApiResult.Function[Graph] = { (state: State) =>
     val userIdOpt = state.user.map(_.id)
     val graph = selection match {
       case Page.Root =>
@@ -153,7 +151,9 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   private def setRandomGroupInviteToken(groupId: GroupId)(implicit ec: ExecutionContext): Future[Option[String]] = {
     val randomToken = RandomUtil.alphanumeric()
-    db.group.setInviteToken(groupId, randomToken).map(_ => Option(randomToken)).recover { case _ => None }
+    db.group.setInviteToken(groupId, randomToken)
+      .collect { case true => Option(randomToken) }
+      .recover { case NonFatal(_) => None }
   }
 
   private def getUnion(userIdOpt: Option[UserId], rawParentIds: Set[PostId])(implicit ec: ExecutionContext): Future[Graph] = {
@@ -173,17 +173,18 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     (for {
       isMember <- db.group.isMember(groupId, userId) if isMember
       result <- code
-    } yield result).recover { case _ => recover }
+    } yield result).recover { case NonFatal(_) => recover }
   }
 
   private def hasAccessToPost[T](postId: PostId, userId: UserId)(code: => Future[T])(recover: T)(implicit ec: ExecutionContext): Future[T] = {
     (for {
       hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
       result <- code
-    } yield result).recover { case _ => recover }
+    } yield result).recover { case NonFatal(_) => recover }
   }
 
-  def importGithubUrl(url: String): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
+  //TODO: refactor import method to a proper service
+  def importGithubUrl(url: String): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, _) =>
 
     object GitHubImporter {
       import github4s.Github
@@ -322,7 +323,7 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
 
   }
 
-  def importGitterUrl(url: String): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
+  def importGitterUrl(url: String): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, _) =>
 
     object GitterImporter {
       import gitter._
@@ -355,10 +356,8 @@ class ApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db)(impli
     } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
 
-  def getRestructuringTask(): Future[RestructuringTask] = {
-
-    Future { RestructuringTaskChooser()}
-
+  def getRestructuringTask(): ApiResult.Function[RestructuringTask] = _ => Future {
+    RestructuringTaskChooser()
   }
 
 }

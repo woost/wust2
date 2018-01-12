@@ -14,6 +14,7 @@ import monix.execution.Scheduler.Implicits.global
 import rx._
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
+import scala.concurrent.Future
 
 @js.native
 @JSGlobal("wustConfig")
@@ -54,6 +55,6 @@ object Client {
 
   val eventObservable: Observable[Seq[ApiEvent]] = eventHandler
 
-  val api: Api = ws.api
-  val auth: AuthApi = ws.auth
+  val api: Api[Future] = ws.api
+  val auth: AuthApi[Future] = ws.auth
 }

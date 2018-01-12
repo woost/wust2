@@ -4,8 +4,8 @@ import derive.derive
 import com.typesafe.config.{Config => TConfig}
 import scala.concurrent.duration.Duration
 
-@derive((enableImplicit, tokenLifetime) => toString)
-case class AuthConfig(enableImplicit: Boolean, tokenLifetime: Duration, secret: String)
+@derive((tokenLifetime) => toString)
+case class AuthConfig(tokenLifetime: Duration, secret: String)
 
 @derive((endpoint, username) => toString)
 case class SmtpConfig(endpoint: String, username: String, password: String)

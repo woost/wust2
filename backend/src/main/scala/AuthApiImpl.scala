@@ -9,63 +9,60 @@ import wust.util.RichFuture
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthApiImpl(holder: StateHolder[State, ApiEvent], dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi {
-  import holder._
+//TODO should send auth events here?
+class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiResult.Function] {
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
-  private def applyAuthenticationOnState(state: State, auth: Future[Option[JWTAuthentication]]): Future[State] = auth.map {
-    case auth @ Some(_) => state.copy(auth = auth)
-    case None           => State.initial
+  private def resultOnAuth(state: State, auth: Future[Option[JWTAuthentication]]): ApiResult[Boolean] = auth.map {
+    case auth @ Some(_) => ApiResult(state.copy(auth = auth), true)
+    case None => ApiResult(state, false)
   }
 
-  def register(name: String, password: String): Future[Boolean] = { (state: State) =>
+  def register(name: String, password: String): ApiResult.Function[Boolean] = { state =>
     val digest = passwordDigest(password)
-    val (auth, success) = state.auth.map(_.user) match {
+    val newUser = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
         //TODO: propagate name change to the respective groups
-        val activated = db.user.activateImplicitUser(user.id, name, digest).map(_.map(u => jwt.generateAuthentication(u)))
-        (activated.map(_.orElse(state.auth)), activated.map(_.isDefined))
-      case _ =>
-        val newAuth = db.user(name, digest).map(_.map(u => jwt.generateAuthentication(u)))
-        (newAuth, newAuth.map(_.isDefined))
+        db.user.activateImplicitUser(user.id, name, digest)
+      case _ => db.user(name, digest)
     }
 
-    StateEffect(applyAuthenticationOnState(state, auth), success)
+    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
+    resultOnAuth(state, newAuth)
   }
 
-  def login(name: String, password: String): Future[Boolean] = { (state: State) =>
+  def login(name: String, password: String): ApiResult.Function[Boolean] = { state =>
     val digest = passwordDigest(password)
-    val implicitAuth = state.auth.filter(_.user.isImplicit)
-    val result = db.user.getUserAndDigest(name).map(_ match {
+    val newAuth = db.user.getUserAndDigest(name).map {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         //TODO integrate result into response?
-        implicitAuth.foreach { implicitAuth =>
-          //TODO propagate new groups into state?
-          //TODO: propagate name change to the respective groups and the connected clients
-          db.user.mergeImplicitUser(implicitAuth.user.id, user.id).log
-        }
+        state.auth
+          .filter(_.user.isImplicit)
+          .foreach { auth =>
+            //TODO propagate new groups into state?
+            //TODO: propagate name change to the respective groups and the connected clients
+            if (auth.user.isImplicit) db.user.mergeImplicitUser(auth.user.id, user.id).log
+          }
 
-        (Some(jwt.generateAuthentication(user)), true)
-      case _ => (implicitAuth, false)
-    })
+        Some(jwt.generateAuthentication(user))
+      case _ => None
+    }
 
-    val auth = result.map(_._1)
-    val success = result.map(_._2)
-    StateEffect(applyAuthenticationOnState(state, auth), success)
+    resultOnAuth(state, newAuth)
   }
 
-  def loginToken(token: Authentication.Token): Future[Boolean] = { (state: State) =>
-    val auth = jwt.authenticationFromToken(token).map { auth =>
-      for (valid <- db.user.checkIfEqualUserExists(auth.user))
-        yield if (valid) Option(auth) else None
-    }.getOrElse(Future.successful(None))
+  def loginToken(token: Authentication.Token): ApiResult.Function[Boolean] = { state =>
+    val newAuth = jwt.authenticationFromToken(token).map { auth =>
+      db.user.checkIfEqualUserExists(auth.user).map { isValid =>
+        if (isValid) Some(auth) else None
+      }
+    } getOrElse Future.successful(None)
 
-    StateEffect(applyAuthenticationOnState(state, auth), auth.map(_.isDefined))
+    resultOnAuth(state, newAuth)
   }
 
-  def logout(): Future[Boolean] = { (state: State) =>
-    val auth = Future.successful(None)
-    StateEffect(applyAuthenticationOnState(state, auth), Future.successful(true))
+  def logout(): ApiResult.Function[Boolean] = { state =>
+    ApiResult(state.copy(auth = None), true)
   }
 }

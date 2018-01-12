@@ -24,13 +24,16 @@ object HelpMePickle {
 
 class WustClient(ws: Client[ByteBuffer, Future, SlothClientFailure.SlothException]) {
   private implicit val iShouldNotBeHere = HelpMePickle.graphChanges
-  val api: Api = ws.wire[Api]
-  val auth: AuthApi = ws.wire[AuthApi]
+  val api = ws.wire[Api[Future]]
+  val auth = ws.wire[AuthApi[Future]]
 }
 object WustClient extends NativeWustClient
 
+case class ApiException(error: ApiError) extends Exception(s"Api returned error: $error")
+
 private[sdk] object WustClientFactory {
   private implicit val iShouldNotBeHere = HelpMePickle.apiEvents
+  private implicit def ApiErrorIsThrowable(error: ApiError): Throwable = ApiException(error)
 
   def apply(location: String, handler: IncidentHandler[ApiEvent], connection: WebsocketConnection[ByteBuffer])(implicit ec: ExecutionContext): WustClient = {
     val config = ClientConfig(requestTimeoutMillis = 60 * 1000)

@@ -23,20 +23,32 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: StateHolder[State, ApiEvent] => PartialFunction[Request[ByteBuffer], Either[SlothServerFailure, Future[ByteBuffer]]])(implicit ec: ExecutionContext) extends RequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: PartialFunction[Request[ByteBuffer], Either[SlothServerFailure, ApiResult.Function[ByteBuffer]]])(implicit ec: ExecutionContext) extends RequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
-  private val toError: PartialFunction[Throwable, ApiError] = {
-    case ApiException(error) => error
+  private val initialState = Future.successful(State.initial)
+
+  private def stateOpsToState(currentState: Future[State]): ApiResult.StateOps => Future[State] = {
+    case ApiResult.KeepState => currentState
+    case ApiResult.ReplaceState(nextState) => nextState
+  }
+
+  private def filterAndDistributeEvents[T](client: NotifiableClient[RequestEvent])(events: Seq[ApiEvent]): Seq[ApiEvent] = {
+    val (privateEvents, publicEvents) = ApiEvent.separate(events)
+    distributor.publish(client, publicEvents)
+    privateEvents
+  }
+
+  private def handleUserException[T](fallback: => T): PartialFunction[Throwable, T] = {
     case NonFatal(e) =>
       scribe.error("request handler threw exception")
       scribe.error(e)
-      ApiError.InternalServerError
+      fallback
   }
 
   //TODO we should not change the state on every request and track a graph in each connectedclient, we should instead have use our db or a cache to retrieve info about the graph.
-  private def reaction(oldState: Future[State], newState: Future[State], events: Future[Seq[ApiEvent]]) = {
-    val next: Future[(State, Seq[ApiEvent])] = for {
+  private def reaction(oldState: Future[State], newState: Future[State], events: Future[Seq[ApiEvent]]): (Option[Future[State]], Future[Seq[ApiEvent]]) = {
+    val next = for {
       oldState <- oldState
       newState <- newState
       changeEvents <- stateChangeEvents(oldState, newState)
@@ -45,48 +57,47 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       nextState = applyEventsToState(newState, allEvents)
     } yield (nextState, allEvents)
 
-    Reaction(next.map(_._1), next.map(_._2))
+    (Some(next.map(_._1)), next.map(_._2))
   }
 
-  override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer) = {
+  override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
     val state = originalState.map(validate)
-    val holder = new StateHolder[State, ApiEvent](state)
-    val handler = api(holder).lift
-    val result = handler(Request(path, payload)) match {
+    api.lift(Request(path, payload)) match {
       case None =>
         val error = ApiError.NotFound(path)
         Response(Future.successful(Left(error)))
       case Some(Left(slothError)) =>
         val error = ApiError.ProtocolError(slothError.toString)
         Response(Future.successful(Left(error)))
-      case Some(Right(response)) =>
-        val newState = holder.state
-        val newEvents = holder.events.map { events =>
-          //TODO: helper for val t = collectType[T], val (a,b) = collectType2[A,B]
-          // send out public events
-          val publicEvents = events collect { case e: ApiEvent.Public => e }
-          distributor.publish(client, publicEvents)
+      case Some(Right(stateToResult)) =>
+        val apiResult = state.map(stateToResult)
 
-          // return private events
-          val privateEvents = events collect { case e: ApiEvent.Private => e }
-          privateEvents
-        }
+        val apiStateOps = apiResult
+          .map(_.stateOps)
+          .recover(handleUserException(ApiResult.KeepState))
+        val apiCall = apiResult
+          .flatMap(_.call)
+          .recover(handleUserException(ApiCall.fail(ApiError.InternalServerError)))
 
-        val res = response.map(Right(_)).recover(toError andThen (Left(_)))
-        Response(res, reaction(originalState, newState, newEvents))
-    }
+        val newState = apiStateOps.flatMap(stateOpsToState(state))
+        val newEvents = apiCall.map(call => filterAndDistributeEvents(client)(call.events))
 
-    result
+        val finalResult = apiCall.map(_.result)
+        val (finalState, finalEvents) = reaction(originalState, newState, newEvents)
+        Response(finalResult, finalState, finalEvents)
+      }
   }
 
   override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
     scribe.info(s"client got event: $client")
     val state = originalState.map(validate)
     val events = state.flatMap(triggeredEvents(_, requestEvent))
-    reaction(originalState, state, events)
+
+    val (finalState, finalEvents) = reaction(originalState, state, events)
+    Reaction(finalState, finalEvents)
   }
 
-  override def onClientConnect(client: NotifiableClient[RequestEvent]): Reaction = {
+  override def onClientConnect(client: NotifiableClient[RequestEvent]): InitialState = {
     scribe.info(s"client started: $client")
     distributor.subscribe(client)
 
@@ -95,7 +106,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       .getInitialGraph()
       .map(graph => Seq(ApiEvent.ReplaceGraph(graph)))
 
-    Reaction(Future.successful(State.initial), initialEvents)
+    InitialState(initialState, initialEvents)
   }
 
   override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
@@ -114,22 +125,24 @@ object WebsocketFactory {
   import DbConversions._
 
   def apply(config: Config)(implicit ec: ExecutionContext, system: ActorSystem) = {
+    implicit val apiCallFunctor = cats.derive.functor[ApiCall]
+    implicit val apiResultFunctor = cats.derive.functor[ApiResult]
+    implicit val apiResultFunctionFunctor = cats.derive.functor[ApiResult.Function]
+
     val db = Db(config.db)
     val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(db, jwt)
+    val guardDsl = GuardDsl(jwt, db)
 
     //TODO
     implicit val todo1 = HelpMePickle.graphChanges
     implicit val todo2 = HelpMePickle.apiEvents
-    val server = SlothServer[ByteBuffer, Future]
-    //TODO: get rid of stateholder, refactor to returning state functions with events and result
-    def api(holder: StateHolder[State, ApiEvent]) = {
-      val dsl = GuardDsl(jwt, db, config.auth.enableImplicit)
-      server.route[Api](new ApiImpl(holder, dsl, db)) orElse
-        server.route[AuthApi](new AuthApiImpl(holder, dsl, db, jwt))
-    }
+    val server = SlothServer[ByteBuffer, ApiResult.Function]
+    val api =
+      server.route[Api[ApiResult.Function]](new ApiImpl(guardDsl, db)) orElse
+        server.route[AuthApi[ApiResult.Function]](new AuthApiImpl(guardDsl, db, jwt))
 
-    val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api _)
+    val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api)
     val serverConfig = ServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
     () => WebsocketServerFlow(serverConfig, requestHandler)
   }

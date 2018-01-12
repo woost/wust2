@@ -21,7 +21,9 @@ val outwatch = "io.github.GRBurst" % "outwatch" % "3fc49f9"
 val dualityVersion =  "9dd5e01649"
 val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
 
-val slothVersion = "ada51f9"
+val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
+
+val slothVersion = "8bd18a5"
 val slothBoopickle = dep("io.github.cornerman.sloth" %%% "sloth-boopickle" % slothVersion)
 val slothMycelium = dep("io.github.cornerman.sloth" %%% "sloth-mycelium" % slothVersion)
 
@@ -196,6 +198,7 @@ lazy val backend = project
     libraryDependencies ++=
       slothBoopickle.value ::
       slothMycelium.value ::
+      kittens.value ::
       "com.roundeights" %% "hasher" % "1.2.0" ::
       "org.mindrot" % "jbcrypt" % "0.4" ::
       "com.pauldijou" %% "jwt-circe" % "0.14.1" ::

@@ -3,35 +3,47 @@ package wust.api
 import wust.graph._
 import wust.ids._
 
-import scala.concurrent.Future
+trait Api[Result[_]] {
+  def changeGraph(changes: List[GraphChanges]): Result[Boolean]
 
-trait Api {
-  def changeGraph(changes: List[GraphChanges]): Future[Boolean]
+  def getPost(id: PostId): Result[Option[Post]]
+  def getGraph(selection: Page): Result[Graph]
+  def getUser(userId: UserId): Result[Option[User]]
+  def addGroup(): Result[GroupId]
+  def addMember(groupId: GroupId, userId: UserId): Result[Boolean]
+  def addMemberByName(groupId: GroupId, userName: String): Result[Boolean]
+  def getGroupInviteToken(groupId: GroupId): Result[Option[String]]
+  def recreateGroupInviteToken(groupId: GroupId): Result[Option[String]]
+  def acceptGroupInvite(token: String): Result[Option[GroupId]]
 
-  def getPost(id: PostId): Future[Option[Post]]
-  def getGraph(selection: Page): Future[Graph]
-  def getUser(userId: UserId): Future[Option[User]]
-  def addGroup(): Future[GroupId]
-  def addMember(groupId: GroupId, userId: UserId): Future[Boolean]
-  def addMemberByName(groupId: GroupId, userName: String): Future[Boolean]
-  def getGroupInviteToken(groupId: GroupId): Future[Option[String]]
-  def recreateGroupInviteToken(groupId: GroupId): Future[Option[String]]
-  def acceptGroupInvite(token: String): Future[Option[GroupId]]
-
-  def importGithubUrl(url: String): Future[Boolean]
-  def importGitterUrl(url: String): Future[Boolean]
-  def getRestructuringTask(): Future[RestructuringTask]
+  def importGithubUrl(url: String): Result[Boolean]
+  def importGitterUrl(url: String): Result[Boolean]
+  def getRestructuringTask(): Result[RestructuringTask]
 }
 
-case class ApiException(error: ApiError) extends Exception
+trait AuthApi[Result[_]] {
+  //TODO: simplify implicit login by handshake with a token or userid and an initial graph. persist new implicit user when used first time.
+  def register(name: String, password: String): Result[Boolean]
+  def login(name: String, password: String): Result[Boolean]
+  def loginToken(token: Authentication.Token): Result[Boolean]
+  def logout(): Result[Boolean]
+}
+
+case class Authentication(user: User, token: Authentication.Token)
+object Authentication {
+  type Token = String
+}
+
 sealed trait ApiError
 object ApiError {
-  implicit def ApiErrorIsException(error: ApiError): ApiException = ApiException(error)
+  sealed trait GenericFailure extends ApiError
+  sealed trait HandlerFailure extends ApiError
 
-  case object InternalServerError extends ApiError
-  case class NotFound(path: Seq[String]) extends ApiError
-  case class ProtocolError(msg: String) extends ApiError
-  case object Unauthorized extends ApiError
+  case class NotFound(path: Seq[String]) extends GenericFailure
+  case class ProtocolError(msg: String) extends GenericFailure
+
+  case object InternalServerError extends HandlerFailure
+  case object Unauthorized extends HandlerFailure
 }
 
 sealed trait ApiEvent
@@ -51,18 +63,10 @@ object ApiEvent {
   final case class ReplaceGraph(graph: Graph) extends Private {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
-}
 
-
-trait AuthApi {
-  //TODO: simplify implicit login by handshake with a token or userid and an initial graph. persist new implicit user when used first time.
-  def register(name: String, password: String): Future[Boolean]
-  def login(name: String, password: String): Future[Boolean]
-  def loginToken(token: Authentication.Token): Future[Boolean]
-  def logout(): Future[Boolean]
-}
-
-case class Authentication(user: User, token: Authentication.Token)
-object Authentication {
-  type Token = String
+  def separate(events: Seq[ApiEvent]): (List[Private], List[Public]) =
+    events.foldRight((List.empty[Private], List.empty[Public])) {
+      case (ev: Private, (privs, pubs)) => (ev :: privs, pubs)
+      case (ev: Public, (privs, pubs)) => (privs, ev :: pubs)
+    }
 }

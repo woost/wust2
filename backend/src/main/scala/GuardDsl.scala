@@ -8,41 +8,37 @@ import DbConversions._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class GuardDsl(createImplicitAuth: () => Future[Option[JWTAuthentication]])(implicit ec: ExecutionContext) {
+//TODO instance for each client?
+class GuardDsl(createImplicitAuth: () => Future[JWTAuthentication])(implicit ec: ExecutionContext) {
   private lazy val implicitAuth = createImplicitAuth()
 
-  private def actualOrImplicitAuth(auth: Option[JWTAuthentication]): (Future[Option[JWTAuthentication]], Boolean) = auth match {
+  private def actualOrImplicitAuth(auth: Option[JWTAuthentication]): (Future[JWTAuthentication], Boolean) = auth match {
     case None => (implicitAuth, true)
-    case auth => (Future.successful(auth), false)
+    case Some(auth) => (Future.successful(auth), false)
   }
 
-  private def userOrFail(auth: Option[JWTAuthentication]): User =
-    auth.map(_.user).getOrElse(throw ApiException(ApiError.Unauthorized))
-
-  def withUser[T](f: (State, User) => Future[RequestResponse[T, ApiEvent]]): State => Future[RequestResponse[T, ApiEvent]] = state => {
-    val user = userOrFail(state.auth)
-    f(state, user)
+  def withUser[T](f: ApiResult.Function2[State, User, T]): ApiResult.Function[T] = state => {
+    state.auth.fold[ApiResult[T]](ApiCall.fail[T](ApiError.Unauthorized))(auth => f(state, auth.user))
   }
 
-  def withUserOrImplicit[T](code: (State, User, Boolean) => Future[RequestResponse[T, ApiEvent]]): State => StateEffect[State, T, ApiEvent] = state => {
+  def withUserOrImplicit[T](code: ApiResult.Function3[State, User, Boolean, T]): ApiResult.Function[T] = state => {
     val (auth, wasCreated) = actualOrImplicitAuth(state.auth)
-    val newState = auth.map(auth => state.copy(auth = auth))
-    val user = auth.map(userOrFail _)
-    val response = newState.flatMap(newState => user.flatMap(code(newState, _, wasCreated)))
-    StateEffect(newState, response)
+    for {
+      auth <- auth
+      newState = state.copy(auth = Some(auth))
+    } yield {
+      val result = code(newState, auth.user, wasCreated)
+      val nextState = result.stateOps match {
+        case ApiResult.ReplaceState(replacedState) => replacedState
+        case ApiResult.KeepState => newState
+      }
+
+      ApiResult(state, result.call)
+    }
   }
 }
 
 object GuardDsl {
-  def apply(jwt: JWT, db: Db, enableImplicit: Boolean)(implicit ec: ExecutionContext): GuardDsl = {
-    def createImplicitAuth() = enableImplicit match {
-      case true => db.user.createImplicitUser().map { user =>
-        val auth = jwt.generateAuthentication(user)
-        Option(auth)
-      }
-      case false => Future.successful(None)
-    }
-
-    new GuardDsl(createImplicitAuth _)
-  }
+  def apply(jwt: JWT, db: Db)(implicit ec: ExecutionContext): GuardDsl =
+    new GuardDsl(() => db.user.createImplicitUser().map(user => jwt.generateAuthentication(user)))
 }
