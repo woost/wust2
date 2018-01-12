@@ -11,6 +11,7 @@ in
       docker docker_compose
       nodejs yarn
       phantomjs
+      gnumake gcc # required for some weird npm things
     ];
 
     installPhase= ''

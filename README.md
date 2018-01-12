@@ -32,9 +32,9 @@ Requirements:
 * docker, docker-compose
 * node, yarn
 * phantomjs
-* gcc
+* gcc and make
 
-_Note:_ `gcc` is not a direct requierement of this project, but some `npm` packages requiere a C compiler. You will most probably notice that if you get a runtime exception from `npm`.
+_Note:_ `gcc/make` is not a direct requierement of this project, but some `npm` packages requiere a C compiler. You will most probably notice that if you get a runtime exception from `npm`.
 
 Starting all needed services in docker (e.g. postgres with initialization) and run sbt with corresponding environment variables:
 ```
