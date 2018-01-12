@@ -75,8 +75,18 @@ lazy val commonSettings = Seq(
       "-Ywarn-infer-any" ::
       "-Ywarn-nullary-override" ::
       "-Ywarn-nullary-unit" ::
-      Nil
+      Nil,
 )
+
+lazy val sourceMapSettings = Seq(
+    // To enable source map support, all sub-project folders are symlinked to assets/project-root.
+    // This folder is served via webpack devserver.
+    scalacOptions += {
+      val local = s"${(ThisBuild / baseDirectory).value.toURI}"
+      val remote = s"/"
+      s"-P:scalajs:mapSourceURI:$local->$remote"
+    },
+  )
 
 lazy val root = project.in(file("."))
   .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
@@ -106,6 +116,7 @@ lazy val root = project.in(file("."))
 
 lazy val util = crossProject
   .settings(commonSettings)
+  .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
       "com.github.pureconfig" %% "pureconfig" % "0.8.0" ::
@@ -126,6 +137,7 @@ lazy val utilJVM = util.jvm
 lazy val sdk = crossProject
   .dependsOn(api)
   .settings(commonSettings)
+  .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
       slothMycelium.value ::
@@ -139,6 +151,7 @@ lazy val sdkJVM = sdk.jvm
 
 lazy val ids = crossProject
   .settings(commonSettings)
+  .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
       "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12" ::
@@ -155,6 +168,7 @@ lazy val idsJVM = ids.jvm
 
 lazy val graph = crossProject
   .settings(commonSettings)
+  .jsSettings(sourceMapSettings)
   .dependsOn(ids, util)
   .settings(
     libraryDependencies ++= (
@@ -168,11 +182,7 @@ lazy val graphJVM = graph.jvm
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
   .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= (
-      Nil
-    )
-  )
+  .jsSettings(sourceMapSettings)
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
@@ -222,7 +232,7 @@ lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files t
 lazy val frontend = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(sdkJS, utilJS)
-  .settings(commonSettings)
+  .settings(commonSettings, sourceMapSettings)
   .settings(
     libraryDependencies ++= (
       outwatch ::
@@ -247,6 +257,8 @@ lazy val frontend = project
     emitSourceMaps in fastOptJS := true, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     // emitSourceMaps in fullOptJS := true,
 
+    version in webpack := "3.10.0",
+    version in startWebpackDevServer := "2.9.6", // watchOptions is only fixed in this version. https://github.com/scalacenter/scalajs-bundler/issues/200
     useYarn := true, // instead of npm
     npmDevDependencies in Compile ++= (
       "compression-webpack-plugin" -> "0.3.1" ::
