@@ -216,7 +216,8 @@ lazy val backend = project
       "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
       "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
       // "com.47deg" %% "github4s" % "0.17.0" :: // only temporarly here
-      "io.github.GRBurst.github4s" %% "github4s" % "73cef89" :: // master + comments
+      // "io.github.GRBurst.github4s" %% "github4s" % "73cef89" :: // master + comments
+      "io.github.GRBurst.github4s" %% "github4s" % "1d9681d" :: // master + comments + single issue
       "com.github.xuwei-k" %% "gitter-scala" % "0.3.0" ::
       Nil,
 
