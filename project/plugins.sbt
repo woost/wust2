@@ -5,7 +5,7 @@ addSbtPlugin("ch.epfl.scala" % "sbt-web-scalajs-bundler" % "0.9.0")
 addSbtPlugin("com.vmunier" % "sbt-web-scalajs" % "1.0.6")
 
 // workflow
-addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.0")
+addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
 // addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.0.0")
 // addSbtPlugin("org.wartremover" % "sbt-wartremover-contrib" % "1.0.0")
 
