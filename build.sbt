@@ -4,7 +4,7 @@ name := "wust"
 version in ThisBuild ~= (_.replace('+', '-'))
  dynver in ThisBuild ~= (_.replace('+', '-'))
 
-lazy val isCI = sys.env.get("CI").isDefined // set by travis
+lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
 scalaVersion in ThisBuild := "2.12.4"
 val akkaVersion = "2.4.20"
