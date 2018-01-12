@@ -196,7 +196,7 @@ object MainView {
       }
     )
     // select(
-    //   onInputString.map(View.fromString) --> viewHandler,
+    //   onInput.value.map(View.fromString) --> viewHandler,
     //   allViews.map{view =>
     //     option(
     //       view.displayName,
@@ -475,7 +475,7 @@ object MainView {
       fontWeight.bold,
       fontSize := "20px",
       marginBottom := "10px",
-      input(tpe := "text", width:= "100%", onInputString --> urlImporter),
+      input(tpe := "text", width:= "100%", onInput.value --> urlImporter),
       button("GitHub Issue", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGithubUrl(url))),
       button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGitterUrl(url))),
     )

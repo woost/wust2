@@ -38,7 +38,7 @@
        .style("cursor", "pointer")
        .on("click", { (e: SimConnection) =>
          DevPrintln(s"\nDelete Connection: ${e.sourceId} -> ${e.targetId}")
-         unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(delConnections = Set(e.connection)))
+         state.eventProcessor.changes.unsafeOnNext(GraphChanges(delConnections = Set(e.connection)))
        })
    }
 

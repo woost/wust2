@@ -40,7 +40,7 @@
    import graphState.state
 
   val dragActions = js.Array(
-    DragAction("connect", { (dragging: SimPost, target: SimPost) => unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(addConnections = Set(Connection(dragging.id, Label("woo"), target.id)))) }),
+    DragAction("connect", { (dragging: SimPost, target: SimPost) => state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = Set(Connection(dragging.id, Label("woo"), target.id)))) }),
     DragAction("insert into", { (dragging: SimPost, target: SimPost) =>
       val graph = graphState.state.inner.displayGraphWithParents.now.graph
       val containment = Connection(dragging.id, Label.parent, target.id)
@@ -50,7 +50,7 @@
       val intersectingParents = graph.parents(dragging.id).toSet intersect (graph.ancestors(target.id).toSet ++ graph.descendants(target.id).toSet)
         intersectingParents.map(Connection(dragging.id, Label.parent, _)) intersect graph.containments
       })
-      unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(addConnections = Set(containment), delConnections = removeContainments))
+      state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = Set(containment), delConnections = removeContainments))
     }),
     DragAction("move into", { (dragging: SimPost, target: SimPost) =>
       val contextGraph = graphState.state.inner.displayGraphWithoutParents.now.graph
@@ -60,7 +60,7 @@
       } else { // no cycle
         ( contextGraph.parents(dragging.id) map (Connection(dragging.id, Label.parent, _))) - newContainments.head
       })
-      unsafeSink(state.eventProcessor.changes).observer.onNext(GraphChanges(addConnections = newContainments, delConnections = removeContainments))
+      state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = newContainments, delConnections = removeContainments))
     })
   // DragAction("merge", { (dragging: SimPost, target: SimPost) => /*Client.api.merge(target.id, dragging.id).call()*/ }),
   )

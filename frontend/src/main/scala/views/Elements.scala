@@ -48,7 +48,7 @@ object Elements {
         // data.bla <-- Observable.interval(2000).map(_.toString),
         // div(child <-- clearHandler),
         width := "100%",
-        onInputString --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
+        onInput.value --> userInput, //TODO: outwatch: this is not triggered when setting the value with `value <-- observable`
         value <-- clearHandler,
         onKeyDown.filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey) --> enterKeyHandler
       ),

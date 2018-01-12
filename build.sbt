@@ -17,7 +17,7 @@ val mockitoVersion = "2.11.0"
 val scalazVersion = "7.2.13"
 val boopickleVersion = "1.2.6"
 val quillVersion = "2.3.1"
-val outwatch = "io.github.GRBurst" % "outwatch" % "09b622b"
+val outwatch = "io.github.GRBurst" % "outwatch" % "3fc49f9"
 val dualityVersion =  "9dd5e01649"
 val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
 

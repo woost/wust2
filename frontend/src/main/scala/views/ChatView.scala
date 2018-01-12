@@ -72,7 +72,7 @@ object ChatView extends View {
       padding := "20px",
 
       children <-- chronologicalPosts.combineLatestMap(graph)((posts, graph) => posts.map(chatMessage(_, page, ownPosts, graph))),
-      onPostpatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
+      onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
 
