@@ -24,27 +24,25 @@ class JWTSpec extends FreeSpec with MustMatchers {
     clientAuth.token mustEqual auth.token
   }
 
-  "generate auth for user" in {
+  "generate valid auth for user" in {
     val user = User("Biermann")
     val auth = jwt.generateAuthentication(user)
 
+    jwt.isExpired(auth) mustEqual false
     auth.user mustEqual user
     auth.expires must be > (System.currentTimeMillis / 1000)
     auth.token.length must be > 0
-  }
-
-  "generated auth is not expired" in {
-    val user = User("Frau Mahlzahn")
-    val auth = jwt.generateAuthentication(user)
-
-    jwt.isExpired(auth) mustEqual false
   }
 
   "expired auth is expired" in {
     val user = User("Frau Mahlzahn")
     val jwt = new JWT("secret", tokenLifetime = Duration.Zero)
     val auth = jwt.generateAuthentication(user)
+
     jwt.isExpired(auth) mustEqual true
+    auth.user mustEqual user
+    auth.expires must be < (System.currentTimeMillis / 1000)
+    auth.token.length must be > 0
   }
 
   "incompatible secret not valid" in {
@@ -69,6 +67,15 @@ class JWTSpec extends FreeSpec with MustMatchers {
 
   "no authentication from invalid token" in {
     val auth = jwt.authenticationFromToken("invalid token")
+
+    auth mustEqual None
+  }
+
+  "no authentication from expired token" in {
+    val user = User("Frau Mahlzahn")
+    val jwt = new JWT("secret", tokenLifetime = Duration.Zero)
+    val expiredToken = jwt.generateAuthentication(user).token
+    val auth = jwt.authenticationFromToken(expiredToken)
 
     auth mustEqual None
   }

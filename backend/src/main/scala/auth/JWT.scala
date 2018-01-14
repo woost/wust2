@@ -25,7 +25,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
   private val issuer = "wust"
   private val audience = "wust"
 
-  def generateClaim(user: User, expires: Long) = {
+  private def generateClaim(user: User, expires: Long) = {
     JwtClaim(content = user.asJson.toString)
       .by(issuer)
       .to(audience)
@@ -42,12 +42,13 @@ class JWT(secret: String, tokenLifetime: Duration) {
   }
 
   def authenticationFromToken(token: Authentication.Token): Option[JWTAuthentication] = {
-    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.collect {
+    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) => for {
         expires <- claim.expiration
         user <- parser.decode[User](claim.content).right.toOption
       } yield JWTAuthentication(user, expires, token)
-    }.flatten
+      case _ => None
+    }
   }
 
   def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= Instant.now.getEpochSecond
