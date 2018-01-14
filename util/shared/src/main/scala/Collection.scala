@@ -15,6 +15,7 @@ package object collection {
       }
     }
     def topologicalSortBy(next: T => Iterable[T]) = algorithm.topologicalSort(col, next)
+    def randomSelect: T = col.iterator.drop(scala.util.Random.nextInt(col.size)).next
   }
 
   implicit class RichSet[A](val set: Set[A]) extends AnyVal {
