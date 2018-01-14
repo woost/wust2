@@ -412,7 +412,7 @@ object MainView {
       br(),
       dataImport(state),
       br(),
-      RestructuringTaskChooser.init(state),
+      RestructuringTaskGenerator(state),
       br(),
       channels(state),
     )
