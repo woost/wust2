@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiResult.Function] {
-  import ApiEvent._, ApiError._
+  import ApiEvent._
   import dsl._
 
   // TODO: Abstract over user id
@@ -186,118 +186,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //TODO: refactor import method to a proper service
   def importGithubUrl(url: String): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, _) =>
 
-    object GitHubImporter {
-      import github4s.Github
-      import github4s.Github._
-      import github4s.GithubResponses.GHResult
-      import github4s.jvm.Implicits._
-      import scalaj.http.HttpResponse
-      import github4s.free.domain.{Comment, Issue, SearchIssuesResult, User => GHUser}
-
-      val gitAccessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
-
-      def getIssues(owner: String = "GRBurst", repo: String = "purple-gnome-keyring", issueNumber: Option[Int] = None): Future[(Set[Post], Set[Connection])] = {
-
-        val emptyResult = (Set.empty[Post], Set.empty[Connection])
-
-        // TODO: Deduplication
-        def getSingleIssue(number: Int): Future[List[Issue]] = 
-          Github(gitAccessToken).issues.getIssue(owner, repo, number)
-            .execFuture[HttpResponse[String]]()
-            .map( response => response match {
-              case Right(GHResult(result, _, _)) => List(result)
-              case _ => {
-                println("Error getting Issue")
-                List.empty[Issue]
-              }
-            })
-
-        def getIssueList: Future[List[Issue]] =
-          Github(gitAccessToken).issues.listIssues(owner, repo)
-            .execFuture[HttpResponse[String]]()
-            .map ( response => response match {
-              case Right(GHResult(result, _, _)) => result
-              case _ => {
-                println("Error getting List of Issues")
-                List.empty[Issue]
-              }
-            })
-
-        val issueList = issueNumber match {
-          case Some(number) => getSingleIssue(number)
-          case _ => getIssueList
-        }
-
-        val issueWithComments: Future[List[(Issue, List[Comment])]] = {
-          issueList.flatMap( inner => Future.sequence(inner.map( issue => {
-            val issueComments: Future[(Issue, List[Comment])] =
-              Github(gitAccessToken).issues.listComments(owner, repo, issue.number)
-                .execFuture[HttpResponse[String]]().map( response => response match {
-                  case Right(GHResult(result, _, _)) => (issue, result)
-                  case _ => {
-                    println("Error getting Issues")
-                    (issue, List.empty[Comment])
-                  }
-                })
-              issueComments
-          })))
-        }
-
-        val postAndConnection: Future[Set[(Set[Post], Set[Connection])]] = {
-          issueWithComments.map(_.map( issueData => {
-            val issue = issueData._1
-            val commentsList = issueData._2
-
-            val userId = UserId(issue.user match {
-              case None => 1
-              case Some(githubUser: GHUser) => githubUser.id
-            }) //TODO: create this user
-            val tempUserId = user.id
-
-            val title = Post(PostId(issue.id.toString), issue.title, tempUserId)
-            val desc = Post(PostId(issue.number.toString), issue.body, tempUserId)
-            val cont = Connection(desc.id, Label.parent, title.id)
-            val conn = Connection(desc.id, "describes", title.id)
-
-            val comments: List[(Post, Connection)] = commentsList.map(comment => {
-                val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId)
-                val cconn = Connection(cpost.id, Label.parent, title.id)
-                (cpost, cconn)
-            })
-
-            val (commentPosts, commentConnections) = comments.unzip
-
-            val posts = Set[Post](title, desc) ++ commentPosts.toSet
-            val connections = Set[Connection](conn, cont) ++ commentConnections.toSet
-            (posts, connections)
-
-          }).toSet)
-        }
-
-        postAndConnection.map(zipped => {
-          val (posts, conns) = zipped.unzip
-          (posts.flatten, conns.flatten)
-        })
-
-      }
-    }
-
     // TODO: Reuse graph changes instead
-    // val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, UserId(1)))
-    // changeGraph(List(GraphChanges(addPosts = postsOfUrl)))
-
-    val _url = url.stripLineEnd.stripMargin.trim.stripPrefix("https://").stripPrefix("http://").stripPrefix("github.com/").stripSuffix("/")
-    val numEndPattern = "issues/[0-9]+$".r
-    val issueNumGiven = numEndPattern.findFirstIn(_url).getOrElse("/").split("/")
-    val issueNum = if (issueNumGiven.isEmpty) None else Some(issueNumGiven(1).toInt)
-    val urlData = _url.stripSuffix("/").stripSuffix((if(issueNum.isDefined) issueNum.get.toString else "")).stripSuffix("/").stripSuffix("/issues").split("/")
-
-    println(s"url ${url}")
-    println(s"urlData: owner = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum}")
-
-    assert(urlData.size == 2, "Could not extract url")
-
-    val postsOfUrl = GitHubImporter.getIssues(urlData(0), urlData(1), issueNum)
+    val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
+    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
     val result: Future[Boolean] = postsOfUrl.flatMap { case (posts, connections) =>
       db.ctx.transaction { implicit ec =>
         for {
@@ -306,13 +197,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         } yield true
       }
     }
-    // val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
-    // val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-    //   for {
-    //     true <- db.post.createPublic(postsOfUrl)
-    //   } yield true
-
-    // }
 
     result.recover {
       case NonFatal(t) =>
@@ -325,23 +209,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   def importGitterUrl(url: String): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, _) =>
 
-    object GitterImporter {
-      import gitter._
-
-      def getMessages(roomId: String = "5a2c177dd73408ce4f828d9d") = {
-//        val res: FreeF[IList[Message]] = Gitter.messages(roomId)
-//        val res = Gitter.messages(roomId)
-          println(Gitter.messages(roomId))
-//        for {
-//          msgList <- res
-//        } yield println(msgList.toString())
-      }
-
-    }
-
     // TODO: Reuse graph changes instead
     val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
-    GitterImporter.getMessages()
+    val messages = GitterImporter.getMessages()
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
       for {
         true <- db.post.createPublic(postsOfUrl)
@@ -354,10 +224,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         scribe.error(t)
         false
     } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
-  }
-
-  def getRestructuringTask(): ApiResult.Function[RestructuringTask] = _ => Future {
-    RestructuringTaskChooser()
   }
 
 }
