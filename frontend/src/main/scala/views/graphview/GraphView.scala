@@ -8,17 +8,21 @@ import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.{Element, window, console}
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
 import wust.frontend.Color._
 import wust.frontend.views.View
-import wust.frontend.{DevOnly, DevPrintln, GlobalState, PostCreatorMenu}
+import wust.frontend.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
 import wust.util.outwatchHelpers._
 import wust.util.time.time
+import wust.ids._
 
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
+import wust.frontend.views.Elements._
+import wust.frontend.views.Placeholders
 
 
 
@@ -27,10 +31,42 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
   override val key = "graph"
   override val displayName = "Mindmap"
   override def apply(state: GlobalState) = {
+
+    // since all elements get inserted at once, we can zip and only have one function call
+    val container = Handler.create[dom.html.Element].unsafeRunSync()
+    val htmlLayer = Handler.create[dom.html.Element].unsafeRunSync()
+    val svgLayer = Handler.create[dom.svg.Element].unsafeRunSync()
+
+    val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
+    val d3State = new D3State(disableSimulation)
+    val graphState = new GraphState(state)
+
+    Observable.zip3(container, htmlLayer, svgLayer).foreach { case (container, htmlLayer, svgLayer) =>
+      println("Initializing Graph view")
+      new GraphViewInstance(
+        state,
+        d3State,
+        graphState,
+        container,
+        htmlLayer,
+        svgLayer,
+        postCreationMenus,
+        disableSimulation
+      )
+    }
+
     div(
       height := "100%",
       backgroundColor <-- state.pageStyle.map(_.bgColor),
-      onInsert --> sideEffect(new GraphViewInstance(state, _, disableSimulation))
+
+      tag("svg")(onInsert.asSvg --> svgLayer),
+      div(onInsert.asHtml --> htmlLayer),
+      onInsert.asHtml --> container,
+
+      children <-- postCreationMenus.map(_.map{ menu =>
+          PostCreationMenu(state, graphState, menu, d3State.transform)
+        }).toObservable
+
     )
   }
 }
@@ -42,7 +78,6 @@ object GraphView {
   )
 }
 
-
 case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
 case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
 
@@ -51,12 +86,18 @@ object KeyImplicits {
   implicit val SimConnectionWithKey = new WithKey[SimConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val SimRedirectedConnectionWithKey = new WithKey[SimRedirectedConnection](c => s"${c.sourceId} ${c.targetId}")
   implicit val ContainmentClusterWithKey = new WithKey[ContainmentCluster](_.id)
-  implicit val postCreatorMenuWithKey = new WithKey[PostCreatorMenu](_.toString)
 }
 
-class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulation: Boolean = false)(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
-  val graphState = new GraphState(state)
-  val d3State = new D3State(disableSimulation)
+class GraphViewInstance(
+  state: GlobalState,
+  d3State: D3State,
+  graphState: GraphState,
+  element: dom.html.Element,
+  htmlLayer: dom.html.Element,
+  svgLayer: dom.svg.Element,
+  postCreationMenus: Var[List[PostCreationMenu.Menu]],
+  disableSimulation: Boolean = false
+  )(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
   val postDrag = new PostDrag(graphState, d3State, onPostDrag _, onPostDragEnd _)
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph, _}
   import graphState._
@@ -66,7 +107,7 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   import KeyImplicits._
   val container = d3.select(element)
 
-  val svg = container.append("svg")
+  val svg = d3.select(svgLayer)
   val containmentClusterSelection = SelectData.rx(ContainmentClusterSelection, rxContainmentCluster)(svg.append("g"))
   val collapsedContainmentClusterSelection = SelectData.rx(CollapsedContainmentClusterSelection, rxCollapsedContainmentCluster)(svg.append("g"))
   val connectionLineSelection = SelectData.rx(ConnectionLineSelection, rxSimConnection)(svg.append("g"))
@@ -76,15 +117,15 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   val postCollisionRadiusSelection = SelectData.rx(PostCollisionRadiusSelection, rxSimPosts)(svg.append("g"))
   val postContainmentRadiusSelection = SelectData.rx(PostContainmentRadiusSelection, rxSimPosts)(svg.append("g"))
 
-  val html = container.append("div")
+  val html = d3.select(htmlLayer)
   val connectionElementSelection = SelectData.rx(new ConnectionElementSelection(graphState), rxSimConnection)(html.append("div"))
   val rawPostSelection = new PostSelection(graphState, d3State, postDrag, updatedNodeSizes _)
   val postSelection = SelectData.rx(rawPostSelection, rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
 
-  val postMenuLayer = container.append("div")
+  // val postMenuLayer = container.append("div")
   // val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
-  val postCreatorMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreatorMenus.map(_.toJSArray))(postMenuLayer.append("div"))
+  // val postCreationMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreationMenus.map(_.toJSArray))(postMenuLayer.append("div"))
 
   val menuSvg = container.append("svg")
   val dragMenuLayer = menuSvg.append("g")
@@ -325,19 +366,22 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
       .clickDistance(10) // interpret short drags as clicks
     DevOnly { svg.call(d3State.zoom) } // activate pan + zoom on svg
 
-    // svg.on("click", { () =>
-    //   if (state.inner.postCreatorMenus.now.isEmpty && focusedPostId.now.isEmpty) {
-    //     val pos = d3State.transform.invert(d3.mouse(svg.node))
-    //     state.inner.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
-    //   } else {
-    //     // Var.set(
-    //     //   VarTuple(state.postCreatorMenus, Nil),
-    //     //   VarTuple(focusedPostId, None)
-    //     // )
-    //     state.inner.postCreatorMenus() = Nil
-    //     focusedPostId() = None
-    //   }
-    // })
+    svg.on("click", { () =>
+      //TODO: Also show postCreationMenu when no user is present
+      if ( postCreationMenus.now.isEmpty && focusedPostId.now.isEmpty) {
+        state.inner.currentUser.now.foreach { author =>
+          val pos = d3State.transform.now.invert(d3.mouse(svg.node))
+          postCreationMenus() = List(PostCreationMenu.Menu(Vec2(pos(0), pos(1)), author.id))
+        }
+      } else {
+        // Var.set(
+        //   VarTuple(state.postCreationMenus, Nil),
+        //   VarTuple(focusedPostId, None)
+        // )
+        postCreationMenus() = Nil
+        focusedPostId() = None
+      }
+    })
 
     val staticForceLayout = false
     var inInitialSimulation = staticForceLayout
@@ -357,12 +401,11 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
   }
 
   private def zoomed(): Unit = {
-    import d3State.transform
+    val transform = d3State.transform.now
     val htmlTransformString = s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", htmlTransformString)
 //    postMenuSelection.draw()
-   postCreatorMenu.draw()
   }
 
   private def draw(): Unit = {

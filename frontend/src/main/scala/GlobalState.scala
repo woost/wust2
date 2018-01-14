@@ -20,11 +20,6 @@ import rx._
 
 import scalaz.Tag
 
-case class PostCreatorMenu(pos: Vec2) {
-  var ySimPostOffset: Double = 50
-}
-
-
 class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._
@@ -124,7 +119,6 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
       }
     }
 
-    val postCreatorMenus:Var[List[PostCreatorMenu]] = Var(Nil)
   }
 
   val eventProcessor = inner.eventProcessor
@@ -143,7 +137,6 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
   val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
   val chronologicalPostsAscending = inner.chronologicalPostsAscending.toObservable
   val upButtonTargetPage = inner.upButtonTargetPage.toObservable
-  val postCreatorMenus = inner.postCreatorMenus.toHandler
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
   DevOnly {

@@ -29,7 +29,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
         // )
 //        rxFocusedSimPost() = rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)
 //      graphState.state.inner.focusedPostId() =
-        graphState.state.inner.postCreatorMenus() = Nil
+        // graphState.state.inner.postCreatorMenus() = Nil
       })
       .call(d3.drag[SimPost]()
         .clickDistance(10) // interpret short drags as clicks
@@ -40,7 +40,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
           //   VarTuple(graphState.state.postCreatorMenus, Nil)
           // )
           graphState.state.inner.focusedPostId() = None
-          graphState.state.inner.postCreatorMenus() = Nil
+          // graphState.state.inner.postCreatorMenus() = Nil
           postDragStarted(simPost)
         })
         .on("drag", postDragged _)
@@ -60,7 +60,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
 
   private def recalculateNodeSizes(post: Selection[SimPost]): Unit = {
     post.each({ (node: HTMLElement, p: SimPost) =>
-      p.recalculateSize(node, d3State.transform.k)
+      p.recalculateSize(node, d3State.transform.now.k)
     })
     updatedNodeSizes()
   }

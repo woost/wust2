@@ -46,8 +46,8 @@ class DragMenuSelection(dragActions: js.Array[DragAction], d3State: D3State) ext
 
   override def draw(menu: Selection[SimPost]):Unit = {
     menu.attr("transform", { (p: SimPost) =>
-      val x = d3State.transform.applyX(p.x)
-      val y = d3State.transform.applyY(p.y)
+      val x = d3State.transform.now.applyX(p.x)
+      val y = d3State.transform.now.applyY(p.y)
       s"translate(${x}, ${y})"
     })
   }

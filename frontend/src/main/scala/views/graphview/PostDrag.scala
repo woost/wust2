@@ -96,12 +96,12 @@
      simulation.stop()
    }
 
-   def closestTo(pos: Vec2) = simulation.find(pos.x, pos.y, dragHitDetectRadius / d3State.transform.k).toOption
+   def closestTo(pos: Vec2) = simulation.find(pos.x, pos.y, dragHitDetectRadius / d3State.transform.now.k).toOption
 
    def postDragged(p: SimPost): Unit = {
      val draggingPost = p.draggingPost.get
      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.k
+     val transformedEventPos = p.dragStart + (eventPos - p.dragStart) / transform.now.k
      val closest = closestTo(transformedEventPos)
 
      p.dragClosest.foreach(_.isClosest= false)
@@ -121,7 +121,7 @@
 
    def postDragEnded(dragging: SimPost): Unit = {
      val eventPos = Vec2(d3.event.asInstanceOf[DragEvent].x, d3.event.asInstanceOf[DragEvent].y)
-     val transformedEventPos = dragging.dragStart + (eventPos - dragging.dragStart) / transform.k
+     val transformedEventPos = dragging.dragStart + (eventPos - dragging.dragStart) / transform.now.k
 
      val closest = closestTo(transformedEventPos)
      closest match {

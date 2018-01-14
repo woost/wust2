@@ -8,6 +8,7 @@
  import scala.scalajs.js
  import scala.scalajs.js.JSConverters._
  import scala.scalajs.js.annotation._
+ import rx._
 
 object Constants {
   val nodePadding = 150
@@ -690,11 +691,9 @@ object Simulation {
 class D3State(disableSimulation: Boolean = false) {
   //TODO: dynamic by screen size, refresh on window resize, put into centering force
   val zoom = d3.zoom().on("zoom.settransform", () => zoomed()).scaleExtent(js.Array(0.01, 10))
-  //TODO why does this not work on 2.12, works on 2.11. maybe scalajs function implicit?
-  // private def zoomed() { _transform = d3.event.asInstanceOf[ZoomEvent].transform }
-  private def zoomed() = { _transform = d3.event.asInstanceOf[ZoomEvent].transform }
-  private var _transform: Transform = d3.zoomIdentity // stores current pan and zoom
-  def transform = _transform
+  private def zoomed() = { _transform() = d3.event.asInstanceOf[ZoomEvent].transform }
+  private var _transform: Var[Transform] = Var(d3.zoomIdentity) // stores current pan and zoom
+  def transform:Rx[Transform] = _transform
 
   val forces = Forces()
   val simulation = Simulation(forces)
