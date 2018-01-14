@@ -9,31 +9,26 @@ import DbConversions._
 import scala.concurrent.{ ExecutionContext, Future }
 
 //TODO instance for each client?
-class GuardDsl(createImplicitAuth: () => Future[JWTAuthentication])(implicit ec: ExecutionContext) {
+class GuardDsl(createImplicitAuth: () => Future[JWTAuthentication])(implicit ec: ExecutionContext) extends ApiDsl {
   private lazy val implicitAuth = createImplicitAuth()
 
-  private def actualOrImplicitAuth(auth: Option[JWTAuthentication]): (Future[JWTAuthentication], Boolean) = auth match {
-    case None => (implicitAuth, true)
-    case Some(auth) => (Future.successful(auth), false)
-  }
-
-  def withUser[T](f: ApiResult.Function2[State, User, T]): ApiResult.Function[T] = state => {
-    state.auth.fold[ApiResult[T]](ApiCall.fail[T](ApiError.Unauthorized))(auth => f(state, auth.user))
-  }
-
-  def withUserOrImplicit[T](code: ApiResult.Function3[State, User, Boolean, T]): ApiResult.Function[T] = state => {
-    val (auth, wasCreated) = actualOrImplicitAuth(state.auth)
-    for {
-      auth <- auth
-      newState = state.copy(auth = Some(auth))
-    } yield {
-      val result = code(newState, auth.user, wasCreated)
-      val nextState = result.stateOps match {
-        case ApiResult.ReplaceState(replacedState) => replacedState
-        case ApiResult.KeepState => newState
+  implicit class GuardedAction(actionFactory: Action.type) {
+    def withUser[T](f: (State, User) => Future[ApiData.Action[T]]): ApiFunction[T] = Action { state =>
+      state.auth match {
+        case Some(auth) => f(state, auth.user)
+        case None => Future.successful(Failure[T](ApiError.Unauthorized))
       }
+    }
 
-      ApiResult(state, result.call)
+    def withUserOrImplicit[T](code: (State, User, Boolean) => Future[ApiData.Action[T]]): ApiFunction[T] = Action { state =>
+      state.auth match {
+        case Some(auth) => code(state, auth.user, false)
+        case None => for {
+          auth <- implicitAuth
+          newState = state.copy(auth = Some(auth))
+          result <- code(newState, auth.user, true)
+        } yield result
+      }
     }
   }
 }

@@ -49,7 +49,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       Future.successful(Nil)
   }).map(_.flatten)
 
-  def validate(state: State): State = state.copyF(auth = _.filterNot(jwt.isExpired))
+  def validate(state: State): State = state.copyF(auth = _.filterNot(_.isExpired))
 
   def stateEvents(state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent.Private]] = {
     db.graph.getAllVisiblePosts(state.user.map(_.id)).map { dbGraph =>

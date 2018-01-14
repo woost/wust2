@@ -22,6 +22,7 @@ trait Api[Result[_]] {
 
 trait AuthApi[Result[_]] {
   //TODO: simplify implicit login by handshake with a token or userid and an initial graph. persist new implicit user when used first time.
+  // def assumeLogin(id: UserId): Result[Boolean]
   def register(name: String, password: String): Result[Boolean]
   def login(name: String, password: String): Result[Boolean]
   def loginToken(token: Authentication.Token): Result[Boolean]

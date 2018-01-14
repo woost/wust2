@@ -28,7 +28,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
     val user = User("Biermann")
     val auth = jwt.generateAuthentication(user)
 
-    jwt.isExpired(auth) mustEqual false
+    auth.isExpired mustEqual false
     auth.user mustEqual user
     auth.expires must be > (System.currentTimeMillis / 1000)
     auth.token.length must be > 0
@@ -39,7 +39,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
     val jwt = new JWT("secret", tokenLifetime = Duration.Zero)
     val auth = jwt.generateAuthentication(user)
 
-    jwt.isExpired(auth) mustEqual true
+    auth.isExpired mustEqual true
     auth.user mustEqual user
     auth.expires must be < (System.currentTimeMillis / 1000)
     auth.token.length must be > 0

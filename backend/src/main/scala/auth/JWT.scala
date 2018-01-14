@@ -13,6 +13,9 @@ import scala.concurrent.duration.Duration
 @derive((user, expires) => toString)
 case class JWTAuthentication private[auth] (user: User, expires: Long, token: Authentication.Token) {
   def toAuthentication = Authentication(user, token)
+
+  def isExpired: Boolean = isExpiredIn(Duration.Zero)
+  def isExpiredIn(duration: Duration): Boolean = expires <= Instant.now.getEpochSecond + duration.toSeconds
 }
 
 @derive(apply)
@@ -50,6 +53,4 @@ class JWT(secret: String, tokenLifetime: Duration) {
       case _ => None
     }
   }
-
-  def isExpired(auth: JWTAuthentication): Boolean = auth.expires <= Instant.now.getEpochSecond
 }

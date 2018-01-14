@@ -11,7 +11,7 @@ case class AuthConfig(tokenLifetime: Duration, secret: String)
 case class SmtpConfig(endpoint: String, username: String, password: String)
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
-case class ServerConfig(port: Int, clientBufferSize: Int)
+case class ServerConfig(port: Int, clientBufferSize: Int, clientReconnectInterval: Duration)
 
 case class Config(server: ServerConfig, auth: AuthConfig, email: Option[EmailConfig], db: TConfig) {
   override def toString = {

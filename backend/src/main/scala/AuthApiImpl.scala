@@ -7,19 +7,22 @@ import wust.backend.auth._
 import wust.db.Db
 import wust.util.RichFuture
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
 //TODO should send auth events here?
-class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiResult.Function] {
+class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, minTokenLifetime: Duration)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
+  import dsl._
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
-  private def resultOnAuth(state: State, auth: Future[Option[JWTAuthentication]]): ApiResult[Boolean] = auth.map {
-    case auth @ Some(_) => ApiResult(state.copy(auth = auth), true)
-    case None => ApiResult(state, false)
+  private def resultOnAuth(state: State, auth: Future[Option[JWTAuthentication]]): Future[ApiData.Effect[Boolean]] = auth.map {
+    //TODO minimum lifetime and auto disconnect of ws
+    case Some(auth) /*if !auth.isExpiredIn(minTokenLifetime)*/ => Returns(state.copy(auth = Some(auth)), true)
+    case _ => Returns(state, false)
   }
 
-  def register(name: String, password: String): ApiResult.Function[Boolean] = { state =>
+  def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
     val newUser = state.auth.map(_.user) match {
       case Some(user) if user.isImplicit =>
@@ -32,7 +35,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnAuth(state, newAuth)
   }
 
-  def login(name: String, password: String): ApiResult.Function[Boolean] = { state =>
+  def login(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
     val newAuth = db.user.getUserAndDigest(name).map {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -52,7 +55,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnAuth(state, newAuth)
   }
 
-  def loginToken(token: Authentication.Token): ApiResult.Function[Boolean] = { state =>
+  def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
     val newAuth = jwt.authenticationFromToken(token).map { auth =>
       db.user.checkIfEqualUserExists(auth.user).map { isValid =>
         if (isValid) Some(auth) else None
@@ -62,7 +65,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnAuth(state, newAuth)
   }
 
-  def logout(): ApiResult.Function[Boolean] = { state =>
-    ApiResult(state.copy(auth = None), true)
+  def logout(): ApiFunction[Boolean] = Effect { state =>
+    Future { Returns(state.copy(auth = None), true) }
   }
 }

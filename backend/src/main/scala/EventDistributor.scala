@@ -25,7 +25,7 @@ class EventDistributor(db: Db) {
   def publish(origin: NotifiableClient[RequestEvent], events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
-    val postIds = events.flatMap(postIdsInEvent _).toSet
+    val postIds = events.flatMap(postIdsInEvent).toSet
     for {
       postGroups <- getGroupIds(postIds)
     } yield subscribers.foreach { client =>
