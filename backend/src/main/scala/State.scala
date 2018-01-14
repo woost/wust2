@@ -20,7 +20,7 @@ object State {
 }
 
 //TODO: please refactor me.
-class StateInterpreter(db: Db, jwt: JWT)(implicit ec: ExecutionContext) {
+class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   import ApiEvent._
 
   def getInitialGraph(): Future[Graph] = db.graph.getAllVisiblePosts(userId = None).map(forClient)

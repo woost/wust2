@@ -131,7 +131,7 @@ object WebsocketFactory {
 
     val db = Db(config.db)
     val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
-    val stateInterpreter = new StateInterpreter(db, jwt)
+    val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = GuardDsl(jwt, db)
 
     //TODO
