@@ -1,33 +1,15 @@
 package wust.frontend.views
-
-import boopickle.Default._
-import org.scalajs.dom.{Element, Event, console, document, window, MouseEvent}
-import org.scalajs.dom.window.location
-// import wust.util.tags._
-import wust.frontend.Color._
-import wust.frontend.views.graphview.GraphView
-import wust.frontend.{ DevOnly, GlobalState }
-import org.scalajs.dom.raw.{ HTMLElement, HTMLInputElement, HTMLSelectElement, HTMLButtonElement }
-import org.scalajs.dom.raw.{ HTMLTextAreaElement }
 import monix.execution.Scheduler.Implicits.global
-import wust.ids._
-import wust.api._
-import wust.graph._
-import wust.frontend.{ RichPostFactory, Client }
-import wust.util.Analytics
-import scala.util.{ Try, Success, Failure }
-import scalaz.Tag
-import scala.scalajs.js.timers.setTimeout
-import wust.frontend.{SyncStatus, SyncMode, UrlRouter}
-import rx._
-import wust.frontend.views.RestructuringTaskChooser
-
 import outwatch.dom._
 import outwatch.dom.dsl._
+import rx._
+import wust.frontend.Color._
+import wust.frontend.{Client, GlobalState}
+import wust.frontend.views.graphview.GraphView
+import wust.util.Analytics
 import wust.util.outwatchHelpers._
 
 object MainView {
-  import Elements._
 
   def upButton(state: GlobalState) = {
     //TODO: outwatch child <-- Option[VNode]
