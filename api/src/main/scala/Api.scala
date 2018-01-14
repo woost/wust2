@@ -18,7 +18,6 @@ trait Api[Result[_]] {
 
   def importGithubUrl(url: String): Result[Boolean]
   def importGitterUrl(url: String): Result[Boolean]
-  def getRestructuringTask(): Result[RestructuringTask]
 }
 
 trait AuthApi[Result[_]] {

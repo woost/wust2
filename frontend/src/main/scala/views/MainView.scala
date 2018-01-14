@@ -20,6 +20,7 @@ import scalaz.Tag
 import scala.scalajs.js.timers.setTimeout
 import wust.frontend.{SyncStatus, SyncMode, UrlRouter}
 import rx._
+import wust.frontend.views.RestructuringTaskChooser
 
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -429,7 +430,7 @@ object MainView {
       br(),
       dataImport(state),
       br(),
-      taskDisplay(state),
+      RestructuringTaskChooser.init(state),
       br(),
       channels(state),
     )
@@ -481,90 +482,6 @@ object MainView {
     )
   }
 
-  def taskDisplay(state: GlobalState) = {
-    val taskDisplayer = Handler.create[Boolean](false).unsafeRunSync()
-
-    // def taskRenderer(task: Task) = {
-    def taskRenderer() = {
-      // val task = Client.api.getTask().call().foreach(res => println("Api call succeeded: " + res.toString))
-      // val task = Client.api.getTask().call().foreach(_ => _)
-      val title = "task.title"
-      val desc = "task.description"
-      div(
-        div(
-          title,
-          span(
-            "×",
-            onClick(false) --> taskDisplayer,
-            cursor.pointer,
-            float.right,
-            fontSize := "28px",
-            fontWeight.bold,
-          ),
-          width := "100%",
-          height := "100%",
-        ),
-        p(desc),
-        padding := "2px 16px",
-        height := "100%",
-      )
-    }
-
-    val show = taskDisplayer.map(d => {
-      println(s"display task! ${d.toString}")
-      if(d == true) {
-        div( //modal outer container
-          div( //modal inner container
-            div( //header
-              padding := "2px 16px",
-              // backgroundColor := baseColor(post.id).toString,
-              backgroundColor := "green",
-              color := "black",
-            ),
-            taskRenderer(),//content
-            div(//footer
-              padding := "2px 16px",
-              // backgroundColor := baseColor(post.id).toString,
-              backgroundColor := "green",
-              color := "black",
-            ),
-            position.relative,
-            backgroundColor := "gray",
-            margin := "auto",
-            padding := "0",
-            border := "1px solid #888",
-            boxShadow := "0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)",
-            width := "90%",
-            height := "100%",
-            // animationDuration := "0.4s",
-            // animationDirection := "from {top:-300px; opacity:0} to {top:0; opacity:1}"
-          ),
-          display.block,
-          position.fixed,
-          zIndex := 100,
-          left := "0",
-          bottom := "0",
-          width := "100%",
-          height := "40%",
-          overflow.auto,
-          backgroundColor := "rgb(0,0,0)",
-          backgroundColor := "rgba(0,0,0,0.4)",
-        )
-    } else {
-      div(
-        span("Tasks"),
-        fontWeight.bold,
-        fontSize := "20px",
-        marginBottom := "10px",
-        button("Task me!", width := "100%", onClick(true) --> taskDisplayer),
-        ),
-      }
-    })
-
-    div(
-      child <-- show,
-    )
-  }
 
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner) = {
     div(
