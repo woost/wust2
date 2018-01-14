@@ -23,7 +23,7 @@ val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
 
 val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
 
-val slothVersion = "8bd18a5"
+val slothVersion = "af12234"
 val slothBoopickle = dep("io.github.cornerman.sloth" %%% "sloth-boopickle" % slothVersion)
 val slothMycelium = dep("io.github.cornerman.sloth" %%% "sloth-mycelium" % slothVersion)
 
