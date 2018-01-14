@@ -470,8 +470,8 @@ object MainView {
       id := "pagegrid",
 
       sidebar(state),
-      new GraphView().apply(state),
       ChatView(state),
+      new GraphView().apply(state),
 
       // feedbackForm (state),
       // DevOnly { devPeek(state) },

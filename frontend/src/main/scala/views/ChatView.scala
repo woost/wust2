@@ -82,7 +82,6 @@ object ChatView extends View {
       display.block,
       clear.both,
       width := "100%",
-      borderBottom := "1px solid gray",
       padding := "5px 10px",
       margin := "5px 0px",
       p(
@@ -99,25 +98,6 @@ object ChatView extends View {
 
         cursor.pointer // TODO: What about cursor when selecting text?
       ),
-      div(
-        float := (if (isMine) "right" else "left"),
-        h3("Post data"),
-        p(
-          s"post content: ${post.content}",
-          br(),
-          s"post author: ${post.author.toString}",
-          br(),
-          s"get username from graph: ${graph.usersById.get(post.author).toString}",
-          br(),
-          s"graph user names: ${graph.users.map(_.name).toString}",
-          br(),
-          s"graph user ids: ${graph.userIds.toString}",
-          br(),
-          s"creation time: ${post.created.toString}",
-          br(),
-          s"modification time: ${post.modified.toString}"
-        )
-      )
     )
   }
 
