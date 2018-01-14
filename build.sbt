@@ -149,7 +149,7 @@ lazy val sdk = crossProject
 lazy val sdkJS = sdk.js
 lazy val sdkJVM = sdk.jvm
 
-lazy val ids = crossProject
+lazy val ids = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
   .settings(
@@ -166,7 +166,7 @@ lazy val ids = crossProject
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
 
-lazy val graph = crossProject
+lazy val graph = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
   .dependsOn(ids, util)
