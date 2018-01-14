@@ -222,6 +222,7 @@ lazy val backend = project
       // "com.47deg" %% "github4s" % "0.17.0" :: // only temporarly here
       "io.github.GRBurst.github4s" %% "github4s" % "1d9681d" :: // master + comments + single issue
       "com.github.xuwei-k" %% "gitter-scala" % "0.3.0" ::
+      "cool.graph" % "cuid-java" % "0.1.1" ::
       Nil,
 
     javaOptions in reStart += "-Xmx50m"

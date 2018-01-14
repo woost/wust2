@@ -1,5 +1,8 @@
 package wust.backend
 
+import java.time.{Instant, ZoneId}
+
+import cool.graph.cuid.Cuid
 import github4s.Github
 import github4s.Github._
 import github4s.GithubResponses.GHResult
@@ -81,6 +84,7 @@ object GitHubImporter {
     }
 
     val postAndConnection: Future[Set[(Set[Post], Set[Connection])]] = {
+      def parseTime(time: String) = Instant.parse(time).atZone(ZoneId.systemDefault).toLocalDateTime
       issueWithComments.map(_.map( issueData => {
         val issue = issueData._1
         val commentsList = issueData._2
@@ -91,13 +95,14 @@ object GitHubImporter {
         }) //TODO: create this user
         val tempUserId = user.id
 
-        val title = Post(PostId(issue.id.toString), issue.title, tempUserId)
-        val desc = Post(PostId(issue.number.toString), issue.body, tempUserId)
+
+        val title = Post(PostId(Cuid.createCuid()), s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
+        val desc = Post(PostId(Cuid.createCuid()), issue.body, tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
         val cont = Connection(desc.id, Label.parent, title.id)
         val conn = Connection(desc.id, "describes", title.id)
 
         val comments: List[(Post, Connection)] = commentsList.map(comment => {
-          val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId)
+          val cpost = Post(PostId(Cuid.createCuid()), comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
           val cconn = Connection(cpost.id, Label.parent, title.id)
           (cpost, cconn)
         })
