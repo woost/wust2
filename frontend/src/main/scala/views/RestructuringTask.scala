@@ -1,11 +1,13 @@
 package wust.frontend.views
 
+import scala.collection.breakOut
 import monix.execution.Scheduler.Implicits.global
 import org.scalajs.dom.raw.MouseEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend.{Client, GlobalState}
-import wust.graph.{GraphChanges, Post}
+import wust.graph.{Connection, GraphChanges, Post}
+import wust.ids.Label
 
 case object Style {
   def post(post: Post) = div(
@@ -22,7 +24,7 @@ case object Style {
       borderRadius := "7px",
       border := "1px solid gray",
       margin := "5px 0px",
-      cursor.pointer // TODO: What about cursor when selecting text?
+//      cursor.pointer // TODO: What about cursor when selecting text?
     ),
   )
 }
@@ -94,14 +96,40 @@ case object ConnectPosts extends RestructuringTask
 {
   val title = "Connect Posts"
   val description = "Do these posts belong together?"
+
+  def connectPostsGraphChanges(posts: Set[Post]) = {
+    val changes = List(GraphChanges(addConnections = Set(Connection(posts.head.id, "related", posts.last.id))))
+    Client.api.changeGraph(changes).foreach(res => println("Api call succeeded: " + res.toString))
+  }
+
   def component(state: GlobalState): VNode = {
-    div( )
+    val answerYes = Handler.create[MouseEvent]
+
+    val currentPosts = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
+    val connectPosts = TaskHeuristic.random(currentPosts, 2)
+
+    div(
+      connectPosts.map(Style.post(_))(breakOut): Seq[VNode],
+      div(
+        button("Yes", onClick(answerYes) --> sideEffect(connectPostsGraphChanges(connectPosts)), onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+        button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+        width := "100%",
+      )
+    )
+  }
+}
+case object ContainPosts extends RestructuringTask
+{
+  val title = "Contain Posts"
+  val description = "Is the first post a topic of the second?"
+  def component(state: GlobalState): VNode = {
+    div()
   }
 }
 case object MergePosts extends RestructuringTask
 {
   val title = "Merge Posts"
-  val description = "Does these posts state the same and are redundant? If yes, they will be merged."
+  val description = "Does these posts state the same but in different words? If yes, they will be merged."
   def component(state: GlobalState): VNode = {
     div()
   }
@@ -121,37 +149,25 @@ case object DeletePost extends RestructuringTask
   val title = "Delete Post"
   val description = "Is this posts irrelevant for this discussion? (e.g. Hello post)"
 
-  def deletePost(post: Post) = {
-    println(s"Deleting post: ${post.id}")
-    val changes = List(GraphChanges(delPosts = Set(post.id)))
-
+  def deletePostGraphChanges(posts: Set[Post]) = {
+    val changes = List(GraphChanges(delPosts = posts.map(_.id)))
     Client.api.changeGraph(changes).foreach(res => println("Api call succeeded: " + res.toString))
-
-  }
-  def keepPost(post: Post) = {
-    println(s"Keeping post: ${post.id}")
   }
 
   def component(state: GlobalState): VNode = {
     val answerYes = Handler.create[MouseEvent]
-    val answerNo = Handler.create[MouseEvent]
 
     val currentPosts = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
-    val delPost = choosePosts(currentPosts, TaskHeuristic.random)
+    val deletePosts = TaskHeuristic.random(currentPosts, 1)
 
     div(
-      Style.post(delPost),
+      deletePosts.map(Style.post(_))(breakOut): Seq[VNode],
       div(
-        button("Yes", onClick(answerYes) --> sideEffect(deletePost(delPost)), onClick(false) --> RestructuringTaskGenerator.taskDisplay),
-        button("No", onClick(answerNo) --> sideEffect(keepPost(delPost)), onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+        button("Yes", onClick(answerYes) --> sideEffect(deletePostGraphChanges(deletePosts)), onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+        button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
         width := "100%",
       )
     )
-  }
-
-  def choosePosts(posts: Set[Post], deletePostHeuristic: (Set[Post], Int) => Set[Post]) = {
-    val p = deletePostHeuristic(posts, 1)
-    p.head
   }
 }
 
@@ -182,36 +198,6 @@ case object AddTagToConnection extends RestructuringTask
   }
 }
 
-case object RestructuringTaskGenerator {
-  val allTasks: List[RestructuringTask] = List(ConnectPosts , MergePosts, UnifyPosts, DeletePost, SplitPost , AddTagToPost, AddTagToConnection)
-
-  def apply(globalState: GlobalState) = {
-     val show = taskDisplay.map(d => {
-      println(s"display task! ${d.toString}")
-      if(d == true) {
-//        RestructuringTaskChooser.heuristic(allTasks).render(globalState)
-        DeletePost.render(globalState)
-      } else {
-        renderButton
-      }
-    })
-
-    div(
-      child <-- show,
-    )
-  }
-
-  val taskDisplay = Handler.create[Boolean](false).unsafeRunSync()
-
-  def renderButton = div(
-    span("Tasks"),
-    fontWeight.bold,
-    fontSize := "20px",
-    marginBottom := "10px",
-    button("Task me!", width := "100%", onClick(true) --> taskDisplay),
-  )
-}
-
 case object TaskHeuristic {
   def random(posts: Set[Post], num: Int = 1): Set[Post] = {
     assert(num <= posts.size, "Cannot pick more elements than there are")
@@ -235,6 +221,37 @@ case object TaskHeuristic {
 //  }
 
   def heuristic: (Set[Post], Int) => Set[Post] = random
+}
+
+case object RestructuringTaskGenerator {
+  val allTasks: List[RestructuringTask] = List(ConnectPosts, ContainPosts, MergePosts, UnifyPosts, DeletePost, SplitPost , AddTagToPost, AddTagToConnection)
+  val workingTasks: List[RestructuringTask] = List(ConnectPosts, DeletePost)
+
+  def apply(globalState: GlobalState) = {
+    val show = taskDisplay.map(d => {
+      println(s"display task! ${d.toString}")
+      if(d == true) {
+//        RestructuringTaskChooser.heuristic(allTasks).render(globalState)
+        RestructuringTaskChooser.heuristic(workingTasks).render(globalState)
+      } else {
+        renderButton
+      }
+    })
+
+    div(
+      child <-- show,
+    )
+  }
+
+  val taskDisplay = Handler.create[Boolean](false).unsafeRunSync()
+
+  def renderButton = div(
+    span("Tasks"),
+    fontWeight.bold,
+    fontSize := "20px",
+    marginBottom := "10px",
+    button("Task me!", width := "100%", onClick(true) --> taskDisplay),
+  )
 }
 
 case object RestructuringTaskChooser {
