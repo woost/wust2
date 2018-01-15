@@ -68,4 +68,9 @@ object ApiEvent {
       case (ev: Private, (privs, pubs)) => (ev :: privs, pubs)
       case (ev: Public, (privs, pubs)) => (privs, ev :: pubs)
     }
+
+  object Implicits {
+    import boopickle.Default._
+    implicit val apiEventPickler = generatePickler[ApiEvent]
+  }
 }

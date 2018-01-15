@@ -9,6 +9,8 @@ import wust.api._
 import wust.ids._
 import wust.backend.auth._
 import wust.backend.config.Config
+import wust.graph.GraphChanges.Implicits._
+import wust.api.ApiEvent.Implicits._
 import wust.db.Db
 import sloth.core._
 import sloth.mycelium._
@@ -113,12 +115,6 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 }
 
-//TODO: why do we need this? as we can see, these picklers can be resolved implicitly, but somehow we need to use them explicitly.
-object HelpMePickle {
-  val graphChanges = implicitly[Pickler[List[wust.graph.GraphChanges]]]
-  val apiEvents = implicitly[Pickler[List[ApiEvent]]]
-}
-
 object WebsocketFactory {
   import DbConversions._
 
@@ -132,9 +128,6 @@ object WebsocketFactory {
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = GuardDsl(jwt, db)
 
-    //TODO
-    implicit val todo1 = HelpMePickle.graphChanges
-    implicit val todo2 = HelpMePickle.apiEvents
     val server = SlothServer[ByteBuffer, ApiResult.Function]
     val api =
       server.route[Api[ApiResult.Function]](new ApiImpl(guardDsl, db)) orElse
