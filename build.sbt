@@ -23,7 +23,7 @@ val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
 
 val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
 
-val slothVersion = "8933017"
+val slothVersion = "694327d"
 val slothBoopickle = dep("io.github.cornerman.sloth" %%% "sloth-boopickle" % slothVersion)
 val slothMycelium = dep("io.github.cornerman.sloth" %%% "sloth-mycelium" % slothVersion)
 
@@ -239,7 +239,7 @@ lazy val frontend = project
       outwatch ::
       "com.github.fdietze" % "duality" % dualityVersion ::
       "com.github.fdietze" % "vectory" % "3232833" ::
-      "com.github.fdietze" %% "scala-js-d3v4" % "579b9df" ::
+      "com.github.fdietze" %% "scala-js-d3v4" % "a676050" ::
       "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
       derive ::
       Nil
