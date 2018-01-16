@@ -114,15 +114,23 @@ sealed trait YesNoTask extends RestructuringTask
 
 sealed trait AddTagTask extends RestructuringTask
 {
-  val addTag = Handler.create[MouseEvent]
-
-  def constructComponent(state: GlobalState,
-    postChoice: Set[Post],
-    graphChangesYes: GraphChanges): VNode = {
+  def constructComponent(sourcePosts: Set[Post], targetPosts: Set[Post], sink: Sink[String]): VNode = {
     div(
+      sourcePosts.map(Style.post(_))(breakOut): Seq[VNode],
+      targetPosts.map(Style.post(_))(breakOut): Seq[VNode],
+      div(
+        textAreaWithEnter(sink, "Add new tag")(
+          flex := "0 0 3em",
+        ),
+        button("Abort", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+        width := "100%",
       )
+    )
   }
+  def constructComponent(sourcePosts: Set[Post], sink: Sink[String]): VNode = {
+    constructComponent(sourcePosts, Set.empty[Post], sink)
   }
+}
 
 // Multiple Post RestructuringTask
 case object ConnectPosts extends YesNoTask
@@ -214,17 +222,46 @@ case object AddTagToPost extends AddTagTask
 {
   val title = "Add tag to post"
   val description = "How would you describe this post? Please add a tag."
+
+  def addTagToPost(post: Set[Post], state: GlobalState): Sink[String] =
+    state.eventProcessor.changes.redirectMap { (tag: String) =>
+      val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post.newId(tag, state))
+      val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
+      RestructuringTaskGenerator.taskDisplay.unsafeOnNext(false)
+      GraphChanges(
+        addPosts = Set(tagPost),
+        addConnections = tagConnections
+      )
+    }
+
   def component(state: GlobalState): VNode = {
-    div()
+    val postsToTag = TaskHeuristic.random(currentPosts(state), 1)
+    constructComponent(postsToTag, addTagToPost(postsToTag, state))
   }
 }
 
-case object AddTagToConnection extends AddTagTask
+case object ConnectPostsWithTag extends AddTagTask
 {
-  val title = "Add tag to connection"
-  val description = "How would you describe the relation between these posts? Please add a tag to the relation."
+  val title = "Connect Posts with tag"
+  val description = "How would you describe the relation between these posts? Tag it!"
+
+  def tagConnection(sourcePosts: Set[Post],
+    targetPosts: Set[Post],
+    state: GlobalState): Sink[String] =
+      state.eventProcessor.changes.redirectMap { (tag: String) =>
+        val tagConnections: Set[Connection] = for(s <- sourcePosts; t <- targetPosts) yield {
+          Connection(s.id, tag, t.id)
+        }
+        RestructuringTaskGenerator.taskDisplay.unsafeOnNext(false)
+        GraphChanges(
+          addConnections = tagConnections
+        )
+      }
+
   def component(state: GlobalState): VNode = {
-    div()
+    val sourcePosts = TaskHeuristic.random(currentPosts(state), 1)
+    val targetPosts = TaskHeuristic.random(currentPosts(state), 1)
+    constructComponent(sourcePosts, targetPosts, tagConnection(sourcePosts, targetPosts, state))
   }
 }
 
