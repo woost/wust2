@@ -5,9 +5,10 @@ import monix.execution.Scheduler.Implicits.global
 import org.scalajs.dom.raw.MouseEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.frontend.{Client, GlobalState}
+import wust.frontend.{Client, GlobalState, EventProcessor, RichPostFactory}
+import wust.frontend.views.Elements._
 import wust.graph.{Connection, GraphChanges, Post}
-import wust.ids.Label
+import wust.ids._
 
 case object Style {
   def post(post: Post) = div(
@@ -35,11 +36,6 @@ sealed trait RestructuringTask {
   def component(state: GlobalState): VNode
 
   def currentPosts(state: GlobalState) = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
-
-  def applyTaskGraphChanges(graphChanges: GraphChanges) = {
-    val changes = List(graphChanges)
-    Client.api.changeGraph(changes).foreach(res => println("Api call succeeded: " + res.toString))
-  }
 
   def render(state: GlobalState) = {
     div( //modal outer container
@@ -99,7 +95,6 @@ sealed trait RestructuringTask {
 
 sealed trait YesNoTask extends RestructuringTask
 {
-  val answerYes = Handler.create[MouseEvent]
   def constructComponent(state: GlobalState,
     postChoice: Set[Post],
     graphChangesYes: GraphChanges): VNode = {
@@ -107,7 +102,7 @@ sealed trait YesNoTask extends RestructuringTask
         postChoice.map(Style.post(_))(breakOut): Seq[VNode],
         div(
           button("Yes",
-            onClick(answerYes) --> sideEffect(applyTaskGraphChanges(graphChangesYes)),
+            onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
             onClick(false) --> RestructuringTaskGenerator.taskDisplay,
           ),
           button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
@@ -124,10 +119,10 @@ sealed trait AddTagTask extends RestructuringTask
   def constructComponent(state: GlobalState,
     postChoice: Set[Post],
     graphChangesYes: GraphChanges): VNode = {
-      div(
+    div(
       )
   }
-}
+  }
 
 // Multiple Post RestructuringTask
 case object ConnectPosts extends YesNoTask
@@ -162,7 +157,7 @@ case object MergePosts extends YesNoTask
   val description = "Does these posts state the same but in different words? If yes, they will be merged."
 
   def mergePosts(mergeTarget: Post, post: Post): Post = {
-    mergeTarget.copy(content = mergeTarget.content + post.content)
+    mergeTarget.copy(content = mergeTarget.content + "<br />\n" + post.content)
   }
 
   def component(state: GlobalState): VNode = {
@@ -179,7 +174,7 @@ case object UnifyPosts extends YesNoTask // Currently same as MergePosts
   val description = "Does these posts state the same and are redundant? If yes, they will be unified."
 
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
-    unifyTarget.copy(content = unifyTarget.content + post.content)
+    unifyTarget.copy(content = unifyTarget.content + "<br />\n" + post.content)
   }
 
   def component(state: GlobalState): VNode = {
@@ -199,7 +194,10 @@ case object DeletePost extends YesNoTask
 
   def component(state: GlobalState): VNode = {
     val deletePosts = TaskHeuristic.random(currentPosts(state), 1)
-    constructComponent(state, deletePosts, GraphChanges(delPosts = deletePosts.map(_.id)))
+    constructComponent(state,
+      deletePosts,
+      GraphChanges(delPosts = deletePosts.map(_.id))
+    )
   }
 }
 
@@ -255,16 +253,32 @@ case object TaskHeuristic {
   def heuristic: (Set[Post], Int) => Set[Post] = random
 }
 
+case object ChooseTaskHeuristic {
+  def random(tasks: List[RestructuringTask]): RestructuringTask = {
+    tasks(scala.util.Random.nextInt(tasks.size))
+  }
+
+  def heuristic: List[RestructuringTask] => RestructuringTask = random
+}
+
 case object RestructuringTaskGenerator {
-  val allTasks: List[RestructuringTask] = List(ConnectPosts, ContainPosts, MergePosts, UnifyPosts, DeletePost, SplitPost , AddTagToPost, AddTagToConnection)
-  val workingTasks: List[RestructuringTask] = List(ConnectPosts, ContainPosts, MergePosts, DeletePost)
+  val allTasks: List[RestructuringTask] = List(
+    ConnectPosts,
+    ConnectPostsWithTag,
+    ContainPosts,
+    MergePosts,
+    UnifyPosts,
+    DeletePost,
+    // SplitPost,
+    AddTagToPost,
+  )
 
   def apply(globalState: GlobalState) = {
     val show = taskDisplay.map(d => {
       println(s"display task! ${d.toString}")
       if(d == true) {
-//        RestructuringTaskChooser.heuristic(allTasks).render(globalState)
-        RestructuringTaskChooser.heuristic(workingTasks).render(globalState)
+       // ChooseTaskHeuristic.random(allTasks).render(globalState)
+        ConnectPostsWithTag.render(globalState)
       } else {
         renderButton
       }
@@ -284,12 +298,4 @@ case object RestructuringTaskGenerator {
     marginBottom := "10px",
     button("Task me!", width := "100%", onClick(true) --> taskDisplay),
   )
-}
-
-case object RestructuringTaskChooser {
-  def random(tasks: List[RestructuringTask]): RestructuringTask = {
-    tasks(scala.util.Random.nextInt(tasks.size))
-  }
-
-  def heuristic: List[RestructuringTask] => RestructuringTask = random
 }
