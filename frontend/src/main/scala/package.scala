@@ -18,5 +18,10 @@ package object frontend {
       val id = Cuid()
       postFactory.apply(PostId(id), content, author)
     }
+    def newId(content: String, state: GlobalState) = {
+      val id = Cuid()
+      val author = state.inner.currentUser.now.fold(UserId(-1))(_.id)// TODO: Validation
+      postFactory.apply(PostId(id), content, author)
+    }
   }
 }
