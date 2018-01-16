@@ -53,7 +53,7 @@ abstract class ChangeHandlers(currentUser: Observable[Option[User]]) {
   val addPost: Sink[String] = changes.redirect { _.withLatestFrom(currentUser) { (text: String, userOpt: Option[User]) =>
     val newPost = userOpt match {
       case Some(user) => Post.newId(text, author = user.id)
-      case None => Post.newId(text, author = 1) //Replaced in backend after creation of implicit user
+      case None => Post.newId(text, author = -1) //Replaced in backend after creation of implicit user
     }
     GraphChanges(addPosts = Set(newPost))
   } }
