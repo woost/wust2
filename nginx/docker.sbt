@@ -1,22 +1,29 @@
 lazy val assets = ProjectRef(file("."), "assets")
 
-def dockerNginx(tagPostfix: Option[String]) = Seq(
-  dockerfile in docker := {
-    val assetFolder = (WebKeys.assets in assets).value
+def dockerNginx(tagPostfix: Option[String]) = {
+  def withPostfix(version: Option[String]): Option[String] = tagPostfix match {
+    case Some(postfix) => Some(version.fold(postfix)(_ + "-" + postfix))
+    case None => version
+  }
 
-    new Dockerfile {
-      from("nginx:1.13.5-alpine")
-      copy(baseDirectory(_ / ".." / "common").value, "/etc/nginx/conf.d/common")
-      copy(baseDirectory(_ / "default.conf").value, "/etc/nginx/conf.d/default.conf")
-      copy(assetFolder, "/public")
-    }
-  },
+  Seq(
+    dockerfile in docker := {
+      val assetFolder = (WebKeys.assets in assets).value
 
-  imageNames in docker :=
-    ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = tagPostfix) ::
-    ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = Some(tagPostfix.map(_ + "-").getOrElse("") + version.value)) ::
-    Nil
-)
+      new Dockerfile {
+        from("nginx:1.13.5-alpine")
+        copy(baseDirectory(_ / ".." / "common").value, "/etc/nginx/conf.d/common")
+        copy(baseDirectory(_ / "default.conf").value, "/etc/nginx/conf.d/default.conf")
+        copy(assetFolder, "/public")
+      }
+    },
+
+    imageNames in docker :=
+      ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = withPostfix(None)) ::
+      ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = withPostfix(Some(version.value))) ::
+      Nil
+  )
+}
 
 lazy val nginx = project.in(file("."))
   .aggregate(nginxHttps, nginxHttp)
