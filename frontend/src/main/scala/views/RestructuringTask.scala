@@ -1,8 +1,8 @@
 package wust.frontend.views
 
-import scala.collection.breakOut
 import monix.execution.Scheduler.Implicits.global
-import org.scalajs.dom.raw.MouseEvent
+import org.scalajs.dom
+import org.scalajs.dom.{MouseEvent, window, console}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend.{Client, GlobalState, EventProcessor}
@@ -10,13 +10,10 @@ import wust.frontend.views.Elements._
 import wust.graph.{Connection, GraphChanges, Post}
 import wust.ids._
 
+import scala.collection.breakOut
+
 case object Style {
-  def post(post: Post) = div(
-    display.block,
-    width := "100%",
-    padding := "5px 10px",
-    margin := "5px 0px",
-    p(
+  def post(post: Post) = p(
       post.content,
       color.black,
       maxWidth := "60%",
@@ -25,8 +22,6 @@ case object Style {
       borderRadius := "7px",
       border := "1px solid gray",
       margin := "5px 0px",
-//      cursor.pointer // TODO: What about cursor when selecting text?
-    ),
   )
 }
 
@@ -213,9 +208,75 @@ case object DeletePost extends YesNoTask
 case object SplitPost extends RestructuringTask
 {
   val title = "Split Post"
-  val description = "Does this Post contain multiple statements? Please split the post."
+  val description = "Does this Post contain multiple statements? Please split the post. You can split a part of this post by selecting it and confirm the selectio with the button."
+
+  def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
+    if(!condition) return None
+    Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now))
+  }
+
+  def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): Seq[Post] = {
+    val selection = window.getSelection()
+    if(selection.rangeCount > 1)
+      return Seq(originalPost)
+
+    val range = selection.getRangeAt(0)
+    val selectionOffsets = (range.startOffset, range.endOffset)
+
+    val elementText = event.currentTarget.asInstanceOf[dom.html.Paragraph].textContent
+    val currSelText = elementText.substring(selectionOffsets._1, selectionOffsets._2).trim
+
+    val before = stringToPost(elementText.take(selectionOffsets._1), selectionOffsets._1 != 0, state)
+    // val middle = if(currSelText.nonEmpty) Some(originalPost.copy(content = currSelText)) else None
+    val middle = stringToPost(currSelText, currSelText.nonEmpty, state)
+    val after = stringToPost(elementText.substring(selectionOffsets._2), selectionOffsets._2 != elementText.length, state)
+
+    console.log(s"currSelection: $selectionOffsets")
+    console.log(s"currSelText: $currSelText")
+
+    Seq(before, middle, after).flatten
+  }
+
+  def generateGraphChanges(originalPost: Post, posts: Seq[Post], state: GlobalState): GraphChanges = {
+    val connections = posts.map(p => Connection(p.id ,"splitFrom", originalPost.id)).toSet
+    GraphChanges(
+      addPosts = posts.filter(_.id != originalPost.id).toSet,
+      addConnections = connections,
+      delPosts = Set(originalPost.id),
+    )
+  }
+
   def component(state: GlobalState): VNode = {
-    div()
+    val splitPost = TaskHeuristic.random(currentPosts(state), 1).head
+    val postPreview = Handler.create[Seq[Post]](Seq(splitPost)).unsafeRunSync()
+
+    div(
+      div(// what about multiple Selections?
+        children <-- postPreview.map {posts =>
+          posts.map {post =>
+            p(
+              post.content,
+              color.black,
+              maxWidth := "60%",
+              backgroundColor := "#eee",
+              padding := "5px 10px",
+              borderRadius := "7px",
+              border := "1px solid gray",
+              margin := "5px 0px",
+              onMouseUp.map(e => posts.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else Seq(p))) --> postPreview,
+            )
+          }
+        },
+        width := "100%",
+      ),
+      button("Confirm",
+        onClick(postPreview).map(generateGraphChanges(splitPost, _, state)) --> state.eventProcessor.enriched.changes,
+        onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+      ),
+      button("Abort",
+        onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+      ),
+    )
   }
 }
 
@@ -307,7 +368,7 @@ case object RestructuringTaskGenerator {
     MergePosts,
     UnifyPosts,
     DeletePost,
-    // SplitPost,
+    SplitPost,
     AddTagToPost,
   )
 
@@ -315,8 +376,8 @@ case object RestructuringTaskGenerator {
     val show = taskDisplay.map(d => {
       println(s"display task! ${d.toString}")
       if(d == true) {
-       // ChooseTaskHeuristic.random(allTasks).render(globalState)
-        ConnectPostsWithTag.render(globalState)
+        // ChooseTaskHeuristic.random(allTasks).render(globalState)
+       SplitPost.render(globalState)
       } else {
         renderButton
       }

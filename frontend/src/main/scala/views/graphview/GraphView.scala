@@ -325,19 +325,19 @@ class GraphViewInstance(state: GlobalState, element: dom.Element, disableSimulat
       .clickDistance(10) // interpret short drags as clicks
     DevOnly { svg.call(d3State.zoom) } // activate pan + zoom on svg
 
-    svg.on("click", { () =>
-      if (state.inner.postCreatorMenus.now.isEmpty && focusedPostId.now.isEmpty) {
-        val pos = d3State.transform.invert(d3.mouse(svg.node))
-        state.inner.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
-      } else {
-        // Var.set(
-        //   VarTuple(state.postCreatorMenus, Nil),
-        //   VarTuple(focusedPostId, None)
-        // )
-        state.inner.postCreatorMenus() = Nil
-        focusedPostId() = None
-      }
-    })
+    // svg.on("click", { () =>
+    //   if (state.inner.postCreatorMenus.now.isEmpty && focusedPostId.now.isEmpty) {
+    //     val pos = d3State.transform.invert(d3.mouse(svg.node))
+    //     state.inner.postCreatorMenus() = List(PostCreatorMenu(Vec2(pos(0), pos(1))))
+    //   } else {
+    //     // Var.set(
+    //     //   VarTuple(state.postCreatorMenus, Nil),
+    //     //   VarTuple(focusedPostId, None)
+    //     // )
+    //     state.inner.postCreatorMenus() = Nil
+    //     focusedPostId() = None
+    //   }
+    // })
 
     val staticForceLayout = false
     var inInitialSimulation = staticForceLayout

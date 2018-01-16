@@ -134,3 +134,12 @@ select {
     padding : 3px 5px;
     border-radius : 3px;
 }
+
+.splitpost::selection {
+    color: red;
+    background: blue;
+}
+.splitpost::-moz-selection {
+    color: red;
+    background: blue;
+}
