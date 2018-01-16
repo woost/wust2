@@ -9,7 +9,7 @@ in
       scala
       sbt
       docker docker_compose
-      nodejs yarn
+      nodejs-8_x yarn
       phantomjs
       gnumake gcc # required for some weird npm things
     ];
