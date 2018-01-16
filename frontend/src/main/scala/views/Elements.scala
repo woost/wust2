@@ -21,12 +21,12 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  def textAreaWithEnter(actionSink: Sink[String]) = {
+  def textAreaWithEnter(actionSink: Sink[String], placeholderText: String = "Create new post") = {
     val userInput = Handler.create[String].unsafeRunSync()
     val clearHandler = userInput.map(_ => "")
 
     textArea(
-      placeholder := "Create new post. Press Enter to submit.",
+      placeholder := placeholderText + "Create new post. Press Enter to submit.",
       width := "100%",
       value <-- clearHandler,
       managed(actionSink <-- userInput),
