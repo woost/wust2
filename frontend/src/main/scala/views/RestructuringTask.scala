@@ -88,11 +88,36 @@ sealed trait RestructuringTask {
       backgroundColor := "rgba(0,0,0,0.4)",
     )
   }
-
 }
 
+sealed trait YesNoTask
+{
+  def applyTaskGraphChanges(graphChanges: GraphChanges) = {
+    val changes = List(graphChanges)
+    Client.api.changeGraph(changes).foreach(res => println("Api call succeeded: " + res.toString))
+  }
+
+  val answerYes = Handler.create[MouseEvent]
+  def constructComponent(state: GlobalState,
+    postChoice: Set[Post],
+    graphChangesYes: GraphChanges): VNode = {
+      div(
+        postChoice.map(Style.post(_))(breakOut): Seq[VNode],
+        div(
+          button("Yes",
+            onClick(answerYes) --> sideEffect(applyTaskGraphChanges(graphChangesYes)),
+            onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+          ),
+          button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+          width := "100%",
+        )
+      )
+  }
+}
+
+
 // Multiple Post RestructuringTask
-case object ConnectPosts extends RestructuringTask
+case object ConnectPosts extends RestructuringTask with YesNoTask
 {
   val title = "Connect Posts"
   val description = "Do these posts belong together?"
@@ -103,27 +128,26 @@ case object ConnectPosts extends RestructuringTask
   }
 
   def component(state: GlobalState): VNode = {
-    val answerYes = Handler.create[MouseEvent]
-
     val currentPosts = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
     val connectPosts = TaskHeuristic.random(currentPosts, 2)
-
-    div(
-      connectPosts.map(Style.post(_))(breakOut): Seq[VNode],
-      div(
-        button("Yes", onClick(answerYes) --> sideEffect(connectPostsGraphChanges(connectPosts)), onClick(false) --> RestructuringTaskGenerator.taskDisplay),
-        button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
-        width := "100%",
-      )
+    constructComponent(state,
+      connectPosts,
+      GraphChanges(addConnections = Set(Connection(connectPosts.head.id, "related", connectPosts.last.id)))
     )
   }
 }
-case object ContainPosts extends RestructuringTask
+case object ContainPosts extends RestructuringTask with YesNoTask
 {
   val title = "Contain Posts"
   val description = "Is the first post a topic of the second?"
+
   def component(state: GlobalState): VNode = {
-    div()
+    val currentPosts = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
+    val containmentPosts = TaskHeuristic.random(currentPosts, 2)
+    constructComponent(state,
+      containmentPosts,
+      GraphChanges(addConnections = Set(Connection(containmentPosts.last.id, Label.parent, containmentPosts.head.id)))
+    )
   }
 }
 case object MergePosts extends RestructuringTask
@@ -144,30 +168,15 @@ case object UnifyPosts extends RestructuringTask
 }
 
 // Single Post RestructuringTask
-case object DeletePost extends RestructuringTask
+case object DeletePost extends RestructuringTask with YesNoTask
 {
   val title = "Delete Post"
   val description = "Is this posts irrelevant for this discussion? (e.g. Hello post)"
 
-  def deletePostGraphChanges(posts: Set[Post]) = {
-    val changes = List(GraphChanges(delPosts = posts.map(_.id)))
-    Client.api.changeGraph(changes).foreach(res => println("Api call succeeded: " + res.toString))
-  }
-
   def component(state: GlobalState): VNode = {
-    val answerYes = Handler.create[MouseEvent]
-
     val currentPosts = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
     val deletePosts = TaskHeuristic.random(currentPosts, 1)
-
-    div(
-      deletePosts.map(Style.post(_))(breakOut): Seq[VNode],
-      div(
-        button("Yes", onClick(answerYes) --> sideEffect(deletePostGraphChanges(deletePosts)), onClick(false) --> RestructuringTaskGenerator.taskDisplay),
-        button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
-        width := "100%",
-      )
-    )
+    constructComponent(state, deletePosts, GraphChanges(delPosts = deletePosts.map(_.id)))
   }
 }
 
