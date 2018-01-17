@@ -45,7 +45,7 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "a676050")
   val vectory = dep("com.github.fdietze" % "vectory" % "3232833")
   val scalarx = dep("com.github.fdietze" % "duality" % "9dd5e01649")
-  val outwatch = dep("io.github.GRBurst" % "outwatch" % "3fc49f9")
+  val outwatch = dep("io.github.outwatch" % "outwatch" % "fc71430")
 
   // utility
   val scribe = dep("com.outr" %%% "scribe" % "1.4.5")

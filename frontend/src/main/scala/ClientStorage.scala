@@ -16,29 +16,7 @@ import scala.util.Try
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import rx._
 import wust.util.outwatchHelpers._
-
-
-object StorageReader {
-  def apply(storage: Storage)(key: String): Observable[Option[String]] = {
-    Observable.create[Option[String]](Unbounded){observer =>
-      observer.onNext(storage(key))
-      Cancelable() //TODO
-    }
-  }
-}
-
-object StorageWriter {
-  def apply(storage: Storage)(key: String): Sink[Option[String]] = {
-    Sink.create[Option[String]] {
-      case Some(data) => IO {
-        storage.update(key, data); Continue
-      }
-      case None => IO {
-        storage.remove(key); Continue
-      }
-    }
-  }
-}
+import outwatch.util.LocalStorage
 
 class ClientStorage(storage: Storage)(implicit owner: Ctx.Owner) {
   object keys {
@@ -47,37 +25,22 @@ class ClientStorage(storage: Storage)(implicit owner: Ctx.Owner) {
     val syncMode = "wust.graph.syncMode"
   }
 
-  val reader = StorageReader(storage) _
-  val writer = StorageWriter(storage) _
-
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
   val token: Var[Option[Authentication.Token]] = {
-    val obs: Observable[Option[Authentication.Token]] = reader(keys.token)
-    val sink: Sink[Option[Authentication.Token]] = writer(keys.token)
-    Handler(sink, obs).toVar(storage(keys.token))
+    LocalStorage
+      .handler(keys.token).unsafeRunSync()
+      .toVar(storage(keys.token))
   }
 
   val graphChanges: Handler[List[GraphChanges]] = {
-    val obs: Observable[List[GraphChanges]] = {
-      reader(keys.graphChanges)
-      .map( _.flatMap (fromJson[List[GraphChanges]]).getOrElse(Nil))
-    }
-    val sink: Sink[List[GraphChanges]] = writer(keys.graphChanges) redirectMap {
-      changes => Option(toJson(changes))
-    }
-    Handler(sink, obs)
+    LocalStorage.handler(keys.graphChanges).unsafeRunSync()
+      .imap(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))(changes => Option(toJson(changes)))
   }
 
   val syncMode: Handler[Option[SyncMode]] = {
-    val obs: Observable[Option[SyncMode]] = {
-      reader(keys.syncMode)
-      .map( _.flatMap (fromJson[SyncMode]))
-    }
-    val sink: Sink[Option[SyncMode]] = writer(keys.syncMode) redirectMap {
-      mode => mode map (toJson(_))
-    }
-    Handler(sink, obs)
+    LocalStorage.handler(keys.syncMode).unsafeRunSync()
+      .imap(_.flatMap(fromJson[SyncMode]))(mode => mode.map(toJson(_)))
   }
 }
