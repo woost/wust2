@@ -23,8 +23,6 @@ services:
       WUST_SMTP_PASS: ${WUST_SMTP_PASS}
   nginx:
     image: woost/wust2.nginx
-  nginx-http:
-    image: woost/wust2.nginx:http
   slack-app:
     image: woost/wust2.slack-app
     environment:

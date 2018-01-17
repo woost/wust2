@@ -62,19 +62,7 @@ function self() {
         on_stage prod
         export $env_postgres_secret $env_wust_secret
         compose down
-        compose up -d nginx
-        ;;
-    prod.http)
-        on_stage prod
-        export $env_postgres_secret $env_wust_secret
-        compose down
-        compose up -d nginx-http
-        ;;
-    prod.slack)
-        on_stage prod
-        export $env_postgres_secret $env_wust_secret $env_wust_local
-        compose down
-        compose up -d slack-app nginx-http
+        compose up -d
         ;;
     test)
         sbt docker
@@ -114,8 +102,6 @@ function self() {
     pgclean
 
     prod
-    prod.http
-    prod.slack
 
     test
     test.postgres

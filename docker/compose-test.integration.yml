@@ -22,9 +22,6 @@ services:
   nginx:
     extends:
       file: services.yml
-      #TODO: test with tls or even both? (needs test client to accept our test_cert.pem)
-      service: nginx-http
+      service: nginx
     ports:
       - "80:80"
-    depends_on:
-      - wust

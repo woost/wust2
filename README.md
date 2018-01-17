@@ -81,18 +81,7 @@ All used docker services are defined in `docker/services.yml` and can be configu
 * **WUST_SMTP_USER**: smtp username (optional)
 * **WUST_SMTP_PASS**: smtp password (optional)
 
-The compose stack `docker/compose-prod.yml` is an example how to run wust in docker.
-
-For HTTPS, the nginx container read-only mounts a directory with tls certificates to the path `/tls_certs/`. This directory contains two files fullchain.pem ([ssl_certificate](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate)) and privkey.pem ([ssl_certificate_key](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key)). See also [How to create a self-signed certificate](https://stackoverflow.com/questions/10175812/how-to-create-a-self-signed-certificate-with-openssl).
-
-For persisting its data, the postgres container mounts the folder `./pg_data` from the docker host.
-
-Start the whole stack with docker-compose:
+The compose stack `docker/compose-prod.yml` is an example how to run wust in docker. Start the whole stack with docker-compose:
 ```
-$ docker-compose --file docker/compose-prod.yml up nginx
-```
-
-Or run nginx without tls:
-```
-$ docker-compose --file docker/compose-prod.yml up nginx-http
+$ docker-compose --file docker/compose-prod.yml up
 ```

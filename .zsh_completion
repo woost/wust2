@@ -5,7 +5,7 @@ _start()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="sbt migrate psql pgdump pgrestore pgclean prod prod.http prod.slack test test.postgres test.integration"
+    opts="sbt migrate psql pgdump pgrestore pgclean prod test test.postgres test.integration"
 
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 }

@@ -27,22 +27,8 @@ services:
     extends:
       file: services.yml
       service: nginx
-    volumes:
-      - .test_certs:/tls_certs/:ro
-    ports:
-      - "443:443"
-      - "80:80"
-    depends_on:
-      - wust
-  nginx-http:
-    restart: on-failure
-    extends:
-      file: services.yml
-      service: nginx-http
     ports:
       - "80:80"
-    depends_on:
-      - wust
   slack-app:
     # restart: on-failure
     extends:
