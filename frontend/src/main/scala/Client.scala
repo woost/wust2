@@ -14,28 +14,17 @@ import monix.execution.Scheduler.Implicits.global
 import rx._
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
+import org.scalajs.dom.window
 import scala.concurrent.Future
-
-@js.native
-@JSGlobal("wustConfig")
-object WustConfig extends js.Object {
-  val wsPort: js.UndefOr[Int] = js.native
-}
-
-object ClientConfig {
-  import WustConfig._
-  import org.scalajs.dom.window.location
-
-  val wsUrl = {
-    val protocol = if (location.protocol == "https:") "wss" else "ws"
-    //TODO: proxy with webpack devserver and only configure production port
-    val port = wsPort getOrElse location.port.toInt
-    s"$protocol://${location.hostname}:$port/ws"
-  }
-}
 
 object Client {
   val storage = new ClientStorage(LocalStorage)
+
+  private val wsUrl = {
+    import window.location
+    val protocol = if (location.protocol == "https:") "wss" else "ws"
+    s"$protocol://${location.hostname}:${location.port}/ws"
+  }
 
   private val eventHandler = Handler.create[Seq[ApiEvent]].unsafeRunSync()
 
@@ -51,7 +40,7 @@ object Client {
     override def onEvents(events: Seq[ApiEvent]): Unit = eventHandler.unsafeOnNext(events)
   }
 
-  private val ws = WustClient(ClientConfig.wsUrl, clientHandler)
+  private val ws = WustClient(wsUrl, clientHandler)
 
   val eventObservable: Observable[Seq[ApiEvent]] = eventHandler
 

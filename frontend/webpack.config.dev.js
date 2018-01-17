@@ -23,7 +23,16 @@ module.exports.devServer = {
     },
     // watchOptions: { poll: true },
     open: false, // open page in browser
-    hot: true
+    hot: true,
+
+    //proxy websocket requests to app
+    proxy : [
+        {
+            path: '/ws',
+            target: 'ws://localhost:8080/',
+            ws: true
+        }
+    ]
 };
 
 module.exports.plugins = [
