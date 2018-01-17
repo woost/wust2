@@ -9,24 +9,6 @@ lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://gith
 scalaVersion in ThisBuild := "2.12.4"
 import Def.{setting => dep}
 
-val akkaHttpVersion = "10.0.11"
-val circeVersion = "0.9.0-M3" //jwt: "0.8.0"
-val specs2Version = "4.0.2"
-val scalaTestVersion = "3.0.4"
-val mockitoVersion = "2.11.0"
-val scalazVersion = "7.2.13"
-val boopickleVersion = "1.2.6"
-val quillVersion = "2.3.1"
-val outwatch = "io.github.GRBurst" % "outwatch" % "3fc49f9"
-val dualityVersion =  "9dd5e01649"
-val derive = "io.github.cornerman" % "derive" % "04166c6" % "provided"
-
-val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
-
-val slothVersion = "694327d"
-val slothBoopickle = dep("io.github.cornerman.sloth" %%% "sloth-boopickle" % slothVersion)
-val slothMycelium = dep("io.github.cornerman.sloth" %%% "sloth-mycelium" % slothVersion)
-
 lazy val commonSettings = Seq(
   resolvers ++= (
     /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
@@ -36,7 +18,6 @@ lazy val commonSettings = Seq(
   ),
 
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M11" cross CrossVersion.full),
-  scalacOptions += "-Xplugin-require:macroparadise",
 
   // macroparadise plugin doesn't work in repl yet. https://github.com/scalameta/paradise/issues/10
   scalacOptions in (Compile, console) := Seq(),
@@ -45,9 +26,11 @@ lazy val commonSettings = Seq(
   coverageExcludedFiles := "<macro>",
 
   libraryDependencies ++= (
-    "org.scalameta" %%% "scalameta" % "1.8.0" % "provided" ::
-    "org.scalatest" %%% "scalatest" % scalaTestVersion % "test" ::
-    "com.outr" %%% "scribe" % "1.4.5" :: // logging framework
+    Deps.scribe.value ::
+    Deps.scalameta.value % Provided::
+    Deps.derive.value % Provided ::
+    Deps.scalatest.value % Test ::
+    Deps.mockito.value % Test ::
     Nil
   ),
 
@@ -119,15 +102,15 @@ lazy val util = crossProject
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
-      "com.github.pureconfig" %% "pureconfig" % "0.8.0" ::
-      "com.lihaoyi" %%% "sourcecode" % "0.1.4" ::
+      Deps.pureconfig.value ::
+      Deps.sourcecode.value ::
       Nil
     )
   )
   .jsSettings(
     libraryDependencies ++= (
-      "com.github.fdietze" % "duality" % dualityVersion ::
-      outwatch ::
+      Deps.scalarx.value ::
+      Deps.outwatch.value ::
       Nil
     )
   )
@@ -140,8 +123,8 @@ lazy val sdk = crossProject
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
-      slothMycelium.value ::
-      slothBoopickle.value ::
+      Deps.mycelium.value ::
+      Deps.sloth.value ::
       Nil
     )
   )
@@ -154,12 +137,13 @@ lazy val ids = crossProject.crossType(CrossType.Pure)
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
-      "io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12" ::
-      "org.scalaz" %%% "scalaz-core" % scalazVersion ::
-      "io.suzaku" %%% "boopickle" % boopickleVersion ::
-      "io.circe" %%% "circe-core" % circeVersion ::
-      "io.circe" %%% "circe-generic" % circeVersion ::
-      "io.circe" %%% "circe-parser" % circeVersion ::
+      Deps.javaTime.value ::
+      Deps.scalaz.core.value ::
+      //TODO  this should not depend on serializers
+      Deps.boopickle.value ::
+      Deps.circe.core.value ::
+      Deps.circe.generic.value ::
+      Deps.circe.parser.value ::
       Nil
     )
   )
@@ -171,10 +155,8 @@ lazy val graph = crossProject.crossType(CrossType.Pure)
   .jsSettings(sourceMapSettings)
   .dependsOn(ids, util)
   .settings(
-    libraryDependencies ++= (
-      derive ::
+    libraryDependencies ++=
       Nil
-    )
   )
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
@@ -193,8 +175,7 @@ lazy val database = project
   .dependsOn(idsJVM, utilJVM)
   .settings(
     libraryDependencies ++=
-      "io.getquill" %% "quill-async-postgres" % quillVersion ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
+      Deps.quill.value ::
       Nil
   // parallelExecution in IntegrationTest := false
   )
@@ -206,23 +187,17 @@ lazy val backend = project
   .settings(Defaults.itSettings)
   .settings(
     libraryDependencies ++=
-      slothBoopickle.value ::
-      slothMycelium.value ::
-      kittens.value ::
-      "com.roundeights" %% "hasher" % "1.2.0" ::
-      "org.mindrot" % "jbcrypt" % "0.4" ::
-      "com.pauldijou" %% "jwt-circe" % "0.14.1" ::
-      "javax.mail" % "javax.mail-api" % "1.6.0" ::
-      "com.sun.mail" % "javax.mail" % "1.6.0" ::
-      "com.roundeights" %% "hasher" % "1.2.0" ::
-      "org.mindrot" % "jbcrypt" % "0.4" ::
-      derive ::
-      "org.mockito" % "mockito-core" % mockitoVersion % "test" ::
-      "org.scalatest" %%% "scalatest" % scalaTestVersion % "test,it" ::
-      // "com.47deg" %% "github4s" % "0.17.0" :: // only temporarly here
-      "io.github.GRBurst.github4s" %% "github4s" % "1d9681d" :: // master + comments + single issue
-      "com.github.xuwei-k" %% "gitter-scala" % "0.3.0" ::
-      "cool.graph" % "cuid-java" % "0.1.1" ::
+      Deps.mycelium.value ::
+      Deps.sloth.value ::
+      Deps.cats.kittens.value ::
+      Deps.jwt.value ::
+      Deps.hasher.value ::
+      Deps.jbcrypt.value ::
+      Deps.cuidJava.value ::
+      //Deps.javax.mailApi.value ::
+      Deps.javax.mail.value ::
+      Deps.github4s.value ::
+      Deps.gitter.value ::
       Nil,
 
     javaOptions in reStart += "-Xmx50m"
@@ -236,12 +211,11 @@ lazy val frontend = project
   .settings(commonSettings, sourceMapSettings)
   .settings(
     libraryDependencies ++= (
-      outwatch ::
-      "com.github.fdietze" % "duality" % dualityVersion ::
-      "com.github.fdietze" % "vectory" % "3232833" ::
-      "com.github.fdietze" %% "scala-js-d3v4" % "a676050" ::
-      "com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2" ::
-      derive ::
+      Deps.outwatch.value ::
+      Deps.scalarx.value ::
+      Deps.vectory.value ::
+      Deps.d3v4.value ::
+      Deps.monocle.value ::
       Nil
     ),
     npmDependencies in Compile ++= (
@@ -290,9 +264,8 @@ lazy val slackApp = project
   .dependsOn(sdkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
-      "cool.graph" % "cuid-java" % "0.1.1" ::
-      derive ::
-      "com.github.gilbertw1" %% "slack-scala-client" % "0.2.2" ::
+      Deps.cuidJava.value ::
+      Deps.slackClient.value ::
       Nil
   )
 
@@ -330,9 +303,9 @@ lazy val systemTest = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion % "it" ::
-      "org.specs2" %% "specs2-core" % specs2Version % "it" ::
-      "org.seleniumhq.selenium" % "selenium-java" % "3.3.1" % "it" ::
+      Deps.akka.http.value % "it" ::
+      Deps.specs2.value % "it" ::
+      Deps.selenium.value % "it" ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
