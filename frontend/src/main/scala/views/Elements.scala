@@ -10,7 +10,7 @@ import monix.execution.Scheduler.Implicits.global
 
 object Placeholders {
   val newPost = placeholder := "Create new post. Press Enter to submit."
-  val newTag = placeholder := "Create new post. Press Enter to submit."
+  val newTag = placeholder := "Create new tag. Press Enter to submit."
 }
 
 object Elements {
