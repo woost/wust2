@@ -80,11 +80,6 @@ package object outwatchHelpers {
       rx
     }
 
-    //TODO: still needed with monix?
-    def replaceWithLatestFrom[R](o2: Observable[R]): Observable[R] = {
-      o.withLatestFrom(o2)((_, second) => second)
-    }
-
     def debug: IO[Cancelable] = debug()
     def debug(name: String = "") = IO { o.foreach(x => println(s"$name: $x")) }
     def debug(print: T => String) = IO { o.foreach(x => println(print(x))) }
