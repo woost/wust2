@@ -8,7 +8,6 @@ import outwatch.dom.dsl._
 import wust.util.outwatchHelpers._
 import monix.execution.Scheduler.Implicits.global
 
-//TODO: merge with util.Tags
 object Elements {
   // Enter-behavior which is consistent across mobile and desktop:
   // - textarea: enter emits keyCode for Enter
@@ -21,12 +20,12 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  def textAreaWithEnter(actionSink: Sink[String], placeholderText: String = "Create new post") = {
+  def textAreaWithEnter(actionSink: Sink[String], placeholderText: String) = {
     val userInput = Handler.create[String].unsafeRunSync()
     val clearHandler = userInput.map(_ => "")
 
     textArea(
-      placeholder := placeholderText + "Create new post. Press Enter to submit.",
+      placeholder := placeholderText,
       width := "100%",
       value <-- clearHandler,
       managed(actionSink <-- userInput),
