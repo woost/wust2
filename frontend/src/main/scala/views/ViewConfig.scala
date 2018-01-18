@@ -33,7 +33,7 @@ object ViewConfig {
   private def pathToViewConfig(path: Path) = {
     val page = View.fromString(path.name)
     val selection = path.options.get("select").map(PathOption.StringList.parse) match {
-      case Some(ids) => Page.Union(ids.map(PostId).toSet)
+      case Some(ids) => Page.Union(ids.map(PostId(_)).toSet)
       case None      => Page.default
     }
     val invite = path.options.get("invite")

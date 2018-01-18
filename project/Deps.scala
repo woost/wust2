@@ -53,8 +53,8 @@ object Deps {
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats-M2")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
   val derive = dep("io.github.cornerman" % "derive" % "04166c6")
+  val cuid = dep("io.github.cornerman" % "scala-cuid" % "4ba036a")
   val javaTime = dep("io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12")
-  val cuidJava = dep("cool.graph" % "cuid-java" % "0.1.1")
 
   // rpc
   val mycelium = dep("com.github.cornerman" % "mycelium" % "b268852")

@@ -2,42 +2,45 @@ package wust
 
 import boopickle.Default._
 import io.circe._
-import wust.idtypes._
 import java.time.{ZoneId, Instant, LocalDateTime}
 
 import scalaz._
 
 package object ids {
+  import types._
+
   type IdType = Long
   type UuidType = String
 
   //TODO: simpler tagged types: https://github.com/acjay/taggy
   // unboxed types with scalaz: http://eed3si9n.com/learning-scalaz/Tagged+type.html
-  type PostId = UuidType @@ PostIdType
-  implicit def PostId(id: UuidType): PostId = Tag[UuidType, PostIdType](id)
+  object PostId extends UuidTypeFactory[PostIdType]
+  type PostId = PostId.Type
+  implicit def UuidTypeIsPostId(id: UuidType) = PostId(id)
 
-  type GroupId = IdType @@ GroupIdType
-  implicit def GroupId(id: IdType): GroupId = Tag[IdType, GroupIdType](id)
+  object GroupId extends IdTypeFactory[GroupIdType]
+  type GroupId = GroupId.Type
+  implicit def UuidTypeIsGroupId(id: IdType): GroupId = GroupId(id)
 
-  type UserId = IdType @@ UserIdType
-  implicit def UserId(id: IdType): UserId = Tag[IdType, UserIdType](id)
+  object UserId extends IdTypeFactory[UserIdType]
+  type UserId = UserId.Type
+  implicit def UuidTypeIsUserId(id: IdType): UserId = UserId(id)
 
-  type Label = String @@ LabelType
-  implicit def Label(name: String): Label = Tag[String, LabelType](name)
-
-  object Label {
+  object Label extends TypeFactory[String, LabelType] {
     val parent = Label("parent")
   }
+  type Label = Label.Type
+  implicit def StringIsLabel(id: String): Label = Label(id)
 
   //TODO: LocalDateTime is internally stored as two Longs, does the precision loss matter?
   def toMillis(ldt: LocalDateTime) = ldt.atZone(ZoneId.systemDefault).toInstant.toEpochMilli
   def fromMillis(millis: Long) = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault).toLocalDateTime
   implicit val ldtPickler: Pickler[LocalDateTime] = transformPickler((t: Long) => fromMillis(t))(x => toMillis(x))
 
-  implicit def PostIdPickler = transformPickler[PostId, UuidType](PostId _)(Tag.unwrap _)
-  implicit def GroupIdPickler = transformPickler[GroupId, IdType](GroupId _)(Tag.unwrap _)
-  implicit def UserIdPickler = transformPickler[UserId, IdType](UserId _)(Tag.unwrap _)
-  implicit def LabelPickler = transformPickler[Label, String](Label _)(Tag.unwrap _)
+  implicit def PostIdPickler = transformPickler[PostId, UuidType](PostId(_))(Tag.unwrap _)
+  implicit def GroupIdPickler = transformPickler[GroupId, IdType](GroupId(_))(Tag.unwrap _)
+  implicit def UserIdPickler = transformPickler[UserId, IdType](UserId(_))(Tag.unwrap _)
+  implicit def LabelPickler = transformPickler[Label, String](Label(_))(Tag.unwrap _)
   implicit val dateTimePickler = transformPickler((t: Long) => new java.util.Date(t))(_.getTime)
 
   implicit val encodePostId: Encoder[PostId] = Encoder.encodeString.contramap[PostId](Tag.unwrap _)

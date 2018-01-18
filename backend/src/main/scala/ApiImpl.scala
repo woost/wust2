@@ -23,6 +23,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   // }
   // TODO: createPost function for api
 
+  //TODO assure timestamps of posts are correct
   override def changeGraph(changes: List[GraphChanges]): ApiResult.Function[Boolean] = withUserOrImplicit { (_, user, wasCreated) =>
     //TODO permissions
 

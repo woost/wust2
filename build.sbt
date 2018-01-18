@@ -137,6 +137,8 @@ lazy val ids = crossProject.crossType(CrossType.Pure)
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
+      Deps.cuid.value ::
+      //TODO: this not depend on java time
       Deps.javaTime.value ::
       Deps.scalaz.core.value ::
       //TODO  this should not depend on serializers
@@ -193,7 +195,6 @@ lazy val backend = project
       Deps.jwt.value ::
       Deps.hasher.value ::
       Deps.jbcrypt.value ::
-      Deps.cuidJava.value ::
       Deps.javaMail.value ::
       Deps.github4s.value ::
       Deps.gitter.value ::
@@ -215,10 +216,6 @@ lazy val frontend = project
       Deps.vectory.value ::
       Deps.d3v4.value ::
       Deps.monocle.value ::
-      Nil
-    ),
-    npmDependencies in Compile ++= (
-      "cuid" -> "1.3.8" ::
       Nil
     ),
 
@@ -263,7 +260,6 @@ lazy val slackApp = project
   .dependsOn(sdkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
-      Deps.cuidJava.value ::
       Deps.slackClient.value ::
       Nil
   )

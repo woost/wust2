@@ -2,7 +2,6 @@ package wust.backend
 
 import java.time.{Instant, ZoneId}
 
-import cool.graph.cuid.Cuid
 import github4s.Github
 import github4s.Github._
 import github4s.GithubResponses.GHResult
@@ -96,13 +95,13 @@ object GitHubImporter {
         val tempUserId = user.id
 
 
-        val title = Post(PostId(Cuid.createCuid()), s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
-        val desc = Post(PostId(Cuid.createCuid()), issue.body, tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
+        val title = Post(PostId.fresh, s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
+        val desc = Post(PostId.fresh, issue.body, tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
         val cont = Connection(desc.id, Label.parent, title.id)
         val conn = Connection(desc.id, "describes", title.id)
 
         val comments: List[(Post, Connection)] = commentsList.map(comment => {
-          val cpost = Post(PostId(Cuid.createCuid()), comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
+          val cpost = Post(PostId.fresh, comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
           val cconn = Connection(cpost.id, Label.parent, title.id)
           (cpost, cconn)
         })

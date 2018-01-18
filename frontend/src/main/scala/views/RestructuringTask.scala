@@ -5,7 +5,7 @@ import monix.execution.Scheduler.Implicits.global
 import org.scalajs.dom.raw.MouseEvent
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.frontend.{Client, GlobalState, EventProcessor, RichPostFactory}
+import wust.frontend.{Client, GlobalState, EventProcessor}
 import wust.frontend.views.Elements._
 import wust.graph.{Connection, GraphChanges, Post}
 import wust.ids._
@@ -225,7 +225,7 @@ case object AddTagToPost extends AddTagTask
 
   def addTagToPost(post: Set[Post], state: GlobalState): Sink[String] =
     state.eventProcessor.changes.redirectMap { (tag: String) =>
-      val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post.newId(tag, state))
+      val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now))
       val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
       RestructuringTaskGenerator.taskDisplay.unsafeOnNext(false)
       GraphChanges(

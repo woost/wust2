@@ -5,6 +5,7 @@ import wust.ids._
 import wust.util.Pipe
 import wust.util.algorithm._
 import wust.util.collection._
+import cuid.Cuid
 import scalaz._
 
 import java.time.LocalDateTime
@@ -19,33 +20,23 @@ case class Group(id: GroupId)
 
 //TODO: rename Post -> Item?
 object Post {
-  def apply(
-             id: PostId,
-             content: String,
-             author: UserId) = {
-      val currTime = LocalDateTime.now();
-      new Post(
-        id,
-        content,
-        author,
-        currTime,
-        currTime
-      )
+  def apply(id: PostId, content: String, author: UserId): Post = {
+    val currTime = LocalDateTime.now();
+    Post(id, content, author, currTime, currTime)
+  }
+
+  //TODO get rdi of this method, make frontend always have a userid
+  def apply(id: PostId, content: String, author: Option[User]): Post = {
+    val id = Cuid()
+    val userId = author.fold(UserId(-1))(_.id)// TODO: Validation
+    apply(PostId(id), content, userId)
   }
 }
 
 final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 final case class Connection(sourceId: PostId, label:Label, targetId: PostId)
 object Graph {
-  def empty =
-    new Graph(
-      Map.empty,
-      Map.empty,
-      Map.empty,
-      Set.empty,
-      Map.empty,
-      Set.empty
-    )
+  def empty = new Graph(Map.empty, Map.empty, Map.empty, Set.empty, Map.empty, Set.empty)
 
   def apply(
     posts:        Iterable[Post]        = Nil,

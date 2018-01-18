@@ -29,13 +29,11 @@ trait MessageReceiver {
 }
 
 class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
-  import cool.graph.cuid.Cuid
 
   def push(msg: ExchangeMessage, author: UserId) = {
     println(s"new message: msg")
-    val id = PostId(Cuid.createCuid())
-    val post = Post(id, msg.content, author)
-    val connection = Connection(id, Label.parent, Constants.slackId)
+    val post = Post(PostId.fresh, msg.content, author)
+    val connection = Connection(post.id, Label.parent, Constants.slackId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
     client.api.changeGraph(changes).map { success =>
