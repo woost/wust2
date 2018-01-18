@@ -5,12 +5,10 @@ import java.nio.ByteBuffer
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import boopickle.Default._
-import wust.api._
+import wust.api._, serialize.Boopickle._
 import wust.ids._
 import wust.backend.auth._
 import wust.backend.config.Config
-import wust.graph.GraphChanges.Implicits._
-import wust.api.ApiEvent.Implicits._
 import wust.db.Db
 import sloth.core._
 import sloth.mycelium._

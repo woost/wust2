@@ -125,6 +125,7 @@ lazy val sdk = crossProject
     libraryDependencies ++= (
       Deps.mycelium.value ::
       Deps.sloth.value ::
+      Deps.boopickle.value ::
       Nil
     )
   )
@@ -141,11 +142,6 @@ lazy val ids = crossProject.crossType(CrossType.Pure)
       //TODO: this not depend on java time
       Deps.javaTime.value ::
       Deps.scalaz.core.value ::
-      //TODO  this should not depend on serializers
-      Deps.boopickle.value ::
-      Deps.circe.core.value ::
-      Deps.circe.generic.value ::
-      Deps.circe.parser.value ::
       Nil
     )
   )
@@ -167,6 +163,12 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
+  .settings(
+    libraryDependencies ++=
+      Deps.boopickle.value % Optional ::
+      Deps.circe.core.value % Optional ::
+      Nil
+  )
 lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
@@ -191,6 +193,7 @@ lazy val backend = project
     libraryDependencies ++=
       Deps.mycelium.value ::
       Deps.sloth.value ::
+      Deps.boopickle.value ::
       Deps.cats.kittens.value ::
       Deps.jwt.value ::
       Deps.hasher.value ::
@@ -216,6 +219,9 @@ lazy val frontend = project
       Deps.vectory.value ::
       Deps.d3v4.value ::
       Deps.monocle.value ::
+      Deps.circe.core.value ::
+      Deps.circe.generic.value ::
+      Deps.circe.parser.value ::
       Nil
     ),
 

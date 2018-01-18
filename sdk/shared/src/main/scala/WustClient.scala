@@ -1,9 +1,7 @@
 package wust.sdk
 
-import wust.api._
+import wust.api._, serialize.Boopickle._
 import wust.ids._
-import wust.graph.GraphChanges.Implicits._
-import wust.api.ApiEvent.Implicits._
 
 import boopickle.Default._
 import sloth.core._

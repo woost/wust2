@@ -11,6 +11,7 @@ import monix.execution.Ack.Continue
 import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api.Authentication
+import wust.api.serialize.Circe._
 import wust.graph.GraphChanges
 import scala.util.Try
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._

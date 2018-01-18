@@ -68,9 +68,4 @@ object GraphChanges {
     delConnections:  Iterable[Connection]  = Set.empty,
     delOwnerships:   Iterable[Ownership]   = Set.empty
   ) = GraphChanges(addPosts.toSet, addConnections.toSet, addOwnerships.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet, delOwnerships.toSet)
-
-  object Implicits {
-    import boopickle.Default._
-    implicit val graphChangesPickler = generatePickler[GraphChanges]
-  }
 }
