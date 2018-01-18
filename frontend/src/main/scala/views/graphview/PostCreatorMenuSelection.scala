@@ -48,7 +48,7 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
       //   false
       // }
 
-      val insertField = textAreaWithEnter(sideEffect(s => println(s)))(placeholder := "Create new post. Press Enter to submit.", width := "100%")
+      val insertField = textAreaWithEnter(sideEffect(s => println(s)))(placeholder := Elements.newPostPlaceholder, width := "100%")
 
       //TODO: hide postMenu with ESC key
       //TODO: checkboxes for parents
