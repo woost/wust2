@@ -194,8 +194,7 @@ lazy val backend = project
       Deps.hasher.value ::
       Deps.jbcrypt.value ::
       Deps.cuidJava.value ::
-      //Deps.javax.mailApi.value ::
-      Deps.javax.mail.value ::
+      Deps.javaMail.value ::
       Deps.github4s.value ::
       Deps.gitter.value ::
       Nil,
@@ -303,9 +302,9 @@ lazy val systemTest = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      Deps.akka.http.value % "it" ::
-      Deps.specs2.value % "it" ::
-      Deps.selenium.value % "it" ::
+      Deps.akka.http.value % IntegrationTest ::
+      Deps.specs2.value % IntegrationTest ::
+      Deps.selenium.value % IntegrationTest ::
       Nil,
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
