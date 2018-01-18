@@ -2,7 +2,7 @@ package wust.frontend.views.graphview
 
 import org.scalajs.d3v4._
 import wust.frontend._
-import wust.frontend.views.Elements
+import wust.frontend.views.{Elements, Placeholders}
 import wust.graph._
 
   import monix.execution.Scheduler.Implicits.global
@@ -48,7 +48,7 @@ class CreatePostMenuSelection(graphState: GraphState, d3State: D3State)(implicit
       //   false
       // }
 
-      val insertField = textAreaWithEnter(sideEffect(s => println(s)))(placeholder := Elements.newPostPlaceholder, width := "100%")
+      val insertField = textAreaWithEnter(sideEffect(s => println(s)))(Placeholders.newPost, width := "100%")
 
       //TODO: hide postMenu with ESC key
       //TODO: checkboxes for parents

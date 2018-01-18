@@ -120,7 +120,7 @@ sealed trait AddTagTask extends RestructuringTask
       targetPosts.map(Style.post(_))(breakOut): Seq[VNode],
       div(
         textAreaWithEnter(sink)(
-          placeholder := "Add new tag",
+          Placeholders.newTag,
           flex := "0 0 3em",
         ),
         button("Abort", onClick(false) --> RestructuringTaskGenerator.taskDisplay),

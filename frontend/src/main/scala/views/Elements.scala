@@ -8,6 +8,11 @@ import outwatch.dom.dsl._
 import wust.util.outwatchHelpers._
 import monix.execution.Scheduler.Implicits.global
 
+object Placeholders {
+  val newPost = placeholder := "Create new post. Press Enter to submit."
+  val newTag = placeholder := "Create new post. Press Enter to submit."
+}
+
 object Elements {
   // Enter-behavior which is consistent across mobile and desktop:
   // - textarea: enter emits keyCode for Enter
@@ -19,8 +24,6 @@ object Elements {
       elem.scrollTop = elem.scrollHeight
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
-
-  val newPostPlaceholder = "Create new post. Press Enter to submit."
 
   def textAreaWithEnter(actionSink: Sink[String]) = {
     val userInput = Handler.create[String].unsafeRunSync()
