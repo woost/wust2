@@ -1,17 +1,15 @@
 package wust.frontend.views
 
-import org.scalajs.dom
 import org.scalajs.dom.raw.Element
-import outwatch.Sink
+import outwatch.{Sink}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend._
+import wust.frontend.Color._
 import wust.frontend.views.Elements._
 import monix.execution.Scheduler.Implicits.global
 import wust.graph._
 import wust.ids.PostId
-import wust.util.outwatchHelpers._
-import Color._
 
 object ChatView extends View {
   override val key = "chat"
@@ -77,27 +75,44 @@ object ChatView extends View {
   }
 
   def chatMessage(post: Post, page: Sink[Page], ownPosts: PostId => Boolean, graph: Graph) = {
+    // TODO: Filter tags of pageId
+    val tags:Seq[Post] = if(graph.consistent.hasParents(post.id)) {
+      graph.consistent.parents(post.id).map(id => graph.postsById(id)).toSeq //.filter(_.id != pageId)
+    } else {
+     Seq.empty[Post]
+    }
     val isMine = ownPosts(post.id)
-    div(
-      display.block,
-      clear.both,
-      width := "100%",
-      padding := "5px 10px",
-      margin := "5px 0px",
-      p(
-        post.content,
-        onClick(Page.Union(Set(post.id))) --> page,
-        maxWidth := "60%",
+    div( // wrapper for floats
+      div( // post wrapper
+        p(
+          post.content,
+          onClick(Page.Union(Set(post.id))) --> page,
+          maxWidth := "60%",
+          padding := "5px 10px",
+          margin := "5px 0px",
+        ),
+        tags.map{ tag =>
+          span(
+            if(tag.content.length > 20) tag.content.take(20) else tag.content,
+            onClick(Page.Union(Set(tag.id))) --> page,
+            border := "1px solid grey",
+            borderRadius := "3px",
+            padding := "2px 3px",
+            marginRight := "3px",
+            backgroundColor := Color.baseColor(tag.id).toString,
+          ),
+        },
+        display.block,
+        width := "100%",
+        padding := "5px 10px",
+        margin := "5px 0px",
+        border := "1px solid gray",
+        borderRadius := "7px",
         backgroundColor := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
         float := (if (isMine) "right" else "left"),
-        clear.both,
-        padding := "5px 10px",
-        borderRadius := "7px",
-        border := "1px solid gray",
-        margin := "5px 0px",
-
-        cursor.pointer // TODO: What about cursor when selecting text?
+        cursor.pointer, // TODO: What about cursor when selecting text?
       ),
+      clear.both,
     )
   }
 
