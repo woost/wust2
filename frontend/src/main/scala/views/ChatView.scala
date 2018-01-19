@@ -87,13 +87,12 @@ object ChatView extends View {
         p(
           post.content,
           onClick(Page.Union(Set(post.id))) --> page,
-          maxWidth := "60%",
-          padding := "5px 10px",
-          margin := "5px 0px",
+          padding := "2px 3px",
+          margin := "2px 0px",
         ),
         tags.map{ tag =>
           span(
-            if(tag.content.length > 20) tag.content.take(20) else tag.content,
+            if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
             onClick(Page.Union(Set(tag.id))) --> page,
             border := "1px solid grey",
             borderRadius := "3px",
@@ -103,7 +102,7 @@ object ChatView extends View {
           ),
         },
         display.block,
-        width := "100%",
+        maxWidth := "60%",
         padding := "5px 10px",
         margin := "5px 0px",
         border := "1px solid gray",
@@ -112,6 +111,7 @@ object ChatView extends View {
         float := (if (isMine) "right" else "left"),
         cursor.pointer, // TODO: What about cursor when selecting text?
       ),
+      width := "100%",
       clear.both,
     )
   }
