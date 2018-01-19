@@ -47,7 +47,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       case Some(Right(apiFunction)) =>
         val apiReturn = apiFunction(state)
         val newState = apiReturn.state
-        val action = apiReturn.action.recover(handleUserException(ApiDsl.Failure(ApiError.InternalServerError)))
+        val action = apiReturn.action.recover(handleUserException andThen ApiDsl.Returns.error)
         val newEvents = action.map(action => filterAndDistributeEvents(client)(action.events))
         val result = action.map(_.result)
         Response(result, reaction(originalState, newState, newEvents))
@@ -78,11 +78,11 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     privateEvents
   }
 
-  private def handleUserException[T](fallback: => T): PartialFunction[Throwable, T] = {
+  private val handleUserException: PartialFunction[Throwable, ApiError.HandlerFailure] = {
     case NonFatal(e) =>
       scribe.error("request handler threw exception")
       scribe.error(e)
-      fallback
+      ApiError.InternalServerError
   }
 
   //TODO we should not change the state on every request and track a graph in each connectedclient, we should instead have use our db or a cache to retrieve info about the graph.

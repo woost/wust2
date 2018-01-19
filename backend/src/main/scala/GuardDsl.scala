@@ -16,7 +16,7 @@ class GuardDsl(createImplicitAuth: () => Future[JWTAuthentication])(implicit ec:
     def withUser[T](f: (State, User) => Future[ApiData.Action[T]]): ApiFunction[T] = Action { state =>
       state.auth match {
         case Some(auth) => f(state, auth.user)
-        case None => Future.successful(Failure[T](ApiError.Unauthorized))
+        case None => Future.successful(Returns.error[T](ApiError.Unauthorized))
       }
     }
 

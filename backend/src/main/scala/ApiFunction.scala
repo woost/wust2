@@ -4,7 +4,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import wust.api.{ApiEvent, ApiError}, ApiError.HandlerFailure
 import cats.implicits._
 
-//TODO move to sloth project as opionionated dsl?
+//TODO move to sloth/mycelium/apidsl project as opionionated dsl?
 
 object ApiData {
   case class Action[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
@@ -54,21 +54,19 @@ trait ApiDsl {
     def apply[T](f: State => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.Effect(f)
     def apply[T](f: => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.IndependentEffect(() => f)
   }
-
   object Returns {
     def apply[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, ApiData.Action(Right(result), events))
+    def apply[T](state: State, action: ApiData.Action[T]): ApiData.Effect[T] = ApiData.Effect(state, action)
     def apply[T](result: T, events: Seq[ApiEvent]): ApiData.Action[T] = ApiData.Action(Right(result), events)
-    def apply[T](result: T): ApiData.Action[T] = Returns(result, Seq.empty)
-  }
+    def apply[T](result: T): ApiData.Action[T] = ApiData.Action(Right(result), Seq.empty)
 
-  object Failure {
-    def apply[T](state: State, failure: HandlerFailure, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, ApiData.Action(Left(failure), events))
-    def apply[T](failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Action[T] = ApiData.Action(Left(failure), events)
-    def apply[T](failure: HandlerFailure): ApiData.Action[T] = Failure(failure, Seq.empty)
+    def error[T](state: State, failure: HandlerFailure, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, ApiData.Action(Left(failure), events))
+    def error[T](failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Action[T] = ApiData.Action(Left(failure), events)
+    def error[T](failure: HandlerFailure): ApiData.Action[T] = ApiData.Action(Left(failure), Seq.empty)
   }
 
   implicit def ValueIsAction[T](value: T): ApiData.Action[T] = Returns(value)
-  implicit def FailureIsAction[T](failure: HandlerFailure): ApiData.Action[T] = Failure(failure)
+  implicit def FailureIsAction[T](failure: HandlerFailure): ApiData.Action[T] = Returns.error(failure)
   implicit def FutureValueIsAction[T](value: Future[T])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = value.map(ValueIsAction)
   implicit def FutureFailureIsAction[T](failure: Future[HandlerFailure])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = failure.map(FailureIsAction)
 }
