@@ -135,7 +135,7 @@ case object ConnectPosts extends YesNoTask
   val description = "Do these posts belong together?"
 
   def component(state: GlobalState): VNode = {
-    val connectPosts = TaskHeuristic.random(currentPosts(state), 2)
+    val connectPosts = TaskHeuristic.defaultHeuristic(currentPosts(state), 2)
     constructComponent(state,
       connectPosts,
       GraphChanges(addConnections = Set(Connection(connectPosts.head.id, "related", connectPosts.last.id)))
@@ -148,7 +148,7 @@ case object ContainPosts extends YesNoTask
   val description = "Is the first post a topic description of the second?"
 
   def component(state: GlobalState): VNode = {
-    val containmentPosts = TaskHeuristic.random(currentPosts(state), 2)
+    val containmentPosts = TaskHeuristic.defaultHeuristic(currentPosts(state), 2)
     constructComponent(state,
       containmentPosts,
       GraphChanges(addConnections = Set(Connection(containmentPosts.last.id, Label.parent, containmentPosts.head.id)))
@@ -165,7 +165,7 @@ case object MergePosts extends YesNoTask
   }
 
   def component(state: GlobalState): VNode = {
-    val postsToMerge = TaskHeuristic.random(currentPosts(state), 2)
+    val postsToMerge = TaskHeuristic.defaultHeuristic(currentPosts(state), 2)
     constructComponent(state,
       postsToMerge,
       GraphChanges(updatePosts = Set(mergePosts(postsToMerge.head, postsToMerge.last)))
@@ -182,7 +182,7 @@ case object UnifyPosts extends YesNoTask // Currently same as MergePosts
   }
 
   def component(state: GlobalState): VNode = {
-    val postsToUnify = TaskHeuristic.random(currentPosts(state), 2)
+    val postsToUnify = TaskHeuristic.defaultHeuristic(currentPosts(state), 2)
     constructComponent(state,
       postsToUnify,
       GraphChanges(updatePosts = Set(unifyPosts(postsToUnify.head, postsToUnify.last)))
@@ -197,7 +197,7 @@ case object DeletePost extends YesNoTask
   val description = "Is this posts irrelevant for this discussion? (e.g. Hello post)"
 
   def component(state: GlobalState): VNode = {
-    val deletePosts = TaskHeuristic.random(currentPosts(state), 1)
+    val deletePosts = TaskHeuristic.defaultHeuristic(currentPosts(state), 1)
     constructComponent(state,
       deletePosts,
       GraphChanges(delPosts = deletePosts.map(_.id))
@@ -217,7 +217,7 @@ case object SplitPost extends RestructuringTask
 
   def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): Seq[Post] = {
     val selection = window.getSelection()
-    if(selection.rangeCount > 1)
+    if(selection.rangeCount > 1)// what about multiple Selections?
       return Seq(originalPost)
 
     val range = selection.getRangeAt(0)
@@ -227,7 +227,6 @@ case object SplitPost extends RestructuringTask
     val currSelText = elementText.substring(selectionOffsets._1, selectionOffsets._2).trim
 
     val before = stringToPost(elementText.take(selectionOffsets._1), selectionOffsets._1 != 0, state)
-    // val middle = if(currSelText.nonEmpty) Some(originalPost.copy(content = currSelText)) else None
     val middle = stringToPost(currSelText, currSelText.nonEmpty, state)
     val after = stringToPost(elementText.substring(selectionOffsets._2), selectionOffsets._2 != elementText.length, state)
 
@@ -247,11 +246,11 @@ case object SplitPost extends RestructuringTask
   }
 
   def component(state: GlobalState): VNode = {
-    val splitPost = TaskHeuristic.random(currentPosts(state), 1).head
+    val splitPost = TaskHeuristic.defaultHeuristic(currentPosts(state), 1).head
     val postPreview = Handler.create[Seq[Post]](Seq(splitPost)).unsafeRunSync()
 
     div(
-      div(// what about multiple Selections?
+      div(
         children <-- postPreview.map {posts =>
           posts.map {post =>
             p(
@@ -297,7 +296,7 @@ case object AddTagToPost extends AddTagTask
     }
 
   def component(state: GlobalState): VNode = {
-    val postsToTag = TaskHeuristic.random(currentPosts(state), 1)
+    val postsToTag = TaskHeuristic.defaultHeuristic(currentPosts(state), 1)
     constructComponent(postsToTag, addTagToPost(postsToTag, state))
   }
 }
@@ -321,8 +320,8 @@ case object ConnectPostsWithTag extends AddTagTask
       }
 
   def component(state: GlobalState): VNode = {
-    val sourcePosts = TaskHeuristic.random(currentPosts(state), 1)
-    val targetPosts = TaskHeuristic.random(currentPosts(state), 1)
+    val sourcePosts = TaskHeuristic.defaultHeuristic(currentPosts(state), 1)
+    val targetPosts = TaskHeuristic.defaultHeuristic(currentPosts(state), 1)
     constructComponent(sourcePosts, targetPosts, tagConnection(sourcePosts, targetPosts, state))
   }
 }
@@ -349,7 +348,7 @@ case object TaskHeuristic {
 //    else List(post)
 //  }
 
-  def heuristic: (Set[Post], Int) => Set[Post] = random
+  def defaultHeuristic: (Set[Post], Int) => Set[Post] = random
 }
 
 case object ChooseTaskHeuristic {
@@ -357,7 +356,7 @@ case object ChooseTaskHeuristic {
     tasks(scala.util.Random.nextInt(tasks.size))
   }
 
-  def heuristic: List[RestructuringTask] => RestructuringTask = random
+  def defaultHeuristic: List[RestructuringTask] => RestructuringTask = random
 }
 
 case object RestructuringTaskGenerator {
@@ -376,8 +375,7 @@ case object RestructuringTaskGenerator {
     val show = taskDisplay.map(d => {
       println(s"display task! ${d.toString}")
       if(d == true) {
-        // ChooseTaskHeuristic.random(allTasks).render(globalState)
-       SplitPost.render(globalState)
+        ChooseTaskHeuristic.defaultHeuristic(allTasks).render(globalState)
       } else {
         renderButton
       }
