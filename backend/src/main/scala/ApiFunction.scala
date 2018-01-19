@@ -8,10 +8,16 @@ import cats.implicits._
 
 object ApiData {
   case class Action[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
-  case class Effect[T](state: State, action: Action[T])
+  case class Effect[T](state: State, action: Future[Action[T]])
+
+  //TODO: why do we need these Future[F[T]] types and implicits?
+  type FutureAction[T] = Future[ApiData.Action[T]]
+  type FutureEffect[T] = Future[ApiData.Effect[T]]
 
   implicit val apiActionFunctor = cats.derive.functor[ApiData.Action]
-  implicit val apiEffectFunctor = cats.derive.functor[ApiData.Effect]
+  implicit def futureApiActionFunctor(implicit ec: ExecutionContext) = cats.derive.functor[FutureAction]
+  implicit def apiEffectFunctor(implicit ec: ExecutionContext) = cats.derive.functor[ApiData.Effect]
+  implicit def futureApiEffectFunctor(implicit ec: ExecutionContext) = cats.derive.functor[FutureEffect]
 }
 
 sealed trait ApiFunction[T] {
@@ -20,7 +26,7 @@ sealed trait ApiFunction[T] {
 object ApiFunction {
   case class ReturnValue[T](state: Future[State], action: Future[ApiData.Action[T]])
   object ReturnValue {
-    def apply[T](effect: Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ReturnValue[T] = ReturnValue(effect.map(_.state), effect.map(_.action))
+    def apply[T](effect: Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ReturnValue[T] = ReturnValue(effect.map(_.state), effect.flatMap(_.action))
   }
 
   case class Action[T](f: State => Future[ApiData.Action[T]]) extends ApiFunction[T] {
@@ -36,12 +42,6 @@ object ApiFunction {
     def apply(state: Future[State])(implicit ec: ExecutionContext) = ReturnValue(f())
   }
 
-  //TODO: why do we need these Future[F[T]] types and implicits?
-  type FutureAction[T] = Future[ApiData.Action[T]]
-  type FutureEffect[T] = Future[ApiData.Effect[T]]
-  implicit def futureApiActionFunctor(implicit ec: ExecutionContext) = cats.derive.functor[FutureAction]
-  implicit def futureApiEffectFunctor(implicit ec: ExecutionContext) = cats.derive.functor[FutureEffect]
-
   implicit def apiFunctionFunctor(implicit ec: ExecutionContext) = cats.derive.functor[ApiFunction]
 }
 
@@ -55,12 +55,12 @@ trait ApiDsl {
     def apply[T](f: => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.IndependentEffect(() => f)
   }
   object Returns {
-    def apply[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, ApiData.Action(Right(result), events))
-    def apply[T](state: State, action: ApiData.Action[T]): ApiData.Effect[T] = ApiData.Effect(state, action)
+    def apply[T](state: State, action: Future[ApiData.Action[T]]): ApiData.Effect[T] = ApiData.Effect(state, action)
+    def apply[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, Future.successful(ApiData.Action(Right(result), events)))
     def apply[T](result: T, events: Seq[ApiEvent]): ApiData.Action[T] = ApiData.Action(Right(result), events)
     def apply[T](result: T): ApiData.Action[T] = ApiData.Action(Right(result), Seq.empty)
 
-    def error[T](state: State, failure: HandlerFailure, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, ApiData.Action(Left(failure), events))
+    def error[T](state: State, failure: HandlerFailure, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(state, Future.successful(ApiData.Action(Left(failure), events)))
     def error[T](failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Action[T] = ApiData.Action(Left(failure), events)
     def error[T](failure: HandlerFailure): ApiData.Action[T] = ApiData.Action(Left(failure), Seq.empty)
   }

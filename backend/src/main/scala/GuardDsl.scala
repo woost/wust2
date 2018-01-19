@@ -22,12 +22,11 @@ class GuardDsl(createImplicitAuth: () => Future[JWTAuthentication])(implicit ec:
 
     def withUserOrImplicit[T](code: (State, User, Boolean) => Future[ApiData.Action[T]]): ApiFunction[T] = Effect { state =>
       state.auth match {
-        case Some(auth) => code(state, auth.user, false).map(Returns(state, _))
+        case Some(auth) => Future.successful(Returns(state, code(state, auth.user, false)))
         case None => for {
           auth <- implicitAuth
           newState = state.copy(auth = Some(auth))
-          result <- code(newState, auth.user, true)
-        } yield Returns(newState, result)
+        } yield Returns(newState, code(newState, auth.user, true))
       }
     }
   }
