@@ -84,11 +84,15 @@ object EventProcessor {
 
     val currentUser: Observable[Option[User]] = currentAuth.map(_.map(_.user))
 
-    new EventProcessor(eventStream, viewConfig, currentAuth, currentUser)
+    val graphEvents = eventStream
+      .map(_.collect { case e: ApiEvent.GraphContent => e })
+      .collect { case l if l.nonEmpty => l }
+
+    new EventProcessor(graphEvents, viewConfig, currentAuth, currentUser)
   }
 }
 
-class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig: Observable[ViewConfig], val currentAuth: Observable[Option[Authentication]], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
+class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], viewConfig: Observable[ViewConfig], val currentAuth: Observable[Option[Authentication]], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
   import monix.execution.Scheduler.Implicits.global
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
@@ -113,9 +117,9 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent]], viewConfig:
     val localChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
 
     val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
-    val events:Observable[Seq[ApiEvent]] = Observable.merge(eventStream, localEvents)
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
 
-    val graphWithChanges: Observable[Graph] = events.scan(Graph.empty) { (graph: Graph, events: Seq[ApiEvent]) => events.foldLeft(graph)(GraphUpdate.applyEvent) }
+    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(GraphUpdate.applyEvent) }
 
     graphWithChanges subscribe rawGraph
 

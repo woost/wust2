@@ -16,10 +16,18 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, minTokenLifetime: Duration)(i
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
-  private def resultOnAuth(state: State, auth: Future[Option[JWTAuthentication]]): Future[ApiData.Effect[Boolean]] = auth.map {
+  private def authEvents(auth: Option[JWTAuthentication]): Future[Seq[ApiEvent]] = {
+    db.graph.getAllVisiblePosts(auth.map(_.user.id)).map { dbGraph =>
+      val graph = forClient(dbGraph).consistent
+      val authEvent = auth.fold[ApiEvent.Private](ApiEvent.LoggedOut)(auth => ApiEvent.LoggedIn(auth.toAuthentication))
+      ApiEvent.ReplaceGraph(graph) :: authEvent :: Nil
+    }
+  }
+
+  private def resultOnAuth(state: State, auth: Future[Option[JWTAuthentication]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
     //TODO minimum lifetime and auto disconnect of ws
-    case Some(auth) /*if !auth.isExpiredIn(minTokenLifetime)*/ => Returns(state.copy(auth = Some(auth)), true)
-    case _ => Returns(state, false)
+    case Some(auth) /*if !auth.isExpiredIn(minTokenLifetime)*/ => authEvents(Some(auth)).map(Returns(true, _))
+    case _ => Future.successful(Returns(false))
   }
 
   def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
@@ -66,6 +74,6 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, minTokenLifetime: Duration)(i
   }
 
   def logout(): ApiFunction[Boolean] = Effect { state =>
-    Future { Returns(state.copy(auth = None), true) }
+    authEvents(None).map(Returns(true, _))
   }
 }

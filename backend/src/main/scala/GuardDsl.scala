@@ -12,24 +12,24 @@ import scala.concurrent.{ ExecutionContext, Future }
 class GuardDsl(createImplicitAuth: () => Future[JWTAuthentication])(implicit ec: ExecutionContext) extends ApiDsl {
   private lazy val implicitAuth = createImplicitAuth()
 
-  implicit class GuardedAction(actionFactory: Action.type) {
-    def withUser[T](f: (State, User) => Future[ApiData.Action[T]]): ApiFunction[T] = Action { state =>
+  abstract class GuardedOps[F[+_]](factory: ApiFunctionFactory[F], errorFactory: ApiError.HandlerFailure => F[Nothing]) {
+    def withUser[T](f: (State, User) => Future[F[T]]): ApiFunction[T] = factory { state =>
       state.auth match {
         case Some(auth) => f(state, auth.user)
-        case None => Future.successful(Returns.error[T](ApiError.Unauthorized))
+        case None => Future.successful(errorFactory(ApiError.Unauthorized))
       }
     }
 
-    def withUserOrImplicit[T](code: (State, User, Boolean) => Future[ApiData.Action[T]]): ApiFunction[T] = Effect { state =>
+    def withUserOrImplicit[T](f: (State, User) => Future[F[T]]): ApiFunction[T] = withUser(f).redirectWithEvents { state =>
       state.auth match {
-        case Some(auth) => Future.successful(Returns(state, code(state, auth.user, false)))
-        case None => for {
-          auth <- implicitAuth
-          newState = state.copy(auth = Some(auth))
-        } yield Returns(newState, code(newState, auth.user, true))
+        case Some(auth) => Future.successful(Seq.empty)
+        case None => implicitAuth.map(auth => Seq(ApiEvent.LoggedIn(auth.toAuthentication)))
       }
     }
   }
+
+  implicit class GuardedAction(factory: Action.type) extends GuardedOps[ApiData.Action](factory, Returns.error)
+  implicit class GuardedEffect(factory: Effect.type) extends GuardedOps[ApiData.Effect](factory, Returns.error)
 }
 
 object GuardDsl {

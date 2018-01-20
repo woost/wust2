@@ -11,7 +11,7 @@ import wust.ids._
 import scala.concurrent.{ExecutionContext, Future}
 
 @derive(copyF)
-case class State(auth: Option[JWTAuthentication], graph: Graph) {
+case class State(auth: Option[Authentication], graph: Graph) {
   val user = auth.map(_.user)
   override def toString = s"State(${auth.map(_.user.name)}, posts# ${graph.posts.size})"
 }
@@ -23,10 +23,19 @@ object State {
 class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   import ApiEvent._
 
+  //TODO get rid of this
   def getInitialGraph(): Future[Graph] = db.graph.getAllVisiblePosts(userId = None).map(forClient)
 
+  def authEventToAuth(event: ApiEvent.AuthContent) = event match {
+    case ApiEvent.LoggedIn(auth) => Some(auth)
+    case ApiEvent.LoggedOut => None
+  }
+
   def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
-    events.foldLeft(state)((state, event) => state.copyF(graph = GraphUpdate.applyEvent(_, event)))
+    events.foldLeft(state)((state, event) => event match {
+      case ev: ApiEvent.GraphContent => state.copyF(graph = GraphUpdate.applyEvent(_, ev))
+      case ev: ApiEvent.AuthContent => state.copy(auth = authEventToAuth(ev))
+    })
   }
 
   def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent.Public]] = Future.sequence(event.events.map {
@@ -48,24 +57,6 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       println(s"####### ignored Event: $other")
       Future.successful(Nil)
   }).map(_.flatten)
-
-  def validate(state: State): State = state.copyF(auth = _.filterNot(_.isExpired))
-
-  def stateEvents(state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent.Private]] = {
-    db.graph.getAllVisiblePosts(state.user.map(_.id)).map { dbGraph =>
-      val graph = forClient(dbGraph).consistent
-      val authEvent = state.auth.fold[ApiEvent.Private](LoggedOut) { auth =>
-        LoggedIn(auth.toAuthentication)
-      }
-      ReplaceGraph(graph) :: authEvent :: Nil
-    }
-  }
-
-  def stateChangeEvents(prevState: State, state: State)(implicit ec: ExecutionContext): Future[Seq[ApiEvent.Private]] =
-    (prevState.auth == state.auth) match {
-      case true  => Future.successful(Seq.empty)
-      case false => stateEvents(state)
-    }
 
   private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent.Public]] = {
     import membership._

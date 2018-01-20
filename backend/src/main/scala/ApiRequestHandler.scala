@@ -35,8 +35,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     Reaction(initialState, initialEvents)
   }
 
-  override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
-    val state = originalState.map(validate)
+  override def onRequest(client: NotifiableClient[RequestEvent], state: Future[State], path: List[String], payload: ByteBuffer): Response = {
     api.lift(Request(path, payload)) match {
       case None =>
         val error = ApiError.NotFound(path)
@@ -45,21 +44,23 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
         val error = ApiError.ProtocolError(slothError.toString)
         Response(Future.successful(Left(error)), Reaction(state))
       case Some(Right(apiFunction)) =>
-        val apiReturn = apiFunction(state)
+        val apiReturn = apiFunction(state, applyEventsToState)
         val newState = apiReturn.state
-        val action = apiReturn.action.recover(handleUserException andThen ApiDsl.Returns.error)
-        val newEvents = action.map(action => filterAndDistributeEvents(client)(action.events))
-        val result = action.map(_.result)
-        Response(result, reaction(originalState, newState, newEvents))
+        val result = apiReturn.result.recover(handleUserException andThen Left.apply)
+        val newEvents = apiReturn.events.map(filterAndDistributeEvents(client))
+        Response(result, Reaction(newState, newEvents))
       }
   }
 
-  override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
+  override def onEvent(client: NotifiableClient[RequestEvent], state: Future[State], requestEvent: RequestEvent): Reaction = {
     scribe.info(s"client got event: $client")
-    val state = originalState.map(validate)
-    val events = state.flatMap(triggeredEvents(_, requestEvent))
+    val newEvents = state.flatMap(triggeredEvents(_, requestEvent))
+    val newState = for {
+      events <- newEvents
+      state <- state
+    } yield applyEventsToState(state, events)
 
-    reaction(originalState, state, events)
+    Reaction(newState, newEvents)
   }
 
   override def onClientConnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
@@ -83,19 +84,5 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       scribe.error("request handler threw exception")
       scribe.error(e)
       ApiError.InternalServerError
-  }
-
-  //TODO we should not change the state on every request and track a graph in each connectedclient, we should instead have use our db or a cache to retrieve info about the graph.
-  private def reaction(oldState: Future[State], newState: Future[State], events: Future[Seq[ApiEvent]]): Reaction = {
-    val next = for {
-      oldState <- oldState
-      newState <- newState
-      changeEvents <- stateChangeEvents(oldState, newState)
-      events <- events
-      allEvents = changeEvents ++ events
-      nextState = applyEventsToState(newState, allEvents)
-    } yield (nextState, allEvents)
-
-    Reaction(next.map(_._1), next.map(_._2))
   }
 }
