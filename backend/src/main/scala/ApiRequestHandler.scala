@@ -46,9 +46,9 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       case Some(Right(apiFunction)) =>
         val apiReturn = apiFunction(state, applyEventsToState)
         val newState = apiReturn.state
-        val result = apiReturn.result.recover(handleUserException andThen Left.apply)
-        val newEvents = apiReturn.events.map(filterAndDistributeEvents(client))
-        Response(result, Reaction(newState, newEvents))
+        val response = apiReturn.response //.recover(handleUserException andThen Left.apply) //TODO: move to apidsl, not enough here
+        val newEvents = response.map(r => filterAndDistributeEvents(client)(r.events))
+        Response(response.map(_.result), Reaction(newState, newEvents))
       }
   }
 
