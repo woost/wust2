@@ -21,7 +21,9 @@ object Deps {
   }
   val akka = new {
     private val version = "2.5.8"
-    val http = dep("com.typesafe.akka" %% "akka-http" % "10.1.0-RC1")
+    private val httpVersion = "10.1.0-RC1"
+    val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
+    val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
     val testkit = dep("com.typesafe.akka" %% "akka-testkit" % version)
@@ -35,6 +37,7 @@ object Deps {
     val generic = dep("io.circe" %%% "circe-generic" % version)
     val parser = dep("io.circe" %%% "circe-parser" % version)
     val shapes = dep("io.circe" %%% "circe-shapes" % version)
+    val numbers = dep("io.circe" %%% "circe-numbers" % version)
   }
 
   // macro/meta
@@ -74,4 +77,7 @@ object Deps {
   val gitter = dep("com.github.xuwei-k" %% "gitter-scala" % "0.3.0")
   val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
+
+  // needed by scalatest and scala compiler conflict, 1.0.6 is required by scala-compiler
+  val scalaXml = dep("org.scala-lang.modules" %% "scala-xml" % "1.0.6")
 }
