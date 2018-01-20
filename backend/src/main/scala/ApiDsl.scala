@@ -32,13 +32,12 @@ object ApiFunction {
       ReturnValue(oldState, action.map(action => Response(action.result, Seq.empty)))
     }
     def apply[T](oldState: Future[State], combine: (State, Seq[ApiEvent]) => State, effect: Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ReturnValue[T] = {
-      val r = for {
+      val newState = for {
         oldState <- oldState
         effect <- effect
-        newState = if (effect.events.isEmpty) oldState else combine(oldState, effect.events)
-      } yield (newState, effect.action.result, effect.events)
+      } yield if (effect.events.isEmpty) oldState else combine(oldState, effect.events)
 
-      ReturnValue(r.map(_._1), r.map(r => Response(r._2, r._3)))
+      ReturnValue(newState, effect.map(e => Response(e.action.result, e.events)))
     }
   }
 
@@ -50,6 +49,9 @@ object ApiFunction {
   }
   case class Effect[T](f: State => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
     def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = ReturnValue(state, combine, state.flatMap(f))
+  }
+  case class IndependentEffect[T](f: () => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
+    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = ReturnValue(state, combine, f())
   }
   case class RedirectWithEvents[T](f: ApiFunction[T], eventsf: State => Future[Seq[ApiEvent]]) extends ApiFunction[T] {
     def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = {
@@ -75,6 +77,7 @@ object ApiFunction {
 trait ApiDsl {
   sealed trait ApiFunctionFactory[F[_]] {
     def apply[T](f: State => Future[F[T]]): ApiFunction[T]
+    def apply[T](f: => Future[F[T]]): ApiFunction[T]
   }
   object Action extends ApiFunctionFactory[ApiData.Action] {
     def apply[T](f: State => Future[ApiData.Action[T]]): ApiFunction[T] = ApiFunction.Action(f)
@@ -82,6 +85,7 @@ trait ApiDsl {
   }
   object Effect extends ApiFunctionFactory[ApiData.Effect] {
     def apply[T](f: State => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.Effect(f)
+    def apply[T](f: => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.IndependentEffect(() => f)
   }
   object Returns {
     def apply[T](result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(events, apply(result))
