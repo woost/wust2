@@ -28,7 +28,7 @@ class EventDistributor(db: Db) {
     val postIds = events.flatMap(postIdsInEvent).toSet
     for {
       postGroups <- getGroupIds(postIds)
-    } yield subscribers.foreach { client =>
+    } subscribers.foreach { client =>
       if (client != origin) client.notify(RequestEvent(events, postGroups))
     }
   }

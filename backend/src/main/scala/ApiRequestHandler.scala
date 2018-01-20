@@ -26,6 +26,8 @@ import scala.util.control.NonFatal
 class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: PartialFunction[Request[ByteBuffer], Either[SlothServerFailure, ApiFunction[ByteBuffer]]])(implicit ec: ExecutionContext) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
+  //TODO mycelium: initialState, response with one future for event and result (sep from reaction)
+
   def initialReaction = {
     val initialState = Future.successful(State.initial)
     val initialEvents = stateInterpreter
