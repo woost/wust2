@@ -6,10 +6,10 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend._
 import wust.frontend.Color._
-import wust.frontend.views.Elements._
 import monix.execution.Scheduler.Implicits.global
 import wust.graph._
 import wust.ids.PostId
+import Elements._, Rendered._
 
 object ChatView extends View {
   override val key = "chat"
@@ -44,7 +44,7 @@ object ChatView extends View {
       borderColor <-- pageStyle.map(_.accentLineColor),
 
       div(
-        h1(child <-- pageStyle.map(_.title)),
+        p( mdHtml(pageStyle.map(_.title)) ),
 
         chatHistory(currentUser, chronologicalPostsAscending, page, graph),
         inputField(newPostSink),
@@ -88,7 +88,7 @@ object ChatView extends View {
     div( // wrapper for floats
       div( // post wrapper
         p(
-          post.content,
+          mdHtml(post.content),
           onClick(Page.Union(Set(post.id))) --> page,
           padding := "2px 3px",
           margin := "2px 0px",

@@ -1,5 +1,6 @@
 package wust.frontend.views
 
+import wust.frontend.marked
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import outwatch.Sink
@@ -11,6 +12,12 @@ import monix.execution.Scheduler.Implicits.global
 object Placeholders {
   val newPost = placeholder := "Create new post. Press Enter to submit."
   val newTag = placeholder := "Create new tag. Press Enter to submit."
+}
+
+object Rendered {
+  def mdHtml(str: String) = prop("innerHTML") := marked(str)
+  def mdHtml(str: Observable[String]) = prop("innerHTML") <-- str.map(marked(_))
+  def mdString(str: String) = marked(str)
 }
 
 object Elements {

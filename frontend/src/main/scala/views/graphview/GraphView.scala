@@ -22,6 +22,7 @@ import wust.ids._
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import wust.frontend.views.Elements._
+import wust.frontend.views.Rendered._
 import wust.frontend.views.Placeholders
 
 
@@ -73,7 +74,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
 
 object GraphView {
   def postView(post: Post) = div(
-    post.content,
+    mdHtml(post.content),
     cls := "graphpost"
   )
 }

@@ -6,6 +6,7 @@
  import outwatch.dom.dsl._
  import wust.frontend.Color._
  import wust.frontend._
+ import wust.frontend.views.Rendered._
  import wust.util.outwatchHelpers._
 
 class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag, updatedNodeSizes: () => Any) extends DataSelection[SimPost] {
@@ -14,7 +15,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
   override val tag = "div"
   override def enter(post: Enter[SimPost]): Unit = {
     post.append((simPost: SimPost) => GraphView.postView(simPost.post)(
-      title := simPost.content,
+      title := mdString(simPost.content),
       position.absolute,
       pointerEvents.auto, // reenable
       cursor.default
@@ -53,7 +54,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
       .style("opacity", (p: SimPost) => p.opacity)
-      .text((p: SimPost) => p.content)
+      .html((simPost: SimPost) => mdString(simPost.content))
 
     recalculateNodeSizes(post)
   }
