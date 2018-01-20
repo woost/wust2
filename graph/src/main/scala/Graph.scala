@@ -14,22 +14,30 @@ import collection.breakOut
 
 case class Ownership(postId: PostId, groupId: GroupId)
 case class Membership(userId: UserId, groupId: GroupId)
-@derive((id, revision) => Equality)
-case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
 case class Group(id: GroupId)
+sealed trait User {
+  def id: UserId
+  def name: String
+  def revision: Int
+}
+object User {
+  sealed trait Persisted extends User
+  @derive((id, revision) => Equality)
+  case class Real(id: UserId, name: String, revision: Int) extends Persisted
+  @derive((id, revision) => Equality)
+  case class Implicit(id: UserId, name: String, revision: Int) extends Persisted
+  @derive(id => Equality)
+  case class Assumed(id: UserId) extends User {
+    def name = s"anon-$id"
+    def revision = 0
+  }
+}
 
 //TODO: rename Post -> Item?
 object Post {
   def apply(id: PostId, content: String, author: UserId): Post = {
     val currTime = LocalDateTime.now();
     Post(id, content, author, currTime, currTime)
-  }
-
-  //TODO get rdi of this method, make frontend always have a userid
-  def apply(id: PostId, content: String, author: Option[User]): Post = {
-    val id = Cuid()
-    val userId = author.fold(UserId(-1))(_.id)// TODO: Validation
-    apply(PostId(id), content, userId)
   }
 }
 

@@ -16,11 +16,11 @@ package object ids {
 
   object GroupId extends IdTypeFactory[GroupIdType]
   type GroupId = GroupId.Type
-  implicit def UuidTypeIsGroupId(id: IdType): GroupId = GroupId(id)
+  implicit def IdTypeIsGroupId(id: IdType): GroupId = GroupId(id)
 
-  object UserId extends IdTypeFactory[UserIdType]
+  object UserId extends UuidTypeFactory[UserIdType]
   type UserId = UserId.Type
-  implicit def UuidTypeIsUserId(id: IdType): UserId = UserId(id)
+  implicit def UuidTypeIsUserId(id: UuidType): UserId = UserId(id)
 
   object Label extends TypeFactory[String, LabelType] {
     val parent = Label("parent")

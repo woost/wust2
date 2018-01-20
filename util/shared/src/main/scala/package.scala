@@ -18,13 +18,14 @@ package object util {
         scribe.error(e)
         a
     }
-    def log(implicit ec: ExecutionContext, name: sourcecode.FullName, line: sourcecode.Line) = {
+    def log(customMessage: String = null)(implicit ec: ExecutionContext, name: sourcecode.FullName, line: sourcecode.Line): Future[A] = {
+      val message = Option(customMessage).fold("")(" - " + _)
       fut.onComplete {
         case Success(res) =>
-          scribe.info(s"${name.value}:${line.value}")
+          scribe.info(s"${name.value}:${line.value}$message")
           scribe.info(res)
         case Failure(e) =>
-          scribe.error(s"${name.value}:${line.value}")
+          scribe.error(s"${name.value}:${line.value}$message")
           scribe.error(e)
       }
       fut

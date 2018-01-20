@@ -240,7 +240,7 @@ case class SplitPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuri
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
-    Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now))
+    Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now.id))
   }
 
   def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): Seq[Post] = {
@@ -314,7 +314,7 @@ case class AddTagToPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHe
 
   def addTagToPost(post: Set[Post], state: GlobalState): Sink[String] =
     state.eventProcessor.changes.redirectMap { (tag: String) =>
-      val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now))
+      val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now.id))
       val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
       RestructuringTaskGenerator.taskDisplay.unsafeOnNext(false)
       GraphChanges(

@@ -132,7 +132,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
-    val userIdOpt = state.user.map(_.id)
+    val userIdOpt = state.auth.userOpt.map(_.id)
     val graph = selection match {
       case Page.Root =>
         db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here

@@ -437,7 +437,7 @@ object MainView {
   }
 
   def user(state: GlobalState) = {
-    div( "User: ", child <-- state.currentUser.map(_.fold("")(u => s"${u.id}, ${u.name}" )))
+    div( "User: ", child <-- state.currentUser.map(u => s"${u.id}, ${u.name}" ))
   }
 
   def syncMode(state: GlobalState) = {

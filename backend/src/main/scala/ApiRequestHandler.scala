@@ -26,19 +26,11 @@ import scala.util.control.NonFatal
 class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: PartialFunction[Request[ByteBuffer], Either[SlothServerFailure, ApiFunction[ByteBuffer]]])(implicit ec: ExecutionContext) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
-  //TODO mycelium: initialState, response with one future for event and result (sep from reaction)
-
-  def initialReaction = {
-    val initialState = Future.successful(State.initial)
-    val initialEvents = stateInterpreter
-      .getInitialGraph()
-      .map(graph => Seq(ApiEvent.ReplaceGraph(graph)))
-
-    Reaction(initialState, initialEvents)
-  }
+  def initialReaction = Reaction(Future.successful(State.initial))
 
   override def onRequest(client: NotifiableClient[RequestEvent], state: Future[State], path: List[String], payload: ByteBuffer): Response = {
-    api.lift(Request(path, payload)) match {
+    scribe.info(s"Incoming request ($path)")
+    val response = api.lift(Request(path, payload)) match {
       case None =>
         val error = ApiError.NotFound(path)
         Response(Future.successful(Left(error)), Reaction(state))
@@ -51,7 +43,17 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
         val response = apiReturn.response //.recover(handleUserException andThen Left.apply) //TODO: move to apidsl, not enough here
         val newEvents = response.map(r => filterAndDistributeEvents(client)(r.events))
         Response(response.map(_.result), Reaction(newState, newEvents))
-      }
+    }
+
+    response.result.foreach {
+      case Right(_) => scribe.info(s"Responding to request ($path)")
+      case Left(error) => scribe.info(s"Error in request ($path): $error")
+    }
+    response.reaction.events.foreach { events =>
+      if (events.nonEmpty) scribe.info(s"Responding with events ($path): $events")
+    }
+
+    response
   }
 
   override def onEvent(client: NotifiableClient[RequestEvent], state: Future[State], requestEvent: RequestEvent): Reaction = {

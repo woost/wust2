@@ -18,10 +18,14 @@ object ChatView extends View {
   override def apply(state: GlobalState) = {
     import state._
 
+    val newPostSink = eventProcessor.enriched.changes.redirect { (o: Observable[String]) =>
+      o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges(addPosts = Set(Post(PostId.fresh, msg, user.id))))
+    }
+
     component(
       currentUser,
       chronologicalPostsAscending,
-      eventProcessor.enriched.addPost,
+      newPostSink,
       page,
       pageStyle,
       displayGraphWithParents.map(_.graph)
@@ -29,7 +33,7 @@ object ChatView extends View {
   }
 
   def component(
-                 currentUser: Observable[Option[User]],
+                 currentUser: Observable[User],
                  chronologicalPostsAscending: Observable[Seq[Post]],
                  newPostSink: Sink[String],
                  page: Sink[Page],
@@ -63,7 +67,7 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(currentUser: Observable[Option[User]], chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], graph: Observable[Graph]) = {
+  def chatHistory(currentUser: Observable[User], chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], graph: Observable[Graph]) = {
     div(
       height := "100%",
       overflow.auto,
@@ -74,7 +78,7 @@ object ChatView extends View {
     )
   }
 
-  def chatMessage(currentUser: Observable[Option[User]], post: Post, page: Sink[Page], graph: Graph) = {
+  def chatMessage(currentUser: Observable[User], post: Post, page: Sink[Page], graph: Graph) = {
     // TODO: Filter tags of pageId
     val tags:Seq[Post] = if(graph.consistent.hasParents(post.id)) {
       graph.consistent.parents(post.id).map(id => graph.postsById(id)).toSeq //.filter(_.id != pageId)
@@ -83,7 +87,7 @@ object ChatView extends View {
     }
 
     //Fixme: triggered multiple times
-    val isMine = currentUser.map(_.fold(false)(_.id == post.author))
+    val isMine = currentUser.map(_.id == post.author)
     currentUser.foreach(println(_))
     div( // wrapper for floats
       div( // post wrapper

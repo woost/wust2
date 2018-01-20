@@ -22,8 +22,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
   implicit val encodeGroupId = MappedEncoding[GroupId, IdType](Tag.unwrap _)
   implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId(_))
-  implicit val encodeUserId = MappedEncoding[UserId, IdType](Tag.unwrap _)
-  implicit val decodeUserId = MappedEncoding[IdType, UserId](UserId(_))
+  implicit val encodeUserId = MappedEncoding[UserId, UuidType](Tag.unwrap _)
+  implicit val decodeUserId = MappedEncoding[UuidType, UserId](UserId(_))
   implicit val encodePostId = MappedEncoding[PostId, UuidType](Tag.unwrap _)
   implicit val decodePostId = MappedEncoding[UuidType, PostId](PostId(_))
   implicit val encodeLabel = MappedEncoding[Label, String](Tag.unwrap _)
@@ -154,28 +154,25 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object user {
-    private val initialRevision = 0
-    private def implicitUserName = "anon-" + java.util.UUID.randomUUID.toString
-    private def newRealUser(name: String): User = User(DEFAULT, name, isImplicit = false, initialRevision)
-    private def newImplicitUser(): User = User(DEFAULT, implicitUserName, isImplicit = true, initialRevision)
-
     def apply(name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val user = newRealUser(name)
+      val user = User(UserId.fresh, name, isImplicit = false, 0)
       val q = quote { infix"""
         with ins as (
-          insert into "user" values(DEFAULT, ${lift(user.name)}, ${lift(user.revision)}, false) returning id
+          insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}) returning id
         ) insert into password(id, digest) select id, ${lift(digest)} from ins
-      """.as[Insert[User]].returning(_.id) }
+      """.as[Insert[User]] }
 
       ctx.run(q)
-        .map(id => Option(user.copy(id = id)))
+        .collect { case 1 => Option(user) }
         .recoverValue(None)
     }
 
-    def createImplicitUser()(implicit ec: ExecutionContext): Future[User] = {
-      val user = newImplicitUser()
-      val q = quote { query[User].insert(lift(user)).returning(_.id) }
-      ctx.run(q).map(id => user.copy(id = id))
+    def createImplicitUser(id: UserId, name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      val user = User(id, name, isImplicit = true, 0)
+      val q = quote { query[User].insert(lift(user)) }
+      ctx.run(q)
+        .collect { case 1 => Option(user) }
+        .recoverValue(None)
     }
 
     //TODO one query

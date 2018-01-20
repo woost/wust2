@@ -11,24 +11,21 @@ import wust.ids._
 import scala.concurrent.{ExecutionContext, Future}
 
 @derive(copyF)
-case class State(auth: Option[Authentication], graph: Graph) {
-  val user = auth.map(_.user)
-  override def toString = s"State(${auth.map(_.user.name)}, posts# ${graph.posts.size})"
+case class State(auth: Authentication, graph: Graph) {
+  override def toString = s"State($auth, posts# ${graph.posts.size})"
 }
 object State {
-  def initial = State(auth = None, graph = Graph.empty)
+  def initial = State(auth = Authentication.None, graph = Graph.empty)
 }
 
-//TODO: please refactor me.
 class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   import ApiEvent._
 
-  //TODO get rid of this
-  def getInitialGraph(): Future[Graph] = db.graph.getAllVisiblePosts(userId = None).map(forClient)
-
-  def authEventToAuth(event: ApiEvent.AuthContent) = event match {
-    case ApiEvent.LoggedIn(auth) => Some(auth)
-    case ApiEvent.LoggedOut => None
+  private def authEventToAuth(event: ApiEvent.AuthContent): Authentication = event match {
+    //TODO minimum lifetime and auto disconnect of ws
+    /*if !auth.isExpiredIn(minTokenLifetime)*/ 
+    case ApiEvent.LoggedIn(auth) => auth
+    case ApiEvent.LoggedOut => Authentication.None
   }
 
   def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
@@ -38,6 +35,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     })
   }
 
+  //TODO: refactor! this is difficult to reason about
   def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent.Public]] = Future.sequence(event.events.map {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
@@ -61,7 +59,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent.Public]] = {
     import membership._
 
-    def currentUserInvolved = state.auth.map(_.user.id == userId).getOrElse(false)
+    def currentUserInvolved = state.auth.userOpt.fold(false)(_.id == userId)
     def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
     if (currentUserInvolved) {
       // query all other members of groupId

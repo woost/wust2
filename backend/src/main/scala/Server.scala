@@ -63,7 +63,7 @@ object WebsocketFactory {
     val server = SlothServer[ByteBuffer, ApiFunction]
     val api =
       server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) orElse
-        server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt, config.server.clientReconnectInterval))
+        server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
 
     val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api)
     val serverConfig = ServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)

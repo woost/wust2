@@ -11,8 +11,8 @@ import java.time.Instant
 import scala.concurrent.duration.Duration
 
 @derive((user, expires) => toString)
-case class JWTAuthentication private[auth] (user: User, expires: Long, token: Authentication.Token) {
-  def toAuthentication = Authentication(user, token)
+case class JWTAuthentication private[auth] (user: User.Persisted, expires: Long, token: Authentication.Token) {
+  def toAuthentication = Authentication.Verified(user, token)
 
   def isExpired: Boolean = isExpiredIn(Duration.Zero)
   def isExpiredIn(duration: Duration): Boolean = expires <= Instant.now.getEpochSecond + duration.toSeconds
@@ -21,14 +21,14 @@ case class JWTAuthentication private[auth] (user: User, expires: Long, token: Au
 @derive(apply)
 class JWT(secret: String, tokenLifetime: Duration) {
   import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._
-  implicit val userDecoder: Decoder[User] = deriveDecoder[User]
-  implicit val userEncoder: Encoder[User] = deriveEncoder[User]
+  implicit val userDecoder: Decoder[User.Persisted] = deriveDecoder[User.Persisted]
+  implicit val userEncoder: Encoder[User.Persisted] = deriveEncoder[User.Persisted]
 
   private val algorithm = JwtAlgorithm.HS256
   private val issuer = "wust"
   private val audience = "wust"
 
-  private def generateClaim(user: User, expires: Long) = {
+  private def generateClaim(user: User.Persisted, expires: Long) = {
     JwtClaim(content = user.asJson.toString)
       .by(issuer)
       .to(audience)
@@ -37,7 +37,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
       .expiresAt(expires)
   }
 
-  def generateAuthentication(user: User): JWTAuthentication = {
+  def generateAuthentication(user: User.Persisted): JWTAuthentication = {
     val expires = Instant.now.getEpochSecond + tokenLifetime.toSeconds
     val claim = generateClaim(user, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
@@ -48,7 +48,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
     JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) => for {
         expires <- claim.expiration
-        user <- parser.decode[User](claim.content).right.toOption
+        user <- parser.decode[User.Persisted](claim.content).right.toOption
       } yield JWTAuthentication(user, expires, token)
       case _ => None
     }

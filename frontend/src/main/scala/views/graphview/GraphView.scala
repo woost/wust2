@@ -370,10 +370,9 @@ class GraphViewInstance(
     svg.on("click", { () =>
       //TODO: Also show postCreationMenu when no user is present
       if ( postCreationMenus.now.isEmpty && focusedPostId.now.isEmpty) {
-        state.inner.currentUser.now.foreach { author =>
-          val pos = d3State.transform.now.invert(d3.mouse(svg.node))
-          postCreationMenus() = List(PostCreationMenu.Menu(Vec2(pos(0), pos(1)), author.id))
-        }
+        val author = state.inner.currentUser.now
+        val pos = d3State.transform.now.invert(d3.mouse(svg.node))
+        postCreationMenus() = List(PostCreationMenu.Menu(Vec2(pos(0), pos(1)), author.id))
       } else {
         // Var.set(
         //   VarTuple(state.postCreationMenus, Nil),

@@ -13,7 +13,7 @@ object Boopickle {
 
   implicit def PostIdPickler = transformPickler[PostId, UuidType](PostId(_))(Tag.unwrap _)
   implicit def GroupIdPickler = transformPickler[GroupId, IdType](GroupId(_))(Tag.unwrap _)
-  implicit def UserIdPickler = transformPickler[UserId, IdType](UserId(_))(Tag.unwrap _)
+  implicit def UserIdPickler = transformPickler[UserId, UuidType](UserId(_))(Tag.unwrap _)
   implicit def LabelPickler = transformPickler[Label, String](Label(_))(Tag.unwrap _)
 
   implicit val localDateTimePickler: Pickler[LocalDateTime] = transformPickler((t: Long) => fromMillis(t))(x => toMillis(x))

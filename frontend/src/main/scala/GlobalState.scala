@@ -20,20 +20,29 @@ import rx._
 
 import scalaz.Tag
 
-class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.Owner) {
+class GlobalState(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._
   import Client.storage
+
+  private val initialAuthentication = Client.ensureLogin()
 
   val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncEnabled = syncMode.map(_ == SyncMode.Live)
     val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
-    val eventProcessor = EventProcessor(rawEventStream, syncEnabled.toObservable, viewConfig.toObservable)
+    val eventProcessor = EventProcessor(Client.eventObservable, syncEnabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
-    val currentUser:Rx[Option[User]] = eventProcessor.currentUser.toRx(seed = None)
-    val currentAuth:Rx[Option[Authentication]] = eventProcessor.currentAuth.toRx(seed = None)
+
+    val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = initialAuthentication).map {
+      case auth: Authentication.UserProvider => auth
+      case Authentication.None => Client.ensureLogin()
+    }
+    //TODO: better in rx/obs operations
+    currentAuth.foreach(Client.storage.auth() = _)
+
+    val currentUser: Rx[User] = currentAuth.map(_.user)
 
     val inviteToken = viewConfig.map(_.invite)
 

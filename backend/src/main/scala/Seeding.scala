@@ -88,9 +88,10 @@ object GitHubImporter {
         val issue = issueData._1
         val commentsList = issueData._2
 
+        //TODOwhat about this userid?
         val userId = UserId(issue.user match {
-          case None => 1
-          case Some(githubUser: GHUser) => githubUser.id
+          case None => ???
+          case Some(githubUser: GHUser) => githubUser.id.toString
         }) //TODO: create this user
         val tempUserId = user.id
 

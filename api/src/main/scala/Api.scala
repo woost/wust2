@@ -22,16 +22,30 @@ trait Api[Result[_]] {
 
 trait AuthApi[Result[_]] {
   //TODO: simplify implicit login by handshake with a token or userid and an initial graph. persist new implicit user when used first time.
-  // def assumeLogin(id: UserId): Result[Boolean]
+  def assumeLogin(id: UserId): Result[Boolean]
   def register(name: String, password: String): Result[Boolean]
   def login(name: String, password: String): Result[Boolean]
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
 }
 
-case class Authentication(user: User, token: Authentication.Token)
+sealed trait Authentication {
+  def userOpt: Option[User]
+}
 object Authentication {
   type Token = String
+
+  sealed trait UserProvider extends Authentication {
+    def user: User
+    final def userOpt = Some(user)
+  }
+  case object None extends Authentication {
+    def userOpt = Option.empty
+  }
+  case class Assumed(user: User.Assumed) extends UserProvider
+  case class Verified(user: User.Persisted, token: Token) extends UserProvider {
+    override def toString = s"Authentication.Verified(${user.id})"
+  }
 }
 
 sealed trait ApiError
@@ -61,7 +75,7 @@ object ApiEvent {
   final case class NewGraphChanges(changes: GraphChanges) extends Public with GraphContent {
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
-  final case class LoggedIn(auth: Authentication) extends Private with AuthContent
+  final case class LoggedIn(auth: Authentication.Verified) extends Private with AuthContent
   final case object LoggedOut extends Private with AuthContent
   final case class ReplaceGraph(graph: Graph) extends Private with GraphContent {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"

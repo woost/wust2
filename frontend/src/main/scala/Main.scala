@@ -2,8 +2,8 @@ package wust.frontend
 
 import boopickle.Default._
 import org.scalajs.dom._
-import wust.util.Analytics
-import wust.api.ApiEvent
+import wust.util.{Analytics, RichFuture}
+import wust.api.{ApiEvent, Authentication}
 import wust.ids._
 import wust.graph.{Graph, Page}
 import org.scalajs.dom.ext.KeyCode
@@ -20,7 +20,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-    val state = new GlobalState(Client.eventObservable)
+    val state = new GlobalState()
 
     def getNewGraph(selection: Page) = {
       //TODO ???
@@ -44,21 +44,6 @@ object Main {
       //     VarTuple(state.rawGraph, newNonEmptyGraph applyChanges state.persistence.currentChanges)
       //   )
       // }
-    }
-
-    // The first thing to be sent should be the auth-token
-    // TODO: Reactive?
-    {
-      val loginSuccess = Client.storage.token.now match {
-        case Some(token) => Client.auth.loginToken(token)
-        case None => Future.successful(false)
-      }
-
-      loginSuccess.foreach { _ =>
-        state.inner.currentAuth.foreach { auth =>
-          Client.storage.token() = auth.map(_.token)
-        }
-      }
     }
 
     state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)).foreach {

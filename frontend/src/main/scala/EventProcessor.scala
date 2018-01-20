@@ -45,20 +45,6 @@ object SyncMode {
 
 // case class PersistencyState(undoHistory: Seq[GraphChanges], redoHistory: Seq[GraphChanges], changes: GraphChanges)
 
-abstract class ChangeHandlers(currentUser: Observable[Option[User]]) {
-  import monix.execution.Scheduler.Implicits.global
-  //TODO: sinks?
-  val changes = Handler.create[GraphChanges]().unsafeRunSync()
-
-  val addPost: Sink[String] = changes.redirect { _.withLatestFrom(currentUser) { (text: String, userOpt: Option[User]) =>
-    val newPost = userOpt match {
-      case Some(user) => Post(PostId.fresh, text, author = user.id)
-      case None => Post(PostId.fresh, text, author = -1) //Replaced in backend after creation of implicit user
-    }
-    GraphChanges(addPosts = Set(newPost))
-  } }
-}
-
 object EventProcessor {
 
   def apply(rawEventStream: Observable[Seq[ApiEvent]], syncEnabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
@@ -77,28 +63,32 @@ object EventProcessor {
       Observable.merge(bufferedGraphEvents, otherEvents)
     }
 
-    val currentAuth: Observable[Option[Authentication]] = eventStream.map(_.reverse.collectFirst {
-      case LoggedIn(auth) => Some(auth)
-      case LoggedOut => None
-    }).collect { case Some(auth) => auth }.startWith(Seq(None))
-
-    val currentUser: Observable[Option[User]] = currentAuth.map(_.map(_.user))
-
     val graphEvents = eventStream
       .map(_.collect { case e: ApiEvent.GraphContent => e })
       .collect { case l if l.nonEmpty => l }
 
-    new EventProcessor(graphEvents, viewConfig, currentAuth, currentUser)
+    val authEvents = eventStream
+      .map(_.collect { case e: ApiEvent.AuthContent => e })
+      .collect { case l if l.nonEmpty => l }
+
+    new EventProcessor(graphEvents, authEvents, viewConfig)
   }
 }
 
-class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], viewConfig: Observable[ViewConfig], val currentAuth: Observable[Option[Authentication]], val currentUser: Observable[Option[User]]) extends ChangeHandlers(currentUser) {
+class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], authEventStream: Observable[Seq[ApiEvent.AuthContent]], viewConfig: Observable[ViewConfig]) {
   import monix.execution.Scheduler.Implicits.global
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
-  object enriched extends ChangeHandlers(currentUser)
+  val currentAuth: Observable[Authentication] = authEventStream.map(_.reverse.collectFirst {
+    case LoggedIn(auth) => auth
+    case LoggedOut => Authentication.None
+  }).collect { case Some(auth) => auth }
 
+  val changes = Handler.create[GraphChanges]().unsafeRunSync()
+  object enriched {
+    val changes = Handler.create[GraphChanges]().unsafeRunSync()
+  }
 
   // public reader
   val (localChanges: Observable[GraphChanges], rawGraph: Observable[Graph]) = {
@@ -165,8 +155,6 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
   private def applyEnrichmentToChanges(changes: GraphChanges, graph: Graph, viewConfig: ViewConfig): GraphChanges = {
     import changes.consistent._
 
-    println("DA CHANGA" + changes)
-
     val toDelete = delPosts.flatMap { postId =>
       Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
     }
@@ -180,10 +168,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
       .filterNot(p => containedPosts(p.id))
       .flatMap(p => Page.toParentConnections(viewConfig.page, p.id))
 
-    val p = changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
-
-    println("BORROWS GRAPH: " +p )
-    p
+    changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
   }
 
   private def sendChanges(changes: List[GraphChanges]): Future[Boolean] = {

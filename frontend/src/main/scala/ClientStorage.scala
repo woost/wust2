@@ -17,11 +17,13 @@ import scala.util.Try
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import rx._
 import wust.util.outwatchHelpers._
-import outwatch.util.LocalStorage
+import outwatch.util.LocalStorage //TODO use outwatch.util.Storage(dom.Storage)
 
-class ClientStorage(storage: Storage)(implicit owner: Ctx.Owner) {
+class ClientStorage(implicit owner: Ctx.Owner) {
+  private val internal = org.scalajs.dom.ext.LocalStorage
+
   object keys {
-    val token = "wust.auth.token"
+    val auth = "wust.auth"
     val graphChanges = "wust.graph.changes"
     val syncMode = "wust.graph.syncMode"
   }
@@ -29,10 +31,10 @@ class ClientStorage(storage: Storage)(implicit owner: Ctx.Owner) {
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
-  val token: Var[Option[Authentication.Token]] = {
-    LocalStorage
-      .handler(keys.token).unsafeRunSync()
-      .toVar(storage(keys.token))
+  val auth: Var[Authentication] = {
+    LocalStorage.handlerWithoutEvents(keys.auth).unsafeRunSync()
+      .imap(_.flatMap(fromJson[Authentication]).getOrElse(Authentication.None))(auth => Option(toJson(auth)))
+      .toVar(internal(keys.auth).flatMap(fromJson[Authentication]).getOrElse(Authentication.None))
   }
 
   val graphChanges: Handler[List[GraphChanges]] = {

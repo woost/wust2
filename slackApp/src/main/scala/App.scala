@@ -46,6 +46,8 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
 object WustReceiver {
   type Result[T] = Either[String, T]
 
+  val wustUser = UserId("wust-slack")
+
   def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext): Future[Result[WustReceiver]] = {
     implicit val system = ActorSystem("wust")
     implicit val materializer = ActorMaterializer()
@@ -69,7 +71,7 @@ object WustReceiver {
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password)
       if loggedIn
-      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", UserId(1))))))
+      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", wustUser)))))
       if changed
       graph <- client.api.getGraph(Page.Root)
     } yield Right(new WustReceiver(client))
@@ -105,7 +107,7 @@ class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
         val mentionedIds = SlackUtil.extractMentionedIds(e.text)
         if(mentionedIds.contains(selfId)) {
           val message = ExchangeMessage(e.text)
-          receiver.push(message, UserId(1)) foreach { // Using unknown user
+          receiver.push(message, WustReceiver.wustUser) foreach {
             case Left(error) => respond(s"Failed to sync with wust: $error")
             case Right(post) => respond(s"Created post: $post")
           }

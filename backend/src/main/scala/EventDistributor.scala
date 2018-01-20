@@ -22,7 +22,7 @@ class EventDistributor(db: Db) {
     subscribers -= client
   }
 
-  def publish(origin: NotifiableClient[RequestEvent], events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = {
+  def publish(origin: NotifiableClient[RequestEvent], events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = if (events.nonEmpty) {
     scribe.info(s"--> Backend Events: $events --> ${subscribers.size} connectedClients")
 
     val postIds = events.flatMap(postIdsInEvent).toSet

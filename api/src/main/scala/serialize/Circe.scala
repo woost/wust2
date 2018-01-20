@@ -13,8 +13,8 @@ object Circe {
   implicit val decodePostId: Decoder[PostId] = Decoder.decodeString.map(PostId(_))
   implicit val encodeGroupId: Encoder[GroupId] = Encoder.encodeLong.contramap[GroupId](Tag.unwrap _)
   implicit val decodeGroupId: Decoder[GroupId] = Decoder.decodeLong.map(GroupId(_))
-  implicit val encodeUserId: Encoder[UserId] = Encoder.encodeLong.contramap[UserId](Tag.unwrap _)
-  implicit val decodeUserId: Decoder[UserId] = Decoder.decodeLong.map(UserId(_))
+  implicit val encodeUserId: Encoder[UserId] = Encoder.encodeString.contramap[UserId](Tag.unwrap _)
+  implicit val decodeUserId: Decoder[UserId] = Decoder.decodeString.map(UserId(_))
   implicit val encodeLabel: Encoder[Label] = Encoder.encodeString.contramap[Label](Tag.unwrap _)
   implicit val decodeLabel: Decoder[Label] = Decoder.decodeString.map(Label(_))
 
