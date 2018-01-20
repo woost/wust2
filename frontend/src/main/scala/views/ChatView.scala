@@ -19,20 +19,20 @@ object ChatView extends View {
     import state._
 
     component(
+      currentUser,
       chronologicalPostsAscending,
       eventProcessor.enriched.addPost,
       page,
-      ownPosts,
       pageStyle,
       displayGraphWithParents.map(_.graph)
     )
   }
 
   def component(
+                 currentUser: Observable[Option[User]],
                  chronologicalPostsAscending: Observable[Seq[Post]],
                  newPostSink: Sink[String],
                  page: Sink[Page],
-                 ownPosts: PostId => Boolean,
                  pageStyle: Observable[PageStyle],
                  graph: Observable[Graph]
                ) = {
@@ -46,7 +46,7 @@ object ChatView extends View {
       div(
         h1(child <-- pageStyle.map(_.title)),
 
-        chatHistory(chronologicalPostsAscending, page, ownPosts, graph),
+        chatHistory(currentUser, chronologicalPostsAscending, page, graph),
         inputField(newPostSink),
 
 
@@ -63,25 +63,28 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], ownPosts: PostId => Boolean, graph: Observable[Graph]) = {
+  def chatHistory(currentUser: Observable[Option[User]], chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], graph: Observable[Graph]) = {
     div(
       height := "100%",
       overflow.auto,
       padding := "20px",
 
-      children <-- chronologicalPosts.combineLatestMap(graph)((posts, graph) => posts.map(chatMessage(_, page, ownPosts, graph))),
+      children <-- chronologicalPosts.combineLatestMap(graph)((posts, graph) => posts.map(chatMessage(currentUser, _, page, graph))),
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
 
-  def chatMessage(post: Post, page: Sink[Page], ownPosts: PostId => Boolean, graph: Graph) = {
+  def chatMessage(currentUser: Observable[Option[User]], post: Post, page: Sink[Page], graph: Graph) = {
     // TODO: Filter tags of pageId
     val tags:Seq[Post] = if(graph.consistent.hasParents(post.id)) {
       graph.consistent.parents(post.id).map(id => graph.postsById(id)).toSeq //.filter(_.id != pageId)
     } else {
      Seq.empty[Post]
     }
-    val isMine = ownPosts(post.id)
+
+    //Fixme: triggered multiple times
+    val isMine = currentUser.map(_.fold(false)(_.id == post.author))
+    currentUser.foreach(println(_))
     div( // wrapper for floats
       div( // post wrapper
         p(
@@ -107,8 +110,8 @@ object ChatView extends View {
         margin := "5px 0px",
         border := "1px solid gray",
         borderRadius := "7px",
-        backgroundColor := (if (isMine) "rgb(192, 232, 255)" else "#EEE"),
-        float := (if (isMine) "right" else "left"),
+        backgroundColor <-- isMine.map(if (_) "rgb(192, 232, 255)" else "#EEE"),
+        float <-- isMine.map(if (_) "right" else "left"),
         cursor.pointer, // TODO: What about cursor when selecting text?
       ),
       width := "100%",

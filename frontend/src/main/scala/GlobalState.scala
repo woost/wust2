@@ -150,10 +150,6 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
     jsErrors <-- errorMessage.scan(Vector.empty[String])((acc, msg) => acc :+ msg)
   }
 
-  //TODO: hack for having authorship of post. this needs to be encoded in the graph / versioning scheme
-  val ownPosts = new collection.mutable.HashSet[PostId]
-
-
   //events!!
   //TODO eventProcessor?
   // rawGraph() = newGraph applyChanges eventProcessor.currentChanges
