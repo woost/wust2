@@ -76,7 +76,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 
   private def filterAndDistributeEvents[T](client: NotifiableClient[RequestEvent])(events: Seq[ApiEvent]): Seq[ApiEvent] = {
-    val (privateEvents, publicEvents) = ApiEvent.separate(events)
+    val (privateEvents, publicEvents) = ApiEvent.separateByScope(events)
     distributor.publish(client, publicEvents)
     privateEvents
   }

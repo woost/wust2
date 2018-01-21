@@ -77,9 +77,22 @@ object ApiEvent {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
 
-  def separate(events: Seq[ApiEvent]): (List[Private], List[Public]) =
-    events.foldRight((List.empty[Private], List.empty[Public])) {
-      case (ev: Private, (privs, pubs)) => (ev :: privs, pubs)
-      case (ev: Public, (privs, pubs)) => (privs, ev :: pubs)
+  def separateByScope(events: Seq[ApiEvent]): (List[Private], List[Public]) =
+    events.foldRight((List.empty[Private], List.empty[Public])) { case (ev, (privs, pubs)) =>
+      val newPrivs = ev match {
+        case (ev: Private) => ev :: privs
+        case _ => privs
+      }
+      val newPubs = ev match {
+        case ev: Public => ev :: pubs
+        case _ => pubs
+      }
+      (newPrivs, newPubs)
+    }
+
+  def separateByContent(events: Seq[ApiEvent]): (List[GraphContent], List[AuthContent]) =
+    events.foldRight((List.empty[GraphContent], List.empty[AuthContent])) {
+      case (ev: GraphContent, (gs, as)) => (ev :: gs, as)
+      case (ev: AuthContent, (gs, as)) => (gs, ev :: as)
     }
 }
