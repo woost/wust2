@@ -15,7 +15,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   import dsl._
 
   // TODO: Abstract over user id
-  // private def enrichPostWithUser(posts: Set[Post]) = withUserOrImplicit { (_, user, wasCreated) =>
+  // private def enrichPostWithUser(posts: Set[Post]) = assureDbUser { (_, user, wasCreated) =>
   //     posts.map { post =>
   //       if(!wasCreated) assert(post.author == user.id, s"(Post author id) ${post.author} != ${user.id} (user id)")
   //       post.copy(author = user.id)
@@ -24,7 +24,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   // TODO: createPost function for api
 
   //TODO assure timestamps of posts are correct
-  override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] = Effect.withUserOrImplicit { (_, user) =>
+  override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     //TODO permissions
 
     val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
@@ -63,7 +63,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
   //TODO: error handling
-  def addGroup(): ApiFunction[GroupId] = Effect.withUserOrImplicit { (_, user) =>
+  def addGroup(): ApiFunction[GroupId] = Effect.assureDbUser { (_, user) =>
     for {
       //TODO: simplify db.createForUser return values
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
@@ -74,7 +74,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   //TODO: error handling
-  def addMember(groupId: GroupId, userId: UserId): ApiFunction[Boolean] = Effect.withUserOrImplicit { (_, user) =>
+  def addMember(groupId: GroupId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
@@ -85,7 +85,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def addMemberByName(groupId: GroupId, userName: String): ApiFunction[Boolean] = Effect.withUserOrImplicit { (_, user) =>
+  def addMemberByName(groupId: GroupId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
@@ -96,7 +96,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def recreateGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.withUserOrImplicit { (_, user) =>
+  def recreateGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         setRandomGroupInviteToken(groupId)
@@ -104,7 +104,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def getGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.withUserOrImplicit { (_, user) =>
+  def getGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
@@ -115,7 +115,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def acceptGroupInvite(token: String): ApiFunction[Option[GroupId]] = Effect.withUserOrImplicit { (_, user) =>
+  def acceptGroupInvite(token: String): ApiFunction[Option[GroupId]] = Effect.assureDbUser { (_, user) =>
     //TODO optimize into one request?
     db.ctx.transaction { implicit ec =>
       db.group.fromInvite(token).flatMap {
@@ -132,7 +132,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
-    val userIdOpt = state.auth.userOpt.map(_.id)
+    val userIdOpt = state.auth.dbUserOpt.map(_.id)
     val graph = selection match {
       case Page.Root =>
         db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
@@ -182,7 +182,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   //TODO: refactor import method to a proper service
-  def importGithubUrl(url: String): ApiFunction[Boolean] = Action.withUserOrImplicit { (_, user) =>
+  def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
     // TODO: Reuse graph changes instead
     val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
@@ -205,7 +205,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   }
 
-  def importGitterUrl(url: String): ApiFunction[Boolean] = Action.withUserOrImplicit { (_, user) =>
+  def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
     // TODO: Reuse graph changes instead
     val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))

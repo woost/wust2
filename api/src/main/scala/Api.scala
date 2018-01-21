@@ -31,20 +31,21 @@ trait AuthApi[Result[_]] {
 
 sealed trait Authentication {
   def userOpt: Option[User]
+  def dbUserOpt: Option[User.Persisted] = userOpt collect { case u: User.Persisted => u }
 }
 object Authentication {
   type Token = String
 
   sealed trait UserProvider extends Authentication {
     def user: User
-    final def userOpt = Some(user)
+    def userOpt = Some(user)
   }
   case object None extends Authentication {
-    def userOpt = Option.empty
+    def userOpt = Option.empty[User]
   }
   case class Assumed(user: User.Assumed) extends UserProvider
   case class Verified(user: User.Persisted, token: Token) extends UserProvider {
-    override def toString = s"Authentication.Verified(${user.id})"
+    override def toString = s"Authentication.Verified($user)"
   }
 }
 
@@ -65,15 +66,15 @@ object ApiEvent {
   sealed trait AuthContent extends ApiEvent
 
   //TODO: move into object ApiEvent
-  final case class NewUser(user: User) extends Public with Private with GraphContent
-  final case class NewGroup(group: Group) extends Public with Private with GraphContent
-  final case class NewMembership(membership: Membership) extends Public with Private with GraphContent
-  final case class NewGraphChanges(changes: GraphChanges) extends Public with GraphContent {
+  final case class NewUser(user: User) extends  Public with Private with GraphContent
+  final case class NewGroup(group: Group) extends  Public with Private with GraphContent
+  final case class NewMembership(membership: Membership) extends  Public with Private with GraphContent
+  final case class NewGraphChanges(changes: GraphChanges) extends  Public with GraphContent {
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
-  final case class LoggedIn(auth: Authentication.Verified) extends Private with AuthContent
+  final case class LoggedIn(auth: Authentication.Verified) extends  Private with AuthContent
   final case object LoggedOut extends Private with AuthContent
-  final case class ReplaceGraph(graph: Graph) extends Private with GraphContent {
+  final case class ReplaceGraph(graph: Graph) extends  Private with GraphContent {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
 

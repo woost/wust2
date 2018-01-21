@@ -25,22 +25,21 @@ object User {
   case class Real(id: UserId, name: String, revision: Int) extends Persisted
   @derive((id, revision) => Equality)
   case class Implicit(id: UserId, name: String, revision: Int) extends Persisted
-  @derive(id => Equality)
   case class Assumed(id: UserId) extends User {
     def name = s"anon-$id"
   }
 }
 
 //TODO: rename Post -> Item?
+final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 object Post {
-  def apply(id: PostId, content: String, author: UserId): Post = {
-    val currTime = LocalDateTime.now();
-    Post(id, content, author, currTime, currTime)
+  def apply(id: PostId, content: String, author: UserId, time: LocalDateTime = LocalDateTime.now()): Post = {
+    Post(id, content, author, time, time)
   }
 }
 
-final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 final case class Connection(sourceId: PostId, label:Label, targetId: PostId)
+
 object Graph {
   def empty = new Graph(Map.empty, Map.empty, Map.empty, Set.empty, Map.empty, Set.empty)
 

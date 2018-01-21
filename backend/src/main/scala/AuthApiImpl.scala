@@ -19,7 +19,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
   private def authChangeEvents(auth: Authentication): Future[Seq[ApiEvent]] = {
-    db.graph.getAllVisiblePosts(auth.userOpt.map(_.id)).map { dbGraph =>
+    db.graph.getAllVisiblePosts(auth.dbUserOpt.map(_.id)).map { dbGraph =>
       val graph = forClient(dbGraph).consistent
       val authEvent = auth match {
         case Authentication.None => Some(ApiEvent.LoggedOut)
@@ -37,7 +37,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
-    val newUser = state.auth.userOpt match {
+    val newUser = state.auth.dbUserOpt match {
       case Some(User.Implicit(prevUserId, _, _)) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
@@ -52,7 +52,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     val digest = passwordDigest(password)
     val newAuth = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
-        state.auth.userOpt match {
+        state.auth.dbUserOpt match {
           case Some(User.Implicit(prevUserId, _, _)) =>
             //TODO propagate new groups into state?
             //TODO: propagate name change to the respective groups and the connected clients
