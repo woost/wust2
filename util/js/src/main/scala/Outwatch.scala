@@ -26,6 +26,7 @@ import scala.scalajs.js
 
 package object outwatchHelpers {
 
+  //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](rx:Rx[T])(implicit ctx: Ctx.Owner) {
     def toObservable:Observable[T] = Observable.create[T](Unbounded) { observer =>
       rx.foreach(observer.onNext)
