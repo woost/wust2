@@ -13,7 +13,7 @@ class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authenticat
 
   abstract class GuardedOps[F[+_]](factory: ApiFunctionFactory[F], errorFactory: ApiError.HandlerFailure => F[Nothing]) {
     private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
-      state.auth.dbUserOpt
+      state.auth.userOpt
         .collect(userf andThen (f(state, _)))
         .getOrElse(Future.successful(errorFactory(ApiError.Unauthorized)))
     }
