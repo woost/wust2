@@ -43,23 +43,18 @@ trait Selector extends (PostId => Boolean) {
 
 object Selector {
   // case class TitleMatch(regex: String) extends Selector
-  @derive(toString)
   case object Nothing extends Selector {
     override def apply(id: PostId) = false
   }
-  @derive(toString)
   case object All extends Selector {
     override def apply(id: PostId) = true
   }
-  @derive(toString)
   case class IdSet(set: PostId => Boolean) extends Selector {
     override def apply(id: PostId) = set(id)
   }
-  @derive(toString)
   case class Union(a: Selector, b: Selector) extends Selector {
     def apply(id: PostId) = a(id) || b(id)
   }
-  @derive(toString)
   case class Intersect(a: Selector, b: Selector) extends Selector {
     def apply(id: PostId) = a(id) && b(id)
   }
