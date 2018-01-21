@@ -86,11 +86,11 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("clean", "; root/clean; assets/clean"),
 
-    addCommandAlias("dev", "; project root; compile; frontend/fastOptJS::startWebpackDevServer; devwatch; devstop; backend/reStop"),
+    addCommandAlias("dev", "; compile; frontend/fastOptJS::startWebpackDevServer; devwatch; devstop; backend/reStop"),
     addCommandAlias("devwatch", "~; backend/reStart; frontend/fastOptJS; frontend/copyFastOptJS"),
     addCommandAlias("devstop", "frontend/fastOptJS::stopWebpackDevServer"),
 
-    addCommandAlias("devf", "; project root; compile; backend/reStart; project frontend; fastOptJS::startWebpackDevServer; devfwatch; devstop; backend/reStop"),
+    addCommandAlias("devf", "; compile; backend/reStart; project frontend; fastOptJS::startWebpackDevServer; devfwatch; devstop; backend/reStop"),
     addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; frontend/test"),
