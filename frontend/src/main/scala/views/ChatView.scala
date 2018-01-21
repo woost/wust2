@@ -105,11 +105,11 @@ object ChatView extends View {
           ),
         },
         display.block,
-        maxWidth := "60%",
+        maxWidth := "80%",
         padding := "5px 10px",
         margin := "5px 0px",
         border := "1px solid gray",
-        borderRadius := "7px",
+        borderRadius <-- isMine.map(if (_) "7px 0px 7px 7px" else "0px 7px 7px"),
         backgroundColor <-- isMine.map(if (_) "rgb(192, 232, 255)" else "#EEE"),
         float <-- isMine.map(if (_) "right" else "left"),
         cursor.pointer, // TODO: What about cursor when selecting text?
