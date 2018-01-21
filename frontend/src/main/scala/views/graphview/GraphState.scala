@@ -14,6 +14,12 @@
  import scala.scalajs.js.Math
 
 class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
+
+  val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
+  val focusedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead{ focusedPostId =>
+    focusedPostId().filter(state.inner.displayGraphWithoutParents().graph.postsById.isDefinedAt)
+  }
+
   val rxDisplayGraph = state.inner.displayGraphWithoutParents
   val rxCollapsedPostIds = state.inner.collapsedPostIds
 
@@ -81,9 +87,9 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
 //  val selectedGroupId: Var[Option[GroupId]] = viewConfig.zoom(GenLens[ViewConfig](_.groupIdOpt)).mapRead{ groupId =>
 //    groupId().filter(rawGraph().groupsById.isDefinedAt)
 //  }
-//  val rxFocusedSimPost = state.inner.focusedPostId.mapRead { focusedPostId =>
-//    focusedPostId().flatMap(rxPostIdToSimPost().get)
-//  }
+ val rxFocusedSimPost = Rx {
+   focusedPostId().flatMap(rxPostIdToSimPost().get)
+ }
   // val rxFocusedSimPost = state.focusedPostId.combine { fp => fp.flatMap(postIdToSimPost().get) } // TODO: Possible? See RxExt
 
   val rxSimConnection = Rx {

@@ -1,6 +1,5 @@
-import sbt._
-import Keys._
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
+import sbt._
 
 object Deps {
   import Def.{setting => dep}
@@ -48,7 +47,7 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "48694c6")
   val vectory = dep("com.github.fdietze" % "vectory" % "3232833")
   val scalarx = dep("com.github.fdietze" % "duality" % "9dd5e01649")
-  val outwatch = dep("io.github.outwatch" % "outwatch" % "fc71430")
+  val outwatch = dep("io.github.outwatch" % "outwatch" % "6dd72a31cb4")
 
   // utility
   val scribe = dep("com.outr" %%% "scribe" % "1.4.5")

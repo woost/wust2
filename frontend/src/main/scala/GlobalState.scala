@@ -105,9 +105,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       }
     }
 
-    val focusedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead{ focusedPostId =>
-        focusedPostId().filter(displayGraphWithoutParents().graph.postsById.isDefinedAt)
-    }
 
     val upButtonTargetPage:Rx[Option[Page]] = Rx {
       //TODO: handle containment cycles

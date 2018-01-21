@@ -27,7 +27,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
         //   VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
         //   VarTuple(graphState.state.postCreatorMenus, Nil)
         // )
-//        rxFocusedSimPost() = rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)
+       graphState.focusedPostId() = Some(p.id)
 //      graphState.state.inner.focusedPostId() =
         // graphState.state.inner.postCreatorMenus() = Nil
       })
@@ -39,7 +39,7 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
           //   VarTuple(graphState.state.focusedPostId, None),
           //   VarTuple(graphState.state.postCreatorMenus, Nil)
           // )
-          graphState.state.inner.focusedPostId() = None
+          graphState.focusedPostId() = None
           // graphState.state.inner.postCreatorMenus() = Nil
           postDragStarted(simPost)
         })

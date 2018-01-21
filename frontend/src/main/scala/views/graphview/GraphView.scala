@@ -30,17 +30,16 @@ import wust.frontend.views.Placeholders
 class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContext, owner: Ctx.Owner) extends View {
   override val key = "graph"
   override val displayName = "Mindmap"
-  override def apply(state: GlobalState) = {
 
-    // since all elements get inserted at once, we can zip and only have one function call
+  override def apply(state: GlobalState) = {
     val container = Handler.create[dom.html.Element].unsafeRunSync()
     val htmlLayer = Handler.create[dom.html.Element].unsafeRunSync()
     val svgLayer = Handler.create[dom.svg.Element].unsafeRunSync()
 
-    val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
     val d3State = new D3State(disableSimulation)
     val graphState = new GraphState(state)
 
+    // since all elements get inserted at once, we can zip and only have one function call
     Observable.zip3(container, htmlLayer, svgLayer).foreach { case (container, htmlLayer, svgLayer) =>
       println("Initializing Graph view")
       new GraphViewInstance(
@@ -50,7 +49,6 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
         container,
         htmlLayer,
         svgLayer,
-        postCreationMenus,
         disableSimulation
       )
     }
@@ -63,10 +61,11 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
       div(onInsert.asHtml --> htmlLayer),
       onInsert.asHtml --> container,
 
-      children <-- postCreationMenus.map(_.map{ menu =>
+      children <-- graphState.postCreationMenus.map(_.map{ menu =>
           PostCreationMenu(state, graphState, menu, d3State.transform)
-        }).toObservable
+        }).toObservable,
 
+      child <-- graphState.focusedPostId.map(_.map(id => SelectedPostMenu(id, state, graphState, d3State.transform))).toObservable
     )
   }
 }
@@ -78,7 +77,6 @@ object GraphView {
   )
 }
 
-case class MenuAction(name: String, action: SimPost => Unit, showIf: SimPost => Boolean = _ => true)
 case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
 
 object KeyImplicits {
@@ -95,7 +93,6 @@ class GraphViewInstance(
   element: dom.html.Element,
   htmlLayer: dom.html.Element,
   svgLayer: dom.svg.Element,
-  postCreationMenus: Var[List[PostCreationMenu.Menu]],
   disableSimulation: Boolean = false
   )(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
   val postDrag = new PostDrag(graphState, d3State, onPostDrag _, onPostDragEnd _)
@@ -125,7 +122,6 @@ class GraphViewInstance(
 
   // val postMenuLayer = container.append("div")
   // val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
-  // val postCreationMenu = SelectData.rxDraw(new CreatePostMenuSelection(graphState, d3State), postCreationMenus.map(_.toJSArray))(postMenuLayer.append("div"))
 
   val menuSvg = container.append("svg")
   val dragMenuLayer = menuSvg.append("g")

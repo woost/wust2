@@ -24,44 +24,9 @@
 //  import graphState.state
 //  import graphState.state.persistence
 
-//  val menuActions = (
-//    MenuAction("Focus", { (p: SimPost) => state.graphSelection() = GraphSelection.Union(Set(p.id)) }) ::
-//    MenuAction(
-//      "Collapse",
-//      action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ + p.id),
-//      showIf = (p: SimPost) => !graphState.rxCollapsedPostIds.now(p.id) && state.rawGraph.now.hasChildren(p.id)
-//    ) ::
-//      MenuAction(
-//        "Expand",
-//        action = (p: SimPost) => graphState.rxCollapsedPostIds.updatef(_ - p.id),
-//        showIf = (p: SimPost) => graphState.rxCollapsedPostIds.now(p.id) && !graphState.rxDisplayGraph.now.graph.hasChildren(p.id)
-//      ) ::
-//        // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }) ::
-//        MenuAction("Delete", { (p: SimPost) => persistence.addChangesEnriched(delPosts = Set(p.id)) }) ::
-//        // MenuAction(
-//        //   "Autopos",
-//        //   { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
-//        //   showIf = (p: SimPost) => p.fixedPos.isDefined
-//        // ) ::
-//        Nil
-//  )
 
-//  override val tag = "div"
 //  override def enter(menu: Enter[SimPost]) {
 //    menu.append { (simPost: SimPost) =>
-//      import Elements.{inlineTextarea, textareaWithEnter}
-//      import graphState.{rxFocusedSimPost, rxPostIdToSimPost}
-//      import org.scalajs.dom.Event
-//      import org.scalajs.dom.raw.HTMLTextAreaElement
-//      import state.persistence
-
-//      import org.scalajs.dom.{ Event }
-//      import org.scalajs.dom.raw.{ HTMLTextAreaElement }
-//      import state.persistence
-//      import Elements.{inlineTextarea, textareaWithEnter}
-
-//      //TODO: cannot nest more divs here. Maybe because of d3 nested selections?
-//      def div = span(display.block) // this is a workaround to avoid using divs
 
 //      // without default this crashes if removed from displaygraph (eg focus / delete)
 //      val rxSimPost = rxPostIdToSimPost.map(_.getOrElse(simPost.id, new SimPost(Post("", ""))))
@@ -191,49 +156,8 @@
 //        }
 //      )
 
-//      val menu = scalatags.JsDom.all.div(
-//        position.absolute,
-//        width := "300px", //rxSimPost.map(simPost => s"${simPost.size.x max 300}px"),
-//        div(
-//          actionMenu(zIndex := "-10"), // z-index to overlap shadow
-//          cls := "shadow",
-//          editableTitle,
-//          padding := "3px 5px",
-//          border := rxSimPost.map(_.border),
-//          borderRadius := "5px",
-//          backgroundColor := rxSimPost.map(_.color),
-//          parentList,
-//          div(insertForm, marginTop := "20px")
-//        ),
-//        div(
-//          cls := "shadow",
-//          width := "4px",
-//          height := "60px",
-//          margin := s"0 ${(300 - 4) / 2}px",
-//          backgroundColor := "#8F8F8F"
-//        ),
-//        div(
-//          cls := "shadow",
-//          backgroundColor := "#F8F8F8",
-//          border := "2px solid #DDDDDD",
-//          borderRadius := "5px",
-//          padding := "5px",
-//          connectForm
-//        )
-//      ).render
-
-//      d3.select(menu).node()
 //    }
 
 //  }
 
-//  override def draw(menu: Selection[SimPost]) {
-//    menu.style("transform", { (p: SimPost) =>
-//      val xOffset = -300 / 2 //-(p.size.x max 300) / 2
-//      val yOffset = -(p.size.y) / 2
-//      val x = xOffset + d3State.transform.applyX(p.x)
-//      val y = yOffset + d3State.transform.applyY(p.y)
-//      s"translate(${x}px, ${y}px)"
-//    })
-//  }
 //}
