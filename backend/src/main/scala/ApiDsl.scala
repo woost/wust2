@@ -86,7 +86,7 @@ trait ApiDsl {
     def apply[T](f: => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.IndependentEffect(() => f)
   }
   object Returns {
-    def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation(state, events), apply(result))
+    def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation.raw(state, events), apply(result))
     def apply[T](result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation(events), apply(result))
     def apply[T](result: T): ApiData.Action[T] = ApiData.Action(Right(result))
 
@@ -94,8 +94,8 @@ trait ApiDsl {
     def error(failure: HandlerFailure): ApiData.Action[Nothing] = ApiData.Action(Left(failure))
   }
   object Transformation {
+    def raw(state: State, events: Seq[ApiEvent] = Seq.empty): ApiData.Transformation = ApiData.Transformation(Some(state), events)
     def apply(events: Seq[ApiEvent]): ApiData.Transformation = ApiData.Transformation(None, events)
-    def apply(state: State, events: Seq[ApiEvent] = Seq.empty): ApiData.Transformation = ApiData.Transformation(Some(state), events)
   }
   object Transform {
     def apply[T](f: ApiFunction[T])(transform: State => Future[ApiData.Transformation]): ApiFunction[T] = ApiFunction.Transform(f, transform)
