@@ -88,7 +88,7 @@ object ChatView extends View {
 
     //Fixme: triggered multiple times
     val isMine = currentUser.map(_.id == post.author)
-    currentUser.foreach(println(_))
+    // currentUser.foreach(println(_))
     div( // wrapper for floats
       div( // post wrapper
         p(
