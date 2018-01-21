@@ -22,30 +22,6 @@ object Main {
 
     val state = new GlobalState()
 
-    def getNewGraph(selection: Page) = {
-      //TODO ???
-      // Client.api.getGraph(selection).foreach { newGraph =>
-      //   val oldSelectionGraph = selection match {
-      //     case GraphSelection.Union(ids) => state.rawGraph.now.filter(ids)
-      //     case _                         => Graph.empty
-      //   }
-
-      //   //TODO problem with concurrent get graph and create post. for now try to partly recover from current graph.
-      //   val newNonEmptyGraph = oldSelectionGraph + newGraph
-
-      //   val newCollapsedPostIds: Set[PostId] = if (selection == GraphSelection.Root && state.viewPage.now == views.ViewPage.Graph) {
-      //     // on the frontpage all posts are collapsed per default
-      //     state.collapsedPostIds.now ++ newGraph.postsById.keySet.filter(p => newGraph.hasChildren(p) && !newGraph.hasParents(p))
-      //   } else Set.empty
-
-      //   Var.set(
-      //     VarTuple(state.collapsedPostIds, newCollapsedPostIds),
-      //     // take changes into account, when we get a new graph
-      //     VarTuple(state.rawGraph, newNonEmptyGraph applyChanges state.persistence.currentChanges)
-      //   )
-      // }
-    }
-
     state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)).foreach {
       case (prevViewConfig, viewConfig) =>
         viewConfig.invite foreach { token =>
@@ -57,8 +33,6 @@ object Main {
               Analytics.sendEvent("group", "invitelink", "failure")
           }
         }
-
-        if (prevViewConfig.page != viewConfig.page) getNewGraph(viewConfig.page)
     }
 
     OutWatch.renderReplace("#container", views.MainView(state)).unsafeRunSync()
@@ -72,6 +46,5 @@ object Main {
     //     )
     //   }
     // }
-
   }
 }
