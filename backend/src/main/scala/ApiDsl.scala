@@ -8,8 +8,12 @@ import cats.implicits._
 
 object ApiData {
   case class Transformation(state: Option[State], events: Seq[ApiEvent])
-  case class Action[+T](result: Either[HandlerFailure, T]) extends AnyVal
-  case class Effect[+T](transformation: Transformation, action: Action[T])
+  case class Action[+T](result: Either[HandlerFailure, T]) extends AnyVal {
+    def map[R](f: T => R): Action[R] = apiActionFunctor.map(this)(f)
+  }
+  case class Effect[+T](transformation: Transformation, action: Action[T]) {
+    def map[R](f: T => R): Effect[R] = apiEffectFunctor.map(this)(f)
+  }
 
   implicit val apiActionFunctor = cats.derive.functor[Action]
   implicit val apiEffectFunctor = cats.derive.functor[Effect]
@@ -21,12 +25,25 @@ object ApiData {
   implicit def futureApiEffectFunctor(implicit ec: ExecutionContext) = cats.derive.functor[FutureEffect]
 }
 
-sealed trait ApiFunction[T] extends Any {
-  def apply(state: Future[State], combine: ApiFunction.StateEventCombinator)(implicit ec: ExecutionContext): ApiFunction.Response[T]
+case class ApiFunction[T](f: ApiFunction.Data => ApiFunction.Response[T]) extends AnyVal {
+  import ApiFunction._
 
-  def redirect(transform: State => Future[ApiData.Transformation]): ApiFunction[T] = ApiFunction.Redirect(this, transform)
+  def apply(state: Future[State], combine: ApiFunction.StateEventCombinator)(implicit ec: ExecutionContext): Response[T] = f(Data(state, combine))
+
+  //TODO why does cats.syntax.functor not work?
+  def map[R](f: T => R)(implicit ec: ExecutionContext): ApiFunction[R] = apiFunctionFunctor.map(this)(f)
+
+  def redirect(f: State => Future[ApiData.Transformation])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction { data =>
+    val transformation = data.state.flatMap(f)
+    def newState = applyTransformationToState(data.state, data.combine, transformation)
+    val response = apply(newState, data.combine)
+    val newValue = prependEventsInValue(response.value, transformation.map(_.events))
+    response.copy(value = newValue)
+  }
 }
 object ApiFunction {
+  case class Data(state: Future[State], combine: StateEventCombinator)(implicit val ec: ExecutionContext)
+
   type StateEventCombinator = (State, Seq[ApiEvent]) => State
   case class ReturnValue[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
   case class Response[T](state: Future[State], value: Future[ReturnValue[T]])
@@ -40,54 +57,33 @@ object ApiFunction {
     }
   }
 
-  case class Action[T](f: State => Future[ApiData.Action[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = Response(state, state.flatMap(f))
-  }
-  case class IndependentAction[T](f: () => Future[ApiData.Action[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = Response(state, f())
-  }
-  case class Effect[T](f: State => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = Response(state, combine, state.flatMap(f))
-  }
-  case class IndependentEffect[T](f: () => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = Response(state, combine, f())
-  }
-  case class Redirect[T](f: ApiFunction[T], transform: State => Future[ApiData.Transformation]) extends ApiFunction[T] {
-    def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = {
-      val transformation = state.flatMap(transform)
-      def newState = applyTransformationToState(state, combine, transformation)
-      val response = f(newState, combine)
-      val newValue = for {
-        t <- transformation
-        value <- response.value
-      } yield value.copy(events = t.events ++ value.events)
-
-      response.copy(value = newValue)
-    }
-  }
-
-  private def applyTransformationToState(state: Future[State], combine: StateEventCombinator, transformation: Future[ApiData.Transformation])(implicit ec: ExecutionContext): Future[State] = for {
+  protected def applyTransformationToState(state: Future[State], combine: StateEventCombinator, transformation: Future[ApiData.Transformation])(implicit ec: ExecutionContext): Future[State] = for {
     t <- transformation
     state <- t.state.fold(state)(Future.successful)
   } yield if (t.events.isEmpty) state else combine(state, t.events)
 
-  implicit def apiReturnValueFunctor(implicit ec: ExecutionContext) = cats.derive.functor[ReturnValue]
+  protected def prependEventsInValue[T](value: Future[ReturnValue[T]], events: Future[Seq[ApiEvent]])(implicit ec: ExecutionContext): Future[ReturnValue[T]] = for {
+    events <- events
+    value <- value
+  } yield value.copy(events = events ++ value.events)
+
+  implicit val apiReturnValueFunctor = cats.derive.functor[ReturnValue]
   implicit def apiResponseFunctor(implicit ec: ExecutionContext) = cats.derive.functor[Response]
   implicit def apiFunctionFunctor(implicit ec: ExecutionContext) = cats.derive.functor[ApiFunction]
 }
 
 trait ApiDsl {
   sealed trait ApiFunctionFactory[F[_]] {
-    def apply[T](f: State => Future[F[T]]): ApiFunction[T]
-    def apply[T](f: => Future[F[T]]): ApiFunction[T]
+    def apply[T](f: State => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
+    def apply[T](f: => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
   }
   object Action extends ApiFunctionFactory[ApiData.Action] {
-    def apply[T](f: State => Future[ApiData.Action[T]]): ApiFunction[T] = ApiFunction.Action(f)
-    def apply[T](f: => Future[ApiData.Action[T]]): ApiFunction[T] = ApiFunction.IndependentAction(() => f)
+    def apply[T](f: State => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.state.flatMap(f)))
+    def apply[T](f: => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, f))
   }
   object Effect extends ApiFunctionFactory[ApiData.Effect] {
-    def apply[T](f: State => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.Effect(f)
-    def apply[T](f: => Future[ApiData.Effect[T]]): ApiFunction[T] = ApiFunction.IndependentEffect(() => f)
+    def apply[T](f: State => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.combine, d.state.flatMap(f)))
+    def apply[T](f: => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.combine, f))
   }
   object Returns {
     def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation.raw(state, events), apply(result))
