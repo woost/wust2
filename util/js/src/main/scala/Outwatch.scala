@@ -30,7 +30,7 @@ package object outwatchHelpers {
     def toObservable:Observable[T] = Observable.create[T](Unbounded) { observer =>
       rx.foreach(observer.onNext)
       Cancelable() //TODO
-    }.startWith(Seq(rx.now))
+    }
 
     def debug(implicit ctx: Ctx.Owner): Rx[T] = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Rx[T] = {
