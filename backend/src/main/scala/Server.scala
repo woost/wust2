@@ -33,9 +33,9 @@ object Server {
     implicit val materializer = ActorMaterializer()
     import system.dispatcher
 
-    val websocketFlowFactory = WebsocketFactory(config)
+    val wsServer = websocketServer(config)
     val route = (path("ws") & get) {
-      handleWebSocketMessages(websocketFlowFactory())
+      handleWebSocketMessages(wsServer.flow())
     } ~ (path("health") & get) {
       complete("ok")
     }
@@ -49,24 +49,20 @@ object Server {
       case Failure(err) => scribe.error(s"Cannot start server: $err")
     }
   }
-}
 
-object WebsocketFactory {
-  import DbConversions._
-
-  def apply(config: Config)(implicit ec: ExecutionContext, system: ActorSystem) = {
+  private def websocketServer(config: Config)(implicit ec: ExecutionContext, system: ActorSystem) = {
+    import DbConversions._
     val db = Db(config.db)
     val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = GuardDsl(jwt, db)
 
     val server = SlothServer[ByteBuffer, ApiFunction]
-    val api =
-      server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) orElse
-        server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
+    val api = server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) or
+              server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
 
     val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api)
     val serverConfig = ServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
-    () => WebsocketServerFlow(serverConfig, requestHandler)
+    WebsocketServer(serverConfig, requestHandler)
   }
 }

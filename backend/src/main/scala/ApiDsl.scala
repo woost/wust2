@@ -21,40 +21,40 @@ object ApiData {
 }
 
 sealed trait ApiFunction[T] extends Any {
-  def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext): ApiFunction.ReturnValue[T]
+  def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext): ApiFunction.Response[T]
   //TODO: rename to composeWithEvents
   def redirectWithEvents(eventsf: State => Future[Seq[ApiEvent]]) = ApiFunction.RedirectWithEvents(this, eventsf)
   //TODO
   // def redirectWithState(statef: State => Future[State]) = ApiFunction.Transform(this, eventsf)
 }
 object ApiFunction {
-  case class Response[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
-  case class ReturnValue[T](state: Future[State], response: Future[Response[T]])
-  object ReturnValue {
-    def apply[T](oldState: Future[State], action: Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ReturnValue[T] = {
-      ReturnValue(oldState, action.map(action => Response(action.result, Seq.empty)))
+  case class ReturnValue[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
+  case class Response[T](state: Future[State], value: Future[ReturnValue[T]])
+  object Response {
+    def apply[T](oldState: Future[State], action: Future[ApiData.Action[T]])(implicit ec: ExecutionContext): Response[T] = {
+      Response(oldState, action.map(action => ReturnValue(action.result, Seq.empty)))
     }
-    def apply[T](oldState: Future[State], combine: (State, Seq[ApiEvent]) => State, effect: Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ReturnValue[T] = {
+    def apply[T](oldState: Future[State], combine: (State, Seq[ApiEvent]) => State, effect: Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
       val newState = for {
         effect <- effect
         state <- effect.state.fold(oldState)(Future.successful)
       } yield if (effect.events.isEmpty) state else combine(state, effect.events)
 
-      ReturnValue(newState, effect.map(e => Response(e.action.result, e.events)))
+      Response(newState, effect.map(e => ReturnValue(e.action.result, e.events)))
     }
   }
 
   case class Action[T](f: State => Future[ApiData.Action[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = ReturnValue(state, state.flatMap(f))
+    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = Response(state, state.flatMap(f))
   }
   case class IndependentAction[T](f: () => Future[ApiData.Action[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = ReturnValue(state, f())
+    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = Response(state, f())
   }
   case class Effect[T](f: State => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = ReturnValue(state, combine, state.flatMap(f))
+    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = Response(state, combine, state.flatMap(f))
   }
   case class IndependentEffect[T](f: () => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
-    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = ReturnValue(state, combine, f())
+    def apply(state: Future[State], combine: (State, Seq[ApiEvent]) => State)(implicit ec: ExecutionContext) = Response(state, combine, f())
   }
   //TODO more generic transform
   case class RedirectWithEvents[T](f: ApiFunction[T], eventsf: State => Future[Seq[ApiEvent]]) extends ApiFunction[T] {
@@ -65,13 +65,13 @@ object ApiFunction {
         events <- events
       } yield if (events.isEmpty) state else combine(state, events)
 
-      val value = f(newState, combine)
-      val newResponse = for {
+      val response = f(newState, combine)
+      val newValue = for {
         events <- events
-        response <- value.response
-      } yield response.copy(events = events ++ response.events)
+        value <- response.value
+      } yield value.copy(events = events ++ value.events)
 
-      value.copy(response = newResponse)
+      response.copy(value = newValue)
     }
   }
 

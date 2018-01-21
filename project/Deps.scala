@@ -60,8 +60,8 @@ object Deps {
   val javaTime = dep("io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12")
 
   // rpc
-  val mycelium = dep("com.github.cornerman" % "mycelium" % "b268852")
-  val sloth = dep("io.github.cornerman" % "sloth" % "3f69c00")
+  val mycelium = dep("com.github.cornerman" % "mycelium" % "00e6524")
+  val sloth = dep("io.github.cornerman" % "sloth" % "9dc0fdd")
 
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
@@ -77,7 +77,4 @@ object Deps {
   val gitter = dep("com.github.xuwei-k" %% "gitter-scala" % "0.3.0")
   val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
-
-  // needed by scalatest and scala compiler conflict, 1.0.6 is required by scala-compiler
-  val scalaXml = dep("org.scala-lang.modules" %% "scala-xml" % "1.0.6")
 }

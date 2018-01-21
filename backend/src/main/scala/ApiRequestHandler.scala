@@ -23,34 +23,32 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: PartialFunction[Request[ByteBuffer], Either[SlothServerFailure, ApiFunction[ByteBuffer]]])(implicit ec: ExecutionContext) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: Router[ByteBuffer, ApiFunction])(implicit ec: ExecutionContext) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
-  def initialReaction = Reaction(Future.successful(State.initial))
+  def initialState = Future.successful(State.initial)
 
   override def onRequest(client: NotifiableClient[RequestEvent], state: Future[State], path: List[String], payload: ByteBuffer): Response = {
     scribe.info(s"Incoming request ($path)")
-    val response = api.lift(Request(path, payload)) match {
-      case None =>
-        val error = ApiError.NotFound(path)
-        Response(Future.successful(Left(error)), Reaction(state))
-      case Some(Left(slothError)) =>
+    val response = api(Request(path, payload)) match {
+      case Left(slothError) =>
         val error = ApiError.ProtocolError(slothError.toString)
-        Response(Future.successful(Left(error)), Reaction(state))
-      case Some(Right(apiFunction)) =>
-        val apiReturn = apiFunction(state, applyEventsToState)
-        val newState = apiReturn.state
-        val response = apiReturn.response //.recover(handleUserException andThen Left.apply) //TODO: move to apidsl, not enough here
-        val newEvents = response.map(r => filterAndDistributeEvents(client)(r.events))
-        Response(response.map(_.result), Reaction(newState, newEvents))
+        Response(state, Future.successful(ReturnValue(Left(error), Seq.empty)))
+      case Right(apiFunction) =>
+        val apiResponse = apiFunction(state, applyEventsToState)
+        val newState = apiResponse.state
+        //.recover(handleUserException andThen Left.apply) //TODO: move to apidsl, not enough here
+        val returnValue = apiResponse.value.map { r =>
+          ReturnValue(r.result, filterAndDistributeEvents(client)(r.events))
+        }
+        Response(newState, returnValue)
     }
 
-    response.result.foreach {
-      case Right(_) => scribe.info(s"Responding to request ($path)")
-      case Left(error) => scribe.info(s"Error in request ($path): $error")
-    }
-    response.reaction.events.foreach { events =>
-      if (events.nonEmpty) scribe.info(s"Responding with events ($path): $events")
+    response.value.foreach { value =>
+      value.result match {
+        case Right(_) => scribe.info(s"Responding to request ($path) / events: ${value.events}")
+        case Left(error) => scribe.info(s"Error in request ($path): $error / events: ${value.events}")
+      }
     }
 
     response
@@ -72,8 +70,8 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     distributor.subscribe(client)
   }
 
-  override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
-    scribe.info(s"client stopped: $client")
+  override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State], reason: DisconnectReason): Unit = {
+    scribe.info(s"client stopped ($reason): $client")
     distributor.unsubscribe(client)
   }
 

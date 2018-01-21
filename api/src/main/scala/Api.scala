@@ -50,12 +50,8 @@ object Authentication {
 
 sealed trait ApiError
 object ApiError {
-  sealed trait GenericFailure extends ApiError
+  case class ProtocolError(msg: String) extends ApiError
   sealed trait HandlerFailure extends ApiError
-
-  case class NotFound(path: Seq[String]) extends GenericFailure
-  case class ProtocolError(msg: String) extends GenericFailure
-
   case object InternalServerError extends HandlerFailure
   case object Unauthorized extends HandlerFailure
 }
