@@ -18,7 +18,6 @@ case class Group(id: GroupId)
 sealed trait User {
   def id: UserId
   def name: String
-  def revision: Int
 }
 object User {
   sealed trait Persisted extends User
@@ -29,7 +28,6 @@ object User {
   @derive(id => Equality)
   case class Assumed(id: UserId) extends User {
     def name = s"anon-$id"
-    def revision = 0
   }
 }
 
