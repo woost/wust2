@@ -15,7 +15,6 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
   override val tag = "div"
   override def enter(post: Enter[SimPost]): Unit = {
     post.append((simPost: SimPost) => GraphView.postView(simPost.post)(
-      title := mdString(simPost.content),
       position.absolute,
       pointerEvents.auto, // reenable
       cursor.default
@@ -54,7 +53,6 @@ class PostSelection(graphState: GraphState, d3State: D3State, postDrag: PostDrag
       .style("background-color", (post: SimPost) => post.color)
       .style("border", (p: SimPost) => p.border)
       .style("opacity", (p: SimPost) => p.opacity)
-      .html((simPost: SimPost) => mdString(simPost.content))
 
     recalculateNodeSizes(post)
   }

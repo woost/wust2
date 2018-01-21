@@ -28,7 +28,7 @@ object ChatView extends View {
       newPostSink,
       page,
       pageStyle,
-      displayGraphWithParents.map(_.graph)
+      displayGraphWithoutParents.map(_.graph)
     )
   }
 
@@ -36,7 +36,7 @@ object ChatView extends View {
                  currentUser: Observable[User],
                  chronologicalPostsAscending: Observable[Seq[Post]],
                  newPostSink: Sink[String],
-                 page: Sink[Page],
+                 page: Handler[Page],
                  pageStyle: Observable[PageStyle],
                  graph: Observable[Graph]
                ) = {
@@ -67,7 +67,7 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(currentUser: Observable[User], chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], graph: Observable[Graph]) = {
+  def chatHistory(currentUser: Observable[User], chronologicalPosts: Observable[Seq[Post]], page: Handler[Page], graph: Observable[Graph]) = {
     div(
       height := "100%",
       overflow.auto,
@@ -78,36 +78,34 @@ object ChatView extends View {
     )
   }
 
-  def chatMessage(currentUser: Observable[User], post: Post, page: Sink[Page], graph: Graph) = {
-    // TODO: Filter tags of pageId
-    val tags:Seq[Post] = if(graph.consistent.hasParents(post.id)) {
-      graph.consistent.parents(post.id).map(id => graph.postsById(id)).toSeq //.filter(_.id != pageId)
-    } else {
-     Seq.empty[Post]
-    }
+  //Fixme: triggered multiple times
+  def chatMessage(currentUser: Observable[User], post: Post, page: Handler[Page], graph: Graph) = {
+    val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
-    //Fixme: triggered multiple times
     val isMine = currentUser.map(_.id == post.author)
-    // currentUser.foreach(println(_))
     div( // wrapper for floats
       div( // post wrapper
         p(
           mdHtml(post.content),
           onClick(Page.Union(Set(post.id))) --> page,
-          padding := "2px 3px",
+          padding := "0px 3px",
           margin := "2px 0px",
         ),
-        tags.map{ tag =>
-          span(
-            if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
-            onClick(Page.Union(Set(tag.id))) --> page,
-            border := "1px solid grey",
-            borderRadius := "3px",
-            padding := "2px 3px",
-            marginRight := "3px",
-            backgroundColor := Color.baseColor(tag.id).toString,
-          ),
-        },
+        div(
+          postTags.map{ tag =>
+              span(
+                if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
+                onClick(Page.Union(Set(tag.id))) --> page,
+                border := "1px solid grey",
+                borderRadius := "3px",
+                padding := "2px 3px",
+                marginRight := "3px",
+                backgroundColor := Color.baseColor(tag.id).toString,
+              )
+          },
+          margin := "0px",
+          padding := "0px",
+        ),
         display.block,
         maxWidth := "80%",
         padding := "5px 10px",
