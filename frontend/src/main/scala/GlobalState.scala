@@ -141,7 +141,7 @@ class GlobalState(rawEventStream: Observable[Seq[ApiEvent]])(implicit ctx: Ctx.O
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
   DevOnly {
     val errorMessage = Observable.create[String](Unbounded) { observer =>
-      window.onerror = { (msg: Event, source: String, line: Int, col: Int) =>
+      window.onerror = { (msg: Event, source: String, line: Int, col: Int, _: Any) =>
         //TODO: send and log production js errors in backend
         observer.onNext(msg.toString)
       }
