@@ -24,7 +24,7 @@ class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authenticat
     def requireAnyUser[T](f: (State, User) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User](f)(PartialFunction(identity))
     def requireDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Persisted](f) { case u: User.Persisted => u }
 
-    def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = Transform(requireDbUser(f)) { state =>
+    def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireDbUser(f).redirect { state =>
       val auth = state.auth.userOpt match {
         case Some(user: User.Assumed) => createImplicitAuth(user.id, user.name)
         case _ => Future.successful(None)

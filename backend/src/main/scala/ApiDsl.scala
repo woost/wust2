@@ -23,6 +23,8 @@ object ApiData {
 
 sealed trait ApiFunction[T] extends Any {
   def apply(state: Future[State], combine: ApiFunction.StateEventCombinator)(implicit ec: ExecutionContext): ApiFunction.Response[T]
+
+  def redirect(transform: State => Future[ApiData.Transformation]): ApiFunction[T] = ApiFunction.Redirect(this, transform)
 }
 object ApiFunction {
   type StateEventCombinator = (State, Seq[ApiEvent]) => State
@@ -50,7 +52,7 @@ object ApiFunction {
   case class IndependentEffect[T](f: () => Future[ApiData.Effect[T]]) extends AnyVal with ApiFunction[T] {
     def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = Response(state, combine, f())
   }
-  case class Transform[T](f: ApiFunction[T], transform: State => Future[ApiData.Transformation]) extends ApiFunction[T] {
+  case class Redirect[T](f: ApiFunction[T], transform: State => Future[ApiData.Transformation]) extends ApiFunction[T] {
     def apply(state: Future[State], combine: StateEventCombinator)(implicit ec: ExecutionContext) = {
       val transformation = state.flatMap(transform)
       def newState = applyTransformationToState(state, combine, transformation)
@@ -69,6 +71,8 @@ object ApiFunction {
     state <- t.state.fold(state)(Future.successful)
   } yield if (t.events.isEmpty) state else combine(state, t.events)
 
+  implicit def apiReturnValueFunctor(implicit ec: ExecutionContext) = cats.derive.functor[ReturnValue]
+  implicit def apiResponseFunctor(implicit ec: ExecutionContext) = cats.derive.functor[Response]
   implicit def apiFunctionFunctor(implicit ec: ExecutionContext) = cats.derive.functor[ApiFunction]
 }
 
@@ -96,9 +100,6 @@ trait ApiDsl {
   object Transformation {
     def raw(state: State, events: Seq[ApiEvent] = Seq.empty): ApiData.Transformation = ApiData.Transformation(Some(state), events)
     def apply(events: Seq[ApiEvent]): ApiData.Transformation = ApiData.Transformation(None, events)
-  }
-  object Transform {
-    def apply[T](f: ApiFunction[T])(transform: State => Future[ApiData.Transformation]): ApiFunction[T] = ApiFunction.Transform(f, transform)
   }
 
   implicit def ValueIsAction[T](value: T): ApiData.Action[T] = Returns(value)
