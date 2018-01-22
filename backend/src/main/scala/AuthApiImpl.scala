@@ -12,7 +12,6 @@ import wust.util.RichFuture
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
-//TODO should send auth events here?
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
 
