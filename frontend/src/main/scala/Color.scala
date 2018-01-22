@@ -1,6 +1,7 @@
 package wust.frontend
 
 import org.scalajs.d3v4._
+import wust.graph.Graph
 import wust.ids._
 
 object Color {
@@ -26,4 +27,22 @@ object Color {
   }
 
   implicit def d3ColorToString(c:Color) = c.toString
+}
+
+object ColorPost {
+  import wust.frontend.Color._
+
+  def mixedDirectParentColors(graph: Graph, postId: PostId) = mixColors(graph.parents(postId).map(baseColor))
+
+  def computeColor(graph: Graph, postId: PostId): String = {
+    val calculatedBorderColor = if (graph.hasChildren(postId)) {
+        baseColor(postId)
+    } else {
+      if (graph.hasParents(postId))
+        mixColors(mixedDirectParentColors(graph, postId), postDefaultColor)
+      else
+        postDefaultColor
+    }
+    calculatedBorderColor.toString
+  }
 }

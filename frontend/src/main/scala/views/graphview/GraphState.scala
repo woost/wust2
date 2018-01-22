@@ -2,7 +2,7 @@
 
  import rx._
  import wust.frontend.Color._
- import wust.frontend.{DevOnly, GlobalState}
+ import wust.frontend.{ColorPost, DevOnly, GlobalState}
  import wust.graph._
  import wust.ids._
  import wust.util.Pipe
@@ -11,6 +11,7 @@
  import scala.collection.breakOut
  import scala.scalajs.js
  import scala.scalajs.js.JSConverters._
+ import scala.scalajs.js.Math
 
 class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   val rxDisplayGraph = state.inner.displayGraphWithoutParents
@@ -32,10 +33,8 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
       sp.x = Constants.invalidPosition
       sp.y = Constants.invalidPosition
 
-      def parents = rawGraph.parents(p.id)
-      def hasParents = parents.nonEmpty
-      def mixedDirectParentColors = mixColors(parents.map(baseColor))
-      def hasChildren = rawGraph.children(p.id).nonEmpty
+      val hasParents = rawGraph.hasParents(p.id)
+      val hasChildren = rawGraph.hasChildren(p.id)
 
       sp.border =
         if (hasChildren) {
@@ -51,17 +50,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
         s"${factor * 100.0}%"
       } else "100%"
 
-      sp.color = (
-        //TODO collapsedPostIds is not sufficient for being a parent (but currently no knowledge about collapsed children in graph)
-        if (hasChildren) {
-            baseColor(p.id)
-        } else { // no children
-          if (hasParents)
-            mixColors(mixedDirectParentColors, postDefaultColor)
-          else
-            postDefaultColor
-        }
-      ).toString
+      sp.color = ColorPost.computeColor(graph, p.id)
 
       val postGroups = graph.groupsByPostId(p.id)
       sp.opacity = if (state.inner.selectedGroupId().map(postGroups.contains).getOrElse(postGroups.isEmpty)) 1.0 else 0.3

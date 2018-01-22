@@ -136,6 +136,13 @@ select {
     border-radius : 3px;
 }
 
+.graphpost > p {
+    margin: 2px 0;
+}
+
+.chatpost > p {
+    margin: 2px 0;
+}
 .splitpost::selection {
     color: red;
     background: blue;

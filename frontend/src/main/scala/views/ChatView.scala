@@ -85,13 +85,14 @@ object ChatView extends View {
     val isMine = currentUser.map(_.id == post.author)
     div( // wrapper for floats
       div( // post wrapper
-        p(
+        div( // post content as markdown
           mdHtml(post.content),
           onClick(Page.Union(Set(post.id))) --> page,
+          cls := "chatpost",
           padding := "0px 3px",
           margin := "2px 0px",
         ),
-        div(
+        div( // post tags
           postTags.map{ tag =>
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
@@ -100,20 +101,22 @@ object ChatView extends View {
                 borderRadius := "3px",
                 padding := "2px 3px",
                 marginRight := "3px",
-                backgroundColor := Color.baseColor(tag.id).toString,
+                backgroundColor := ColorPost.computeColor(graph, tag.id),
               )
           },
           margin := "0px",
           padding := "0px",
         ),
+        borderRadius <-- isMine.map(if (_) "7px 0px 7px 7px" else "0px 7px 7px"),
+        float <-- isMine.map(if (_) "right" else "left"),
+        borderWidth <-- isMine.map(if (_) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
+        borderColor := ColorPost.computeColor(graph, post.id),
+        backgroundColor := postDefaultColor,
         display.block,
         maxWidth := "80%",
         padding := "5px 10px",
         margin := "5px 0px",
-        border := "1px solid gray",
-        borderRadius <-- isMine.map(if (_) "7px 0px 7px 7px" else "0px 7px 7px"),
-        backgroundColor <-- isMine.map(if (_) "rgb(192, 232, 255)" else "#EEE"),
-        float <-- isMine.map(if (_) "right" else "left"),
+        borderStyle := "solid",
         cursor.pointer, // TODO: What about cursor when selecting text?
       ),
       width := "100%",
