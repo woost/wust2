@@ -110,8 +110,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.sourceId, _.targetId)
   lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](containments, _.targetId, _.sourceId)
 
-  def hasChildren(post: PostId) = children.contains(post)
-  def hasParents(post: PostId) = parents.contains(post)
+  // There are cases where the key is not present and cases where the set is empty
+  def hasChildren(post: PostId) = children.contains(post) && children(post).nonEmpty
+  def hasParents(post: PostId) = parents.contains(post) && parents(post).nonEmpty
 
   // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
   // that's why the need default values from connectionDefaultNeighbourhood
