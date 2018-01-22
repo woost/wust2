@@ -80,7 +80,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   def assumeLogin(userId: UserId): ApiFunction[Boolean] = Effect { state =>
     val newAuth = Authentication.Assumed(User.Assumed(userId))
     val newState = state.copy(auth = newAuth)
-    authChangeEvents(newAuth).map(Returns.raw(newState, true, _))
+    authChangeEvents(newAuth).map(Returns(newState, true, _))
   }
 
   def logout(): ApiFunction[Boolean] = Effect { state =>
