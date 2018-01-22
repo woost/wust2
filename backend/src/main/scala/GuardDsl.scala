@@ -8,6 +8,7 @@ import wust.graph._
 import DbConversions._
 
 import scala.concurrent.{ ExecutionContext, Future }
+import cats.implicits._
 
 class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authentication.Verified]])(implicit ec: ExecutionContext) extends ApiDsl {
 
@@ -30,7 +31,8 @@ class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authenticat
         case _ => Future.successful(None)
       }
 
-      auth.map(auth => Transformation(auth.map(ApiEvent.LoggedIn(_)).toSeq))
+      auth.map(auth => Transformation(Seq.empty ++ auth.map(ApiEvent.LoggedIn(_))))
+      // auth.map(auth => Transformation(auth.map(ApiEvent.LoggedIn(_)).toSeq)) //TODO drunk compiler?
     }
   }
 
