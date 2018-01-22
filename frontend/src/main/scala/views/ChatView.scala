@@ -97,11 +97,12 @@ object ChatView extends View {
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
                 onClick(Page.Union(Set(tag.id))) --> page,
-                border := "1px solid grey",
+                backgroundColor := ColorPost.computeTagColor(graph, tag.id),
+                fontSize.small,
+                color := "#fefefe",
                 borderRadius := "3px",
-                padding := "2px 3px",
+                padding := "0px 1px",
                 marginRight := "3px",
-                backgroundColor := ColorPost.computeColor(graph, tag.id),
               )
           },
           margin := "0px",

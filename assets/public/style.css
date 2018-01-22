@@ -137,11 +137,11 @@ select {
 }
 
 .graphpost > p {
-    margin: 2px 0;
+    margin: 3px 0;
 }
 
 .chatpost > p {
-    margin: 2px 0;
+    margin: 3px 0;
 }
 .splitpost::selection {
     color: red;

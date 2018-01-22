@@ -9,6 +9,7 @@ object Color {
 
   def baseHue(id: PostId):Int = (id.hashCode * 137) % 360
   def baseColor(id: PostId) = d3.hcl(baseHue(id), 50, 75)
+  def baseColorDark(id: PostId) = d3.hcl(baseHue(id), 65, 60)
   def baseColorMixedWithDefault(id: PostId) = mixColors(d3.hcl(baseHue(id), 50, 75), postDefaultColor)
 
   //TODO: implicit color conversions in d3 facade
@@ -44,5 +45,9 @@ object ColorPost {
         postDefaultColor
     }
     calculatedBorderColor.toString
+  }
+
+  def computeTagColor(graph: Graph, postId: PostId): String = {
+    baseColorDark(postId).toString
   }
 }
