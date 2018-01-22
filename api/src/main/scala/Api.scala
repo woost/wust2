@@ -65,7 +65,6 @@ object ApiEvent {
   sealed trait GraphContent extends ApiEvent
   sealed trait AuthContent extends ApiEvent
 
-  //TODO: move into object ApiEvent
   final case class NewUser(user: User) extends  Public with Private with GraphContent
   final case class NewGroup(group: Group) extends  Public with Private with GraphContent
   final case class NewMembership(membership: Membership) extends  Public with Private with GraphContent
