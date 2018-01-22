@@ -100,8 +100,8 @@ object ChatView extends View {
                 backgroundColor := ColorPost.computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",
-                borderRadius := "3px",
-                padding := "0px 1px",
+                borderRadius := "2px",
+                padding := "0px 3px",
                 marginRight := "3px",
               )
           },
