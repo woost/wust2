@@ -11,11 +11,11 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authentication.Verified]])(implicit ec: ExecutionContext) extends ApiDsl {
 
-  abstract class GuardedOps[F[+_]](factory: ApiFunctionFactory[F], errorFactory: ApiError.HandlerFailure => F[Nothing]) {
+  abstract class GuardedOps[F[+_]](factory: ApiFunctionFactory[F])(implicit errorApp: cats.ApplicativeError[F, ApiError.HandlerFailure]) {
     private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
       state.auth.userOpt
         .collect(userf andThen (f(state, _)))
-        .getOrElse(Future.successful(errorFactory(ApiError.Unauthorized)))
+        .getOrElse(Future.successful(errorApp.raiseError(ApiError.Unauthorized)))
     }
 
     def requireImplicitUser[T](f: (State, User.Implicit) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Implicit](f) { case u: User.Implicit => u }
@@ -34,8 +34,8 @@ class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authenticat
     }
   }
 
-  implicit class GuardedAction(factory: Action.type) extends GuardedOps[ApiData.Action](factory, Returns.error)
-  implicit class GuardedEffect(factory: Effect.type) extends GuardedOps[ApiData.Effect](factory, Returns.error)
+  implicit class GuardedAction(factory: Action.type) extends GuardedOps[ApiData.Action](factory)
+  implicit class GuardedEffect(factory: Effect.type) extends GuardedOps[ApiData.Effect](factory)
 }
 
 object GuardDsl {
