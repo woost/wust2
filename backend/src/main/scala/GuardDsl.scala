@@ -19,11 +19,11 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
       .map(_.map(user => jwt.generateAuthentication(user).toAuthentication))
   }
 
-  abstract class GuardedOps[F[+_]](factory: ApiFunctionFactory[F])(implicit errorApp: cats.ApplicativeError[F, ApiError.HandlerFailure]) {
+  abstract class GuardedOps[F[+_] : ApiData.MonadError](factory: ApiFunctionFactory[F]) {
     private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
       state.auth.userOpt
         .collect(userf andThen (f(state, _)))
-        .getOrElse(Future.successful(errorApp.raiseError(ApiError.Unauthorized)))
+        .getOrElse(Future.successful(ApiData.MonadError.raiseError(ApiError.Unauthorized)))
     }
 
     def requireImplicitUser[T](f: (State, User.Implicit) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Implicit](f) { case u: User.Implicit => u }
@@ -47,17 +47,17 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
   implicit class GuardedEffect(factory: Effect.type) extends GuardedOps[ApiData.Effect](factory)
 
 
-  def isGroupMember[T, F[_]](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
+  def isGroupMember[T, F[_] : ApiData.MonadError](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
       isMember <- db.group.isMember(groupId, userId) if isMember
       result <- code
-    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
+    } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }
 
-  def hasAccessToPost[T, F[_]](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
+  def hasAccessToPost[T, F[_] : ApiData.MonadError](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
       hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
       result <- code
-    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
+    } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }
 }
