@@ -67,22 +67,22 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(currentUser: Observable[User], chronologicalPosts: Observable[Seq[Post]], page: Handler[Page], graph: Observable[Graph]) = {
+  def chatHistory(currentUser: Observable[User], chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], graph: Observable[Graph]) = {
     div(
       height := "100%",
       overflow.auto,
       padding := "20px",
 
-      children <-- chronologicalPosts.combineLatestMap(graph)((posts, graph) => posts.map(chatMessage(currentUser, _, page, graph))),
+      children <-- Observable.combineLatestMap3(chronologicalPosts, graph, currentUser)((posts, graph, currentUser) => posts.map(chatMessage(currentUser, _, page, graph))),
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
 
   //Fixme: triggered multiple times
-  def chatMessage(currentUser: Observable[User], post: Post, page: Handler[Page], graph: Graph) = {
+  def chatMessage(currentUser: User, post: Post, page: Sink[Page], graph: Graph) = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
-    val isMine = currentUser.map(_.id == post.author)
+    val isMine = currentUser.id == post.author
     div( // wrapper for floats
       div( // post wrapper
         div( // post content as markdown
@@ -108,9 +108,9 @@ object ChatView extends View {
           margin := "0px",
           padding := "0px",
         ),
-        borderRadius <-- isMine.map(if (_) "7px 0px 7px 7px" else "0px 7px 7px"),
-        float <-- isMine.map(if (_) "right" else "left"),
-        borderWidth <-- isMine.map(if (_) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
+        borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
+        float := (if (isMine) "right" else "left"),
+        borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
         borderColor := ColorPost.computeColor(graph, post.id),
         backgroundColor := postDefaultColor,
         display.block,
