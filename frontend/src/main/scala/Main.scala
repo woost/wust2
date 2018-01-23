@@ -21,18 +21,15 @@ object Main {
 
     val state = new GlobalState()
 
-    state.viewConfig.scan((views.ViewConfig.default, views.ViewConfig.default))((p, c) => (p._2, c)).foreach {
-      case (prevViewConfig, viewConfig) =>
-        viewConfig.invite foreach { token =>
-          Client.api.acceptGroupInvite(token).onComplete {
-            case Success(Some(_)) =>
-              Analytics.sendEvent("group", "invitelink", "success")
-            case failedResult =>
-              println(s"Failed to accept group invite: $failedResult")
-              Analytics.sendEvent("group", "invitelink", "failure")
-          }
-        }
-    }
+    state.viewConfig.foreach(_.invite.foreach { token =>
+      Client.api.acceptGroupInvite(token).onComplete {
+        case Success(Some(_)) =>
+          Analytics.sendEvent("group", "invitelink", "success")
+        case failedResult =>
+          println(s"Failed to accept group invite: $failedResult")
+          Analytics.sendEvent("group", "invitelink", "failure")
+      }
+    })
 
     OutWatch.renderReplace("#container", views.MainView(state)).unsafeRunSync()
 
