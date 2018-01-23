@@ -20,18 +20,13 @@ object ApiData {
   implicit val effectMonadError: MonadError[Effect] = new MonadError[Effect] {
     def pure[A](a: A): Effect[A] = ActionIsEffect(MonadError[Action].pure(a))
     def raiseError[A](e: HandlerFailure): Effect[A] = ActionIsEffect(MonadError[Action].raiseError(e))
-    def handleErrorWith[A](e: Effect[A])(f: HandlerFailure => Effect[A]): Effect[A] = e.action match {
-      case Right(_) => e
-      case Left(err) => f(err)
-    }
-    def flatMap[A, B](e: Effect[A])(f: A => Effect[B]): Effect[B] = e.action match {
-      case Right(res) =>
-        val effect = f(res)
-        val newState = effect.transformation.state orElse e.transformation.state
-        val newEvents = e.transformation.events ++ effect.transformation.events
-        effect.copy(transformation = Transformation(newState, newEvents))
-      case Left(err) => raiseError[B](err)
-    }
+    def handleErrorWith[A](e: Effect[A])(f: HandlerFailure => Effect[A]): Effect[A] = e.action.fold(f, _ => e)
+    def flatMap[A, B](e: Effect[A])(f: A => Effect[B]): Effect[B] = e.action.fold(raiseError, { res =>
+      val effect = f(res)
+      val newState = effect.transformation.state orElse e.transformation.state
+      val newEvents = e.transformation.events ++ effect.transformation.events
+      effect.copy(transformation = Transformation(newState, newEvents))
+    })
     def tailRecM[A, B](e: A)(f: A => Effect[Either[A,B]]): Effect[B] = cats.FlatMap[Effect].tailRecM[A,B](e)(f)
   }
 }
