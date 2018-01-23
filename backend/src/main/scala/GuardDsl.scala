@@ -38,8 +38,8 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
         case _ => Future.successful(None)
       }
 
-      auth.map(auth => Transformation(Seq.empty ++ auth.map(ApiEvent.LoggedIn(_))))
-      // auth.map(auth => Transformation(auth.map(ApiEvent.LoggedIn(_)).toSeq)) //TODO drunk compiler?
+      // auth.map(auth => Transformation(Seq.empty ++ auth.map(ApiEvent.LoggedIn(_))))
+      auth.map(auth => Transformation(auth.map(ApiEvent.LoggedIn(_)).toSeq)) //TODO drunk compiler?
     }
   }
 
