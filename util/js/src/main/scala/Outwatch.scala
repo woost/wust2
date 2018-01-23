@@ -50,9 +50,9 @@ package object outwatchHelpers {
 
       val h = Handler.create[T](rx.now).unsafeRunSync()
       implicit val eqFoo: Eq[T] = Eq.fromUniversalEquals
-      val hDistinct = h.distinctUntilChanged
+      val hDistinct = h.drop(1).distinctUntilChanged
       hDistinct.foreach(rx.update)
-      rx.foreach(h.unsafeOnNext)
+      rx.triggerLater(h.unsafeOnNext _)
       h
     }
   }
