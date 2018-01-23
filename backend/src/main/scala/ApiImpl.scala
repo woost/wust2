@@ -10,6 +10,8 @@ import wust.util.RandomUtil
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
+import cats.implicits._
+
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
@@ -81,7 +83,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           Some(user) <- db.user.get(userId)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
         } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-      }(recover = Returns(false))
+      }
     }
   }
 
@@ -92,15 +94,15 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           Some(user) <- db.user.byName(userName)
           Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
         } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-      }(recover = Returns(false))
+      }
     }
   }
 
   def recreateGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
-        setRandomGroupInviteToken(groupId)
-      }(recover = None)
+        setRandomGroupInviteToken(groupId).map(Returns(_))
+      }
     }
   }
 
@@ -111,7 +113,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           case someToken @ Some(_) => Future.successful(someToken)
           case None                => setRandomGroupInviteToken(groupId)
         }
-      }(recover = None)
+      }
     }
   }
 
@@ -166,21 +168,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  //TODO: we should raise an apierror 'forbidden', instead of false/None/etc, when a user is not allowed
-  private def isGroupMember[T](groupId: GroupId, userId: UserId)(code: => Future[T])(recover: T)(implicit ec: ExecutionContext): Future[T] = {
-    (for {
-      isMember <- db.group.isMember(groupId, userId) if isMember
-      result <- code
-    } yield result).recover { case NonFatal(_) => recover }
-  }
-
-  private def hasAccessToPost[T](postId: PostId, userId: UserId)(code: => Future[T])(recover: T)(implicit ec: ExecutionContext): Future[T] = {
-    (for {
-      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
-      result <- code
-    } yield result).recover { case NonFatal(_) => recover }
-  }
-
   //TODO: refactor import method to a proper service
   def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
@@ -224,4 +211,17 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
 
+  private def isGroupMember[T, F[_]](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
+    (for {
+      isMember <- db.group.isMember(groupId, userId) if isMember
+      result <- code
+    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
+  }
+
+  private def hasAccessToPost[T, F[_]](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
+    (for {
+      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
+      result <- code
+    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
+  }
 }

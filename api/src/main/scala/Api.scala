@@ -55,6 +55,7 @@ object ApiError {
   sealed trait HandlerFailure extends ApiError
   case object InternalServerError extends HandlerFailure
   case object Unauthorized extends HandlerFailure
+  case object Forbidden extends HandlerFailure
 }
 
 sealed trait ApiEvent

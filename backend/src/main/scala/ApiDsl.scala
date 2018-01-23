@@ -12,7 +12,9 @@ object ApiData {
   case class Transformation(state: Option[State], events: Seq[ApiEvent])
   case class Effect[+T](transformations: Seq[Transformation], action: Action[T])
 
-  implicit val effectApplicateError: cats.MonadError[Effect, HandlerFailure] = new cats.MonadError[Effect, HandlerFailure] {
+  implicit def ActionIsEffect[T](action: Action[T]): Effect[T] = Effect(Seq.empty, action)
+
+  implicit val effectMonadError: cats.MonadError[Effect, HandlerFailure] = new cats.MonadError[Effect, HandlerFailure] {
     private val m = cats.MonadError[Action, HandlerFailure]
     def pure[A](a: A): Effect[A] = Effect(Nil, m.pure(a))
     def raiseError[A](e: HandlerFailure): Effect[A] = Effect(Nil, m.raiseError(e))
@@ -96,12 +98,11 @@ trait ApiDsl {
     def apply[T](f: => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.combine, f))
   }
   object Returns {
-    def apply[T](state: State, result: T, events: Seq[ApiEvent]): ApiData.Effect[T] = ApiData.Effect(Transformation(state, events) :: Nil, apply(result))
-    def apply[T](state: State, result: T): ApiData.Effect[T] = apply(state, result, Seq.empty)
-    def apply[T](result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation(events) :: Nil, Right(result))
+    def apply[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation(state, events) :: Nil, apply(result))
+    def apply[T](result: T, events: Seq[ApiEvent]): ApiData.Effect[T] = ApiData.Effect(Transformation(events) :: Nil, Right(result))
     def apply[T](result: T): ApiData.Action[T] = Right(result)
 
-    def error(failure: HandlerFailure, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[Nothing] = ApiData.Effect(Transformation(events) :: Nil, Left(failure))
+    def error(failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Effect[Nothing] = ApiData.Effect(Transformation(events) :: Nil, Left(failure))
     def error(failure: HandlerFailure): ApiData.Action[Nothing] = Left(failure)
   }
   object Transformation {
