@@ -9,6 +9,7 @@
  import scala.scalajs.js.JSConverters._
  import scala.scalajs.js.annotation._
  import rx._
+ import wust.frontend.DevPrintln
 
 object Constants {
   val nodePadding = 150
@@ -538,9 +539,9 @@ class MetaForce extends CustomForce[SimPost] {
         i = 0
         i2 = 0
         if (nodes.nonEmpty && (nodes(0).x == js.undefined || nodes(0).x.get.isNaN || nodes(0).x.get == Constants.invalidPosition)) {
-          println("initial position!")
-          println(InitialPosition.width)
-          println(InitialPosition.height)
+          DevPrintln("initial position!")
+          DevPrintln(InitialPosition.width)
+          DevPrintln(InitialPosition.height)
         }
         while (i < n) {
           if (nodes(i).x == js.undefined || nodes(i).x.get.isNaN || nodes(i).x.get == Constants.invalidPosition) {

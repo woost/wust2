@@ -282,7 +282,7 @@ class GraphViewInstance(
     def circleArea(r: Double) = Math.PI * r * r
 
     val graph = rxDisplayGraph.now.graph
-    println("need-----------------")
+    DevPrintln("need-----------------")
     for (postId <- graph.postIdsTopologicalSortedByParents) {
       val post = rxPostIdToSimPost.now(postId)
       val children = graph.children(postId)
@@ -292,18 +292,18 @@ class GraphViewInstance(
           val child = rxPostIdToSimPost.now(childId)
           if (child.containmentRadius > childRadiusMax) {
             childRadiusMax = child.containmentRadius
-            println(s"max: $childRadiusMax by ${child.content}")
+            DevPrintln(s"max: $childRadiusMax by ${child.content}")
           }
           // sum + child.containmentArea
           val arbitraryFactor = 1.5 // 1.5 is arbitrary to have more space
           sum + child.containmentBoundingSquareArea * arbitraryFactor
         }
 
-        println(s"need children: $children ${children.map(rxPostIdToSimPost.now).map(_.containmentArea)}")
-        println(s"need sum: $childrenArea")
+        DevPrintln(s"need children: $children ${children.map(rxPostIdToSimPost.now).map(_.containmentArea)}")
+        DevPrintln(s"need sum: $childrenArea")
 
         val neededArea = post.containmentArea + childrenArea
-        println(s"neededArea = ${post.containmentArea} + $childrenArea = $neededArea (${children.size} children)")
+        DevPrintln(s"neededArea = ${post.containmentArea} + $childrenArea = $neededArea (${children.size} children)")
         val neededRadius = post.containmentRadius + childRadiusMax * 2 // so that the largest node still fits in the bounding radius of the cluster
         post.containmentRadius = circleAreaToRadius(neededArea) max neededRadius
       }
@@ -391,7 +391,7 @@ class GraphViewInstance(
         draw()
         inInitialSimulation = false
       }
-      DevOnly { println("simulation ended.") }
+      DevPrintln("simulation ended.")
     })
   }
 

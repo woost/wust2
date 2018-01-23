@@ -1,6 +1,7 @@
 package wust.frontend.views
 
 import wust.util.outwatchHelpers._
+import wust.frontend.DevPrintln
 import org.scalajs.dom
 import org.scalajs.dom.{MouseEvent, window, console}
 import outwatch.dom._
@@ -346,7 +347,7 @@ case object RestructuringTaskGenerator {
 
   def apply(globalState: GlobalState) = {
     val show = taskDisplay.map(d => {
-      println(s"display task! ${d.toString}")
+      DevPrintln(s"display task! ${d.toString}")
       if(d == true) {
         ChooseTaskHeuristic.defaultHeuristic(allTasks).render(globalState)
       } else {

@@ -8,6 +8,7 @@
  import wust.util.outwatchHelpers._
  import wust.graph._
  import wust.ids._
+ import wust.frontend.DevPrintln
 
  import scala.concurrent.ExecutionContext
  import scala.scalajs.js
@@ -128,7 +129,7 @@
        case Some(target) if target.id != dragging.id =>
 
         val dragAction = dragActions(target.dropIndex(dragActions.length))
-        println(s"\nDropped ${dragAction.name}: [${dragging.id}]${dragging.content} -> [${target.id}]${target.content}")
+        DevPrintln(s"\nDropped ${dragAction.name}: [${dragging.id}]${dragging.content} -> [${target.id}]${target.content}")
         dragAction.action(dragging, target)
 
          target.isClosest = false
