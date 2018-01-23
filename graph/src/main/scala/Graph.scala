@@ -74,6 +74,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def nonEmpty = !isEmpty
 
   private val connectionsByLabelF: (Label) => Set[Connection] = connectionsByLabel.withDefaultValue(Set.empty)
+
+  lazy val chronologicalPostsAscending = posts.toList.sortBy(p => Tag.unwrap(p.id))
+
   lazy val connections: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)
   lazy val containments: Set[Connection] = connectionsByLabelF(Label.parent)
   lazy val posts: Iterable[Post] = postsById.values
