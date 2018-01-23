@@ -101,7 +101,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           val selectedGraph = graph.filter(descendants)
           currentView().applyOnGraph(selectedGraph)
       }
-    }
+      }
     displayGraphWithoutParents.foreach (x => println("[S] displayGraphWithoutParents ABC "))
 
     val displayGraphWithParents: Rx[DisplayGraph] = Rx {
@@ -115,14 +115,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           val selectedGraph = graph.filter(descendants)
           currentView().applyOnGraph(selectedGraph)
       }
-    }
+      }
     displayGraphWithParents.foreach (x => println("[S] displayGraphWithParents ABC "))
-
-    val chronologicalPostsAscending = displayGraphWithoutParents.map { dg =>
-      val graph = dg.graph
-      graph.posts.toList.sortBy(p => Tag.unwrap(p.id))
     }
-    chronologicalPostsAscending.foreach (x => println("[S] chronologicalPostsAscending ABC "))
 
     val focusedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead{ focusedPostId =>
         focusedPostId().filter(displayGraphWithoutParents().graph.postsById.isDefinedAt)
@@ -164,8 +159,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     displayGraphWithParents.foreach (x => println("[O] displayGraphWithParents ABC "))
   val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
     displayGraphWithoutParents.foreach (x => println("[O] displayGraphWithoutParents ABC "))
-  val chronologicalPostsAscending = inner.chronologicalPostsAscending.toObservable
-    chronologicalPostsAscending.foreach (x => println("[O] chronologicalPostsAscending ABC "))
   val upButtonTargetPage = inner.upButtonTargetPage.toObservable
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()

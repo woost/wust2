@@ -24,7 +24,6 @@ object ChatView extends View {
 
     component(
       currentUser,
-      chronologicalPostsAscending,
       newPostSink,
       page,
       pageStyle,
@@ -34,7 +33,6 @@ object ChatView extends View {
 
   def component(
                  currentUser: Observable[User],
-                 chronologicalPostsAscending: Observable[Seq[Post]],
                  newPostSink: Sink[String],
                  page: Handler[Page],
                  pageStyle: Observable[PageStyle],
@@ -50,7 +48,7 @@ object ChatView extends View {
       div(
         p( mdHtml(pageStyle.map(_.title)) ),
 
-        chatHistory(currentUser, chronologicalPostsAscending, page, graph),
+        chatHistory(currentUser, page, graph),
         inputField(newPostSink),
 
 
@@ -67,18 +65,17 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(currentUser: Observable[User], chronologicalPosts: Observable[Seq[Post]], page: Sink[Page], graph: Observable[Graph]) = {
+  def chatHistory(currentUser: Observable[User], page: Sink[Page], graph: Observable[Graph]) = {
     div(
       height := "100%",
       overflow.auto,
       padding := "20px",
 
-      children <-- Observable.combineLatestMap3(chronologicalPosts, graph, currentUser)((posts, graph, currentUser) => posts.map(chatMessage(currentUser, _, page, graph))),
+      children <-- Observable.combineLatestMap2(graph, currentUser)((graph, currentUser) => graph.chronologicalPostsAscending.map(chatMessage(currentUser, _, page, graph))),
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
 
-  //Fixme: triggered multiple times
   def chatMessage(currentUser: User, post: Post, page: Sink[Page], graph: Graph) = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
