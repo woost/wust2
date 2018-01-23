@@ -30,8 +30,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncEnabled = syncMode.map(_ == SyncMode.Live)
     val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
-    UrlRouter.variable.foreach (x => println("[S] urlrouter ABC "+ x))
-    viewConfig.foreach (x => println("[S] viewConfig ABC "+ x))
 
     val eventProcessor = EventProcessor(Client.eventObservable, syncEnabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
@@ -43,15 +41,11 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     //TODO: better in rx/obs operations
     currentAuth.foreach(Client.storage.auth() = _)
 
-    rawGraph.foreach (x => println("[S] graph ABC "))
-
     val currentUser: Rx[User] = currentAuth.map(_.user)
-    currentUser.foreach (x => println("[S] user ABC "+ x))
 
     val inviteToken = viewConfig.map(_.invite)
 
     val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
-    view.foreach (x => println("[S] view ABC "+ x))
 
     val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead {
       rawPage =>
@@ -61,18 +55,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           case s => s
         }
     }
-    page.foreach (x => println("[S] page ABC "+ x))
 
     val pageParentPosts: Rx[Set[Post]] = Rx {
       page().parentIds.map(rawGraph().postsById)
     }
-    pageParentPosts.foreach (x => println("[S] pageParentPosts ABC "+ x))
 
     val pageStyle = Rx {
-      println(s"calculating page style: (${page()}, ${pageParentPosts()})")
       PageStyle(page(), pageParentPosts())
     }
-    pageStyle.foreach (x => println("[S] pageStyle ABC "+ x))
 
     val selectedGroupId: Var[Option[GroupId]] = viewConfig.zoom(GenLens[ViewConfig](_.groupIdOpt)).mapRead{ groupId =>
         groupId().filter(rawGraph().groupsById.isDefinedAt)
@@ -86,7 +76,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val currentView: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
         perspective().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
     }
-    currentView.foreach (x => println("[S] currentView ABC "+ x))
 
     //TODO: when updating, both displayGraphs are recalculated
     // if possible only recalculate when needed for visualization
@@ -101,8 +90,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           val selectedGraph = graph.filter(descendants)
           currentView().applyOnGraph(selectedGraph)
       }
-      }
-    displayGraphWithoutParents.foreach (x => println("[S] displayGraphWithoutParents ABC "))
+    }
 
     val displayGraphWithParents: Rx[DisplayGraph] = Rx {
       val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
@@ -115,8 +103,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           val selectedGraph = graph.filter(descendants)
           currentView().applyOnGraph(selectedGraph)
       }
-      }
-    displayGraphWithParents.foreach (x => println("[S] displayGraphWithParents ABC "))
     }
 
     val focusedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead{ focusedPostId =>
@@ -138,27 +124,17 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val eventProcessor = inner.eventProcessor
 
   val currentUser = inner.currentUser.toObservable
-    currentUser.foreach (x => println("[O] user ABC "+ x))
   val rawGraph = inner.rawGraph.toObservable
-    rawGraph.foreach (x => println("[O] graph ABC "))
   val viewConfig = inner.viewConfig.toHandler
-    viewConfig.foreach (x => println("[O] viewconfig ABC "+ x))
   val currentView = inner.currentView.toHandler
-   currentView.foreach (x => println("[O] currentView ABC "+ x))
   val page = inner.page.toHandler
-   page.foreach (x => println("[O] page ABC "+ x))
   val pageStyle = inner.pageStyle.toObservable
-   pageStyle.foreach (x => println("[O] pageStyle ABC "+ x))
   val view = inner.view.toHandler
-   view.foreach (x => println("[O] view ABC "+ x))
   val pageParentPosts = inner.pageParentPosts.toObservable
-   pageParentPosts.foreach (x => println("[O] pageParentPosts ABC "+ x))
   val syncMode = inner.syncMode.toHandler
   val syncEnabled = inner.syncEnabled.toObservable
   val displayGraphWithParents = inner.displayGraphWithParents.toObservable
-    displayGraphWithParents.foreach (x => println("[O] displayGraphWithParents ABC "))
   val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
-    displayGraphWithoutParents.foreach (x => println("[O] displayGraphWithoutParents ABC "))
   val upButtonTargetPage = inner.upButtonTargetPage.toObservable
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
