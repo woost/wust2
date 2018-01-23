@@ -62,19 +62,18 @@ sealed trait ApiEvent
 object ApiEvent {
   sealed trait Public extends ApiEvent
   sealed trait Private extends ApiEvent
-
   sealed trait GraphContent extends ApiEvent
   sealed trait AuthContent extends ApiEvent
 
-  final case class NewUser(user: User) extends  Public with Private with GraphContent
-  final case class NewGroup(group: Group) extends  Public with Private with GraphContent
-  final case class NewMembership(membership: Membership) extends  Public with Private with GraphContent
-  final case class NewGraphChanges(changes: GraphChanges) extends  Public with GraphContent {
+  case class NewUser(user: User) extends GraphContent with Public with Private
+  case class NewGroup(group: Group) extends GraphContent with Public with Private
+  case class NewMembership(membership: Membership) extends GraphContent with Public with Private
+  case class NewGraphChanges(changes: GraphChanges) extends GraphContent with Public {
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
-  final case class LoggedIn(auth: Authentication.Verified) extends  Private with AuthContent
-  final case object LoggedOut extends Private with AuthContent
-  final case class ReplaceGraph(graph: Graph) extends  Private with GraphContent {
+  case class LoggedIn(auth: Authentication.Verified) extends AuthContent with Private
+  case object LoggedOut extends AuthContent with Private
+  case class ReplaceGraph(graph: Graph) extends GraphContent with Private {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
 

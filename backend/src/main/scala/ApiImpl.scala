@@ -188,8 +188,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         scribe.error(s"unexpected error in import")
         scribe.error(t)
         false
-    }//.map(respondWithEventsIfToAllButMe(_, NewGraphChanges(GraphChanges(addPosts = postsOfUrl)))) //<-- not working for import
-
+    }//.map(Returns(_, NewGraphChanges(GraphChanges(addPosts = postsOfUrl)))) //<-- not working for import
   }
 
   def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
@@ -208,6 +207,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         scribe.error(s"unexpected error in import")
         scribe.error(t)
         false
-    } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
+    } //.map(Returns(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
 }
