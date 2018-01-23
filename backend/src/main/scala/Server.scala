@@ -55,7 +55,7 @@ object Server {
     val db = Db(config.db)
     val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)
-    val guardDsl = GuardDsl(jwt, db)
+    val guardDsl = new GuardDsl(jwt, db)
 
     val server = SlothServer[ByteBuffer, ApiFunction]
     val api = server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) or

@@ -9,8 +9,15 @@ import DbConversions._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import cats.implicits._
+import scala.util.control.NonFatal
 
-class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authentication.Verified]])(implicit ec: ExecutionContext) extends ApiDsl {
+class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
+
+  private def createImplicitAuth(userId: UserId, userName: String): Future[Option[Authentication.Verified]] = {
+    db.user
+      .createImplicitUser(userId, userName)
+      .map(_.map(user => jwt.generateAuthentication(user).toAuthentication))
+  }
 
   abstract class GuardedOps[F[+_]](factory: ApiFunctionFactory[F])(implicit errorApp: cats.ApplicativeError[F, ApiError.HandlerFailure]) {
     private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
@@ -38,13 +45,19 @@ class GuardDsl(createImplicitAuth: (UserId, String) => Future[Option[Authenticat
 
   implicit class GuardedAction(factory: Action.type) extends GuardedOps[ApiData.Action](factory)
   implicit class GuardedEffect(factory: Effect.type) extends GuardedOps[ApiData.Effect](factory)
-}
 
-object GuardDsl {
-  def apply(jwt: JWT, db: Db)(implicit ec: ExecutionContext): GuardDsl =
-    new GuardDsl({ (userId, userName) =>
-      db.user
-        .createImplicitUser(userId, userName)
-        .map(_.map(user => jwt.generateAuthentication(user).toAuthentication))
-    })
+
+  def isGroupMember[T, F[_]](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
+    (for {
+      isMember <- db.group.isMember(groupId, userId) if isMember
+      result <- code
+    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
+  }
+
+  def hasAccessToPost[T, F[_]](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
+    (for {
+      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
+      result <- code
+    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
+  }
 }

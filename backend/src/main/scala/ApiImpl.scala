@@ -210,18 +210,4 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         false
     } //.map(respondWithEventsIfToAllButMe(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
-
-  private def isGroupMember[T, F[_]](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
-    (for {
-      isMember <- db.group.isMember(groupId, userId) if isMember
-      result <- code
-    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
-  }
-
-  private def hasAccessToPost[T, F[_]](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext, monad: cats.MonadError[F, ApiError.HandlerFailure]): Future[F[T]] = {
-    (for {
-      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
-      result <- code
-    } yield result).recover { case NonFatal(_) => monad.raiseError(ApiError.Forbidden) }
-  }
 }
