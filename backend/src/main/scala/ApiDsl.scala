@@ -69,6 +69,10 @@ object ApiFunction {
       Response(newState, effect.map(e => ReturnValue(e.action, e.transformation.events)))
     }
   }
+  trait Factory[F[_]] {
+    def apply[T](f: State => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
+    def apply[T](f: => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
+  }
 
   protected def applyTransformationsToState(state: Future[State], combine: StateEventCombinator, transformation: Future[Transformation])(implicit ec: ExecutionContext): Future[State] = for {
     t <- transformation
@@ -81,15 +85,11 @@ object ApiFunction {
 }
 
 trait ApiDsl {
-  sealed trait ApiFunctionFactory[F[_]] {
-    def apply[T](f: State => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
-    def apply[T](f: => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
-  }
-  object Action extends ApiFunctionFactory[ApiData.Action] {
+  object Action extends ApiFunction.Factory[ApiData.Action] {
     def apply[T](f: State => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.state.flatMap(f)))
     def apply[T](f: => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, f))
   }
-  object Effect extends ApiFunctionFactory[ApiData.Effect] {
+  object Effect extends ApiFunction.Factory[ApiData.Effect] {
     def apply[T](f: State => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.combine, d.state.flatMap(f)))
     def apply[T](f: => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(d => ApiFunction.Response(d.state, d.combine, f))
   }

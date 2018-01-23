@@ -19,7 +19,7 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
       .map(_.map(user => jwt.generateAuthentication(user).toAuthentication))
   }
 
-  abstract class GuardedOps[F[+_] : ApiData.MonadError](factory: ApiFunctionFactory[F]) {
+  implicit class GuardedOps[F[+_] : ApiData.MonadError](factory: ApiFunction.Factory[F]) {
     private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
       state.auth.userOpt
         .collect(userf andThen (f(state, _)))
@@ -42,9 +42,6 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
       // auth.map(auth => Transformation(auth.map(ApiEvent.LoggedIn(_)).toSeq)) //TODO drunk compiler?
     }
   }
-
-  implicit class GuardedAction(factory: Action.type) extends GuardedOps[ApiData.Action](factory)
-  implicit class GuardedEffect(factory: Effect.type) extends GuardedOps[ApiData.Effect](factory)
 
 
   def isGroupMember[T, F[_] : ApiData.MonadError](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
