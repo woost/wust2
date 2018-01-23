@@ -171,15 +171,15 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   // }
 
   DevOnly {
-    rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}")
+    rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}").unsafeRunSync()
     //      collapsedPostIds.debug("collapsedPostIds")
-    currentView.debug("currentView")
+    currentView.debug("currentView").unsafeRunSync()
     //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
     //      focusedPostId.debug("focusedPostId")
     //      selectedGroupId.debug("selectedGroupId")
     // rawPage.debug("rawPage")
-    page.debug("page")
-    viewConfig.debug("viewConfig")
+    page.debug("page").unsafeRunSync()
+    viewConfig.debug("viewConfig").unsafeRunSync()
     //      currentUser.debug("\ncurrentUser")
 
   }
