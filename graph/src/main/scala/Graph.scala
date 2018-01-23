@@ -102,7 +102,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     s"ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, " +
     s"users: ${userIds}, " +
     s"memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
-  def toSummaryString = s"Graph(posts: ${posts.size}, connections: ${connections.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
+  def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connections.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
   private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
   lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connections, _.sourceId, _.targetId)
@@ -176,9 +176,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   private val _ancestors: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
     postsById.keySet.contains(postId) match {
       case true =>
-        depthFirstSearch(postId, parents) |> { parents =>
-          if (parents.startInvolvedInCycle) parents else parents.drop(1)
-        } //TODO better?
+        val p = depthFirstSearch(postId, parents)
+        if (p.startInvolvedInCycle) p else p.drop(1)
+        //TODO better?
       case false => Seq.empty
     }
   }
@@ -226,7 +226,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def applyChanges(c: GraphChanges) = {
     copy(
       postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
-      connectionsByLabel = connectionsByLabel ++ (c.addConnections -- c.delConnections).groupBy(_.label),
+      connectionsByLabel = connectionsByLabel ++ (c.addConnections -- c.delConnections).groupBy(_.label).map { case (k,v) => k -> ( v ++ connectionsByLabelF(k)) },
       ownerships = ownerships ++ c.addOwnerships -- c.delOwnerships
     )
   }
