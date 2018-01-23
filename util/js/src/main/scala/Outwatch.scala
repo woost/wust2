@@ -8,10 +8,10 @@ import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
-import monix.execution.Scheduler.Implicits.global
 import outwatch.dom.{Handler, OutWatch, VNode}
 import outwatch.{ObserverSink, Sink}
 import monix.execution.Scheduler
+import monix.execution.ExecutionModel.SynchronousExecution
 import rx._
 
 import scala.scalajs.js
@@ -25,6 +25,7 @@ import scala.scalajs.js
 //
 
 package object outwatchHelpers {
+  implicit val monixScheduler: Scheduler = Scheduler(executionModel = SynchronousExecution)
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](rx:Rx[T])(implicit ctx: Ctx.Owner) {

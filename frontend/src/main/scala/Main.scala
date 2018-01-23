@@ -9,7 +9,6 @@ import wust.graph.{Graph, Page}
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 
-import monix.execution.Scheduler.Implicits.global
 import scala.util.Success
 import concurrent.Future
 import wust.util.outwatchHelpers._

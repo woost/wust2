@@ -7,7 +7,6 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.Sink
 import wust.util.outwatchHelpers._
-import monix.execution.Scheduler.Implicits.global
 
 object TestView extends View {
   override val key = "test"

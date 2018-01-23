@@ -1,7 +1,6 @@
 package wust.frontend.views
 
 import cats.effect.IO
-import monix.execution.Scheduler.Implicits.global
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._

@@ -6,10 +6,10 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend._
 import wust.frontend.Color._
-import monix.execution.Scheduler.Implicits.global
 import wust.graph._
 import wust.ids.PostId
 import Elements._, Rendered._
+import wust.util.outwatchHelpers._
 
 object ChatView extends View {
   override val key = "chat"

@@ -7,7 +7,6 @@ import outwatch.Sink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.util.outwatchHelpers._
-import monix.execution.Scheduler.Implicits.global
 
 object Placeholders {
   val newPost = placeholder := "Create new post. Press Enter to submit."

@@ -11,7 +11,7 @@ import wust.graph.User
 import wust.util.RichFuture
 import outwatch.Handler
 import mycelium.client.IncidentHandler
-import monix.execution.Scheduler.Implicits.global
+import wust.util.outwatchHelpers._
 import rx._
 import scala.scalajs.js
 import scala.scalajs.js.annotation._

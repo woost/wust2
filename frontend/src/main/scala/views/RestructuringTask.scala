@@ -1,6 +1,6 @@
 package wust.frontend.views
 
-import monix.execution.Scheduler.Implicits.global
+import wust.util.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.{MouseEvent, window, console}
 import outwatch.dom._

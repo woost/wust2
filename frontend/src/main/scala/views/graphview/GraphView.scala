@@ -1,6 +1,5 @@
 package wust.frontend.views.graphview
 
-import monix.execution.Scheduler.Implicits.global
 import scala.scalajs.js.JSConverters._
 import org.scalajs.d3v4._
 import org.scalajs.dom

@@ -8,7 +8,6 @@ import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
-import monix.execution.Scheduler.Implicits.global
 import wust.ids._
 import wust.api.Authentication
 import wust.api.serialize.Circe._

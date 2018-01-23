@@ -16,13 +16,11 @@ import wust.util.Analytics
 import scala.collection.mutable
 import scala.scalajs.js.timers.setTimeout
 import scala.concurrent.Future
-import monix.execution.Scheduler.Implicits.global
 import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{PublishSubject}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
-import monix.execution.Scheduler.Implicits.global
 import outwatch.dom._
 import wust.util.outwatchHelpers._
 
@@ -76,7 +74,6 @@ object EventProcessor {
 }
 
 class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], authEventStream: Observable[Seq[ApiEvent.AuthContent]], viewConfig: Observable[ViewConfig]) {
-  import monix.execution.Scheduler.Implicits.global
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
