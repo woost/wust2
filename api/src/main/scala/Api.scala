@@ -18,6 +18,7 @@ trait Api[Result[_]] {
 
   def importGithubUrl(url: String): Result[Boolean]
   def importGitterUrl(url: String): Result[Boolean]
+  def chooseTaskPost(posts: List[PostId]): Result[List[PostId]]
 }
 
 trait AuthApi[Result[_]] {

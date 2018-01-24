@@ -209,4 +209,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         false
     } //.map(Returns(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
+
+  def chooseTaskPost(posts: List[PostId]): ApiFunction[List[PostId]] = Action.assureDbUser {(_, user) =>
+    Future { PostHeuristics.random(posts) }
+  }
+
 }
