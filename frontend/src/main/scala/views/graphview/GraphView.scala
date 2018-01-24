@@ -56,7 +56,10 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
       height := "100%",
       backgroundColor <-- state.pageStyle.map(_.bgColor),
 
-      tag("svg")(onInsert.asSvg --> svgLayer),
+      tag("svg")(
+        onInsert.asSvg --> svgLayer,
+        GraphView.svgArrow
+      ),
       div(onInsert.asHtml --> htmlLayer),
       onInsert.asHtml --> container,
 
@@ -76,6 +79,22 @@ object GraphView {
     mdHtml(post.content),
     cls := "graphpost"
   )
+
+  val svgArrow =
+    tag("svg:defs")(
+      tag("svg:marker")(
+        attr("id") := "graph_arrow",
+        attr("viewBox") := "0 -3 10 6", // x y w h
+        attr("refX") := 35, // This is a workaround. The line is longer than displayed...
+        attr("markerWidth") := 15,
+        attr("markerHeight") := 9,
+        attr("orient") := "auto",
+        tag("svg:path")(
+          attr("d") := "M 0,-3 L 10,-0.5 L 10,0.5 L0,3",
+          style("fill") := "#666"
+        )
+      )
+    )
 }
 
 case class DragAction(name: String, action: (SimPost, SimPost) => Unit)
@@ -122,9 +141,6 @@ class GraphViewInstance(
   val rawPostSelection = new PostSelection(graphState, d3State, postDrag, updatedNodeSizes _)
   val postSelection = SelectData.rx(rawPostSelection, rxSimPosts)(html.append("div"))
   val draggingPostSelection = SelectData.rxDraw(DraggingPostSelection, postDrag.draggingPosts)(html.append("div")) //TODO: place above ring menu?
-
-  // val postMenuLayer = container.append("div")
-  // val postMenuSelection = SelectData.rxDraw(new PostMenuSelection(graphState, d3State), rxFocusedSimPost.map(_.toJSArray))(postMenuLayer.append("div"))
 
   val menuSvg = container.append("svg")
   val dragMenuLayer = menuSvg.append("g")
@@ -178,17 +194,6 @@ class GraphViewInstance(
   //  }
 
   // Arrows
-  svg.append("svg:defs").append("svg:marker")
-    .attr("id", "graph_arrow")
-    .attr("viewBox", "0 -3 10 6") // x y w h
-    .attr("refX", 35) // This is a workaround. The line is longer than displayed...
-    .attr("markerWidth", 15)
-    .attr("markerHeight", 9)
-    .attr("orient", "auto")
-    .append("svg:path")
-    .attr("d", "M 0,-3 L 10,-0.5 L 10,0.5 L0,3")
-    .style("fill", "#666")
-
   initContainerDimensionsAndPositions()
   initEvents()
 
@@ -239,10 +244,10 @@ class GraphViewInstance(
   }
 
   Rx {
-    rxDisplayGraph();
-    rxSimPosts();
-    rxSimConnection();
-    rxSimContainment();
+    rxDisplayGraph()
+    rxSimPosts()
+    rxSimConnection()
+    rxSimContainment()
     rxContainmentCluster()
   }.foreach { _ =>
     val simPosts = rxSimPosts.now
@@ -320,43 +325,6 @@ class GraphViewInstance(
     }
   }
 
-  // def calculateRecursiveContainmentRadii() {
-  //   DevPrintln("       calculateRecursiveContainmentRadii")
-  //   def circleAreaToRadius(a: Double) = Math.sqrt(a / (2 * Math.PI)) // a = 2*PI*r^2 solved by r
-  //   def circleArea(r: Double) = 2 * Math.PI * r * r
-
-  //   val graph = rxDisplayGraph.now.graph
-  //   val radii = for (rawPost <- graph.allParents) yield {
-  //     val post = rxPostIdToSimPost.now(rawPost.id)
-  //     val children = graph.transitiveChildren(post.id)
-  //     val childRadiusSum = children.foldLeft(0.0){ (sum,childId) =>
-  //       val child = rxPostIdToSimPost.now(childId)
-  //       sum + child.collisionRadius
-  //     }
-
-  //     val childDiameterSum = childRadiusSum * 2
-  //     val childCircumferenceSum = childDiameterSum// * Math.PI
-  //     val childDiameterAvg = childDiameterSum / children.size
-  //     import Math.{ceil, PI, sqrt, pow}
-
-  //     val d = childDiameterAvg
-  //     val D = childCircumferenceSum
-  //     val r = post.collisionRadius
-  //     // https://www.wolframalpha.com/input/?i=solve+D+%3D+sum(i%3D1,n)((i*d%2Br)*2*pi)+for+n
-  //     val n = (-d * PI - 2 * PI * r + sqrt(4 * d * D * PI + pow(-d * PI - 2 * PI * r, 2))) / (2 * d * PI)
-
-  //     println(s"nnn ${post.content}: $n")
-  //     val containmentRadius = post.collisionRadius + ceil(n) * childDiameterAvg
-
-  //     post -> containmentRadius
-  //   }
-
-  //   for ((post, radius) <- radii) {
-  //     post.containmentRadius = radius
-  //     post.containmentArea = circleArea(radius)
-  //   }
-  // }
-
   private def onPostDrag(): Unit = {
     draggingPostSelection.draw()
   }
@@ -414,7 +382,6 @@ class GraphViewInstance(
     val htmlTransformString = s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", htmlTransformString)
-    //    postMenuSelection.draw()
   }
 
   private def draw(): Unit = {
