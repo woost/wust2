@@ -3,29 +3,37 @@ package wust.frontend.views
 import wust.util.outwatchHelpers._
 import wust.frontend.DevPrintln
 import org.scalajs.dom
-import org.scalajs.dom.{MouseEvent, window, console}
+import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.frontend.{Client, GlobalState, EventProcessor}
+import wust.frontend.{Client, EventProcessor, GlobalState}
 import wust.frontend.views.Elements._
 import wust.frontend.views.Heuristic._
+import wust.frontend.views.Restructure.Posts
 import wust.graph.{Connection, GraphChanges, Post}
 import wust.ids._
 
 import scala.collection.breakOut
 
+object Restructure {
+  type Posts = List[Post]
+}
+
+sealed trait RestructuringTaskObject {
+  def apply(posts: Posts): RestructuringTask
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): RestructuringTask
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): RestructuringTask
+  def applyStrategically(posts: Set[Post]): RestructuringTask // Here, the task should choose best fitting posts
+}
 sealed trait RestructuringTask {
 
   val title: String
   val description: String
   def component(state: GlobalState): VNode
 
-  def currentPosts(state: GlobalState) = state.inner.displayGraphWithoutParents.now.graph.posts.toSet
-
-  def stylePost(post: Post) = p(
+  def stylePost(post: Post): VNode = p(
       post.content,
       color.black,
-      maxWidth := "60%",
       backgroundColor := "#eee",
       padding := "5px 10px",
       borderRadius := "7px",
@@ -33,7 +41,7 @@ sealed trait RestructuringTask {
       margin := "5px 0px",
   )
 
-  def render(state: GlobalState) = {
+  def render(state: GlobalState): VNode = {
     div( //modal outer container
       div( //modal inner container
         div( //header
@@ -92,16 +100,16 @@ sealed trait RestructuringTask {
 sealed trait YesNoTask extends RestructuringTask
 {
   def constructComponent(state: GlobalState,
-    postChoice: Set[Post],
+    postChoice: List[Post],
     graphChangesYes: GraphChanges): VNode = {
       div(
-        postChoice.map(stylePost(_))(breakOut): Seq[VNode],
+        postChoice.map(stylePost)(breakOut): List[VNode],
         div(
           button("Yes",
             onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
-            onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+            onClick(true) --> RestructuringTaskGenerator.taskDisplay,
           ),
-          button("No", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+          button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
           width := "100%",
         )
       )
@@ -110,131 +118,268 @@ sealed trait YesNoTask extends RestructuringTask
 
 sealed trait AddTagTask extends RestructuringTask
 {
-  def constructComponent(sourcePosts: Set[Post], targetPosts: Set[Post], sink: Sink[String]): VNode = {
+  def constructComponent(sourcePosts: List[Post], targetPosts: List[Post], sink: Sink[String]): VNode = {
+    RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
     div(
-      sourcePosts.map(stylePost(_))(breakOut): Seq[VNode],
-      targetPosts.map(stylePost(_))(breakOut): Seq[VNode],
+      sourcePosts.map(stylePost)(breakOut): List[VNode],
+      targetPosts.map(stylePost)(breakOut): List[VNode],
       div(
         textAreaWithEnter(sink)(
           Placeholders.newTag,
           flex := "0 0 3em",
         ),
-        button("Abort", onClick(false) --> RestructuringTaskGenerator.taskDisplay),
+        button("Abort", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
         width := "100%",
       )
     )
   }
-  def constructComponent(sourcePosts: Set[Post], sink: Sink[String]): VNode = {
-    constructComponent(sourcePosts, Set.empty[Post], sink)
+  def constructComponent(sourcePosts: List[Post], sink: Sink[String]): VNode = {
+    constructComponent(sourcePosts, List.empty[Post], sink)
   }
 }
 
 // Multiple Post RestructuringTask
-case class ConnectPosts(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends YesNoTask
+object ConnectPosts extends RestructuringTaskObject {
+  def apply(posts: Posts): ConnectPosts = new ConnectPosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): ConnectPosts = {
+    apply(heuristic(posts, Some(2)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): ConnectPosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): ConnectPosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(2)))
+  }
+}
+case class ConnectPosts(posts: Posts) extends YesNoTask
 {
   val title = "Connect Posts"
-  val description = "Do these posts belong together?"
+  val description = "Is the first post related to the other posts?"
+
+  def constructGraphChanges(posts: Posts): GraphChanges = {
+    val source = posts.head
+    val connectionsToAdd = for {
+      t <- posts.drop(1) if t.id != source.id
+    } yield {
+        Connection(source.id, "related", t.id)
+      }
+    GraphChanges(addConnections = connectionsToAdd.toSet)
+  }
 
   def component(state: GlobalState): VNode = {
-    val connectPosts = heuristic(currentPosts(state), 2)
     constructComponent(state,
-      connectPosts,
-      GraphChanges(addConnections = Set(Connection(connectPosts.head.id, "related", connectPosts.last.id)))
+      posts,
+      constructGraphChanges(posts)
     )
   }
 }
 
-case class ConnectPostsWithTag(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends AddTagTask
+object ConnectPostsWithTag extends RestructuringTaskObject {
+  def apply(posts: Posts): ConnectPostsWithTag = new ConnectPostsWithTag(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): ConnectPostsWithTag = {
+    apply(heuristic(posts, Some(2)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): ConnectPostsWithTag = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): ConnectPostsWithTag = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(2)))
+  }
+}
+case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 {
   val title = "Connect Posts with tag"
-  val description = "How would you describe the relation between these posts? Tag it!"
+  val description = "How would you describe the relation between the first post and the others? Tag it!"
 
-  def tagConnection(sourcePosts: Set[Post],
-    targetPosts: Set[Post],
-    state: GlobalState): Sink[String] =
-      state.eventProcessor.changes.redirectMap { (tag: String) =>
-        val tagConnections: Set[Connection] = for(s <- sourcePosts; t <- targetPosts) yield {
-          Connection(s.id, tag, t.id)
-        }
-        RestructuringTaskGenerator.taskDisplay.unsafeOnNext(false)
-        GraphChanges(
-          addConnections = tagConnections
-        )
+  def tagConnection(sourcePosts: List[Post],
+    targetPosts: List[Post],
+    state: GlobalState): Sink[String] = {
+    state.eventProcessor.changes.redirectMap { (tag: String) =>
+      val tagConnections = for {
+        s <- sourcePosts
+        t <- targetPosts if s.id != t.id
+      } yield {
+        Connection(s.id, tag, t.id)
       }
 
+      GraphChanges(
+        addConnections = tagConnections.toSet
+      )
+    }
+  }
+
   def component(state: GlobalState): VNode = {
-    val sourcePosts = heuristic(currentPosts(state), 1)
-    val targetPosts = heuristic(currentPosts(state), 1)
+    val sourcePosts = posts.take(1)
+    val targetPosts = posts.slice(1, 2)
+
     constructComponent(sourcePosts, targetPosts, tagConnection(sourcePosts, targetPosts, state))
   }
 }
 
-case class ContainPosts(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends YesNoTask
+object ContainPosts extends RestructuringTaskObject {
+  def apply(posts: Posts): ContainPosts  = new ContainPosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): ContainPosts = {
+    apply(heuristic(posts, Some(2)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): ContainPosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): ContainPosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(2)))
+  }
+}
+case class ContainPosts(posts: Posts) extends YesNoTask
 {
   val title = "Contain Posts"
-  val description = "Is the first post a topic description of the second?"
+  val description = "Is the first post a topic description of the others?"
+
+  def constructGraphChanges(posts: Posts): GraphChanges = {
+    val target = posts.head
+    val containmentsToAdd = for {
+      s <- posts.drop(1) if s.id != target.id
+    } yield {
+        Connection(s.id, Label.parent, target.id)
+    }
+
+    GraphChanges(addConnections = containmentsToAdd.toSet)
+  }
 
   def component(state: GlobalState): VNode = {
-    val containmentPosts = heuristic(currentPosts(state), 2)
     constructComponent(state,
-      containmentPosts,
-      GraphChanges(addConnections = Set(Connection(containmentPosts.last.id, Label.parent, containmentPosts.head.id)))
+      posts,
+      constructGraphChanges(posts)
     )
   }
 }
 
-case class MergePosts(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends YesNoTask
+object MergePosts extends RestructuringTaskObject {
+  def apply(posts: Posts): MergePosts = new MergePosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): MergePosts = {
+    apply(heuristic(posts, Some(2)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): MergePosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): MergePosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(2)))
+  }
+}
+case class MergePosts(posts: Posts) extends YesNoTask
 {
   val title = "Merge Posts"
   val description = "Does these posts state the same but in different words? If yes, they will be merged."
+
+  def constructGraphChanges(posts: Posts): GraphChanges = {
+    val target = posts.head
+    val postsToDelete = posts.drop(1)
+    val postsToUpdate = for {
+      s <- postsToDelete if s.id != target.id
+    } yield {
+      mergePosts(target, s)
+    }
+
+    GraphChanges(updatePosts = postsToUpdate.toSet, delPosts = postsToDelete.map(_.id).toSet)
+  }
 
   def mergePosts(mergeTarget: Post, post: Post): Post = {
     mergeTarget.copy(content = mergeTarget.content + "\n" + post.content)
   }
 
   def component(state: GlobalState): VNode = {
-    val postsToMerge = heuristic(currentPosts(state), 2)
     constructComponent(state,
-      postsToMerge,
-      GraphChanges(updatePosts = Set(mergePosts(postsToMerge.head, postsToMerge.last)))
+      posts,
+      constructGraphChanges(posts)
     )
   }
 }
 
-case class UnifyPosts(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends YesNoTask // Currently same as MergePosts
+object UnifyPosts extends RestructuringTaskObject {
+  def apply(posts: Posts): UnifyPosts = new UnifyPosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): UnifyPosts = {
+    apply(heuristic(posts, Some(2)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): UnifyPosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): UnifyPosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(2)))
+  }
+}
+case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as MergePosts
 {
   val title = "Unify Posts"
   val description = "Does these posts state the same and are redundant? If yes, they will be unified."
+
+  def constructGraphChanges(posts: Posts): GraphChanges = {
+    val target = posts.head
+    val postsToDelete = posts.drop(1)
+    val postsToUpdate = for {
+      s <- posts.drop(1) if s.id != target.id
+    } yield {
+      unifyPosts(target, s)
+    }
+
+    GraphChanges(updatePosts = postsToUpdate.toSet, delPosts = postsToDelete.map(_.id).toSet)
+  }
 
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
     unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
   }
 
   def component(state: GlobalState): VNode = {
-    val postsToUnify = heuristic(currentPosts(state), 2)
     constructComponent(state,
-      postsToUnify,
-      GraphChanges(updatePosts = Set(unifyPosts(postsToUnify.head, postsToUnify.last)))
+      posts,
+      constructGraphChanges(posts)
     )
   }
 }
 
 // Single Post RestructuringTask
-case class DeletePost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends YesNoTask
+object DeletePosts extends RestructuringTaskObject {
+  def apply(posts: Posts): DeletePosts = new DeletePosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): DeletePosts = {
+    apply(heuristic(posts, Some(1)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): DeletePosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): DeletePosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(1)))
+  }
+}
+case class DeletePosts(posts: Posts) extends YesNoTask
 {
   val title = "Delete Post"
   val description = "Is this posts irrelevant for this discussion? (e.g. Hello post)"
 
   def component(state: GlobalState): VNode = {
-    val deletePosts = heuristic(currentPosts(state), 1)
     constructComponent(state,
-      deletePosts,
-      GraphChanges(delPosts = deletePosts.map(_.id))
+      posts,
+      GraphChanges(delPosts = posts.map(_.id).toSet)
     )
   }
 }
 
-case class SplitPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends RestructuringTask
+object SplitPosts extends RestructuringTaskObject {
+  def apply(posts: Posts): SplitPosts = new SplitPosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): SplitPosts = {
+    apply(heuristic(posts, Some(1)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): SplitPosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): SplitPosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(1)))
+  }
+}
+case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
   val description = "Does this Post contain multiple statements? Please split the post. You can split a part of this post by selecting it and confirm the selectio with the button."
@@ -244,10 +389,10 @@ case class SplitPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuri
     Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now.id))
   }
 
-  def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): Seq[Post] = {
+  def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): List[Post] = {
     val selection = window.getSelection()
     if(selection.rangeCount > 1)// what about multiple Selections?
-      return Seq(originalPost)
+      return List(originalPost)
 
     val range = selection.getRangeAt(0)
     val selectionOffsets = (range.startOffset, range.endOffset)
@@ -262,21 +407,23 @@ case class SplitPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuri
     console.log(s"currSelection: $selectionOffsets")
     console.log(s"currSelText: $currSelText")
 
-    Seq(before, middle, after).flatten
+    List(before, middle, after).flatten
   }
 
-  def generateGraphChanges(originalPost: Post, posts: Seq[Post], state: GlobalState): GraphChanges = {
-    val connections = posts.map(p => Connection(p.id ,"splitFrom", originalPost.id)).toSet
+  def generateGraphChanges(originalPosts: List[Post], posts: List[Post], state: GlobalState): GraphChanges = {
+
+    val newConnections = originalPosts.flatMap(originalPost => posts.map(p => Connection(p.id, "splitFrom", originalPost.id))).toSet
+    val newPosts = originalPosts.flatMap(originalPost => posts.filter(_.id != originalPost.id)).toSet
     GraphChanges(
-      addPosts = posts.filter(_.id != originalPost.id).toSet,
-      addConnections = connections,
-      delPosts = Set(originalPost.id),
+      addPosts = newPosts,
+      addConnections = newConnections,
+      delPosts = originalPosts.map(_.id).toSet,
     )
   }
 
   def component(state: GlobalState): VNode = {
-    val splitPost = heuristic(currentPosts(state), 1).head
-    val postPreview = Handler.create[Seq[Post]](Seq(splitPost)).unsafeRunSync()
+    val splitPost = posts.take(1)
+    val postPreview = Handler.create[List[Post]](splitPost).unsafeRunSync()
 
     div(
       div(
@@ -291,7 +438,7 @@ case class SplitPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuri
               borderRadius := "7px",
               border := "1px solid gray",
               margin := "5px 0px",
-              onMouseUp.map(e => posts.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else Seq(p))) --> postPreview,
+              onMouseUp.map(e => posts.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else List(p))) --> postPreview,
             )
           }
         },
@@ -299,57 +446,70 @@ case class SplitPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuri
       ),
       button("Confirm",
         onClick(postPreview).map(generateGraphChanges(splitPost, _, state)) --> state.eventProcessor.enriched.changes,
-        onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+        onClick(true) --> RestructuringTaskGenerator.taskDisplay,
       ),
       button("Abort",
-        onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+        onClick(true) --> RestructuringTaskGenerator.taskDisplay,
       ),
     )
   }
 }
 
-case class AddTagToPost(heuristic: PostHeuristic = ChoosePostHeuristic.defaultHeuristic) extends AddTagTask
+object AddTagToPosts extends RestructuringTaskObject {
+  def apply(posts: Posts): AddTagToPosts = new AddTagToPosts(posts)
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): AddTagToPosts = {
+    apply(heuristic(posts, Some(1)))
+  }
+  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): AddTagToPosts = {
+    apply(heuristic(posts, num))
+  }
+  def applyStrategically(posts: Set[Post]): AddTagToPosts = {
+    def heuristic: PostHeuristic = ChoosePostHeuristic.random
+    apply(heuristic(posts, Some(1)))
+  }
+}
+case class AddTagToPosts(posts: Posts) extends AddTagTask
 {
   val title = "Add tag to post"
   val description = "How would you describe this post? Please add a tag."
 
-  def addTagToPost(post: Set[Post], state: GlobalState): Sink[String] =
+  def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
+
     state.eventProcessor.changes.redirectMap { (tag: String) =>
       val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now.id))
       val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
-      RestructuringTaskGenerator.taskDisplay.unsafeOnNext(false)
+
       GraphChanges(
         addPosts = Set(tagPost),
-        addConnections = tagConnections
+        addConnections = tagConnections.toSet
       )
     }
+  }
 
   def component(state: GlobalState): VNode = {
-    val postsToTag = heuristic(currentPosts(state), 1)
+    val postsToTag = posts
     constructComponent(postsToTag, addTagToPost(postsToTag, state))
   }
 }
 
 case object RestructuringTaskGenerator {
-  
-  val commonHeuristic = ChoosePostHeuristic.defaultHeuristic
-  
-  val allTasks: List[RestructuringTask] = List(
-    ConnectPosts(commonHeuristic),
-    ConnectPostsWithTag(commonHeuristic),
-    ContainPosts(commonHeuristic),
-    MergePosts(commonHeuristic),
-    UnifyPosts(commonHeuristic),
-    DeletePost(commonHeuristic),
-    SplitPost(commonHeuristic),
-    AddTagToPost(commonHeuristic),
+
+  val allTasks: List[RestructuringTaskObject] = List(
+    ConnectPosts,
+    ConnectPostsWithTag,
+    ContainPosts,
+    MergePosts,
+    UnifyPosts,
+    DeletePosts,
+    SplitPosts,
+    AddTagToPosts,
   )
 
-  def apply(globalState: GlobalState) = {
+  def apply(globalState: GlobalState): VNode = {
     val show = taskDisplay.map(d => {
       DevPrintln(s"display task! ${d.toString}")
-      if(d == true) {
-        ChooseTaskHeuristic.defaultHeuristic(allTasks).render(globalState)
+      if(d) {
+        composeTask(globalState).render(globalState)
       } else {
         renderButton
       }
@@ -360,9 +520,32 @@ case object RestructuringTaskGenerator {
     )
   }
 
-  val taskDisplay = Handler.create[Boolean](false).unsafeRunSync()
+  // Currently, we choose a task at random and decide afterwards which heuristic is used
+  // But it is also possible to decide a task based on given post metrics
+  // Therefore if we can find / define metrics of a discussion, we can choose an
+  // applicable task after choosing a post (based on a discussion metric)
+  def composeTask(globalState: GlobalState): RestructuringTask = {
 
-  def renderButton = div(
+    val discussionPosts = globalState.inner.displayGraphWithoutParents.now.graph.posts.toSet
+    val task = ChooseTaskHeuristic.random(allTasks)
+    task.applyStrategically(discussionPosts)
+
+    // TODO: Different strategies based on choosing order
+//    val finalTask = if(scala.util.Random.nextBoolean) { // First task, then posts
+//      val task = ChooseTaskHeuristic.random(allTasks)
+//      task.applyStrategically(discussionPosts)
+//    } else {// First posts, then task
+//      // TODO: Choose tasks strategically based on metrics
+//      val posts = ChoosePostHeuristic.random(discussionPosts)
+//      val task = ChooseTaskHeuristic.random(allTasks)
+//      task(posts)
+//    }
+//    finalTask
+  }
+
+  val taskDisplay: Handler[Boolean] = Handler.create[Boolean](false).unsafeRunSync()
+
+  def renderButton: VNode = div(
     span("Tasks"),
     fontWeight.bold,
     fontSize := "20px",
