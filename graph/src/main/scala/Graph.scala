@@ -70,12 +70,14 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   usersById:    Map[UserId, User],
   memberships:  Set[Membership]
 ) {
-  def isEmpty = postsById.isEmpty // && groups.isEmpty && users.isEmpty
-  def nonEmpty = !isEmpty
+  lazy val isEmpty: Boolean = postsById.isEmpty // && groups.isEmpty && users.isEmpty
+  lazy val nonEmpty: Boolean = !isEmpty
+  lazy val size: Int = postsById.keys.size
+  lazy val length: Int = size
 
   private val connectionsByLabelF: (Label) => Set[Connection] = connectionsByLabel.withDefaultValue(Set.empty)
 
-  lazy val chronologicalPostsAscending = posts.toList.sortBy(p => Tag.unwrap(p.id))
+  lazy val chronologicalPostsAscending: List[Post] = posts.toList.sortBy(p => Tag.unwrap(p.id))
 
   lazy val connections: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)
   lazy val containments: Set[Connection] = connectionsByLabelF(Label.parent)
@@ -91,16 +93,16 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val allsourceIds: Set[PostId] = containments.map(_.sourceId)
   lazy val allParents: Set[Post] = allParentIds.map(postsById)
   // lazy val containmentIsolatedPostIds = postIds.toSet -- containments.map(_.targetId) -- containments.map(_.sourceId)
-  lazy val toplevelPostIds = postIds.toSet -- allsourceIds
+  lazy val toplevelPostIds: Set[PostId] = postIds.toSet -- allsourceIds
   lazy val allParentIdsTopologicallySortedByChildren:Iterable[PostId] = allParentIds.topologicalSortBy(children)
   lazy val allParentIdsTopologicallySortedByParents:Iterable[PostId] = allParentIds.topologicalSortBy(parents) //TODO: ..ByChildren.reverse?
 
-  override def toString =
+  override def toString: String =
     s"Graph(${posts.map(_.id).mkString(" ")}, " +
     s"${connectionsByLabel.values.flatten.map(c => s"${c.sourceId}-[${c.label}]->${c.targetId}").mkString(", ")}, " +
-    s"groups:${groupIds}, " +
+    s"groups:$groupIds, " +
     s"ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, " +
-    s"users: ${userIds}, " +
+    s"users: $userIds, " +
     s"memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
   def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connections.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
@@ -114,8 +116,8 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](containments, _.targetId, _.sourceId)
 
   // There are cases where the key is not present and cases where the set is empty
-  def hasChildren(post: PostId) = children.contains(post) && children(post).nonEmpty
-  def hasParents(post: PostId) = parents.contains(post) && parents(post).nonEmpty
+  def hasChildren(post: PostId): Boolean = children.contains(post) && children(post).nonEmpty
+  def hasParents(post: PostId): Boolean = parents.contains(post) && parents(post).nonEmpty
 
   // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
   // that's why the need default values from connectionDefaultNeighbourhood
@@ -142,9 +144,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val groupsByUserId: Map[UserId, Set[GroupId]] = userDefaultGroups ++ directedAdjacencyList[UserId, Membership, GroupId](memberships, _.userId, _.groupId)
 
   private lazy val postDefaultDegree = postsById.mapValues(_ => 0)
-  lazy val connectionDegree = postDefaultDegree ++
+  lazy val connectionDegree: Map[PostId, Int] = postDefaultDegree ++
     degreeSequence[PostId, Connection](connections, _.targetId, _.sourceId)
-  lazy val containmentDegree = postDefaultDegree ++
+  lazy val containmentDegree: Map[PostId, Int] = postDefaultDegree ++
     degreeSequence[PostId, Connection](containments, _.targetId, _.sourceId)
 
   def fullDegree(postId: PostId): Int = connectionDegree(postId) + containmentDegree(postId)
@@ -174,12 +176,11 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   // Also provide ancestors:Iterable[Post]?
   def ancestors(postId: PostId) = _ancestors(postId)
   private val _ancestors: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
-    postsById.keySet.contains(postId) match {
-      case true =>
-        val p = depthFirstSearch(postId, parents)
-        if (p.startInvolvedInCycle) p else p.drop(1)
-        //TODO better?
-      case false => Seq.empty
+    if (postsById.keySet.contains(postId)) {
+      val p = depthFirstSearch(postId, parents)
+      if (p.startInvolvedInCycle) p else p.drop(1)
+    } else {
+      Seq.empty
     }
   }
 
@@ -223,7 +224,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def addConnections(cs: Iterable[Connection]): Graph = cs.foldLeft(this)((g,c) => g + c) // todo: more efficient
   def addOwnerships(cs: Iterable[Ownership]): Graph = copy(ownerships = ownerships ++ cs)
 
-  def applyChanges(c: GraphChanges) = {
+  def applyChanges(c: GraphChanges): Graph = {
     copy(
       postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
       connectionsByLabel = connectionsByLabel ++ (c.addConnections -- c.delConnections).groupBy(_.label).map { case (k,v) => k -> ( v ++ connectionsByLabelF(k)) },
@@ -239,14 +240,14 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     )
   )
 
-  def +(group: Group) = copy(groupsById = groupsById + (group.id -> group))
-  def addGroups(newGroups: Iterable[Group]) = copy(groupsById = groupsById ++ newGroups.by(_.id))
-  def +(user: User) = copy(usersById = usersById + (user.id -> user))
-  def +(ownership: Ownership) = copy(ownerships = ownerships + ownership)
-  def +(membership: Membership) = copy(memberships = memberships + membership)
-  def addMemberships(newMemberships: Iterable[Membership]) = copy(memberships = memberships ++ newMemberships)
+  def +(group: Group): Graph = copy(groupsById = groupsById + (group.id -> group))
+  def addGroups(newGroups: Iterable[Group]): Graph = copy(groupsById = groupsById ++ newGroups.by(_.id))
+  def +(user: User): Graph = copy(usersById = usersById + (user.id -> user))
+  def +(ownership: Ownership): Graph = copy(ownerships = ownerships + ownership)
+  def +(membership: Membership): Graph = copy(memberships = memberships + membership)
+  def addMemberships(newMemberships: Iterable[Membership]): Graph = copy(memberships = memberships ++ newMemberships)
 
-  def +(other: Graph) = copy (
+  def +(other: Graph): Graph = copy (
     postsById ++ other.postsById,
     connectionsByLabel ++ other.connectionsByLabel,
     groupsById ++ other.groupsById,
@@ -255,13 +256,13 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     memberships ++ other.memberships
   )
 
-  def withoutGroup(groupId: GroupId) = copy(
+  def withoutGroup(groupId: GroupId): Graph = copy(
     groupsById = groupsById - groupId,
     ownerships = ownerships.filter(_.groupId != groupId),
     memberships = memberships.filter(_.groupId != groupId)
   )
 
-  lazy val consistent = {
+  lazy val consistent: Graph = {
     val filteredConnections = connectionsByLabel.mapValues(_.filter(c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId)).filter(_._2.nonEmpty)
     val filteredOwnerships = ownerships.filter { o => postsById.isDefinedAt(o.postId) && groupsById.isDefinedAt(o.groupId) }
     val filteredMemberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && groupsById.isDefinedAt(m.groupId) }
@@ -278,8 +279,8 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
       this
   }
 
-  lazy val childDepth = depth(children)
-  lazy val parentDepth = depth(parents)
+  lazy val childDepth: collection.Map[PostId, Int] = depth(children)
+  lazy val parentDepth: collection.Map[PostId, Int] = depth(parents)
 
   def depth(next: PostId => Iterable[PostId]): collection.Map[PostId, Int] = {
     val tmpDepths = mutable.HashMap[PostId, Int]()
