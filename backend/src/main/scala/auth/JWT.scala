@@ -9,6 +9,7 @@ import wust.ids._
 import scala.util.{Success, Failure}
 import java.time.Instant
 import scala.concurrent.duration.Duration
+import io.circe._, io.circe.syntax._, io.circe.parser._
 
 @derive((user, expires) => toString)
 case class JWTAuthentication private[auth] (user: User.Persisted, expires: Long, token: Authentication.Token) {
@@ -18,7 +19,6 @@ case class JWTAuthentication private[auth] (user: User.Persisted, expires: Long,
   def isExpiredIn(duration: Duration): Boolean = expires <= Instant.now.getEpochSecond + duration.toSeconds
 }
 
-@derive(apply)
 class JWT(secret: String, tokenLifetime: Duration) {
 
   private val algorithm = JwtAlgorithm.HS256

@@ -53,7 +53,7 @@ object Server {
   private def websocketServer(config: Config)(implicit ec: ExecutionContext, system: ActorSystem) = {
     import DbConversions._
     val db = Db(config.db)
-    val jwt = JWT(config.auth.secret, config.auth.tokenLifetime)
+    val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = new GuardDsl(jwt, db)
 

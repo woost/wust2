@@ -55,10 +55,10 @@ object ApiFunction {
   case class ReturnValue[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
   case class Response[T](state: Future[State], value: Future[ReturnValue[T]])
   object Response {
-    def apply[T](oldState: Future[State], action: Future[Action[T]])(implicit ec: ExecutionContext): Response[T] = {
+    def action[T](oldState: Future[State], action: Future[Action[T]])(implicit ec: ExecutionContext): Response[T] = {
       Response(oldState, action.map(action => ReturnValue(action, Seq.empty)))
     }
-    def apply[T](oldState: Future[State], effect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
+    def effect[T](oldState: Future[State], effect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
       val newState = applyTransformationsToState(oldState, effect.map(_.transformation))
       Response(newState, effect.map(e => ReturnValue(e.action, e.transformation.events)))
     }
@@ -80,12 +80,12 @@ object ApiFunction {
 
 trait ApiDsl {
   object Action extends ApiFunction.Factory[ApiData.Action] {
-    def apply[T](f: State => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response(s, s.flatMap(f)))
-    def apply[T](f: => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response(s, f))
+    def apply[T](f: State => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response.action(s, s.flatMap(f)))
+    def apply[T](f: => Future[ApiData.Action[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response.action(s, f))
   }
   object Effect extends ApiFunction.Factory[ApiData.Effect] {
-    def apply[T](f: State => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response(s, s.flatMap(f)))
-    def apply[T](f: => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response(s, f))
+    def apply[T](f: State => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response.effect(s, s.flatMap(f)))
+    def apply[T](f: => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response.effect(s, f))
   }
   object Returns {
     def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transformation.raw(state, events), Right(result))
