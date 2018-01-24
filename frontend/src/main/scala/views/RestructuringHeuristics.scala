@@ -77,6 +77,21 @@ case object ChoosePostHeuristic {
     wrapHeuristic(_newest, posts, num)
   }
 
+  def oldest(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
+    def _oldest(p: List[Post]) = p.sortWith((p1, p2) => p1.created.isAfter(p2.created))
+    wrapHeuristic(_oldest, posts, num)
+  }
+
+  def maxPostSize(posts: Set[Post], num: Option[Int] = Some(1)): List[Post] = { // for e.g. SplitPost
+    def _maxPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.length > p2.content.length)
+    wrapHeuristic(_maxPostSize, posts, num)
+  }
+
+  def minPostSize(posts: Set[Post], num: Option[Int] = Some(1)): List[Post] = {
+    def _minPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.length < p2.content.length)
+    wrapHeuristic(_minPostSize, posts, num)
+  }
+
   def gaussTime(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
     def _gaussTime(posts: List[Post]) = {
       def clamp(value: Int, minValue: Int, maxValue: Int) = math.min(math.max(value, minValue), maxValue)

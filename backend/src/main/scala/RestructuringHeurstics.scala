@@ -22,4 +22,6 @@ case object PostHeuristics {
     wrapHeuristic(_random, posts, num)
   }
 
+  //TODO: Term Frequency-Inverse Document Frequency (TF-IDF)
+//  def tfidf(posts: Set[Post], num: Int = 2): Set[Post] = { }
 }
