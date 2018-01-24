@@ -41,12 +41,12 @@ object PostCreationMenu {
 
     val inputHandler = Handler.create[String].unsafeRunSync()
     var ySimPostOffset: Double = 50
-    val GraphChangeHandler = inputHandler.foreach{ content =>
+    inputHandler.foreach{ content =>
       val newPost = Post(PostId.fresh, content, m.author)
       val changes = GraphChanges(addPosts = Set(newPost))
       state.eventProcessor.enriched.changes.unsafeOnNext(changes)
 
-      // move created post below menu
+      // TODO: move created post below menu (not working yet)
       val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)
       simPostOpt.foreach { simPost =>
         simPost.fx = m.pos.x

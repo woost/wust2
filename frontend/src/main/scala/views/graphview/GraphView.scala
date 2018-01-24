@@ -25,7 +25,6 @@ import wust.frontend.views.Rendered._
 import wust.frontend.views.Placeholders
 
 
-
 //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
 class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContext, owner: Ctx.Owner) extends View {
   override val key = "graph"
@@ -61,11 +60,13 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
       div(onInsert.asHtml --> htmlLayer),
       onInsert.asHtml --> container,
 
-      children <-- graphState.postCreationMenus.map(_.map{ menu =>
-          PostCreationMenu(state, graphState, menu, d3State.transform)
-        }).toObservable,
+      children <-- graphState.postCreationMenus.map(_.map { menu =>
+        PostCreationMenu(state, graphState, menu, d3State.transform)
+      }).toObservable,
 
-      child <-- graphState.focusedPostId.map(_.map(id => SelectedPostMenu(id, state, graphState, d3State.transform))).toObservable
+      child <-- graphState.selectedPostId.map(_.map { id =>
+        SelectedPostMenu(id, state, graphState, d3State.transform)
+      }).toObservable
     )
   }
 }
@@ -87,21 +88,23 @@ object KeyImplicits {
 }
 
 class GraphViewInstance(
-  state: GlobalState,
-  d3State: D3State,
-  graphState: GraphState,
-  element: dom.html.Element,
-  htmlLayer: dom.html.Element,
-  svgLayer: dom.svg.Element,
-  disableSimulation: Boolean = false
-  )(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
+                         state: GlobalState,
+                         d3State: D3State,
+                         graphState: GraphState,
+                         element: dom.html.Element,
+                         htmlLayer: dom.html.Element,
+                         svgLayer: dom.svg.Element,
+                         disableSimulation: Boolean = false
+                       )(implicit ec: ExecutionContext, ctx: Ctx.Owner) {
   val postDrag = new PostDrag(graphState, d3State, onPostDrag _, onPostDragEnd _)
+
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph, _}
   import graphState._
 
   // prepare containers where we will append elements depending on the data
   // order is important
   import KeyImplicits._
+
   val container = d3.select(element)
 
   val svg = d3.select(svgLayer)
@@ -127,52 +130,52 @@ class GraphViewInstance(
   val dragMenuLayer = menuSvg.append("g")
   val dragMenuSelection = SelectData.rxDraw(new DragMenuSelection(postDrag.dragActions, d3State), postDrag.closestPosts)(dragMenuLayer.append("g"))
 
-//  val controls = {
-//    val iconButton = button(width := "2.5em", padding := "5px 10px")
-//    container.append(() => div(
-//      position.absolute, left := "5px", top := "100px",
-//      iconButton("⟳", title := "automatic layout",
-//        onMouseDown --> { () =>
-//          rxSimPosts.now.foreach { simPost =>
-//            simPost.fixedPos = js.undefined
-//          }
-//          d3State.simulation.alpha(1).alphaTarget(1).restart()
-//        },
-//        onMouseUp --> { () =>
-//          d3State.simulation.alphaTarget(0)
-//        }), br(),
-//      DevOnly {
-//        div(
-//          button("tick", onClick --> {
-//            rxSimPosts.now.foreach { simPost =>
-//              simPost.fixedPos = js.undefined
-//            }
-//            d3State.simulation.tick()
-//            draw()
-//          }), br(),
-//          button("stop", onClick --> {
-//            d3State.simulation.stop()
-//            draw()
-//          }), br(),
-//          button("draw", onClick --> {
-//            rxSimPosts.now.foreach { simPost =>
-//              simPost.fixedPos = js.undefined
-//            }
-//            draw()
-//          }), br(),
-//          iconButton("+", title := "zoom in", onClick --> {
-//            svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
-//          }), br(),
-//          iconButton("0", title := "reset zoom", onClick --> {
-//            recalculateBoundsAndZoom()
-//          }), br(),
-//          iconButton("-", title := "zoom out", onClick --> {
-//            svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
-//          })
-//        )
-//      }
-//    ).render)
-//  }
+  //  val controls = {
+  //    val iconButton = button(width := "2.5em", padding := "5px 10px")
+  //    container.append(() => div(
+  //      position.absolute, left := "5px", top := "100px",
+  //      iconButton("⟳", title := "automatic layout",
+  //        onMouseDown --> { () =>
+  //          rxSimPosts.now.foreach { simPost =>
+  //            simPost.fixedPos = js.undefined
+  //          }
+  //          d3State.simulation.alpha(1).alphaTarget(1).restart()
+  //        },
+  //        onMouseUp --> { () =>
+  //          d3State.simulation.alphaTarget(0)
+  //        }), br(),
+  //      DevOnly {
+  //        div(
+  //          button("tick", onClick --> {
+  //            rxSimPosts.now.foreach { simPost =>
+  //              simPost.fixedPos = js.undefined
+  //            }
+  //            d3State.simulation.tick()
+  //            draw()
+  //          }), br(),
+  //          button("stop", onClick --> {
+  //            d3State.simulation.stop()
+  //            draw()
+  //          }), br(),
+  //          button("draw", onClick --> {
+  //            rxSimPosts.now.foreach { simPost =>
+  //              simPost.fixedPos = js.undefined
+  //            }
+  //            draw()
+  //          }), br(),
+  //          iconButton("+", title := "zoom in", onClick --> {
+  //            svg.call(d3State.zoom.scaleBy _, 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+  //          }), br(),
+  //          iconButton("0", title := "reset zoom", onClick --> {
+  //            recalculateBoundsAndZoom()
+  //          }), br(),
+  //          iconButton("-", title := "zoom out", onClick --> {
+  //            svg.call(d3State.zoom.scaleBy _, 1 / 1.2) //TODO: transition for smooth animation, zoomfactor in global constant
+  //          })
+  //        )
+  //      }
+  //    ).render)
+  //  }
 
   // Arrows
   svg.append("svg:defs").append("svg:marker")
@@ -209,8 +212,8 @@ class GraphViewInstance(
         // DevPrintln(rxSimPosts.now.map(_.collisionArea).toString)
         // val postsArea = graph.toplevelPostIds.map( postId => rxPostIdToSimPost.now(postId).containmentArea ).sum
         val arbitraryFactor = 1.3
-        val postsArea = rxSimPosts.now.foldLeft(0.0)((sum,post) => sum + post.collisionBoundingSquareArea) * arbitraryFactor
-        val scale = sqrt((width * height) / postsArea)  min 1.5   // scale = sqrt(ratio) because areas grow quadratically
+        val postsArea = rxSimPosts.now.foldLeft(0.0)((sum, post) => sum + post.collisionBoundingSquareArea) * arbitraryFactor
+        val scale = sqrt((width * height) / postsArea) min 1.5 // scale = sqrt(ratio) because areas grow quadratically
         // DevPrintln(s"    parentsArea: $postsArea, window: ${width * height}")
         // DevPrintln(s"    scale: $scale")
 
@@ -235,7 +238,13 @@ class GraphViewInstance(
     }
   }
 
-  Rx { rxDisplayGraph(); rxSimPosts(); rxSimConnection(); rxSimContainment(); rxContainmentCluster() }.foreach { _ =>
+  Rx {
+    rxDisplayGraph();
+    rxSimPosts();
+    rxSimConnection();
+    rxSimContainment();
+    rxContainmentCluster()
+  }.foreach { _ =>
     val simPosts = rxSimPosts.now
     val simConnection = rxSimConnection.now
     val simRedirectedConnection = rxSimRedirectedConnection.now
@@ -257,7 +266,7 @@ class GraphViewInstance(
 
     draw() // triggers updating node sizes
     // wait for the drawcall and start simulation
-    window.requestAnimationFrame{ (_) =>
+    window.requestAnimationFrame { (_) =>
       recalculateBoundsAndZoom()
       d3State.simulation.alpha(1).restart()
     }
@@ -278,6 +287,7 @@ class GraphViewInstance(
 
   def calculateRecursiveContainmentRadii(): Unit = {
     DevPrintln("       calculateRecursiveContainmentRadii")
+
     def circleAreaToRadius(a: Double) = Math.sqrt(a / Math.PI) // a = PI*r^2 solved by r
     def circleArea(r: Double) = Math.PI * r * r
 
@@ -288,7 +298,7 @@ class GraphViewInstance(
       val children = graph.children(postId)
       if (children.nonEmpty) {
         var childRadiusMax = 0.0
-        val childrenArea:Double = children.foldLeft(0.0){ (sum,childId) =>
+        val childrenArea: Double = children.foldLeft(0.0) { (sum, childId) =>
           val child = rxPostIdToSimPost.now(childId)
           if (child.containmentRadius > childRadiusMax) {
             childRadiusMax = child.containmentRadius
@@ -348,11 +358,13 @@ class GraphViewInstance(
   // }
 
   private def onPostDrag(): Unit = {
-   draggingPostSelection.draw()
+    draggingPostSelection.draw()
   }
 
   private def onPostDragEnd(): Unit = {
-    rxContainmentCluster.now.foreach{ _.recalculateConvexHull() }
+    rxContainmentCluster.now.foreach {
+      _.recalculateConvexHull()
+    }
     draw()
   }
 
@@ -360,11 +372,13 @@ class GraphViewInstance(
     d3State.zoom
       .on("zoom", () => zoomed())
       .clickDistance(10) // interpret short drags as clicks
-    DevOnly { svg.call(d3State.zoom) } // activate pan + zoom on svg
+    DevOnly {
+      svg.call(d3State.zoom)
+    } // activate pan + zoom on svg
 
     svg.on("click", { () =>
       //TODO: Also show postCreationMenu when no user is present
-      if ( postCreationMenus.now.isEmpty && focusedPostId.now.isEmpty) {
+      if (postCreationMenus.now.isEmpty && selectedPostId.now.isEmpty) {
         val author = state.inner.currentUser.now
         val pos = d3State.transform.now.invert(d3.mouse(svg.node))
         postCreationMenus() = List(PostCreationMenu.Menu(Vec2(pos(0), pos(1)), author.id))
@@ -374,7 +388,7 @@ class GraphViewInstance(
         //   VarTuple(focusedPostId, None)
         // )
         postCreationMenus() = Nil
-        focusedPostId() = None
+        selectedPostId() = None
       }
     })
 
@@ -400,7 +414,7 @@ class GraphViewInstance(
     val htmlTransformString = s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
     svg.selectAll("g").attr("transform", transform.toString)
     html.style("transform", htmlTransformString)
-//    postMenuSelection.draw()
+    //    postMenuSelection.draw()
   }
 
   private def draw(): Unit = {
