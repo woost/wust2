@@ -11,15 +11,18 @@ import monix.execution.Ack.Continue
 import wust.ids._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
-import wust.graph.GraphChanges
+import wust.graph.{User, GraphChanges}
 import scala.util.Try
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
+import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._, io.circe.parser._
 import rx._
 import wust.util.outwatchHelpers._
 import outwatch.util.LocalStorage //TODO use outwatch.util.Storage(dom.Storage)
 
 class ClientStorage(implicit owner: Ctx.Owner) {
   private val internal = org.scalajs.dom.ext.LocalStorage
+
+  implicit val SyncModeDecoder: Decoder[SyncMode] = deriveDecoder[SyncMode]
+  implicit val SyncModeEncoder: Encoder[SyncMode] = deriveEncoder[SyncMode]
 
   object keys {
     val auth = "wust.auth"

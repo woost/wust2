@@ -20,9 +20,6 @@ case class JWTAuthentication private[auth] (user: User.Persisted, expires: Long,
 
 @derive(apply)
 class JWT(secret: String, tokenLifetime: Duration) {
-  import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._
-  implicit val userDecoder: Decoder[User.Persisted] = deriveDecoder[User.Persisted]
-  implicit val userEncoder: Encoder[User.Persisted] = deriveEncoder[User.Persisted]
 
   private val algorithm = JwtAlgorithm.HS256
   private val issuer = "wust"

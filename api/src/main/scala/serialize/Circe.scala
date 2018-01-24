@@ -1,7 +1,9 @@
 package wust.api.serialize
 
+import wust.api._
 import wust.ids._
-import io.circe._
+import wust.graph._
+import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._
 import scalaz.Tag
 
 import java.time.LocalDateTime
@@ -20,4 +22,22 @@ object Circe {
 
   implicit val encodeLocalDateTime: Encoder[LocalDateTime] = Encoder.encodeLong.contramap[LocalDateTime](toMillis)
   implicit val decodeLocalDateTime: Decoder[LocalDateTime] = Decoder.decodeLong.map(fromMillis)
+
+  implicit val PostDecoder: Decoder[Post] = deriveDecoder[Post]
+  implicit val PostEncoder: Encoder[Post] = deriveEncoder[Post]
+  implicit val ConnectionDecoder: Decoder[Connection] = deriveDecoder[Connection]
+  implicit val ConnectionEncoder: Encoder[Connection] = deriveEncoder[Connection]
+  implicit val OwnershipDecoder: Decoder[Ownership] = deriveDecoder[Ownership]
+  implicit val OwnershipEncoder: Encoder[Ownership] = deriveEncoder[Ownership]
+
+  implicit val UserAssumedDecoder: Decoder[User.Assumed] = deriveDecoder[User.Assumed]
+  implicit val UserAssumedEncoder: Encoder[User.Assumed] = deriveEncoder[User.Assumed]
+  implicit val UserVerifiedDecoder: Decoder[User.Persisted] = deriveDecoder[User.Persisted]
+  implicit val UserVerifiedEncoder: Encoder[User.Persisted] = deriveEncoder[User.Persisted]
+  implicit val userDecoder: Decoder[User] = deriveDecoder[User]
+  implicit val userEncoder: Encoder[User] = deriveEncoder[User]
+  implicit val AuthenticationDecoder: Decoder[Authentication] = deriveDecoder[Authentication]
+  implicit val AuthenticationEncoder: Encoder[Authentication] = deriveEncoder[Authentication]
+  implicit val GraphChangesDecoder: Decoder[GraphChanges] = deriveDecoder[GraphChanges]
+  implicit val GraphChangesEncoder: Encoder[GraphChanges] = deriveEncoder[GraphChanges]
 }

@@ -173,6 +173,7 @@ lazy val api = crossProject.crossType(CrossType.Pure)
     libraryDependencies ++=
       Deps.boopickle.value % Optional ::
       Deps.circe.core.value % Optional ::
+      Deps.circe.generic.value % Optional ::
       Nil
   )
 lazy val apiJS = api.js
