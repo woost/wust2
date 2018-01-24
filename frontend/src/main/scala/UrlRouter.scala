@@ -11,7 +11,7 @@ object UrlRouter {
 
   def variable(implicit ctx: Ctx.Owner, ec: Scheduler): Var[Option[String]] = {
     val hash = Var[Option[String]](locationHash)
-    hash.triggerLater { (hash: Option[String]) =>
+    hash.foreach { (hash: Option[String]) =>
       if (locationHash != hash) {
         val current = hash.getOrElse("")
         // instead of setting window.hash_=, pushState does not emit a hashchange event
@@ -20,7 +20,7 @@ object UrlRouter {
     }
 
     // drop initial hash change on site load
-    events.window.onHashChange.drop(1).foreach { ev: HashChangeEvent =>
+    events.window.onHashChange.foreach { ev: HashChangeEvent =>
       val current = locationHash
       if (hash.now != current)
         hash() = current

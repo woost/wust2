@@ -30,6 +30,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncEnabled = syncMode.map(_ == SyncMode.Live)
     val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
+    //TODO: why is this needed?
+    viewConfig.foreach { c => UrlRouter.variable() = Some(ViewConfig.toHash(c)) }
 
     val eventProcessor = EventProcessor(Client.eventObservable, syncEnabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
@@ -47,13 +49,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
     val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
 
-    val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead {
-      rawPage =>
-        rawPage() match {
-          case Page.Union(ids) =>
-            Page.Union(ids.filter(rawGraph().postsById.isDefinedAt))
-          case s => s
-        }
+    val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
+      rawPage() match {
+        case Page.Union(ids) =>
+          Page.Union(ids.filter(rawGraph().postsById.isDefinedAt))
+        case s => s
+      }
     }
 
     val pageParentPosts: Rx[Set[Post]] = Rx {
