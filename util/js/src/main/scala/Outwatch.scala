@@ -49,11 +49,10 @@ package object outwatchHelpers {
     def toHandler: Handler[T] = {
       import cats._, cats.data._, cats.implicits._
 
-      val h = Handler.create[T](rx.now).unsafeRunSync()
       implicit val eqFoo: Eq[T] = Eq.fromUniversalEquals
-      val hDistinct = h.drop(1).distinctUntilChanged
-      hDistinct.foreach(rx.update)
-      rx.triggerLater(h.unsafeOnNext _)
+      val h = Handler.create[T]().unsafeRunSync().transformSource(_.distinctUntilChanged)
+      h.filter(_ != rx.now).foreach(rx.update)
+      rx.foreach(h.unsafeOnNext _)
       h
     }
   }
