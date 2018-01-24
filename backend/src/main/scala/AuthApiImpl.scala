@@ -12,6 +12,8 @@ import wust.util.RichFuture
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
+  //TODO login only with minimum lifetime and auto disconnect of ws
+  /*if !auth.isExpiredIn(minTokenLifetime)*/
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
 

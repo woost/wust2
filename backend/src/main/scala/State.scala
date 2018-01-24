@@ -16,24 +16,22 @@ case class State(auth: Authentication, graph: Graph) {
 }
 object State {
   def initial = State(auth = Authentication.None, graph = Graph.empty)
-}
-
-class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
-  import ApiEvent._
 
   private def authEventToAuth(event: ApiEvent.AuthContent): Authentication = event match {
-    //TODO minimum lifetime and auto disconnect of ws
-    /*if !auth.isExpiredIn(minTokenLifetime)*/ 
     case ApiEvent.LoggedIn(auth) => auth
     case ApiEvent.LoggedOut => Authentication.None
   }
 
-  def applyEventsToState(state: State, events: Seq[ApiEvent]): State = {
+  def applyEvents(state: State, events: Seq[ApiEvent]): State = {
     events.foldLeft(state)((state, event) => event match {
       case ev: ApiEvent.GraphContent => state.copyF(graph = GraphUpdate.applyEvent(_, ev))
       case ev: ApiEvent.AuthContent => state.copy(auth = authEventToAuth(ev))
     })
   }
+}
+
+class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
+  import ApiEvent._
 
   //TODO: refactor! this is difficult to reason about
   def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent.Public]] = Future.sequence(event.events.map {
