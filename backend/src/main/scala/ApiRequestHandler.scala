@@ -28,7 +28,8 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 
   def initialState = Future.successful(State.initial)
 
-  override def onRequest(client: NotifiableClient[RequestEvent], state: Future[State], path: List[String], payload: ByteBuffer): Response = {
+  override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
+    val state = originalState.map(State.filterExpiredAuth)
     scribe.info(s"Incoming request ($path)")
     val response = api(Request(path, payload)) match {
       case Left(slothError) =>
@@ -52,7 +53,8 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     response
   }
 
-  override def onEvent(client: NotifiableClient[RequestEvent], state: Future[State], requestEvent: RequestEvent): Reaction = {
+  override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
+    val state = originalState.map(State.filterExpiredAuth)
     scribe.info(s"client got event: $client")
     val newEvents = state.flatMap(triggeredEvents(_, requestEvent))
     val newState = for {

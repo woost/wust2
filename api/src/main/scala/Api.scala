@@ -45,7 +45,7 @@ object Authentication {
     def userOpt = Option.empty[User]
   }
   case class Assumed(user: User.Assumed) extends UserProvider
-  case class Verified(user: User.Persisted, token: Token) extends UserProvider {
+  case class Verified(user: User.Persisted, expires: Long, token: Token) extends UserProvider {
     override def toString = s"Authentication.Verified($user)"
   }
 }

@@ -11,14 +11,6 @@ import java.time.Instant
 import scala.concurrent.duration.Duration
 import io.circe._, io.circe.syntax._, io.circe.parser._
 
-@derive((user, expires) => toString)
-case class JWTAuthentication private[auth] (user: User.Persisted, expires: Long, token: Authentication.Token) {
-  def toAuthentication = Authentication.Verified(user, token)
-
-  def isExpired: Boolean = isExpiredIn(Duration.Zero)
-  def isExpiredIn(duration: Duration): Boolean = expires <= Instant.now.getEpochSecond + duration.toSeconds
-}
-
 class JWT(secret: String, tokenLifetime: Duration) {
 
   private val algorithm = JwtAlgorithm.HS256
@@ -34,20 +26,23 @@ class JWT(secret: String, tokenLifetime: Duration) {
       .expiresAt(expires)
   }
 
-  def generateAuthentication(user: User.Persisted): JWTAuthentication = {
+  def generateAuthentication(user: User.Persisted): Authentication.Verified = {
     val expires = Instant.now.getEpochSecond + tokenLifetime.toSeconds
     val claim = generateClaim(user, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
-    JWTAuthentication(user, expires, token)
+    Authentication.Verified(user, expires, token)
   }
 
-  def authenticationFromToken(token: Authentication.Token): Option[JWTAuthentication] = {
+  def authenticationFromToken(token: Authentication.Token): Option[Authentication.Verified] = {
     JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) => for {
         expires <- claim.expiration
         user <- parser.decode[User.Persisted](claim.content).right.toOption
-      } yield JWTAuthentication(user, expires, token)
+      } yield Authentication.Verified(user, expires, token)
       case _ => None
     }
   }
+}
+object JWT {
+  def isExpired(auth: Authentication.Verified): Boolean = auth.expires <= Instant.now.getEpochSecond
 }

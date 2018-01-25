@@ -31,8 +31,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     }
   }
 
-  private def resultOnJwtAuth(state: State, auth: Future[Option[JWTAuthentication]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
-    case Some(auth) => authChangeEvents(auth.toAuthentication).map(Returns(true, _))
+  private def resultOnAuth(state: State, auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
+    case Some(auth) => authChangeEvents(auth).map(Returns(true, _))
     case _ => Future.successful(Returns(false))
   }
 
@@ -46,7 +46,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-    resultOnJwtAuth(state, newAuth)
+    resultOnAuth(state, newAuth)
   }
 
   def login(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
@@ -66,7 +66,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       case _ => Future.successful(None)
     }
 
-    resultOnJwtAuth(state, newAuth)
+    resultOnAuth(state, newAuth)
   }
 
   def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
@@ -76,7 +76,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       }
     } getOrElse Future.successful(None)
 
-    resultOnJwtAuth(state, newAuth)
+    resultOnAuth(state, newAuth)
   }
 
   def assumeLogin(userId: UserId): ApiFunction[Boolean] = Effect { state =>

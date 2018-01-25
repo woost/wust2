@@ -28,4 +28,9 @@ object State {
       case ev: ApiEvent.AuthContent => state.copy(auth = authEventToAuth(ev))
     })
   }
+
+  def filterExpiredAuth(state: State): State = state.auth match {
+    case auth: Authentication.Verified if JWT.isExpired(auth) => state.copy(auth = Authentication.None)
+    case _ => state
+  }
 }
