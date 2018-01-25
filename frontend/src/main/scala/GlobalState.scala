@@ -29,14 +29,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncEnabled = syncMode.map(_ == SyncMode.Live)
-    val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
+    private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
     //TODO: why is this needed?
     viewConfig.foreach { c => UrlRouter.variable() = Some(ViewConfig.toHash(c)) }
 
     val eventProcessor = EventProcessor(Client.eventObservable, syncEnabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
-    val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = initialAuthentication).map {
+    private val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = initialAuthentication).map {
       case auth: Authentication.UserProvider => auth
       case Authentication.None => Client.ensureLogin()
     }
@@ -74,7 +74,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     // this is a wanted feature, because manually collapsing posts is preserved with navigation
     val collapsedPostIds: Var[Set[PostId]] = Var(Set.empty)
 
-    val currentView: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
+    val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
         perspective().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
     }
 
@@ -84,12 +84,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
       page() match {
         case Page.Root =>
-          currentView().applyOnGraph(graph)
+          perspective().applyOnGraph(graph)
 
         case Page.Union(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) -- parentIds
           val selectedGraph = graph.filter(descendants)
-          currentView().applyOnGraph(selectedGraph)
+          perspective().applyOnGraph(selectedGraph)
       }
     }
 
@@ -97,12 +97,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
       page() match {
         case Page.Root =>
-          currentView().applyOnGraph(graph)
+          perspective().applyOnGraph(graph)
 
         case Page.Union(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
           val selectedGraph = graph.filter(descendants)
-          currentView().applyOnGraph(selectedGraph)
+          perspective().applyOnGraph(selectedGraph)
       }
     }
 
@@ -123,9 +123,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val currentUser = inner.currentUser.toObservable
   val rawGraph = inner.rawGraph.toObservable
-  val viewConfig = inner.viewConfig.toHandler
-  val currentView = inner.currentView.toHandler
+  val perspective = inner.perspective.toHandler
   val page = inner.page.toHandler
+  val inviteToken = inner.inviteToken.toObservable
   val pageStyle = inner.pageStyle.toObservable
   val view = inner.view.toHandler
   val pageParentPosts = inner.pageParentPosts.toObservable
@@ -174,13 +174,13 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   DevOnly {
     rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}").unsafeRunSync()
     //      collapsedPostIds.debug("collapsedPostIds")
-    currentView.debug("currentView").unsafeRunSync()
+    perspective.debug("perspective").unsafeRunSync()
     //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
     //      focusedPostId.debug("focusedPostId")
     //      selectedGroupId.debug("selectedGroupId")
     // rawPage.debug("rawPage")
     page.debug("page").unsafeRunSync()
-    viewConfig.debug("viewConfig").unsafeRunSync()
+    // viewConfig.debug("viewConfig").unsafeRunSync()
     //      currentUser.debug("\ncurrentUser")
 
   }

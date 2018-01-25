@@ -21,7 +21,7 @@ object Main {
 
     val state = new GlobalState()
 
-    state.viewConfig.foreach(_.invite.foreach { token =>
+    state.inviteToken.foreach(_.foreach { token =>
       Client.api.acceptGroupInvite(token).onComplete {
         case Success(Some(_)) =>
           Analytics.sendEvent("group", "invitelink", "success")
