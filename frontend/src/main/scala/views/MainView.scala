@@ -313,13 +313,16 @@ object MainView {
   //  )
   //}
 
-  def syncStatus(state: GlobalState) = {
+  def syncStatus(state: GlobalState): VNode = {
     // val persistStatus = state.persistence.status
     // val hasEvents = state.eventCache.hasEvents
 
+    import wust.frontend.SyncMode
     div(
       "Syncmode: ",
-      child <-- state.syncMode.map(_.toString)
+      child <-- state.syncMode.map(_.toString),
+      onClick.map(_ => if (state.inner.syncMode.now == SyncMode.Live) SyncMode.Offline else SyncMode.Live) --> state.syncMode
+
       // select {
       //   SyncMode.all.map { m =>
       //     val s = m.toString
@@ -409,7 +412,7 @@ object MainView {
       br(),
       user(state),
       br(),
-      syncMode(state),
+      syncStatus(state),
       br(),
       dataImport(state),
       br(),
@@ -437,10 +440,6 @@ object MainView {
 
   def user(state: GlobalState) = {
     div( "User: ", child <-- state.currentUser.map(u => s"${u.id}, ${u.name}" ))
-  }
-
-  def syncMode(state: GlobalState) = {
-    div( "Sync Mode: ", child <-- state.syncMode.map(_.toString)),
   }
 
   def dataImport(state:GlobalState) = {

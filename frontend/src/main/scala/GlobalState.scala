@@ -28,12 +28,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
-    val syncEnabled = syncMode.map(_ == SyncMode.Live)
+    val syncDisabled = syncMode.map(_ != SyncMode.Live)
     private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
     //TODO: why is this needed?
     viewConfig.foreach { c => UrlRouter.variable() = Some(ViewConfig.toHash(c)) }
 
-    val eventProcessor = EventProcessor(Client.eventObservable, syncEnabled.toObservable, viewConfig.toObservable)
+    val eventProcessor = EventProcessor(Client.eventObservable, syncDisabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
     private val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = initialAuthentication).map {
@@ -130,7 +130,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val view = inner.view.toHandler
   val pageParentPosts = inner.pageParentPosts.toObservable
   val syncMode = inner.syncMode.toHandler
-  val syncEnabled = inner.syncEnabled.toObservable
   val displayGraphWithParents = inner.displayGraphWithParents.toObservable
   val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
   val upButtonTargetPage = inner.upButtonTargetPage.toObservable

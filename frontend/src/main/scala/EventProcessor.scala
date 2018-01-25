@@ -3,6 +3,7 @@ package wust.frontend
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
+import wust.util.BufferWhenTrue
 import wust.api._, ApiEvent._
 import boopickle.Default._
 import io.circe.Decoder.state
@@ -45,7 +46,8 @@ object SyncMode {
 
 object EventProcessor {
 
-  def apply(rawEventStream: Observable[Seq[ApiEvent]], syncEnabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
+  //TODO factory and constructor shared responibility
+  def apply(rawEventStream: Observable[Seq[ApiEvent]], syncDisabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
       val partitionedEvents:Observable[(Seq[ApiEvent], Seq[ApiEvent])] = rawEventStream.map(_.partition {
         case NewGraphChanges(_) => true
@@ -56,7 +58,7 @@ object EventProcessor {
       val otherEvents = partitionedEvents.map(_._2)
       //TODO bufferunless here will crash merge for rawGraph with infinite loop.
       // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
-      val bufferedGraphEvents = graphEvents //.bufferUnless(syncEnabled).map(_.flatten)
+      val bufferedGraphEvents = BufferWhenTrue(graphEvents, syncDisabled).map(_.flatten)
 
       Observable.merge(bufferedGraphEvents, otherEvents)
     }
@@ -69,11 +71,11 @@ object EventProcessor {
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
 
-    new EventProcessor(graphEvents, authEvents, viewConfig)
+    new EventProcessor(graphEvents, authEvents, viewConfig, syncDisabled)
   }
 }
 
-class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], authEventStream: Observable[Seq[ApiEvent.AuthContent]], viewConfig: Observable[ViewConfig]) {
+class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], authEventStream: Observable[Seq[ApiEvent.AuthContent]], viewConfig: Observable[ViewConfig], syncDisabled: Observable[Boolean]) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
@@ -113,8 +115,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
     (localChanges, rawGraph)
   }
 
-  private val bufferedChanges = localChanges.map(List(_))//.bufferUnless(syncEnabled)
-
+  private val bufferedChanges = BufferWhenTrue(localChanges, syncDisabled)
   private val sendingChanges = Observable.tailRecM(bufferedChanges) { changes =>
     changes.flatMap(c => Observable.fromFuture(sendChanges(c))) map {
       case true => Left(Observable.empty)
@@ -168,8 +169,8 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
     changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
   }
 
-  private def sendChanges(changes: List[GraphChanges]): Future[Boolean] = {
-    Client.api.changeGraph(changes).transform {
+  private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
+    Client.api.changeGraph(changes.toList).transform {
       case Success(success) =>
         if (success) {
           val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
