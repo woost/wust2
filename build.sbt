@@ -239,7 +239,7 @@ lazy val frontend = project
 
     // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
     emitSourceMaps in fastOptJS := true, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
-    // emitSourceMaps in fullOptJS := true,
+    emitSourceMaps in fullOptJS := false,
 
     version in webpack := "3.10.0",
     version in startWebpackDevServer := "2.9.6", // watchOptions is only fixed in this version. https://github.com/scalacenter/scalajs-bundler/issues/200
@@ -248,9 +248,9 @@ lazy val frontend = project
       "marked" -> "0.3.12" ::
       Nil,
     npmDevDependencies in Compile ++=
-      "compression-webpack-plugin" -> "0.3.1" ::
-      "brotli-webpack-plugin" -> "0.2.0" ::
-      "webpack-closure-compiler" -> "2.1.4" ::
+      "webpack-closure-compiler" -> "2.1.6" ::
+      "zopfli-webpack-plugin" -> "0.1.0" ::
+      "brotli-webpack-plugin" -> "0.5.0" ::
       Nil,
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
 
