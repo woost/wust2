@@ -50,7 +50,7 @@ package object outwatchHelpers {
       import cats._, cats.data._, cats.implicits._
 
       implicit val eqFoo: Eq[T] = Eq.fromUniversalEquals
-      val h = Handler.create[T]().unsafeRunSync().transformSource(_.distinctUntilChanged)
+      val h = Handler.create[T](rx.now).unsafeRunSync().transformSource(_.distinctUntilChanged)
       h.filter(_ != rx.now).foreach(rx.update)
       rx.foreach(h.unsafeOnNext _)
       h
