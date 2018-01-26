@@ -38,7 +38,7 @@ case class ApiFunction[T](f: Future[State] => ApiFunction.Response[T]) extends A
 
   def redirect(f: State => Future[Transformation])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction { state =>
     val transformation = state.flatMap(f)
-    def newState = applyTransformationsToState(state, transformation)
+    def newState = applyTransformationToState(state, transformation)
     val response = apply(newState)
     val newValue = for {
       events <- transformation.map(_.events)
@@ -59,7 +59,7 @@ object ApiFunction {
       Response(oldState, action.map(action => ReturnValue(action, Seq.empty)))
     }
     def effect[T](oldState: Future[State], effect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
-      val newState = applyTransformationsToState(oldState, effect.map(_.transformation))
+      val newState = applyTransformationToState(oldState, effect.map(_.transformation))
       Response(newState, effect.map(e => ReturnValue(e.action, e.transformation.events)))
     }
   }
@@ -68,7 +68,7 @@ object ApiFunction {
     def apply[T](f: => Future[F[T]])(implicit ec: ExecutionContext): ApiFunction[T]
   }
 
-  protected def applyTransformationsToState(state: Future[State], transformation: Future[Transformation])(implicit ec: ExecutionContext): Future[State] = for {
+  protected def applyTransformationToState(state: Future[State], transformation: Future[Transformation])(implicit ec: ExecutionContext): Future[State] = for {
     t <- transformation
     base <- t.state.fold(state)(Future.successful)
   } yield if (t.events.isEmpty) base else State.applyEvents(base, t.events)
