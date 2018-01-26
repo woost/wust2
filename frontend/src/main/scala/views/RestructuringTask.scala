@@ -20,6 +20,12 @@ object Restructure {
   type Posts = List[Post]
 }
 
+/**
+  * TODO
+  * redifine graph changes for tasks to keep / combine commen properties, e.g.
+  * - merge parents in MergePosts
+  * - keep parents in SplitPosts
+  */
 sealed trait RestructuringTaskObject {
   type StrategyResult = Future[List[RestructuringTask]]
 
@@ -260,6 +266,7 @@ case class ContainPosts(posts: Posts) extends YesNoTask
         Connection(s.id, Label.parent, target.id)
     }
 
+    // TODO: manage children / parents
     GraphChanges(addConnections = containmentsToAdd.toSet)
   }
 
@@ -293,6 +300,7 @@ case class MergePosts(posts: Posts) extends YesNoTask
       mergePosts(target, s)
     }
 
+    // TODO: manage children / parents
     GraphChanges(updatePosts = postsToUpdate.toSet, delPosts = postsToDelete.map(_.id).toSet)
   }
 
@@ -333,6 +341,7 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
     GraphChanges(updatePosts = postsToUpdate.toSet, delPosts = postsToDelete.map(_.id).toSet)
   }
 
+  // TODO: manage children / parents
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
     unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
   }
@@ -408,6 +417,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
   def generateGraphChanges(originalPosts: List[Post], posts: List[Post], state: GlobalState): GraphChanges = {
 
+    // TODO: manage children / parents
     val newConnections = originalPosts.flatMap(originalPost => posts.map(p => Connection(p.id, "splitFrom", originalPost.id))).toSet
     val newPosts = originalPosts.flatMap(originalPost => posts.filter(_.id != originalPost.id)).toSet
     GraphChanges(
@@ -498,6 +508,7 @@ case object RestructuringTaskGenerator {
     AddTagToPosts,
   )
 
+  val taskDisplay: Handler[Boolean] = Handler.create[Boolean](false).unsafeRunSync()
 
   def apply(globalState: GlobalState): Observable[VNode] = {
 
@@ -546,7 +557,5 @@ case object RestructuringTaskGenerator {
 //    }
 //    finalTask
   }
-
-  val taskDisplay: Handler[Boolean] = Handler.create[Boolean](false).unsafeRunSync()
 
 }
