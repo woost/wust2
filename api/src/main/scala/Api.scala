@@ -18,11 +18,10 @@ trait Api[Result[_]] {
 
   def importGithubUrl(url: String): Result[Boolean]
   def importGitterUrl(url: String): Result[Boolean]
-  def chooseTaskPost(posts: List[PostId]): Result[List[PostId]]
+  def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 }
 
 trait AuthApi[Result[_]] {
-  //TODO: simplify implicit login by handshake with a token or userid and an initial graph. persist new implicit user when used first time.
   def assumeLogin(id: UserId): Result[Boolean]
   def register(name: String, password: String): Result[Boolean]
   def login(name: String, password: String): Result[Boolean]
@@ -96,4 +95,26 @@ object ApiEvent {
       case (ev: GraphContent, (gs, as)) => (ev :: gs, as)
       case (ev: AuthContent, (gs, as)) => (gs, ev :: as)
     }
+}
+
+object Heuristic {
+  case class PostResult(measure: Option[Double], posts: List[Post])
+  case class IdResult(measure: Option[Double], postIds: List[PostId])
+
+  type Result = PostResult
+  type ApiResult = IdResult
+}
+
+sealed trait NlpHeuristic
+object NlpHeuristic {
+    case class DiceSorensen(nGram: Int) extends NlpHeuristic
+    case object Hamming extends NlpHeuristic
+    case class Jaccard(nGram: Int) extends NlpHeuristic
+    case object Jaro extends NlpHeuristic
+    case object JaroWinkler extends NlpHeuristic
+    case object Levenshtein extends NlpHeuristic
+    case class NGram(nGram: Int) extends NlpHeuristic
+    case class Overlap(nGram: Int) extends NlpHeuristic
+    case object RatcliffObershelp extends NlpHeuristic
+    case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int) extends NlpHeuristic
 }

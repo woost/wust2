@@ -416,7 +416,7 @@ object MainView {
       br(),
       dataImport(state),
       br(),
-      RestructuringTaskGenerator(state),
+      child <-- RestructuringTaskGenerator(state),
       br(),
       channels(state),
     )

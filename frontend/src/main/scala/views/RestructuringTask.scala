@@ -8,22 +8,52 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend.{Client, EventProcessor, GlobalState}
 import wust.frontend.views.Elements._
-import wust.frontend.views.Heuristic._
+import wust.frontend.views.PostHeuristic._
 import wust.frontend.views.Restructure.Posts
-import wust.graph.{Connection, GraphChanges, Post}
+import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
 
 import scala.collection.breakOut
+import scala.concurrent.Future
 
 object Restructure {
   type Posts = List[Post]
 }
 
 sealed trait RestructuringTaskObject {
+  type StrategyResult = Future[List[RestructuringTask]]
+
+  val measureBoundary: Double
+  val postNumber: Option[Int]
+
+  def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): RestructuringTask
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): RestructuringTask
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): RestructuringTask
-  def applyStrategically(posts: Set[Post]): RestructuringTask // Here, the task should choose best fitting posts
+
+  def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType): StrategyResult = {
+    applyWithStrategy(graph, heuristic, postNumber, measureBoundary)
+  }
+  def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType, num: Option[Int]): StrategyResult = {
+    applyWithStrategy(graph, heuristic, num, measureBoundary)
+  }
+
+  // Here, the task should choose best fitting posts
+  def applyStrategically(graph: Graph, num: Option[Int]): StrategyResult = {
+    applyWithStrategy(graph, taskHeuristic, num)
+  }
+
+  def applyStrategically(graph: Graph): StrategyResult = {
+    applyWithStrategy(graph, taskHeuristic, postNumber)
+  }
+
+  def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType, num: Option[Int], measureBoundary: Double): StrategyResult = {
+    val futureTask: Future[List[RestructuringTask]] = heuristic(graph, num).map(taskList => taskList.takeWhile(res => res.measure match {
+      case None => true
+      case Some(measure) => measure > measureBoundary
+      case _ => false
+    }).map( res => apply(res.posts) ))
+    futureTask
+  }
 }
 sealed trait RestructuringTask {
 
@@ -119,7 +149,6 @@ sealed trait YesNoTask extends RestructuringTask
 sealed trait AddTagTask extends RestructuringTask
 {
   def constructComponent(sourcePosts: List[Post], targetPosts: List[Post], sink: Sink[String]): VNode = {
-    RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
     div(
       sourcePosts.map(stylePost)(breakOut): List[VNode],
       targetPosts.map(stylePost)(breakOut): List[VNode],
@@ -140,17 +169,12 @@ sealed trait AddTagTask extends RestructuringTask
 
 // Multiple Post RestructuringTask
 object ConnectPosts extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(2)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): ConnectPosts = new ConnectPosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): ConnectPosts = {
-    apply(heuristic(posts, Some(2)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): ConnectPosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): ConnectPosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(2)))
-  }
 }
 case class ConnectPosts(posts: Posts) extends YesNoTask
 {
@@ -176,17 +200,12 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
 }
 
 object ConnectPostsWithTag extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(2)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): ConnectPostsWithTag = new ConnectPostsWithTag(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): ConnectPostsWithTag = {
-    apply(heuristic(posts, Some(2)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): ConnectPostsWithTag = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): ConnectPostsWithTag = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(2)))
-  }
 }
 case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 {
@@ -204,6 +223,8 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
         Connection(s.id, tag, t.id)
       }
 
+      RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
+
       GraphChanges(
         addConnections = tagConnections.toSet
       )
@@ -219,17 +240,12 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 }
 
 object ContainPosts extends RestructuringTaskObject {
-  def apply(posts: Posts): ContainPosts  = new ContainPosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): ContainPosts = {
-    apply(heuristic(posts, Some(2)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): ContainPosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): ContainPosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(2)))
-  }
+  val measureBoundary = 0.5
+  val postNumber = Some(2)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
+  def apply(posts: Posts): ContainPosts = new ContainPosts(posts)
 }
 case class ContainPosts(posts: Posts) extends YesNoTask
 {
@@ -256,17 +272,12 @@ case class ContainPosts(posts: Posts) extends YesNoTask
 }
 
 object MergePosts extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(2)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): MergePosts = new MergePosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): MergePosts = {
-    apply(heuristic(posts, Some(2)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): MergePosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): MergePosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(2)))
-  }
 }
 case class MergePosts(posts: Posts) extends YesNoTask
 {
@@ -298,17 +309,12 @@ case class MergePosts(posts: Posts) extends YesNoTask
 }
 
 object UnifyPosts extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(2)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): UnifyPosts = new UnifyPosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): UnifyPosts = {
-    apply(heuristic(posts, Some(2)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): UnifyPosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): UnifyPosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(2)))
-  }
 }
 case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as MergePosts
 {
@@ -341,17 +347,12 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
 
 // Single Post RestructuringTask
 object DeletePosts extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(1)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): DeletePosts = new DeletePosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): DeletePosts = {
-    apply(heuristic(posts, Some(1)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): DeletePosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): DeletePosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(1)))
-  }
 }
 case class DeletePosts(posts: Posts) extends YesNoTask
 {
@@ -367,17 +368,12 @@ case class DeletePosts(posts: Posts) extends YesNoTask
 }
 
 object SplitPosts extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(1)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): SplitPosts = new SplitPosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): SplitPosts = {
-    apply(heuristic(posts, Some(1)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): SplitPosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): SplitPosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(1)))
-  }
 }
 case class SplitPosts(posts: Posts) extends RestructuringTask
 {
@@ -456,17 +452,12 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 }
 
 object AddTagToPosts extends RestructuringTaskObject {
+  val measureBoundary = 0.5
+  val postNumber = Some(1)
+
+  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+
   def apply(posts: Posts): AddTagToPosts = new AddTagToPosts(posts)
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic): AddTagToPosts = {
-    apply(heuristic(posts, Some(1)))
-  }
-  def applyWithStrategy(posts: Set[Post], heuristic: PostHeuristic, num: Option[Int]): AddTagToPosts = {
-    apply(heuristic(posts, num))
-  }
-  def applyStrategically(posts: Set[Post]): AddTagToPosts = {
-    def heuristic: PostHeuristic = ChoosePostHeuristic.random
-    apply(heuristic(posts, Some(1)))
-  }
 }
 case class AddTagToPosts(posts: Posts) extends AddTagTask
 {
@@ -478,6 +469,8 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
     state.eventProcessor.changes.redirectMap { (tag: String) =>
       val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now.id))
       val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
+
+      RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
 
       GraphChanges(
         addPosts = Set(tagPost),
@@ -505,30 +498,41 @@ case object RestructuringTaskGenerator {
     AddTagToPosts,
   )
 
-  def apply(globalState: GlobalState): VNode = {
+
+  def apply(globalState: GlobalState): Observable[VNode] = {
+
+    def renderButton: VNode = div(
+      span("Tasks"),
+      fontWeight.bold,
+      fontSize := "20px",
+      marginBottom := "10px",
+      button("Task me!", width := "100%", onClick(true) --> taskDisplay),
+    )
+
     val show = taskDisplay.map(d => {
       DevPrintln(s"display task! ${d.toString}")
       if(d) {
-        composeTask(globalState).render(globalState)
+        div(
+          children <-- Observable.fromFuture(composeTask(globalState).map(_.map(_.render(globalState))))
+        )
+
       } else {
-        renderButton
+          renderButton,
       }
     })
 
-    div(
-      child <-- show,
-    )
+    show
   }
 
   // Currently, we choose a task at random and decide afterwards which heuristic is used
   // But it is also possible to decide a task based on given post metrics
   // Therefore if we can find / define metrics of a discussion, we can choose an
   // applicable task after choosing a post (based on a discussion metric)
-  def composeTask(globalState: GlobalState): RestructuringTask = {
+  def composeTask(globalState: GlobalState): Future[List[RestructuringTask]] = {
 
-    val discussionPosts = globalState.inner.displayGraphWithoutParents.now.graph.posts.toSet
+    val graph = globalState.inner.displayGraphWithoutParents.now.graph
     val task = ChooseTaskHeuristic.random(allTasks)
-    task.applyStrategically(discussionPosts)
+    task.applyStrategically(graph)
 
     // TODO: Different strategies based on choosing order
 //    val finalTask = if(scala.util.Random.nextBoolean) { // First task, then posts
@@ -545,11 +549,4 @@ case object RestructuringTaskGenerator {
 
   val taskDisplay: Handler[Boolean] = Handler.create[Boolean](false).unsafeRunSync()
 
-  def renderButton: VNode = div(
-    span("Tasks"),
-    fontWeight.bold,
-    fontSize := "20px",
-    marginBottom := "10px",
-    button("Task me!", width := "100%", onClick(true) --> taskDisplay),
-  )
 }

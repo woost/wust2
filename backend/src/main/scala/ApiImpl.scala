@@ -210,8 +210,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     } //.map(Returns(_,  NewGraphChanges(GraphChanges(addPosts = postsOfUrl))))
   }
 
-  def chooseTaskPost(posts: List[PostId]): ApiFunction[List[PostId]] = Action.assureDbUser {(_, user) =>
-    Future { PostHeuristics.random(posts) }
+  def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>
+    Future { PostHeuristic(state.graph, heuristic, posts, num) }
   }
 
 }

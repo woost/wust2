@@ -208,6 +208,7 @@ lazy val backend = project
       Deps.javaMail.value ::
       Deps.github4s.value ::
       Deps.gitter.value ::
+      Deps.stringmetric.value ::
       Nil,
 
     javaOptions in reStart += "-Xmx50m"

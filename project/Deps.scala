@@ -75,4 +75,8 @@ object Deps {
   val gitter = dep("com.github.xuwei-k" %% "gitter-scala" % "0.3.0")
   val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
+
+  // NLP
+  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
+  // val stringmetric = dep("io.github.Mnemotix" %% "stringmetric" % "master-SNAPSHOT")
 }
