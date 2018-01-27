@@ -32,14 +32,14 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
     def requireAnyUser[T](f: (State, User) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User](f)(PartialFunction(identity))
     def requireDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Persisted](f) { case u: User.Persisted => u }
 
-    def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireDbUser(f).redirect { state =>
+    def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = ApiFunction.redirect(requireDbUser(f)) { state =>
       val auth = state.auth.userOpt match {
         case Some(user: User.Assumed) => createImplicitAuth(user.id, user.name)
         case _ => Future.successful(None)
       }
 
-      auth.map(auth => Transformation(Seq.empty ++ auth.map(ApiEvent.LoggedIn(_))))
-      // auth.map(auth => Transformation(auth.map(ApiEvent.LoggedIn(_)).toSeq)) //TODO drunk compiler?
+      auth.map(auth => Transforms(Seq.empty ++ auth.map(ApiEvent.LoggedIn(_))))
+      // auth.map(auth => Transforms(auth.map(ApiEvent.LoggedIn(_)).toSeq)) //TODO drunk compiler?
     }
   }
 

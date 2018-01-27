@@ -36,7 +36,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
         val error = ApiError.ProtocolError(slothError.toString)
         Response(state, Future.successful(ReturnValue(Left(error), Seq.empty)))
       case Right(apiFunction) =>
-        val apiResponse = apiFunction(state)
+        val apiResponse = apiFunction.run(state)
         val newState = apiResponse.state
         //.recover(handleUserException andThen Left.apply) //TODO: move to apidsl, not enough here
         val returnValue = apiResponse.value.map { r => ReturnValue(r.result, filterAndDistributeEvents(client)(r.events)) }
