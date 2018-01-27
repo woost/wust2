@@ -20,12 +20,6 @@ object Restructure {
   type Posts = List[Post]
 }
 
-/**
-  * TODO
-  * redifine graph changes for tasks to keep / combine commen properties, e.g.
-  * - merge parents in MergePosts
-  * - keep parents in SplitPosts
-  */
 sealed trait RestructuringTaskObject {
   type StrategyResult = Future[List[RestructuringTask]]
 
@@ -66,6 +60,17 @@ sealed trait RestructuringTask {
   val title: String
   val description: String
   def component(state: GlobalState): VNode
+
+  def getGraphFromState(state: GlobalState): Graph = state.inner.displayGraphWithParents.now.graph
+
+  def transferChildrenAndParents(graph: Graph, source: PostId, target: PostId): Set[Connection] = {
+    val sourceChildren = graph.getChildren(source)
+    val sourceParents = graph.getParents(source)
+    val childrenConnections = sourceChildren.map(child => Connection(child, Label.parent, target))
+    val parentConnections = sourceParents.map(parent => Connection(target, Label.parent, parent))
+
+    childrenConnections ++ parentConnections
+  }
 
   def stylePost(post: Post): VNode = p(
       post.content,
@@ -266,7 +271,6 @@ case class ContainPosts(posts: Posts) extends YesNoTask
         Connection(s.id, Label.parent, target.id)
     }
 
-    // TODO: manage children / parents
     GraphChanges(addConnections = containmentsToAdd.toSet)
   }
 
@@ -291,27 +295,29 @@ case class MergePosts(posts: Posts) extends YesNoTask
   val title = "Merge Posts"
   val description = "Does these posts state the same but in different words? If yes, they will be merged."
 
-  def constructGraphChanges(posts: Posts): GraphChanges = {
+  def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
     val target = posts.head
     val postsToDelete = posts.drop(1)
     val postsToUpdate = for {
-      s <- postsToDelete if s.id != target.id
+      source <- postsToDelete if source.id != target.id
     } yield {
-      mergePosts(target, s)
+      (mergePosts(target, source), transferChildrenAndParents(graph, source.id, target.id))
     }
 
-    // TODO: manage children / parents
-    GraphChanges(updatePosts = postsToUpdate.toSet, delPosts = postsToDelete.map(_.id).toSet)
+    GraphChanges(
+      addConnections = postsToUpdate.flatMap(_._2).toSet,
+      updatePosts = postsToUpdate.map(_._1).toSet,
+      delPosts = postsToDelete.map(_.id).toSet)
   }
 
-  def mergePosts(mergeTarget: Post, post: Post): Post = {
-    mergeTarget.copy(content = mergeTarget.content + "\n" + post.content)
+  def mergePosts(mergeTarget: Post, source: Post): Post = {
+    mergeTarget.copy(content = mergeTarget.content + "\n" + source.content)
   }
 
   def component(state: GlobalState): VNode = {
     constructComponent(state,
       posts,
-      constructGraphChanges(posts)
+      constructGraphChanges(getGraphFromState(state), posts)
     )
   }
 }
@@ -329,19 +335,21 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
   val title = "Unify Posts"
   val description = "Does these posts state the same and are redundant? If yes, they will be unified."
 
-  def constructGraphChanges(posts: Posts): GraphChanges = {
+  def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
     val target = posts.head
     val postsToDelete = posts.drop(1)
     val postsToUpdate = for {
-      s <- posts.drop(1) if s.id != target.id
+      source <- posts.drop(1) if source.id != target.id
     } yield {
-      unifyPosts(target, s)
+      (unifyPosts(target, source), transferChildrenAndParents(graph, source.id, target.id))
     }
 
-    GraphChanges(updatePosts = postsToUpdate.toSet, delPosts = postsToDelete.map(_.id).toSet)
+    GraphChanges(
+      addConnections = postsToUpdate.flatMap(_._2).toSet,
+      updatePosts = postsToUpdate.map(_._1).toSet,
+      delPosts = postsToDelete.map(_.id).toSet)
   }
 
-  // TODO: manage children / parents
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
     unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
   }
@@ -349,7 +357,7 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
   def component(state: GlobalState): VNode = {
     constructComponent(state,
       posts,
-      constructGraphChanges(posts)
+      constructGraphChanges(getGraphFromState(state), posts)
     )
   }
 }
@@ -415,14 +423,14 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     List(before, middle, after).flatten
   }
 
-  def generateGraphChanges(originalPosts: List[Post], posts: List[Post], state: GlobalState): GraphChanges = {
+  def generateGraphChanges(originalPosts: List[Post], posts: List[Post], graph: Graph): GraphChanges = {
 
-    // TODO: manage children / parents
+    val keepRelatives = originalPosts.flatMap(originalPost => posts.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
     val newConnections = originalPosts.flatMap(originalPost => posts.map(p => Connection(p.id, "splitFrom", originalPost.id))).toSet
     val newPosts = originalPosts.flatMap(originalPost => posts.filter(_.id != originalPost.id)).toSet
     GraphChanges(
       addPosts = newPosts,
-      addConnections = newConnections,
+      addConnections = newConnections ++ keepRelatives,
       delPosts = originalPosts.map(_.id).toSet,
     )
   }
@@ -451,7 +459,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         width := "100%",
       ),
       button("Confirm",
-        onClick(postPreview).map(generateGraphChanges(splitPost, _, state)) --> state.eventProcessor.enriched.changes,
+        onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> state.eventProcessor.enriched.changes,
         onClick(true) --> RestructuringTaskGenerator.taskDisplay,
       ),
       button("Abort",
