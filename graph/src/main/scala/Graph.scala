@@ -118,6 +118,10 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   // There are cases where the key is not present and cases where the set is empty
   def hasChildren(post: PostId): Boolean = children.contains(post) && children(post).nonEmpty
   def hasParents(post: PostId): Boolean = parents.contains(post) && parents(post).nonEmpty
+  def getChildren(postId: PostId): Set[PostId] = if(children.contains(postId)) children(postId) else Set.empty[PostId]
+  def getParents(postId: PostId): Set[PostId] = if(parents.contains(postId)) parents(postId) else Set.empty[PostId]
+  def getChildrenOpt(postId: PostId): Option[Set[PostId]] = if(hasChildren(postId)) Some(children(postId)) else None
+  def getParentsOpt(postId: PostId): Option[Set[PostId]] = if(hasParents(postId)) Some(parents(postId)) else None
 
   // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
   // that's why the need default values from connectionDefaultNeighbourhood
