@@ -77,6 +77,6 @@ object Deps {
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
 
   // NLP
-  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
-  // val stringmetric = dep("io.github.Mnemotix" %% "stringmetric" % "master-SNAPSHOT")
+  val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
+  //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
 }
