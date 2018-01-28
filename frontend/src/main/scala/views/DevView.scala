@@ -2,13 +2,13 @@ package wust.frontend.views
 
 import boopickle.Default._
 import org.scalajs.dom.document
-import org.scalajs.dom.raw.{HTMLInputElement, HTMLElement}
+import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import wust.api._
 import wust.frontend.{Client, GlobalState}
 import wust.graph._
 import wust.ids._
 
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 import scala.concurrent.duration.{span => _, _}
 import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 import org.scalajs.dom.{Event, console}
@@ -53,7 +53,8 @@ object DevView {
 
 
   import scala.util.Random.{nextInt => rInt}
-  def rStr = Array.fill(1 + rInt(5))(scala.util.Random.alphanumeric.take(3 + rInt(6)).mkString).mkString(" ")
+  def rWord = scala.util.Random.alphanumeric.take(3 + rInt(6)).mkString
+  def rSentence = Array.fill(1 + rInt(5))(rWord).mkString(" ")
 
   val apiEvents = Var[List[ApiEvent]](Nil)
 
@@ -92,8 +93,8 @@ object DevView {
 //          ).render
 //        },
         child <-- Rx {
-          def addRandomPost(count: Int) {
-            val newPosts = List.fill(count)(Post(PostId.fresh, content = rStr, state.inner.currentUser.now.id)).toSet
+          def addRandomPost(count: Int):Unit = {
+            val newPosts = List.fill(count)(Post(PostId.fresh, content = rSentence, state.inner.currentUser.now.id)).toSet
             val changes = GraphChanges(addPosts = newPosts)
             state.eventProcessor.enriched.changes.unsafeOnNext(changes)
           }
@@ -108,7 +109,7 @@ object DevView {
         child <-- Rx {
           val posts = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.postIds.toSeq)
 
-          def deletePost(ids: Seq[PostId]) {
+          def deletePost(ids: Seq[PostId]):Unit = {
             state.eventProcessor.changes.unsafeOnNext(GraphChanges(delPosts = ids.toSet))
           }
 
@@ -117,6 +118,59 @@ object DevView {
             button("1", onClick --> sideEffect { deletePost(posts.take(1)) }),
             button("10", onClick --> sideEffect { deletePost(posts.take(10)) }),
             button("100", onClick --> sideEffect { deletePost(posts.take(100)) })
+          )
+        }.toObservable,
+        child <-- Rx {
+          val posts = state.inner.displayGraphWithoutParents().graph.postIds.toArray
+          def randomConnection = Connection(posts(rInt(posts.length)), Label(rWord), posts(rInt(posts.length)))
+
+          def connect(_count:Int):Unit = {
+            if(posts.length > 1) {
+              val count = _count min ((posts.length * posts.length - 1) / 2)
+              val selected = mutable.HashSet.empty[Connection]
+              while (selected.size < count) {
+                selected += randomConnection
+              }
+
+              state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = selected.toSet))
+            }
+          }
+
+          div(
+            "connect: ",
+            button("1", onClick --> sideEffect { connect(1) }),
+            button("10", onClick --> sideEffect {connect(10)}),
+            button("100", onClick --> sideEffect {connect(100)})
+          )
+        }.toObservable,
+        child <-- Rx {
+          val posts = state.inner.displayGraphWithoutParents().graph.postIds.toArray
+          def randomConnection = Connection(posts(rInt(posts.length)), Label.parent, posts(rInt(posts.length)))
+
+          def contain(count:Int):Unit = {
+            state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = Array.fill(count)(randomConnection).toSet))
+          }
+
+          div(
+            "contain: ",
+            button("1", onClick --> sideEffect { contain(1) }),
+            button("10", onClick --> sideEffect {contain(10)}),
+            button("100", onClick --> sideEffect {contain(100)})
+          )
+        }.toObservable,
+        child <-- Rx {
+          val connections = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.connections.toSeq)
+          println("CONN"+connections.size)
+
+          def disconnect(count:Int):Unit = {
+            state.eventProcessor.changes.unsafeOnNext(GraphChanges(delConnections = connections.take(count).toSet))
+          }
+
+          div(
+            "disconnect: ",
+            button("1", onClick --> sideEffect { disconnect(1) }),
+            button("10", onClick --> sideEffect {disconnect(10)}),
+            button("100", onClick --> sideEffect {disconnect(100)})
           )
         }.toObservable,
         //        div(
