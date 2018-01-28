@@ -2,8 +2,8 @@ package wust.frontend
 
 import wust.api._
 import wust.ids._
-import wust.frontend.Client
 import wust.frontend.PostHeuristic._
+import wust.frontend.Restructure._
 import wust.graph.{Graph, Post}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,7 +41,7 @@ object PostHeuristic {
 
       val choice = f(posts.toList)
       num match {
-        case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(n)
+        case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(math.abs(n))
         case None => choice
       }
     }
@@ -52,7 +52,7 @@ object PostHeuristic {
 
       val choice = f(posts.toList)
       num match {
-        case Some(n) => if (n > 0) choice.map(_.take(n)) else choice.map(_.reverse.take(n))
+        case Some(n) => if (n > 0) choice.map(_.take(n)) else choice.map(_.reverse.take(math.abs(n)))
         case None => choice
       }
     }
@@ -133,7 +133,7 @@ object PostHeuristic {
 
       val choice = f(graph)
       num match {
-        case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(n)
+        case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(math.abs(n))
         case None => choice
       }
     }
@@ -165,7 +165,7 @@ object PostHeuristic {
 
       num match {
         case Some(n) => choice.map(_.map(r => Heuristic.PostResult(r.measure, {
-          if (n > 0) r.posts.take(n) else r.posts.reverse.take(n)
+          if (n > 0) r.posts.take(n) else r.posts.reverse.take(math.abs(n))
         })))
         case None => choice
       }
@@ -230,5 +230,18 @@ object PostHeuristic {
 }
 
 object ChoosePostHeuristic {
+  // Normalize weights between 0.0 and 1.0. Get random value between 0.0 and 1.0.
+  // Take corresponding heuristic ordered between 0.0 and 1.0
+  def choose(heuristics: List[HeuristicParameters]): HeuristicParameters =  {
+    val totalWeight = heuristics.foldLeft(0.0)(_ + _.probability)
+    val normalizedHeuristics = heuristics.map(h => h.copy(probability = h.probability / totalWeight))
+        .scan(HeuristicParameters(0.0))((h1, h2) => h2.copy(probability = h1.probability + h2.probability)).drop(1)
+    val r = scala.util.Random.nextDouble
+    println(s"heuristics: $heuristics")
+    println(s"normalized heuristics: $normalizedHeuristics")
+    println(s"random: $r")
+    val choice = normalizedHeuristics.filter(h => h.probability >= r).head
+    choice
+  }
 
 }

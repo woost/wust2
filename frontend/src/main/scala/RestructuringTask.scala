@@ -1,14 +1,13 @@
 package wust.frontend
 
 import wust.util.outwatchHelpers._
-import wust.frontend.DevPrintln
 import org.scalajs.dom
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.frontend.views.Elements._
 import wust.frontend.PostHeuristic._
-import wust.frontend.Restructure.Posts
+import wust.frontend.Restructure._
 import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
 
@@ -17,38 +16,40 @@ import scala.concurrent.Future
 
 object Restructure {
   type Posts = List[Post]
+  type Probability = Double
+  case class HeuristicParameters(probability: Probability, heuristic: PostHeuristicType = PostHeuristic.Random.heuristic, measureBoundary: Option[Double] = None, numMaxPosts: Option[Int] = None)
 }
 
 sealed trait RestructuringTaskObject {
   type StrategyResult = Future[List[RestructuringTask]]
 
-  val measureBoundary: Double
-  val postNumber: Option[Int]
+  val measureBoundary: Option[Double]
+  val numMaxPosts: Option[Int]
 
   def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
 
   def apply(posts: Posts): RestructuringTask
 
   def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType): StrategyResult = {
-    applyWithStrategy(graph, heuristic, postNumber, measureBoundary)
+    applyWithStrategy(graph, heuristic, numMaxPosts, measureBoundary)
   }
   def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType, num: Option[Int]): StrategyResult = {
     applyWithStrategy(graph, heuristic, num, measureBoundary)
   }
 
   // Here, the task should choose best fitting posts
-  def applyStrategically(graph: Graph, num: Option[Int]): StrategyResult = {
-    applyWithStrategy(graph, taskHeuristic, num)
+  def applyStrategically(graph: Graph, numMaxPosts: Option[Int]): StrategyResult = {
+    applyWithStrategy(graph, taskHeuristic, numMaxPosts)
   }
 
   def applyStrategically(graph: Graph): StrategyResult = {
-    applyWithStrategy(graph, taskHeuristic, postNumber)
+    applyWithStrategy(graph, taskHeuristic, numMaxPosts)
   }
 
-  def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType, num: Option[Int], measureBoundary: Double): StrategyResult = {
-    val futureTask: Future[List[RestructuringTask]] = heuristic(graph, num).map(taskList => taskList.takeWhile(res => res.measure match {
+  def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType, numMaxPosts: Option[Int], measureBoundary: Option[Double]): StrategyResult = {
+    val futureTask: Future[List[RestructuringTask]] = heuristic(graph, numMaxPosts).map(taskList => taskList.takeWhile(res => res.measure match {
       case None => true
-      case Some(measure) => measure > measureBoundary
+      case Some(measure) => measure > measureBoundary.getOrElse(0.0)
       case _ => false
     }).map( res => apply(res.posts) ))
     futureTask
@@ -179,17 +180,29 @@ sealed trait AddTagTask extends RestructuringTask
 
 // Multiple Post RestructuringTask
 object ConnectPosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(2)
+  private val defaultMeasureBoundary = Some(0.5)
+  private val defaultNumMaxPosts = Some(2)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(2,  PostHeuristic.Jaccard(2).heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): ConnectPosts = new ConnectPosts(posts)
 }
 case class ConnectPosts(posts: Posts) extends YesNoTask
 {
-  val title = "Connect Posts"
-  val description = "Is the first post related to the other posts?"
+  val title = "Connect posts"
+  val description = "Is the first post related to the other post(s)?"
 
   def constructGraphChanges(posts: Posts): GraphChanges = {
     val source = posts.head
@@ -210,17 +223,29 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
 }
 
 object ConnectPostsWithTag extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(2)
+  private val defaultMeasureBoundary = Some(0.5)
+  private val defaultNumMaxPosts = Some(2)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(2,  PostHeuristic.Jaccard(2).heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): ConnectPostsWithTag = new ConnectPostsWithTag(posts)
 }
 case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 {
-  val title = "Connect Posts with tag"
-  val description = "How would you describe the relation between the first post and the others? Tag it!"
+  val title = "Connect posts with tag"
+  val description = "How would you describe the relation between the first post and the second / others? Tag it!"
 
   def tagConnection(sourcePosts: List[Post],
     targetPosts: List[Post],
@@ -250,17 +275,29 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 }
 
 object ContainPosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(2)
+  private val defaultMeasureBoundary = None
+  private val defaultNumMaxPosts = Some(2)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(1,  PostHeuristic.Jaccard(2).heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(3,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): ContainPosts = new ContainPosts(posts)
 }
 case class ContainPosts(posts: Posts) extends YesNoTask
 {
   val title = "Contain Posts"
-  val description = "Is the first post a topic description of the others?"
+  val description = "Is the first post a topic description of the second / others?"
 
   def constructGraphChanges(posts: Posts): GraphChanges = {
     val target = posts.head
@@ -282,10 +319,22 @@ case class ContainPosts(posts: Posts) extends YesNoTask
 }
 
 object MergePosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(2)
+  private val defaultMeasureBoundary = Some(0.9)
+  private val defaultNumMaxPosts = Some(2)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(2,  PostHeuristic.Jaccard(2).heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): MergePosts = new MergePosts(posts)
 }
@@ -322,10 +371,22 @@ case class MergePosts(posts: Posts) extends YesNoTask
 }
 
 object UnifyPosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(2)
+  private val defaultMeasureBoundary = Some(0.9)
+  private val defaultNumMaxPosts = Some(2)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(2,  PostHeuristic.Jaccard(2).heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): UnifyPosts = new UnifyPosts(posts)
 }
@@ -363,10 +424,20 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
 
 // Single Post RestructuringTask
 object DeletePosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(1)
+  private val defaultMeasureBoundary = None
+  private val defaultNumMaxPosts = Some(-1)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(1,  PostHeuristic.Random.heuristic,     defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic, None,                   defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,  None,                   defaultNumMaxPosts)
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): DeletePosts = new DeletePosts(posts)
 }
@@ -384,10 +455,21 @@ case class DeletePosts(posts: Posts) extends YesNoTask
 }
 
 object SplitPosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(1)
+  private val defaultMeasureBoundary = None
+  private val defaultNumMaxPosts = Some(1)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(2,  PostHeuristic.MaxPostSize.heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.Random.heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,   defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,    defaultMeasureBoundary, defaultNumMaxPosts),
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): SplitPosts = new SplitPosts(posts)
 }
@@ -469,10 +551,19 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 }
 
 object AddTagToPosts extends RestructuringTaskObject {
-  val measureBoundary = 0.5
-  val postNumber = Some(1)
+  private val defaultMeasureBoundary = None
+  private val defaultNumMaxPosts = Some(1)
 
-  override def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  private val possibleHeuristics: List[HeuristicParameters] = List(
+    HeuristicParameters(1,  PostHeuristic.Random.heuristic,     defaultMeasureBoundary, defaultNumMaxPosts),
+    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+  )
+
+  private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
+
+  override val measureBoundary: Option[Probability] = heuristicParam.measureBoundary
+  override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
+  override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
   def apply(posts: Posts): AddTagToPosts = new AddTagToPosts(posts)
 }

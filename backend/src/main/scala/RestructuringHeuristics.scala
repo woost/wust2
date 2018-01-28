@@ -36,7 +36,7 @@ case object PostHeuristic {
 
     val choice = f(posts)
     num match {
-      case Some(n) => choice.take(n)
+      case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(math.abs(n))
       case None => choice
     }
   }
