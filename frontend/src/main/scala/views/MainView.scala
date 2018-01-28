@@ -1,5 +1,6 @@
 package wust.frontend.views
 
+import wust.frontend.DevOnly
 import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -10,6 +11,7 @@ import wust.frontend.views.graphview.GraphView
 import wust.util.Analytics
 import wust.util.outwatchHelpers._
 import wust.frontend.RestructuringTaskGenerator
+import outwatch.dom.dsl.styles.extra._
 
 object MainView {
 
@@ -191,33 +193,6 @@ object MainView {
     //   }
     // )
   }
-
-  //def devPeek(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-  //  val show = Var(false)
-  //  val activeDisplay = display := show.map(if (_) "block" else "none")
-  //  val inactiveDisplay = display := show.map(if (_) "none" else "block")
-
-  //  val baseDiv = div(position.fixed, top := 100, right := 0, boxSizing.`border-box`,
-  //    padding := "5px", backgroundColor := "rgba(248,240,255,0.95)", border := "1px solid #ECD7FF")
-
-  //  div(
-  //    baseDiv(
-  //      inactiveDisplay,
-  //      "DevView",
-  //      css("transform") := "rotate(-90deg) translate(0,-100%)",
-  //      css("transform-origin") := "100% 0",
-  //      borderBottom := "none",
-  //      cursor.pointer,
-  //      onclick := { () => show() = true }
-  //    ),
-  //    baseDiv(
-  //      activeDisplay,
-  //      div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
-  //      DevView(state),
-  //      borderRight := "none"
-  //    )
-  //  )
-  //}
 
   //def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
   //  val lockToGroup = state.viewConfig.now.lockToGroup
@@ -468,14 +443,17 @@ object MainView {
 
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner) = {
     div(
-      id := "pagegrid",
+      height := "100%",
+      div(
+        id := "pagegrid",
 
-      sidebar(state),
-      ChatView(state),
-      new GraphView().apply(state),
+        sidebar(state),
+        ChatView(state),
+        new GraphView().apply(state)
+      ),
 
       // feedbackForm (state),
-      // DevOnly { devPeek(state) },
+      DevOnly { DevView.devPeek(state) },
       // DevOnly { DevView.jsError(state) }
     )
   }
