@@ -1,6 +1,7 @@
 package wust.graph
 import derive.derive
 import wust.ids._
+import collection.breakOut
 
 sealed trait Page {
   def add(parentId: PostId): Page
@@ -27,7 +28,7 @@ object Page {
 
   def toParentConnections(page: Page, postId: PostId): Seq[Connection] = {
     page match {
-      case Page.Union(parentIds) => parentIds.toSeq.map(Connection(postId, Label.parent, _))
+      case Page.Union(parentIds) => parentIds.map(Connection(postId, Label.parent, _))(breakOut)
       case _                               => Seq.empty
     }
   }
