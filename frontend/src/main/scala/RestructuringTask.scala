@@ -1,4 +1,4 @@
-package wust.frontend.views
+package wust.frontend
 
 import wust.util.outwatchHelpers._
 import wust.frontend.DevPrintln
@@ -6,10 +6,9 @@ import org.scalajs.dom
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.frontend.{Client, EventProcessor, GlobalState}
 import wust.frontend.views.Elements._
-import wust.frontend.views.PostHeuristic._
-import wust.frontend.views.Restructure.Posts
+import wust.frontend.PostHeuristic._
+import wust.frontend.Restructure.Posts
 import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
 
@@ -165,7 +164,7 @@ sealed trait AddTagTask extends RestructuringTask
       targetPosts.map(stylePost)(breakOut): List[VNode],
       div(
         textAreaWithEnter(sink)(
-          Placeholders.newTag,
+          views.Placeholders.newTag,
           flex := "0 0 3em",
         ),
         button("Abort", onClick(true) --> RestructuringTaskGenerator.taskDisplay),

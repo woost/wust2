@@ -9,6 +9,7 @@ import wust.frontend.{Client, GlobalState}
 import wust.frontend.views.graphview.GraphView
 import wust.util.Analytics
 import wust.util.outwatchHelpers._
+import wust.frontend.RestructuringTaskGenerator
 
 object MainView {
 

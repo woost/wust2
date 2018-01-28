@@ -1,9 +1,9 @@
-package wust.frontend.views
+package wust.frontend
 
 import wust.api._
 import wust.ids._
 import wust.frontend.Client
-import wust.frontend.views.PostHeuristic._
+import wust.frontend.PostHeuristic._
 import wust.graph.{Graph, Post}
 
 import scala.concurrent.ExecutionContext.Implicits.global
