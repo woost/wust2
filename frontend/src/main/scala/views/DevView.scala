@@ -53,7 +53,7 @@ object DevView {
 
 
   import scala.util.Random.{nextInt => rInt}
-  def rStr = Array.fill(rInt(6))(scala.util.Random.alphanumeric.take(3 + rInt(6)).mkString).mkString(" ")
+  def rStr = Array.fill(1 + rInt(5))(scala.util.Random.alphanumeric.take(3 + rInt(6)).mkString).mkString(" ")
 
   val apiEvents = Var[List[ApiEvent]](Nil)
 
