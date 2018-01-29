@@ -435,8 +435,8 @@ object MainView {
       fontSize := "20px",
       marginBottom := "10px",
       input(tpe := "text", width:= "100%", onInput.value --> urlImporter),
-      button("GitHub Issue", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGithubUrl(url))),
-//      button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGitterUrl(url))),
+      button("GitHub", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGithubUrl(url))),
+      button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGitterUrl(url))),
     )
   }
 

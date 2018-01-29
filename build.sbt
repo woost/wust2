@@ -12,7 +12,7 @@ import Def.{setting => dep}
 lazy val commonSettings = Seq(
   resolvers ++= (
     /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
-    /* Resolver.jcenterRepo :: */
+    Resolver.jcenterRepo ::
     ("jitpack" at "https://jitpack.io") ::
     Nil
   ),
@@ -207,7 +207,7 @@ lazy val backend = project
       Deps.jbcrypt.value ::
       Deps.javaMail.value ::
       Deps.github4s.value ::
-      Deps.gitter.value ::
+      Deps.gitterSync.value ::
       Deps.stringmetric.value ::
       Nil,
 

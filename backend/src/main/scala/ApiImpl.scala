@@ -194,14 +194,17 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
     // TODO: Reuse graph changes instead
-    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
-    val messages = GitterImporter.getMessages()
-    val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-      for {
-        true <- db.post.createPublic(postsOfUrl)
-      } yield true
-
+//    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
+    val result: Future[Boolean] = postsOfUrl.flatMap { case (posts, connections) =>
+      db.ctx.transaction { implicit ec =>
+        for {
+          true <- db.post.createPublic(posts)
+          true <- db.connection(connections)
+        } yield true
+      }
     }
+
     result.recover {
       case NonFatal(t) =>
         scribe.error(s"unexpected error in import")

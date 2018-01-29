@@ -2,11 +2,6 @@ package wust.backend
 
 import java.time.{Instant, ZoneId}
 
-import github4s.Github
-import github4s.Github._
-import github4s.GithubResponses.GHResult
-import github4s.free.domain.{Comment, Issue, User => GHUser}
-import gitter.Gitter
 import wust.graph.{Connection, Post, User}
 import wust.ids._
 
@@ -15,9 +10,13 @@ import scala.concurrent.Future
 import scalaj.http.HttpResponse
 
 object GitHubImporter {
+  import github4s.Github
+  import github4s.Github._
+  import github4s.GithubResponses.GHResult
+  import github4s.free.domain.{Comment, Issue, User => GHUser}
   import github4s.jvm.Implicits._
 
-  val gitAccessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
+  private val gitAccessToken = sys.env.get("GITHUB4S_ACCESS_TOKEN")
 
   def urlExtractor(url: String): (String, String, Option[Int]) = {
 
@@ -88,7 +87,7 @@ object GitHubImporter {
         val issue = issueData._1
         val commentsList = issueData._2
 
-        //TODOwhat about this userid?
+        //TODO what about this userid?
         val userId = UserId(issue.user match {
           case None => ???
           case Some(githubUser: GHUser) => githubUser.id.toString
@@ -123,40 +122,36 @@ object GitHubImporter {
 
   }
 
-  // def importGithubUrl(url: String): Future[Boolean] = withUserOrImplicit { (_, user, _) =>
-
-  //   // TODO: Reuse graph changes instead
-  //   val (owner, repo, issueNumber) = urlExtractor(url)
-  //   val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNum)
-  //   val result: Future[Boolean] = postsOfUrl.flatMap { case (posts, connections) =>
-  //     db.ctx.transaction { implicit ec =>
-  //       for {
-  //         true <- db.post.createPublic(posts)
-  //         true <- db.connection(connections)
-  //       } yield true
-  //     }
-  //   }
-
-  //   result.recover {
-  //     case NonFatal(t) =>
-  //       scribe.error(s"unexpected error in import")
-  //       scribe.error(t)
-  //       false
-  //   }//.map(respondWithEventsIfToAllButMe(_, NewGraphChanges(GraphChanges(addPosts = postsOfUrl)))) //<-- not working for import
-
-  // }
-
 }
 
- object GitterImporter {
-     def getMessages(roomId: String = "5a2c177dd73408ce4f828d9d") = {
-       //        val res: FreeF[IList[Message]] = Gitter.messages(roomId)
-       //        val res = Gitter.messages(roomId)
-       println(Gitter.messages(roomId))
-       "Messages"
-       //        for {
-       //          msgList <- res
-       //        } yield println(msgList.toString())
-     }
- }
+object GitterImporter {
+  import scala.collection.JavaConverters._
+  import com.amatkivskiy.gitter.sdk.sync.client.SyncGitterApiClient
 
+  private val gitterAccessToken = sys.env.getOrElse("GITTER_ACCESS_TOKEN", "")
+
+  def getRoomMessages(url: String, user: User): Future[(Set[Post], Set[Connection])] = {
+    val _url = url.stripLineEnd.stripMargin.trim.stripPrefix("https://").stripPrefix("http://").stripPrefix("gitter.im/").stripSuffix("/")
+    val tempUserId = user.id
+    val client: SyncGitterApiClient = new SyncGitterApiClient.Builder().withAccountToken(gitterAccessToken).build()
+
+    val discussion = Post(PostId.fresh, _url, tempUserId)
+    val postsAndConnection = for {
+      roomId <- Future { client.getRoomIdByUri(_url).id }
+      roomMessages <- Future { client.getRoomMessages(roomId).asScala.toList }
+    } yield {
+      roomMessages.map { message =>
+        //TODO what about this userid?
+        // val post = Post(PostId.fresh, message.text, message.fromUser.id)
+        val post = Post(PostId.fresh, message.text, tempUserId)
+        val conn = Connection(post.id, Label.parent, discussion.id)
+        (Set(post), Set(conn))
+      }.toSet
+    }
+
+    postsAndConnection.map(zipped => {
+      val (posts, conns) = zipped.unzip
+      (posts.flatten + discussion, conns.flatten)
+    })
+  }
+}
