@@ -1,4 +1,4 @@
-package wust.slack
+package wust.gitter
 
 import derive.derive
 
@@ -10,5 +10,5 @@ object Config {
   import pureconfig._
   import wust.util.Config._
 
-  def load = loadConfig[Config]("wust.slack")
+  def load = loadConfig[Config]("wust.gitter")
 }

@@ -30,3 +30,10 @@ services:
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: "wust"
+  gitter-app:
+    image: woost/wust2.gitter-app
+    environment:
+      WUST_SLACK_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production
+      WUST_USER: ${WUST_USER}
+      WUST_PASSWORD: ${WUST_PASSWORD}
+      WUST_HOSTNAME: "wust"

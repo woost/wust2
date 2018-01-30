@@ -36,3 +36,10 @@ services:
       service: slack-app
     depends_on:
       - wust
+  gitter-app:
+    # restart: on-failure
+    extends:
+      file: services.yml
+      service: gitter-app
+    depends_on:
+      - wust

@@ -2,7 +2,7 @@ name := "wust"
 
 // docker versions do not allow '+'
 version in ThisBuild ~= (_.replace('+', '-'))
- dynver in ThisBuild ~= (_.replace('+', '-'))
+dynver in ThisBuild ~= (_.replace('+', '-'))
 
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
@@ -79,7 +79,7 @@ lazy val sourceMapSettings = Seq(
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp)
+  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp, gitterApp)
   .settings(
     publish := {},
     publishLocal := {},
@@ -95,13 +95,13 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; frontend/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test; gitterApp/test"),
 
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
     // watchSources := Seq(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value
   )
 
 lazy val util = crossProject
@@ -277,6 +277,15 @@ lazy val slackApp = project
   .settings(
     libraryDependencies ++=
       Deps.slackClient.value ::
+        Nil
+  )
+
+lazy val gitterApp = project
+  .settings(commonSettings)
+  .dependsOn(sdkJVM, apiJVM, utilJVM)
+  .settings(
+    libraryDependencies ++=
+      Deps.gitterClient.value ::
       Nil
   )
 
