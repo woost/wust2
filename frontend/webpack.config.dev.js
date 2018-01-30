@@ -33,6 +33,7 @@ module.exports.devServer = {
             ws: true
         }
     ]
+    // ,compress: true
 };
 
 module.exports.plugins = [
