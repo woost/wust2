@@ -21,7 +21,11 @@ object GitHubImporter {
   def urlExtractor(url: String): (String, String, Option[Int]) = {
 
     println("Extracting url")
-    val _url = url.stripLineEnd.stripMargin.trim.stripPrefix("https://").stripPrefix("http://").stripPrefix("github.com/").stripSuffix("/")
+    val _url = url.stripLineEnd.stripMargin.trim.
+      stripPrefix("https://").
+      stripPrefix("http://").
+      stripPrefix("github.com/").
+      stripSuffix("/")
     val numEndPattern = "issues/[0-9]+$".r
     val issueNumGiven = numEndPattern.findFirstIn(_url).getOrElse("/").split("/")
     val issueNum = if (issueNumGiven.isEmpty) None else Some(issueNumGiven(1).toInt)
@@ -39,7 +43,7 @@ object GitHubImporter {
     val emptyResult = (Set.empty[Post], Set.empty[Connection])
 
     // TODO: Deduplication
-    def getSingleIssue(number: Int): Future[List[Issue]] = 
+    def getSingleIssue(number: Int): Future[List[Issue]] =
       Github(gitAccessToken).issues.getIssue(owner, repo, number)
         .execFuture[HttpResponse[String]]()
         .map( response => response match {
@@ -131,7 +135,12 @@ object GitterImporter {
   private val gitterAccessToken = sys.env.getOrElse("GITTER_ACCESS_TOKEN", "")
 
   def getRoomMessages(url: String, user: User): Future[(Set[Post], Set[Connection])] = {
-    val _url = url.stripLineEnd.stripMargin.trim.stripPrefix("https://").stripPrefix("http://").stripPrefix("gitter.im/").stripSuffix("/")
+    val _url = url.stripLineEnd.stripMargin.trim.
+      stripPrefix("https://").
+      stripPrefix("http://").
+      stripPrefix("gitter.im/").
+      takeWhile(_ != '?').
+      stripSuffix("/")
     val tempUserId = user.id
     val client: SyncGitterApiClient = new SyncGitterApiClient.Builder().withAccountToken(gitterAccessToken).build()
 
