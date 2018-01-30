@@ -132,7 +132,7 @@ object GitterImporter {
   import scala.collection.JavaConverters._
   import com.amatkivskiy.gitter.sdk.sync.client.SyncGitterApiClient
 
-  private val gitterAccessToken = sys.env.getOrElse("GITTER_ACCESS_TOKEN", "")
+  private val gitterAccessToken = sys.env.getOrElse("WUST_GITTER_TOKEN", "")
 
   def getRoomMessages(url: String, user: User): Future[(Set[Post], Set[Connection])] = {
     val _url = url.stripLineEnd.stripMargin.trim.
