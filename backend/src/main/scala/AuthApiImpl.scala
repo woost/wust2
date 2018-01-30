@@ -60,7 +60,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
             db.user
               .mergeImplicitUser(prevUserId, user.id)
               .map(if (_) Some(jwt.generateAuthentication(user)) else None)
-          case _ => Future.successful(None)
+          case _ => Future.successful(Some(jwt.generateAuthentication(user)))
         }
 
       case _ => Future.successful(None)
