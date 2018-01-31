@@ -12,7 +12,7 @@ import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
 
 import scala.collection.breakOut
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 object Restructure {
   type Posts = List[Post]
@@ -639,21 +639,43 @@ case object RestructuringTaskGenerator {
   // applicable task after choosing a post (based on a discussion metric)
   def composeTask(globalState: GlobalState): Future[List[RestructuringTask]] = {
 
-    val graph = globalState.inner.displayGraphWithoutParents.now.graph
-    val task = ChooseTaskHeuristic.random(allTasks)
-    task.applyStrategically(graph)
+    def compose = {
+      val graph = globalState.inner.displayGraphWithoutParents.now.graph
+      val task = ChooseTaskHeuristic.random(allTasks)
+      task.applyStrategically(graph)
+    }
+
+    import scala.scalajs.js.timers.setTimeout
+    val syncronisationFuture = {
+      val p = Promise[Boolean]
+      setTimeout(1000) {
+        p.success(true)
+      }
+      p.future
+    }
+
+    for {
+      _ <- syncronisationFuture
+      t <- compose
+    } yield {
+      t
+    }
+
+    //      val graph = globalState.inner.displayGraphWithoutParents.now.graph
+    //      val task = ChooseTaskHeuristic.random(allTasks)
+    //      task.applyStrategically(graph)
 
     // TODO: Different strategies based on choosing order
-//    val finalTask = if(scala.util.Random.nextBoolean) { // First task, then posts
-//      val task = ChooseTaskHeuristic.random(allTasks)
-//      task.applyStrategically(discussionPosts)
-//    } else {// First posts, then task
-//      // TODO: Choose tasks strategically based on metrics
-//      val posts = ChoosePostHeuristic.random(discussionPosts)
-//      val task = ChooseTaskHeuristic.random(allTasks)
-//      task(posts)
-//    }
-//    finalTask
+    //    val finalTask = if(scala.util.Random.nextBoolean) { // First task, then posts
+    //      val task = ChooseTaskHeuristic.random(allTasks)
+    //      task.applyStrategically(discussionPosts)
+    //    } else {// First posts, then task
+    //      // TODO: Choose tasks strategically based on metrics
+    //      val posts = ChoosePostHeuristic.random(discussionPosts)
+    //      val task = ChooseTaskHeuristic.random(allTasks)
+    //      task(posts)
+    //    }
+    //    finalTask
   }
 
 }
