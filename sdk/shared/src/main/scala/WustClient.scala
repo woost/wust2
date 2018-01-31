@@ -28,7 +28,7 @@ private[sdk] object WustClientFactory {
 
   def apply(location: String, handler: IncidentHandler[ApiEvent], connection: WebsocketConnection[ByteBuffer])(implicit ec: ExecutionContext): WustClient = {
     val config = ClientConfig(requestTimeoutMillis = 60 * 1000)
-    val client = WebsocketClient[ByteBuffer, ApiEvent, ApiError](connection, config, handler)
+    val client = WebsocketClient[ByteBuffer, ApiEvent, ApiError](connection.withPing[ByteBuffer](100000), config, handler)
     val ws = Client[ByteBuffer, Future](client)
 
     client.run(location)
