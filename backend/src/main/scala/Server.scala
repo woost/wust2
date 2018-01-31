@@ -12,9 +12,9 @@ import wust.backend.config.Config
 import wust.db.Db
 import sloth.core._
 import sloth.mycelium._
-import sloth.boopickle._
 import sloth.server.{Server => SlothServer, _}
 import mycelium.server._
+import chameleon.boopickle._
 import wust.util.{ Pipe, RichFuture }
 import cats.implicits._
 
@@ -50,19 +50,20 @@ object Server {
     }
   }
 
-  private def websocketServer(config: Config)(implicit ec: ExecutionContext, system: ActorSystem) = {
+  private def websocketServer(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) = {
     import DbConversions._
+    import system.dispatcher
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = new GuardDsl(jwt, db)
 
     val server = SlothServer[ByteBuffer, ApiFunction]
-    val api = server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) or
+    val api = server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) orElse
               server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
 
     val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api)
-    val serverConfig = ServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
+    val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
     WebsocketServer(serverConfig, requestHandler)
   }
 }

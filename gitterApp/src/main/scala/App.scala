@@ -12,7 +12,7 @@ import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
-import mycelium.client.IncidentHandler
+import mycelium.client.{SendType, IncidentHandler}
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import okhttp3.OkHttpClient
@@ -20,6 +20,7 @@ import retrofit.{Callback, RetrofitError}
 import retrofit.client.Response
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 
 object Constants {
   //TODO
@@ -61,7 +62,7 @@ object WustReceiver {
 
     val location = s"ws://${config.host}:8080/ws"
     val handler = new IncidentHandler[ApiEvent] {
-      override def onConnect(isReconnect: Boolean): Unit = println(s"Connected to websocket")
+      override def onConnect(): Unit = println(s"Connected to websocket")
       override def onEvents(events: Seq[ApiEvent]): Unit = {
         println(s"Got events: $events")
         val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
@@ -71,7 +72,7 @@ object WustReceiver {
         }
       }
     }
-    val client = WustClient(location, handler)
+    val client = AkkaWustClient(location, handler).sendWith(SendType.NowOrFail, 30 seconds)
 
     // Assume that user exists
     val res = for {

@@ -51,7 +51,8 @@ object Authentication {
 
 sealed trait ApiError
 object ApiError {
-  case class ProtocolError(msg: String) extends ApiError
+  case class ServerError(msg: String) extends ApiError
+  case class ClientError(msg: String) extends ApiError
   sealed trait HandlerFailure extends ApiError
   case object InternalServerError extends HandlerFailure
   case object Unauthorized extends HandlerFailure

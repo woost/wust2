@@ -186,7 +186,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
 
         Success(success)
       case Failure(t) =>
-        println(s"api request failed '${t.getMessage}: $changes")
+        println(s"api request failed '${t}': $changes")
         Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
         Success(false)

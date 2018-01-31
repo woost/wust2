@@ -6,10 +6,9 @@ import mycelium.client._
 import java.nio.ByteBuffer
 import scala.concurrent.ExecutionContext
 
-trait NativeWustClient {
+object JsWustClient {
   def apply(location: String, handler: IncidentHandler[ApiEvent])(implicit ec: ExecutionContext) = {
-    val config = JsWebsocketConfig()
-    val connection = JsWebsocketConnection[ByteBuffer](config)
-    WustClientFactory(location, handler, connection)
+    val connection = new JsWebsocketConnection[ByteBuffer]
+    WustClientFactory.createAndRun(location, handler, connection)
   }
 }

@@ -58,8 +58,8 @@ object Deps {
   val javaTime = dep("io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12")
 
   // rpc
-  val mycelium = dep("com.github.cornerman" % "mycelium" % "00e6524")
-  val sloth = dep("io.github.cornerman" % "sloth" % "9dc0fdd")
+  val mycelium = dep("com.github.cornerman" % "mycelium" % "c0d2948")
+  val sloth = dep("io.github.cornerman" % "sloth" % "0fd028f")
 
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
@@ -73,8 +73,8 @@ object Deps {
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
   val github4s = dep("io.github.GRBurst.github4s" %% "github4s" % "1d9681d") // master + comments + single issue
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
-val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")  
-val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
+  val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
+  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
 
   // NLP

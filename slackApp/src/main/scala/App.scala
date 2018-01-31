@@ -8,11 +8,12 @@ import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
-import mycelium.client.IncidentHandler
+import mycelium.client._
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 object Constants {
@@ -54,7 +55,8 @@ object WustReceiver {
 
     val location = s"ws://${config.host}:8080/ws"
     val handler = new IncidentHandler[ApiEvent] {
-      override def onConnect(isReconnect: Boolean): Unit = println(s"Connected to websocket")
+      override def onConnect(): Unit = println(s"Connected to websocket")
+      override def onClose(): Unit = println(s"Websocket connection closed")
       override def onEvents(events: Seq[ApiEvent]): Unit = {
         println(s"Got events: $events")
         val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
@@ -66,7 +68,7 @@ object WustReceiver {
         }
       }
     }
-    val client = WustClient(location, handler)
+    val client = AkkaWustClient(location, handler).sendWith(SendType.NowOrFail, 30 seconds)
 
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password)

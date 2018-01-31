@@ -22,9 +22,6 @@ import scalaz.Tag
 class GlobalState(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._
-  import Client.storage
-
-  private val initialAuthentication = Client.ensureLogin()
 
   val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
@@ -36,9 +33,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val eventProcessor = EventProcessor(Client.eventObservable, syncDisabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
-    private val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = initialAuthentication).map {
+    private val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed).map {
       case auth: Authentication.UserProvider => auth
-      case Authentication.None => Client.ensureLogin()
+      case Authentication.None => Client.forceFreshAuthentication()
     }
     //TODO: better in rx/obs operations
     currentAuth.foreach(Client.storage.auth() = _)

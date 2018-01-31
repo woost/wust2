@@ -12,7 +12,6 @@ import wust.backend.config.Config
 import wust.db.Db
 import sloth.core._
 import sloth.mycelium._
-import sloth.boopickle._
 import sloth.server.{Server => SlothServer, _}
 import mycelium.server._
 import wust.util.{ Pipe, RichFuture }
@@ -29,11 +28,11 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   def initialState = Future.successful(State.initial)
 
   override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
-    val state = originalState.map(State.filterExpiredAuth)
+    val state = originalState.map(State.filterExpiredAuth) // TODO if we do something like this and remove the auth, no loggedout event is sent to the client
     scribe.info(s"Incoming request ($path)")
     val response = api(Request(path, payload)) match {
       case Left(slothError) =>
-        val error = ApiError.ProtocolError(slothError.toString)
+        val error = ApiError.ServerError(slothError.toString)
         Response(state, Future.successful(ReturnValue(Left(error), Seq.empty)))
       case Right(apiFunction) =>
         val apiResponse = apiFunction.run(state)
