@@ -18,6 +18,8 @@ import akka.stream.ActorMaterializer
 import okhttp3.OkHttpClient
 import retrofit.{Callback, RetrofitError}
 import retrofit.client.Response
+import cats.data.EitherT
+import cats.implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -76,18 +78,17 @@ object WustReceiver {
 
     // Assume that user exists
     val res = for {
-      loggedIn <- client.auth.login(config.user, config.password)
-      if loggedIn
-      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.gitterId, "wust-gitter", wustUser)))))
-      if changed
-      graph <- client.api.getGraph(Page.Root)
-    } yield Right(new WustReceiver(client))
+      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
+      changes = GraphChanges(addPosts = Set(Post(Constants.gitterId, "wust-gitter", wustUser)))
+      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
+      graph <- valid(client.api.getGraph(Page.Root))
+    } yield new WustReceiver(client)
 
-    res recover { case e =>
-      system.terminate()
-      Left(e.getMessage)
-    }
+    res.value
   }
+
+  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) = EitherT(fut.map(Either.cond(_, (), errorMsg)))
+  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) = EitherT(fut.map(Right(_) : Either[String, T]))
 }
 
 class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient)(implicit ec: ExecutionContext) {
