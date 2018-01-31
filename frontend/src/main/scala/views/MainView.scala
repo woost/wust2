@@ -1,16 +1,14 @@
 package wust.frontend.views
 
-import wust.frontend.DevOnly
+import wust.frontend._
 import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.frontend.Color._
-import wust.frontend.{Client, GlobalState}
 import wust.frontend.views.graphview.GraphView
 import wust.util.Analytics
 import wust.util.outwatchHelpers._
-import wust.frontend.RestructuringTaskGenerator
 import outwatch.dom.dsl.styles.extra._
 
 object MainView {
@@ -421,12 +419,12 @@ object MainView {
   def dataImport(state:GlobalState) = {
     val urlImporter = Handler.create[String].unsafeRunSync()
     def importGithubUrl(url: String) = {
-      println(s"call client api importGithubUrl $url")
-      Client.api.importGithubUrl(url).foreach(res => println("Api call succeeded: " + res.toString))
+      DevPrintln(s"call client api importGithubUrl $url")
+      Client.api.importGithubUrl(url).foreach(res => DevPrintln("Api call succeeded: " + res.toString))
     }
     def importGitterUrl(url: String) = {
-      println(s"call client api importGitterUrl $url")
-      Client.api.importGitterUrl(url).foreach(res => println("Api call succeeded: " + res.toString))
+      DevPrintln(s"call client api importGitterUrl $url")
+      Client.api.importGitterUrl(url).foreach(res => DevPrintln("Api call succeeded: " + res.toString))
     }
 
     div(

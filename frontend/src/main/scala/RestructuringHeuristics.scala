@@ -237,9 +237,9 @@ object ChoosePostHeuristic {
     val normalizedHeuristics = heuristics.map(h => h.copy(probability = h.probability / totalWeight))
         .scan(HeuristicParameters(0.0))((h1, h2) => h2.copy(probability = h1.probability + h2.probability)).drop(1)
     val r = scala.util.Random.nextDouble
-    println(s"heuristics: $heuristics")
-    println(s"normalized heuristics: $normalizedHeuristics")
-    println(s"random: $r")
+    DevPrintln(s"heuristics: $heuristics")
+    DevPrintln(s"normalized heuristics: $normalizedHeuristics")
+    DevPrintln(s"random: $r")
     val choice = normalizedHeuristics.filter(h => h.probability >= r).head
     choice
   }
