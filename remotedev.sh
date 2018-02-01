@@ -28,7 +28,19 @@ EOF
 LSYNCDPID=$!
 echo $LSYNCDPID
 
-ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOTEHOST} "mkdir -p $REMOTETMP; cd $REMOTETMP; nix-shell --run \"zsh -ic \\\"WUST_BACKEND_PORT=$BACKEND WUST_DEVSERVER_PORT=$DEVPORT WUST_DEVSERVER_COMPRESS=true ./start sbt; zsh -i \\\"\""
+ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOTEHOST} "\
+    mkdir -p $REMOTETMP;    \
+    cd $REMOTETMP;          \
+    nix-shell --run \"zsh -ic \\\"              \
+        if [[ -f tokens.sh ]]; then;            \
+            source ./tokens.sh;                 \
+        fi;                                     \
+        export WUST_BACKEND_PORT=$BACKEND;      \
+        export WUST_DEVSERVER_PORT=$DEVPORT;    \
+        export WUST_DEVSERVER_COMPRESS=true;    \
+        ./start sbt;                            \
+        zsh -i;                                 \
+    \\\"\""
 
 ssh ${REMOTEHOST} "rm -rf $REMOTETMP"
 
