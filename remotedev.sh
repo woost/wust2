@@ -28,7 +28,7 @@ EOF
 LSYNCDPID=$!
 echo $LSYNCDPID
 
-ssh -tL 12345:localhost:${DEVPORT} ${REMOTEHOST} "mkdir -p $REMOTETMP; cd $REMOTETMP; nix-shell --run \"zsh -c \\\"WUST_BACKEND_PORT=$BACKEND WUST_DEVSERVER_PORT=$DEVPORT WUST_DEVSERVER_COMPRESS=true ./start sbt\\\"\""
+ssh -tL 12345:localhost:${DEVPORT} ${REMOTEHOST} "mkdir -p $REMOTETMP; cd $REMOTETMP; nix-shell --run \"zsh -ic \\\"WUST_BACKEND_PORT=$BACKEND WUST_DEVSERVER_PORT=$DEVPORT WUST_DEVSERVER_COMPRESS=true ./start sbt\\\"\""
 
 ssh ${REMOTEHOST} "rm -rf $REMOTETMP"
 
