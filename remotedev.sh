@@ -3,8 +3,8 @@
 LOCALDIR=${LOCALDIR:-$(pwd)}
 REMOTEHOST=${REMOTEHOST:-fff}
 
-DEVPORT=$(shuf -i 40000-41000 -n 1)
-BACKEND=$(shuf -i 50000-51000 -n 1)
+DEVPORT=${DEVPORT:-$(shuf -i 40000-41000 -n 1)}
+BACKEND=${BACKEND:-$(shuf -i 50000-51000 -n 1)}
 REMOTETMP=$(mktemp)
 
 rsync -aP --delete $LOCALDIR/ $REMOTEHOST:$REMOTETMP/ --exclude-from=$LOCALDIR/.ignore || exit 1
@@ -28,7 +28,7 @@ EOF
 LSYNCDPID=$!
 echo $LSYNCDPID
 
-ssh -tL 12345:localhost:${DEVPORT} ${REMOTEHOST} "mkdir -p $REMOTETMP; cd $REMOTETMP; nix-shell --run \"zsh -ic \\\"WUST_BACKEND_PORT=$BACKEND WUST_DEVSERVER_PORT=$DEVPORT WUST_DEVSERVER_COMPRESS=true ./start sbt\\\"\""
+ssh -t -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOTEHOST} "mkdir -p $REMOTETMP; cd $REMOTETMP; nix-shell --run \"zsh -ic \\\"WUST_BACKEND_PORT=$BACKEND WUST_DEVSERVER_PORT=$DEVPORT WUST_DEVSERVER_COMPRESS=true ./start sbt\\\"\""
 
 ssh ${REMOTEHOST} "rm -rf $REMOTETMP"
 
