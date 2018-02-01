@@ -258,7 +258,6 @@ lazy val frontend = project
     // Devserver and hot-reload configuration:
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
     webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
-    webpackDevServerPort := 12345,
     webpackDevServerExtraArgs := Seq("--progress", "--color"),
     // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
     // a folder which is served and watched by the webpack devserver.

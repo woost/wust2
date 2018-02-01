@@ -3,13 +3,14 @@ const Path = require('path');
 
 const rootDir = Path.resolve(__dirname, '../../../../..');
 
-
 module.exports = require('./scalajs.webpack.config');
 
 const projectRoot = Path.resolve(rootDir, 'assets/project-root'); // assets/sources is a symlink to the root folder
 
 // https://webpack.js.org/configuration/dev-server
 module.exports.devServer = {
+
+    port: process.env.WUST_DEVSERVER_PORT,
     contentBase: [
         // __dirname,
         Path.resolve(__dirname, 'fastopt'), // fastOptJS output
@@ -29,16 +30,13 @@ module.exports.devServer = {
     proxy : [
         {
             path: '/ws',
-            target: 'ws://localhost:8080/',
+            target: 'ws://localhost:' + process.env.WUST_BACKEND_PORT + '/',
             ws: true
         }
-    ]
-    // ,compress: true
+    ],
+    compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
 };
 
 module.exports.plugins = [
     new Webpack.HotModuleReplacementPlugin()
 ];
-
-
-

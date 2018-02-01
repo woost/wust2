@@ -26,6 +26,15 @@ env_wust_local="WUST_HOSTNAME=localhost WUST_USER=wust WUST_PASSWORD=wust"
 env_postgres_secret="POSTGRES_PASSWORD=test"
 env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust"
 
+env_wust_backendport="WUST_BACKEND_PORT=${WUST_BACKEND_PORT:-8080}"
+env_wust_devport="WUST_DEVSERVER_PORT=${WUST_DEVSERVER_PORT:-12345}"
+env_wust_devcomp="WUST_DEVSERVER_COMPRESS=${WUST_DEVSERVER_COMPRESS:-false}"
+
+echo "Starting with parameters"
+echo -e "\tBackend Port:\t\t\e[1m\e[32m$env_wust_backendport\e[0m"
+echo -e "\tDevServer Port:\t\t\e[1m\e[32m$env_wust_devport\e[0m"
+echo -e "\tDevServer Compression:\t\e[1m\e[32m$env_wust_devcomp\e[0m"
+
 function self() {
     case "$1" in
     psql)
@@ -48,7 +57,7 @@ function self() {
         ;;
     sbt)
         on_stage dev
-        export $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local
+        export $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_devport $env_wust_backendport $env_wust_devcomp
         compose up -d
         sbt_with_args
         ;;
