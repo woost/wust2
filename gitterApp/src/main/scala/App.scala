@@ -62,7 +62,7 @@ object WustReceiver {
     import system.dispatcher
     implicit val materializer = ActorMaterializer()
 
-    val location = s"ws://${config.host}:8080/ws"
+    val location = s"ws://${config.host}:${config.port}/ws"
     val handler = new IncidentHandler[ApiEvent] {
       override def onConnect(): Unit = println(s"Connected to websocket")
       override def onEvents(events: Seq[ApiEvent]): Unit = {
