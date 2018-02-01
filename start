@@ -38,21 +38,17 @@ echo -e "\tDevServer Compression:\t\e[1m\e[32m$env_wust_devcomp\e[0m"
 function self() {
     case "$1" in
     psql)
-        on_stage dev
         # compose run db-migration
         # PGPASSWORD=test psql -h localhost -U wust
         docker exec -it wustdev_postgres_1 psql -h localhost -U wust ${@:2}
         ;;
     pgdump)
-        on_stage dev
         postgres_command pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
     pgrestore)
-        on_stage dev
         postgres_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgclean)
-        on_stage dev
         postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         ;;
     sbt)
