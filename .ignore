@@ -1,0 +1,8 @@
+target/
+/phantomjsdriver.log
+node_modules
+/*-backup.sql*
+/assets/project-root/
+
+/.idea
+/.git
