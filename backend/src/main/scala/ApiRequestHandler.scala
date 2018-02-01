@@ -28,7 +28,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   def initialState = Future.successful(State.initial)
 
   override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
-    val state = originalState.map(State.filterExpiredAuth) // TODO if we do something like this and remove the auth, no loggedout event is sent to the client
+    val state = validateState(originalState)
     scribe.info(s"Incoming request ($path)")
     val response = api(Request(path, payload)) match {
       case Left(slothError) =>
@@ -53,7 +53,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 
   override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
-    val state = originalState.map(State.filterExpiredAuth)
+    val state = validateState(originalState)
     scribe.info(s"client got event: $client")
     val newEvents = state.flatMap(triggeredEvents(_, requestEvent))
     val newState = for {
@@ -74,7 +74,16 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     distributor.unsubscribe(client)
   }
 
-  private def filterAndDistributeEvents[T](client: NotifiableClient[RequestEvent])(events: Seq[ApiEvent]): Seq[ApiEvent] = {
+  // we check whether this jwt token is expired. if it is, we return a failed state, which will force close the websocket connection from the server side. the client can then check that the token is indeed expired and should prompt the user. meanwhile he can then work as an assumed/implicit user again.
+  private def validateState(state: Future[State]): Future[State] = state.flatMap { state =>
+    state.auth match {
+      case auth: Authentication.Verified if JWT.isExpired(auth) => Future.failed(new Exception("Authentication expired"))
+      case _ => Future.successful(state)
+    }
+  }
+
+  // 
+  private def filterAndDistributeEvents[T](client: NotifiableClient[RequestEvent])(events: Seq[ApiEvent]): Seq[ApiEvent.Private] = {
     val (privateEvents, publicEvents) = ApiEvent.separateByScope(events)
     distributor.publish(client, publicEvents)
     privateEvents

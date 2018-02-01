@@ -30,21 +30,17 @@ trait AuthApi[Result[_]] {
 }
 
 sealed trait Authentication {
-  def userOpt: Option[User]
-  def dbUserOpt: Option[User.Persisted] = userOpt collect { case u: User.Persisted => u }
+  def user: User
+  def dbUserOpt: Option[User.Persisted] = Some(user) collect { case u: User.Persisted => u }
 }
 object Authentication {
   type Token = String
 
-  sealed trait UserProvider extends Authentication {
-    def user: User
-    def userOpt = Some(user)
+  case class Assumed(user: User.Assumed) extends Authentication
+  object Assumed {
+    def fresh = Assumed(User.Assumed(cuid.Cuid()))
   }
-  case object None extends Authentication {
-    def userOpt = Option.empty[User]
-  }
-  case class Assumed(user: User.Assumed) extends UserProvider
-  case class Verified(user: User.Persisted, expires: Long, token: Token) extends UserProvider {
+  case class Verified(user: User.Persisted, expires: Long, token: Token) extends Authentication {
     override def toString = s"Authentication.Verified($user)"
   }
 }
@@ -73,6 +69,7 @@ object ApiEvent {
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
   case class LoggedIn(auth: Authentication.Verified) extends AuthContent with Private
+  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AuthContent with Private
   case object LoggedOut extends AuthContent with Private
   case class ReplaceGraph(graph: Graph) extends GraphContent with Private {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"

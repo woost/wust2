@@ -37,7 +37,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent.Public]] = {
     import membership._
 
-    def currentUserInvolved = state.auth.userOpt.fold(false)(_.id == userId)
+    def currentUserInvolved = state.auth.user.id == userId
     def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
     if (currentUserInvolved) {
       // query all other members of groupId

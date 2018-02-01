@@ -23,15 +23,18 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     db.graph.getAllVisiblePosts(auth.dbUserOpt.map(_.id)).map { dbGraph =>
       val graph = forClient(dbGraph).consistent
       val authEvent = auth match {
-        case Authentication.None => Some(ApiEvent.LoggedOut)
-        case auth: Authentication.Verified => Some(ApiEvent.LoggedIn(auth))
-        case _: Authentication.Assumed => None
+        case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
+        case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
       }
-      authEvent.toList ++ List(ApiEvent.ReplaceGraph(graph))
+      authEvent :: ApiEvent.ReplaceGraph(graph) :: Nil
     }
   }
 
-  private def resultOnAuth(state: State, auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
+  private def resultOnAssumedAuth(auth: Authentication.Assumed): Future[ApiData.Effect[Boolean]] = {
+    authChangeEvents(auth).map(Returns(true, _))
+  }
+
+  private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
     case Some(auth) => authChangeEvents(auth).map(Returns(true, _))
     case _ => Future.successful(Returns(false))
   }
@@ -46,12 +49,12 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-    resultOnAuth(state, newAuth)
+    resultOnVerifiedAuth(newAuth)
   }
 
   def login(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
-    val newAuth = db.user.getUserAndDigest(name).flatMap {
+    val newUser = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.dbUserOpt match {
           case Some(User.Implicit(prevUserId, _, _)) =>
@@ -59,14 +62,15 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
             //TODO: propagate name change to the respective groups and the connected clients
             db.user
               .mergeImplicitUser(prevUserId, user.id)
-              .map(if (_) Some(jwt.generateAuthentication(user)) else None)
-          case _ => Future.successful(Some(jwt.generateAuthentication(user)))
+              .map(if (_) Some(user) else None)
+          case _ => Future.successful(Some(user))
         }
 
       case _ => Future.successful(None)
     }
 
-    resultOnAuth(state, newAuth)
+    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
+    resultOnVerifiedAuth(newAuth)
   }
 
   def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
@@ -76,16 +80,16 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       }
     } getOrElse Future.successful(None)
 
-    resultOnAuth(state, newAuth)
+    resultOnVerifiedAuth(newAuth)
   }
 
   def assumeLogin(userId: UserId): ApiFunction[Boolean] = Effect { state =>
     val newAuth = Authentication.Assumed(User.Assumed(userId))
-    val newState = state.copy(auth = newAuth)
-    authChangeEvents(newAuth).map(Returns.raw(newState, true, _))
+    resultOnAssumedAuth(newAuth)
   }
 
   def logout(): ApiFunction[Boolean] = Effect { state =>
-    authChangeEvents(Authentication.None).map(Returns(true, _))
+    val newAuth = Authentication.Assumed.fresh
+    resultOnAssumedAuth(newAuth)
   }
 }

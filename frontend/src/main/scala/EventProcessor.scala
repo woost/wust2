@@ -81,7 +81,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
 
   val currentAuth: Observable[Authentication] = authEventStream.map(_.reverse.collectFirst {
     case LoggedIn(auth) => auth
-    case LoggedOut => Authentication.None
+    case AssumeLoggedIn(auth) => auth
   }).collect { case Some(auth) => auth }
 
   val changes = Handler.create[GraphChanges]().unsafeRunSync()

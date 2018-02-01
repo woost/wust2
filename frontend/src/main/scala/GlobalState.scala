@@ -33,12 +33,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val eventProcessor = EventProcessor(Client.eventObservable, syncDisabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
-    private val currentAuth:Rx[Authentication.UserProvider] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed).map {
-      case auth: Authentication.UserProvider => auth
-      case Authentication.None => Client.forceFreshAuthentication() //TODO meh, this is sideeffecting in an observable map...
-    }
+    private val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)
     //TODO: better in rx/obs operations
-    currentAuth.foreach(Client.storage.auth() = _)
+    currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
 
     val currentUser: Rx[User] = currentAuth.map(_.user)
 

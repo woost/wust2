@@ -33,10 +33,10 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
-  val auth: Var[Authentication] = {
+  val auth: Var[Option[Authentication]] = {
     LocalStorage.handlerWithoutEvents(keys.auth).unsafeRunSync()
-      .imap(_.flatMap(fromJson[Authentication]).getOrElse(Authentication.None))(auth => Option(toJson(auth)))
-      .toVar(internal(keys.auth).flatMap(fromJson[Authentication]).getOrElse(Authentication.None))
+      .imap(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
+      .toVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
   val graphChanges: Handler[List[GraphChanges]] = {
