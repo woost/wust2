@@ -65,8 +65,12 @@ object ApiEvent {
   case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
   case class NewGroup(group: Group) extends AnyVal with GraphContent with Public with Private
   case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
-  case class NewGraphChanges(changes: GraphChanges) extends AnyVal with GraphContent with Public {
+  case class NewGraphChanges(changes: GraphChanges) extends GraphContent with Public {
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
+  }
+  object NewGraphChanges {
+    class WithPrivate(changes: GraphChanges) extends NewGraphChanges(changes) with Private
+    object WithPrivate { def apply(changes: GraphChanges) = new WithPrivate(changes) }
   }
   case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
   case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent with Private

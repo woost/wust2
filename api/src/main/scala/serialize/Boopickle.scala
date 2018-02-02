@@ -18,6 +18,8 @@ object Boopickle {
 
   implicit val localDateTimePickler: Pickler[LocalDateTime] = transformPickler((t: Long) => fromMillis(t))(x => toMillis(x))
 
+  implicit val newGraphChangesPickler: Pickler[ApiEvent.NewGraphChanges] = generatePickler[ApiEvent.NewGraphChanges]
+  implicit val newGraphChangesWithPrivatePickler: Pickler[ApiEvent.NewGraphChanges.WithPrivate] = transformPickler[ApiEvent.NewGraphChanges.WithPrivate, ApiEvent.NewGraphChanges](ev => new ApiEvent.NewGraphChanges.WithPrivate(ev.changes))(identity)
   implicit val apiEventPickler = generatePickler[ApiEvent]
   implicit val graphChangesPickler = generatePickler[GraphChanges]
 }
