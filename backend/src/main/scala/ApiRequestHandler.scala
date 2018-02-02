@@ -65,12 +65,13 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
     val state = validateState(originalState)
     scribe.info(s"client got event: $client")
-    val newEvents = state.flatMap(triggeredEvents(_, requestEvent))
-    val newState = for {
-      events <- newEvents
+    val result = for {
       state <- state
-    } yield State.applyEvents(state, events)
+      events <- triggeredEvents(state, requestEvent)
+    } yield (State.applyEvents(state, events), events)
 
+    val newState = result.map(_._1)
+    val newEvents = result.map(_._2)
     Reaction(newState, newEvents)
   }
 

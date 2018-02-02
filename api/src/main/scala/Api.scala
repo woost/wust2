@@ -78,7 +78,7 @@ object ApiEvent {
   def separateByScope(events: Seq[ApiEvent]): (List[Private], List[Public]) =
     events.foldRight((List.empty[Private], List.empty[Public])) { case (ev, (privs, pubs)) =>
       val newPrivs = ev match {
-        case (ev: Private) => ev :: privs
+        case ev: Private => ev :: privs
         case _ => privs
       }
       val newPubs = ev match {
