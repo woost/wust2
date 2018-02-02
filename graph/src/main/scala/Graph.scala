@@ -115,6 +115,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.sourceId, _.targetId)
   lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](containments, _.targetId, _.sourceId)
 
+  def inChildParentRelation(child: PostId, possibleParent: PostId): Boolean = getParents(child).contains(possibleParent)
+  def inDescendantAncestorRelation(descendent: PostId, possibleAncestor: PostId): Boolean = ancestors(descendent).exists(_ == possibleAncestor)
+
   // There are cases where the key is not present and cases where the set is empty
   def hasChildren(post: PostId): Boolean = children.contains(post) && children(post).nonEmpty
   def hasParents(post: PostId): Boolean = parents.contains(post) && parents(post).nonEmpty
