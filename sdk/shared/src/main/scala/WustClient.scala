@@ -36,12 +36,12 @@ class WustClient(client: Client[ByteBuffer, Future, ApiException]) {
 trait WustClientOps {
   val clientFactory: WustClientFactory
   def apply(sendType: SendType = SendType.WhenConnected, requestTimeout: FiniteDuration = 30 seconds) = clientFactory.sendWith(sendType, requestTimeout)
-  val nowOrFail = apply(SendType.NowOrFail)
-  val highPriority = apply(SendType.WhenConnected.highPriority)
-  val lowPriority = apply(SendType.WhenConnected.lowPriority)
-  val defaultPriority = apply(SendType.WhenConnected)
-  val api: Api[Future] = defaultPriority.api
-  val auth: AuthApi[Future] = defaultPriority.auth
+  lazy val nowOrFail = apply(SendType.NowOrFail)
+  lazy val highPriority = apply(SendType.WhenConnected.highPriority)
+  lazy val lowPriority = apply(SendType.WhenConnected.lowPriority)
+  lazy val defaultPriority = apply(SendType.WhenConnected)
+  lazy val api: Api[Future] = defaultPriority.api
+  lazy val auth: AuthApi[Future] = defaultPriority.auth
 }
 
 class WustIncidentHandler extends IncidentHandler[ApiEvent] {
