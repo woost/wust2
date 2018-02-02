@@ -29,7 +29,6 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
     def requireImplicitUser[T](f: (State, User.Implicit) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Implicit](f) { case u: User.Implicit => u }
     def requireAssumedUser[T](f: (State, User.Assumed) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Assumed](f) { case u: User.Assumed => u }
     def requireRealUser[T](f: (State, User.Real) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Real](f) { case u: User.Real => u }
-    def requireAnyUser[T](f: (State, User) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User](f)(PartialFunction(identity))
     def requireDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Persisted](f) { case u: User.Persisted => u }
 
     def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = ApiFunction.redirect(requireDbUser(f)) { state =>

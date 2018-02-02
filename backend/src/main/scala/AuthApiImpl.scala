@@ -12,32 +12,8 @@ import wust.util.RichFuture
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
-  //TODO login only with minimum lifetime and auto disconnect of ws
-  /*if !auth.isExpiredIn(minTokenLifetime)*/
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
-
-  private def passwordDigest(password: String) = Hasher(password).bcrypt
-
-  private def authChangeEvents(auth: Authentication): Future[Seq[ApiEvent]] = {
-    db.graph.getAllVisiblePosts(auth.dbUserOpt.map(_.id)).map { dbGraph =>
-      val graph = forClient(dbGraph).consistent
-      val authEvent = auth match {
-        case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
-        case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
-      }
-      authEvent :: ApiEvent.ReplaceGraph(graph) :: Nil
-    }
-  }
-
-  private def resultOnAssumedAuth(auth: Authentication.Assumed): Future[ApiData.Effect[Boolean]] = {
-    authChangeEvents(auth).map(Returns(true, _))
-  }
-
-  private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
-    case Some(auth) => authChangeEvents(auth).map(Returns(true, _))
-    case _ => Future.successful(Returns(false))
-  }
 
   def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
@@ -91,5 +67,27 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   def logout(): ApiFunction[Boolean] = Effect { state =>
     val newAuth = Authentication.Assumed.fresh
     resultOnAssumedAuth(newAuth)
+  }
+
+  private def passwordDigest(password: String) = Hasher(password).bcrypt
+
+  private def authChangeEvents(auth: Authentication): Future[Seq[ApiEvent]] = {
+    db.graph.getAllVisiblePosts(auth.dbUserOpt.map(_.id)).map { dbGraph =>
+      val graph = forClient(dbGraph).consistent
+      val authEvent = auth match {
+        case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
+        case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
+      }
+      authEvent :: ApiEvent.ReplaceGraph(graph) :: Nil
+    }
+  }
+
+  private def resultOnAssumedAuth(auth: Authentication.Assumed): Future[ApiData.Effect[Boolean]] = {
+    authChangeEvents(auth).map(Returns(true, _))
+  }
+
+  private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
+    case Some(auth) => authChangeEvents(auth).map(Returns(true, _))
+    case _ => Future.successful(Returns(false))
   }
 }
