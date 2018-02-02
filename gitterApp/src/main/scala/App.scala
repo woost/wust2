@@ -74,7 +74,7 @@ object WustReceiver {
         }
       }
     }
-    val client = AkkaWustClient(location, handler).sendWith(SendType.NowOrFail, 30 seconds)
+    val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
 
     // Assume that user exists
     val res = for {
