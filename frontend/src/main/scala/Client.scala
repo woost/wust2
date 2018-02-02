@@ -28,7 +28,10 @@ object Client {
 
   private val eventHandler = Handler.create[Seq[ApiEvent]].unsafeRunSync()
   private val clientHandler = new IncidentHandler[ApiEvent] {
-    override def onConnect(): Unit = loginStorageAuth()
+    override def onConnect(): Unit = {
+      //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
+      loginStorageAuth()
+    }
     override def onEvents(events: Seq[ApiEvent]): Unit = eventHandler.unsafeOnNext(events)
   }
   private val clientFactory = JsWustClient(wsUrl, clientHandler)
