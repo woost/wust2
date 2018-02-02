@@ -79,10 +79,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
-  val currentAuth: Observable[Authentication] = authEventStream.map(_.reverse.collectFirst {
-    case LoggedIn(auth) => auth
-    case AssumeLoggedIn(auth) => auth
-  }).collect { case Some(auth) => auth }
+  val currentAuth: Observable[Authentication] = authEventStream.map(_.lastOption.map(EventUpdate.createAuthFromEvent)).collect { case Some(auth) => auth }
 
   val changes = Handler.create[GraphChanges]().unsafeRunSync()
   object enriched {
@@ -108,7 +105,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
     val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
 
-    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(GraphUpdate.applyEvent) }
+    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(EventUpdate.applyEventOnGraph) }
 
     graphWithChanges subscribe rawGraph
 
