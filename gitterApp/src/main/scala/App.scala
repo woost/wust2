@@ -93,7 +93,8 @@ object WustReceiver {
 
 class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient)(implicit ec: ExecutionContext) {
 
-  val roomId = "5a2c177dd73408ce4f828d9d"
+  // TODO: change this
+  val roomId = "584862d0d73408ce4f3b747f"
   def send(msg: ExchangeMessage): Unit = {
     val text = msg.content
 
