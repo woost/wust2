@@ -44,11 +44,11 @@ trait WustClientOps {
   lazy val auth: AuthApi[Future] = defaultPriority.auth
 }
 
-class WustIncidentHandler extends IncidentHandler[ApiEvent] {
+class WustIncidentHandler(implicit ec: ExecutionContext) extends IncidentHandler[ApiEvent] {
   private val eventSubject = PublishSubject[Seq[ApiEvent]]()
   final val eventObservable: Observable[Seq[ApiEvent]] = eventSubject
 
-  final def onEvents(events: Seq[ApiEvent])(implicit ec: ExecutionContext): Unit = eventSubject.onNext(events).onComplete {
+  final override def onEvents(events: Seq[ApiEvent]): Unit = eventSubject.onNext(events).onComplete {
     case Success(_) =>
     case Failure(t) => scribe.warn(s"Failed to push events into event subject: $t")
   }
