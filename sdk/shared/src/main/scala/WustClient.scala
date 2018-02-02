@@ -4,6 +4,10 @@ import wust.api._, serialize.Boopickle._
 import wust.ids._
 import wust.util.time.StopWatch
 
+import monix.execution.Cancelable
+import monix.reactive.OverflowStrategy.Unbounded
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import boopickle.Default._
 import sloth.core._
 import sloth.mycelium._
@@ -16,6 +20,7 @@ import shapeless._
 import java.nio.ByteBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.util.{Success,Failure}
 
 case class ApiException(error: ApiError) extends Exception(s"Api returned error: $error")
 object ApiException {
@@ -27,6 +32,26 @@ object ApiException {
 class WustClient(client: Client[ByteBuffer, Future, ApiException]) {
   val api = client.wire[Api[Future]]
   val auth = client.wire[AuthApi[Future]]
+}
+trait WustClientOps {
+  val clientFactory: WustClientFactory
+  def apply(sendType: SendType = SendType.WhenConnected, requestTimeout: FiniteDuration = 30 seconds) = clientFactory.sendWith(sendType, requestTimeout)
+  val nowOrFail = apply(SendType.NowOrFail)
+  val highPriority = apply(SendType.WhenConnected.highPriority)
+  val lowPriority = apply(SendType.WhenConnected.lowPriority)
+  val defaultPriority = apply(SendType.WhenConnected)
+  val api: Api[Future] = defaultPriority.api
+  val auth: AuthApi[Future] = defaultPriority.auth
+}
+
+class WustIncidentHandler extends IncidentHandler[ApiEvent] {
+  private val eventSubject = PublishSubject[Seq[ApiEvent]]()
+  final val eventObservable: Observable[Seq[ApiEvent]] = eventSubject
+
+  final def onEvents(events: Seq[ApiEvent])(implicit ec: ExecutionContext): Unit = eventSubject.onNext(events).onComplete {
+    case Success(_) =>
+    case Failure(t) => scribe.warn(s"Failed to push events into event subject: $t")
+  }
 }
 
 class WustClientFactory private(ws: WebsocketClient[ByteBuffer, ApiEvent, ApiError])(implicit ec: ExecutionContext) {
@@ -45,7 +70,6 @@ private[sdk] object WustClientFactory {
     new WustClientFactory(ws)
   }
 }
-
 private[sdk] class ClientLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
   override def logRequest(path: List[String], arguments: Any, result: Future[_]): Unit = {
     val watch = StopWatch.started

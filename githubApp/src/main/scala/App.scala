@@ -65,50 +65,20 @@ object WustReceiver {
 
     val location = s"ws://${config.host}:${config.port}/ws"
 
-    val handler = new IncidentHandler[ApiEvent] {
-
-      private def filterAndSendChanges(graph: Graph, changes: Seq[GraphChanges]): Unit = {
-
-          changes.foreach { gc =>
-
-            val ancestors: Map[PostId, Iterable[PostId]] = gc.addPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((p1, p2) => {
-              p1 + (p2.id -> graph.ancestors(p2.id))
-            })
-
-            val githubPosts = gc.addPosts.filter({ post =>
-              val ancestors = graph.ancestors(post.id)
-              ancestors.exists(_ == Constants.githubId)
-            })
-
-            val issues: Set[Post] = githubPosts.filter(post => {
-              val postAncestors = ancestors(post.id)
-              postAncestors.exists(_ == Constants.issueTagId)
-            })
-
-            val comments: Set[Post] = githubPosts.filter(post => {
-              val postAncestors = ancestors(post.id)
-              postAncestors.exists(_ == Constants.commentTagId)
-            })
-
-            issues.map(p => ExchangeMessage(p.content)).foreach {
-              msg => github.send(msg)
-            }
-
-            comments.map(p => ExchangeMessage(p.content)).foreach {
-              msg => github.send(msg)
-            }
-          }
-
-      }
-
+    val handler = new WustIncidentHandler {
       override def onConnect(): Unit = println(s"GitHub App - Connected to websocket")
-      override def onEvents(events: Seq[ApiEvent]): Unit = {
+    }
+
+    val graphEvents = handler.eventObservable.map(_.collect { case ev: ApiEvent.GraphContent => ev }).collect { case list if list.nonEmpty => list }
+    val graph = graphEvents.scan(Graph.empty) { (prevGraph, events) =>
         println(s"Got events: $events")
+        val graph = events.foldLeft(prevGraph)(EventUpdate.applyEventOnGraph)
         val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
-//        import wust.backend._
-//        val graph =
-        filterAndSendChanges(Graph.empty /*getGraph*/, changes)
-      }
+
+        // nice sideeffect
+        filterAndSendChanges(github, graph, changes)
+
+        graph
     }
 
     val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
@@ -128,10 +98,45 @@ object WustReceiver {
     } yield new WustReceiver(client)
 
     res.value
+
   }
 
-  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) = EitherT(fut.map(Either.cond(_, (), errorMsg)))
-  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) = EitherT(fut.map(Right(_) : Either[String, T]))
+  private def filterAndSendChanges(github: GithubClient, graph: Graph, changes: Seq[GraphChanges]): Unit = {
+      changes.foreach { gc =>
+
+        val ancestors: Map[PostId, Iterable[PostId]] = gc.addPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((p1, p2) => {
+          p1 + (p2.id -> graph.ancestors(p2.id))
+        })
+
+        val githubPosts = gc.addPosts.filter({ post =>
+          val ancestors = graph.ancestors(post.id)
+          ancestors.exists(_ == Constants.githubId)
+        })
+
+        val issues: Set[Post] = githubPosts.filter(post => {
+          val postAncestors = ancestors(post.id)
+          postAncestors.exists(_ == Constants.issueTagId)
+        })
+
+        val comments: Set[Post] = githubPosts.filter(post => {
+          val postAncestors = ancestors(post.id)
+          postAncestors.exists(_ == Constants.commentTagId)
+        })
+
+        issues.map(p => ExchangeMessage(p.content)).foreach {
+          msg => github.send(msg)
+        }
+
+        comments.map(p => ExchangeMessage(p.content)).foreach {
+          msg => github.send(msg)
+        }
+      }
+
+  }
+
+  private def validRecover[T]: PartialFunction[Throwable, Either[String, T]] = { case NonFatal(t) => Left(s"Exception was thrown: $t") }
+  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) = EitherT(fut.map(Either.cond(_, (), errorMsg)).recover(validRecover))
+  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) = EitherT(fut.map(Right(_) : Either[String, T]).recover(validRecover))
 }
 
 class GithubClient(client: Github)(implicit ec: ExecutionContext) {

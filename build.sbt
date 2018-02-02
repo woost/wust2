@@ -134,6 +134,7 @@ lazy val sdk = crossProject
       Deps.mycelium.value ::
       Deps.sloth.value ::
       Deps.boopickle.value ::
+      Deps.monix.value ::
       Nil
     )
   )

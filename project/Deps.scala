@@ -57,6 +57,7 @@ object Deps {
   val derive = dep("io.github.cornerman" % "derive" % "04166c6")
   val cuid = dep("io.github.cornerman" % "scala-cuid" % "4ba036a")
   val javaTime = dep("io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12")
+  val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
 
   // rpc
   val mycelium = dep("com.github.cornerman" % "mycelium" % "30b215c")

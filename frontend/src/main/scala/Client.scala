@@ -1,8 +1,6 @@
 package wust.frontend
 
-import monix.execution.Cancelable
-import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.Observable
+import boopickle.Default._
 import wust.api._
 import wust.ids._
 import wust.sdk._
@@ -18,35 +16,24 @@ import org.scalajs.dom.window
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object Client {
+object Client extends WustClientOps {
   private val wsUrl = {
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
     s"$protocol://${location.hostname}:${location.port}/ws"
   }
 
-  private val eventHandler = Handler.create[Seq[ApiEvent]].unsafeRunSync()
-  private val clientHandler = new IncidentHandler[ApiEvent] {
+  private val clientHandler = new WustIncidentHandler {
     override def onConnect(): Unit = {
       //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
       loginStorageAuth()
     }
-    override def onEvents(events: Seq[ApiEvent]): Unit = eventHandler.unsafeOnNext(events)
   }
-  private val clientFactory = JsWustClient(wsUrl, clientHandler)
 
-  val eventObservable: Observable[Seq[ApiEvent]] = eventHandler
-
-  def apply(sendType: SendType = SendType.WhenConnected, requestTimeout: FiniteDuration = 30 seconds) = clientFactory.sendWith(sendType, requestTimeout)
-  val nowOrFail = apply(SendType.NowOrFail)
-  val highPriority = apply(SendType.WhenConnected.highPriority)
-  val lowPriority = apply(SendType.WhenConnected.lowPriority)
-  val defaultPriority = apply(SendType.WhenConnected)
-  val api: Api[Future] = defaultPriority.api
-  val auth: AuthApi[Future] = defaultPriority.auth
+  val clientFactory = JsWustClient(wsUrl, clientHandler)
+  val eventObservable = clientHandler.eventObservable
 
   val storage = new ClientStorage
-
   def storageAuthOrAssumed = storage.auth.now getOrElse initialAssumedAuth
   private val initialAssumedAuth = Authentication.Assumed.fresh
   private def loginStorageAuth(): Unit = storageAuthOrAssumed match {
