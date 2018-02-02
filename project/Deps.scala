@@ -58,7 +58,7 @@ object Deps {
   val javaTime = dep("io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12")
 
   // rpc
-  val mycelium = dep("com.github.cornerman" % "mycelium" % "c0d2948")
+  val mycelium = dep("com.github.cornerman" % "mycelium" % "4ddf314")
   val sloth = dep("io.github.cornerman" % "sloth" % "0fd028f")
 
   // auth
