@@ -174,7 +174,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           true <- db.post.createPublic(posts)
           true <- db.connection(connections)
           changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield Returns(true,  ApiEvent.NewGraphChanges.WithPrivate(changes) :: Nil)
+        } yield Returns(true,  ApiEvent.NewGraphChanges.ForAll(changes) :: Nil)
       }
     }
 
@@ -198,7 +198,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           true <- db.post.createPublic(posts)
           true <- db.connection(connections)
           changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield Returns(true,  ApiEvent.NewGraphChanges.WithPrivate(changes) :: Nil)
+        } yield Returns(true,  ApiEvent.NewGraphChanges.ForAll(changes) :: Nil)
       }
     }
 

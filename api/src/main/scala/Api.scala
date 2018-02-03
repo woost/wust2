@@ -65,18 +65,29 @@ object ApiEvent {
   case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
   case class NewGroup(group: Group) extends AnyVal with GraphContent with Public with Private
   case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
-  case class NewGraphChanges(changes: GraphChanges) extends GraphContent with Public {
+
+  sealed trait NewGraphChanges extends GraphContent {
+    val changes: GraphChanges
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
   object NewGraphChanges {
-    class WithPrivate(changes: GraphChanges) extends NewGraphChanges(changes) with Private
-    object WithPrivate { def apply(changes: GraphChanges) = new WithPrivate(changes) }
+    def unapply(event: ApiEvent): Option[GraphChanges] = event match {
+      case gc: NewGraphChanges => Some(gc.changes)
+      case _ => None
+    }
+
+    def apply(changes: GraphChanges) = ForPublic(changes)
+    case class ForPublic(changes: GraphChanges) extends NewGraphChanges with Public
+    case class ForPrivate(changes: GraphChanges) extends NewGraphChanges with Private
+    case class ForAll(changes: GraphChanges) extends NewGraphChanges with Public with Private
   }
-  case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
-  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent with Private
+
   case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
+
+  case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
+  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent with Private
 
   def separateByScope(events: Seq[ApiEvent]): (List[Private], List[Public]) =
     events.foldRight((List.empty[Private], List.empty[Public])) { case (ev, (privs, pubs)) =>
