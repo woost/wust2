@@ -70,7 +70,6 @@ object ApiEvent {
   }
   case class LoggedIn(auth: Authentication.Verified) extends AuthContent with Private
   case class AssumeLoggedIn(auth: Authentication.Assumed) extends AuthContent with Private
-  case object LoggedOut extends AuthContent with Private
   case class ReplaceGraph(graph: Graph) extends GraphContent with Private {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
