@@ -29,7 +29,8 @@ object Deps {
   }
 
   // serialization
-  val boopickle = dep("io.suzaku" %%% "boopickle" % "1.2.6")
+  // val boopickle = dep("io.suzaku" %%% "boopickle" % "1.2.6")
+  val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle" % "084b0c8")
   val circe = new {
     private val version = "0.9.0-M3"
     val core = dep("io.circe" %%% "circe-core" % version)

@@ -45,32 +45,32 @@ object Authentication {
   }
 }
 
-sealed trait ApiError
+sealed trait ApiError extends Any
 object ApiError {
-  case class ServerError(msg: String) extends ApiError
-  case class ClientError(msg: String) extends ApiError
-  sealed trait HandlerFailure extends ApiError
+  case class ServerError(msg: String) extends AnyVal with ApiError
+  case class ClientError(msg: String) extends AnyVal with ApiError
+  sealed trait HandlerFailure extends Any with ApiError
   case object InternalServerError extends HandlerFailure
   case object Unauthorized extends HandlerFailure
   case object Forbidden extends HandlerFailure
 }
 
-sealed trait ApiEvent
+sealed trait ApiEvent extends Any
 object ApiEvent {
-  sealed trait Public extends ApiEvent
-  sealed trait Private extends ApiEvent
-  sealed trait GraphContent extends ApiEvent
-  sealed trait AuthContent extends ApiEvent
+  sealed trait Public extends Any with ApiEvent
+  sealed trait Private extends Any with ApiEvent
+  sealed trait GraphContent extends Any with ApiEvent
+  sealed trait AuthContent extends Any with ApiEvent
 
-  case class NewUser(user: User) extends GraphContent with Public with Private
-  case class NewGroup(group: Group) extends GraphContent with Public with Private
-  case class NewMembership(membership: Membership) extends GraphContent with Public with Private
-  case class NewGraphChanges(changes: GraphChanges) extends GraphContent with Public {
+  case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
+  case class NewGroup(group: Group) extends AnyVal with GraphContent with Public with Private
+  case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
+  case class NewGraphChanges(changes: GraphChanges) extends AnyVal with GraphContent with Public {
     override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
-  case class LoggedIn(auth: Authentication.Verified) extends AuthContent with Private
-  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AuthContent with Private
-  case class ReplaceGraph(graph: Graph) extends GraphContent with Private {
+  case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
+  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent with Private
+  case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {
     override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
   }
 
@@ -102,16 +102,16 @@ object Heuristic {
   type ApiResult = IdResult
 }
 
-sealed trait NlpHeuristic
+sealed trait NlpHeuristic extends Any
 object NlpHeuristic {
-    case class DiceSorensen(nGram: Int) extends NlpHeuristic
+    case class DiceSorensen(nGram: Int) extends AnyVal with NlpHeuristic
     case object Hamming extends NlpHeuristic
-    case class Jaccard(nGram: Int) extends NlpHeuristic
+    case class Jaccard(nGram: Int) extends AnyVal with NlpHeuristic
     case object Jaro extends NlpHeuristic
     case object JaroWinkler extends NlpHeuristic
     case object Levenshtein extends NlpHeuristic
-    case class NGram(nGram: Int) extends NlpHeuristic
-    case class Overlap(nGram: Int) extends NlpHeuristic
+    case class NGram(nGram: Int) extends AnyVal with NlpHeuristic
+    case class Overlap(nGram: Int) extends AnyVal with NlpHeuristic
     case object RatcliffObershelp extends NlpHeuristic
     case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int) extends NlpHeuristic
 }
