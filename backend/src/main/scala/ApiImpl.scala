@@ -16,49 +16,44 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   import ApiEvent._
   import dsl._
 
-  // TODO: Abstract over user id
-  // private def enrichPostWithUser(posts: Set[Post]) = assureDbUser { (_, user, wasCreated) =>
-  //     posts.map { post =>
-  //       if(!wasCreated) assert(post.author == user.id, s"(Post author id) ${post.author} != ${user.id} (user id)")
-  //       post.copy(author = user.id)
-  //     }
-  // }
-  // TODO: createPost function for api
-
   //TODO assure timestamps of posts are correct
+  //TODO: only accept one GraphChanges object
   override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    //TODO permissions
 
-    val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-      changes.foldLeft(Future.successful(true)){ (previousSuccess, changes) =>
-        import changes.consistent._
+    //TODO more permissions!
+    val changesAreAllowed = {
+      val addPosts = changes.flatMap(_.addPosts)
+      addPosts.forall(_.author == user.id)
+    }
 
-        // val postsWithUser: Set[Post] = enrichPostWithUser(addPosts);
-        // TODO: error if author not user
-        val postsWithUser: Set[Post] = addPosts.map(_.copy(author = user.id))
+    if (changesAreAllowed) {
+      val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
+        changes.foldLeft(Future.successful(true)){ (previousSuccess, changes) =>
+          import changes.consistent._
 
-        previousSuccess.flatMap { success =>
-          if (success) {
-            for {
-              true <- db.post.createPublic(postsWithUser)
-              true <- db.connection(addConnections)
-              true <- db.ownership(addOwnerships)
-              true <- db.post.update(updatePosts)
-              true <- db.post.delete(delPosts)
-              true <- db.connection.delete(delConnections)
-              true <- db.ownership.delete(delOwnerships)
-            } yield true
-          } else Future.successful(false)
+          previousSuccess.flatMap { success =>
+            if (success) {
+              for {
+                true <- db.post.createPublic(addPosts)
+                true <- db.connection(addConnections)
+                true <- db.ownership(addOwnerships)
+                true <- db.post.update(updatePosts)
+                true <- db.post.delete(delPosts)
+                true <- db.connection.delete(delConnections)
+                true <- db.ownership.delete(delOwnerships)
+              } yield true
+            } else Future.successful(false)
+          }
         }
       }
-    }
 
-    result.map { success =>
-      if (success) {
-        val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
-        Returns(true, Seq(NewGraphChanges(compactChanges)))
-      } else Returns(false)
-    }
+      result.map { success =>
+        if (success) {
+          val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
+          Returns(true, Seq(NewGraphChanges(compactChanges)))
+        } else Returns(false)
+      }
+    } else Future.successful(Returns.error(ApiError.Forbidden))
   }
 
   def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
