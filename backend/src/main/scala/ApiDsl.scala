@@ -97,6 +97,7 @@ trait ApiDsl {
 
 
   implicit def ValueIsAction[T](value: T): ApiData.Action[T] = Right(value)
+  implicit def ValueIsEffect[T](value: T): ApiData.Effect[T] = ApiData.ActionIsEffect(Right(value))
   implicit def FailureIsAction[T](failure: HandlerFailure): ApiData.Action[T] = Left(failure)
   implicit def FutureValueIsAction[T](value: Future[T])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = value.map(Right(_))
   implicit def FutureFailureIsAction[T](failure: Future[HandlerFailure])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = failure.map(Left(_))
