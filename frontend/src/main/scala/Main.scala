@@ -9,12 +9,25 @@ import wust.graph.{Graph, Page}
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 
+import scribe._
+import scribe.formatter.FormatterBuilder
+import scribe.writer.ConsoleWriter
+
 import scala.util.Success
 import concurrent.Future
 import wust.util.outwatchHelpers._
 import rx.Ctx
 
 object Main {
+  val formatter = FormatterBuilder()
+    .date(format = "%1$tT:%1$tL")
+    .string(" ")
+    .levelPaddedRight
+    .string(": ")
+    .message.newLine
+
+  Logger.root.clearHandlers()
+  Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()

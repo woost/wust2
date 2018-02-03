@@ -178,12 +178,12 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
           if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
         } else {
           Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
-          println(s"api request returned false: $changes")
+          scribe.warn(s"ChangeGraph request returned false: $changes")
         }
 
         Success(success)
       case Failure(t) =>
-        println(s"api request failed '${t}': $changes")
+        scribe.warn(s"ChangeGraph request failed '${t}': $changes")
         Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
         Success(false)
