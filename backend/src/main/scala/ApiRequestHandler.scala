@@ -10,6 +10,7 @@ import wust.ids._
 import wust.backend.auth._
 import wust.backend.config.Config
 import wust.db.Db
+import wust.util.time._
 import sloth.core._
 import sloth.mycelium._
 import sloth.server.{Server => SlothServer, _}
@@ -28,18 +29,20 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   def initialState = Future.successful(State.initial)
 
   override def onClientConnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
-    scribe.info(s"client started: $client")
+    scribe.info(s"${clientDesc(client)} started")
     distributor.subscribe(client)
   }
 
   override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State], reason: DisconnectReason): Unit = {
-    scribe.info(s"client stopped ($reason): $client")
+    scribe.info(s"${clientDesc(client)} stopped: $reason")
     distributor.unsubscribe(client)
   }
 
   override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
+    scribe.info(s"${clientDesc(client)} <-- ${path.mkString("/")}")
+    val watch = StopWatch.started
+
     val state = validateState(originalState)
-    scribe.info(s"Incoming request ($path)")
     val response = api(Request(path, payload)) match {
       case Left(slothError) =>
         val error = ApiError.ServerError(slothError.toString)
@@ -47,24 +50,21 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       case Right(apiFunction) =>
         val apiResponse = apiFunction.run(state)
         val newState = apiResponse.state
-        //.recover(handleUserException andThen Left.apply) //TODO: move to apidsl, not enough here
         val returnValue = apiResponse.value.map { r => ReturnValue(r.result, filterAndDistributeEvents(client)(r.events)) }
         Response(newState, returnValue)
     }
 
     response.value.foreach { value =>
-      value.result match {
-        case Right(_) => scribe.info(s"Responding to request ($path) / events: ${value.events}")
-        case Left(error) => scribe.info(s"Error in request ($path): $error / events: ${value.events}")
-      }
+      val resultMsg = value.result.fold(err => s"Failure($err)", _ => "Success")
+      scribe.info(s"${clientDesc(client)} --> $resultMsg, events: ${value.events}. Took ${watch.readHuman}.")
     }
 
     response
   }
 
   override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
+    scribe.info(s"${clientDesc(client)} got event: $requestEvent")
     val state = validateState(originalState)
-    scribe.info(s"client got event: $client")
     val result = for {
       state <- state
       events <- triggeredEvents(state, requestEvent)
@@ -74,6 +74,8 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     val newEvents = result.map(_._2)
     Reaction(newState, newEvents)
   }
+
+  private def clientDesc(client: NotifiableClient[RequestEvent]): String = s"Client(${Integer.toString(client.hashCode, 36)})"
 
   // we check whether this jwt token is expired. if it is, we return a failed state, which will force close the websocket connection from the server side. the client can then check that the token is indeed expired and should prompt the user. meanwhile he can then work as an assumed/implicit user again.
   private def validateState(state: Future[State]): Future[State] = state.flatMap { state =>
@@ -88,12 +90,5 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     val (privateEvents, publicEvents) = ApiEvent.separateByScope(events)
     distributor.publish(client, publicEvents)
     privateEvents
-  }
-
-  private val handleUserException: PartialFunction[Throwable, ApiError.HandlerFailure] = {
-    case NonFatal(e) =>
-      scribe.error("request handler threw exception")
-      scribe.error(e)
-      ApiError.InternalServerError
   }
 }

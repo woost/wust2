@@ -2,6 +2,7 @@ package wust.sdk
 
 import wust.api._, serialize.Boopickle._
 import wust.ids._
+import wust.util.time.StopWatch
 
 import boopickle.Default._
 import sloth.core._
@@ -30,16 +31,26 @@ class WustClient(client: Client[ByteBuffer, Future, ApiException]) {
 
 class WustClientFactory private(ws: WebsocketClient[ByteBuffer, ApiEvent, ApiError])(implicit ec: ExecutionContext) {
   def sendWith(sendType: SendType, requestTimeout: FiniteDuration): WustClient = {
-    val client = Client[ByteBuffer, Future, ApiException](ws.toTransport(sendType, requestTimeout, onError = err => new ApiException(err)))
+    val transport = ws.toTransport(sendType, requestTimeout, onError = err => new ApiException(err))
+    val client = Client[ByteBuffer, Future, ApiException](transport, new ClientLogHandler)
     new WustClient(client)
   }
 }
-object WustClientFactory {
+private[sdk] object WustClientFactory {
   def createAndRun(location: String, handler: IncidentHandler[ApiEvent], connection: WebsocketConnection[ByteBuffer])(implicit ec: ExecutionContext): WustClientFactory = {
     val config = WebsocketClientConfig(pingInterval = 100 seconds) // needs to be in sync with idle timeout of backend
     val ws = WebsocketClient[ByteBuffer, ApiEvent, ApiError](connection, config, handler)
     ws.run(location)
 
     new WustClientFactory(ws)
+  }
+}
+
+private[sdk] class ClientLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
+  override def logRequest(path: List[String], arguments: Any, result: Future[_]): Unit = {
+    val watch = StopWatch.started
+    result.onComplete { result =>
+      scribe.info(s"Outgoing request (path = ${path.mkString("/")}, arguments = $arguments): $result. Took ${watch.readHuman}.")
+    }
   }
 }

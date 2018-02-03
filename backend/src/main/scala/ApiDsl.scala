@@ -1,6 +1,7 @@
 package wust.backend
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 import wust.api.{ApiEvent, ApiError}, ApiError.HandlerFailure
 import cats.implicits._
 
@@ -38,10 +39,18 @@ object ApiFunction {
   case class ReturnValue[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
   case class Response[T](state: Future[State], value: Future[ReturnValue[T]])
   object Response {
-    def action[T](oldState: Future[State], action: Future[Action[T]])(implicit ec: ExecutionContext): Response[T] = {
+    private val handleUserException: PartialFunction[Throwable, ApiError.HandlerFailure] = {
+      case NonFatal(e) =>
+        scribe.error(s"Api method threw exception: $e")
+        ApiError.InternalServerError
+    }
+
+    def action[T](oldState: Future[State], rawAction: Future[Action[T]])(implicit ec: ExecutionContext): Response[T] = {
+      val action = rawAction.recover(handleUserException andThen Left.apply)
       Response(oldState, action.map(action => ReturnValue(action, Seq.empty)))
     }
-    def effect[T](oldState: Future[State], effect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
+    def effect[T](oldState: Future[State], rawEffect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
+      val effect = rawEffect.recover(handleUserException andThen (err => ActionIsEffect(Left(err))))
       val newState = applyTransformationToState(oldState, effect.map(_.transformation))
       Response(newState, effect.map(e => ReturnValue(e.action, e.transformation.events)))
     }
@@ -64,9 +73,9 @@ object ApiFunction {
   }
 
   protected def applyTransformationToState(state: Future[State], transformation: Future[Transformation])(implicit ec: ExecutionContext): Future[State] = for {
-    t <- transformation
-    base <- t.state.fold(state)(Future.successful)
-  } yield if (t.events.isEmpty) base else State.applyEvents(base, t.events)
+      t <- transformation
+      base <- t.state.fold(state)(Future.successful)
+    } yield if (t.events.isEmpty) base else State.applyEvents(base, t.events)
 
   implicit val apiReturnValueFunctor = cats.derive.functor[ReturnValue]
   implicit def apiResponseFunctor(implicit ec: ExecutionContext) = cats.derive.functor[Response]
@@ -97,7 +106,6 @@ trait ApiDsl {
 
 
   implicit def ValueIsAction[T](value: T): ApiData.Action[T] = Right(value)
-  implicit def ValueIsEffect[T](value: T): ApiData.Effect[T] = ApiData.ActionIsEffect(Right(value))
   implicit def FailureIsAction[T](failure: HandlerFailure): ApiData.Action[T] = Left(failure)
   implicit def FutureValueIsAction[T](value: Future[T])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = value.map(Right(_))
   implicit def FutureFailureIsAction[T](failure: Future[HandlerFailure])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = failure.map(Left(_))

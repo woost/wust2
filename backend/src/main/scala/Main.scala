@@ -9,7 +9,8 @@ object Main extends App {
   val formatter = FormatterBuilder()
     .date()
     .string(" ")
-    .levelPaddedRight
+    .level
+    .add(l => "[" + l.threadName.replaceFirst("server-akka.actor.default-dispatcher-", "") + "]")
     .string(": ")
     .message.newLine
 
