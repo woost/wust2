@@ -18,6 +18,7 @@ lazy val commonSettings = Seq(
   ),
 
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M11" cross CrossVersion.full),
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
 
   // macroparadise plugin doesn't work in repl yet. https://github.com/scalameta/paradise/issues/10
   scalacOptions in (Compile, console) := Seq(),
