@@ -1,6 +1,5 @@
 package wust.frontend
 
-import boopickle.Default._
 import org.scalajs.dom._
 import wust.util.{Analytics, RichFuture}
 import wust.api.{ApiEvent, Authentication}

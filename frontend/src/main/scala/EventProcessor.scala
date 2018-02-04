@@ -5,7 +5,6 @@ import wust.ids._
 import wust.util.collection._
 import wust.util.BufferWhenTrue
 import wust.api._, ApiEvent._
-import boopickle.Default._
 import io.circe.Decoder.state
 import outwatch.Sink
 import wust.frontend.views.ViewConfig

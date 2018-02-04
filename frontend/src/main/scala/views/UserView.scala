@@ -2,7 +2,6 @@
 
 // import org.scalajs.dom.window.location
 
-// import boopickle.Default._
 // import wust.graph.{ User, Group }
 // import wust.frontend.{ Client, GlobalState }
 // import wust.util.Pipe

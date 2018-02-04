@@ -3,7 +3,6 @@ package wust.frontend
 import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.Observable
-import boopickle.Default._
 import wust.api._
 import wust.ids._
 import wust.sdk._

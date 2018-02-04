@@ -1,6 +1,5 @@
 package wust.frontend.views
 
-import boopickle.Default._
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import wust.api._
