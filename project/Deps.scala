@@ -60,8 +60,8 @@ object Deps {
   val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
 
   // rpc
-  val mycelium = dep("com.github.cornerman" % "mycelium" % "30b215c")
-  val sloth = dep("io.github.cornerman" % "sloth" % "5cc1a31")
+  val mycelium = dep("com.github.cornerman" % "mycelium" % "8aa8494")
+  val sloth = dep("io.github.cornerman" % "sloth" % "29263e0")
 
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")

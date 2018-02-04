@@ -13,7 +13,7 @@ import sloth.core._
 import sloth.mycelium._
 import sloth.client._
 import mycelium.client._
-import chameleon.boopickle._
+import chameleon.ext.boopickle._
 import cats.implicits._
 import shapeless._
 

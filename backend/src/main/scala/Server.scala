@@ -14,7 +14,7 @@ import sloth.core._
 import sloth.mycelium._
 import sloth.server.{Server => SlothServer, _}
 import mycelium.server._
-import chameleon.boopickle._
+import chameleon.ext.boopickle._
 import wust.util.{ Pipe, RichFuture }
 import cats.implicits._
 
