@@ -11,7 +11,7 @@ case class GraphChanges(
   delConnections:  Set[Connection]  = Set.empty,
   delOwnerships:   Set[Ownership]   = Set.empty,
 ) {
-  def merge(other: GraphChanges) = {
+  def merge(other: GraphChanges): GraphChanges = {
     val otherAddPosts = other.addPosts.map(_.id)
     GraphChanges(
       addPosts.filterNot(p => other.delPosts(p.id)) ++ other.addPosts,
@@ -24,7 +24,7 @@ case class GraphChanges(
     )
   }
 
-  def filter(postIds: Set[PostId]) = copy(
+  def filter(postIds: Set[PostId]): GraphChanges = copy(
     addPosts = addPosts.filter(p => postIds(p.id)),
     updatePosts = updatePosts.filter(p => postIds(p.id)),
     delPosts = delPosts.filter(postIds)

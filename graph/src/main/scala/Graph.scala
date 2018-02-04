@@ -90,10 +90,10 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val postIdsTopologicalSortedByChildren:Iterable[PostId] = postIds.topologicalSortBy(children)
   lazy val postIdsTopologicalSortedByParents:Iterable[PostId] = postIds.topologicalSortBy(parents)
   lazy val allParentIds: Set[PostId] = containments.map(_.targetId)
-  lazy val allsourceIds: Set[PostId] = containments.map(_.sourceId)
+  lazy val allSourceIds: Set[PostId] = containments.map(_.sourceId)
   lazy val allParents: Set[Post] = allParentIds.map(postsById)
   // lazy val containmentIsolatedPostIds = postIds.toSet -- containments.map(_.targetId) -- containments.map(_.sourceId)
-  lazy val toplevelPostIds: Set[PostId] = postIds.toSet -- allsourceIds
+  lazy val toplevelPostIds: Set[PostId] = postIds.toSet -- allSourceIds
   lazy val allParentIdsTopologicallySortedByChildren:Iterable[PostId] = allParentIds.topologicalSortBy(children)
   lazy val allParentIdsTopologicallySortedByParents:Iterable[PostId] = allParentIds.topologicalSortBy(parents) //TODO: ..ByChildren.reverse?
 
