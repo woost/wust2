@@ -192,6 +192,20 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           }.getOrElse(Future.successful(None)))
       }.recoverValue(None)
     }
+    //TODO: one query.
+   // def activateImplicitUser(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
+   //    val user = newRealUser(name)
+   //    val q = quote { s"""
+   //      with existingUser as (
+   //        UPDATE "user" SET isimplicit = true, revision = revision + 1 WHERE id = ${lift(id)} and isimplicit = true RETURNING revision
+   //      )
+   //      INSERT INTO password(id, digest) values(${lift(id)}, ${lift(digest)}) RETURNING existingUser.revision;
+   //    """}
+
+   //    ctx.executeActionReturning(q, identity, _(0).asInstanceOf[Int], "revision")
+   //      .map(rev => Option(user.copy(revision = rev)))
+   //      // .recoverValue(None)
+   // }
 
     //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
     def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
