@@ -37,3 +37,10 @@ services:
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: "wust"
+  github-app:
+    image: woost/wust2.github-app
+    environment:
+      WUST_SLACK_TOKEN: ${WUST_GITHUB_TOKEN} # TODO: do not use static token in production
+      WUST_USER: ${WUST_USER}
+      WUST_PASSWORD: ${WUST_PASSWORD}
+      WUST_HOSTNAME: "wust"

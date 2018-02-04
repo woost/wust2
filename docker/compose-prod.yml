@@ -43,3 +43,10 @@ services:
       service: gitter-app
     depends_on:
       - wust
+  github-app:
+    # restart: on-failure
+    extends:
+      file: services.yml
+      service: github-app
+    depends_on:
+      - wust

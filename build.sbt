@@ -80,7 +80,7 @@ lazy val sourceMapSettings = Seq(
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp, gitterApp)
+  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp, gitterApp, githubApp)
   .settings(
     publish := {},
     publishLocal := {},
@@ -96,13 +96,13 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; frontend/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test; gitterApp/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test; gitterApp/test; githubApp/test"),
 
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
     // watchSources := Seq(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
 lazy val util = crossProject
@@ -287,6 +287,16 @@ lazy val gitterApp = project
     libraryDependencies ++=
       Deps.gitterClient.value ::
       Nil
+  )
+
+lazy val githubApp = project
+  .settings(commonSettings)
+  .dependsOn(sdkJVM, apiJVM, utilJVM)
+  .settings(
+    libraryDependencies ++=
+      Deps.github4s.value ::
+      Deps.graphQl.value ::
+        Nil
   )
 
 lazy val assets = project
