@@ -76,8 +76,8 @@ object WustReceiver {
     }
     val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
 
-    // Assume that user exists
     val res = for {
+      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
       changes = GraphChanges(addPosts = Set(Post(Constants.gitterId, "wust-gitter", wustUser)))
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
