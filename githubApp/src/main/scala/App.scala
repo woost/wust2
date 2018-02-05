@@ -335,6 +335,9 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 
 
   def run(receiver: MessageReceiver): Unit = {
+    // TODO: Get events from github hooks
+//    private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
+//    private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
   }
 }
