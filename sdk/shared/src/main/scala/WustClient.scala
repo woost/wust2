@@ -51,7 +51,7 @@ class WustIncidentHandler(implicit ec: ExecutionContext) extends IncidentHandler
   final override def onEvents(events: Seq[ApiEvent]): Unit = {
     scribe.info(s"Incoming events: $events")
     eventSubject.onNext(events).onComplete {
-      case Success(_) =>
+      case Success(e) => scribe.info(s"WustClient received events: $e")
       case Failure(t) => scribe.warn(s"Failed to push events into event subject: $t")
     }
   }
