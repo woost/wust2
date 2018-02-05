@@ -48,9 +48,12 @@ class WustIncidentHandler(implicit ec: ExecutionContext) extends IncidentHandler
   private val eventSubject = PublishSubject[Seq[ApiEvent]]()
   final val eventObservable: Observable[Seq[ApiEvent]] = eventSubject
 
-  final override def onEvents(events: Seq[ApiEvent]): Unit = eventSubject.onNext(events).onComplete {
-    case Success(_) =>
-    case Failure(t) => scribe.warn(s"Failed to push events into event subject: $t")
+  final override def onEvents(events: Seq[ApiEvent]): Unit = {
+    scribe.info(s"Incoming events: $events")
+    eventSubject.onNext(events).onComplete {
+      case Success(_) =>
+      case Failure(t) => scribe.warn(s"Failed to push events into event subject: $t")
+    }
   }
 }
 
