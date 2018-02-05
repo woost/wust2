@@ -9,6 +9,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
 import cats.implicits._
+import io.circe._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -20,7 +21,7 @@ import github4s.free.domain.{Comment, Issue, User => GHUser}
 import github4s.jvm.Implicits._
 import monix.reactive.Observable
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
 
 object Constants {
@@ -33,6 +34,30 @@ object Constants {
   val wustRepo = "bug"
 }
 
+object Server {
+  import akka.http.scaladsl.server.RouteResult._
+  import akka.http.scaladsl.server.Directives._
+  import akka.http.scaladsl.Http
+
+  def run(config: GithubConfig) = {
+    implicit val system = ActorSystem("server")
+    implicit val materializer = ActorMaterializer()
+    import system.dispatcher
+
+    val route = (path(config.path) & post) {
+      complete("ok")
+    }
+
+    Http().bindAndHandle(route, interface = config.host, port = config.port).onComplete {
+      case Success(binding) => {
+        val separator = "\n" + ("#" * 50)
+        val readyMsg = s"\n##### Server online at ${binding.localAddress} #####"
+        scribe.info(s"$separator$readyMsg$separator")
+      }
+      case Failure(err) => scribe.error(s"Cannot start server: $err")
+    }
+  }
+}
 
 sealed trait GithubCall
 case class CreateIssue(owner: String, repo: String, title: String, content: String) extends GithubCall
