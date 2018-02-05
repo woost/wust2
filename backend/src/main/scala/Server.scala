@@ -68,9 +68,12 @@ object Server {
   }
 
   private class ServerLogHandler extends LogHandler[SlothServer.ResultT[ApiFunction, ?]] {
-    override def logSuccess(path: List[String], arguments: Any, result: Any): Unit = {
-      val safeArgs = if (path.headOption.fold(false)(_ == "AuthApi")) "***" else arguments.toString
-      scribe.info(s"Successful request (path = ${path.mkString("/")}, arguments = $safeArgs): $result")
+    import wust.util.LogHelper
+
+    override def logSuccess(path: List[String], rawArguments: Any, result: Any): Unit = {
+      val arguments: Any = if (path.headOption.fold(false)(_ == "AuthApi")) "***" else rawArguments
+      val request = LogHelper.requestString(path, arguments, result)
+      scribe.info(s"Successful request: $request")
     }
   }
 }

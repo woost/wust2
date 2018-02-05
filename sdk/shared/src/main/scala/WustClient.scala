@@ -74,10 +74,13 @@ private[sdk] object WustClientFactory {
   }
 }
 private[sdk] class ClientLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
+  import wust.util.LogHelper
+
   override def logRequest(path: List[String], arguments: Any, result: Future[_]): Unit = {
     val watch = StopWatch.started
     result.onComplete { result =>
-      scribe.info(s"Outgoing request (path = ${path.mkString("/")}, arguments = $arguments): $result. Took ${watch.readHuman}.")
+      val request = LogHelper.requestString(path, arguments, result)
+      scribe.info(s"Outgoing request: $request. Took ${watch.readHuman}.")
     }
   }
 }
