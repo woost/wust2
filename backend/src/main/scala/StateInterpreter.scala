@@ -23,8 +23,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
         Future.successful(Nil)
 
     case NewGraphChanges(changes) =>
-      val visibleChanges = visibleChangesForState(state, changes, event.postGroups)
-      Future.successful {
+      visibleChangesForState(state, changes).map { visibleChanges =>
         if (visibleChanges.isEmpty) Seq.empty
         else Seq(NewGraphChanges(visibleChanges))
       }
@@ -64,17 +63,17 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     } else Future.successful(Nil)
   }
 
-  private def visibleChangesForState(state: State, changes: GraphChanges, postGroups: Map[PostId, Set[GroupId]]): GraphChanges = {
+  private def visibleChangesForState(state: State, changes: GraphChanges): Future[GraphChanges] = {
     import changes.consistent._
 
     val postIds = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
     val ownGroups = state.graph.groups.map(_.id).toSet
-    val allowedPostIds = postIds.flatMap { postId =>
-      val allowed = postGroups.get(postId).map(_ exists ownGroups).getOrElse(true)
-      if (allowed) Some(postId)
-      else None
-    }
+    db.post.getGroupIds(postIds).map { postGroups =>
+      val allowedPostIds = postIds.filter { postId =>
+        postGroups.get(postId).map(_ exists ownGroups).getOrElse(true)
+      }
 
-    changes.consistent.filter(allowedPostIds)
+      changes.consistent.filter(allowedPostIds)
+    }
   }
 }

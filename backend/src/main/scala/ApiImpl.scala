@@ -163,52 +163,41 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def importGithubUrl(url: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
     // TODO: Reuse graph changes instead
     val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
     val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
-    val result = postsOfUrl.flatMap { case (posts, connections) =>
+    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
       db.ctx.transaction { implicit ec =>
         for {
           true <- db.post.createPublic(posts)
           true <- db.connection(connections)
           changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield Returns(true,  ApiEvent.NewGraphChanges.ForAll(changes) :: Nil)
+        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
       }
     }
 
-    // TODO notifiable client in api for late events after respond. and return early?
-    result.recover {
-      case NonFatal(t) =>
-        scribe.error(s"unexpected error in import")
-        scribe.error(t)
-        Returns(false)
-    }
+    Future.successful(Returns(true, delayedEvents = importEvents))
   }
 
-  def importGitterUrl(url: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
+    Thread.sleep(10 * 1000)
     // TODO: Reuse graph changes instead
 //    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
     val postsOfUrl = GitterImporter.getRoomMessages(url, user)
-    val result = postsOfUrl.flatMap { case (posts, connections) =>
+    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
       db.ctx.transaction { implicit ec =>
         for {
           true <- db.post.createPublic(posts)
           true <- db.connection(connections)
           changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield Returns(true,  ApiEvent.NewGraphChanges.ForAll(changes) :: Nil)
+        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
       }
     }
 
-    // TODO notifiable client in api for late events after respond. and return early?
-    result.recover {
-      case NonFatal(t) =>
-        scribe.error(s"unexpected error in import")
-        scribe.error(t)
-        Returns(false)
-      }
+    Future.successful(Returns(true, delayedEvents = importEvents))
   }
 
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>

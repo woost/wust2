@@ -44,7 +44,8 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     val watch = StopWatch.started
 
     val state = validateState(originalState)
-    val response = api(Request(path, payload)) match {
+    api(Request(path, payload)) match {
+
       case ServerResult.Success(arguments, apiFunction) =>
         val apiResponse = apiFunction.run(state)
         val newState = apiResponse.state
@@ -55,14 +56,23 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
           scribe.info(s"${clientDesc(client)} --> ${requestLogLine(path, arguments, rawResult)} / $events. Took ${watch.readHuman}.")
           ReturnValue(serializedResult, events)
         }
+        apiResponse.delayedEvents.foreach { rawEvents =>
+          if (rawEvents.nonEmpty) {
+            val events = filterAndDistributeEvents(client)(rawEvents)
+            if (events.nonEmpty) {
+              scribe.info(s"${clientDesc(client)} [delayed]--> ${requestLogLine(path, arguments, events)}. Took ${watch.readHuman}.")
+              client.notify(RequestEvent(events))
+            }
+          }
+        }
         Response(newState, returnValue)
+
       case ServerResult.Failure(arguments, slothError) =>
         val error = ApiError.ServerError(slothError.toString)
         scribe.warn(s"${clientDesc(client)} --> ${requestLogLine(path, arguments, error)}. Took ${watch.readHuman}.")
         Response(state, Future.successful(ReturnValue(Left(error), Seq.empty)))
-    }
 
-    response
+    }
   }
 
   override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {

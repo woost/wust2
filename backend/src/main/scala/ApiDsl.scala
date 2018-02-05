@@ -9,7 +9,7 @@ import cats.implicits._
 
 //TODO better availablity of types not in obj, package object because of type alias? but currently name clash with ApiDsl.Effect/Action => rename
 object ApiData {
-  type Action[+T] = Either[HandlerFailure, T]
+  case class Action[+T](data: Either[HandlerFailure, T], delayedEvents: Future[Seq[ApiEvent]] = Future.successful(Seq.empty))
   case class Transformation(state: Option[State], events: Seq[ApiEvent])
   case class Effect[+T](transformation: Transformation, action: Action[T])
 
@@ -18,17 +18,32 @@ object ApiData {
   type MonadError[F[_]] = cats.MonadError[F, HandlerFailure]
   def MonadError[F[_]](implicit m: cats.MonadError[F, HandlerFailure]) = m
 
-  implicit val effectMonadError: MonadError[Effect] = new MonadError[Effect] {
+  implicit def actionMonadError(implicit ec :ExecutionContext): MonadError[Action] = new MonadError[Action] {
+    def pure[A](a: A): Action[A] = Action(Right(a))
+    def raiseError[A](e: HandlerFailure): Action[A] = Action(Left(e))
+    def handleErrorWith[A](e: Action[A])(f: HandlerFailure => Action[A]): Action[A] = e.data.fold(f, _ => e)
+    def flatMap[A, B](e: Action[A])(f: A => Action[B]): Action[B] = e.data.fold[Action[B]]((err) => e.copy(data = Left(err)), { res =>
+      val action = f(res)
+      val newEvents = for {
+        events1 <- e.delayedEvents
+        events2 <- action.delayedEvents
+      } yield events1 ++ events2
+      action.copy(delayedEvents = newEvents)
+    })
+    def tailRecM[A, B](e: A)(f: A => Action[Either[A,B]]): Action[B] = ??? //TODO
+  }
+
+  implicit def effectMonadError(implicit ec :ExecutionContext): MonadError[Effect] = new MonadError[Effect] {
     def pure[A](a: A): Effect[A] = ActionIsEffect(MonadError[Action].pure(a))
     def raiseError[A](e: HandlerFailure): Effect[A] = ActionIsEffect(MonadError[Action].raiseError(e))
-    def handleErrorWith[A](e: Effect[A])(f: HandlerFailure => Effect[A]): Effect[A] = e.action.fold(f, _ => e)
-    def flatMap[A, B](e: Effect[A])(f: A => Effect[B]): Effect[B] = e.action.fold(raiseError, { res =>
+    def handleErrorWith[A](e: Effect[A])(f: HandlerFailure => Effect[A]): Effect[A] = e.action.data.fold(f, _ => e)
+    def flatMap[A, B](e: Effect[A])(f: A => Effect[B]): Effect[B] = e.action.data.fold[Effect[B]](err => e.copy(action = e.action.copy(data = Left(err))), { res =>
       val effect = f(res)
       val newState = effect.transformation.state orElse e.transformation.state
       val newEvents = e.transformation.events ++ effect.transformation.events
       effect.copy(transformation = Transformation(newState, newEvents))
     })
-    def tailRecM[A, B](e: A)(f: A => Effect[Either[A,B]]): Effect[B] = cats.FlatMap[Effect].tailRecM[A,B](e)(f)
+    def tailRecM[A, B](e: A)(f: A => Effect[Either[A,B]]): Effect[B] = ??? //TODO
   }
 }
 
@@ -37,22 +52,29 @@ object ApiFunction {
   import ApiData._
 
   case class ReturnValue[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
-  case class Response[T](state: Future[State], value: Future[ReturnValue[T]])
+  case class Response[T](state: Future[State], value: Future[ReturnValue[T]], delayedEvents: Future[Seq[ApiEvent]])
   object Response {
     private val handleUserException: PartialFunction[Throwable, ApiError.HandlerFailure] = {
       case NonFatal(e) =>
-        scribe.error(s"Api method threw exception: $e")
+        scribe.error(s"Exception in API method: $e")
         ApiError.InternalServerError
+    }
+    private val handleDelayedUserException: PartialFunction[Throwable, Seq[ApiEvent]] = {
+      case NonFatal(e) =>
+        scribe.error(s"Exception in API delayed events: $e")
+        Seq.empty
     }
 
     def action[T](oldState: Future[State], rawAction: Future[Action[T]])(implicit ec: ExecutionContext): Response[T] = {
-      val action = rawAction.recover(handleUserException andThen Left.apply)
-      Response(oldState, action.map(action => ReturnValue(action, Seq.empty)))
+      val action = rawAction.recover(handleUserException andThen (err => Action(Left(err))))
+      val safeDelayEvents = action.flatMap(_.delayedEvents).recover(handleDelayedUserException)
+      Response(oldState, action.map(action => ReturnValue(action.data, Seq.empty)), safeDelayEvents)
     }
     def effect[T](oldState: Future[State], rawEffect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
-      val effect = rawEffect.recover(handleUserException andThen (err => ActionIsEffect(Left(err))))
+      val effect = rawEffect.recover(handleUserException andThen (err => ActionIsEffect(Action(Left(err)))))
       val newState = applyTransformationToState(oldState, effect.map(_.transformation))
-      Response(newState, effect.map(e => ReturnValue(e.action, e.transformation.events)))
+      val safeDelayEvents = effect.flatMap(_.action.delayedEvents).recover(handleDelayedUserException)
+      Response(newState, effect.map(e => ReturnValue(e.action.data, e.transformation.events)), safeDelayEvents)
     }
   }
   trait Factory[F[_]] {
@@ -92,12 +114,13 @@ trait ApiDsl {
     def apply[T](f: => Future[ApiData.Effect[T]])(implicit ec: ExecutionContext): ApiFunction[T] = ApiFunction(s => ApiFunction.Response.effect(s, f))
   }
   object Returns {
-    def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transforms.raw(state, events), Right(result))
-    def apply[T](result: T, events: Seq[ApiEvent]): ApiData.Effect[T] = ApiData.Effect(Transforms(events), Right(result))
-    def apply[T](result: T): ApiData.Action[T] = Right(result)
+    def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transforms.raw(state, events), apply(result))
+    def apply[T](result: T, events: Seq[ApiEvent], delayedEvents: Future[Seq[ApiEvent]] = Future.successful(Seq.empty)): ApiData.Effect[T] = ApiData.Effect(Transforms(events), apply(result, delayedEvents))
+    def apply[T](result: T, delayedEvents: Future[Seq[ApiEvent]]): ApiData.Action[T] = ApiData.Action(Right(result), delayedEvents)
+    def apply[T](result: T): ApiData.Action[T] = ApiData.Action(Right(result))
 
-    def error(failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Effect[Nothing] = ApiData.Effect(Transforms(events), Left(failure))
-    def error(failure: HandlerFailure): ApiData.Action[Nothing] = Left(failure)
+    def error(failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Effect[Nothing] = ApiData.Effect(Transforms(events), error(failure))
+    def error(failure: HandlerFailure): ApiData.Action[Nothing] = ApiData.Action(Left(failure))
   }
   object Transforms {
     def raw(state: State, events: Seq[ApiEvent] = Seq.empty): ApiData.Transformation = ApiData.Transformation(Some(state), events)
@@ -105,9 +128,9 @@ trait ApiDsl {
   }
 
 
-  implicit def ValueIsAction[T](value: T): ApiData.Action[T] = Right(value)
-  implicit def FailureIsAction[T](failure: HandlerFailure): ApiData.Action[T] = Left(failure)
-  implicit def FutureValueIsAction[T](value: Future[T])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = value.map(Right(_))
-  implicit def FutureFailureIsAction[T](failure: Future[HandlerFailure])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = failure.map(Left(_))
+  implicit def ValueIsAction[T](value: T): ApiData.Action[T] = Returns(value)
+  implicit def FailureIsAction[T](failure: HandlerFailure): ApiData.Action[T] = Returns.error(failure)
+  implicit def FutureValueIsAction[T](value: Future[T])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = value.map(ValueIsAction)
+  implicit def FutureFailureIsAction[T](failure: Future[HandlerFailure])(implicit ec: ExecutionContext): Future[ApiData.Action[T]] = failure.map(FailureIsAction)
 }
 object ApiDsl extends ApiDsl

@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.concurrent.{Future, ExecutionContext}
 import scala.util.Failure
 
-case class RequestEvent(events: Seq[ApiEvent.Public], postGroups: Map[PostId, Set[GroupId]])
+case class RequestEvent(events: Seq[ApiEvent]) extends AnyVal
 
 class EventDistributor(db: Db) {
   val subscribers = mutable.HashSet.empty[NotifiableClient[RequestEvent]]
@@ -25,28 +25,8 @@ class EventDistributor(db: Db) {
   def publish(origin: NotifiableClient[RequestEvent], events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = if (events.nonEmpty) {
     scribe.info(s"Backend events (${subscribers.size - 1} clients): $events")
 
-    val postIds = events.flatMap(postIdsInEvent).toSet
-    for {
-      postGroups <- getGroupIds(postIds)
-    } subscribers.foreach { client =>
-      if (client != origin) client.notify(RequestEvent(events, postGroups))
+    subscribers.foreach { client =>
+      if (client != origin) client.notify(RequestEvent(events))
     }
-  }
-
-  private def getGroupIds(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[PostId, Set[GroupId]]] = {
-    val groups = db.post.getGroupIds(postIds)
-    groups.onComplete {
-      case Failure(t) =>
-        scribe.error(s"Error while getting post groups for posts: $postIds")
-        scribe.error(t)
-      case _ =>
-    }
-
-    groups
-  }
-
-  private def postIdsInEvent(event: ApiEvent): Set[PostId] = event match {
-    case ApiEvent.NewGraphChanges(changes) => changes.addPosts.map(_.id) ++ changes.updatePosts.map(_.id) ++ changes.delPosts
-    case _ => Set.empty
   }
 }
