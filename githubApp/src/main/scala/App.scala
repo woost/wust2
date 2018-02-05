@@ -45,29 +45,18 @@ case class DeleteComment(owner: String, repo: String, externalId: Option[Int]) e
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
 
-//  def push(issue: WustIssue, author: UserId): Result[Post]
-//  def push(issue: WustComment, author: UserId): Result[Post]
+  def push(graphChanges: List[GraphChanges]): Result[List[GraphChanges]]
 }
 
 class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-//  def push(issue: WustIssue, author: UserId) = {
-//    println(s"new issue: ${issue.content}")
-//  }
-//  def push(comment: WustComment, author: UserId) = {
-//    println(s"new comment: ${comment.content}")
-//  }
-  //  def push(msg: ExchangeMessage, author: UserId) = {
-  //    println(s"new message: ${msg.content}")
-  //    val post = Post(PostId.fresh, msg.content, author)
-  //    val connection = Connection(post.id, Label.parent, Constants.githubId)
-  //
-  //    val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
-  //    client.api.changeGraph(changes).map { success =>
-  //      if (success) Right(post)
-  //      else Left("Failed to create post")
-  //    }
-  //  }
+  def push(graphChanges: List[GraphChanges]): Future[Either[String, List[GraphChanges]]] = {
+    scribe.info(s"pushing new graph change: $graphChanges")
+    client.api.changeGraph(graphChanges).map{ success =>
+      if(success) Right(graphChanges)
+      else Left("Failed to create post")
+    }
+  }
 }
 
 object WustReceiver {
@@ -100,8 +89,8 @@ object WustReceiver {
       .collect { case list if list.nonEmpty => println("api event non-empty"); list }
 
     val graphObs: Observable[GraphTransition] = graphEvents.scan(GraphTransition.empty) { (prevTrans, events) =>
-        println(s"Got events: $events")
-        val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
+      println(s"Got events: $events")
+      val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
       val nextGraph = events.foldLeft(prevTrans.resGraph)(EventUpdate.applyEventOnGraph)
       GraphTransition(prevTrans.resGraph, changes, nextGraph)
     }
@@ -113,8 +102,8 @@ object WustReceiver {
     { // TODO: Use same execution context
       import monix.execution.Scheduler.Implicits.global
 
-        // nice sideeffect
-        println("Calling side-effect in github app")
+      // nice sideeffect
+      println("Calling side-effect in github app")
       githubApiCalls.foreach(s => s.foreach {
         case c: CreateIssue => github.createIssue(c)
         case c: EditIssue => github.editIssue(c)
@@ -124,7 +113,7 @@ object WustReceiver {
           val commGC: GraphChanges = GraphChanges.empty
           client.api.changeGraph(List(commGC))
           github.createComment(c)
-    }
+        }
         case c: EditComment => github.editComment(c)
         case c: DeleteComment => github.deleteComment(c)
         case _ => println("Could not match to github api call")
