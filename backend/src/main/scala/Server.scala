@@ -58,22 +58,12 @@ object Server {
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = new GuardDsl(jwt, db)
 
-    val server = SlothServer[ByteBuffer, ApiFunction](new ServerLogHandler)
+    val server = SlothServer[ByteBuffer, ApiFunction]
     val api = server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) orElse
               server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
 
     val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api)
     val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
     WebsocketServer(serverConfig, requestHandler)
-  }
-
-  private class ServerLogHandler extends LogHandler[SlothServer.ResultT[ApiFunction, ?]] {
-    import wust.util.LogHelper
-
-    override def logSuccess(path: List[String], rawArguments: Any, result: Any): Unit = {
-      val arguments: Any = if (path.headOption.fold(false)(_ == "AuthApi")) "***" else rawArguments
-      val request = LogHelper.requestString(path, arguments, result)
-      scribe.info(s"Successful request: $request")
-    }
   }
 }

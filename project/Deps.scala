@@ -61,7 +61,7 @@ object Deps {
 
   // rpc
   val mycelium = dep("com.github.cornerman" % "mycelium" % "8aa8494")
-  val sloth = dep("io.github.cornerman" % "sloth" % "29263e0")
+  val sloth = dep("io.github.cornerman" % "sloth" % "6e5ec10")
 
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
