@@ -341,7 +341,7 @@ object App extends scala.App {
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      val client = GithubClient(Some(config.accessToken)) // TODO: Real option
+      val client = GithubClient(Some(config.github.accessToken)) // TODO: Real option
       WustReceiver.run(config.wust, client).foreach {
         case Right(receiver) => client.run(receiver)
         case Left(err) => println(s"Cannot connect to Wust: $err")
