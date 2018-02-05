@@ -112,29 +112,32 @@ object GitHubImporter {
         val _github_issue = Connection(_issue.id, Label.parent, _github.id)
         val _github_comment = Connection(_comment.id, Label.parent, _github.id)
 
+        // TODO: delete transitive containments of comments in issue
+
         // Issue posts and connections
         val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
 //        val issueTitle = Post(PostId.fresh, s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
-        val titleGitTag = Connection(issueTitle.id, Label.parent, _github.id)
+//        val titleGitTag = Connection(issueTitle.id, Label.parent, _github.id)
         val titleIssueTag = Connection(issueTitle.id, Label.parent, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
           val issueDesc = Post(PostId(issue.id.toString), issue.body, tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
           val conn = Connection(issueDesc.id, "describes", issueTitle.id)
           val cont = Connection(issueDesc.id, Label.parent, issueTitle.id)
-          (Set(issueDesc), Set(conn, cont))
+          val comm = Connection(issueDesc.id, Label.parent, _comment.id)
+          (Set(issueDesc), Set(conn, cont, comm))
         } else {
           (Set.empty[Post], Set.empty[Connection])
         }
 
         val issuePosts = Set[Post](_github, _issue, _comment, issueTitle) ++ desc._1
-        val issueConn = Set[Connection](_github_issue, _github_comment, titleGitTag, titleIssueTag) ++ desc._2
+        val issueConn = Set[Connection](_github_issue, _github_comment, titleIssueTag) ++ desc._2
 
         // Comments
         val comments: List[(Post, Set[Connection])] = commentsList.map(comment => {
           val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
 //          val cpost = Post(PostId.fresh, comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
-          val cconn = Set(Connection(cpost.id, Label.parent, issueTitle.id), Connection(issueTitle.id, Label.parent, _comment.id))
+          val cconn = Set(Connection(cpost.id, Label.parent, issueTitle.id), Connection(cpost.id, Label.parent, _comment.id))
           (cpost, cconn)
         })
 
