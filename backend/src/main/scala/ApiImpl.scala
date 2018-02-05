@@ -178,7 +178,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       }
     }
 
-    Future.successful(Returns(true, delayedEvents = importEvents))
+    Future.successful(Returns(true, asyncEvents = importEvents))
   }
 
   def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
@@ -197,7 +197,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       }
     }
 
-    Future.successful(Returns(true, delayedEvents = importEvents))
+    Future.successful(Returns(true, asyncEvents = importEvents))
   }
 
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>

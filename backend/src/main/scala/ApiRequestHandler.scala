@@ -56,11 +56,11 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
           scribe.info(s"${clientDesc(client)} --> ${requestLogLine(path, arguments, rawResult)} / $events. Took ${watch.readHuman}.")
           ReturnValue(serializedResult, events)
         }
-        apiResponse.delayedEvents.foreach { rawEvents =>
+        apiResponse.asyncEvents.foreach { rawEvents =>
           if (rawEvents.nonEmpty) {
             val events = filterAndDistributeEvents(client)(rawEvents)
             if (events.nonEmpty) {
-              scribe.info(s"${clientDesc(client)} [delayed]--> ${requestLogLine(path, arguments, events)}. Took ${watch.readHuman}.")
+              scribe.info(s"${clientDesc(client)} [async]--> ${requestLogLine(path, arguments, events)}. Took ${watch.readHuman}.")
               client.notify(RequestEvent(events))
             }
           }
