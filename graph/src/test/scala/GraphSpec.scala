@@ -24,12 +24,12 @@ class GraphSpec extends FreeSpec with MustMatchers {
   "graph" - {
     "empty is empty" in {
       Graph.empty.postsById mustBe empty
-      Graph.empty.connections mustBe empty
+      Graph.empty.connectionsWithoutParent mustBe empty
 
       Graph.empty.posts mustBe empty
 
       Graph().postsById mustBe empty
-      Graph().connections mustBe empty
+      Graph().connectionsWithoutParent mustBe empty
 
       Graph().posts mustBe empty
     }
@@ -109,7 +109,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val posts: List[Post] = List(1, 2, 3)
       val newPost = Post(99, "hans", 0)
       val graph = Graph(posts, List[Connection](1 -> 2, 2 -> 3) ++ List(1 cont 2, 2 cont 3))
-      (graph + newPost) mustEqual Graph(posts :+ newPost, graph.connections ++ graph.containments)
+      (graph + newPost) mustEqual Graph(posts :+ newPost, graph.connectionsWithoutParent ++ graph.containments)
     }
 
     "add connection" in {
@@ -123,7 +123,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val containments: List[Connection] = List(1 -> 2, 2 -> 3)
       val newContainment = Containment(3, 1)
       val graph = Graph(List(1, 2, 3), List[Connection](1 -> 2, 2 -> 3) ++ containments)
-      (graph + newContainment) mustEqual Graph(graph.posts, graph.connections ++ (containments :+ newContainment))
+      (graph + newContainment) mustEqual Graph(graph.posts, graph.connectionsWithoutParent ++ (containments :+ newContainment))
     }
 
     "filter" in {
@@ -180,7 +180,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val connections: List[Connection] = List(Connection(1, 2), Connection(2, 3))
       val containments: List[Connection] = List(Containment(1, 2), Containment(2, 3))
       val graph = Graph(List(1, 2, 3), connections ++ containments)
-      (graph - Containment(2, 3)) mustEqual Graph(graph.posts, graph.connections ++ List(Containment(1, 2)))
+      (graph - Containment(2, 3)) mustEqual Graph(graph.posts, graph.connectionsWithoutParent ++ List(Containment(1, 2)))
     }
 
     "remove non-existing containment" in {

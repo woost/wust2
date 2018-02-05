@@ -158,7 +158,7 @@ object DevView {
           )
         }.toObservable,
         child <-- Rx {
-          val connections = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.connections.toSeq)
+          val connections = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
           println("CONN"+connections.size)
 
           def disconnect(count:Int):Unit = {

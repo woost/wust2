@@ -79,7 +79,8 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   lazy val chronologicalPostsAscending: List[Post] = posts.toList.sortBy(p => Tag.unwrap(p.id))
 
-  lazy val connections: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)
+  lazy val connections:Set[Connection] = connectionsByLabel.values.flatMap(identity)(breakOut)
+  lazy val connectionsWithoutParent: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)
   lazy val containments: Set[Connection] = connectionsByLabelF(Label.parent)
   lazy val posts: Iterable[Post] = postsById.values
   lazy val postIds: Iterable[PostId] = postsById.keys
@@ -104,12 +105,12 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     s"ownerships: ${ownerships.map(o => s"${o.postId} -> ${o.groupId}").mkString(", ")}, " +
     s"users: $userIds, " +
     s"memberships: ${memberships.map(o => s"${o.userId} -> ${o.groupId}").mkString(", ")})"
-  def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connections.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
+  def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connectionsWithoutParent.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
   private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
-  lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connections, _.sourceId, _.targetId)
-  lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connections, _.targetId, _.sourceId)
-  lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connections, _.targetId, _.sourceId)
+  lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.sourceId, _.targetId)
+  lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.targetId, _.sourceId)
+  lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
 
   lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.targetId, _.sourceId)
   lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.sourceId, _.targetId)
@@ -130,10 +131,10 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   // that's why the need default values from connectionDefaultNeighbourhood
   private lazy val connectionDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Connection])
   lazy val incomingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[PostId, Connection](connections, _.targetId)
+    directedIncidenceList[PostId, Connection](connectionsWithoutParent, _.targetId)
   lazy val outgoingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[PostId, Connection](connections, _.sourceId)
-  lazy val incidentConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ incidenceList[PostId, Connection](connections, _.sourceId, _.targetId)
+    directedIncidenceList[PostId, Connection](connectionsWithoutParent, _.sourceId)
+  lazy val incidentConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ incidenceList[PostId, Connection](connectionsWithoutParent, _.sourceId, _.targetId)
 
   lazy val incidentParentContainments: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ directedIncidenceList[PostId, Connection](containments, _.sourceId)
   lazy val incidentChildContainments: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ directedIncidenceList[PostId, Connection](containments, _.targetId)
@@ -152,7 +153,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   private lazy val postDefaultDegree = postsById.mapValues(_ => 0)
   lazy val connectionDegree: Map[PostId, Int] = postDefaultDegree ++
-    degreeSequence[PostId, Connection](connections, _.targetId, _.sourceId)
+    degreeSequence[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
   lazy val containmentDegree: Map[PostId, Int] = postDefaultDegree ++
     degreeSequence[PostId, Connection](containments, _.targetId, _.sourceId)
 

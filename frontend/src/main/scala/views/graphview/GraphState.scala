@@ -95,7 +95,7 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
     val graph = rxDisplayGraph().graph
     val postIdToSimPost = rxPostIdToSimPost()
 
-    graph.connections.map { c => new SimConnection(c, postIdToSimPost(c.sourceId), postIdToSimPost(c.targetId)) }.toJSArray
+    graph.connectionsWithoutParent.map { c => new SimConnection(c, postIdToSimPost(c.sourceId), postIdToSimPost(c.targetId)) }.toJSArray
   }
 
   val rxSimRedirectedConnection = Rx {
