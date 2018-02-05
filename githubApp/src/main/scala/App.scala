@@ -33,20 +33,14 @@ object Constants {
   val wustRepo = "bug"
 }
 
-case class WustIssue( owner: String,
-                      repo: String,
-                      externalNumber: Option[Int] = None,
-                      status: Option[String] = None,
-                      title: Option[String] = None,
-                      content: Option[String] = None,
-                    )
 
-case class WustComment( owner: String,
-                        repo: String,
-                        externalIssueNumber: Option[Int] = None,
-                        externalId: Option[Int] = None,
-                        content: Option[String] = None,
-                      )
+sealed trait GithubCall
+case class CreateIssue(owner: String, repo: String, title: String, content: String) extends GithubCall
+case class EditIssue(owner: String, repo: String, externalNumber: Option[Int], status: String, title: String, content: String) extends GithubCall
+case class DeleteIssue(owner: String, repo: String, externalNumber: Option[Int], title: String, content: String) extends GithubCall
+case class CreateComment(owner: String, repo: String, externalIssueNumber: Option[Int], content: String) extends GithubCall
+case class EditComment(owner: String, repo: String, externalId: Option[Int], content: String) extends GithubCall
+case class DeleteComment(owner: String, repo: String, externalId: Option[Int]) extends GithubCall
 
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
@@ -81,12 +75,15 @@ object WustReceiver {
 
   val wustUser = UserId("wust-github")
 
+  object GraphTransition {
+    def empty: GraphTransition = new GraphTransition(Graph.empty, Seq.empty[GraphChanges], Graph.empty)
+  }
+  case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
+
   def run(config: WustConfig, github: GithubClient): Future[Result[WustReceiver]] = {
     implicit val system = ActorSystem("wust")
     import system.dispatcher
     implicit val materializer = ActorMaterializer()
-
-    //    val client = AkkaWustClient(location, handler).sendWith(SendType.NowOrFail, 30 seconds)
 
     val location = s"ws://${config.host}:${config.port}/ws"
 
@@ -94,21 +91,45 @@ object WustReceiver {
       override def onConnect(): Unit = println(s"GitHub App - Connected to websocket")
     }
 
+    val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
+
     println("Running WustReceiver")
-    val graphEvents = handler.eventObservable.map(_.collect { case ev: ApiEvent.GraphContent => ev }).collect { case list if list.nonEmpty => list }
-    val graph: Observable[Graph] = graphEvents.scan(Graph.empty) { (prevGraph, events) =>
+
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = handler.eventObservable
+      .map(e => {println(s"triggering collect on $e"); e.collect { case ev: ApiEvent.GraphContent => println("received api event"); ev }})
+      .collect { case list if list.nonEmpty => println("api event non-empty"); list }
+
+    val graphObs: Observable[GraphTransition] = graphEvents.scan(GraphTransition.empty) { (prevTrans, events) =>
         println(s"Got events: $events")
-        val _graph = events.foldLeft(prevGraph)(EventUpdate.applyEventOnGraph)
         val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
+      val nextGraph = events.foldLeft(prevTrans.resGraph)(EventUpdate.applyEventOnGraph)
+      GraphTransition(prevTrans.resGraph, changes, nextGraph)
+    }
+
+    val githubApiCalls = graphObs.map { graphTransition =>
+      filterAndSendChanges(github, graphTransition)
+    }
+
+    { // TODO: Use same execution context
+      import monix.execution.Scheduler.Implicits.global
 
         // nice sideeffect
         println("Calling side-effect in github app")
-        filterAndSendChanges(github, _graph, changes)
-
-        _graph
+      githubApiCalls.foreach(s => s.foreach {
+        case c: CreateIssue => github.createIssue(c)
+        case c: EditIssue => github.editIssue(c)
+        case c: DeleteIssue => github.deleteIssue(c)
+        case c: CreateComment => {
+           // TODO: push comment tag to wust backend. where to put that?
+          val commGC: GraphChanges = GraphChanges.empty
+          client.api.changeGraph(List(commGC))
+          github.createComment(c)
     }
-
-    val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
+        case c: EditComment => github.editComment(c)
+        case c: DeleteComment => github.deleteComment(c)
+        case _ => println("Could not match to github api call")
+      })
+    }
 
     import cats.implicits._
     val res = for {
@@ -123,42 +144,38 @@ object WustReceiver {
 
   }
 
-  private def filterAndSendChanges(github: GithubClient, graph: Graph, changes: Seq[GraphChanges]): Unit = {
+  private def filterAndSendChanges(github: GithubClient, graphTransition: GraphTransition): Seq[GithubCall] = {
 
 
-    def getAncestors(graphChanges: GraphChanges): Map[PostId, Iterable[PostId]] = {
+    def getAncestors(prevGraph: Graph, graph: Graph, graphChanges: GraphChanges): Map[PostId, Iterable[PostId]] = {
 
-      val addAncestors = graphChanges.addPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((p1, p2) => {
-        p1 + (p2.id -> graph.ancestors(p2.id))
+      val addAncestors = graphChanges.addPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, p) => {
+        m + (p.id -> graph.ancestors(p.id))
       })
 
-      val updateAncestors = graphChanges.updatePosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((p1, p2) => {
-        p1 + (p2.id -> graph.ancestors(p2.id))
+      val updateAncestors = graphChanges.updatePosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, p) => {
+        m + (p.id -> graph.ancestors(p.id))
       })
 
       val delAncestors = graphChanges.delPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, pid) => {
-        m + (pid -> graph.ancestors(pid))
+        m + (pid -> prevGraph.ancestors(pid))
       })
 
       addAncestors ++ updateAncestors ++ delAncestors
     }
 
-    def issuePostOfDesc(pid: PostId): Option[Post] = {
+    def issuePostOfDesc(graph: Graph, pid: PostId): Option[Post] = {
       graph.connectionsByLabel("describes")
         .find(c => c.targetId == pid)
-        .map(c => graph.postsById(c.targetId))
+        .map(c => graph.postsById(c.sourceId))
     }
 
-//    val ancestors = changes.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, gc) => m ++ getAncestors(gc))
-//    val githubChanges = changes.map(gc => gc.copy(
-//      addPosts = gc.addPosts.filter(p => ancestors(p.id).exists(_ == Constants.githubId)),
-//      delPosts = gc.delPosts.filter(pid => ancestors(pid).exists(_ == Constants.githubId)),
-//      updatePosts = gc.updatePosts.filter(p => ancestors(p.id).exists(_ == Constants.githubId))
-//    ))
+    graphTransition.changes.flatMap{ gc: GraphChanges =>
 
-    changes.foreach { gc: GraphChanges =>
-
-      val ancestors = getAncestors(gc)
+      println("-" * 200)
+      val currGraph = graphTransition.resGraph
+      val prevGraph = graphTransition.prevGraph
+      val ancestors = getAncestors(prevGraph, currGraph, gc)
 
       val githubChanges = gc.copy(
         addPosts = gc.addPosts.filter(p => ancestors(p.id).exists(_ == Constants.githubId)),
@@ -168,63 +185,86 @@ object WustReceiver {
 
       // Delete
       val githubDeletePosts = githubChanges.delPosts
-      val issuesToDelete: Set[PostId] = githubDeletePosts.filter(pid => graph.inChildParentRelation(pid, Constants.issueTagId))
-      val commentsToDelete: Set[PostId] = githubDeletePosts.filter(pid => graph.inChildParentRelation(pid, Constants.commentTagId))
+      val issuesToDelete: Set[PostId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
+      val commentsToDelete: Set[PostId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId))
 
-      issuesToDelete
-        .map(pid => WustIssue(owner = Constants.wustOwner, repo = Constants.wustRepo, externalNumber = Try(pid.toString.toInt).toOption))
-        .foreach(i => github.deleteIssue(i))
-      commentsToDelete
-        .map(pid => WustComment(owner = Constants.wustOwner, repo = Constants.wustRepo, externalId = Try(pid.toString.toInt).toOption))
-        .foreach(c => github.deleteComment(c))
+      val deleteIssuesCall = issuesToDelete
+        .map(pid => DeleteIssue(owner = Constants.wustOwner,
+          repo = Constants.wustRepo,
+          externalNumber = Try(pid.toString.toInt).toOption,
+          title = prevGraph.postsById(pid).content,
+          content = issuePostOfDesc(prevGraph, pid).map(_.content).getOrElse("")
+        ))
+
+      val deleteCommentsCall = commentsToDelete
+        .map(pid => DeleteComment(owner = Constants.wustOwner, repo = Constants.wustRepo, externalId = Try(pid.toString.toInt).toOption))
 
 
       // Update
       val githubUpdatePosts = githubChanges.updatePosts
-      val issuesToUpdate: Set[Post] = githubUpdatePosts.filter(post => graph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToUpdate: Set[Post] = githubUpdatePosts.filter(post => graph.inChildParentRelation(post.id, Constants.commentTagId))
+      val issuesToUpdate: Set[Post] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
+      val commentsToUpdate: Set[Post] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
 
-      issuesToUpdate
-        .map(p => WustIssue(owner = Constants.wustOwner,
+      val editIssuesCall = issuesToUpdate
+        .map(p => EditIssue(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
           externalNumber = Try(p.id.toString.toInt).toOption,
-          status = Some("open"),
-          title = Some(p.content),
-          content = issuePostOfDesc(p.id).map(_.content)
+          status = "open",
+          title = p.content,
+          content = issuePostOfDesc(currGraph, p.id).map(_.content).getOrElse("")
         ))
-        .foreach(i => github.editIssue(i))
-      commentsToUpdate
-        .map(p => WustComment(owner = Constants.wustOwner,
+
+      val editCommentsCall = commentsToUpdate
+        .map(p => EditComment(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
           externalId = Try(p.id.toString.toInt).toOption,
-          content = Some(p.content)))
-        .foreach(c => github.editComment(c))
+          content = p.content))
 
 
       // Add
       val githubAddPosts = githubChanges.addPosts
-      val issuesToAdd: Set[Post] = githubAddPosts.filter(post => graph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToAdd: Set[Post] = githubAddPosts.filter(post => graph.inChildParentRelation(post.id, Constants.commentTagId))
+      val issuesToAdd: Set[Post] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
+      val commentsToAdd: Set[Post] = githubAddPosts.filter(post => {
+        println(s"add comments parents: ${currGraph.parents(post.id)}")
+        currGraph.inChildParentRelation(post.id, Constants.commentTagId) ||
+        (!currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
+          currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)) // TODO: In this case: Push comment tag to backend!
+      })
 
-      issuesToAdd
-        .map(p => WustIssue(owner = Constants.wustOwner,
+      val createIssuesCall = issuesToAdd
+        .map(p => CreateIssue(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
-          title = Some(p.content),
-          content = issuePostOfDesc(p.id).map(_.content)
+          title = p.content,
+          content = issuePostOfDesc(currGraph, p.id).map(_.content).getOrElse("")
         ))
-        .foreach(i => github.createIssue(i))
 
-      commentsToAdd
+      val createCommentsCall = commentsToAdd
         .map(p => {
-          val issueNumber = graph.getParents(p.id)
-            .find(pid => graph.inChildParentRelation(pid, Constants.issueTagId))
+          val issueNumber = currGraph.getParents(p.id) // TODO: Not working
+            .find(pid => currGraph.inChildParentRelation(pid, Constants.issueTagId))
             .flatMap(pid => Try(pid.toString.toInt).toOption)
-          WustComment(owner = Constants.wustOwner,
+          CreateComment(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
           externalIssueNumber = issueNumber, //Get issue id here
-          content = Some(p.content))})
-        .foreach(c => github.createComment(c))
-    }
+          content = p.content)})
+
+      val combinedFilters = (issuesToAdd ++ commentsToAdd ++ issuesToUpdate ++ commentsToUpdate ++ issuesToDelete ++ commentsToDelete).toSeq
+      val combinedCalls = (createIssuesCall ++ createCommentsCall ++ editIssuesCall ++ editCommentsCall ++ deleteIssuesCall ++ deleteCommentsCall).toSeq
+
+//      combinedCalls
+      println(s"Github post ancestors: $ancestors")
+      println(s"Github add posts: $githubAddPosts")
+      println(s"Github edit posts: $githubUpdatePosts")
+      println(s"Github delete posts: $githubDeletePosts")
+      println(s"Created filters: $combinedFilters")
+      println(s"Graph changes in call creation: $gc")
+      println(s"Previous graph in call creation: $prevGraph")
+      println(s"Graph in call creation: $currGraph")
+      println(s"Created calls: $combinedCalls")
+      println("-" * 200)
+      Seq.empty[GithubCall]
+
+    }: Seq[GithubCall]
 
   }
 
@@ -249,42 +289,42 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 //          None
 //      }
 
-    def createIssue(i: WustIssue): Unit = client.issues.createIssue(i.owner, i.repo, i.title.get, i.content.get)
+    def createIssue(i: CreateIssue): Unit = client.issues.createIssue(i.owner, i.repo, i.title, i.content)
       .execFuture[HttpResponse[String]]()
       .map {
         case Right(GHResult(result, _, _)) => println(s"Successfully created issue $result")
         case Left(e) => println(s"Could not create comment: ${e.getMessage}")
       }
 
-    def editIssue(i: WustIssue): Unit = client.issues.editIssue(i.owner, i.repo, i.externalNumber.get, i.status.get, i.title.get, i.content.get)
+    def editIssue(i: EditIssue): Unit = client.issues.editIssue(i.owner, i.repo, i.externalNumber.get, i.status, i.title, i.content)
       .execFuture[HttpResponse[String]]()
       .map {
         case Right(GHResult(result, _, _)) => println(s"Successfully edited issue $result")
         case Left(e) => println(s"Could not create comment: ${e.getMessage}")
       }
 
-    def deleteIssue(i: WustIssue): Unit = client.issues.editIssue(i.owner, i.repo, i.externalNumber.get, "closed", i.title.get, i.content.get)
+    def deleteIssue(i: DeleteIssue): Unit = client.issues.editIssue(i.owner, i.repo, i.externalNumber.get, "closed", i.title, i.content)
       .execFuture[HttpResponse[String]]()
       .map {
         case Right(GHResult(result, _, _)) => println(s"Successfully edited issue $result")
         case Left(e) => println(s"Could not create comment: ${e.getMessage}")
       }
 
-    def createComment(c: WustComment): Unit = client.issues.createComment(c.owner, c.repo, c.externalIssueNumber.get, c.content.get)
+    def createComment(c: CreateComment): Unit = client.issues.createComment(c.owner, c.repo, c.externalIssueNumber.get, c.content)
         .execFuture[HttpResponse[String]]()
         .map {
           case Right(GHResult(result, _, _)) => println(s"Successfully created comment $result")
           case Left(e) => println(s"Could not create comment: ${e.getMessage}")
         }
 
-    def editComment(c: WustComment): Unit = client.issues.editComment(c.owner, c.repo, c.externalId.get, c.content.get)
+    def editComment(c: EditComment): Unit = client.issues.editComment(c.owner, c.repo, c.externalId.get, c.content)
       .execFuture[HttpResponse[String]]()
       .map {
         case Right(GHResult(result, _, _)) => println(s"Successfully edited comment $result")
         case Left(e) => println(s"Could not edit comment: ${e.getMessage}")
       }
 
-    def deleteComment(c: WustComment): Unit = client.issues.deleteComment(c.owner, c.repo, c.externalId.get)
+    def deleteComment(c: DeleteComment): Unit = client.issues.deleteComment(c.owner, c.repo, c.externalId.get)
       .execFuture[HttpResponse[String]]()
       .map {
         case Right(GHResult(result, _, _)) => println(s"Successfully deleted comment $result")
