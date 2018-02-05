@@ -132,8 +132,8 @@ object WustReceiver {
     }
 
     import cats.implicits._
-    val res = for {
-      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
+    val res = for { // Assume that user is logged in
+//      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
       changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
       graph <- valid(client.api.getGraph(Page.Root))
