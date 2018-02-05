@@ -289,19 +289,7 @@ object WustReceiver {
 
 class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 
-//  def send(msg: ExchangeMessage): Unit = {
-
     import github4s.jvm.Implicits._
-
-//    import cats.Eval
-//    def createCatsComment: Eval[Option[Comment]] = client.issues.createComment(owner, repo, issueNumber, text)
-//      .exec[Eval, HttpResponse[String]]()
-//      .map {
-//        case Right(GHResult(result, _, _)) => Some(result)
-//        case Left(e) =>
-//          println(s"Could not create comment: ${e.getMessage}")
-//          None
-//      }
 
     def createIssue(i: CreateIssue): Unit = client.issues.createIssue(i.owner, i.repo, i.title, i.content)
       .execFuture[HttpResponse[String]]()
@@ -345,30 +333,9 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
         case Left(e) => println(s"Could not delete comment: ${e.getMessage}")
       }
 
-//    createComment
-
-//    println("Finished send")
-
-//  }
 
   def run(receiver: MessageReceiver): Unit = {
-//    val roomMessagesChannel: RoomMessagesChannel = new RoomMessagesChannel(roomId) {
-//      override def onMessage(channel: String, e: MessageEvent): Unit = {
-//        println(s"Got message from '${e.message.fromUser}' in channel '${channel}': ${e.message.text}")
-//
-//        val message = ExchangeMessage(e.message.text)
-//        receiver.push(message, WustReceiver.wustUser) foreach {
-//          case Left(error) => println(s"Failed to sync with wust: $error")
-//          case Right(post) => println(s"Created post: $post")
-//        }
-//      }
-//    }
 
-//    streamClient.connect(new ConnectionListener {
-//      override def onConnected(): Unit = {
-//        streamClient.subscribe(roomMessagesChannel)
-//      }
-//    })
   }
 }
 
