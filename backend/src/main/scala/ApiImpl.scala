@@ -183,7 +183,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
-    Thread.sleep(10 * 1000)
     // TODO: Reuse graph changes instead
 //    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
     val postsOfUrl = GitterImporter.getRoomMessages(url, user)
