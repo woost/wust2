@@ -1,6 +1,7 @@
 package wust.backend
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import wust.api.{ApiEvent, ApiError}, ApiError.HandlerFailure
 import cats.implicits._
@@ -30,7 +31,15 @@ object ApiData {
       } yield events1 ++ events2
       action.copy(asyncEvents = newEvents)
     })
-    def tailRecM[A, B](e: A)(f: A => Action[Either[A,B]]): Action[B] = ??? //TODO
+    @tailrec
+    def tailRecM[A, B](a: A)(f: A => Action[Either[A,B]]): Action[B] = {
+      val action = f(a)
+      action.data match {
+        case Left(e) => action.copy(data = Left(e))
+        case Right(Left(next)) => tailRecM(next)(f)
+        case Right(Right(b)) => action.copy(data = Right(b))
+      }
+    }
   }
 
   implicit def effectMonadError(implicit ec :ExecutionContext): MonadError[Effect] = new MonadError[Effect] {
@@ -43,7 +52,15 @@ object ApiData {
       val newEvents = e.transformation.events ++ effect.transformation.events
       effect.copy(transformation = Transformation(newState, newEvents))
     })
-    def tailRecM[A, B](e: A)(f: A => Effect[Either[A,B]]): Effect[B] = ??? //TODO
+    @tailrec
+    def tailRecM[A, B](a: A)(f: A => Effect[Either[A,B]]): Effect[B] = {
+      val effect = f(a)
+      effect.action.data match {
+        case Left(e) => effect.copy(action = effect.action.copy(data = Left(e)))
+        case Right(Left(next)) => tailRecM(next)(f)
+        case Right(Right(b)) => effect.copy(action = effect.action.copy(data = Right(b)))
+      }
+    }
   }
 }
 
