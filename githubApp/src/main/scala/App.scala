@@ -60,10 +60,12 @@ object Server {
 }
 
 sealed trait GithubCall
-case class CreateIssue(owner: String, repo: String, title: String, content: String) extends GithubCall
+case class MetaData(redirect: Boolean, postId: Option[PostId] = None, updatePostId: Option[PostId] = None) extends GithubCall
+
+case class CreateIssue(owner: String, repo: String, title: String, content: String, meta: Option[MetaData] = None) extends GithubCall
 case class EditIssue(owner: String, repo: String, externalNumber: Option[Int], status: String, title: String, content: String) extends GithubCall
 case class DeleteIssue(owner: String, repo: String, externalNumber: Option[Int], title: String, content: String) extends GithubCall
-case class CreateComment(owner: String, repo: String, externalIssueNumber: Option[Int], content: String) extends GithubCall
+case class CreateComment(owner: String, repo: String, externalIssueNumber: Option[Int], content: String, meta: Option[MetaData] = None) extends GithubCall
 case class EditComment(owner: String, repo: String, externalId: Option[Int], content: String) extends GithubCall
 case class DeleteComment(owner: String, repo: String, externalId: Option[Int]) extends GithubCall
 
@@ -133,12 +135,21 @@ object WustReceiver {
         case c: CreateIssue => github.createIssue(c)
         case c: EditIssue => github.editIssue(c)
         case c: DeleteIssue => github.deleteIssue(c)
-        case c: CreateComment => {
-           // TODO: push comment tag to wust backend. where to put that?
-          val commGC: GraphChanges = GraphChanges.empty
-          client.api.changeGraph(List(commGC))
+        case c: CreateComment =>
+          if (c.meta.nonEmpty) {
+            val tag = Connection(c.meta.get.postId.get, Label.parent, Constants.commentTagId)
+            //valid(client.api.changeGraph(List(GraphChanges(addConnections = Set(tag)))), "Could not redirect comment to add tag")
+            println(s"Sending add comment tag: $tag")
+
+            {
+              import scala.concurrent.ExecutionContext.Implicits.global
+              client.api.changeGraph(List(GraphChanges(addConnections = Set(tag)))).foreach({ res =>
+                if (res) println("Added tag successfully")
+                else println("error adding tag")
+              })
+            }
+          }
           github.createComment(c)
-        }
         case c: EditComment => github.editComment(c)
         case c: DeleteComment => github.deleteComment(c)
         case _ => println("Could not match to github api call")
@@ -146,8 +157,8 @@ object WustReceiver {
     }
 
     import cats.implicits._
+    valid(client.auth.register(config.user, config.password), "Cannot register")
     val res = for { // Assume that user is logged in
-//      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
       changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
       graph <- valid(client.api.getGraph(Page.Root))
@@ -184,9 +195,9 @@ object WustReceiver {
         .map(c => graph.postsById(c.sourceId))
     }
 
+    // TODO: PostId <=> ExternalId mapping
     graphTransition.changes.flatMap{ gc: GraphChanges =>
 
-      println("-" * 200)
       val currGraph = graphTransition.resGraph
       val prevGraph = graphTransition.prevGraph
       val ancestors = getAncestors(prevGraph, currGraph, gc)
@@ -238,11 +249,11 @@ object WustReceiver {
       // Add
       val githubAddPosts = githubChanges.addPosts
       val issuesToAdd: Set[Post] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToAdd: Set[Post] = githubAddPosts.filter(post => {
-        println(s"add comments parents: ${currGraph.parents(post.id)}")
-        currGraph.inChildParentRelation(post.id, Constants.commentTagId) ||
-        (!currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
-          currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)) // TODO: In this case: Push comment tag to backend!
+      val commentsToAdd: Set[Post] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
+
+      val redirectCommentsToAdd: Set[Post] = githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
+        !currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
+          currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)
       })
 
       val createIssuesCall = issuesToAdd
@@ -262,21 +273,33 @@ object WustReceiver {
           externalIssueNumber = issueNumber, //Get issue id here
           content = p.content)})
 
-      val combinedFilters = (issuesToAdd ++ commentsToAdd ++ issuesToUpdate ++ commentsToUpdate ++ issuesToDelete ++ commentsToDelete).toSeq
-      val combinedCalls = (createIssuesCall ++ createCommentsCall ++ editIssuesCall ++ editCommentsCall ++ deleteIssuesCall ++ deleteCommentsCall).toSeq
+      val redirectCreateCommentsCall = redirectCommentsToAdd
+        .map(p => {
+          val commentParents = currGraph.getParents(p.id) // TODO: Not working
+          val findIssue = commentParents.find(pid => currGraph.inChildParentRelation(pid, Constants.issueTagId))
+          val issueNumber = findIssue.flatMap(pid => Try(pid.toString.toInt).toOption)
+          CreateComment(owner = Constants.wustOwner,
+            repo = Constants.wustRepo,
+            externalIssueNumber = issueNumber,
+            content = p.content,
+            meta = Some(MetaData(redirect = true, Some(p.id)))
+          )})
 
-//      combinedCalls
-      println(s"Github post ancestors: $ancestors")
-      println(s"Github add posts: $githubAddPosts")
-      println(s"Github edit posts: $githubUpdatePosts")
-      println(s"Github delete posts: $githubDeletePosts")
-      println(s"Created filters: $combinedFilters")
-      println(s"Graph changes in call creation: $gc")
-      println(s"Previous graph in call creation: $prevGraph")
-      println(s"Graph in call creation: $currGraph")
-      println(s"Created calls: $combinedCalls")
-      println("-" * 200)
-      Seq.empty[GithubCall]
+      val combinedCalls = (createIssuesCall ++ createCommentsCall ++ redirectCreateCommentsCall ++ editIssuesCall ++ editCommentsCall ++ deleteIssuesCall ++ deleteCommentsCall).toSeq
+
+//      println("-" * 200)
+//      println(s"Github post ancestors: $ancestors")
+//      println(s"Github add posts: $githubAddPosts")
+//      println(s"Github edit posts: $githubUpdatePosts")
+//      println(s"Github delete posts: $githubDeletePosts")
+//      println(s"Created filters: $combinedFilters")
+//      println(s"Graph changes in call creation: $gc")
+//      println(s"Previous graph in call creation: $prevGraph")
+//      println(s"Graph in call creation: $currGraph")
+//      println(s"Created calls: $combinedCalls")
+//      println("-" * 200)
+//      Seq.empty[GithubCall]
+      combinedCalls
 
     }: Seq[GithubCall]
 
@@ -333,6 +356,12 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
         case Left(e) => println(s"Could not delete comment: ${e.getMessage}")
       }
 
+//      def createIssue(i: CreateIssue): Unit = println(s"received create issue of: $i")
+//      def editIssue(i: EditIssue): Unit = println(s"received edit issue of: $i")
+//      def deleteIssue(i: DeleteIssue): Unit = println(s"received delete issue of: $i")
+//      def createComment(c: CreateComment): Unit = println(s"received create comment of: $c")
+//      def editComment(c: EditComment): Unit = println(s"received edit comment of: $c")
+//      def deleteComment(c: DeleteComment): Unit = println(s"received delete comment of: $c")
 
   def run(receiver: MessageReceiver): Unit = {
     // TODO: Get events from github hooks
