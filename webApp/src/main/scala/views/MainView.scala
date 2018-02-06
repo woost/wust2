@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import wust.utilWeb._
 import wust.utilWeb.views._
+import wust.sdk.{ChangesHistory, SyncMode}
 import wust.webApp._
 import cats.effect.IO
 import outwatch.dom._
@@ -14,6 +15,7 @@ import wust.webApp.views.graphview.GraphView
 import wust.utilWeb.Analytics
 import wust.utilWeb.outwatchHelpers._
 import outwatch.dom.dsl.styles.extra._
+import outwatch.ObserverSink
 
 object MainView {
 
@@ -292,32 +294,26 @@ object MainView {
   //}
 
   def syncStatus(state: GlobalState): VNode = {
-    // val persistStatus = state.persistence.status
-    // val hasEvents = state.eventCache.hasEvents
-
-    import wust.sdk.SyncMode
+    val historySink = ObserverSink(state.eventProcessor.history.action)
+    val isOnline = Observable.merge(Client.observable.connected.map(_ => SyncMode.Live), Client.observable.closed.map(_ => SyncMode.Offline))
     div(
-      "Syncmode: ",
-      child <-- state.syncMode.map(_.toString),
-      onClick.map(_ => if (state.inner.syncMode.now == SyncMode.Live) SyncMode.Offline else SyncMode.Live) --> state.syncMode
-
-      // select {
-      //   SyncMode.all.map { m =>
-      //     val s = m.toString
-      //     val opt = option(s, value := s)
-      //     if (mode == m) opt(selected) else opt
-      //   }
-      // }(
-      //   onchange := { (e: Event) =>
-      //     val value = e.target.asInstanceOf[HTMLSelectElement].value
-      //     SyncMode.fromString.lift(value).foreach { mode =>
-      //       state.syncMode() = mode
-      //     }
-      //   }
-      // ),
-      // persistStatus.toString,
-      // " | ",
-      // if (hasEvents) "new-events" else "up-to-date"
+      managed(state.syncMode <--isOnline),
+      child <-- state.syncMode.map { mode =>
+        span(
+          mode.toString,
+          title := "Click to switch syncing modes (Live/Offline)",
+          onClick.map(_ => if (mode == SyncMode.Live) SyncMode.Offline else SyncMode.Live) --> state.syncMode
+        )
+      },
+      child <-- state.eventProcessor.areChangesSynced.map { synced =>
+        span(
+          " ⬤ ", // middle dot
+          color := (if (synced) "green" else "red"),
+          title := (if (synced) "Everything is synced" else "Some changes are only local, just wait until they are send online."),
+          button("Undo", onClick(ChangesHistory.Undo) --> historySink),
+          button("Redo", onClick(ChangesHistory.Redo) --> historySink)
+        )
+      }
     )
   }
 
@@ -386,11 +382,9 @@ object MainView {
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
       padding := "15px",
       color := "white",
-      title,
+      titleBanner,
       br(),
       user(state),
-      br(),
-      syncStatus(state),
       br(),
       dataImport(state),
       br(),
@@ -398,11 +392,14 @@ object MainView {
       br(),
       channels(state),
       br(),
-      settingsButton(state)
+      settingsButton(state),
+      br(),
+      br(),
+      syncStatus(state)
     )
   }
 
-  val title: VNode = {
+  val titleBanner: VNode = {
       div(
         "Woost",
         fontWeight.bold,
@@ -445,9 +442,9 @@ object MainView {
       fontWeight.bold,
       fontSize := "20px",
       marginBottom := "10px",
-      "Sync",
+      "Constant synchronization",
       button("Connect to GitHub", width := "100%", onClick --> sideEffect(connectToGithub())),
-      "Import",
+      "One time import",
       input(tpe := "text", width:= "100%", onInput.value --> urlImporter),
       button("GitHub", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGithubUrl(url))),
       button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGitterUrl(url))),

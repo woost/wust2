@@ -8,6 +8,7 @@ import wust.utilWeb._
 import wust.utilWeb.Color._
 import wust.graph._
 import wust.ids.PostId
+import wust.sdk.EventProcessor
 import Elements._
 import Rendered._
 import wust.utilWeb.outwatchHelpers._
