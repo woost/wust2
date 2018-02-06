@@ -116,8 +116,6 @@ object GitHubImporter {
 
         // Issue posts and connections
         val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
-//        val issueTitle = Post(PostId.fresh, s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
-//        val titleGitTag = Connection(issueTitle.id, Label.parent, _github.id)
         val titleIssueTag = Connection(issueTitle.id, Label.parent, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
@@ -136,7 +134,6 @@ object GitHubImporter {
         // Comments
         val comments: List[(Post, Set[Connection])] = commentsList.map(comment => {
           val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
-//          val cpost = Post(PostId.fresh, comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
           val cconn = Set(Connection(cpost.id, Label.parent, issueTitle.id), Connection(cpost.id, Label.parent, _comment.id))
           (cpost, cconn)
         })
