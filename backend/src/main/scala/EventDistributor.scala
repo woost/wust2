@@ -9,24 +9,22 @@ import scala.collection.mutable
 import scala.concurrent.{Future, ExecutionContext}
 import scala.util.Failure
 
-case class RequestEvent(events: Seq[ApiEvent]) extends AnyVal
-
 class EventDistributor(db: Db) {
-  val subscribers = mutable.HashSet.empty[NotifiableClient[RequestEvent]]
+  val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent]]
 
-  def subscribe(client: NotifiableClient[RequestEvent]): Unit = {
+  def subscribe(client: NotifiableClient[ApiEvent]): Unit = {
     subscribers += client
   }
 
-  def unsubscribe(client: NotifiableClient[RequestEvent]): Unit = {
+  def unsubscribe(client: NotifiableClient[ApiEvent]): Unit = {
     subscribers -= client
   }
 
-  def publish(origin: NotifiableClient[RequestEvent], events: Seq[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = if (events.nonEmpty) {
+  def publish(origin: NotifiableClient[ApiEvent], events: List[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = if (events.nonEmpty) {
     scribe.info(s"Backend events (${subscribers.size - 1} clients): $events")
 
     subscribers.foreach { client =>
-      if (client != origin) client.notify(RequestEvent(events))
+      if (client != origin) client.notify(events)
     }
   }
 }

@@ -25,22 +25,22 @@ import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
 //TODO: filter auth in args and events from log
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: Router[ByteBuffer, ApiFunction])(implicit scheduler: Scheduler) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: Router[ByteBuffer, ApiFunction])(implicit scheduler: Scheduler) extends FullRequestHandler[ByteBuffer, ApiEvent, ApiError, State] {
   import stateInterpreter._
 
   def initialState = Future.successful(State.initial)
 
-  override def onClientConnect(client: NotifiableClient[RequestEvent], state: Future[State]): Unit = {
+  override def onClientConnect(client: NotifiableClient[ApiEvent], state: Future[State]): Unit = {
     scribe.info(s"${clientDesc(client)} started")
     distributor.subscribe(client)
   }
 
-  override def onClientDisconnect(client: NotifiableClient[RequestEvent], state: Future[State], reason: DisconnectReason): Unit = {
+  override def onClientDisconnect(client: NotifiableClient[ApiEvent], state: Future[State], reason: DisconnectReason): Unit = {
     scribe.info(s"${clientDesc(client)} stopped: $reason")
     distributor.unsubscribe(client)
   }
 
-  override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
+  override def onRequest(client: NotifiableClient[ApiEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
     scribe.info(s"${clientDesc(client)} <--[request] $path")
     val watch = StopWatch.started
 
@@ -63,7 +63,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
           val events = filterAndDistributeEvents(client)(rawEvents)
           if (events.nonEmpty) {
             scribe.info(s"${clientDesc(client)} -->[async] ${requestLogLine(path, arguments, events)}. Took ${watch.readHuman}.")
-            client.notify(RequestEvent(events))
+            client.notify(events)
           }
         }
 
@@ -72,17 +72,17 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       case ServerResult.Failure(arguments, slothError) =>
         val error = ApiError.ServerError(slothError.toString)
         scribe.warn(s"${clientDesc(client)} -->[failure] ${requestLogLine(path, arguments, error)}. Took ${watch.readHuman}.")
-        Response(state, Future.successful(ReturnValue(Left(error), Seq.empty)))
+        Response(state, Future.successful(ReturnValue(Left(error), Nil)))
 
     }
   }
 
-  override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
-    scribe.info(s"${clientDesc(client)} <--[events] ${requestEvent.events}")
+  override def onEvent(client: NotifiableClient[ApiEvent], originalState: Future[State], events: List[ApiEvent]): Reaction = {
+    scribe.info(s"${clientDesc(client)} <--[events] $events")
     val state = validateState(originalState)
     val result = for {
       state <- state
-      events <- triggeredEvents(state, requestEvent)
+      events <- triggeredEvents(state, events)
     } yield (State.applyEvents(state, events), events)
 
     val newState = result.map(_._1)
@@ -90,7 +90,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     Reaction(newState, newEvents)
   }
 
-  private def clientDesc(client: NotifiableClient[RequestEvent]): String = s"Client(${Integer.toString(client.hashCode, 36)})"
+  private def clientDesc(client: NotifiableClient[ApiEvent]): String = s"Client(${Integer.toString(client.hashCode, 36)})"
 
   // we check whether this jwt token is expired. if it is, we return a failed state, which will force close the websocket connection from the server side. the client can then check that the token is indeed expired and should prompt the user. meanwhile he can then work as an assumed/implicit user again.
   private def validateState(state: Future[State]): Future[State] = state.flatMap { state =>
@@ -101,7 +101,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 
   // returns all private events, and publishes all public events to the eventdistributor.
-  private def filterAndDistributeEvents[T](client: NotifiableClient[RequestEvent])(events: Seq[ApiEvent]): Seq[ApiEvent.Private] = {
+  private def filterAndDistributeEvents[T](client: NotifiableClient[ApiEvent])(events: Seq[ApiEvent]): List[ApiEvent.Private] = {
     val (privateEvents, publicEvents) = ApiEvent.separateByScope(events)
     distributor.publish(client, publicEvents)
     privateEvents

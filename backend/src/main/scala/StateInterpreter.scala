@@ -14,7 +14,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   import ApiEvent._
 
   //TODO: refactor! this is difficult to reason about
-  def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent]] = Future.sequence(event.events.map {
+  def triggeredEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] = Future.sequence(events.map {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
@@ -24,14 +24,14 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
     case NewGraphChanges(changes) =>
       visibleChangesForState(state, changes).map { visibleChanges =>
-        if (visibleChanges.isEmpty) Seq.empty
+        if (visibleChanges.isEmpty) Nil
         else NewGraphChanges(visibleChanges) :: Nil
       }
 
     case other => Future.successful(other :: Nil)
   }).map(_.flatten)
 
-  private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent.Public]] = {
+  private def membershipEventsForState(state: State, membership: Membership): Future[List[ApiEvent.Public]] = {
     import membership._
 
     def currentUserInvolved = state.auth.user.id == userId
@@ -46,17 +46,17 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
         iterable <- iterableFut
         posts <- postsFut
       } yield (for {
-        (user, membership) <- iterable.toSeq
+        (user, membership) <- iterable.toList
         addPosts = posts.map(forClient).toSet
         addOwnerships = posts.map(post => Ownership(post.id, membership.groupId)).toSet
         changes = Some(GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)).filterNot(_.isEmpty)
-        event <- Seq(NewUser(user), NewMembership(membership)) ++ changes.map(NewGraphChanges(_))
+        event <- List(NewUser(user), NewMembership(membership)) ++ changes.map(NewGraphChanges(_))
       } yield event) :+ NewGroup(group)
     } else if (ownGroupInvolved) {
       for {
         //TODO we should not need this, the newuser should be in the events already
         Some(user) <- db.user.get(userId)
-      } yield Seq(NewUser(user), NewMembership(membership))
+      } yield List(NewUser(user), NewMembership(membership))
       // only forward new membership and user
     } else Future.successful(Nil)
   }
