@@ -11,6 +11,13 @@ import wust.util.BufferWhenTrue
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 import concurrent.Promise
+import monix.reactive.{Observable, Observer}
+import monix.reactive.subjects.{PublishSubject}
+import monix.reactive.OverflowStrategy.Unbounded
+import monix.execution.Cancelable
+import monix.execution.Ack.Continue
+import scala.util.control.NonFatal
+import scala.concurrent.duration._
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -22,14 +29,33 @@ object SyncStatus {
 
 sealed trait SyncMode
 object SyncMode {
-  case object Live extends SyncMode
-  case object Offline extends SyncMode
+  case object Live extends SyncMode { override def toString = "On" }
+  case object Offline extends SyncMode { override def toString = "Off" }
 
   val default = Live
   val all = Seq(Live, Offline)
 }
 
-// case class PersistencyState(undoHistory: Seq[GraphChanges], redoHistory: Seq[GraphChanges], changes: GraphChanges)
+case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], current: GraphChanges) {
+  def undo = undos match {
+    case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
+    case Nil => copy(current = GraphChanges.empty)
+  }
+  def redo = redos match {
+    case changes :: redos => ChangesHistory(undos = changes :: undos, redos = redos, current = changes)
+    case Nil => copy(current = GraphChanges.empty)
+  }
+  def push(changes: GraphChanges) = copy(undos = changes :: undos, redos = Nil, current = changes)
+}
+object ChangesHistory {
+  def empty = ChangesHistory(Nil, Nil, GraphChanges.empty)
+
+  sealed trait Action extends Any
+  case class NewChanges(changes: GraphChanges) extends AnyVal with Action
+  sealed trait UserAction extends Action
+  case object Undo extends UserAction
+  case object Redo extends UserAction
+}
 
 object EventProcessor {
 
@@ -78,12 +104,17 @@ class EventProcessor private(
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
-  val currentAuth: Observable[Authentication] = authEventStream.map(_.lastOption.map(EventUpdate.createAuthFromEvent)).collect { case Some(auth) => auth }
+  val currentAuth: Observable[Authentication] = authEventStream.collect {
+    case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
+  }
 
   //TODO: publish only Observer?
   val changes = PublishSubject[GraphChanges]
   object enriched {
     val changes = PublishSubject[GraphChanges]
+  }
+  object history {
+    val action = PublishSubject[ChangesHistory.UserAction]
   }
 
   // public reader
@@ -94,13 +125,21 @@ class EventProcessor private(
     //         ^          |
     //         |          v
     //         -----------O---->--
-    //            graph
+    //          graph,viewconfig
 
     val rawGraph = PublishSubject[Graph]()
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraph.startWith(Seq(Graph.empty)))(enrich)
     val allChanges = Observable.merge(enrichedChanges, changes)
-    val localChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
+    val rawLocalChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
+
+    val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action).scan(ChangesHistory.empty) {
+      case (history, ChangesHistory.NewChanges(changes)) => history.push(changes)
+      case (history, ChangesHistory.Undo) => history.undo
+      case (history, ChangesHistory.Redo) => history.redo
+    }
+
+    val localChanges = changesHistory collect { case history if history.current.nonEmpty => history.current }
 
     val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
@@ -123,16 +162,30 @@ class EventProcessor private(
     appliedToGraph.future
   }
 
+  private val localChangesIndexed = localChanges.zipWithIndex
+  // TODO: NonEmptyList in observables
+  private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
+    BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
-
-  private val bufferedChanges = BufferWhenTrue(localChanges, syncDisabled)
-  private val sendingChanges = Observable.tailRecM(bufferedChanges) { changes =>
-    changes.flatMap(c => Observable.fromFuture(sendChanges(c))) map {
-      case true => Left(Observable.empty)
-      case false => Right(Some(changes))
+  private val sendingChanges: Observable[Long] = Observable.tailRecM(bufferedChanges) { changes =>
+    changes.flatMap { case (c, idx) =>
+      Observable.fromFuture(sendChanges(c)).map {
+        case true => Right(idx)
+        case false =>
+          // TODO delay with exponential backoff
+          // TODO: take more from buffer if fails?
+          Left(Observable((c, idx)).sample(1 seconds))
+      }
     }
   }
-  sendingChanges.foreach(_ => ()) // trigger sendingChanges
+  localChangesIndexed.foreach(c => println("TRIGGER LOCAL: " + c._2)) // trigger sendingChanges
+  sendingChanges.foreach(c => println("TRIGGER SEND: " + c)) // trigger sendingChanges
+
+  val areChangesSynced: Observable[Boolean] = {
+    val lastLocalIndex = localChangesIndexed.map(_._2).startWith(Seq(-1))
+    val lastSendIndex = sendingChanges.startWith(Seq(-1))
+    lastLocalIndex.combineLatest(lastSendIndex).map { case (l,s) => l == s }
+  }
 
   // private val hasError = createHandler[Boolean](false)
   // private val localChanges = Var(storage.graphChanges)
