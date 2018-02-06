@@ -208,6 +208,7 @@ lazy val backend = project
       Deps.hasher.value ::
       Deps.jbcrypt.value ::
       Deps.javaMail.value ::
+      Deps.monix.value ::
       Deps.github4s.value ::
       Deps.gitterSync.value ::
       Deps.stringmetric.value ::

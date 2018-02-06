@@ -6,6 +6,7 @@ import wust.db.Db
 import wust.graph._
 import wust.ids._
 import wust.util.RandomUtil
+import monix.reactive.Observable
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -178,7 +179,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       }
     }
 
-    Future.successful(Returns(true, asyncEvents = importEvents))
+    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
   }
 
   def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
@@ -196,7 +197,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       }
     }
 
-    Future.successful(Returns(true, asyncEvents = importEvents))
+    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
   }
 
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>

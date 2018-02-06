@@ -17,6 +17,7 @@ import mycelium.server._
 import wust.util.{ Pipe, RichFuture }
 import wust.util.LogHelper.requestLogLine
 import cats.implicits._
+import monix.execution.Scheduler
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -24,7 +25,7 @@ import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
 //TODO: filter auth in args and events from log
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: Router[ByteBuffer, ApiFunction])(implicit ec: ExecutionContext) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: Router[ByteBuffer, ApiFunction])(implicit scheduler: Scheduler) extends FullRequestHandler[ByteBuffer, ApiEvent, RequestEvent, ApiError, State] {
   import stateInterpreter._
 
   def initialState = Future.successful(State.initial)
@@ -40,7 +41,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
   }
 
   override def onRequest(client: NotifiableClient[RequestEvent], originalState: Future[State], path: List[String], payload: ByteBuffer): Response = {
-    scribe.info(s"${clientDesc(client)} <-- $path")
+    scribe.info(s"${clientDesc(client)} <--[request] $path")
     val watch = StopWatch.started
 
     val state = validateState(originalState)
@@ -49,34 +50,35 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
       case ServerResult.Success(arguments, apiFunction) =>
         val apiResponse = apiFunction.run(state)
         val newState = apiResponse.state
+
         val returnValue = apiResponse.value.map { value =>
           val rawResult = value.result.map(_.raw)
           val serializedResult = value.result.map(_.serialized)
           val events = filterAndDistributeEvents(client)(value.events)
-          scribe.info(s"${clientDesc(client)} --> ${requestLogLine(path, arguments, rawResult)} / $events. Took ${watch.readHuman}.")
+          scribe.info(s"${clientDesc(client)} -->[response] ${requestLogLine(path, arguments, rawResult)} / $events. Took ${watch.readHuman}.")
           ReturnValue(serializedResult, events)
         }
+
         apiResponse.asyncEvents.foreach { rawEvents =>
-          if (rawEvents.nonEmpty) {
-            val events = filterAndDistributeEvents(client)(rawEvents)
-            if (events.nonEmpty) {
-              scribe.info(s"${clientDesc(client)} [async]--> ${requestLogLine(path, arguments, events)}. Took ${watch.readHuman}.")
-              client.notify(RequestEvent(events))
-            }
+          val events = filterAndDistributeEvents(client)(rawEvents)
+          if (events.nonEmpty) {
+            scribe.info(s"${clientDesc(client)} -->[async] ${requestLogLine(path, arguments, events)}. Took ${watch.readHuman}.")
+            client.notify(RequestEvent(events))
           }
         }
+
         Response(newState, returnValue)
 
       case ServerResult.Failure(arguments, slothError) =>
         val error = ApiError.ServerError(slothError.toString)
-        scribe.warn(s"${clientDesc(client)} --> ${requestLogLine(path, arguments, error)}. Took ${watch.readHuman}.")
+        scribe.warn(s"${clientDesc(client)} -->[failure] ${requestLogLine(path, arguments, error)}. Took ${watch.readHuman}.")
         Response(state, Future.successful(ReturnValue(Left(error), Seq.empty)))
 
     }
   }
 
   override def onEvent(client: NotifiableClient[RequestEvent], originalState: Future[State], requestEvent: RequestEvent): Reaction = {
-    scribe.info(s"${clientDesc(client)} got event: $requestEvent")
+    scribe.info(s"${clientDesc(client)} <--[events] ${requestEvent.events}")
     val state = validateState(originalState)
     val result = for {
       state <- state

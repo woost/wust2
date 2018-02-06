@@ -14,7 +14,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   import ApiEvent._
 
   //TODO: refactor! this is difficult to reason about
-  def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent.Public]] = Future.sequence(event.events.map {
+  def triggeredEvents(state: State, event: RequestEvent): Future[Seq[ApiEvent]] = Future.sequence(event.events.map {
     case NewMembership(membership) =>
       membershipEventsForState(state, membership)
 
@@ -25,12 +25,10 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     case NewGraphChanges(changes) =>
       visibleChangesForState(state, changes).map { visibleChanges =>
         if (visibleChanges.isEmpty) Seq.empty
-        else Seq(NewGraphChanges(visibleChanges))
+        else NewGraphChanges(visibleChanges) :: Nil
       }
 
-    case other =>
-      println(s"####### ignored Event: $other")
-      Future.successful(Nil)
+    case other => Future.successful(other :: Nil)
   }).map(_.flatten)
 
   private def membershipEventsForState(state: State, membership: Membership): Future[Seq[ApiEvent.Public]] = {

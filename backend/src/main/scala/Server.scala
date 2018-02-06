@@ -17,6 +17,7 @@ import mycelium.server._
 import chameleon.ext.boopickle._
 import wust.util.{ Pipe, RichFuture }
 import cats.implicits._
+import monix.execution.Scheduler
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -31,7 +32,7 @@ object Server {
   def run(config: Config) = {
     implicit val system = ActorSystem("server")
     implicit val materializer = ActorMaterializer()
-    import system.dispatcher
+    implicit val scheduler = Scheduler(system.dispatcher)
 
     val wsServer = websocketServer(config)
     val route = (path("ws") & get) {
@@ -50,9 +51,8 @@ object Server {
     }
   }
 
-  private def websocketServer(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer) = {
+  private def websocketServer(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
     import DbConversions._
-    import system.dispatcher
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)

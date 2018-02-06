@@ -5,12 +5,13 @@ import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import wust.api.{ApiEvent, ApiError}, ApiError.HandlerFailure
 import cats.implicits._
+import monix.reactive.Observable
 
 //TODO move to sloth/mycelium/apidsl project as opionionated dsl?
 
 //TODO better availablity of types not in obj, package object because of type alias? but currently name clash with ApiDsl.Effect/Action => rename
 object ApiData {
-  case class Action[+T](data: Either[HandlerFailure, T], asyncEvents: Future[Seq[ApiEvent]] = Future.successful(Seq.empty))
+  case class Action[+T](data: Either[HandlerFailure, T], asyncEvents: Observable[Seq[ApiEvent]] = Observable.empty)
   case class Transformation(state: Option[State], events: Seq[ApiEvent])
   case class Effect[+T](transformation: Transformation, action: Action[T])
 
@@ -25,10 +26,7 @@ object ApiData {
     def handleErrorWith[A](e: Action[A])(f: HandlerFailure => Action[A]): Action[A] = e.data.fold(f, _ => e)
     def flatMap[A, B](e: Action[A])(f: A => Action[B]): Action[B] = e.data.fold[Action[B]]((err) => e.copy(data = Left(err)), { res =>
       val action = f(res)
-      val newEvents = for {
-        events1 <- e.asyncEvents
-        events2 <- action.asyncEvents
-      } yield events1 ++ events2
+      val newEvents = Observable.concat(e.asyncEvents, action.asyncEvents)
       action.copy(asyncEvents = newEvents)
     })
     @tailrec
@@ -69,28 +67,28 @@ object ApiFunction {
   import ApiData._
 
   case class ReturnValue[T](result: Either[HandlerFailure, T], events: Seq[ApiEvent])
-  case class Response[T](state: Future[State], value: Future[ReturnValue[T]], asyncEvents: Future[Seq[ApiEvent]])
+  case class Response[T](state: Future[State], value: Future[ReturnValue[T]], asyncEvents: Observable[Seq[ApiEvent]])
   object Response {
     private val handleUserException: PartialFunction[Throwable, ApiError.HandlerFailure] = {
       case NonFatal(e) =>
         scribe.error(s"Exception in API method: $e")
         ApiError.InternalServerError
     }
-    private val handleDelayedUserException: PartialFunction[Throwable, Seq[ApiEvent]] = {
+    private val handleDelayedUserException: PartialFunction[Throwable, Observable[Seq[ApiEvent]]] = {
       case NonFatal(e) =>
         scribe.error(s"Exception in API delayed events: $e")
-        Seq.empty
+        Observable.empty
     }
 
     def action[T](oldState: Future[State], rawAction: Future[Action[T]])(implicit ec: ExecutionContext): Response[T] = {
       val action = rawAction.recover(handleUserException andThen (err => Action(Left(err))))
-      val safeDelayEvents = action.flatMap(_.asyncEvents).recover(handleDelayedUserException)
+      val safeDelayEvents = Observable.fromFuture(action).flatMap(_.asyncEvents).onErrorRecoverWith(handleDelayedUserException)
       Response(oldState, action.map(action => ReturnValue(action.data, Seq.empty)), safeDelayEvents)
     }
     def effect[T](oldState: Future[State], rawEffect: Future[Effect[T]])(implicit ec: ExecutionContext): Response[T] = {
       val effect = rawEffect.recover(handleUserException andThen (err => ActionIsEffect(Action(Left(err)))))
       val newState = applyTransformationToState(oldState, effect.map(_.transformation))
-      val safeDelayEvents = effect.flatMap(_.action.asyncEvents).recover(handleDelayedUserException)
+      val safeDelayEvents = Observable.fromFuture(effect).flatMap(_.action.asyncEvents).onErrorRecoverWith(handleDelayedUserException)
       Response(newState, effect.map(e => ReturnValue(e.action.data, e.transformation.events)), safeDelayEvents)
     }
   }
@@ -132,8 +130,9 @@ trait ApiDsl {
   }
   object Returns {
     def raw[T](state: State, result: T, events: Seq[ApiEvent] = Seq.empty): ApiData.Effect[T] = ApiData.Effect(Transforms.raw(state, events), apply(result))
-    def apply[T](result: T, events: Seq[ApiEvent], asyncEvents: Future[Seq[ApiEvent]] = Future.successful(Seq.empty)): ApiData.Effect[T] = ApiData.Effect(Transforms(events), apply(result, asyncEvents))
-    def apply[T](result: T, asyncEvents: Future[Seq[ApiEvent]]): ApiData.Action[T] = ApiData.Action(Right(result), asyncEvents)
+    def apply[T](result: T, events: Seq[ApiEvent], asyncEvents: Observable[Seq[ApiEvent]]): ApiData.Effect[T] = ApiData.Effect(Transforms(events), apply(result, asyncEvents))
+    def apply[T](result: T, events: Seq[ApiEvent]): ApiData.Effect[T] = ApiData.Effect(Transforms(events), apply(result))
+    def apply[T](result: T, asyncEvents: Observable[Seq[ApiEvent]]): ApiData.Action[T] = ApiData.Action(Right(result), asyncEvents)
     def apply[T](result: T): ApiData.Action[T] = ApiData.Action(Right(result))
 
     def error(failure: HandlerFailure, events: Seq[ApiEvent]): ApiData.Effect[Nothing] = ApiData.Effect(Transforms(events), error(failure))
