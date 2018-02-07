@@ -4,7 +4,7 @@ import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
-import mycelium.client.{IncidentHandler, SendType}
+import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import cats.data.EitherT

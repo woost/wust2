@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import wust.api._, serialize.Boopickle._
+import wust.api._
 import wust.ids._
 import wust.backend.auth._
 import wust.backend.config.Config

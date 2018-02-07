@@ -1,13 +1,11 @@
 package wust.frontend
 
-import boopickle.Default._
 import wust.api._
 import wust.ids._
 import wust.sdk._
 import wust.graph.User
 import wust.util.RichFuture
 import outwatch.Handler
-import mycelium.client._
 import wust.util.outwatchHelpers._
 import rx._
 import scala.scalajs.js

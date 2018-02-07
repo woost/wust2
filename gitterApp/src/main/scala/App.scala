@@ -12,7 +12,7 @@ import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
-import mycelium.client.{SendType, IncidentHandler}
+import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import okhttp3.OkHttpClient

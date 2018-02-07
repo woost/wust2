@@ -3,7 +3,7 @@ package wust.backend
 import wust.api._
 import wust.db.Db
 import wust.ids._
-import mycelium.server._
+import mycelium.server.NotifiableClient
 
 import scala.collection.mutable
 import scala.concurrent.{Future, ExecutionContext}
