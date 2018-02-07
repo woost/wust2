@@ -108,9 +108,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connectionsWithoutParent.size}, groups: ${groups.size}, ownerships: ${ownerships.size}, users: ${users.size}, memberships: ${memberships.size})"
 
   private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
-  lazy val successors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.sourceId, _.targetId)
-  lazy val predecessors: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.targetId, _.sourceId)
-  lazy val neighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
+  lazy val successorsWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.sourceId, _.targetId)
+  lazy val predecessorsWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.targetId, _.sourceId)
+  lazy val neighboursWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
 
   lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.targetId, _.sourceId)
   lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.sourceId, _.targetId)

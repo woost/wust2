@@ -27,7 +27,7 @@ object TestView extends View {
   }
 
   def sortedPostItems(graph:Observable[Graph], graphSelection:Sink[Page]): Observable[Seq[VNode]] = graph.map { graph =>
-    val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successors, children = graph.children)
+    val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successorsWithoutParent, children = graph.children)
 
     sortedPosts.map { postId =>
       val post = graph.postsById(postId)

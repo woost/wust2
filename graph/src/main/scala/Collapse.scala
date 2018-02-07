@@ -59,7 +59,7 @@ object Collapse {
         }
       }
     }(breakOut): Set[LocalConnection])
-      .filterNot(c => graph.successors(c.sourceId) contains c.targetId) // drop already existing connections
+      .filterNot(c => graph.successorsWithoutParent(c.sourceId) contains c.targetId) // drop already existing connections
   }
 
   def getLocalContainments(graph: Graph, hiddenPosts: Set[PostId], hiddenContainments: Set[Connection], collapsingPosts: Set[PostId]): Set[LocalConnection] = {

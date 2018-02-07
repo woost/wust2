@@ -31,7 +31,7 @@ object ArticleView extends View {
         cls := "article",
         children <-- dgo.map {
           dg =>
-            val sortedPosts = HierarchicalTopologicalSort(dg.graph.postIds, successors = dg.graph.successors, children = dg.graph.children)
+            val sortedPosts = HierarchicalTopologicalSort(dg.graph.postIds, successors = dg.graph.successorsWithoutParent, children = dg.graph.children)
 
             sortedPosts.map { postId =>
               val post = dg.graph.postsById(postId)

@@ -196,8 +196,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
-      graph.successors(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
-      graph.successors(PostId(13)) mustEqual Set.empty
+      graph.successorsWithoutParent(PostId(12)) mustEqual Set(1, 13).map(PostId(_))
+      graph.successorsWithoutParent(PostId(13)) mustEqual Set.empty
     }
 
     "predecessors of post" in {
@@ -206,8 +206,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
-      graph.predecessors(PostId(12)) mustEqual Set(11).map(PostId(_))
-      graph.predecessors(PostId(13)) mustEqual Set(12).map(PostId(_))
+      graph.predecessorsWithoutParent(PostId(12)) mustEqual Set(11).map(PostId(_))
+      graph.predecessorsWithoutParent(PostId(13)) mustEqual Set(12).map(PostId(_))
     }
 
     "neighbours of post" in {
@@ -216,8 +216,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
-      graph.neighbours(PostId(12)) mustEqual Set(1, 11, 13).map(PostId(_))
-      graph.neighbours(PostId(13)) mustEqual Set(12).map(PostId(_))
+      graph.neighboursWithoutParent(PostId(12)) mustEqual Set(1, 11, 13).map(PostId(_))
+      graph.neighboursWithoutParent(PostId(13)) mustEqual Set(12).map(PostId(_))
     }
 
     "children of post" in {
