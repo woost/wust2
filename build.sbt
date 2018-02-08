@@ -34,13 +34,13 @@ lazy val commonSettings = Seq(
     Deps.mockito.value % Test ::
     Nil,
 
-  dependencyOverrides ++=
-    Deps.circe.core.value ::
-    Deps.circe.parser.value ::
-    Deps.circe.generic.value ::
-    Deps.cats.core.value ::
-    Deps.akka.httpCore.value ::
-    Nil,
+  // dependencyOverrides ++=
+  //   Deps.circe.core.value ::
+  //   Deps.circe.parser.value ::
+  //   Deps.circe.generic.value ::
+  //   Deps.cats.core.value ::
+  //   Deps.akka.httpCore.value ::
+  //   Nil,
 
   // do not run tests in assembly command
   test in assembly := {},
@@ -66,17 +66,17 @@ lazy val commonSettings = Seq(
       "-Ywarn-infer-any" ::
       "-Ywarn-nullary-override" ::
       "-Ywarn-nullary-unit" ::
-      Nil,
+      Nil
 )
 
 lazy val sourceMapSettings = Seq(
     // To enable source map support, all sub-project folders are symlinked to assets/project-root.
     // This folder is served via webpack devserver.
     scalacOptions += {
-      val local = s"${(ThisBuild / baseDirectory).value.toURI}"
+      val local = s"${(baseDirectory in ThisBuild).value.toURI}"
       val remote = s"/"
       s"-P:scalajs:mapSourceURI:$local->$remote"
-    },
+    }
   )
 
 lazy val root = project.in(file("."))
@@ -269,8 +269,25 @@ lazy val frontend = project
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "fastopt"
       val files = Seq("frontend-fastopt-loader.js", "frontend-fastopt.js", "frontend-fastopt.js.map") map { p => (inDir / p, outDir / p) }
-      IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
+      IO.copy(files, overwrite = true, preserveLastModified = true)
     }
+  )
+
+lazy val androidApp = project
+  .enablePlugins(AndroidApp)
+  .settings(
+    scalaVersion := "2.11.8",
+    android.useSupportVectors,
+    versionCode := Some(1),
+    version := "0.1-SNAPSHOT",
+    instrumentTestRunner := "android.support.test.runner.AndroidJUnitRunner",
+    platformTarget := "android-27",
+    javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil,
+    libraryDependencies ++=
+      "com.android.support" % "appcompat-v7" % "24.0.0" ::
+      "com.android.support.test" % "runner" % "0.5" % "androidTest" ::
+      "com.android.support.test.espresso" % "espresso-core" % "2.2.2" % "androidTest" ::
+      Nil
   )
 
 lazy val slackApp = project
