@@ -18,9 +18,7 @@ in
     installPhase= ''
     '';
 
-    # TODO: how to use installPhase to install dependencies only once?
     shellHook=''
-    npm list jsdom || npm install jsdom
     echo --- Welcome to woost! ---
     echo "Make sure you have the docker service running and added your user to the group 'docker'."
     echo Now run ./start sbt dev
