@@ -141,19 +141,35 @@ sealed trait RestructuringTask {
 sealed trait YesNoTask extends RestructuringTask
 {
   def constructComponent(state: GlobalState,
-    postChoice: List[Post],
-    graphChangesYes: GraphChanges): VNode = {
+                         postChoice: List[Post],
+                         graphChangesYes: GraphChanges): VNode = {
+    div(
+      postChoice.map(stylePost)(breakOut): List[VNode],
       div(
-        postChoice.map(stylePost)(breakOut): List[VNode],
-        div(
-          button("Yes",
-            onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
-            onClick(true) --> RestructuringTaskGenerator.taskDisplay,
-          ),
-          button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
-          width := "100%",
-        )
+        button("Yes",
+          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
+          onClick(true) --> RestructuringTaskGenerator.taskDisplay,
+        ),
+        button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
+        width := "100%",
       )
+    )
+  }
+
+  def constructComponent(state: GlobalState,
+                         postDisplay: VNode,
+                         graphChangesYes: GraphChanges): VNode = {
+    div(
+      postDisplay,
+      div(
+        button("Yes",
+          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
+          onClick(true) --> RestructuringTaskGenerator.taskDisplay,
+        ),
+        button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
+        width := "100%",
+      )
+    )
   }
 }
 
