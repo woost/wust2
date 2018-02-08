@@ -74,10 +74,11 @@ object Deps {
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
   val github4s = dep("io.github.GRBurst.github4s" %% "github4s" % "1d9681d") // master + comments + single issue
+  val graphQl = dep("org.sangria-graphql" %% "sangria" % "1.3.3")
+  val akkaCircJson = dep("de.heikoseeberger" %% "akka-http-circe" % "1.19.0")
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
-val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
-val graphQl = dep("org.sangria-graphql" %% "sangria" % "1.3.3")
-val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
+  val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
+  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
 
   // NLP

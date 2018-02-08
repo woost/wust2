@@ -298,6 +298,7 @@ lazy val githubApp = project
     libraryDependencies ++=
       Deps.github4s.value ::
       Deps.graphQl.value ::
+        Deps.akkaCircJson.value ::
         Nil
   )
 
