@@ -20,6 +20,7 @@ import retrofit.{Callback, RetrofitError}
 import retrofit.client.Response
 import cats.data.EitherT
 import cats.implicits._
+import monix.reactive.Observable
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -63,17 +64,28 @@ object WustReceiver {
     implicit val materializer = ActorMaterializer()
 
     val location = s"ws://${config.host}:${config.port}/ws"
-    val handler = new IncidentHandler[ApiEvent] {
-      override def onConnect(): Unit = println(s"Connected to websocket")
-      override def onEvents(events: Seq[ApiEvent]): Unit = {
-        println(s"Got events: $events")
+    val handler = new WustIncidentHandler {
+      override def onConnect(): Unit = println(s"GitterApp connected to websocket")
+    }
+
+
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = handler.eventObservable
+      .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
+      .collect { case list if list.nonEmpty => list }
+
+    {
+      import monix.execution.Scheduler.Implicits.global
+      graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
+        println(s"Got events in Gitter: $events")
         val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
         val posts = changes.flatMap(_.addPosts)
         posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
           gitter.send(msg)
         }
+
       }
     }
+
     val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
 
     val res = for { // Assume thas user exists

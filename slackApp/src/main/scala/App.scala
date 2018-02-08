@@ -15,6 +15,7 @@ import akka.stream.ActorMaterializer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import monix.reactive.Observable
 
 object Constants {
   //TODO
@@ -54,11 +55,19 @@ object WustReceiver {
     implicit val materializer = ActorMaterializer()
 
     val location = s"ws://${config.host}:${config.port}/ws"
-    val handler = new IncidentHandler[ApiEvent] {
+    val handler = new WustIncidentHandler {
       override def onConnect(): Unit = println(s"Connected to websocket")
       override def onClose(): Unit = println(s"Websocket connection closed")
-      override def onEvents(events: Seq[ApiEvent]): Unit = {
-        println(s"Got events: $events")
+    }
+
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = handler.eventObservable
+      .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
+      .collect { case list if list.nonEmpty => list }
+
+    {
+      import monix.execution.Scheduler.Implicits.global
+      graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
+        println(s"Got events in Slack: $events")
         val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
         val posts = changes.flatMap(_.addPosts)
         posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
@@ -68,6 +77,9 @@ object WustReceiver {
         }
       }
     }
+
+
+
     val client = AkkaWustClient(location, handler).sendWith(SendType.NowOrFail, 30 seconds)
 
     val res = for {
