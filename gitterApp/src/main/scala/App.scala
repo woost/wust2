@@ -20,6 +20,7 @@ import retrofit.{Callback, RetrofitError}
 import retrofit.client.Response
 import cats.data.EitherT
 import cats.implicits._
+import monix.execution.Scheduler
 import monix.reactive.Observable
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,7 +41,7 @@ trait MessageReceiver {
 
 class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(msg: ExchangeMessage, author: UserId) = {
+  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
     println(s"new message: ${msg.content}")
     val post = Post(PostId.fresh, msg.content, author)
     val connection = Connection(post.id, Label.parent, Constants.gitterId)
@@ -59,30 +60,26 @@ object WustReceiver {
   val wustUser = UserId("wust-gitter")
 
   def run(config: WustConfig, gitter: GitterClient)(implicit system: ActorSystem): Future[Result[WustReceiver]] = {
-    import system.dispatcher
-    implicit val materializer = ActorMaterializer()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
+    implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
     val location = s"ws://${config.host}:${config.port}/ws"
     val handler = new WustIncidentHandler {
       override def onConnect(): Unit = println(s"GitterApp connected to websocket")
     }
 
-
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = handler.eventObservable
       .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
       .collect { case list if list.nonEmpty => list }
 
-    {
-      import monix.execution.Scheduler.Implicits.global
-      graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
-        println(s"Got events in Gitter: $events")
-        val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
-        val posts = changes.flatMap(_.addPosts)
-        posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
-          gitter.send(msg)
-        }
-
+    graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
+      println(s"Got events in Gitter: $events")
+      val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
+      val posts = changes.flatMap(_.addPosts)
+      posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
+        gitter.send(msg)
       }
+
     }
 
     val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)

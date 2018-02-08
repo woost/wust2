@@ -3,15 +3,15 @@ package wust.slack
 import slack.SlackUtil
 import slack.models._
 import slack.rtm.SlackRtmClient
-
 import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
 import mycelium.client.SendType
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import monix.execution.Scheduler
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -32,7 +32,7 @@ trait MessageReceiver {
 
 class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(msg: ExchangeMessage, author: UserId) = {
+  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
     println(s"new message: msg")
     val post = Post(PostId.fresh, msg.content, author)
     val connection = Connection(post.id, Label.parent, Constants.slackId)
@@ -51,7 +51,8 @@ object WustReceiver {
   val wustUser = UserId("wust-slack")
 
   def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
-    implicit val materializer = ActorMaterializer()
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
+    implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
     val location = s"ws://${config.host}:${config.port}/ws"
     val handler = new WustIncidentHandler {
@@ -63,16 +64,13 @@ object WustReceiver {
       .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
       .collect { case list if list.nonEmpty => list }
 
-    {
-      import monix.execution.Scheduler.Implicits.global
-      graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
-        println(s"Got events in Slack: $events")
-        val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
-        val posts = changes.flatMap(_.addPosts)
-        posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
-          slack.send(msg).foreach { success =>
-            println(s"Send message success: $success")
-          }
+    graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
+      println(s"Got events in Slack: $events")
+      val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
+      val posts = changes.flatMap(_.addPosts)
+      posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
+        slack.send(msg).foreach { success =>
+          println(s"Send message success: $success")
         }
       }
     }
