@@ -447,7 +447,7 @@ object GithubClient {
 
 object App extends scala.App {
   import scala.concurrent.ExecutionContext.Implicits.global
-  implicit val system = ActorSystem("github")
+  implicit val system: ActorSystem = ActorSystem("github")
 
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")

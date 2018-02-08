@@ -58,8 +58,7 @@ object WustReceiver {
 
   val wustUser = UserId("wust-gitter")
 
-  def run(config: WustConfig, gitter: GitterClient): Future[Result[WustReceiver]] = {
-    implicit val system = ActorSystem("wust")
+  def run(config: WustConfig, gitter: GitterClient)(implicit system: ActorSystem): Future[Result[WustReceiver]] = {
     import system.dispatcher
     implicit val materializer = ActorMaterializer()
 
@@ -103,7 +102,7 @@ object WustReceiver {
   private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) = EitherT(fut.map(Right(_) : Either[String, T]))
 }
 
-class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient)(implicit ec: ExecutionContext) {
+class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient)(implicit ec: ExecutionContext, system: ActorSystem) {
 
   // TODO: change this
   val roomId = "584862d0d73408ce4f3b747f"
@@ -143,8 +142,7 @@ class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient
 }
 
 object GitterClient {
-  def apply(accessToken: String)(implicit ec: ExecutionContext): GitterClient = {
-    implicit val system = ActorSystem("gitter")
+  def apply(accessToken: String)(implicit ec: ExecutionContext, system: ActorSystem): GitterClient = {
 
     val streamClient: GitterFayeClient = new AsyncGitterFayeClientBuilder()
       .withAccountToken(accessToken)
@@ -166,6 +164,7 @@ object GitterClient {
 
 object App extends scala.App {
   import scala.concurrent.ExecutionContext.Implicits.global
+  implicit val system: ActorSystem = ActorSystem("gitter")
 
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")

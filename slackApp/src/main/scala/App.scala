@@ -50,8 +50,7 @@ object WustReceiver {
 
   val wustUser = UserId("wust-slack")
 
-  def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext): Future[Result[WustReceiver]] = {
-    implicit val system = ActorSystem("wust")
+  def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
     implicit val materializer = ActorMaterializer()
 
     val location = s"ws://${config.host}:${config.port}/ws"
@@ -134,8 +133,7 @@ class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
 }
 
 object SlackClient {
-  def apply(accessToken: String)(implicit ec: ExecutionContext): SlackClient = {
-    implicit val system = ActorSystem("slack")
+  def apply(accessToken: String)(implicit ec: ExecutionContext, actorSystem: ActorSystem): SlackClient = {
     val client = SlackRtmClient(accessToken)
     new SlackClient(client)
   }
@@ -143,6 +141,7 @@ object SlackClient {
 
 object App extends scala.App {
   import scala.concurrent.ExecutionContext.Implicits.global
+  implicit val system: ActorSystem = ActorSystem("slack")
 
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
