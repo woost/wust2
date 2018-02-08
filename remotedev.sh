@@ -11,19 +11,20 @@ rsync -aP --delete $LOCALDIR/ $REMOTEHOST:$REMOTETMP/ --exclude-from=$LOCALDIR/.
 
 lsyncd =(cat <<EOF
 settings {
-   nodaemon   = true,
-   logfile = "/dev/null"
+   nodaemon     = true,
+   statusFile   = "/dev/null",
+   logfile      = "/dev/null"
 }
 
 sync {
    default.rsync,
-   delay     = 1,
-   source = "$LOCALDIR",
-   target = "$REMOTEHOST:$REMOTETMP",
+   delay    = 1,
+   source   = "$LOCALDIR",
+   target   = "$REMOTEHOST:$REMOTETMP",
    excludeFrom="$LOCALDIR/.ignore"
 }
 EOF
-) &
+) &>/dev/null &
 
 LSYNCDPID=$!
 echo $LSYNCDPID
