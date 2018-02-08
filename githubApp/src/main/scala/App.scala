@@ -6,6 +6,7 @@ import wust.ids._
 import wust.graph._
 import mycelium.client.SendType
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
 import cats.implicits._
@@ -34,27 +35,58 @@ object Constants {
   val wustRepo = "bug"
 }
 
-object Server {
+object WebhookServer {
   import akka.http.scaladsl.server.RouteResult._
   import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
+  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
-  def run(config: GithubConfig) = {
-    implicit val system = ActorSystem("server")
+  def run(config: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem) = {
     implicit val materializer = ActorMaterializer()
     import system.dispatcher
 
-    val route = (path(config.path) & post) {
-      complete("ok")
+    import io.circe.generic.auto._
+
+    case class IssueEvent(action: String, issue: Issue)
+    case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
+    val route = {
+      path(config.path) {
+        post {
+          decodeRequest {
+            headerValueByName("X-GitHub-Event") {
+              case "issues" => entity(as[IssueEvent]) { issue =>
+                issue.action match {
+                  case "created" => wustReceiver.push(List(GraphChanges.empty))
+                  case "edited" => scribe.info("Received Webhook: edited issue"); wustReceiver.push(List(GraphChanges.empty))
+                  case "deleted" => wustReceiver.push(List(GraphChanges.empty))
+                  case a => scribe.error(s"Received unknown IssueEvent action: $a")
+    }
+                complete(StatusCodes.Success)
+              }
+              case "issue_comment" => entity(as[IssueCommentEvent]) {comment =>
+                comment.action match {
+                  case "created" => scribe.info("Received Webhook: created Comment"); wustReceiver.push(List(GraphChanges.empty))
+                  case "edited" => wustReceiver.push(List(GraphChanges.empty))
+                  case "deleted" => wustReceiver.push(List(GraphChanges.empty))
+                  case a => scribe.error(s"Received unknown IssueCommentEvent: $a")
+                }
+                complete(StatusCodes.Success)
+              }
+              case "ping" => scribe.info("Received ping"); complete(StatusCodes.Accepted)
+              case e => scribe.error(s"Received unknown GitHub Event Header: $e"); complete(StatusCodes.Accepted)
+            }
+          }
+        }
+      }
     }
 
     Http().bindAndHandle(route, interface = config.host, port = config.port).onComplete {
       case Success(binding) => {
         val separator = "\n" + ("#" * 50)
-        val readyMsg = s"\n##### Server online at ${binding.localAddress} #####"
+        val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
         scribe.info(s"$separator$readyMsg$separator")
       }
-      case Failure(err) => scribe.error(s"Cannot start server: $err")
+      case Failure(err) => scribe.error(s"Cannot start GitHub App Server: $err")
     }
   }
 }
