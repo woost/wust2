@@ -22,16 +22,9 @@ import scala.collection.{breakOut, mutable}
 import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import scala.util.Try
 
 
-class EulerSet(val parent: PostId, val children: Array[PostId], val depth: Int) {
-  val allNodes: Array[PostId] = children :+ parent
-}
-
-class GraphTopology(
-                     val graph: Graph,
-                     val posts: Array[Post]
-               )
 
 case class PlaneDimension(
                            xOffset: Double = 50,
@@ -88,7 +81,8 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
   }
 
   private var labelVisualization: PartialFunction[Label,VisualizationType] = {
-    case label if label != Label.parent => Edge
+    case label if label == Label.parent => Containment
+    case label => Edge
   }
   private var postSelection: Selection[Post] = _
   private var simData: SimulationData = _
@@ -150,6 +144,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
     }
 
     def dragStart(n:html.Element, d: Post, dragging:Int):Unit = {
+      running = false
       ForceSimulationForces.initQuadtree(simData, staticData)
       simData.quadtree.remove(dragging)
     }
@@ -254,7 +249,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
       // afterwards we write the data back to our new arrays in simData
       simData = createSimDataFromDomBackup(postSelection)
       // For each node, we calculate its rendered size, radius etc.
-      staticData = calculateStaticData(graphTopology, postSelection, transform, labelVisualization)
+      staticData = StaticData(graphTopology, postSelection, transform, labelVisualization)
       resized() // adjust zoom to possibly changed accumulated post area
       ForceSimulationForces.nanToPhyllotaxis(simData, spacing = 20) // set initial positions for new nodes
 
@@ -280,7 +275,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
 
 
     val ticks = 100 // Default = 300
-    val forceFactor = 0.1
+    val forceFactor = 0.4
     simData.alpha = alpha
     simData.alphaMin = alphaMin // stop simulation earlier (default = 0.001)
     simData.alphaDecay = 1 - Math.pow(alphaMin, 1.0 / ticks)
@@ -344,7 +339,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
 }
 
 object ForceSimulation {
-  private val debugDrawEnabled = false
+  private val debugDrawEnabled = true
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
   def updateDomPosts(
@@ -427,144 +422,6 @@ object ForceSimulation {
   }
 
 
-  def createPostIdToIndexMap(posts: Array[Post]): collection.Map[PostId, Int] = {
-    var i = 0
-    val n = posts.length
-    val map = new mutable.HashMap[PostId, Int]()
-    while (i < n) {
-      map(posts(i).id) = i
-      i += 1
-    }
-    map
-  }
-
-  case class PartitionedConnections(
-                                     edges:Array[Connection],
-                                     containments:Array[Connection],
-                                     tags:Array[Connection]
-                                   )
-
-  def partitionConnections(connections:Iterable[Connection], labelVisualization:PartialFunction[Label, VisualizationType]):PartitionedConnections = {
-    val edgeBuilder = ArrayBuffer.empty[Connection]
-    val containmentBuilder = ArrayBuffer.empty[Connection]
-    val tagBuilder = ArrayBuffer.empty[Connection]
-
-    def separator = labelVisualization.lift
-
-    connections.foreach { connection =>
-      separator(connection.label).foreach{
-        case Edge => edgeBuilder += connection
-        case Containment => containmentBuilder += connection
-        case Tag => tagBuilder += connection
-      }
-    }
-
-    PartitionedConnections(
-      containments = containmentBuilder.toArray,
-      edges = edgeBuilder.toArray,
-      tags = tagBuilder.toArray
-    )
-  }
-
-
-  def calculateStaticData(graphTopology: GraphTopology, selection: Selection[Post], transform: Transform, labelVisualization:PartialFunction[Label, VisualizationType]): StaticData = {
-    time(log(s"calculateStaticData[${selection.size()}]")) {
-      import graphTopology.{graph, posts}
-
-      val PartitionedConnections(edges,containments,tags) = partitionConnections(graph.connections, labelVisualization)
-      println("edges: " + edges.mkString(", "))
-      println("containments: " + containments.mkString(", "))
-
-      val nodeCount = posts.length
-      val edgeCount = edges.length
-      val containmentCount = containments.length
-      val staticData = new StaticData(nodeCount = nodeCount,edgeCount = edgeCount,containmentCount = containmentCount)
-      staticData.posts = posts
-      val scale = transform.k
-
-      @inline def sq(x:Double) = x * x
-
-      var maxRadius = 0.0
-      var reservedArea = 0.0
-      selection.each[html.Element] { (node: html.Element, post: Post, i: Int) =>
-        staticData.bgColor(i) = ColorPost.computeColor(graph, post.id).toString
-        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
-        // we set the style here, because the border can affect the size of the element
-        // and we want to capture that in the post size
-        d3.select(node)
-          .style("background-color", staticData.bgColor(i))
-          .style("border", staticData.border(i))
-
-        val rect = node.getBoundingClientRect
-        val width = rect.width / scale
-        val height = rect.height / scale
-        staticData.width(i) = width
-        staticData.height(i) = height
-        staticData.centerOffsetX(i) = width / -2.0
-        staticData.centerOffsetY(i) = height / -2.0
-        staticData.radius(i) = Vec2.length(width, height) / 2.0
-        maxRadius = maxRadius max staticData.radius(i)
-        staticData.collisionRadius(i) = staticData.radius(i) + Constants.nodePadding * 0.5
-        staticData.containmentRadius(i) = staticData.collisionRadius(i)
-
-        val area = sq(staticData.collisionRadius(i) * 2)
-        reservedArea += area
-
-      }
-      staticData.maxRadius = maxRadius
-      staticData.reservedArea = reservedArea
-
-      val postIdToIndex = createPostIdToIndexMap(posts)
-
-      var i = 0
-      while (i < edgeCount) {
-        staticData.source(i) = postIdToIndex(edges(i).sourceId)
-        staticData.target(i) = postIdToIndex(edges(i).targetId)
-        i += 1
-      }
-
-      i = 0
-      while(i < containmentCount) {
-        val child = postIdToIndex(containments(i).sourceId)
-        val parent = postIdToIndex(containments(i).targetId)
-        staticData.child(i) = child
-        staticData.parent(i) = parent
-        staticData.containmentTest(child, parent) = true
-        i += 1
-      }
-
-
-      val containmentClusters:Array[EulerSet] = {
-//        staticData.parent.map{ pId =>
-//          val p = posts(pId)
-//
-//        }
-        graph.allParentIdsTopologicallySortedByChildren.map { p =>
-          new EulerSet(
-            parent = p,
-            children = graph.descendants(p).toArray,
-            depth = graph.childDepth(p)
-          )
-        }(breakOut)
-      }
-
-
-      i = 0
-      val clusterCount = containmentClusters.length
-      staticData.eulerSets = new Array[Array[Int]](clusterCount)
-      staticData.eulerSetColor = new Array[String](clusterCount)
-      while(i < clusterCount) {
-        staticData.eulerSets(i) = containmentClusters(i).allNodes.map(postIdToIndex)
-        val color = baseColor(containmentClusters(i).parent)
-        color.opacity = 0.8
-        staticData.eulerSetColor(i) = color.toString
-
-        i += 1
-      }
-      staticData
-    }
-  }
-
   def alphaStep(simData: SimulationData): Boolean = {
     import simData._
     if (alpha < alphaMin) return false
@@ -593,10 +450,12 @@ object ForceSimulation {
   def calculateVelocities(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension): Unit = {
     import ForceSimulationForces._
 
+//    dom.console.log(staticData.asInstanceOf[js.Any])
     initQuadtree(simData, staticData)
     clusterPolygons(simData,staticData)
-    rectBound(simData, staticData, planeDimension)
-    keepDistance(simData, staticData, distance = Constants.nodePadding)
+    rectBound(simData, staticData, planeDimension, strength = 0.1)
+    keepDistance(simData, staticData, distance = Constants.nodePadding, strength = 0.2)
+//    clustering(simData, staticData)
   }
 
   def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Post]): Unit = {
@@ -657,7 +516,7 @@ object ForceSimulation {
     i = 0
     val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < clusterCount) {
-      val cluster = staticData.eulerSets(i)
+      val cluster = staticData.eulerSetAllNodes(i)
       canvasContext.fillStyle = staticData.eulerSetColor(i)
       canvasContext.beginPath()
       catmullRom(simData.clusterPolygons(i))

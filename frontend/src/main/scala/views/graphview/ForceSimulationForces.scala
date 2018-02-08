@@ -3,6 +3,7 @@ package views.graphview
 import d3v4.{d3, d3polygon, _}
 import vectory.Algorithms.LineIntersection
 import vectory.{Line, Vec2}
+import wust.frontend.views.graphview.Constants
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -47,11 +48,11 @@ object ForceSimulationForces {
   }
 
   def clusterPolygons(simData:SimulationData, staticData: StaticData): Unit = {
-    val containmentClusterCount = staticData.eulerSets.length
+    val containmentClusterCount = staticData.eulerSetAllNodes.length
     simData.clusterPolygons = new Array[js.Array[js.Tuple2[Double,Double]]](containmentClusterCount)
     var i = 0
     while (i < containmentClusterCount) {
-      val cluster = staticData.eulerSets(i)
+      val cluster = staticData.eulerSetAllNodes(i)
 
       // this stores the index hidden in the points
       val centerPoints:d3polygon.Polygon = cluster.map(j => js.Tuple3(simData.x(j), simData.y(j), j).asInstanceOf[js.Tuple2[Double,Double]])(breakOut)
@@ -143,7 +144,7 @@ object ForceSimulationForces {
     }
   }
 
-  def rectBound(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension): Unit = {
+  def rectBound(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension, strength:Double): Unit = {
     import planeDimension.{simHeight => planeHeight, simWidth => planeWidth, _}
     import simData._
     import staticData._
@@ -168,14 +169,14 @@ object ForceSimulationForces {
     var i = 0
     val n = simData.n
     while (i < n) {
-      pushIntoBounds(i, collisionRadius(i), collisionRadius(i), strength = alpha)
+      pushIntoBounds(i, collisionRadius(i), collisionRadius(i), strength = alpha * strength)
       // pushIntoBounds(i2, containmentRadius(i), containmentRadius(i), strength = alpha * 0.1, maxStrength = collisionRadius(i))
       i += 1
     }
   }
 
 
-  def keepDistance(simData: SimulationData, staticData: StaticData, distance: Double, strength: Double = 1.0): Unit = {
+  def keepDistance(simData: SimulationData, staticData: StaticData, distance: Double, strength:Double): Unit = {
     import simData._
     import staticData._
     import wust.frontend.views.graphview.ForceUtil._
@@ -216,68 +217,68 @@ object ForceSimulationForces {
     }
   }
 
-//  def clustering(data:SimulationData, staticData:StaticData): Unit = {
-//    val innerVelocityFactor = 0.1
-//    import data._
-//    var ci = 0
-//    val cn = staticData.containmentClusters.length
-//    var i = 0
-//    var i2 = 0
-//    while (ci < cn) {
-//      val parentI = containmentClusterParentIndex(ci)
-//      val parentI2 = parentI * 2
-//      val children = containmentClusterChildrenIndices(ci)
-//
-//      val n = children.size
-//      i = 0
-//      while (i < n) {
-//        val childI = children(i)
-//        val targetDistance = containmentRadius(parentI) - containmentRadius(childI) // stop when completely inside the containmentRadius circle
-//        val targetDistanceSq = targetDistance * targetDistance
-//
-//        val childWeight = n / (n+1.0)
-//        val parentWeight = 1.0 / (n+1.0)
-//
-//        val i2 = childI * 2
-//        val dx = pos(parentI2) - pos(i2)
-//        val dy = pos(parentI2 + 1) - pos(i2 + 1)
-//        val distanceSq = Vec2.lengthSq(dx, dy)
-//        // be aware: >= produces NaNs
-//        if (distanceSq > targetDistanceSq) { // node is outside
-//          //TODO: avoid Vec2 allocation and sqrt
-//          val distanceDiff = Vec2.length(dx, dy) - targetDistance
-//          val velocity = distanceDiff
-//          val dir = Vec2(dx, dy).normalized
-//          val childDir = dir * (velocity * alpha * childWeight)
-//          val parentDir = -dir * (velocity * alpha * parentWeight)
-//
-//          vel(i2) += childDir.x
-//          vel(i2 + 1) += childDir.y
-//          if(postParentCount(childI) >= 2) {
-//            vel(parentI2) += parentDir.x
-//            vel(parentI2 + 1) += parentDir.y
-//          }
-//        }
-//        else { // node is inside
-//          // val targetDistance = collisionRadius(parentI) + (containmentRadius(parentI) - collisionRadius(parentI)) / 2 // stop at center between collisionRadius(parentI) and containmentRadius(parentI)
-//          val targetDistance = radius(parentI) + Constants.nodePadding + radius(childI)
-//          val targetDistanceSq = targetDistance * targetDistance
-//          if (distanceSq > targetDistanceSq) {
-//            val distanceDiff =  Vec2.length(dx, dy) - targetDistance
-//            val velocity = distanceDiff * innerVelocityFactor
-//            val dir = Vec2(dx, dy).normalized
-//            val childDir = dir * (velocity * alpha * childWeight)
-//            val parentDir = dir * (velocity * alpha * parentWeight)
-//
-//            vel(i2) += childDir.x
-//            vel(i2 + 1) += childDir.y
-//            // vel(parentI2) += parentDir.x
-//            // vel(parentI2 + 1) += parentDir.y
-//          }
-//        }
-//        i += 1
-//      }
-//      ci += 1
-//    }
-//  }
+  def clustering(simData:SimulationData, staticData:StaticData): Unit = {
+    import staticData._
+    import simData._
+
+    val innerVelocityFactor = 0.1
+    var ci = 0
+    val cn = eulerSetCount
+    var i = 0
+    while (ci < cn) {
+      val parent = eulerSetParent(ci)
+      val children = eulerSetChildren(ci)
+
+      val n = children.length
+      i = 0
+      while (i < n) {
+        val childI = children(i)
+        val targetDistance = containmentRadius(parent) - containmentRadius(childI) // stop when completely inside the containmentRadius circle
+        val targetDistanceSq = targetDistance * targetDistance
+
+        val childWeight = n / (n+1.0)
+        val parentWeight = 1.0 / (n+1.0)
+
+        val dx = x(parent) - x(i)
+        val dy = y(parent) - y(i)
+        val distanceSq = Vec2.lengthSq(dx, dy)
+        // be aware: >= produces NaNs
+        if (distanceSq > targetDistanceSq) { // node is outside
+          //TODO: avoid Vec2 allocation and sqrt
+          val distanceDiff = Vec2.length(dx, dy) - targetDistance
+          val velocity = distanceDiff
+          val dir = Vec2(dx, dy).normalized
+          val childDir = dir * (velocity * alpha * childWeight)
+          val parentDir = -dir * (velocity * alpha * parentWeight)
+
+          vx(i) += childDir.x
+          vy(i) += childDir.y
+          if(nodeParentCount(childI) >= 2) {
+            vx(parent) += parentDir.x
+            vy(parent) += parentDir.y
+          }
+        }
+        else { // node is inside
+          // val targetDistance = collisionRadius(parentI) + (containmentRadius(parentI) - collisionRadius(parentI)) / 2 // stop at center between collisionRadius(parentI) and containmentRadius(parentI)
+          val targetDistance = radius(parent) + Constants.nodePadding + radius(childI)
+          val targetDistanceSq = targetDistance * targetDistance
+          if (distanceSq > targetDistanceSq) {
+            val distanceDiff =  Vec2.length(dx, dy) - targetDistance
+            val velocity = distanceDiff * innerVelocityFactor
+            val dir = Vec2(dx, dy).normalized
+
+            val childDir = dir * (velocity * alpha * childWeight)
+            vx(i) += childDir.x
+            vy(i) += childDir.y
+
+            // val parentDir = dir * (velocity * alpha * parentWeight)
+            // vel(parentI2) += parentDir.x
+            // vel(parentI2 + 1) += parentDir.y
+          }
+        }
+        i += 1
+      }
+      ci += 1
+    }
+  }
 }
