@@ -168,7 +168,7 @@ object MainView {
     val viewHandler = Handler.create[View]().unsafeRunSync()
 
     div(
-      managed(viewHandler.debug("selected view")),
+      managed(IO(viewHandler.debug("selected view"))),
       managed(IO(viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString)))),
       managed(state.view <-- viewHandler),
       display.flex,

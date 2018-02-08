@@ -81,8 +81,8 @@ package object outwatchHelpers {
       rx
     }
 
-    def debug: IO[Cancelable] = debug()
-    def debug(name: String = "") = IO { o.foreach(x => println(s"$name: $x")) }
-    def debug(print: T => String) = IO { o.foreach(x => println(print(x))) }
+    def debug: Cancelable = debug()
+    def debug(name: String = "") = o.foreach(x => println(s"$name: $x"))
+    def debug(print: T => String) = o.foreach(x => println(print(x)))
   }
 }
