@@ -11,8 +11,7 @@ import wust.backend.config.Config
 import wust.db.Db
 import wust.util.time._
 import sloth.core._
-import sloth.mycelium._
-import sloth.server.{Server => SlothServer, _}
+import sloth.server._
 import mycelium.server._
 import wust.util.{ Pipe, RichFuture }
 import wust.util.LogHelper.requestLogLine
