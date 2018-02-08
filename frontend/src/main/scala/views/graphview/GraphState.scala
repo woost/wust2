@@ -1,22 +1,22 @@
- package wust.frontend.views.graphview
+package wust.frontend.views.graphview
 
- import rx._
- import wust.frontend.Color._
- import wust.frontend.{ColorPost, DevOnly, GlobalState}
- import wust.graph._
- import wust.ids._
- import wust.util.Pipe
- import wust.util.collection._
+import rx._
+import wust.frontend.Color._
+import wust.frontend.{ColorPost, DevOnly, GlobalState}
+import wust.graph._
+import wust.ids._
+import wust.util.Pipe
+import wust.util.collection._
 
- import scala.collection.breakOut
- import scala.scalajs.js
- import scala.scalajs.js.JSConverters._
- import scala.scalajs.js.Math
+import scala.collection.breakOut
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.Math
 
 class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
 
-  val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
-  val selectedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead{ selectedPostId =>
+  val postCreationMenus: Var[List[PostCreationMenu.Menu]] = Var(Nil)
+  val selectedPostId: Var[Option[PostId]] = Var(Option.empty[PostId]).mapRead { selectedPostId =>
     selectedPostId().filter(state.inner.displayGraphWithoutParents().graph.postsById.isDefinedAt)
   }
 
@@ -26,12 +26,13 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   def fontSizeByDepth(d: Int) = Math.pow(0.65, d + 1) + 1 // 2..1
   def fontSizeByTransitiveChildren(n: Int) = Math.log(n + 1) + 0.5 // 1..~5
 
+
   val rxSimPosts: Rx[js.Array[SimPost]] = Rx {
     val rawGraph = state.inner.rawGraph().consistent
     val graph = rxDisplayGraph().graph
     val collapsedPostIds = rxCollapsedPostIds()
 
-    graph.posts.zipWithIndex.map { case (p,i) =>
+    graph.posts.zipWithIndex.map { case (p, i) =>
       val sp = new SimPost(p)
 
       //TODO: this is only to avoid the initial positions of d3.simulation, and do that in GraphView.recalculateBoundsAndZoom
@@ -84,12 +85,12 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
 
   //TODO: multiple menus for multi-user multi-touch interface?
 
-//  val selectedGroupId: Var[Option[GroupId]] = viewConfig.zoom(GenLens[ViewConfig](_.groupIdOpt)).mapRead{ groupId =>
-//    groupId().filter(rawGraph().groupsById.isDefinedAt)
-//  }
- val rxSelectedSimPost = Rx {
-   selectedPostId().flatMap(rxPostIdToSimPost().get)
- }
+  //  val selectedGroupId: Var[Option[GroupId]] = viewConfig.zoom(GenLens[ViewConfig](_.groupIdOpt)).mapRead{ groupId =>
+  //    groupId().filter(rawGraph().groupsById.isDefinedAt)
+  //  }
+  val rxSelectedSimPost = Rx {
+    selectedPostId().flatMap(rxPostIdToSimPost().get)
+  }
 
   val rxSimConnection = Rx {
     val graph = rxDisplayGraph().graph
@@ -160,11 +161,11 @@ class GraphState(val state: GlobalState)(implicit ctx: Ctx.Owner) {
   }
 
   DevOnly {
-//    rxSimPosts.debug(v => s"  simPosts: ${v.size}")
-//    rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.size}")
-//    rxSimConnection.debug(v => s"  simConnection: ${v.size}")
-//    rxSimContainment.debug(v => s"  simContainment: ${v.size}")
-//    rxContainmentCluster.debug(v => s"  containmentCluster: ${v.size}")
-//    rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.size}")
+    //    rxSimPosts.debug(v => s"  simPosts: ${v.size}")
+    //    rxPostIdToSimPost.debug(v => s"  postIdToSimPost: ${v.size}")
+    //    rxSimConnection.debug(v => s"  simConnection: ${v.size}")
+    //    rxSimContainment.debug(v => s"  simContainment: ${v.size}")
+    //    rxContainmentCluster.debug(v => s"  containmentCluster: ${v.size}")
+    //    rxFocusedSimPost.rx.debug(v => s"  focusedSimPost: ${v.size}")
   }
 }

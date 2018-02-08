@@ -1,6 +1,6 @@
  package wust.frontend.views.graphview
 
- import org.scalajs.d3v4._
+ import d3v4._
  import org.scalajs.dom.raw.HTMLElement
  import outwatch.dom._
  import outwatch.dom.dsl._

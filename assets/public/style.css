@@ -133,7 +133,7 @@ select {
     word-wrap: break-word;
     text-rendering: optimizeLegibility;
     padding : 3px 5px;
-    border-radius : 3px;
+    /* border-radius : 3px; */ /* affects graph rendering performance */
 }
 
 .graphpost > p {

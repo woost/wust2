@@ -1,6 +1,6 @@
 package wust.frontend.views
 
-import org.scalajs.d3v4.{Color, Hcl, d3}
+import d3v4.{Color, Hcl, d3}
 import wust.frontend.Color._
 import wust.graph.{Graph, Page, Post}
 

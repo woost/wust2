@@ -1,15 +1,17 @@
 package wust.frontend.views.graphview
 
 import scala.scalajs.js.JSConverters._
-import org.scalajs.d3v4._
+import d3v4._
+import io.circe.Decoder.state
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
-import org.scalajs.dom.{Element, window, console}
+import org.scalajs.dom.{Element, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
+import views.graphview.ForceSimulation
 import wust.frontend.Color._
 import wust.frontend.views.View
 import wust.frontend.{DevOnly, DevPrintln, GlobalState}
@@ -37,40 +39,71 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
 
     val d3State = new D3State(disableSimulation)
     val graphState = new GraphState(state)
+    val forceSimulation = new ForceSimulation(state, onDrop(state, _, _))
 
     // since all elements get inserted at once, we can zip and only have one function call
-    Observable.zip3(container, htmlLayer, svgLayer).foreach { case (container, htmlLayer, svgLayer) =>
-      println("Initializing Graph view")
-      new GraphViewInstance(
-        state,
-        d3State,
-        graphState,
-        container,
-        htmlLayer,
-        svgLayer,
-        disableSimulation
-      )
-    }
+//    Observable.zip3(container, htmlLayer, svgLayer).foreach { case (container, htmlLayer, svgLayer) =>
+//      println("Initializing Graph view")
+//      new GraphViewInstance(
+//        state,
+//        d3State,
+//        graphState,
+//        container,
+//        htmlLayer,
+//        svgLayer,
+//        disableSimulation
+//      )
+//    }
 
     div(
       height := "100%",
       backgroundColor <-- state.pageStyle.map(_.bgColor),
 
-      tag("svg")(
-        onInsert.asSvg --> svgLayer,
-        GraphView.svgArrow
+      div(
+        position := "absolute",
+        zIndex := 10,
+        button("start", onClick --> sideEffect {
+          forceSimulation.startAnimated()
+        }),
+        button("start hidden", onClick --> sideEffect {
+          forceSimulation.startHidden()
+        }),
+        button("step", onClick --> sideEffect {
+          forceSimulation.step()
+          ()
+        }),
+        button("stop", onClick --> sideEffect {
+          forceSimulation.stop()
+        })
       ),
-      div(onInsert.asHtml --> htmlLayer),
-      onInsert.asHtml --> container,
+      //      tag("svg")(
+      //        onInsert.asSvg --> svgLayer,
+      //        GraphView.svgArrow
+      //      ),
+      //      div(onInsert.asHtml --> htmlLayer),
+      //      onInsert.asHtml --> container,
+      forceSimulation.component(
+        children <-- graphState.postCreationMenus.map(_.map { menu =>
+          PostCreationMenu(state, graphState, menu, d3State.transform)
+        }).toObservable,
 
-      children <-- graphState.postCreationMenus.map(_.map { menu =>
-        PostCreationMenu(state, graphState, menu, d3State.transform)
-      }).toObservable,
-
-      child <-- graphState.selectedPostId.map(_.map { id =>
-        SelectedPostMenu(id, state, graphState, d3State.transform)
-      }).toObservable
+        child <-- graphState.selectedPostId.map(_.map { id =>
+          SelectedPostMenu(id, state, graphState, d3State.transform)
+        }).toObservable
+      )
     )
+  }
+
+  def onDrop(state: GlobalState, dragging:PostId, target:PostId): Unit = {
+    // TODO: provide helpers, so that other UIs can easily implement move, copy, ... functionality
+    val graph = state.inner.displayGraphWithoutParents.now.graph
+    val newContainments = Set(Connection(dragging, Label.parent, target))
+    val removeContainments:Set[Connection] = if (graph.ancestors(target).toSet contains dragging) { // cycle
+      Set.empty
+    } else { // no cycle
+      (graph.parents(dragging) map (Connection(dragging, Label.parent, _))) - newContainments.head
+    }
+    state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = newContainments, delConnections = removeContainments))
   }
 }
 
@@ -95,6 +128,7 @@ object GraphView {
         )
       )
     )
+
 }
 
 case class DragAction(name: String, action: (SimPost, SimPost) => Unit)

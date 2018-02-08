@@ -127,8 +127,6 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def getChildrenOpt(postId: PostId): Option[Set[PostId]] = if(hasChildren(postId)) Some(children(postId)) else None
   def getParentsOpt(postId: PostId): Option[Set[PostId]] = if(hasParents(postId)) Some(parents(postId)) else None
 
-  // be aware that incomingConnections and incident connections can be queried with a hyperedge ( connection )
-  // that's why the need default values from connectionDefaultNeighbourhood
   private lazy val connectionDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Connection])
   lazy val incomingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
     directedIncidenceList[PostId, Connection](connectionsWithoutParent, _.targetId)

@@ -1,6 +1,6 @@
  package wust.frontend.views.graphview
 
- import org.scalajs.d3v4._
+ import d3v4._
  import vectory._
  import wust.ids._
 
@@ -10,6 +10,7 @@
  import scala.scalajs.js.annotation._
  import rx._
  import wust.frontend.DevPrintln
+ import wust.util.time.time
 
 object Constants {
   val nodePadding = 150
@@ -29,7 +30,7 @@ object CustomForce {
 }
 
 object ForceUtil {
-  private def forAllNodes[T](n: QuadtreeNode[T])(code: T => Any): Unit = {
+  private def forAllNodes[T](n: QuadtreeNode[T])(code: T => Unit): Unit = {
     def isLeaf = !n.length.isDefined
     if (isLeaf) {
       var maybeNode: js.UndefOr[QuadtreeNode[T]] = n
@@ -41,7 +42,7 @@ object ForceUtil {
     }
   }
 
-  def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(code: Int => Any): Unit = {
+  def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(code: Int => Unit): Unit = {
     quadtree.visit{
       (n: QuadtreeNode[Int], x0: Double, y0: Double, x1: Double, y1: Double) =>
         forAllNodes(n)(code)
@@ -57,7 +58,7 @@ object ForceUtil {
   }
 
   //noinspection ComparingUnrelatedTypes
-  def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(code: Int => Any): Unit = {
+  def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(code: Int => Unit): Unit = {
     quadtree.visit{
       (n: QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>
         forAllNodes(n)(code)
@@ -532,7 +533,7 @@ class MetaForce extends CustomForce[SimPost] {
   var updatedInvalidPosition = false
 
   override def force(alpha: Double): Unit = {
-    /*time("simulation frame")*/ {
+    /* time("simulation frame") */ {
       /*time("\nforce.init")*/ {
         maxRadius = 0.0
         //read pos + vel from simpost

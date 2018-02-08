@@ -1,7 +1,7 @@
 package wust.frontend.views.graphview
 
 import scala.scalajs.js.JSConverters._
-import org.scalajs.d3v4._
+import d3v4._
 import org.scalajs.dom
 import org.scalajs.dom.html.TextArea
 import org.scalajs.dom.raw.HTMLElement

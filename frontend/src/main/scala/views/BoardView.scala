@@ -1,6 +1,6 @@
 // package wust.frontend.views
 
-// import org.scalajs.d3v4._
+// import d3v4._
 // import org.scalajs.dom.{DragEvent, Event}
 // import org.scalajs.dom.raw.HTMLTextAreaElement
 // import wust.frontend.Color._

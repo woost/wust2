@@ -1,6 +1,6 @@
 package wust.frontend
 
-import org.scalajs.d3v4._
+import d3v4._
 import wust.graph.Graph
 import wust.ids._
 
@@ -35,7 +35,7 @@ object ColorPost {
 
   def mixedDirectParentColors(graph: Graph, postId: PostId) = mixColors(graph.parents(postId).map(baseColor))
 
-  def computeColor(graph: Graph, postId: PostId): String = {
+  def computeColor(graph: Graph, postId: PostId): Color = {
     val calculatedBorderColor = if (graph.hasChildren(postId)) {
         baseColor(postId)
     } else {
@@ -44,10 +44,10 @@ object ColorPost {
       else
         postDefaultColor
     }
-    calculatedBorderColor.toString
+    calculatedBorderColor
   }
 
-  def computeTagColor(graph: Graph, postId: PostId): String = {
-    baseColorDark(postId).toString
+  def computeTagColor(graph: Graph, postId: PostId): Color = {
+    baseColorDark(postId)
   }
 }

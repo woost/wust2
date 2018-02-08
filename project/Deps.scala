@@ -44,9 +44,9 @@ object Deps {
   val scalameta = dep("org.scalameta" %%% "scalameta" % "1.8.0")
 
   // frontend
-  val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "48694c6")
-  val vectory = dep("com.github.fdietze" % "vectory" % "3232833")
-  val scalarx = dep("com.github.fdietze" % "duality" % "9dd5e01649")
+  val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "a37fab8")
+  val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
+  val scalarx = dep("com.github.fdietze" % "duality" % "f9e6742")
   val outwatch = dep("io.github.outwatch" % "outwatch" % "6dd72a31cb4")
 
   // utility

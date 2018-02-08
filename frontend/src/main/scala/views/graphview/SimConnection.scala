@@ -1,6 +1,6 @@
  package wust.frontend.views.graphview
 
- import org.scalajs.d3v4._
+ import d3v4._
  import wust.graph.Connection
  import wust.ids.{Label, PostId}
 

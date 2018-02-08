@@ -2,7 +2,7 @@
 
  import java.lang.Math._
 
- import org.scalajs.d3v4._
+ import d3v4._
  import wust.frontend.Color._
 
  import scala.scalajs.js

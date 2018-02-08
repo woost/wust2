@@ -1,6 +1,6 @@
  package wust.frontend.views.graphview
 
- import org.scalajs.d3v4._
+ import d3v4._
 
  object RedirectedConnectionLineSelection extends DataSelection[SimRedirectedConnection] {
    override val tag = "line"
