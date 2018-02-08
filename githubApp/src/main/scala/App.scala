@@ -44,8 +44,15 @@ object WebhookServer {
   import akka.http.scaladsl.Http
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
-  def run(config: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem) = {
-    implicit val materializer = ActorMaterializer()
+  private def createIssue(issue: Issue) = GraphChanges.empty
+  private def editIssue(issue: Issue) = GraphChanges.empty
+  private def deleteIssue(issue: Issue) = GraphChanges.empty
+  private def createComment(issue: Issue, comment: Comment) = GraphChanges.empty
+  private def editComment(issue: Issue, comment: Comment) = GraphChanges.empty
+  private def deleteComment(issue: Issue, comment: Comment) = GraphChanges.empty
+
+  def run(config: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
     import io.circe.generic.auto._
@@ -57,26 +64,42 @@ object WebhookServer {
         post {
           decodeRequest {
             headerValueByName("X-GitHub-Event") {
-              case "issues" => entity(as[IssueEvent]) { issue =>
-                issue.action match {
-                  case "created" => wustReceiver.push(List(GraphChanges.empty))
-                  case "edited" => scribe.info("Received Webhook: edited issue"); wustReceiver.push(List(GraphChanges.empty))
-                  case "deleted" => wustReceiver.push(List(GraphChanges.empty))
+              case "issues" => entity(as[IssueEvent]) { issueEvent =>
+                issueEvent.action match {
+                  case "created" =>
+                    scribe.info("Received Webhook: created issue")
+                    wustReceiver.push(List(createIssue(issueEvent.issue)))
+                  case "edited" =>
+                    scribe.info("Received Webhook: edited issue")
+                    wustReceiver.push(List(editIssue(issueEvent.issue)))
+                  case "deleted" =>
+                    scribe.info("Received Webhook: deleted issue")
+                    wustReceiver.push(List(deleteIssue(issueEvent.issue)))
                   case a => scribe.error(s"Received unknown IssueEvent action: $a")
                 }
                 complete(StatusCodes.Success)
               }
-              case "issue_comment" => entity(as[IssueCommentEvent]) {comment =>
-                comment.action match {
-                  case "created" => scribe.info("Received Webhook: created Comment"); wustReceiver.push(List(GraphChanges.empty))
-                  case "edited" => wustReceiver.push(List(GraphChanges.empty))
-                  case "deleted" => wustReceiver.push(List(GraphChanges.empty))
+              case "issue_comment" => entity(as[IssueCommentEvent]) {issueCommentEvent =>
+                issueCommentEvent.action match {
+                  case "created" =>
+                    scribe.info("Received Webhook: created comment")
+                    wustReceiver.push(List(createComment(issueCommentEvent.issue, issueCommentEvent.comment)))
+                  case "edited" =>
+                    scribe.info("Received Webhook: edited comment")
+                    wustReceiver.push(List(editComment(issueCommentEvent.issue, issueCommentEvent.comment)))
+                  case "deleted" =>
+                    scribe.info("Received Webhook: deleted comment")
+                    wustReceiver.push(List(deleteComment(issueCommentEvent.issue, issueCommentEvent.comment)))
                   case a => scribe.error(s"Received unknown IssueCommentEvent: $a")
                 }
                 complete(StatusCodes.Success)
               }
-              case "ping" => scribe.info("Received ping"); complete(StatusCodes.Accepted)
-              case e => scribe.error(s"Received unknown GitHub Event Header: $e"); complete(StatusCodes.Accepted)
+              case "ping" =>
+                scribe.info("Received ping")
+                complete(StatusCodes.Accepted)
+              case e =>
+                scribe.error(s"Received unknown GitHub Event Header: $e")
+                complete(StatusCodes.Accepted)
             }
           }
         }
@@ -84,11 +107,10 @@ object WebhookServer {
     }
 
     Http().bindAndHandle(route, interface = config.host, port = config.port).onComplete {
-      case Success(binding) => {
-        val separator = "\n" + ("#" * 50)
+      case Success(binding) =>
+        val separator = "\n" + ("#" * 60)
         val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
         scribe.info(s"$separator$readyMsg$separator")
-      }
       case Failure(err) => scribe.error(s"Cannot start GitHub App Server: $err")
     }
   }
@@ -120,7 +142,23 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
   }
 }
 
-case class Buffer[T](buffer: List[T])
+case object EventCoordinator {
+  // TODO: Which data structure do I want here?
+  case class Buffer[T](buffer: List[T])
+  case class BufferItem(githubCall: GithubCall, completedByFuture: Boolean, completedByHook: Boolean)
+  case class BufferCompletion(completedByFuture: Boolean, completedByHook: Boolean)
+
+  val bufferMap: mutable.Map[GithubCall, BufferCompletion] = mutable.Map.empty[GithubCall, BufferCompletion]
+
+  def addHookCompletion(githubCall: GithubCall, issue: Issue): Unit = ???
+
+  def addFutureCompletion(githubCall: GithubCall, issue: Issue): Unit = ???
+  def addFutureCompletion(githubCall: GithubCall, comment: Comment): Unit = ???
+  def addFutureCompletion(githubCall: GithubCall, mapping: (PostId, Int)): Unit = ???
+
+  def addCompletion(githubCall: GithubCall, issue: Issue): Unit = ???
+  val mEventCallBuffer: mutable.Set[GithubCall] = mutable.Set.empty[GithubCall]
+}
 
 object WustReceiver {
   type Result[T] = Either[String, T]
@@ -134,8 +172,8 @@ object WustReceiver {
   case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
 
   def run(config: WustConfig, github: GithubClient)(implicit system: ActorSystem): Future[Result[WustReceiver]] = {
-    implicit val materializer = ActorMaterializer()
-    implicit val scheduler = Scheduler(system.dispatcher)
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
+    implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
     val location = s"ws://${config.host}:${config.port}/ws"
 
@@ -163,29 +201,48 @@ object WustReceiver {
     }
 
     println("Calling side-effect in github app")
-    val githubResult = githubApiCalls.foreach(_.foreach {
+    githubApiCalls.foreach(_.foreach {
       case c: CreateIssue =>
         mCallBuffer += c
-        github.createIssue(c)
+        github.createIssue(c).foreach {
+          case Right(issue) => EventCoordinator.addFutureCompletion(c, issue)
+          case Left(e) => scribe.error(e)
+        }
       case c: EditIssue =>
         mCallBuffer += c
-        github.editIssue(c)
+        github.editIssue(c).foreach {
+          case Right(issue) => EventCoordinator.addFutureCompletion(c, issue)
+          case Left(e) => scribe.error(e)
+        }
       case c: DeleteIssue =>
         mCallBuffer += c
-        github.deleteIssue(c)
+        github.deleteIssue(c).foreach {
+          case Right(issue) => EventCoordinator.addFutureCompletion(c, issue)
+          case Left(e) => scribe.error(e)
+        }
       case c: CreateComment =>
         mCallBuffer += c
-        github.createComment(c).foreach { comment =>
+        github.createComment(c).foreach { res =>
           val tag = Connection(c.postId, Label.parent, Constants.commentTagId)
           println(s"Sending add comment tag: $tag")
           valid(client.api.changeGraph(List(GraphChanges(addConnections = Set(tag)))), "Could not redirect comment to add tag")
+          res match {
+            case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
+            case Left(e) => scribe.error(e)
+          }
         }
       case c: EditComment =>
         mCallBuffer += c
-        github.editComment(c)
+        github.editComment(c).foreach {
+          case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
+          case Left(e) => scribe.error(e)
+        }
       case c: DeleteComment =>
         mCallBuffer += c
-        github.deleteComment(c)
+        github.deleteComment(c).foreach {
+          case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
+          case Left(e) => scribe.error(e)
+        }
 
       case _ => println("Could not match to github api call")
     })
@@ -194,9 +251,9 @@ object WustReceiver {
     valid(client.auth.register(config.user, config.password), "Cannot register")
     val res = for { // Assume that user is logged in
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-//      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
-//      graph <- valid(client.api.getGraph(Page.Root))
-//      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
+      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
+      graph <- valid(client.api.getGraph(Page.Root))
+      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
     } yield new WustReceiver(client)
 
     res.value
