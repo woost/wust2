@@ -25,7 +25,7 @@ import scala.scalajs.js
 //
 
 package object outwatchHelpers {
-  implicit val monixScheduler: Scheduler = Scheduler(executionModel = SynchronousExecution)
+  implicit val monixScheduler: Scheduler = Scheduler.trampoline(executionModel = SynchronousExecution)
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](rx:Rx[T])(implicit ctx: Ctx.Owner) {
