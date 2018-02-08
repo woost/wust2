@@ -2,3 +2,4 @@ target/
 /phantomjsdriver.log
 /*-backup.sql*
 /assets/project-root/
+proguard-sbt.txt
