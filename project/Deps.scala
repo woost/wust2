@@ -56,7 +56,7 @@ object Deps {
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
   val derive = dep("io.github.cornerman" % "derive" % "04166c6")
-  val cuid = dep("io.github.cornerman" % "scala-cuid" % "4ba036a")
+  val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "4ba036a")
   val javaTime = dep("io.github.cquiroz" %%% "scala-java-time" % "2.0.0-M12")
   val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
 
