@@ -7,6 +7,8 @@ import macroid._
 import macroid.contrib._
 import macroid.FullDsl._
 
+import wust.api
+
 object OurTweaks {
   def greeting(greeting: String)(implicit ctx: ContextWrapper) =
     TextTweaks.large +
@@ -38,7 +40,7 @@ class MainActivity extends Activity with Contexts[Activity] {
             },
           w[TextView] <~
             wire(greeting) <~
-            OurTweaks.greeting("Hello!")
+            OurTweaks.greeting("Hello!" + api.ApiEvent.GraphContent)
         ) <~ OurTweaks.orient
       }
     }
