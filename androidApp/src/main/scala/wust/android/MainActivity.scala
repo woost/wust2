@@ -1,4 +1,4 @@
-package wust.android
+package space.woost
 
 import android.app.Activity
 import android.os.Bundle
