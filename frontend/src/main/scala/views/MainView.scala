@@ -13,7 +13,7 @@ import outwatch.dom.dsl.styles.extra._
 
 object MainView {
 
-  def upButton(state: GlobalState) = {
+  def upButton(state: GlobalState): VNode = {
     //TODO: outwatch child <-- Option[VNode]
     span(
       children <-- state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
@@ -22,7 +22,7 @@ object MainView {
     )
   }
 
-  def showPage(state: GlobalState) = {
+  def showPage(state: GlobalState): VNode = {
     div(
       children <-- state.pageParentPosts.map { posts => posts.toSeq.map { post =>
           span(
@@ -161,7 +161,7 @@ object MainView {
   //  inviteLink
   //}
 
-  def viewSelection(state:GlobalState, allViews: Seq[View]) = {
+  def viewSelection(state:GlobalState, allViews: Seq[View]): VNode = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
     val viewHandler = Handler.create[View]().unsafeRunSync()
 
@@ -317,7 +317,7 @@ object MainView {
     )
   }
 
-   def topBar(state: GlobalState, allViews: Seq[View]) = {
+   def topBar(state: GlobalState, allViews: Seq[View]): VNode = {
 //     val lockToGroup = state.viewConfig.now.lockToGroup
 //     if (lockToGroup) {
 //       div(
@@ -377,7 +377,7 @@ object MainView {
   //   )
   // }
   //
-  def sidebar(state:GlobalState) = {
+  def sidebar(state: GlobalState): VNode = {
     div(
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
       padding := "15px",
@@ -393,10 +393,12 @@ object MainView {
       child <-- RestructuringTaskGenerator(state),
       br(),
       channels(state),
+      br(),
+      settingsButton(state)
     )
   }
 
-  val title = {
+  val title: VNode = {
       div(
         "Woost",
         fontWeight.bold,
@@ -405,24 +407,28 @@ object MainView {
       )
   }
 
-  def channels(state: GlobalState) = {
+  def settingsButton(state: GlobalState): VNode = {
+    button("Settings", width := "100%", onClick(views.UserSettingsView) --> state.view),
+  }
+
+  def channels(state: GlobalState): VNode = {
       div(
         color := "#C4C4CA",
         "#channels"
       )
   }
 
-  def user(state: GlobalState) = {
+  def user(state: GlobalState): VNode = {
     div( "User: ", child <-- state.currentUser.map(u => s"${u.id}, ${u.name}" ))
   }
 
-  def dataImport(state:GlobalState) = {
+  def dataImport(state:GlobalState): VNode = {
     val urlImporter = Handler.create[String].unsafeRunSync()
-    def importGithubUrl(url: String) = {
+    def importGithubUrl(url: String): Unit = {
       DevPrintln(s"call client api importGithubUrl $url")
       Client.api.importGithubUrl(url).foreach(res => DevPrintln("Api call succeeded: " + res.toString))
     }
-    def importGitterUrl(url: String) = {
+    def importGitterUrl(url: String): Unit = {
       DevPrintln(s"call client api importGitterUrl $url")
       Client.api.importGitterUrl(url).foreach(res => DevPrintln("Api call succeeded: " + res.toString))
     }
@@ -433,13 +439,13 @@ object MainView {
       fontSize := "20px",
       marginBottom := "10px",
       input(tpe := "text", width:= "100%", onInput.value --> urlImporter),
-      button("GitHub", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGithubUrl(url))),
-      button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url:String) => importGitterUrl(url))),
+      button("GitHub", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGithubUrl(url))),
+      button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGitterUrl(url))),
     )
   }
 
 
-  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner) = {
+  def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner): VNode = {
     div(
       height := "100%",
       div(

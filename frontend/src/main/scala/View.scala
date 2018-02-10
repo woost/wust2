@@ -22,6 +22,7 @@ object View {
       //    BoardView ::
       //    MyBoardView ::
          ArticleView ::
+      UserSettingsView ::
       //    CodeView ::
       //    ListView ::
       new GraphView() ::

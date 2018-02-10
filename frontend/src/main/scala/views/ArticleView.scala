@@ -17,13 +17,13 @@ object ArticleView extends View {
   override val key = "article"
   override val displayName = "Article"
 
-  override def apply(state: GlobalState) = {
+  override def apply(state: GlobalState): VNode = {
     import state._
 
     component(displayGraphWithParents, page, pageStyle)
   }
 
-  def component(dgo:Observable[DisplayGraph], graphSelection:Sink[Page], pageStyle: Observable[PageStyle]) = {
+  def component(dgo:Observable[DisplayGraph], graphSelection:Sink[Page], pageStyle: Observable[PageStyle]): VNode = {
     div(
       height := "100%",
       backgroundColor <-- pageStyle.map(_.bgColor),

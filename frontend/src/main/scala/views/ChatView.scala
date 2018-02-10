@@ -37,7 +37,7 @@ object ChatView extends View {
                  page: Handler[Page],
                  pageStyle: Observable[PageStyle],
                  graph: Observable[Graph]
-               ) = {
+               ): VNode = {
     div(
       // height := "100%",
       backgroundColor <-- pageStyle.map(_.bgColor),
@@ -65,7 +65,7 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(currentUser: Observable[User], page: Sink[Page], graph: Observable[Graph]) = {
+  def chatHistory(currentUser: Observable[User], page: Sink[Page], graph: Observable[Graph]): VNode = {
     div(
       height := "100%",
       overflow.auto,
@@ -76,7 +76,7 @@ object ChatView extends View {
     )
   }
 
-  def chatMessage(currentUser: User, post: Post, page: Sink[Page], graph: Graph) = {
+  def chatMessage(currentUser: User, post: Post, page: Sink[Page], graph: Graph): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
@@ -122,7 +122,7 @@ object ChatView extends View {
     )
   }
 
-  def inputField(newPostSink: Sink[String]) = {
+  def inputField(newPostSink: Sink[String]): VNode = {
     textAreaWithEnter(newPostSink)(
       //TODO: add resize:none to inner textarea. Requires outwatch vnode.apply with path
       Placeholders.newPost,
