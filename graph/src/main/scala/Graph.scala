@@ -21,10 +21,43 @@ sealed trait User {
 }
 object User {
   sealed trait Persisted extends User
-  @derive((id, revision) => Equality)
-  case class Real(id: UserId, name: String, revision: Int) extends Persisted
-  @derive((id, revision) => Equality)
-  case class Implicit(id: UserId, name: String, revision: Int) extends Persisted
+//  @derive((id, revision) => Equality)
+  case class Real(id: UserId, name: String, revision: Int) extends Persisted {
+    def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
+
+    override def equals(other: Any): Boolean = other match {
+      case that: Real =>
+        (that canEqual this) &&
+          id == that.id &&
+          revision == that.revision
+      case _ => false
+    }
+
+    override def hashCode(): Int = {
+      val state = Seq(id, revision)
+      state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+    }
+  }
+  
+//  @derive((id, revision) => Equality)
+  case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
+    def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
+
+    override def equals(other: Any): Boolean = other match {
+      case that: Real =>
+        (that canEqual this) &&
+          id == that.id &&
+          revision == that.revision
+      case _ => false
+    }
+
+    override def hashCode(): Int = {
+      val state = Seq(id, revision)
+      state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+    }
+
+  }
+
   case class Assumed(id: UserId) extends User {
     def name = s"anon-$id"
   }
