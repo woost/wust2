@@ -10,6 +10,7 @@ import wust.frontend.views.graphview.Constants
 import wust.graph.{Post, _}
 import wust.ids.{Label, PostId}
 import wust.util.time.time
+import Math._
 
 import scala.Double.NaN
 import scala.collection.mutable.ArrayBuffer
@@ -36,11 +37,12 @@ class StaticData(
                   val nodeParentCount: Array[Int],
                   val bgColor: Array[String],
                   val border: Array[String],
-                  var reservedArea: Double,
+                  val nodeReservedArea:Array[Double], //TODO: rename to reservedArea
+                  var reservedArea: Double, //TODO: rename to totalReservedArea
 
                   // Edges
-                  val source: Array[Int],
-                  val target: Array[Int],
+                  val source: Array[Int], //TODO: Rename to edgeSource
+                  val target: Array[Int], //TODO: Rename to edgeTarget
 
                   // Euler
                   val containmentChild: Array[Int],
@@ -50,6 +52,8 @@ class StaticData(
                   var eulerSetParent: Array[Int],
                   var eulerSetChildren: Array[Array[Int]],
                   var eulerSetAllNodes: Array[Array[Int]],
+                  var eulerSetArea: Array[Double],
+                  var eulerSetRadius: Array[Double],
                   var eulerSetColor: Array[String],
               ) {
   def this(nodeCount: Int, edgeCount: Int, containmentCount:Int) = this(
@@ -70,6 +74,7 @@ class StaticData(
     nodeParentCount = new Array(nodeCount),
     bgColor = new Array(nodeCount),
     border = new Array(nodeCount),
+    nodeReservedArea = new Array(nodeCount),
     reservedArea = NaN,
 
     source = new Array(edgeCount),
@@ -77,26 +82,22 @@ class StaticData(
 
     containmentChild = new Array(containmentCount),
     containmentParent = new Array(containmentCount),
-    containmentTest = new AdjacencyMatrix(nodeCount), //TODO: Quadratic Space complexity!
+    containmentTest = new AdjacencyMatrix(nodeCount),
     eulerSetCount = -1,
     eulerSetParent = null,
     eulerSetChildren = null,
     eulerSetAllNodes = null,
+    eulerSetArea = null,
+    eulerSetRadius = null,
     eulerSetColor = null,
   )
 }
 
 class AdjacencyMatrix(nodeCount: Int) {
-  private val matrix = new Array[Boolean](nodeCount * nodeCount)
+  private val data = new mutable.BitSet(nodeCount * nodeCount) //TODO: Avoid Quadratic Space complexity when over threshold!
   @inline private def index(source:Int, target:Int): Int = source*nodeCount + target
-
-  @inline def update(source:Int, target:Int, value:Boolean):Unit = {
-    matrix(index(source, target)) = value
-  }
-
-  @inline def apply(source:Int, target:Int):Boolean = {
-    matrix(index(source, target))
-  }
+  @inline def set(source:Int, target:Int):Unit = data.add(index(source, target))
+  @inline def apply(source:Int, target:Int):Boolean = data(index(source, target))
 }
 
 
@@ -154,9 +155,9 @@ object StaticData {
 
         staticData.nodeParentCount(i) = graph.parents(post.id).size //TODO: faster?
 
-        val area = sq(staticData.collisionRadius(i) * 2)
+        val area = sq(staticData.collisionRadius(i) * 2) // bounding square of bounding circle
+        staticData.nodeReservedArea(i) = area
         reservedArea += area
-
       }
       staticData.maxRadius = maxRadius
       staticData.reservedArea = reservedArea
@@ -176,7 +177,7 @@ object StaticData {
         val parent = postIdToIndex(containments(i).targetId)
         staticData.containmentChild(i) = child
         staticData.containmentParent(i) = parent
-        staticData.containmentTest(child, parent) = true
+        staticData.containmentTest.set(child, parent)
         i += 1
       }
 
@@ -202,11 +203,19 @@ object StaticData {
       staticData.eulerSetAllNodes = new Array[Array[Int]](eulerSetCount)
       staticData.eulerSetChildren = new Array[Array[Int]](eulerSetCount)
       staticData.eulerSetParent = new Array[Int](eulerSetCount)
+      staticData.eulerSetArea = new Array[Double](eulerSetCount)
+      staticData.eulerSetRadius = new Array[Double](eulerSetCount)
       staticData.eulerSetColor = new Array[String](eulerSetCount)
       while(i < eulerSetCount) {
         staticData.eulerSetChildren(i) = eulerSets(i).children.map(postIdToIndex)
         staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes.map(postIdToIndex)
         staticData.eulerSetParent(i) = postIdToIndex(eulerSets(i).parent)
+        val aribtraryFactor = 1.3
+        staticData.eulerSetArea(i) = eulerSets(i).allNodes.map{ pid =>
+          val pi = postIdToIndex(pid)
+          staticData.nodeReservedArea(pi)
+        }.sum * aribtraryFactor
+        staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i)/PI) // a = pi*r^2 solved by r = sqrt(a/pi)
 
         val color = baseColor(eulerSets(i).parent)
         color.opacity = 0.8

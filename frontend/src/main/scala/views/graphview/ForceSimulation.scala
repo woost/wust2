@@ -114,8 +114,8 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
     }
 
     def zoomed(): Unit = {
-//      println(log("zoomed"))
       transform = d3.event.transform
+     // println(log(s"zoomed: ${transform.k}"))
       canvasContext.setTransform(transform.k, 0, 0, transform.k, transform.x, transform.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
       postContainer.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
       drawCanvas(simData, staticData, canvasContext, planeDimension)
@@ -175,7 +175,9 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
       simData.x(dragging) = x
       simData.y(dragging) = y
 
-      ForceSimulationForces.clusterPolygons(simData, staticData)
+
+      ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
+      ForceSimulationForces.eulerSetGeometricCenter(simData, staticData)
       drawCanvas(simData,staticData,canvasContext,planeDimension)
 
       hit(dragging).foreach{ target =>
@@ -332,14 +334,14 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
   }
 
   def draw(): Unit = {
-    ForceSimulationForces.clusterPolygons(simData,staticData) // TODO: separate display polygon from collision polygon?
+    ForceSimulationForces.calculateEulerSetPolygons(simData,staticData) // TODO: separate display polygon from collision polygon?
     applyPostPositions(simData,staticData,postSelection)
     drawCanvas(simData, staticData, canvasContext, planeDimension)
   }
 }
 
 object ForceSimulation {
-  private val debugDrawEnabled = true
+  private val debugDrawEnabled = false
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
   def updateDomPosts(
@@ -452,10 +454,15 @@ object ForceSimulation {
 
 //    dom.console.log(staticData.asInstanceOf[js.Any])
     initQuadtree(simData, staticData)
-    clusterPolygons(simData,staticData)
+    eulerSetGeometricCenter(simData, staticData)
+    calculateEulerSetPolygons(simData,staticData)
+
     rectBound(simData, staticData, planeDimension, strength = 0.1)
     keepDistance(simData, staticData, distance = Constants.nodePadding, strength = 0.2)
-//    clustering(simData, staticData)
+    edgeLength(simData, staticData)
+
+    eulerSetClustering(simData, staticData)
+//    pushOutOfWrongEulerSet(simData,staticData)
   }
 
   def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Post]): Unit = {
@@ -470,7 +477,7 @@ object ForceSimulation {
   def drawCanvas(simData: SimulationData, staticData: StaticData, canvasContext: CanvasRenderingContext2D, planeDimension: PlaneDimension): Unit = {
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
-    val clusterCount = simData.clusterPolygons.length
+    val eulerSetCount = simData.eulerSetPolygons.length
     val nodeCount = simData.n
     val fullCircle = 2*Math.PI
 
@@ -495,11 +502,6 @@ object ForceSimulation {
     canvasContext.stroke()
     canvasContext.closePath()
 
-    i = 0
-    while(i < clusterCount) {
-      i += 1
-    }
-
     // for every node
 //    i = 0
 //    canvasContext.lineWidth = 1
@@ -515,11 +517,11 @@ object ForceSimulation {
 //     for every containment cluster
     i = 0
     val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
-    while (i < clusterCount) {
+    while (i < eulerSetCount) {
       val cluster = staticData.eulerSetAllNodes(i)
       canvasContext.fillStyle = staticData.eulerSetColor(i)
       canvasContext.beginPath()
-      catmullRom(simData.clusterPolygons(i))
+      catmullRom(simData.eulerSetPolygons(i))
       canvasContext.fill()
       i += 1
     }
@@ -609,7 +611,7 @@ object ForceSimulation {
 
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
-    val clusterCount = simData.clusterPolygons.length
+    val eulerSetCount = simData.eulerSetPolygons.length
 
     val nodeCount = simData.n
 
@@ -633,13 +635,6 @@ object ForceSimulation {
       canvasContext.arc(x, y, staticData.collisionRadius(i), startAngle = 0, endAngle = fullCircle)
       canvasContext.stroke()
       canvasContext.closePath()
-
-      // containment radius
-//      canvasContext.strokeStyle = "rgba(0,0,0,0.2)"
-//      canvasContext.beginPath()
-//      canvasContext.arc(x, y, staticData.containmentRadius(i), startAngle = 0, endAngle = fullCircle)
-//      canvasContext.stroke()
-//      canvasContext.closePath()
 
       i += 1
     }
@@ -666,12 +661,29 @@ object ForceSimulation {
 //     for every containment cluster
     i = 0
     val polyLine = d3.line().curve(d3.curveLinearClosed).context(canvasContext)
-    canvasContext.strokeStyle = "rgba(255,255,255,0.5)"
-    canvasContext.lineWidth = 5
-    while (i < clusterCount) {
+    while (i < eulerSetCount) {
+      canvasContext.strokeStyle = "rgba(255,255,255,0.5)"
+      canvasContext.lineWidth = 5
       canvasContext.beginPath()
-      polyLine(simData.clusterPolygons(i))
+      polyLine(simData.eulerSetPolygons(i))
       canvasContext.stroke()
+
+      // eulerSet geometricCenter
+      canvasContext.strokeStyle = "#000"
+      canvasContext.lineWidth = 3
+      canvasContext.beginPath()
+      canvasContext.arc(simData.eulerSetGeometricCenterX(i), simData.eulerSetGeometricCenterY(i), 10, startAngle = 0, endAngle = fullCircle)
+      canvasContext.stroke()
+      canvasContext.closePath()
+
+      // eulerSet radius
+      canvasContext.strokeStyle = staticData.eulerSetColor(i)
+      canvasContext.lineWidth = 3
+      canvasContext.beginPath()
+      canvasContext.arc(simData.eulerSetGeometricCenterX(i), simData.eulerSetGeometricCenterY(i), staticData.eulerSetRadius(i), startAngle = 0, endAngle = fullCircle)
+      canvasContext.stroke()
+      canvasContext.closePath()
+
       i += 1
     }
 

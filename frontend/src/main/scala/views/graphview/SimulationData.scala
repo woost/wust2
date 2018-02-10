@@ -17,7 +17,13 @@ class SimulationData(
                       val vx: Array[Double],
                       val vy: Array[Double],
                       var quadtree: Quadtree[Int],
-                      var clusterPolygons: Array[js.Array[js.Tuple2[Double, Double]]]
+                      var eulerSetPolygons: Array[js.Array[js.Tuple2[Double, Double]]], //TODO: rename to eulerSetPolygon
+                      var eulerSetGeometricCenterX : Array[Double],
+                      var eulerSetGeometricCenterY : Array[Double],
+                      var eulerSetPolygonMinX: Array[Double],
+                      var eulerSetPolygonMinY: Array[Double],
+                      var eulerSetPolygonMaxX: Array[Double],
+                      var eulerSetPolygonMaxY: Array[Double]
                     ) {
   def this(n: Int) = this(
     n = n,
@@ -26,7 +32,13 @@ class SimulationData(
     vx = Array.fill(n)(0),
     vy = Array.fill(n)(0),
     quadtree = d3.quadtree(),
-    clusterPolygons = Array.empty
+    eulerSetPolygons = Array.empty,
+    eulerSetGeometricCenterX = Array.empty,
+    eulerSetGeometricCenterY = Array.empty,
+    eulerSetPolygonMinX = Array.empty,
+    eulerSetPolygonMinY = Array.empty,
+    eulerSetPolygonMaxX = Array.empty,
+    eulerSetPolygonMaxY = Array.empty
   )
 
   override def clone(): SimulationData = {
@@ -42,7 +54,13 @@ class SimulationData(
       vx = vx.clone(),
       vy = vy.clone(),
       quadtree = quadtree.copy,
-      clusterPolygons = clusterPolygons.map(_.map(t => js.Tuple2(t._1, t._2)))
+      eulerSetPolygons = eulerSetPolygons.map(_.map(t => js.Tuple2(t._1, t._2))),
+      eulerSetGeometricCenterX = eulerSetGeometricCenterX.clone(),
+      eulerSetGeometricCenterY = eulerSetGeometricCenterY.clone(),
+      eulerSetPolygonMinX = eulerSetPolygonMinX.clone(),
+      eulerSetPolygonMinY = eulerSetPolygonMinY.clone(),
+      eulerSetPolygonMaxX = eulerSetPolygonMaxX.clone(),
+      eulerSetPolygonMaxY = eulerSetPolygonMaxY.clone()
     )
   }
 }
