@@ -1,1 +1,0 @@
-ALTER TABLE "user" ADD COLUMN revision integer NOT NULL DEFAULT 0;
