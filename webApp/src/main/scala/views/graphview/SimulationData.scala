@@ -17,7 +17,7 @@ class SimulationData(
                       val vx: Array[Double],
                       val vy: Array[Double],
                       var quadtree: Quadtree[Int],
-                      var eulerSetPolygons: Array[js.Array[js.Tuple2[Double, Double]]], //TODO: rename to eulerSetPolygon
+                      var eulerSetPolygons: Array[js.Array[js.Tuple3[Double, Double, Int]]], //TODO: rename to eulerSetPolygon
                       var eulerSetGeometricCenterX : Array[Double],
                       var eulerSetGeometricCenterY : Array[Double],
                       var eulerSetPolygonMinX: Array[Double],
@@ -54,7 +54,7 @@ class SimulationData(
       vx = vx.clone(),
       vy = vy.clone(),
       quadtree = quadtree.copy,
-      eulerSetPolygons = eulerSetPolygons.map(_.map(t => js.Tuple2(t._1, t._2))),
+      eulerSetPolygons = eulerSetPolygons.map(_.map(t => js.Tuple3(t._1, t._2, t._3))),
       eulerSetGeometricCenterX = eulerSetGeometricCenterX.clone(),
       eulerSetGeometricCenterY = eulerSetGeometricCenterY.clone(),
       eulerSetPolygonMinX = eulerSetPolygonMinX.clone(),

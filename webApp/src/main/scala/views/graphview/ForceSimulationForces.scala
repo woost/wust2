@@ -86,7 +86,7 @@ object ForceSimulationForces {
   def calculateEulerSetPolygons(simData:SimulationData, staticData: StaticData): Unit = {
     val eulerSetCount = staticData.eulerSetCount
     if(simData.eulerSetPolygons.length != eulerSetCount) {
-      simData.eulerSetPolygons = new Array[js.Array[js.Tuple2[Double, Double]]](eulerSetCount)
+      simData.eulerSetPolygons = new Array[js.Array[js.Tuple3[Double, Double, Int]]](eulerSetCount)
       simData.eulerSetPolygonMinX = new Array[Double](eulerSetCount)
       simData.eulerSetPolygonMinY = new Array[Double](eulerSetCount)
       simData.eulerSetPolygonMaxX = new Array[Double](eulerSetCount)
@@ -153,7 +153,7 @@ object ForceSimulationForces {
           LineIntersection(corner2, _, _) <- tangent.intersect(postLine)
         } yield Line(corner1, corner2)).get
 
-        Array(js.Tuple2(edge.x1, edge.y1), js.Tuple2(edge.x2, edge.y2))
+        Array(js.Tuple3(edge.x1, edge.y1, i), js.Tuple3(edge.x2, edge.y2, i))
       }.toJSArray
 
       simData.eulerSetPolygons(i) = polygon

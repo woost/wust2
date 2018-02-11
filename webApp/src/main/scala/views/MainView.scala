@@ -457,9 +457,8 @@ object MainView {
     div(
       height := "100%",
       div(
+//              height := "100%",
         id := "pagegrid",
-//      height := "100%",
-
         sidebar(state),
         ChatView(state),
         new GraphView().apply(state)

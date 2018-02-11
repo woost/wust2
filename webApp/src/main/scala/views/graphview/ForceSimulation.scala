@@ -3,26 +3,23 @@ package views.graphview
 import d3v4._
 import org.scalajs.dom
 import org.scalajs.dom.html.Element
-import org.scalajs.dom.{CanvasRenderingContext2D, html}
+import org.scalajs.dom.{CanvasRenderingContext2D, console, html}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
 import vectory.Vec2
-import views.graphview.VisualizationType.{Containment, Edge, Tag}
+import views.graphview.VisualizationType.{Containment, Edge}
 import wust.webApp.Color.baseColor
+import wust.webApp.GlobalState
 import wust.webApp.views.graphview.Constants
-import wust.webApp.{ColorPost, GlobalState}
 import wust.graph._
 import wust.ids.{Label, PostId}
 import wust.util.outwatchHelpers._
 import wust.util.time.time
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.{breakOut, mutable}
 import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.util.Try
 
 
 
@@ -516,13 +513,67 @@ object ForceSimulation {
 
 //     for every containment cluster
     i = 0
-    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
+//    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < eulerSetCount) {
-      val cluster = staticData.eulerSetAllNodes(i)
+      val polygon = simData.eulerSetPolygons(i)
+      assert(polygon.length % 2 == 0)
+      val midpoints:Array[Vec2] = polygon.toSeq.sliding(2,2).map{case Seq(a,b) => (Vec2(a._1, a._2) + Vec2(b._1, b._2)) * 0.5}.toArray
+      var j = 0
+      val n = midpoints.length
+      val start = midpoints((j+n-1)%n)
       canvasContext.fillStyle = staticData.eulerSetColor(i)
       canvasContext.beginPath()
-      catmullRom(simData.eulerSetPolygons(i))
+      canvasContext.moveTo(start.x, start.y)
+      while(j < n) {
+        val start = midpoints((j+n-1)%n)
+        val startNode = polygon(((j-1+n)%n)*2)._3
+        val end = midpoints(j)
+        val endNode = polygon((j)*2)._3
+
+        val p1 = polygon((((j-1+n) % n)*2+1) % polygon.length)
+        val p2 = polygon(((j)*2) % polygon.length)
+        val cp1 = start + (Vec2(p1._1, p1._2)-start).normalized*staticData.radius(startNode)*2
+        val cp2 = end + (Vec2(p2._1, p2._2) - end).normalized*staticData.radius(endNode)*2
+//        canvasContext.lineTo(midpoints(j).x, midpoints(j).y)
+        canvasContext.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y)
+
+//        // start radius
+//        canvasContext.lineWidth = 1
+//        canvasContext.fillStyle = "rgba(182,96,242,4.0)"
+//        canvasContext.beginPath()
+//        canvasContext.arc(start.x, start.y, staticData.radius(startNode), startAngle = 0, endAngle = fullCircle)
+//        canvasContext.fill()
+//        canvasContext.closePath()
+//
+//        // end radius
+//        canvasContext.lineWidth = 1
+//        canvasContext.fillStyle = "rgba(182,242,96,4.0)"
+//        canvasContext.beginPath()
+//        canvasContext.arc(end.x, end.y, staticData.radius(endNode), startAngle = 0, endAngle = fullCircle)
+//        canvasContext.fill()
+//        canvasContext.closePath()
+//
+//        // cp1
+//        canvasContext.lineWidth = 1
+//        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
+//        canvasContext.beginPath()
+//        canvasContext.arc(cp1.x, cp1.y, 5, startAngle = 0, endAngle = fullCircle)
+//        canvasContext.fill()
+//        canvasContext.closePath()
+////
+////        // cp2
+//        canvasContext.lineWidth = 1
+//        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
+//        canvasContext.beginPath()
+//        canvasContext.arc(cp2.x, cp2.y, 10, startAngle = 0, endAngle = fullCircle)
+//        canvasContext.fill()
+//        canvasContext.closePath()
+
+        j += 1
+      }
       canvasContext.fill()
+      canvasContext.closePath()
+      //      catmullRom(simData.eulerSetPolygons(i))
       i += 1
     }
 
@@ -665,7 +716,7 @@ object ForceSimulation {
       canvasContext.strokeStyle = "rgba(255,255,255,0.5)"
       canvasContext.lineWidth = 5
       canvasContext.beginPath()
-      polyLine(simData.eulerSetPolygons(i))
+      polyLine(simData.eulerSetPolygons(i).asInstanceOf[js.Array[js.Tuple2[Double,Double]]])
       canvasContext.stroke()
 
       // eulerSet geometricCenter
