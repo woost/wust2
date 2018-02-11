@@ -48,7 +48,7 @@ lazy val commonSettings = Seq(
   // watch managed library dependencies https://github.com/sbt/sbt/issues/2834
   watchSources ++= (managedClasspath in Compile).map(_.files).value,
 
-  scalacOptions ++=
+  scalacOptions in (Compile, console) ++=
       // https://www.threatstack.com/blog/useful-scalac-options-for-better-scala-development-part-1/
       // https://tpolecat.github.io/2017/04/25/scalac-flags.html
       "-encoding" :: "UTF-8" ::
