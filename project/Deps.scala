@@ -61,7 +61,12 @@ object Deps {
 
   // rpc
   val mycelium = dep("com.github.cornerman" % "mycelium" % "7bd8800")
-  val sloth = dep("io.github.cornerman" % "sloth" % "6e5ec10")
+  val sloth = dep("com.github.cornerman" % "sloth" % "6e5ec10")
+  val covenant = new {
+    private val version = "0be4582"
+    val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
+    val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
+  }
 
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")

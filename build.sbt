@@ -131,8 +131,7 @@ lazy val sdk = crossProject
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
-      Deps.mycelium.value ::
-      Deps.sloth.value ::
+      Deps.covenant.ws.value ::
       Deps.boopickle.value ::
       Deps.monix.value ::
       Nil
@@ -200,8 +199,7 @@ lazy val backend = project
   .settings(Defaults.itSettings)
   .settings(
     libraryDependencies ++=
-      Deps.mycelium.value ::
-      Deps.sloth.value ::
+      Deps.covenant.ws.value ::
       Deps.boopickle.value ::
       Deps.cats.kittens.value ::
       Deps.jwt.value ::

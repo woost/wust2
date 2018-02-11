@@ -10,9 +10,7 @@ import wust.ids._
 import wust.backend.auth._
 import wust.backend.config.Config
 import wust.db.Db
-import sloth.core._
-import sloth.mycelium._
-import sloth.server.{Server => SlothServer, _}
+import covenant.ws._
 import mycelium.server._
 import chameleon.ext.boopickle._
 import wust.util.{ Pipe, RichFuture }
@@ -34,9 +32,8 @@ object Server {
     implicit val materializer = ActorMaterializer()
     implicit val scheduler = Scheduler(system.dispatcher)
 
-    val wsServer = websocketServer(config)
-    val route = (path("ws") & get) {
-      handleWebSocketMessages(wsServer.flow())
+    val route = path("ws") {
+      websocketRoute(config)
     } ~ (path("health") & get) {
       complete("ok")
     }
@@ -51,19 +48,20 @@ object Server {
     }
   }
 
-  private def websocketServer(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
+  private def websocketRoute(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
     import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = new GuardDsl(jwt, db)
 
-    val server = SlothServer[ByteBuffer, ApiFunction]
-    val api = server.route[Api[ApiFunction]](new ApiImpl(guardDsl, db)) orElse
-              server.route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
+    val router = Router[ByteBuffer, ApiFunction]
+      .route[Api[ApiFunction]](new ApiImpl(guardDsl, db))
+      .route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
 
-    val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, api)
+    val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, router)
     val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
-    WebsocketServer(serverConfig, requestHandler)
+
+    router.asWsRoute(serverConfig, requestHandler)
   }
 }

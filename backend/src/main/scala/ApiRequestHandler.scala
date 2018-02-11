@@ -24,7 +24,7 @@ import scala.util.{ Success, Failure }
 import scala.util.control.NonFatal
 
 //TODO: filter auth in args and events from log
-class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, api: Router[ByteBuffer, ApiFunction])(implicit scheduler: Scheduler) extends FullRequestHandler[ByteBuffer, ApiEvent, ApiError, State] {
+class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateInterpreter, router: Router[ByteBuffer, ApiFunction])(implicit scheduler: Scheduler) extends FullRequestHandler[ByteBuffer, ApiEvent, ApiError, State] {
   import stateInterpreter._
 
   def initialState = Future.successful(State.initial)
@@ -44,9 +44,9 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
     val watch = StopWatch.started
 
     val state = validateState(originalState)
-    api(Request(path, payload)) match {
+    router(Request(path, payload)) match {
 
-      case ServerResult.Success(arguments, apiFunction) =>
+      case RouterResult.Success(arguments, apiFunction) =>
         val apiResponse = apiFunction.run(state)
         val newState = apiResponse.state
 
@@ -68,7 +68,7 @@ class ApiRequestHandler(distributor: EventDistributor, stateInterpreter: StateIn
 
         Response(newState, returnValue)
 
-      case ServerResult.Failure(arguments, slothError) =>
+      case RouterResult.Failure(arguments, slothError) =>
         val error = ApiError.ServerError(slothError.toString)
         scribe.warn(s"${clientDesc(client)} -->[failure] ${requestLogLine(path, arguments, error)}. Took ${watch.readHuman}.")
         Response(state, Future.successful(ReturnValue(Left(error), Nil)))

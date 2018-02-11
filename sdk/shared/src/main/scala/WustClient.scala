@@ -9,8 +9,8 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import boopickle.Default._
+import covenant.ws._
 import sloth.core._
-import sloth.mycelium._
 import sloth.client._
 import mycelium.client._
 import chameleon.ext.boopickle._
@@ -22,14 +22,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.{Success,Failure}
 
-case class ApiException(error: ApiError) extends Exception(s"Api returned error: $error")
-object ApiException {
-  implicit def clientFailureConvert = new ClientFailureConvert[ApiException] {
-    def convert(failure: ClientFailure): ApiException = ApiException(ApiError.ClientError(failure.toString))
-  }
-}
-
-class WustClient(client: Client[ByteBuffer, Future, ApiException]) {
+class WustClient(client: Client[ByteBuffer, Future, ClientException]) {
   val api = client.wire[Api[Future]]
   val auth = client.wire[AuthApi[Future]]
 }
@@ -59,8 +52,7 @@ class WustIncidentHandler(implicit ec: ExecutionContext) extends IncidentHandler
 
 class WustClientFactory private(ws: WebsocketClient[ByteBuffer, ApiEvent, ApiError])(implicit ec: ExecutionContext) {
   def sendWith(sendType: SendType, requestTimeout: FiniteDuration): WustClient = {
-    val transport = ws.toTransport(sendType, requestTimeout, onError = err => new ApiException(err))
-    val client = Client[ByteBuffer, Future, ApiException](transport, new ClientLogHandler)
+    val client = WsClient[ByteBuffer](ws, sendType, requestTimeout, new ClientLogHandler)
     new WustClient(client)
   }
 }
