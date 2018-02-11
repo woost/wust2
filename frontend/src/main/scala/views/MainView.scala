@@ -5,6 +5,7 @@ import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api._
 import wust.frontend.Color._
 import wust.frontend.views.graphview.GraphView
 import wust.util.Analytics
@@ -424,20 +425,20 @@ object MainView {
 
   def dataImport(state:GlobalState): VNode = {
     val urlImporter = Handler.create[String].unsafeRunSync()
-    def importGithubUrl(url: String): Unit = {
-      DevPrintln(s"call client api importGithubUrl $url")
-      Client.api.importGithubUrl(url).foreach(res => DevPrintln("Api call succeeded: " + res.toString))
-    }
-    def importGitterUrl(url: String): Unit = {
-      DevPrintln(s"call client api importGitterUrl $url")
-      Client.api.importGitterUrl(url).foreach(res => DevPrintln("Api call succeeded: " + res.toString))
+    def importGithubUrl(url: String): Unit = Client.api.importGithubUrl(url)
+    def importGitterUrl(url: String): Unit = Client.api.importGitterUrl(url)
+    def connectToGithub(): Unit = state.inner.currentAuth.now match {
+      case Authentication.Verified(_, _, token) => Client.githubApi.connectUser(token)
+      case _ => scribe.info("Cannot connect to github: auth is not verified")
     }
 
     div(
-      "Import",
       fontWeight.bold,
       fontSize := "20px",
       marginBottom := "10px",
+      "Sync",
+      button("Connect to GitHub", width := "100%", onClick --> sideEffect(connectToGithub())),
+      "Import",
       input(tpe := "text", width:= "100%", onInput.value --> urlImporter),
       button("GitHub", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGithubUrl(url))),
       button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGitterUrl(url))),

@@ -12,6 +12,7 @@ import wust.graph._
 import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.{HttpOriginRange, HttpOrigin}
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
 import cats.implicits._
@@ -58,7 +59,7 @@ object Constants {
   val wustRepo = "bug"
 }
 
-object WebhookServer {
+object AppServer {
   import akka.http.scaladsl.server.RouteResult._
   import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
@@ -71,7 +72,7 @@ object WebhookServer {
   private def editComment(issue: Issue, comment: Comment) = GraphChanges.empty
   private def deleteComment(issue: Issue, comment: Comment) = GraphChanges.empty
 
-  def run(config: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
+  def run(config: ServerConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
@@ -84,9 +85,10 @@ object WebhookServer {
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
     val route = {
       pathPrefix("api") {
-        apiRouter.asHttpRoute
-      }
-      path(config.path) {
+        CorsSupport.check(HttpOriginRange(config.allowedOrigins.map(HttpOrigin(_)) :_*)) {
+          apiRouter.asHttpRoute
+        }
+      } ~ path(config.webhookPath) {
         post {
           decodeRequest {
             headerValueByName("X-GitHub-Event") {
@@ -275,13 +277,11 @@ object WustReceiver {
       case _ => println("Could not match to github api call")
     })
 
-    import cats.implicits._
     valid(client.auth.register(config.user, config.password), "Cannot register")
     val res = for { // Assume that user is logged in
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
-      graph <- valid(client.api.getGraph(Page.Root))
-      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
+      // changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
+      // _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
     } yield new WustReceiver(client)
 
     res.value
@@ -515,10 +515,10 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 }
 
 object GithubClient {
-  def apply(accessToken: Option[String])(implicit ec: ExecutionContext, system: ActorSystem): GithubClient = {
+  def apply(config: GithubConfig)(implicit ec: ExecutionContext, system: ActorSystem): GithubClient = {
 
     import github4s.jvm.Implicits._
-    val user = Github(accessToken).users.get("GRBurst")
+    val user = Github(config.accessToken).users.get("GRBurst")
     val userF = user.execFuture[HttpResponse[String]]()
 
     val res = userF.map {
@@ -526,7 +526,7 @@ object GithubClient {
       case Left(e) => e.getMessage
     }
 
-    new GithubClient(Github(accessToken))
+    new GithubClient(Github(config.accessToken))
   }
 }
 
@@ -537,10 +537,9 @@ object App extends scala.App {
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      import WebhookServer._
-      val client = GithubClient(config.github.accessToken) // TODO: Real option
+      val client = GithubClient(config.github) // TODO: Real option
       WustReceiver.run(config.wust, client).foreach {
-        case Right(receiver) => WebhookServer.run(config.github, receiver)
+        case Right(receiver) => AppServer.run(config.server, receiver)
         case Left(err) => println(s"Cannot connect to Wust: $err")
       }
   }

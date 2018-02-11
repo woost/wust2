@@ -33,7 +33,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val eventProcessor = EventProcessor(Client.eventObservable, syncDisabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
-    private val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)
+    val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)
     //TODO: better in rx/obs operations
     currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
 

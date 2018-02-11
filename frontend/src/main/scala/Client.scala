@@ -21,13 +21,13 @@ import scala.concurrent.duration._
 object Client extends WustClientOps {
   private val wustUrl = {
     import window.location
-    val protocol = if (location.protocol == "https:") "wss" else "ws"
-    s"$protocol://${location.hostname}:${location.port}/ws"
+    val protocol = if (location.protocol == "https:") "wss:" else "ws:"
+    s"$protocol//${location.hostname}:${location.port}/ws"
   }
   private val githubUrl = {
     import window.location
     //TODO fix url: port/path/subdomain?
-    s"${location.protocol}://${location.hostname}:54321"
+    s"${location.protocol}//${location.hostname}:54321/api"
   }
 
   private val clientHandler = new WustIncidentHandler {
