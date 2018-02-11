@@ -68,6 +68,11 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnAssumedAuth(newAuth)
   }
 
+  def issuePluginToken(): ApiFunction[Authentication.Verified] = Action.assureDbUser { (_, user) =>
+    //TODO generate special token for plugins to allow onBehalf changes
+    Future.successful(jwt.generateAuthentication(user))
+  }
+
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
   private def authChangeEvents(auth: Authentication): Future[Seq[ApiEvent]] = {

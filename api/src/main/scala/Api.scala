@@ -32,6 +32,7 @@ trait AuthApi[Result[_]] {
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
+  def issuePluginToken(): Result[Authentication.Verified]
 }
 
 sealed trait Authentication {

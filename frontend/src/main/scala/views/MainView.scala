@@ -427,9 +427,8 @@ object MainView {
     val urlImporter = Handler.create[String].unsafeRunSync()
     def importGithubUrl(url: String): Unit = Client.api.importGithubUrl(url)
     def importGitterUrl(url: String): Unit = Client.api.importGitterUrl(url)
-    def connectToGithub(): Unit = state.inner.currentAuth.now match {
-      case Authentication.Verified(_, _, token) => Client.githubApi.connectUser(token)
-      case _ => scribe.info("Cannot connect to github: auth is not verified")
+    def connectToGithub(): Unit = Client.auth.issuePluginToken().flatMap { auth =>
+      Client.githubApi.connectUser(auth.token)
     }
 
     div(
