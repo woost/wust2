@@ -10,8 +10,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import boopickle.Default._
 import covenant.ws._
-import sloth.core._
-import sloth.client._
+import sloth._
 import mycelium.client._
 import chameleon.ext.boopickle._
 import cats.implicits._

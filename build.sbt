@@ -132,6 +132,7 @@ lazy val sdk = crossProject
   .settings(
     libraryDependencies ++= (
       Deps.covenant.ws.value ::
+      Deps.covenant.http.value ::
       Deps.boopickle.value ::
       Deps.monix.value ::
       Nil
@@ -172,6 +173,7 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++=
+      Deps.covenant.core.value ::
       Deps.boopickle.value % Optional ::
       Deps.circe.core.value % Optional ::
       Deps.circe.generic.value % Optional ::
@@ -296,8 +298,8 @@ lazy val githubApp = project
     libraryDependencies ++=
       Deps.github4s.value ::
       Deps.graphQl.value ::
-        Deps.akkaCircJson.value ::
-        Nil
+      Deps.akka.httpCirce.value ::
+      Nil
   )
 
 lazy val assets = project

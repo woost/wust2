@@ -23,6 +23,7 @@ object Deps {
     private val httpVersion = "10.1.0-RC1"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
+    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.19.0")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
     val testkit = dep("com.typesafe.akka" %% "akka-testkit" % version)
@@ -60,10 +61,9 @@ object Deps {
   val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
 
   // rpc
-  val mycelium = dep("com.github.cornerman" % "mycelium" % "7bd8800")
-  val sloth = dep("com.github.cornerman" % "sloth" % "6e5ec10")
   val covenant = new {
-    private val version = "0be4582"
+    private val version = "966ef1f"
+    val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
   }
@@ -80,7 +80,6 @@ object Deps {
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
   val github4s = dep("io.github.GRBurst.github4s" %% "github4s" % "1d9681d") // master + comments + single issue
   val graphQl = dep("org.sangria-graphql" %% "sangria" % "1.3.3")
-  val akkaCircJson = dep("de.heikoseeberger" %% "akka-http-circe" % "1.19.0")
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
   val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")

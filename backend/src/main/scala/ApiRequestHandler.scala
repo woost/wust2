@@ -10,8 +10,7 @@ import wust.backend.auth._
 import wust.backend.config.Config
 import wust.db.Db
 import wust.util.time._
-import sloth.core._
-import sloth.server._
+import sloth._
 import mycelium.server._
 import wust.util.{ Pipe, RichFuture }
 import wust.util.LogHelper.requestLogLine

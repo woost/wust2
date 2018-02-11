@@ -11,6 +11,7 @@ import wust.backend.auth._
 import wust.backend.config.Config
 import wust.db.Db
 import covenant.ws._
+import sloth._
 import mycelium.server._
 import chameleon.ext.boopickle._
 import wust.util.{ Pipe, RichFuture }
