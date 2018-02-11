@@ -80,29 +80,29 @@ lazy val sourceMapSettings = Seq(
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp, gitterApp, githubApp)
+  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, webApp, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp, gitterApp, githubApp)
   .settings(
     publish := {},
     publishLocal := {},
 
     addCommandAlias("clean", "; root/clean; assets/clean"),
 
-    addCommandAlias("dev", "; compile; frontend/fastOptJS::startWebpackDevServer; devwatch; devstop; backend/reStop"),
-    addCommandAlias("devwatch", "~; backend/reStart; frontend/fastOptJS; frontend/copyFastOptJS"),
-    addCommandAlias("devstop", "frontend/fastOptJS::stopWebpackDevServer"),
+    addCommandAlias("dev", "; compile; webApp/fastOptJS::startWebpackDevServer; devwatch; devstop; backend/reStop"),
+    addCommandAlias("devwatch", "~; backend/reStart; webApp/fastOptJS; webApp/copyFastOptJS"),
+    addCommandAlias("devstop", "webApp/fastOptJS::stopWebpackDevServer"),
 
-    addCommandAlias("devf", "; compile; backend/reStart; project frontend; fastOptJS::startWebpackDevServer; devfwatch; devstop; backend/reStop; project root"),
+    addCommandAlias("devf", "; compile; backend/reStart; project webApp; fastOptJS::startWebpackDevServer; devfwatch; devstop; backend/reStop; project root"),
     addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
-    addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; frontend/test"),
+    addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
     addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test; gitterApp/test; githubApp/test"),
 
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
-    // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in frontend).value
-    // watchSources := Seq(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, frontend, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in frontend).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
+    // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in webApp).value
+    // watchSources := Seq(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, webApp, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in webApp).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
 lazy val util = crossProject
@@ -219,7 +219,7 @@ lazy val backend = project
 
 lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
 
-lazy val frontend = project
+lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(sdkJS, utilJS)
   .settings(commonSettings, sourceMapSettings)
@@ -268,7 +268,7 @@ lazy val frontend = project
     copyFastOptJS := {
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "fastopt"
-      val files = Seq("frontend-fastopt-loader.js", "frontend-fastopt.js", "frontend-fastopt.js.map") map { p => (inDir / p, outDir / p) }
+      val files = Seq("webapp-fastopt-loader.js", "webapp-fastopt.js", "webapp-fastopt.js.map") map { p => (inDir / p, outDir / p) }
       IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
     }
   )
@@ -317,14 +317,14 @@ lazy val assets = project
       baseDirectory.value / "prod" ::
       Nil
     ),
-    scalaJSProjects := Seq(frontend),
+    scalaJSProjects := Seq(webApp),
     npmAssets ++= {
       // without dependsOn, the file list is generated before webpack does its thing.
       // Which would mean that generated files by webpack do not land in the pipeline.
       val assets =
-        ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.gz") +++
-          ((npmUpdate in Compile in frontend).dependsOn(webpack in fullOptJS in Compile in frontend).value ** "*.br")
-      val nodeModules = (npmUpdate in (frontend, Compile)).value
+        ((npmUpdate in Compile in webApp).dependsOn(webpack in fullOptJS in Compile in webApp).value ** "*.gz") +++
+          ((npmUpdate in Compile in webApp).dependsOn(webpack in fullOptJS in Compile in webApp).value ** "*.br")
+      val nodeModules = (npmUpdate in (webApp, Compile)).value
       assets.pair(Path.relativeTo(nodeModules))
     },
     pipelineStages in Assets := Seq(scalaJSPipeline)

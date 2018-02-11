@@ -14,15 +14,15 @@ Contributions very welcome. Please ask questions and share ideas.
 A directed graph stored in postgres accessed via rpc-calls over websockets and binary serialization, visualized using reactive programming and a force-directed graph layout.
 
 # Building blocks
-* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js) (scala for backend, scala-js is scala compiled to javascript for the frontend. Allows to share code between both.)
+* [scala](https://github.com/scala/scala)/[scala-js](https://github.com/scala-js/scala-js) (scala for backend, scala-js is scala compiled to javascript for the webApp. Allows to share code between both.)
 * [nginx](https://github.com/nginx/nginx) (serving static assets, https, forwarding websocket connections to backend)
 * [postgres](https://github.com/postgres/postgres) (relational database with views and stored procedures for graph traversal)
 * [flyway](https://github.com/flyway/flyway) (database migrations)
 * [quill](https://github.com/getquill/quill) (compile-time language integrated database queries for Scala)
 * [akka](https://github.com/akka/akka) (message passing in backend, websocket server)
-* [sloth](https://github.com/cornerman/sloth) (type safe rpc calls for implementing frontend-to-backend api)
+* [sloth](https://github.com/cornerman/sloth) (type safe rpc calls for implementing webApp-to-backend api)
 * [mycelium](https://github.com/cornerman/mycelium) (request, response and events over websockets)
-* [boopickle](https://github.com/suzaku-io/boopickle) (fast and boilerplate-free binary serialization, similar to protobuf. Used for frontend/backend communication)
+* [boopickle](https://github.com/suzaku-io/boopickle) (fast and boilerplate-free binary serialization, similar to protobuf. Used for webApp/backend communication)
 * [outwatch](https://github.com/outwatch/outwatch) (UI-library for reactive programming bindings to DOM-Nodes)
 * [d3](https://github.com/d3/d3) (visualization library, used for graph visualization and drag&drop)
 
@@ -46,7 +46,7 @@ In the sbt prompt, you can then start watching sources and recompile while devel
 > dev
 ```
 
-If you are only developing the frontend, you can also skip recompilation of the backend:
+If you are only developing the webApp, you can also skip recompilation of the backend:
 ```
 > devf
 ```

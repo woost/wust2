@@ -44,7 +44,7 @@ object Deps {
   val scalaReflect = dep("org.scala-lang" % "scala-reflect")
   val scalameta = dep("org.scalameta" %%% "scalameta" % "1.8.0")
 
-  // frontend
+  // webApp
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "a37fab8")
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
   val scalarx = dep("com.github.fdietze" % "duality" % "f9e6742")
