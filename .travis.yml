@@ -9,6 +9,14 @@ branches:
   only:
   - master
 
+# before_install:
+# - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
+#     eval "$(ssh-agent -s)";
+#     openssl aes-256-cbc -K $encrypted_b3beb67678c9_key -iv $encrypted_b3beb67678c9_iv -in ./travis/travis-\>github.enc -out travis-\>github -d;
+#     chmod 600 $TRAVIS_BUILD_DIR/travis-\>github;
+#     ssh-add $TRAVIS_BUILD_DIR/travis-\>github;
+# fi
+
 //TODO: use https://github.com/dwijnand/sbt-travisci
 script:
     - set -e
@@ -21,6 +29,7 @@ after_success:
     - .travis/publish-docker
     # - sbt coverageAggregate # Must be called separately for multi project projects (https://github.com/scoverage/sbt-scoverage#multi-project-reports)
     # - sbt coveralls #See https://github.com/scoverage/sbt-coveralls/issues/104
+    - .travis/publish-scaladoc.sh
     - set +e
 
 cache:

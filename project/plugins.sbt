@@ -15,3 +15,8 @@ addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.1")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.5")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.5.1")
 addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.2.2")
+
+// Scaladoc
+addSbtPlugin("com.eed3si9n" % "sbt-unidoc" % "0.4.1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "1.3.1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.2")
