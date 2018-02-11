@@ -1,5 +1,10 @@
 package wust.github
 
+import covenant.http._
+import sloth._
+import java.nio.ByteBuffer
+import boopickle.Default._
+import chameleon.ext.boopickle._
 import wust.sdk._
 import wust.api._
 import wust.ids._
@@ -21,12 +26,27 @@ import github4s.Github
 import github4s.Github._
 import github4s.GithubResponses.{GHException, GHResult}
 import github4s.free.domain.{Comment, Issue, User => GHUser}
-import github4s.jvm.Implicits._
 import monix.execution.Scheduler
 import monix.reactive.Observable
+import cats.implicits._
 
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
+
+class GithubApiImpl(client: WustClient)(implicit ec: ExecutionContext) extends PluginApi {
+  def connectUser(auth: Authentication.Token): Future[Boolean] = {
+    scribe.info(s"Connecting user")
+    client.auth.verifyToken(auth).map {
+      case Some(auth) =>
+        scribe.info(s"User has valid auth: ${auth.user}")
+        //TODO: do something
+        true
+      case None =>
+        scribe.info(s"User has invalid auth")
+        false
+    }
+  }
+}
 
 object Constants {
   //TODO
@@ -57,9 +77,15 @@ object WebhookServer {
 
     import io.circe.generic.auto._
 
+    val apiRouter = Router[ByteBuffer, Future]
+      .route[PluginApi](new GithubApiImpl(wustReceiver.client))
+
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
     val route = {
+      pathPrefix("api") {
+        apiRouter.asHttpRoute
+      }
       path(config.path) {
         post {
           decodeRequest {
@@ -131,10 +157,12 @@ trait MessageReceiver {
   def push(graphChanges: List[GraphChanges]): Result[List[GraphChanges]]
 }
 
-class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
+class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
   def push(graphChanges: List[GraphChanges]): Future[Either[String, List[GraphChanges]]] = {
     scribe.info(s"pushing new graph change: $graphChanges")
+    //TODO use onBehalf with different token
+    // client.api.changeGraph(graphChanges, onBehalf = token).map{ success =>
     client.api.changeGraph(graphChanges).map{ success =>
       if(success) Right(graphChanges)
       else Left("Failed to create post")

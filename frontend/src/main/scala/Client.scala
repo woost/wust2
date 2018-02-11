@@ -1,5 +1,9 @@
 package wust.frontend
 
+import covenant.http._
+import java.nio.ByteBuffer
+import boopickle.Default._
+import chameleon.ext.boopickle._
 import wust.api._
 import wust.ids._
 import wust.sdk._
@@ -15,10 +19,15 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object Client extends WustClientOps {
-  private val wsUrl = {
+  private val wustUrl = {
     import window.location
     val protocol = if (location.protocol == "https:") "wss" else "ws"
     s"$protocol://${location.hostname}:${location.port}/ws"
+  }
+  private val githubUrl = {
+    import window.location
+    //TODO fix url: port/path/subdomain?
+    s"${location.protocol}://${location.hostname}:54321"
   }
 
   private val clientHandler = new WustIncidentHandler {
@@ -28,7 +37,10 @@ object Client extends WustClientOps {
     }
   }
 
-  val clientFactory = JsWustClient(wsUrl, clientHandler)
+  private val githubClient = HttpClient[ByteBuffer](githubUrl)
+  val githubApi = githubClient.wire[PluginApi]
+
+  val clientFactory = JsWustClient(wustUrl, clientHandler)
   val eventObservable = clientHandler.eventObservable
 
   val storage = new ClientStorage
