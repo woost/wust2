@@ -50,13 +50,12 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   }
 
   def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
-    val newAuth = jwt.authenticationFromToken(token).map { auth =>
-      db.user.checkIfEqualUserExists(auth.user).map { isValid =>
-        if (isValid) Some(auth) else None
-      }
-    } getOrElse Future.successful(None)
-
+    val newAuth = validAuthFromToken(token)
     resultOnVerifiedAuth(newAuth)
+  }
+
+  def verifyToken(token: Authentication.Token): ApiFunction[Option[Authentication.Verified]] = Action {
+    validAuthFromToken(token)
   }
 
   def assumeLogin(userId: UserId): ApiFunction[Boolean] = Effect { state =>

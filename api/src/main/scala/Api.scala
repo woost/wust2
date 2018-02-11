@@ -1,10 +1,13 @@
 package wust.api
 
+import sloth.PathName
 import wust.graph._
 import wust.ids._
 
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]
+  @PathName("changeGraphOnBehalf")
+  def changeGraph(changes: List[GraphChanges], onBehalf: Authentication.Token): Result[Boolean]
 
   def getPost(id: PostId): Result[Option[Post]]
   def getGraph(selection: Page): Result[Graph]
@@ -21,12 +24,14 @@ trait Api[Result[_]] {
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 }
 
+@PathName("Auth")
 trait AuthApi[Result[_]] {
   def assumeLogin(id: UserId): Result[Boolean]
   def register(name: String, password: String): Result[Boolean]
   def login(name: String, password: String): Result[Boolean]
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
+  def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
 }
 
 sealed trait Authentication {

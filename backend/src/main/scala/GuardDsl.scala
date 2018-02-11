@@ -41,17 +41,28 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
     }
   }
 
+  def validAuthFromToken[T](token: Authentication.Token)(implicit ec: ExecutionContext): Future[Option[Authentication.Verified]] =
+    jwt.authenticationFromToken(token).map { auth =>
+      db.user.checkIfEqualUserExists(auth.user).map { isValid =>
+        if (isValid) Some(auth) else None
+      }
+    } getOrElse Future.successful(None)
+
+  def onBehalfOfUser[T, F[_] : ApiData.MonadError](token: Authentication.Token)(code: Authentication.Verified => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
+    val newAuth = validAuthFromToken(token)
+    newAuth.flatMap(_.fold[Future[F[T]]](Future.successful(ApiData.MonadError.raiseError(ApiError.Forbidden)))(code))
+  }
 
   def isGroupMember[T, F[_] : ApiData.MonadError](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
-      isMember <- db.group.isMember(groupId, userId) if isMember
+      true <- db.group.isMember(groupId, userId)
       result <- code
     } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }
 
   def hasAccessToPost[T, F[_] : ApiData.MonadError](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
-      hasAccess <- db.group.hasAccessToPost(userId, postId) if hasAccess
+      true <- db.group.hasAccessToPost(userId, postId)
       result <- code
     } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }

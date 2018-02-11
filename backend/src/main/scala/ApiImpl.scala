@@ -17,10 +17,16 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   import ApiEvent._
   import dsl._
 
+  override def changeGraph(changes: List[GraphChanges], onBehalf: Authentication.Token): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
+    onBehalfOfUser(onBehalf)(auth => changeGraph(changes, auth.user))
+  }
+  override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+    changeGraph(changes, user)
+  }
+
   //TODO assure timestamps of posts are correct
   //TODO: only accept one GraphChanges object
-  override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-
+  private def changeGraph(changes: List[GraphChanges], user: User.Persisted): Future[ApiData.Effect[Boolean]] = {
     //TODO more permissions!
     val changesAreAllowed = {
       val addPosts = changes.flatMap(_.addPosts)
