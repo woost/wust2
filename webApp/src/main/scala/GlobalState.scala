@@ -30,7 +30,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     //TODO: why is this needed?
     viewConfig.foreach { c => UrlRouter.variable() = Some(ViewConfig.toHash(c)) }
 
-    val eventProcessor = EventProcessor(Client.eventObservable, syncDisabled.toObservable, viewConfig.toObservable)
+    val eventProcessor = EventProcessor(Client.observable.event, syncDisabled.toObservable, viewConfig.toObservable)
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
     val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)

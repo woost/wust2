@@ -64,11 +64,9 @@ object WustReceiver {
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
     val location = s"ws://${config.host}:${config.port}/ws"
-    val handler = new WustIncidentHandler {
-      override def onConnect(): Unit = println(s"GitterApp connected to websocket")
-    }
+    val wustClient = WustClient(location)
 
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = handler.eventObservable
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = wustClient.observable.event
       .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
       .collect { case list if list.nonEmpty => list }
 
@@ -82,7 +80,7 @@ object WustReceiver {
 
     }
 
-    val client = AkkaWustClient(location, handler).sendWith(SendType.WhenConnected, 30 seconds)
+    val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
 
     val res = for { // Assume thas user exists
 //      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")

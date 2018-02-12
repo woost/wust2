@@ -30,18 +30,14 @@ object Client extends WustClientOps {
     s"${location.protocol}//${location.hostname}:54321/api"
   }
 
-  private val clientHandler = new WustIncidentHandler {
-    override def onConnect(): Unit = {
-      //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
-      loginStorageAuth()
-    }
-  }
-
   private val githubClient = HttpClient[ByteBuffer](githubUrl)
   val githubApi = githubClient.wire[PluginApi]
 
-  val clientFactory = JsWustClient(wustUrl, clientHandler)
-  val eventObservable = clientHandler.eventObservable
+  val clientFactory = WustClient(wustUrl)
+  clientFactory.observable.connected.foreach { _ =>
+    //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
+    loginStorageAuth()
+  }
 
   val storage = new ClientStorage
   def storageAuthOrAssumed = storage.auth.now getOrElse initialAssumedAuth

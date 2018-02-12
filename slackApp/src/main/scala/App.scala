@@ -55,12 +55,9 @@ object WustReceiver {
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
     val location = s"ws://${config.host}:${config.port}/ws"
-    val handler = new WustIncidentHandler {
-      override def onConnect(): Unit = println(s"Connected to websocket")
-      override def onClose(): Unit = println(s"Websocket connection closed")
-    }
+    val wustClient = WustClient(location)
 
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = handler.eventObservable
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = wustClient.observable.event
       .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
       .collect { case list if list.nonEmpty => list }
 
@@ -75,9 +72,7 @@ object WustReceiver {
       }
     }
 
-
-
-    val client = AkkaWustClient(location, handler).sendWith(SendType.NowOrFail, 30 seconds)
+    val client = wustClient.sendWith(SendType.NowOrFail, 30 seconds)
 
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password)
