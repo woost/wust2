@@ -47,7 +47,7 @@ trait WustClientOps {
   lazy val auth: AuthApi[Future] = defaultPriority.auth
 }
 
-private[sdk] class ClientLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
+class ClientLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
   import wust.util.LogHelper.requestLogLine
 
   override def logRequest(path: List[String], arguments: List[List[Any]], result: Future[_]): Unit = {
