@@ -30,7 +30,7 @@ object Client extends WustClientOps {
     s"${location.protocol}//${location.hostname}:54321/api"
   }
 
-  private val githubClient = HttpClient[ByteBuffer](githubUrl, new ClientLogHandler)
+  private val githubClient = HttpClient[ByteBuffer](githubUrl)
   val githubApi = githubClient.wire[PluginApi]
 
   val clientFactory = WustClient(wustUrl)

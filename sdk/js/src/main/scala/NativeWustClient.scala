@@ -11,5 +11,5 @@ import scala.concurrent.ExecutionContext
 
 private[sdk] trait NativeWustClient {
   def apply(location: String)(implicit ec: ExecutionContext) =
-    new WustClientFactory(WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, new ClientLogHandler))
+    new WustClientFactory(WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config))
 }

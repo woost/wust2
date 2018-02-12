@@ -46,15 +46,3 @@ trait WustClientOps {
   lazy val api: Api[Future] = defaultPriority.api
   lazy val auth: AuthApi[Future] = defaultPriority.auth
 }
-
-class ClientLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
-  import wust.util.LogHelper.requestLogLine
-
-  override def logRequest(path: List[String], arguments: List[List[Any]], result: Future[_]): Unit = {
-    val watch = StopWatch.started
-    scribe.info(s"Outgoing request: ${requestLogLine(path, arguments)}.")
-    result.onComplete { result =>
-      scribe.info(s"Got response: ${requestLogLine(path, arguments, result)}. Took ${watch.readHuman}.")
-    }
-  }
-}

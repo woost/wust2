@@ -13,6 +13,6 @@ import java.nio.ByteBuffer
 private[sdk] trait NativeWustClient {
   def apply(location: String)(implicit system: ActorSystem, materializer: ActorMaterializer) = {
     import system.dispatcher
-    new WustClientFactory(WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, new ClientLogHandler))
+    new WustClientFactory(WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config))
   }
 }
