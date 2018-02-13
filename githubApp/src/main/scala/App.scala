@@ -72,23 +72,24 @@ object AppServer {
   private def editComment(issue: Issue, comment: Comment) = GraphChanges.empty
   private def deleteComment(issue: Issue, comment: Comment) = GraphChanges.empty
 
-  def run(config: ServerConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
+  def run(server: ServerConfig, github: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
     import io.circe.generic.auto._
+    import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]
-      .route[PluginApi](new GithubApiImpl(wustReceiver.client))
+      .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github))
 
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
     val route = {
       pathPrefix("api") {
-        CorsSupport.check(HttpOriginRange(config.allowedOrigins.map(HttpOrigin(_)) :_*)) {
+        CorsSupport.check(HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)) :_*)) {
           apiRouter.asHttpRoute
         }
-      } ~ path(config.webhookPath) {
+      } ~ path(server.webhookPath) {
         post {
           decodeRequest {
             headerValueByName("X-GitHub-Event") {
@@ -134,7 +135,7 @@ object AppServer {
       }
     }
 
-    Http().bindAndHandle(route, interface = config.host, port = config.port).onComplete {
+    Http().bindAndHandle(route, interface = server.host, port = server.port).onComplete {
       case Success(binding) =>
         val separator = "\n" + ("#" * 60)
         val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
@@ -533,9 +534,9 @@ object App extends scala.App {
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      val client = GithubClient(config.github) // TODO: Real option
+      val client = GithubClient(config.github)
       WustReceiver.run(config.wust, client).foreach {
-        case Right(receiver) => AppServer.run(config.server, receiver)
+        case Right(receiver) => AppServer.run(config.server, config.github, receiver)
         case Left(err) => println(s"Cannot connect to Wust: $err")
       }
   }
