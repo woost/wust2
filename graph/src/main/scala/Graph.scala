@@ -6,9 +6,10 @@ import wust.util.Pipe
 import wust.util.algorithm._
 import wust.util.collection._
 import cuid.Cuid
-import scalaz._
 
-import java.time.LocalDateTime
+import scalaz._
+import java.time.{Instant, LocalDateTime, ZoneId}
+
 import collection.mutable
 import collection.breakOut
 
@@ -66,8 +67,27 @@ object User {
 //TODO: rename Post -> Item?
 final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 object Post {
+
+  def parseTime(time: String): LocalDateTime = Instant.parse(time).atZone(ZoneId.systemDefault).toLocalDateTime
+
   def apply(id: PostId, content: String, author: UserId, time: LocalDateTime = LocalDateTime.now()): Post = {
-    Post(id, content, author, time, time)
+    new Post(id, content, author, time, time)
+  }
+  def apply(id: PostId, content: String, author: UserId, time: String): Post = {
+    new Post(id, content, author, parseTime(time), parseTime(time))
+  }
+  def apply(id: PostId, content: String, author: UserId, created: String, modified: String): Post = {
+    new Post(id, content, author, parseTime(created), parseTime(modified))
+  }
+
+  def apply(content: String, author: UserId): Post = {
+    apply(PostId.fresh, content, author)
+  }
+  def apply(content: String, author: UserId, time: String): Post = {
+    apply(PostId.fresh, content, author, parseTime(time), parseTime(time))
+  }
+  def apply(content: String, author: UserId, created: String, modified: String): Post = {
+    apply(PostId.fresh, content, author, parseTime(created), parseTime(modified))
   }
 }
 
