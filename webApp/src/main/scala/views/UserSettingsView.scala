@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import outwatch.Sink
+import outwatch.{Sink, dom}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
@@ -8,6 +8,7 @@ import wust.webApp.Color._
 import wust.graph._
 import wust.ids.{PostId, UserId}
 import Rendered._
+import outwatch.dom.dsl.events.window
 import wust.util.outwatchHelpers._
 
 object UserSettingsView extends View {
@@ -64,10 +65,20 @@ object UserSettingsView extends View {
   }
 
   def listSettings(user: User): VNode = {
+    val linkGithub = Handler.create[String].unsafeRunSync()
 
     // TODO: Api calls
-    def linkWithGithub(userId: UserId) = {
-      println(s"Link Github with userId: $userId")
+    def linkWithGithub() = {
+      Client.auth.issuePluginToken().foreach { auth =>
+        scribe.info(s"Generated plugin token: $auth")
+        val connUser = Client.githubApi.connectUser(auth.token)
+          connUser foreach {
+            case Some(url) =>
+              org.scalajs.dom.window.location.href = url
+            case None =>
+              scribe.info(s"Could not connect user: $auth")
+          }
+      }
     }
     def linkWithGitter(userId: UserId) = {
       println(s"Link Gitter with userId: $userId")
@@ -82,7 +93,7 @@ object UserSettingsView extends View {
       p(s"Username: ${user.name}"),
       div(
         p("Connect Woost with a Service"),
-        button("Link with GitHub", onClick(user.id) --> sideEffect((userId: UserId) => linkWithGithub(userId))),
+        button("Link with GitHub", onClick --> sideEffect(linkWithGithub())),
         br(),
         button("Link with Gitter", onClick(user.id) --> sideEffect((userId: UserId) => linkWithGitter(userId))),
         br(),

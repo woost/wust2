@@ -4,6 +4,7 @@ import wust.webApp._
 import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.events.window
 import rx._
 import wust.api._
 import wust.webApp.Color._
@@ -427,8 +428,15 @@ object MainView {
     val urlImporter = Handler.create[String].unsafeRunSync()
     def importGithubUrl(url: String): Unit = Client.api.importGithubUrl(url)
     def importGitterUrl(url: String): Unit = Client.api.importGitterUrl(url)
-    def connectToGithub(): Unit = Client.auth.issuePluginToken().flatMap { auth =>
-      Client.githubApi.connectUser(auth.token)
+    def connectToGithub(): Unit = Client.auth.issuePluginToken().foreach { auth =>
+      scribe.info(s"Generated plugin token: $auth")
+      val connUser = Client.githubApi.connectUser(auth.token)
+      connUser foreach {
+        case Some(url) =>
+          org.scalajs.dom.window.location.href = url
+        case None =>
+          scribe.info(s"Could not connect user: $auth")
+      }
     }
 
     div(

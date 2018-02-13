@@ -3,6 +3,7 @@ package wust.github
 import covenant.http._
 import sloth._
 import java.nio.ByteBuffer
+
 import boopickle.Default._
 import chameleon.ext.boopickle._
 import wust.sdk._
@@ -12,9 +13,11 @@ import wust.graph._
 import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{HttpOriginRange, HttpOrigin}
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
+import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
+import cats.free.Free
 import cats.implicits._
 import com.typesafe.config.ConfigFactory
 import io.circe._
@@ -25,26 +28,27 @@ import scala.util.control.NonFatal
 import scala.collection.mutable
 import github4s.Github
 import github4s.Github._
-import github4s.GithubResponses.{GHException, GHResult}
-import github4s.free.domain.{Comment, Issue, User => GHUser}
+import github4s.GithubResponses.{GHException, GHResponse, GHResult}
+import github4s.free.domain.{Comment, Issue, NewOAuthRequest, OAuthToken, User => GHUser}
+import github4s.jvm.Implicits._
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import cats.implicits._
+import github4s.app.GitHub4s
 
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
 
-class GithubApiImpl(client: WustClient)(implicit ec: ExecutionContext) extends PluginApi {
-  def connectUser(auth: Authentication.Token): Future[Boolean] = {
-    scribe.info(s"Connecting user")
+class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig)(implicit ec: ExecutionContext) extends PluginApi {
+  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
     client.auth.verifyToken(auth).map {
-      case Some(auth) =>
-        scribe.info(s"User has valid auth: ${auth.user}")
-        //TODO: do something
-        true
+      case Some(verifiedAuth) =>
+        scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
+        AuthClient.addWustToken(verifiedAuth.user.id, verifiedAuth.token)
+        AuthClient.generateAuthUrl(verifiedAuth.user.id, server, github)
       case None =>
-        scribe.info(s"User has invalid auth")
-        false
+        scribe.info(s"Invalid auth")
+        None
     }
   }
 }
@@ -59,6 +63,79 @@ object Constants {
   val wustRepo = "bug"
 
   val wustUser = UserId("wust-github")
+}
+
+case class GithubTokenProcess(userId: UserId, confirmed: Boolean)
+case class UserTokens(wustToken: Option[Authentication.Token], githubToken: Option[OAuthToken])
+object AuthClient {
+  import shapeless.syntax.std.function._
+  import shapeless.Generic
+
+  private var validUsers: mutable.HashMap[UserId, UserTokens] = new mutable.HashMap[UserId, UserTokens]
+  def addValidUser(userId: UserId): Unit = validUsers += userId -> UserTokens(None, None)
+  def addWustToken(userId: UserId, wust: Authentication.Token): Unit = validUsers.get(userId) match {
+    case Some(token) => validUsers += userId -> token.copy(wustToken = Some(wust))
+    case _ => validUsers += userId -> UserTokens(Some(wust), None)
+  }
+  def addGithubToken(userId: UserId, github: OAuthToken): Unit = validUsers.get(userId) match {
+    case Some(token) => validUsers += userId -> token.copy(githubToken = Some(github))
+    case _ => validUsers += userId -> UserTokens(None, Some(github))
+  }
+
+  var oAuthRequests: mutable.HashMap[String, GithubTokenProcess] = mutable.HashMap.empty[String, GithubTokenProcess]
+  def addOAuthRequest(userId: UserId, state: String, confirmed: Boolean = false): Unit = {
+    oAuthRequests += state -> GithubTokenProcess(userId, confirmed)
+  }
+
+  def confirmOAuthRequest(code: String, state: String): Boolean = {
+    val currRequest = oAuthRequests.get(state) match {
+      case Some(item) =>
+        oAuthRequests = oAuthRequests += state -> item.copy(confirmed = true)
+        true
+      case _ =>
+        scribe.error(s"Could not confirm oAuthRequest. No such request in queue")
+        false
+    }
+    code.nonEmpty && currRequest
+  }
+
+  def persistToken(state: String, token: OAuthToken): Boolean = {
+    if(oAuthRequests(state).confirmed) {
+      addGithubToken(oAuthRequests(state).userId, token)
+      // TODO persist
+    }
+    oAuthRequests -= state
+    true
+  }
+
+  def getToken(oAuthRequest: NewOAuthRequest): Option[OAuthToken] = {
+    (Github(None).auth.getAccessToken _)
+      .toProduct(Generic[NewOAuthRequest].to(oAuthRequest))
+      .exec[cats.Id, HttpResponse[String]]() match {
+      case Right(resp) =>
+        scribe.info(s"Received OAuthToken: ${resp.result}")
+        Some(resp.result: OAuthToken)
+      case Left(err) =>
+        scribe.error(s"Could not receive OAuthToken: ${err.getMessage}")
+        None
+    }
+  }
+
+  def generateAuthUrl(userId: UserId, server: ServerConfig, github: GithubConfig): Option[String] = {
+    val scopes = List("read:org", "read:user", "repo", "write:discussion")
+    val redirectUri = s"http://${server.host}:${server.port}/${server.authPath}"
+
+    import github4s.jvm.Implicits._
+    Github(None).auth.authorizeUrl(github.clientId, redirectUri, scopes)
+      .exec[cats.Id, HttpResponse[String]]() match {
+      case Right(GHResult(result, _, _)) =>
+        addOAuthRequest(userId, result.state)
+        Some(result.url)
+      case Left(err) =>
+        scribe.error(s"Could not generate url: ${err.getMessage}")
+        None
+    }
+  }
 }
 
 object AppServer {
@@ -91,6 +168,21 @@ object AppServer {
         CorsSupport.check(HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)) :_*)) {
           apiRouter.asHttpRoute
         }
+      } ~ path(server.authPath) {
+        get {
+          parameters('code, 'state) { (code, state) =>
+            if(AuthClient.confirmOAuthRequest(code, state)) {
+              val tokenRequest = NewOAuthRequest(github.clientId, github.clientSecret, code, s"http://${server.host}:${server.port}/${server.authPath}", state)
+              AuthClient.getToken(tokenRequest).map{ token =>
+                scribe.info(s"Verified token request(code, state) - Persisting token for user: ${AuthClient.oAuthRequests(state)}")
+                AuthClient.persistToken(state, token)
+              }
+            } else {
+              scribe.error(s"Could not verify request(code, state): ($code, $state)")
+            }
+            redirect(s"http://${server.host}:12345/#usersettings", StatusCodes.SeeOther)
+          }
+        }
       } ~ path(server.webhookPath) {
         post {
           decodeRequest {
@@ -99,7 +191,7 @@ object AppServer {
                 issueEvent.action match {
                   case "created" =>
                     scribe.info("Received Webhook: created issue")
-                    wustReceiver.push(List(createIssue(issueEvent.issue)))
+                      wustReceiver.push(List(createIssue(issueEvent.issue)))
                   case "edited" =>
                     scribe.info("Received Webhook: edited issue")
                     wustReceiver.push(List(editIssue(issueEvent.issue)))
@@ -173,24 +265,6 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
       else Left("Failed to create post")
     }
   }
-}
-
-case object EventCoordinator {
-  // TODO: Which data structure do I want here?
-  case class Buffer[T](buffer: List[T])
-  case class BufferItem(githubCall: GithubCall, completedByFuture: Boolean, completedByHook: Boolean)
-  case class BufferCompletion(completedByFuture: Boolean, completedByHook: Boolean)
-
-  val bufferMap: mutable.Map[GithubCall, BufferCompletion] = mutable.Map.empty[GithubCall, BufferCompletion]
-
-  def addHookCompletion(githubCall: GithubCall, issue: Issue): Unit = ???
-
-  def addFutureCompletion(githubCall: GithubCall, issue: Issue): Unit = ???
-  def addFutureCompletion(githubCall: GithubCall, comment: Comment): Unit = ???
-  def addFutureCompletion(githubCall: GithubCall, mapping: (PostId, Int)): Unit = ???
-
-  def addCompletion(githubCall: GithubCall, issue: Issue): Unit = ???
-  val mEventCallBuffer: mutable.Set[GithubCall] = mutable.Set.empty[GithubCall]
 }
 
 object WustReceiver {
@@ -275,11 +349,13 @@ object WustReceiver {
       case _ => println("Could not match to github api call")
     })
 
+    import cats.implicits._
     valid(client.auth.register(config.user, config.password), "Cannot register")
     val res = for { // Assume that user is logged in
-      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-      // changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", wustUser)))
-      // _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
+//      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
+//      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", Constants.wustUser)))
+      graph <- valid(client.api.getGraph(Page.Root))
+//      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
     } yield new WustReceiver(client)
 
     res.value
