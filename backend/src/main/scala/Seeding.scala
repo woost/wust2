@@ -1,7 +1,5 @@
 package wust.backend
 
-import java.time.{Instant, ZoneId}
-
 import wust.graph.{Connection, Post, User}
 import wust.ids._
 
@@ -93,7 +91,6 @@ object GitHubImporter {
     }
 
     val postAndConnection: Future[Set[(Set[Post], Set[Connection])]] = {
-      def parseTime(time: String) = Instant.parse(time).atZone(ZoneId.systemDefault).toLocalDateTime
       issueWithComments.map(_.map( issueData => {
         val issue = issueData._1
         val commentsList = issueData._2
@@ -115,11 +112,11 @@ object GitHubImporter {
         // TODO: delete transitive containments of comments in issue
 
         // Issue posts and connections
-        val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
+        val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         val titleIssueTag = Connection(issueTitle.id, Label.parent, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
-          val issueDesc = Post(PostId(issue.id.toString), issue.body, tempUserId, parseTime(issue.created_at), parseTime(issue.updated_at))
+          val issueDesc = Post(PostId(issue.id.toString), issue.body, tempUserId, issue.created_at, issue.updated_at)
           val conn = Connection(issueDesc.id, "describes", issueTitle.id)
           val cont = Connection(issueDesc.id, Label.parent, issueTitle.id)
           val comm = Connection(issueDesc.id, Label.parent, _comment.id)
@@ -133,7 +130,7 @@ object GitHubImporter {
 
         // Comments
         val comments: List[(Post, Set[Connection])] = commentsList.map(comment => {
-          val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId, parseTime(comment.created_at), parseTime(comment.updated_at))
+          val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId, comment.created_at, comment.updated_at)
           val cconn = Set(Connection(cpost.id, Label.parent, issueTitle.id), Connection(cpost.id, Label.parent, _comment.id))
           (cpost, cconn)
         })
