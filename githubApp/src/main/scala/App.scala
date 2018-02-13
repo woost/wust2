@@ -191,6 +191,7 @@ object AppServer {
                 issueEvent.action match {
                   case "created" =>
                     scribe.info("Received Webhook: created issue")
+//                    if(EventCoordinator.createOrIgnore(issueEvent.issue))
                       wustReceiver.push(List(createIssue(issueEvent.issue)))
                   case "edited" =>
                     scribe.info("Received Webhook: edited issue")
@@ -525,6 +526,23 @@ object WustReceiver {
   private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) = EitherT(fut.map(Right(_) : Either[String, T]).recover(validRecover))
 }
 
+
+object GithubClient {
+  def apply(config: GithubConfig)(implicit ec: ExecutionContext): GithubClient = {
+
+    // TODO: Use registered oAuthTokens
+    import github4s.jvm.Implicits._
+    val user = Github(config.accessToken).users.get("GRBurst")
+    val userF = user.execFuture[HttpResponse[String]]()
+
+    val res = userF.map {
+      case Right(GHResult(user: GHUser, status, headers)) => user.login //.id
+      case Left(e) => e.getMessage
+    }
+
+    new GithubClient(Github(config.accessToken))
+  }
+}
 class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 
   import github4s.jvm.Implicits._
@@ -588,20 +606,23 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
   }
 }
 
-object GithubClient {
-  def apply(config: GithubConfig)(implicit ec: ExecutionContext, system: ActorSystem): GithubClient = {
+case object EventCoordinator {
+  // TODO: Which data structure do I want here?
+  case class Buffer[T](buffer: List[T])
+  case class BufferItem(githubCall: GithubCall, completedByFuture: Boolean, completedByHook: Boolean)
+  case class BufferCompletion(completedByFuture: Boolean, completedByHook: Boolean)
 
-    import github4s.jvm.Implicits._
-    val user = Github(config.accessToken).users.get("GRBurst")
-    val userF = user.execFuture[HttpResponse[String]]()
+  val bufferMap: mutable.Map[GithubCall, BufferCompletion] = mutable.Map.empty[GithubCall, BufferCompletion]
 
-    val res = userF.map {
-      case Right(GHResult(user: GHUser, status, headers)) => user.login //.id
-      case Left(e) => e.getMessage
-    }
+  def addHookCompletion(githubCall: GithubCall, issue: Issue): Boolean = ???
 
-    new GithubClient(Github(config.accessToken))
-  }
+  def addFutureCompletion(githubCall: GithubCall, issue: Issue): Boolean = ???
+  def addFutureCompletion(githubCall: GithubCall, comment: Comment): Boolean = ???
+  def addFutureCompletion(githubCall: GithubCall, mapping: (PostId, Int)): Boolean = ???
+
+  def addCompletion(githubCall: GithubCall, issue: Issue): Boolean = ???
+
+  val mEventCallBuffer: mutable.Set[GithubCall] = mutable.Set.empty[GithubCall]
 }
 
 object App extends scala.App {
