@@ -57,6 +57,8 @@ object Constants {
 
   val wustOwner = "woost"
   val wustRepo = "bug"
+
+  val wustUser = UserId("wust-github")
 }
 
 object AppServer {
@@ -194,7 +196,6 @@ case object EventCoordinator {
 object WustReceiver {
   type Result[T] = Either[String, T]
 
-  val wustUser = UserId("wust-github")
   val mCallBuffer: mutable.Set[GithubCall] = mutable.Set.empty[GithubCall]
 
   object GraphTransition {
