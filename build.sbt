@@ -290,6 +290,7 @@ lazy val githubApp = project
       Deps.github4s.value ::
       Deps.graphQl.value ::
       Deps.akka.httpCirce.value ::
+      Deps.redis.value ::
       Nil
   )
 
