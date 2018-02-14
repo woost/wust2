@@ -545,17 +545,6 @@ object WustReceiver {
 
 object GithubClient {
   def apply(config: GithubConfig)(implicit ec: ExecutionContext): GithubClient = {
-
-    // TODO: Use registered oAuthTokens
-    import github4s.jvm.Implicits._
-    val user = Github(config.accessToken).users.get("GRBurst")
-    val userF = user.execFuture[HttpResponse[String]]()
-
-    val res = userF.map {
-      case Right(GHResult(user: GHUser, status, headers)) => user.login //.id
-      case Left(e) => e.getMessage
-    }
-
     new GithubClient(Github(config.accessToken))
   }
 }
