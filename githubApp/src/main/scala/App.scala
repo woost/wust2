@@ -371,16 +371,14 @@ object WustReceiver {
     })
 
     import cats.implicits._
-    valid(client.auth.register(config.user, config.password), "Cannot register")
+    client.auth.register(config.user, config.password)
     val res = for { // Assume that user is logged in
-//      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-//      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", Constants.wustUser)))
-      graph <- valid(client.api.getGraph(Page.Root))
-//      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
+      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
+      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", Constants.wustUser)))
+      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
     } yield new WustReceiver(client)
 
     res.value
-
   }
 
   private def createCalls(github: GithubClient, graphTransition: GraphTransition): Seq[GithubCall] = {
