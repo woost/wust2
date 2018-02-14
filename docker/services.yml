@@ -7,6 +7,12 @@ services:
       POSTGRES_USER: 'wust'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: 'wust'
+  redis:
+    image: redis:4.0-alpine
+    environment: &redis_env
+      REDIS_USER: 'wust'
+      REDIS_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_DB: 'wust'
   db-migration:
     image: woost/wust2.db-migration
     environment:
@@ -33,14 +39,15 @@ services:
   gitter-app:
     image: woost/wust2.gitter-app
     environment:
-      WUST_SLACK_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production
+      WUST_GITTER_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: "wust"
   github-app:
     image: woost/wust2.github-app
     environment:
-      WUST_SLACK_TOKEN: ${WUST_GITHUB_TOKEN} # TODO: do not use static token in production
+      <<: *redis_env
+      WUST_GITHUB_TOKEN: ${WUST_GITHUB_TOKEN} # TODO: do not use static token in production
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: "wust"

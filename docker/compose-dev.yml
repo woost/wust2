@@ -11,6 +11,16 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+  github-redis:
+    extends:
+      file: services.yml
+      service: redis
+    stdin_open: true
+    tty: true
+    ports:
+      - "6379:6379"
+    volumes:
+      - gh_redis_data:/data
   db-migration:
     extends:
       file: services.yml
@@ -22,3 +32,4 @@ services:
 
 volumes:
   pg_data:
+  gh_redis_data:

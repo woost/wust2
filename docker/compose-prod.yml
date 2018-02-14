@@ -7,7 +7,7 @@ services:
       file: services.yml
       service: postgres
     volumes:
-      - ./pg_data/:/var/lib/postgresql/data
+      - pg_data/:/var/lib/postgresql/data
   db-migration:
     restart: on-failure
     extends:
@@ -50,3 +50,15 @@ services:
       service: github-app
     depends_on:
       - wust
+      - github-redis
+  github-redis:
+    restart: on-failure
+    extends:
+      file: services.yml
+      service: redis
+    volumes:
+      - gh_redis_data:/data
+
+volumes:
+  pg_data:
+  gh_redis_data:
