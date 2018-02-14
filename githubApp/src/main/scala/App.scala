@@ -38,6 +38,7 @@ import github4s.app.GitHub4s
 
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
+import com.redis._
 
 class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig)(implicit ec: ExecutionContext) extends PluginApi {
   def connectUser(auth: Authentication.Token): Future[Option[String]] = {
@@ -52,6 +53,7 @@ class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConf
     }
   }
 }
+import scala.collection.concurrent.TrieMap
 
 object Constants {
   //TODO
@@ -63,49 +65,47 @@ object Constants {
   val wustRepo = "bug"
 
   val wustUser = UserId("wust-github")
+
 }
 
-case class GithubTokenProcess(userId: UserId, confirmed: Boolean)
-case class UserTokens(wustToken: Option[Authentication.Token], githubToken: Option[OAuthToken])
+object DBConstants {
+  val githubUserId = "githubUserId"
+  val wustUserId = "wustUserId"
+  val githubToken = "githubToken"
+  val wustToken = "wustToken"
+}
+
 object AuthClient {
   import shapeless.syntax.std.function._
   import shapeless.Generic
 
-  private var validUsers: mutable.HashMap[UserId, UserTokens] = new mutable.HashMap[UserId, UserTokens]
-  def addValidUser(userId: UserId): Unit = validUsers += userId -> UserTokens(None, None)
-  def addWustToken(userId: UserId, wust: Authentication.Token): Unit = validUsers.get(userId) match {
-    case Some(token) => validUsers += userId -> token.copy(wustToken = Some(wust))
-    case _ => validUsers += userId -> UserTokens(Some(wust), None)
+  /** Mappings for Wust <-> Github Interactions
+    * wustUserId -> (wustToken, githubUserId)
+    * githubUserId -> (githubToken, wustUserId)
+    */
+  def addWustToken(client: RedisClient, wustUserId: UserId, wustToken: String): Option[Long] = {
+    client.hset1(s"wu_$wustUserId", DBConstants.wustToken, wustToken)
   }
-  def addGithubToken(userId: UserId, github: OAuthToken): Unit = validUsers.get(userId) match {
-    case Some(token) => validUsers += userId -> token.copy(githubToken = Some(github))
-    case _ => validUsers += userId -> UserTokens(None, Some(github))
+  def addGithubUser(client: RedisClient, wustUserId: UserId, githubUserId: Int): Option[Long] = {
+    client.hset1(s"wu_$wustUserId", DBConstants.githubUserId, s"gh_$githubUserId")
+  }
+  def addGithubToken(client: RedisClient, githubUserId: Int, githubToken: String): Option[Long] = {
+    client.hset1(s"gh_$githubUserId", DBConstants.githubToken, githubToken)
+  }
+  def addWustUser(client: RedisClient, githubUserId: Int, wustUserId: UserId): Option[Long] = {
+    client.hset1(s"gh_$githubUserId", DBConstants.wustUserId, wustUserId)
   }
 
-  var oAuthRequests: mutable.HashMap[String, GithubTokenProcess] = mutable.HashMap.empty[String, GithubTokenProcess]
-  def addOAuthRequest(userId: UserId, state: String, confirmed: Boolean = false): Unit = {
-    oAuthRequests += state -> GithubTokenProcess(userId, confirmed)
-  }
+  var oAuthRequests: TrieMap[String, UserId] = TrieMap.empty[String, UserId]
 
   def confirmOAuthRequest(code: String, state: String): Boolean = {
     val currRequest = oAuthRequests.get(state) match {
-      case Some(item) =>
-        oAuthRequests = oAuthRequests += state -> item.copy(confirmed = true)
-        true
+      case Some(_) => true
       case _ =>
         scribe.error(s"Could not confirm oAuthRequest. No such request in queue")
         false
     }
     code.nonEmpty && currRequest
-  }
-
-  def persistToken(state: String, token: OAuthToken): Boolean = {
-    if(oAuthRequests(state).confirmed) {
-      addGithubToken(oAuthRequests(state).userId, token)
-      // TODO persist
-    }
-    oAuthRequests -= state
-    true
   }
 
   def getToken(oAuthRequest: NewOAuthRequest): Option[OAuthToken] = {
@@ -129,8 +129,12 @@ object AuthClient {
     Github(None).auth.authorizeUrl(github.clientId, redirectUri, scopes)
       .exec[cats.Id, HttpResponse[String]]() match {
       case Right(GHResult(result, _, _)) =>
-        addOAuthRequest(userId, result.state)
-        Some(result.url)
+        oAuthRequests.putIfAbsent(result.state, userId) match {
+          case None => Some(result.url)
+          case _ =>
+            scribe.error("Duplicate state in url generation")
+            None
+        }
       case Left(err) =>
         scribe.error(s"Could not generate url: ${err.getMessage}")
         None
@@ -151,7 +155,7 @@ object AppServer {
   private def editComment(issue: Issue, comment: Comment) = GraphChanges.empty
   private def deleteComment(issue: Issue, comment: Comment) = GraphChanges.empty
 
-  def run(server: ServerConfig, github: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
+  def run(server: ServerConfig, github: GithubConfig, redis: RedisClient, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
@@ -159,7 +163,7 @@ object AppServer {
     import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]
-      .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github))
+      .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github, redis))
 
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
@@ -173,9 +177,21 @@ object AppServer {
           parameters('code, 'state) { (code, state) =>
             if(AuthClient.confirmOAuthRequest(code, state)) {
               val tokenRequest = NewOAuthRequest(github.clientId, github.clientSecret, code, s"http://${server.host}:${server.port}/${server.authPath}", state)
-              AuthClient.getToken(tokenRequest).map{ token =>
+              val token = AuthClient.getToken(tokenRequest).map{ ghToken =>
                 scribe.info(s"Verified token request(code, state) - Persisting token for user: ${AuthClient.oAuthRequests(state)}")
-                AuthClient.persistToken(state, token)
+                ghToken.access_token
+              }
+              Github(token).users.getAuth.exec[cats.Id, HttpResponse[String]]() match {
+                case Right(r) =>
+                  val wustUserId = AuthClient.oAuthRequests(state)
+                  val githubUserId = r.result.id
+                  // Github data
+                  AuthClient.addGithubToken(redis, githubUserId, token.get)
+                  AuthClient.addWustUser(redis, githubUserId, wustUserId)
+                  // Wust data
+                  AuthClient.addGithubUser(redis, wustUserId, githubUserId)
+                  AuthClient.oAuthRequests.remove(state)
+                case Left(e) => println(s"Could not authenticate with OAuthToken: ${e.getMessage}")
               }
             } else {
               scribe.error(s"Could not verify request(code, state): ($code, $state)")
@@ -632,9 +648,10 @@ object App extends scala.App {
   Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      val client = GithubClient(config.github)
-      WustReceiver.run(config.wust, client).foreach {
-        case Right(receiver) => AppServer.run(config.server, config.github, receiver)
+      val githubClient = GithubClient(config.github)
+      val redisClient = new RedisClient("localhost", 6379)
+      WustReceiver.run(config.wust, githubClient).foreach {
+        case Right(receiver) => AppServer.run(config.server, config.github, redisClient, receiver)
         case Left(err) => println(s"Cannot connect to Wust: $err")
       }
   }
