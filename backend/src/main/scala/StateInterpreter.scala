@@ -1,6 +1,5 @@
 package wust.backend
 
-import derive.derive
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._

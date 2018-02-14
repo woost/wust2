@@ -1,7 +1,5 @@
 package wust.slack
 
-import derive.derive
-
 //@derive((host, user) => toString)
 case class WustConfig(host: String, port: String, user: String, password: String)
 {

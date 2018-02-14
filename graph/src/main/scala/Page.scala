@@ -1,5 +1,5 @@
 package wust.graph
-import derive.derive
+
 import wust.ids._
 import collection.breakOut
 

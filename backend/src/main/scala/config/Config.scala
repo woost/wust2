@@ -1,6 +1,5 @@
 package wust.backend.config
 
-import derive.derive
 import com.typesafe.config.{Config => TConfig}
 import scala.concurrent.duration.Duration
 

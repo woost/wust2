@@ -1,6 +1,5 @@
 package wust.graph
 
-import derive.derive
 import wust.ids._
 import wust.util.Pipe
 import wust.util.algorithm._
