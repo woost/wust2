@@ -40,19 +40,6 @@ import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
 import com.redis._
 
-class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig)(implicit ec: ExecutionContext) extends PluginApi {
-  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
-    client.auth.verifyToken(auth).map {
-      case Some(verifiedAuth) =>
-        scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        AuthClient.addWustToken(verifiedAuth.user.id, verifiedAuth.token)
-        AuthClient.generateAuthUrl(verifiedAuth.user.id, server, github)
-      case None =>
-        scribe.info(s"Invalid auth")
-        None
-    }
-  }
-}
 import scala.collection.concurrent.TrieMap
 
 object Constants {
@@ -73,6 +60,23 @@ object DBConstants {
   val wustUserId = "wustUserId"
   val githubToken = "githubToken"
   val wustToken = "wustToken"
+}
+
+class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig, redis: RedisClient)(implicit ec: ExecutionContext) extends PluginApi {
+  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
+    client.auth.verifyToken(auth).map {
+      case Some(verifiedAuth) =>
+        scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
+        // Step 1: Add wustId -> wustToken
+        AuthClient.addWustToken(redis, verifiedAuth.user.id, verifiedAuth.token)
+
+        // Generate url called by client (e.g. WebApp)
+        AuthClient.generateAuthUrl(verifiedAuth.user.id, server, github)
+      case None =>
+        scribe.info(s"Invalid auth")
+        None
+    }
+  }
 }
 
 object AuthClient {
