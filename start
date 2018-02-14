@@ -30,6 +30,10 @@ env_wust_backendport="WUST_BACKEND_PORT=${WUST_BACKEND_PORT:-8080}"
 env_wust_devport="WUST_DEVSERVER_PORT=${WUST_DEVSERVER_PORT:-12345}"
 env_wust_devcomp="WUST_DEVSERVER_COMPRESS=${WUST_DEVSERVER_COMPRESS:-false}"
 
+if [[ -f tokens.sh ]]; then
+    source tokens.sh
+fi
+
 echo "Starting with parameters"
 echo -e "\tBackend Port:\t\t\e[1m\e[32m$env_wust_backendport\e[0m"
 echo -e "\tDevServer Port:\t\t\e[1m\e[32m$env_wust_devport\e[0m"
