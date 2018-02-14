@@ -461,7 +461,7 @@ object ForceSimulation {
     keepDistance(simData, staticData, distance = Constants.nodePadding, strength = 0.2)
     edgeLength(simData, staticData)
 
-    eulerSetClustering(simData, staticData)
+    // eulerSetClustering(simData, staticData)
 //    pushOutOfWrongEulerSet(simData,staticData)
   }
 
