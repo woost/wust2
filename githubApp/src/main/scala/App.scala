@@ -51,7 +51,7 @@ object Constants {
   val wustOwner = "woost"
   val wustRepo = "bug"
 
-  val wustUser = UserId("wust-github")
+  val wustUser = UserId("wust")
 
 }
 
