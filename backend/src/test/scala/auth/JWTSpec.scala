@@ -1,36 +1,23 @@
 package wust.backend.auth
 
 import org.scalatest._
-import wust.graph.User
 import wust.ids._
 
+import java.time.Instant
 import scala.concurrent.duration._
 
 class JWTSpec extends FreeSpec with MustMatchers {
   val jwt = new JWT("secret", 1 hours)
 
-  implicit def intToUserId(id: Int): UserId = UserId(id)
-
-  object User {
-    def apply(name: String): User = new User(1313L, name, isImplicit = false, 0)
-  }
-
-  "generate auth and then to authentication" in {
-    val user = User("Biermann")
-    val auth = jwt.generateAuthentication(user)
-    val clientAuth = auth.toAuthentication
-
-    clientAuth.user mustEqual auth.user
-    clientAuth.token mustEqual auth.token
-  }
+  def User(name: String): wust.graph.User.Persisted = new wust.graph.User.Real(UserId.fresh, name, 0)
 
   "generate valid auth for user" in {
     val user = User("Biermann")
     val auth = jwt.generateAuthentication(user)
 
-    auth.isExpired mustEqual false
+    JWT.isExpired(auth) mustEqual false
     auth.user mustEqual user
-    auth.expires must be > (System.currentTimeMillis / 1000)
+    auth.expires must be > Instant.now.getEpochSecond
     auth.token.length must be > 0
   }
 
@@ -39,9 +26,9 @@ class JWTSpec extends FreeSpec with MustMatchers {
     val jwt = new JWT("secret", tokenLifetime = Duration.Zero)
     val auth = jwt.generateAuthentication(user)
 
-    auth.isExpired mustEqual true
+    JWT.isExpired(auth) mustEqual true
     auth.user mustEqual user
-    auth.expires must be < (System.currentTimeMillis / 1000)
+    auth.expires must be <= Instant.now.getEpochSecond
     auth.token.length must be > 0
   }
 

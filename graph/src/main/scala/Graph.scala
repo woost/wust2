@@ -68,7 +68,7 @@ object User {
 final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 object Post {
 
-  //TODO: we are throwing exceptions here in the post factory!
+  //TODO: we are throwing exceptions here in the post factory! we should not accept strings as dates.
   def parseTime(time: String): LocalDateTime = Instant.parse(time).atZone(ZoneId.systemDefault).toLocalDateTime
 
   def apply(id: PostId, content: String, author: UserId, time: LocalDateTime = LocalDateTime.now()): Post = {
