@@ -1,35 +1,10 @@
 version: '2'
 
 services:
-  postgres:
-    extends:
-      file: services.yml
-      service: postgres
-    stdin_open: true
-    tty: true
+  wust-postgres:
     ports:
       - "5432:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
+
   github-redis:
-    extends:
-      file: services.yml
-      service: redis
-    stdin_open: true
-    tty: true
     ports:
       - "6379:6379"
-    volumes:
-      - gh_redis_data:/data
-  db-migration:
-    extends:
-      file: services.yml
-      service: db-migration
-    stdin_open: true
-    tty: true
-    depends_on:
-      - postgres
-
-volumes:
-  pg_data:
-  gh_redis_data:

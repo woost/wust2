@@ -7,7 +7,9 @@ set -o pipefail
 docker images
 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 
-docker push woost/wust2
-docker push woost/wust2.db-migration
-docker push woost/wust2.nginx
-docker push woost/wust2.slack-app
+docker push woost/db-migration
+docker push woost/core
+docker push woost/web
+docker push woost/github
+docker push woost/gitter
+docker push woost/slack

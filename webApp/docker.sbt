@@ -7,12 +7,12 @@ dockerfile in docker := {
 
     new Dockerfile {
         from("nginx:1.13.5-alpine")
-        copy(baseDirectory(_ / "default.conf").value, "/etc/nginx/conf.d/default.conf")
+        copy(baseDirectory(_ / "docker" / "default.conf").value, "/etc/nginx/conf.d/default.conf")
         copy(assetFolder, "/public")
     }
 }
 
 imageNames in docker :=
-  ImageName(namespace = Some("woost"), repository = "wust2.nginx") ::
-  ImageName(namespace = Some("woost"), repository = "wust2.nginx", tag = Some(version.value)) ::
+  ImageName(namespace = Some("woost"), repository = "web") ::
+  ImageName(namespace = Some("woost"), repository = "web", tag = Some(version.value)) ::
   Nil

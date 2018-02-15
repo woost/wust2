@@ -71,29 +71,29 @@ lazy val sourceMapSettings = Seq(
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, webApp, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp, gitterApp, githubApp)
+  .aggregate(apiJS, apiJVM, database, core, sdkJS, sdkJVM, webApp, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp, gitterApp, githubApp)
   .settings(
     publish := {},
     publishLocal := {},
 
     addCommandAlias("clean", "; root/clean; assets/clean"),
 
-    addCommandAlias("dev", "; compile; webApp/fastOptJS::startWebpackDevServer; devwatch; devstop; backend/reStop"),
-    addCommandAlias("devwatch", "~; backend/reStart; webApp/fastOptJS; webApp/copyFastOptJS"),
+    addCommandAlias("dev", "; compile; webApp/fastOptJS::startWebpackDevServer; devwatch; devstop; core/reStop"),
+    addCommandAlias("devwatch", "~; core/reStart; webApp/fastOptJS; webApp/copyFastOptJS"),
     addCommandAlias("devstop", "webApp/fastOptJS::stopWebpackDevServer"),
 
-    addCommandAlias("devf", "; compile; backend/reStart; project webApp; fastOptJS::startWebpackDevServer; devfwatch; devstop; backend/reStop; project root"),
+    addCommandAlias("devf", "; compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devfwatch; devstop; core/reStop; project root"),
     addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
     addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; backend/test; slackApp/test; gitterApp/test; githubApp/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test; slackApp/test; gitterApp/test; githubApp/test"),
 
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in webApp).value
-    // watchSources := Seq(apiJS, apiJVM, database, backend, sdkJS, sdkJVM, webApp, graphJS, graphJVM, utilJS, utilJVM, systemTest, nginx, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in backend).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in webApp).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in nginx).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
+    // watchSources := Seq(apiJS, apiJVM, database, core, sdkJS, sdkJVM, webApp, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in webApp).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
 lazy val util = crossProject
@@ -186,7 +186,7 @@ lazy val database = project
   // parallelExecution in IntegrationTest := false
   )
 
-lazy val backend = project
+lazy val core = project
   .settings(commonSettings)
   .dependsOn(apiJVM, database)
   .configs(IntegrationTest)
@@ -338,5 +338,4 @@ lazy val systemTest = project
     scalacOptions in Test ++= Seq("-Yrangepos") // specs2
   )
 
-lazy val nginx = project
 lazy val dbMigration = project

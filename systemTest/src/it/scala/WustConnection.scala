@@ -18,8 +18,8 @@ object WustConnection {
   implicit val materializer = ActorMaterializer()
 
   val hostname = "localhost"
-  val httpPort = 80
-  val wsPort = 8080
+  val httpPort = 9001
+  val wsPort = 9000
   val httpUrl = s"http://$hostname:$httpPort"
   val wsUrl = s"ws://$hostname:$wsPort/ws"
 

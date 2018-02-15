@@ -1,29 +1,6 @@
 version: '2'
 
 services:
-  postgres:
-    extends:
-      file: services.yml
-      service: postgres
+  wust-postgres:
     ports:
       - "${POSTGRES_PORT}:5432"
-  db-migration:
-    extends:
-      file: services.yml
-      service: db-migration
-    depends_on:
-      - postgres
-  wust:
-    extends:
-      file: services.yml
-      service: wust
-    depends_on:
-      - postgres
-    ports:
-      - "127.0.0.1:8080:8080"
-  nginx:
-    extends:
-      file: services.yml
-      service: nginx
-    ports:
-      - "80:80"

@@ -7,6 +7,7 @@ fi
 
 stage=$1
 args="${@:2}"
+base_compose_path="$(dirname $0)/compose.yml"
 compose_path="$(dirname $0)/compose-$stage.yml"
 compose_project="wust_$stage"
 
@@ -15,4 +16,4 @@ if [[ ! -e $compose_path ]]; then
     exit 1
 fi
 
-docker-compose --project-name $compose_project --file $compose_path $args
+docker-compose --project-name $compose_project --file $base_compose_path --file $compose_path $args

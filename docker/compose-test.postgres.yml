@@ -1,20 +1,10 @@
 version: '2'
 
 services:
-  postgres:
-    extends:
-      file: services.yml
-      service: postgres
-  db-migration:
-    extends:
-      file: services.yml
-      service: db-migration
-    depends_on:
-      - postgres
-  test:
+  test-wust-postgres:
     image: cornerman/docker-pgtap
-    command: -h postgres -u 'wust' -d 'wust'
+    command: -h wust-postgres -u 'wust' -d 'wust'
     volumes:
-      - "../dbMigration/tests/:/t"
+      - "../dbMigration/wust/tests/:/t"
     depends_on:
-      - postgres
+      - wust-postgres

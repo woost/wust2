@@ -14,6 +14,6 @@ dockerfile in docker := {
 }
 
 imageNames in docker :=
-  ImageName(namespace = Some("woost"), repository = "wust2.github-app") ::
-  ImageName(namespace = Some("woost"), repository = "wust2.github-app", tag = Some(version.value)) ::
+  ImageName(namespace = Some("woost"), repository = "github") ::
+  ImageName(namespace = Some("woost"), repository = "github", tag = Some(version.value)) ::
   Nil
