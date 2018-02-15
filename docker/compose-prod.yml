@@ -22,6 +22,8 @@ services:
       service: wust
     depends_on:
       - postgres
+    ports:
+      - "127.0.0.1:8080:8080"
   nginx:
     restart: on-failure
     extends:

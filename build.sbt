@@ -181,6 +181,7 @@ lazy val database = project
   .settings(
     libraryDependencies ++=
       Deps.quill.value ::
+      Deps.scalatest.value % IntegrationTest ::
       Nil
   // parallelExecution in IntegrationTest := false
   )
@@ -329,6 +330,8 @@ lazy val systemTest = project
   .settings(
     libraryDependencies ++=
       Deps.akka.http.value % IntegrationTest ::
+      Deps.akka.actor.value % IntegrationTest ::
+      Deps.akka.stream.value % IntegrationTest ::
       Deps.specs2.value % IntegrationTest ::
       Deps.selenium.value % IntegrationTest ::
       Nil,

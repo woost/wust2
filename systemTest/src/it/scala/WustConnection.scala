@@ -18,20 +18,27 @@ object WustConnection {
   implicit val materializer = ActorMaterializer()
 
   val hostname = "localhost"
-  val port = 80
-  val httpUrl = s"http://$hostname:$port"
-  val wsUrl = s"ws://$hostname:$port/ws"
+  val httpPort = 80
+  val wsPort = 8080
+  val httpUrl = s"http://$hostname:$httpPort"
+  val wsUrl = s"ws://$hostname:$wsPort/ws"
 
-  lazy val httpConnection = Http().outgoingConnection(hostname, port)
+  lazy val nginxHttpConnection = Http().outgoingConnection(hostname, httpPort)
+  lazy val wsHttpConnection = Http().outgoingConnection(hostname, wsPort)
   def wsConnection(flow: Flow[Message, Message, Future[Done]]) = Http().singleWebSocketRequest(WebSocketRequest(wsUrl), flow)
 
   def ws(sink: Sink[Message, Future[Done]], source: Source[Message, NotUsed]): (Future[WebSocketUpgradeResponse], Future[Done]) = {
     wsConnection(Flow.fromSinkAndSourceMat(sink, source)(Keep.left))
   }
 
+  def wsGet(path: String): Future[HttpResponse] = {
+    val request = RequestBuilding.Get(path)
+    Source.single(request).via(wsHttpConnection).runWith(Sink.head)
+  }
+
   def get(path: String): Future[HttpResponse] = {
     val request = RequestBuilding.Get(path)
-    Source.single(request).via(httpConnection).runWith(Sink.head)
+    Source.single(request).via(nginxHttpConnection).runWith(Sink.head)
   }
 
   def retry(n: Int, sleepMillis: Int = 0)(fun: => Boolean): Boolean = fun match {
@@ -44,13 +51,13 @@ object WustConnection {
       else false
   }
 
-  def pathIsUp(path: String, validate: HttpResponse => Boolean) =
-    retry(10, sleepMillis = 1000)(Await.ready(get(path), 5.second).value.get.filter(validate).isSuccess)
+  def pathIsUp(get: => Future[HttpResponse], validate: HttpResponse => Boolean) =
+    retry(10, sleepMillis = 1000)(Await.ready(get, 5.second).value.get.filter(validate).isSuccess)
 
   lazy val ready = {
     println("Waiting for Woost to be up...")
-    pathIsUp("/", r => r.status.isSuccess) &&
-      pathIsUp("/ws", _.status != StatusCodes.BadGateway)
+    pathIsUp(get("/"), r => r.status.isSuccess) &&
+      pathIsUp(wsGet("/ws"), _.status == StatusCodes.BadRequest)
   }
 }
 
