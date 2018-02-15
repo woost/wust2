@@ -128,11 +128,10 @@ select {
 }
 
 .graphpost {
-    position:absolute;
-    max-width: 60ch;
     word-wrap: break-word;
     text-rendering: optimizeLegibility;
-    padding : 3px 5px;
+    position: absolute;
+    padding: 3px 5px;
     /* border-radius : 3px; */ /* affects graph rendering performance */
 }
 

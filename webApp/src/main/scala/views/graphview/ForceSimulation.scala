@@ -341,6 +341,17 @@ object ForceSimulation {
   private val debugDrawEnabled = false
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
+  def calcPostWidth(post: Post) = {
+    import outwatch.dom.dsl._
+    val arbitraryFactor = 2.4
+    val contentWidth = post.content.length
+    val calcWidth = if(contentWidth > 10){
+      val sqrtWidth = (math.sqrt(contentWidth) * arbitraryFactor) min 60
+      Some(width:= s"${sqrtWidth}ch")
+    } else None
+    calcWidth
+  }
+
   def updateDomPosts(
                       posts: js.Array[Post],
                       postSelection: Selection[Post]
@@ -355,6 +366,7 @@ object ForceSimulation {
     time(log(s"updating staying posts[${post.size()}]")) {
       post
         .text((post:Post) => post.content)
+        .style("width", (post: Post) => calcPostWidth(post).getOrElse(js.undefined))
     }
 
     time(log(s"adding new posts to dom[${post.enter().size()}]")) {
@@ -362,11 +374,15 @@ object ForceSimulation {
         .append { (post: Post) =>
           import outwatch.dom.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
+          val postWidth = calcPostWidth(post)
+          scribe.info(s"Post width = $postWidth")
           div(
+            postWidth,
             post.content,
             cls := "graphpost",
             pointerEvents.auto, // re-enable mouse events
             cursor.default
+            //            )
           ).render
         }
     }
@@ -425,7 +441,7 @@ object ForceSimulation {
     import simData._
     if (alpha < alphaMin) return false
     alpha += (alphaTarget - alpha) * alphaDecay
-//    println(log("step: " + alpha))
+    //    println(log("step: " + alpha))
     true
   }
 
@@ -449,7 +465,7 @@ object ForceSimulation {
   def calculateVelocities(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension): Unit = {
     import ForceSimulationForces._
 
-//    dom.console.log(staticData.asInstanceOf[js.Any])
+    //    dom.console.log(staticData.asInstanceOf[js.Any])
     initQuadtree(simData, staticData)
     eulerSetGeometricCenter(simData, staticData)
     calculateEulerSetPolygons(simData,staticData)
@@ -459,7 +475,7 @@ object ForceSimulation {
     edgeLength(simData, staticData)
 
     // eulerSetClustering(simData, staticData)
-//    pushOutOfWrongEulerSet(simData,staticData)
+    //    pushOutOfWrongEulerSet(simData,staticData)
   }
 
   def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Post]): Unit = {
@@ -500,20 +516,20 @@ object ForceSimulation {
     canvasContext.closePath()
 
     // for every node
-//    i = 0
-//    canvasContext.lineWidth = 1
-//    canvasContext.strokeStyle = "#333"
-//    while(i < nodeCount) {
-//      val x = simData.x(i)
-//      val y = simData.y(i)
-//
-//      i += 1
-//    }
+    //    i = 0
+    //    canvasContext.lineWidth = 1
+    //    canvasContext.strokeStyle = "#333"
+    //    while(i < nodeCount) {
+    //      val x = simData.x(i)
+    //      val y = simData.y(i)
+    //
+    //      i += 1
+    //    }
 
 
-//     for every containment cluster
+    //     for every containment cluster
     i = 0
-//    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
+    //    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < eulerSetCount) {
       val polygon = simData.eulerSetPolygons(i)
       assert(polygon.length % 2 == 0)
@@ -534,40 +550,40 @@ object ForceSimulation {
         val p2 = polygon(((j)*2) % polygon.length)
         val cp1 = start + (Vec2(p1._1, p1._2)-start).normalized*staticData.radius(startNode)*2
         val cp2 = end + (Vec2(p2._1, p2._2) - end).normalized*staticData.radius(endNode)*2
-//        canvasContext.lineTo(midpoints(j).x, midpoints(j).y)
+        //        canvasContext.lineTo(midpoints(j).x, midpoints(j).y)
         canvasContext.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y)
 
-//        // start radius
-//        canvasContext.lineWidth = 1
-//        canvasContext.fillStyle = "rgba(182,96,242,4.0)"
-//        canvasContext.beginPath()
-//        canvasContext.arc(start.x, start.y, staticData.radius(startNode), startAngle = 0, endAngle = fullCircle)
-//        canvasContext.fill()
-//        canvasContext.closePath()
-//
-//        // end radius
-//        canvasContext.lineWidth = 1
-//        canvasContext.fillStyle = "rgba(182,242,96,4.0)"
-//        canvasContext.beginPath()
-//        canvasContext.arc(end.x, end.y, staticData.radius(endNode), startAngle = 0, endAngle = fullCircle)
-//        canvasContext.fill()
-//        canvasContext.closePath()
-//
-//        // cp1
-//        canvasContext.lineWidth = 1
-//        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
-//        canvasContext.beginPath()
-//        canvasContext.arc(cp1.x, cp1.y, 5, startAngle = 0, endAngle = fullCircle)
-//        canvasContext.fill()
-//        canvasContext.closePath()
-////
-////        // cp2
-//        canvasContext.lineWidth = 1
-//        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
-//        canvasContext.beginPath()
-//        canvasContext.arc(cp2.x, cp2.y, 10, startAngle = 0, endAngle = fullCircle)
-//        canvasContext.fill()
-//        canvasContext.closePath()
+        //        // start radius
+        //        canvasContext.lineWidth = 1
+        //        canvasContext.fillStyle = "rgba(182,96,242,4.0)"
+        //        canvasContext.beginPath()
+        //        canvasContext.arc(start.x, start.y, staticData.radius(startNode), startAngle = 0, endAngle = fullCircle)
+        //        canvasContext.fill()
+        //        canvasContext.closePath()
+        //
+        //        // end radius
+        //        canvasContext.lineWidth = 1
+        //        canvasContext.fillStyle = "rgba(182,242,96,4.0)"
+        //        canvasContext.beginPath()
+        //        canvasContext.arc(end.x, end.y, staticData.radius(endNode), startAngle = 0, endAngle = fullCircle)
+        //        canvasContext.fill()
+        //        canvasContext.closePath()
+        //
+        //        // cp1
+        //        canvasContext.lineWidth = 1
+        //        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
+        //        canvasContext.beginPath()
+        //        canvasContext.arc(cp1.x, cp1.y, 5, startAngle = 0, endAngle = fullCircle)
+        //        canvasContext.fill()
+        //        canvasContext.closePath()
+        ////
+        ////        // cp2
+        //        canvasContext.lineWidth = 1
+        //        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
+        //        canvasContext.beginPath()
+        //        canvasContext.arc(cp2.x, cp2.y, 10, startAngle = 0, endAngle = fullCircle)
+        //        canvasContext.fill()
+        //        canvasContext.closePath()
 
         j += 1
       }
@@ -692,24 +708,24 @@ object ForceSimulation {
 
 
     // for every containment
-//    i = 0
-//    canvasContext.lineWidth = 20
-//    while (i < containmentCount) {
-//      val child = staticData.child(i)
-//      val parent = staticData.parent(i)
-//      val grad= canvasContext.createLinearGradient(simData.x(child), simData.y(child), simData.x(parent), simData.y(parent))
-//      grad.addColorStop(0, "rgba(255,255,255,0.1)") // child
-//      grad.addColorStop(1, "rgba(255,255,255,0.5)") // parent
-//      canvasContext.strokeStyle = grad
-//      canvasContext.beginPath()
-//      canvasContext.moveTo(simData.x(child), simData.y(child))
-//      canvasContext.lineTo(simData.x(parent), simData.y(parent))
-//      canvasContext.stroke()
-//      canvasContext.closePath()
-//      i += 1
-//    }
+    //    i = 0
+    //    canvasContext.lineWidth = 20
+    //    while (i < containmentCount) {
+    //      val child = staticData.child(i)
+    //      val parent = staticData.parent(i)
+    //      val grad= canvasContext.createLinearGradient(simData.x(child), simData.y(child), simData.x(parent), simData.y(parent))
+    //      grad.addColorStop(0, "rgba(255,255,255,0.1)") // child
+    //      grad.addColorStop(1, "rgba(255,255,255,0.5)") // parent
+    //      canvasContext.strokeStyle = grad
+    //      canvasContext.beginPath()
+    //      canvasContext.moveTo(simData.x(child), simData.y(child))
+    //      canvasContext.lineTo(simData.x(parent), simData.y(parent))
+    //      canvasContext.stroke()
+    //      canvasContext.closePath()
+    //      i += 1
+    //    }
 
-//     for every containment cluster
+    //     for every containment cluster
     i = 0
     val polyLine = d3.line().curve(d3.curveLinearClosed).context(canvasContext)
     while (i < eulerSetCount) {
