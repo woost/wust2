@@ -6,7 +6,7 @@ SELECT col_not_null('rawconnection', 'sourceid');
 SELECT col_not_null('rawconnection', 'targetid');
 
 SELECT isnt_empty(
-    $$ INSERT INTO "user" (name) VALUES ('Rolufus') RETURNING (id, name) $$,
+    $$ INSERT INTO "user" (id, name) VALUES ('heidi', 'Rolufus') RETURNING (id, name) $$,
     'insert user'
 );
 
