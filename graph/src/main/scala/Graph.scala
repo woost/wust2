@@ -285,7 +285,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def applyChanges(c: GraphChanges): Graph = {
     copy(
       postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
-      connectionsByLabel = connectionsByLabel ++ (c.addConnections -- c.delConnections).groupBy(_.label).map { case (k,v) => k -> ( v ++ connectionsByLabelF(k)) },
+      connectionsByLabel =
+        connectionsByLabel.map { case (k, v) => k -> v.filterNot(c.delConnections) } ++
+          c.addConnections.groupBy(_.label).collect { case (k, v) => k -> (v ++ connectionsByLabelF(k)).filterNot(c.delConnections) },
       ownerships = ownerships ++ c.addOwnerships -- c.delOwnerships
     )
   }

@@ -41,10 +41,10 @@ case class GraphChanges(
   )
 
   lazy val consistent = GraphChanges(
-    addPosts,
+    addPosts.filterNot(p => delPosts(p.id)),
     (addConnections -- delConnections).filter(c => c.sourceId != c.targetId),
     addOwnerships -- delOwnerships,
-    updatePosts,
+    updatePosts.filterNot(p => delPosts(p.id)),
     delPosts,
     delConnections,
     delOwnerships
