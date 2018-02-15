@@ -1,9 +1,10 @@
 package views.graphview
 
 import d3v4._
+import io.circe.Decoder.state
 import org.scalajs.dom
 import org.scalajs.dom.html.Element
-import org.scalajs.dom.{CanvasRenderingContext2D, console, html}
+import org.scalajs.dom.{CanvasRenderingContext2D, console, html, svg}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
@@ -11,7 +12,7 @@ import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
 import wust.webApp.Color.baseColor
 import wust.webApp.GlobalState
-import wust.webApp.views.graphview.Constants
+import wust.webApp.views.graphview.{Constants, PostCreationMenu}
 import wust.graph._
 import wust.ids.{Label, PostId}
 import wust.util.outwatchHelpers._
@@ -45,6 +46,21 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
   import ForceSimulation._
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph}
 
+  val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
+  val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
+
+  private var labelVisualization: PartialFunction[Label,VisualizationType] = {
+    case label if label == Label.parent => Containment
+    case label => Edge
+  }
+  private var postSelection: Selection[Post] = _
+  private var simData: SimulationData = _
+  private var staticData: StaticData = _
+  private var planeDimension = PlaneDimension()
+  private var canvasContext:CanvasRenderingContext2D = _
+  var transform:Transform = d3.zoomIdentity
+  var running = false
+  //  val positionRequests = mutable.HashMap.empty[PostId, (Double, Double)]
 
   private val backgroundElement = Promise[dom.html.Element]
   private val postContainerElement = Promise[dom.html.Element]
@@ -77,19 +93,6 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
     )
   }
 
-  private var labelVisualization: PartialFunction[Label,VisualizationType] = {
-    case label if label == Label.parent => Containment
-    case label => Edge
-  }
-  private var postSelection: Selection[Post] = _
-  private var simData: SimulationData = _
-  private var staticData: StaticData = _
-  private var planeDimension = PlaneDimension()
-  private var canvasContext:CanvasRenderingContext2D = _
-  var transform:Transform = d3.zoomIdentity
-  var running = false
-//  val positionRequests = mutable.HashMap.empty[PostId, (Double, Double)]
-
   for {
     backgroundElement <- backgroundElement.future
     postContainerElement <- postContainerElement.future
@@ -110,6 +113,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
       }
     }
 
+
     def zoomed(): Unit = {
       transform = d3.event.transform
      // println(log(s"zoomed: ${transform.k}"))
@@ -123,8 +127,26 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
     val zoom = d3.zoom()
       .scaleExtent(js.Array(0.01, 10))
       .on("zoom", () => zoomed())
+      .clickDistance(10) // interpret short drags as clicks
 
     background.call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
+      .on("click", { () =>
+      println("clicked background")
+      //TODO: Also show postCreationMenu when no user is present
+      if (postCreationMenus.now.isEmpty && selectedPostId.now.isEmpty) {
+        val author = state.inner.currentUser.now
+        val pos = transform.invert(d3.mouse(background.node))
+        postCreationMenus() = List(PostCreationMenu.Menu(Vec2(pos(0), pos(1)), author.id))
+      } else {
+        // TODO:
+        // Var.set(
+        //   Var.Assignment(postCreationMenus, Nil),
+        //   Var.Assignment(selectedPostId, None)
+        // )
+        postCreationMenus() = Nil
+        selectedPostId() = None
+      }
+    })
 
 
     events.window.onResize.foreach { _ =>
@@ -200,6 +222,22 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
       }
     }
 
+    def onClick(post:Post, i:Int): Unit = {
+
+      println("clicked post")
+      d3.event.stopImmediatePropagation()
+
+      //TODO:
+      //   // Var.set(
+      //   //   VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
+      //     //   VarTuple(graphState.state.postCreatorMenus, Nil)
+      //   // )
+      val pos = Vec2(simData.x(i), simData.y(i))
+      selectedPostId() = Some((pos, post.id))
+      postCreationMenus() = Nil
+    }
+
+
     def resized():Unit = {
 //      println(log("resized"))
       val rect = backgroundElement.getBoundingClientRect()
@@ -242,7 +280,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
-      updateDomPosts(posts.toJSArray, postSelection) // d3 data join
+      updateDomPosts(posts.toJSArray, postSelection, onClick) // d3 data join
       postSelection = postContainer.selectAll[Post]("div") // update outdated postSelection
       registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
@@ -354,9 +392,10 @@ object ForceSimulation {
 
   def updateDomPosts(
                       posts: js.Array[Post],
-                      postSelection: Selection[Post]
+                      postSelection: Selection[Post],
+                      onClick: (Post,Int) => Unit
                     ): Unit = {
-    // https://bost.ocks.org/mike/join
+    // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
     val post = postSelection.data(posts, (p:Post) => p.id)
     time(log(s"removing old posts from dom[${post.exit().size()}]")) {
       post.exit()
@@ -371,7 +410,7 @@ object ForceSimulation {
 
     time(log(s"adding new posts to dom[${post.enter().size()}]")) {
       post.enter()
-        .append { (post: Post) =>
+        .append ( (post: Post) => {
           import outwatch.dom.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
           val postWidth = calcPostWidth(post)
@@ -382,9 +421,9 @@ object ForceSimulation {
             cls := "graphpost",
             pointerEvents.auto, // re-enable mouse events
             cursor.default
-            //            )
           ).render
-        }
+        })
+        .on("click", (onClick:js.Function).asInstanceOf[js.Function0[Unit]]) //TODO: update d3v4 to accept more types of listenerfunctions
     }
   }
 

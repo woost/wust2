@@ -36,7 +36,7 @@ class StaticData(
                   val containmentRadius: Array[Double], // TODO: still needed?
                   val nodeParentCount: Array[Int],
                   val bgColor: Array[String],
-                  val border: Array[String],
+//                  val border: Array[String],
                   val nodeReservedArea:Array[Double], //TODO: rename to reservedArea
                   var reservedArea: Double, //TODO: rename to totalReservedArea
 
@@ -73,7 +73,7 @@ class StaticData(
     containmentRadius = new Array(nodeCount),
     nodeParentCount = new Array(nodeCount),
     bgColor = new Array(nodeCount),
-    border = new Array(nodeCount),
+//    border = new Array(nodeCount),
     nodeReservedArea = new Array(nodeCount),
     reservedArea = NaN,
 
@@ -134,12 +134,12 @@ object StaticData {
       var reservedArea = 0.0
       selection.each[html.Element] { (node: html.Element, post: Post, i: Int) =>
         staticData.bgColor(i) = ColorPost.computeColor(graph, post.id).toString
-        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
+//        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size
         d3.select(node)
           .style("background-color", staticData.bgColor(i))
-          .style("border", staticData.border(i))
+//          .style("border", staticData.border(i))
 
         val rect = node.getBoundingClientRect
         val width = rect.width / scale
@@ -195,6 +195,24 @@ object StaticData {
           )
         }(breakOut)
       }
+
+
+      //TODO: collapsed euler sets
+  // val rxCollapsedContainmentCluster = Rx {
+  //   val graph = rxDisplayGraph().graph
+  //   val postIdToSimPost = rxPostIdToSimPost()
+
+  //   val children: Map[PostId, Seq[PostId]] = rxDisplayGraph().collapsedContainments.groupBy(_.targetId).mapValues(_.map(_.sourceId)(breakOut))
+  //   val parents: Iterable[PostId] = children.keys
+
+  //   parents.map { p =>
+  //     new ContainmentCluster(
+  //       parent = postIdToSimPost(p),
+  //       children = children(p).map(p => postIdToSimPost(p))(breakOut),
+  //       depth = graph.childDepth(p)
+  //     )
+  //   }.toJSArray
+  // }
 
 
       i = 0

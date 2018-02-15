@@ -26,10 +26,10 @@ import wust.webApp.views.Placeholders
 
 object PostCreationMenu {
 
-  case class Menu(pos: Vec2, author: UserId)
+  case class Menu(pos: Vec2, author: UserId) //TODO: use tuple instead and use current author upon actual post creation
 
-  def apply(state: GlobalState, graphState:GraphState, m: Menu, transformRx: Rx[Transform])(implicit owner: Ctx.Owner) = {
-    import graphState.rxPostIdToSimPost
+  def apply(state: GlobalState, m: Menu, transformRx: Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
+//    import graphState.rxPostIdToSimPost
 
     val transformStyle = transformRx.map { t =>
       val xOffset = -300 / 2
@@ -47,12 +47,12 @@ object PostCreationMenu {
       state.eventProcessor.enriched.changes.unsafeOnNext(changes)
 
       // TODO: move created post below menu (not working yet)
-      val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)
-      simPostOpt.foreach { simPost =>
-        simPost.fx = m.pos.x
-        simPost.fy = m.pos.y + ySimPostOffset / transformRx.now.k + simPost.size.height / 2
-        ySimPostOffset += (simPost.size.height + 10) * transformRx.now.k
-      }
+//      val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)
+//      simPostOpt.foreach { simPost =>
+//        simPost.fx = m.pos.x
+//        simPost.fy = m.pos.y + ySimPostOffset / transformRx.now.k + simPost.size.height / 2
+//        ySimPostOffset += (simPost.size.height + 10) * transformRx.now.k
+//      }
     }
 
     //TODO: hide postMenu with ESC key
@@ -65,7 +65,11 @@ object PostCreationMenu {
       transform <-- transformStyle.toObservable,
       width := "300px",
       div(
-        textAreaWithEnter(inputHandler)(Placeholders.newPost, onInsert.asHtml --> sideEffect(_.focus())),
+        textAreaWithEnter(inputHandler)(
+          Placeholders.newPost,
+          onInsert.asHtml --> sideEffect(_.focus()),
+          style("resize") := "none" //TODO: outwatch resize?
+        ),
         cls := "shadow",
         padding := "3px 5px",
         border := "2px solid #DDDDDD",

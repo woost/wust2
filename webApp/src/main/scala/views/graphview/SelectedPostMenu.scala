@@ -28,25 +28,27 @@ import collection.breakOut
 
 
 object SelectedPostMenu {
-  def apply(postId: PostId, state: GlobalState, graphState: GraphState, transformRx: Rx[Transform])(implicit owner: Ctx.Owner) = {
-    import graphState.rxPostIdToSimPost
+  def apply(pos:Vec2, postId: PostId, state: GlobalState, selectedPostId:Var[Option[(Vec2, PostId)]], transformRx:Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
 
-    // without default this crashes if removed from displaygraph (eg focus / delete)
-    val rxSimPost = rxPostIdToSimPost.map(_.getOrElse(postId, new SimPost(null))) //TODO: null! provide an empty default simpost
+    val rxPost: Rx[Post] = Rx {
+      val graph = state.inner.rawGraph()
+      graph.postsById.getOrElse(postId, Post.apply("", UserId(""))) //TODO: getOrElse necessary? Handle post removal.
+    }
+
     val rxParents: Rx[Seq[Post]] = Rx {
-      val graph = graphState.state.inner.displayGraphWithParents().graph
+      val graph = state.inner.displayGraphWithParents().graph
       val directParentIds = graph.parents.getOrElse(postId, Set.empty)
       directParentIds.flatMap(graph.postsById.get)(breakOut)
     }
 
     val transformStyle = Rx {
       val t = transformRx()
-      val p = rxSimPost()
-
-      val xOffset = -300 / 2
-      val yOffset = -(p.size.y) / 2
-      val x = xOffset + t.applyX(p.pos.get.x)
-      val y = yOffset + t.applyY(p.pos.get.y)
+      //        val p = rxPost()
+      //
+      val xOffset = 0//-300 / 2
+      val yOffset = 0//-(p.size.y) / 2
+      val x = xOffset + t.applyX(pos.x)
+      val y = yOffset + t.applyY(pos.y)
       s"translate(${x}px, ${y}px)"
     }
 
@@ -64,13 +66,13 @@ object SelectedPostMenu {
             span("×", onClick --> sideEffect {
               val addedGrandParents: Set[Connection] = {
                 if (parents.size == 1)
-                  state.inner.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxSimPost.now.id, Label.parent, _))
+                  state.inner.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxPost.now.id, Label.parent, _))
                 else
                   Set.empty
               }
 
               state.eventProcessor.changes.unsafeOnNext(GraphChanges(
-                delConnections = Set(Connection(rxSimPost.now.id, Label.parent, p.id)),
+                delConnections = Set(Connection(rxPost.now.id, Label.parent, p.id)),
                 addConnections = addedGrandParents
               ))
               ()
@@ -84,8 +86,8 @@ object SelectedPostMenu {
     val editMode = Handler.create[Boolean](false).unsafeRunSync()
 
     val updatePostHandler = Handler.create[String].unsafeRunSync()
-    updatePostHandler.foreach { content =>
-      val changes = GraphChanges(updatePosts = Set(rxSimPost.now.post.copy(content = content)))
+    updatePostHandler.foreach { newContent =>
+      val changes = GraphChanges(updatePosts = Set(rxPost.now.copy(content = newContent)))
       state.eventProcessor.enriched.changes.unsafeOnNext(changes)
 
       editMode.unsafeOnNext(false)
@@ -96,7 +98,7 @@ object SelectedPostMenu {
       val author = state.inner.currentUser.now
       val newPost = Post(PostId.fresh, content, author.id)
 
-      val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxSimPost.now.id)))
+      val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxPost.now.id)))
       state.eventProcessor.enriched.changes.unsafeOnNext(changes)
     }
 
@@ -108,8 +110,8 @@ object SelectedPostMenu {
       val changes = GraphChanges(
         addPosts = Set(newPost),
         addConnections = Set(
-          Connection(rxSimPost.now.id, Label("related"), newPost.id)
-        ) ++ state.inner.displayGraphWithoutParents.now.graph.parents(rxSimPost.now.id).map(parentId => Connection(newPost.id, Label.parent, parentId))
+          Connection(rxPost.now.id, Label("related"), newPost.id)
+        ) ++ state.inner.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, Label.parent, parentId))
       )
       state.eventProcessor.enriched.changes.unsafeOnNext(changes)
     }
@@ -117,12 +119,12 @@ object SelectedPostMenu {
     val editableTitle = div(
       child <-- editMode.map { activated =>
         if (activated) {
-          textAreaWithEnter(updatePostHandler)(rxSimPost.now.content, onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
+          textAreaWithEnter(updatePostHandler)(rxPost.now.content, onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
-            child <-- rxSimPost.map(_.content).toObservable,
+            child <-- rxPost.map(_.content).toObservable,
             textAlign := "center",
-            fontSize := "150%", //simPost.fontSize,
+            fontSize := "150%", //post.fontSize,
             wordWrap := "break-word",
             display.block,
             margin := "10px",
@@ -138,13 +140,13 @@ object SelectedPostMenu {
       width := "300px",
       transform <-- transformStyle.toObservable,
       div(
-        child <-- rxSimPost.map(p => actionMenu(p, graphState)(zIndex := -10)).toObservable, // z-index to overlap shadow
+        child <-- rxPost.map(p => actionMenu(p, state, selectedPostId)(zIndex := -10)).toObservable, // z-index to overlap shadow
         cls := "shadow",
         editableTitle,
         padding := "3px 5px",
-        border <-- rxSimPost.map(_.border).toObservable,
+//        border <-- rxPost.map(_.border).toObservable, //TODO: pass in staticdata
+        //        backgroundColor <-- rxPost.map(_.color).toObservable,
         borderRadius := "5px",
-        backgroundColor <-- rxSimPost.map(_.color).toObservable,
         child <-- parentList.toObservable,
         textAreaWithEnter(insertPostHandler)(Placeholders.newPost, marginTop := "20px")
       ),
@@ -166,7 +168,7 @@ object SelectedPostMenu {
     )
   }
 
-  def actionMenu(simPost: SimPost, graphState: GraphState) = {
+  def actionMenu(post: Post, graphState: GlobalState, selectedPostId:Var[Option[(Vec2,PostId)]]) = {
     div(
       cls := "shadow",
       position.absolute, top := "-55px", left := "0px",
@@ -179,7 +181,7 @@ object SelectedPostMenu {
       justifyContent.spaceAround,
       alignItems.stretch,
 
-      menuActions.filter(_.showIf(simPost, graphState)).map { action =>
+      menuActions.filter(_.showIf(post, graphState)).map { action =>
         div(
           display.flex,
           flexDirection.column,
@@ -187,10 +189,12 @@ object SelectedPostMenu {
           flexGrow := 1,
           alignItems.center,
           span(action.name),
-          onClick --> sideEffect {
-            println(s"\nMenu ${action.name}: [${simPost.id}]${simPost.content}")
-            graphState.selectedPostId() = None
-            action.action(simPost, graphState)
+          onClick --> sideEffect { event =>
+            event.stopImmediatePropagation()
+
+            println(s"\nMenu ${action.name}: [${post.id}]${post.content}")
+            selectedPostId() = None
+            action.action(post, graphState)
             ()
           },
           //TODO: style with css a:hover
@@ -203,26 +207,26 @@ object SelectedPostMenu {
     )
   }
 
-  case class MenuAction(name: String, action: (SimPost, GraphState) => Unit, showIf: (SimPost, GraphState) => Boolean = (_, _) => true)
+  case class MenuAction(name: String, action: (Post, GlobalState) => Unit, showIf: (Post, GlobalState) => Boolean = (_, _) => true)
 
   val menuActions: List[MenuAction] = List(
-    MenuAction("Focus", { (p: SimPost, gs: GraphState) => gs.state.inner.page() = Page.Union(Set(p.id)) }),
-    MenuAction(
-      "Collapse",
-      action = (p: SimPost, gs: GraphState) => gs.rxCollapsedPostIds.update(_ + p.id),
-      showIf = (p: SimPost, gs: GraphState) => !gs.rxCollapsedPostIds.now(p.id) && gs.state.inner.rawGraph.now.hasChildren(p.id)
-    ),
-    MenuAction(
-      "Expand",
-      action = (p: SimPost, gs: GraphState) => gs.rxCollapsedPostIds.update(_ - p.id),
-      showIf = (p: SimPost, gs: GraphState) => gs.rxCollapsedPostIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
-    ),
-    // MenuAction("Split", { (p: SimPost, s: Simulation[SimPost]) => logger.info(s"Split: ${p.id}") }),
-    MenuAction("Delete", { (p: SimPost, gs: GraphState) => gs.state.eventProcessor.enriched.changes.unsafeOnNext(GraphChanges(delPosts = Set(p.id))) }),
+    MenuAction("Focus", { (p: Post, state: GlobalState) => state.inner.page() = Page.Union(Set(p.id)) }),
+//    MenuAction(
+//      "Collapse",
+//      action = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.update(_ + p.id),
+//      showIf = (p: Post, gs: GraphState) => !gs.rxCollapsedPostIds.now(p.id) && gs.state.inner.rawGraph.now.hasChildren(p.id)
+//    ),
+//    MenuAction(
+//      "Expand",
+//      action = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.update(_ - p.id),
+//      showIf = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
+//    ),
+    // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
+    MenuAction("Delete", { (p: Post, state: GlobalState) => state.eventProcessor.enriched.changes.unsafeOnNext(GraphChanges(delPosts = Set(p.id))) }),
     // MenuAction(
     //   "Autopos",
-    //   { (p: SimPost) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
-    //   showIf = (p: SimPost) => p.fixedPos.isDefined
+    //   { (p: Post) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
+    //   showIf = (p: Post) => p.fixedPos.isDefined
     // ),
   )
 }
