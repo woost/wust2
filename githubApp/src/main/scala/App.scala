@@ -44,9 +44,9 @@ import scala.collection.concurrent.TrieMap
 
 object Constants {
   //TODO
-  val githubId: PostId = "wust-github"
-  val issueTagId: PostId = "github-issue"
-  val commentTagId: PostId = "github-comment"
+  val githubId = PostId("wust-github")
+  val issueTagId = PostId("github-issue")
+  val commentTagId = PostId("github-comment")
 
   val wustOwner = "woost"
   val wustRepo = "bug"
@@ -402,7 +402,7 @@ object WustReceiver {
     }
 
     def issuePostOfDesc(graph: Graph, pid: PostId): Option[Post] = {
-      graph.connectionsByLabel("describes")
+      graph.connectionsByLabel(Label("describes"))
         .find(c => c.targetId == pid)
         .map(c => graph.postsById(c.sourceId))
     }

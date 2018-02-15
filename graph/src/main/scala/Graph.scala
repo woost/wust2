@@ -64,9 +64,11 @@ object User {
 }
 
 //TODO: rename Post -> Item?
+//TODO: not use LocalDateTime, but just Instant to be a long of millis in UTC.
 final case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime)
 object Post {
 
+  //TODO: we are throwing exceptions here in the post factory!
   def parseTime(time: String): LocalDateTime = Instant.parse(time).atZone(ZoneId.systemDefault).toLocalDateTime
 
   def apply(id: PostId, content: String, author: UserId, time: LocalDateTime = LocalDateTime.now()): Post = {
@@ -81,6 +83,9 @@ object Post {
 
   def apply(content: String, author: UserId): Post = {
     apply(PostId.fresh, content, author)
+  }
+  def apply(content: String, author: UserId, time: LocalDateTime): Post = {
+    apply(PostId.fresh, content, author, time, time)
   }
   def apply(content: String, author: UserId, time: String): Post = {
     apply(PostId.fresh, content, author, parseTime(time), parseTime(time))

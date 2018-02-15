@@ -225,7 +225,7 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
     val connectionsToAdd = for {
       t <- posts.drop(1) if t.id != source.id
     } yield {
-        Connection(source.id, "related", t.id)
+        Connection(source.id, Label("related"), t.id)
       }
     GraphChanges(addConnections = connectionsToAdd.toSet)
   }
@@ -271,7 +271,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
         s <- sourcePosts
         t <- targetPosts if s.id != t.id
       } yield {
-        Connection(s.id, tag, t.id)
+        Connection(s.id, Label(tag), t.id)
       }
 
       RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
@@ -523,7 +523,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
   def generateGraphChanges(originalPosts: List[Post], posts: List[Post], graph: Graph): GraphChanges = {
 
     val keepRelatives = originalPosts.flatMap(originalPost => posts.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
-    val newConnections = originalPosts.flatMap(originalPost => posts.map(p => Connection(p.id, "splitFrom", originalPost.id))).toSet
+    val newConnections = originalPosts.flatMap(originalPost => posts.map(p => Connection(p.id, Label("splitFrom"), originalPost.id))).toSet
     val newPosts = originalPosts.flatMap(originalPost => posts.filter(_.id != originalPost.id)).toSet
     GraphChanges(
       addPosts = newPosts,

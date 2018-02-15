@@ -9,10 +9,10 @@ import scalaj.http.HttpResponse
 
 object Constants {
   //TODO
-  val githubId: PostId = "wust-github"
-  val issueTagId: PostId = "github-issue"
-  val commentTagId: PostId = "github-comment"
-  val gitterId: PostId = "wust-gitter"
+  val githubId = PostId("wust-github")
+  val issueTagId = PostId("github-issue")
+  val commentTagId = PostId("github-comment")
+  val gitterId = PostId("wust-gitter")
 }
 object GitHubImporter {
   import github4s.Github
@@ -117,7 +117,7 @@ object GitHubImporter {
 
         val desc = if(issue.body.nonEmpty) {
           val issueDesc = Post(PostId(issue.id.toString), issue.body, tempUserId, issue.created_at, issue.updated_at)
-          val conn = Connection(issueDesc.id, "describes", issueTitle.id)
+          val conn = Connection(issueDesc.id, Label("describes"), issueTitle.id)
           val cont = Connection(issueDesc.id, Label.parent, issueTitle.id)
           val comm = Connection(issueDesc.id, Label.parent, _comment.id)
           (Set(issueDesc), Set(conn, cont, comm))

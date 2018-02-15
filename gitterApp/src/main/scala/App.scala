@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 object Constants {
   //TODO
-  val gitterId = "wust-gitter"
+  val gitterId = PostId("wust-gitter")
 }
 
 case class ExchangeMessage(content: String)

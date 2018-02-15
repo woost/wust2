@@ -44,7 +44,7 @@ object Authentication {
 
   case class Assumed(user: User.Assumed) extends Authentication
   object Assumed {
-    def fresh = Assumed(User.Assumed(cuid.Cuid()))
+    def fresh = Assumed(User.Assumed(UserId.fresh))
   }
   case class Verified(user: User.Persisted, expires: Long, token: Token) extends Authentication {
     override def toString = s"Authentication.Verified($user)"
