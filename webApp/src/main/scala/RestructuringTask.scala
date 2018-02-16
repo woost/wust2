@@ -27,6 +27,7 @@ sealed trait RestructuringTaskObject {
   val numMaxPosts: Option[Int]
 
   def taskHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
+  def fallbackHeuristic: PostHeuristicType = PostHeuristic.Random.heuristic
 
   def apply(posts: Posts): RestructuringTask
 
@@ -47,13 +48,21 @@ sealed trait RestructuringTaskObject {
   }
 
   def applyWithStrategy(graph: Graph, heuristic: PostHeuristicType, numMaxPosts: Option[Int], measureBoundary: Option[Double]): StrategyResult = {
-    val futureTask: Future[List[RestructuringTask]] = heuristic(graph, numMaxPosts).map(taskList => taskList.takeWhile(res => res.measure match {
-      case None => true
-      case Some(measure) => measure > measureBoundary.getOrElse(0.0)
-      case _ => false
-    }).map( res => apply(res.posts) ))
+    val futurePosts = heuristic(graph, numMaxPosts)
+      .map( taskList => taskList.takeWhile(res => res.measure match {
+        case None => true
+        case Some(measure) => measure > measureBoundary.getOrElse(0.0)
+        case _ => false
+      }))
+
+    val futureTask: Future[List[RestructuringTask]] =  for {
+      strategyPosts <- futurePosts
+      finalPosts <- if(strategyPosts.nonEmpty) Future.successful(strategyPosts) else fallbackHeuristic(graph, numMaxPosts)
+    } yield finalPosts.map(res => apply(res.posts))
+
     futureTask
   }
+
 }
 sealed trait RestructuringTask {
 
