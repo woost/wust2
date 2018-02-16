@@ -5,9 +5,9 @@ language: scala
 jdk: oraclejdk8
 node_js: 9
 
-branches:
-  only:
-  - master
+# branches:
+#   only:
+#   - master
 
 //TODO: use https://github.com/dwijnand/sbt-travisci
 script:
