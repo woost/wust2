@@ -520,11 +520,13 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     List(before, middle, after).flatten
   }
 
-  def generateGraphChanges(originalPosts: List[Post], posts: List[Post], graph: Graph): GraphChanges = {
+  def generateGraphChanges(originalPosts: List[Post], previewPosts: List[Post], graph: Graph): GraphChanges = {
 
-    val keepRelatives = originalPosts.flatMap(originalPost => posts.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
-    val newConnections = originalPosts.flatMap(originalPost => posts.map(p => Connection(p.id, Label("splitFrom"), originalPost.id))).toSet
-    val newPosts = originalPosts.flatMap(originalPost => posts.filter(_.id != originalPost.id)).toSet
+    if(previewPosts.isEmpty) return GraphChanges.empty
+
+    val keepRelatives = originalPosts.flatMap(originalPost => previewPosts.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
+    val newConnections = originalPosts.flatMap(originalPost => previewPosts.map(p => Connection(p.id, Label("splitFrom"), originalPost.id))).toSet
+    val newPosts = originalPosts.flatMap(originalPost => previewPosts.filter(_.id != originalPost.id)).toSet
     GraphChanges(
       addPosts = newPosts,
       addConnections = newConnections ++ keepRelatives,
