@@ -45,37 +45,37 @@ services:
     ports:
       - "127.0.0.1:9001:80"
 
-  ####################
-  # slack
-  ####################
-  slack-app:
-    restart: on-failure
-    image: woost/slack:latest
-    environment:
-      WUST_SLACK_TOKEN: ${WUST_SLACK_TOKEN} # TODO: do not use static token in production
-      WUST_USER: ${WUST_USER}
-      WUST_PASSWORD: ${WUST_PASSWORD}
-      WUST_HOSTNAME: "wust-core"
-    depends_on:
-      - wust-core
-    ports:
-      - "127.0.0.1:9010:9010"
+  #####################
+  ## slack
+  #####################
+  #slack-app:
+  #  restart: on-failure
+  #  image: woost/slack:latest
+  #  environment:
+  #    WUST_SLACK_TOKEN: ${WUST_SLACK_TOKEN} # TODO: do not use static token in production
+  #    WUST_USER: ${WUST_USER}
+  #    WUST_PASSWORD: ${WUST_PASSWORD}
+  #    WUST_HOSTNAME: "wust-core"
+  #  depends_on:
+  #    - wust-core
+  #  ports:
+  #    - "127.0.0.1:9010:9010"
 
-  ####################
-  # gitter
-  ####################
-  gitter-app:
-    restart: on-failure
-    image: woost/gitter:latest
-    environment:
-      WUST_GITTER_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production
-      WUST_USER: ${WUST_USER}
-      WUST_PASSWORD: ${WUST_PASSWORD}
-      WUST_HOSTNAME: "wust-core"
-    depends_on:
-      - wust-core
-    ports:
-      - "127.0.0.1:9020:9020"
+  #####################
+  ## gitter
+  #####################
+  #gitter-app:
+  #  restart: on-failure
+  #  image: woost/gitter:latest
+  #  environment:
+  #    WUST_GITTER_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production
+  #    WUST_USER: ${WUST_USER}
+  #    WUST_PASSWORD: ${WUST_PASSWORD}
+  #    WUST_HOSTNAME: "wust-core"
+  #  depends_on:
+  #    - wust-core
+  #  ports:
+  #    - "127.0.0.1:9020:9020"
 
   ####################
   # github

@@ -302,7 +302,7 @@ object WustReceiver {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
-    val location = s"ws://${config.host}:${config.port}/ws"
+    val location = s"ws://core.${config.host}:${config.port}/ws"
     val wustClient = WustClient(location)
     val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
 
