@@ -31,5 +31,5 @@ object Config {
   import pureconfig._
   import wust.util.Config._
 
-  def load = loadConfig[Config]("wust")
+  def load = loadConfig[Config]("wust.core")
 }

@@ -10,7 +10,7 @@ const projectRoot = Path.resolve(rootDir, 'assets/project-root'); // assets/sour
 // https://webpack.js.org/configuration/dev-server
 module.exports.devServer = {
 
-    port: process.env.WUST_DEVSERVER_PORT,
+    port: process.env.WUST_PORT,
     contentBase: [
         // __dirname,
         Path.resolve(__dirname, 'fastopt'), // fastOptJS output
@@ -27,14 +27,18 @@ module.exports.devServer = {
     hotOnly: true, // only reload when build is sucessful
     inline: true, // show build errors in browser console
     overlay: true, // show full screen overlay for compile errors
-    allowedHosts: [
-        ".localhost"
-    ],
+    host: "0.0.0.0", //TODO this is needed so that in dev docker containers can access devserver through docker bridge
+    allowedHosts: [ ".localhost" ],
 
     //proxy websocket requests to app
     proxy : [
-        subdomainProxy("core", process.env.WUST_BACKEND_PORT, true),
-        subdomainProxy("github", 54321)
+        subdomainProxy("core", process.env.WUST_CORE_PORT, true),
+        subdomainProxy("github", process.env.WUST_GITHUB_PORT),
+
+        {
+            path: '/web-app', // web app with production assets
+            target: 'http://localhost:' + process.env.WUST_WEB_PORT,
+        }
     ],
     compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
 };

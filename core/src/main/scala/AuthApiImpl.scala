@@ -17,11 +17,12 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
-    val newUser = state.auth.dbUserOpt match {
-      case Some(User.Implicit(prevUserId, _, _)) =>
+    val newUser = state.auth.user match {
+      case User.Implicit(prevUserId, _, _) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
-      case _ => db.user(name, digest)
+      case User.Assumed(userId) => db.user(userId, name, digest)
+      case _ => db.user(UserId.fresh, name, digest)
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))

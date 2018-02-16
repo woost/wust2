@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  redis:
+    ports:
+      - "${REDIS_PORT_GITHUB}:6379"
+
+  github:
+    extra_hosts:
+      - "core.${WUST_HOSTNAME}:${WUST_DOCKERHOST_IP}"

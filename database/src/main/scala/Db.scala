@@ -154,8 +154,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object user {
-    def apply(name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val user = User(UserId.fresh, name, isImplicit = false, 0)
+    def apply(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
+      val user = User(id, name, isImplicit = false, 0)
       val q = quote { infix"""
         with ins as (
           insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}) returning id

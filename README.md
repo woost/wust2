@@ -83,5 +83,5 @@ All used docker services are defined in `docker/services.yml` and can be configu
 
 The compose stack `docker/compose-prod.yml` is an example how to run wust in docker. Start the whole stack with docker-compose:
 ```
-$ docker-compose --file docker/compose-prod.yml up
+$ docker-compose --file <project>/compose-prod.yml up
 ```

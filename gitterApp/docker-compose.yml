@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  gitter:
+    restart: on-failure
+    image: woost/gitter:latest
+    environment:
+      WUST_GITTER_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production
+      WUST_USER: ${WUST_USER}
+      WUST_PASSWORD: ${WUST_PASSWORD}
+      WUST_HOSTNAME: ${WUST_HOSTNAME}

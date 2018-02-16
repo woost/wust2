@@ -1,6 +1,0 @@
-version: '2'
-
-services:
-  wust-postgres:
-    ports:
-      - "${POSTGRES_PORT}:5432"

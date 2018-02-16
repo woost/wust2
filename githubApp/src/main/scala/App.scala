@@ -51,7 +51,7 @@ object Constants {
   val wustOwner = "woost"
   val wustRepo = "bug"
 
-  val wustUser = UserId("wust")
+  val wustUser = UserId("wust") // get rid of this static user assumption 
 
 }
 
@@ -289,8 +289,6 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
 }
 
 object WustReceiver {
-  type Result[T] = Either[String, T]
-
   val mCallBuffer: mutable.Set[GithubCall] = mutable.Set.empty[GithubCall]
 
   object GraphTransition {
@@ -298,13 +296,25 @@ object WustReceiver {
   }
   case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
 
-  def run(config: WustConfig, github: GithubClient)(implicit system: ActorSystem): Future[Result[WustReceiver]] = {
+  def run(config: WustConfig, github: GithubClient)(implicit system: ActorSystem): WustReceiver = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
-    val location = s"ws://core.${config.host}:${config.port}/ws"
+    //TODO: service discovery or some better configuration for the wust host
+    val protocol = if (config.port == 443) "wss" else "ws"
+    val location = s"$protocol://core.${config.host}:${config.port}/ws"
     val wustClient = WustClient(location)
     val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
+    val highPriorityClient = wustClient.sendWith(SendType.WhenConnected.highPriority, 30 seconds)
+
+    highPriorityClient.auth.assumeLogin(Constants.wustUser)
+    highPriorityClient.auth.register(config.user, config.password)
+    wustClient.observable.connected.foreach { _ =>
+      highPriorityClient.auth.login(config.user, config.password)
+    }
+
+    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", Constants.wustUser)))
+    client.api.changeGraph(List(changes))
 
     println("Running WustReceiver")
 
@@ -370,15 +380,7 @@ object WustReceiver {
       case _ => println("Could not match to github api call")
     })
 
-    import cats.implicits._
-    client.auth.register(config.user, config.password)
-    val res = for { // Assume that user is logged in
-      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-      changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", Constants.wustUser)))
-      _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
-    } yield new WustReceiver(client)
-
-    res.value
+    new WustReceiver(client)
   }
 
   private def createCalls(github: GithubClient, graphTransition: GraphTransition): Seq[GithubCall] = {
@@ -640,10 +642,8 @@ object App extends scala.App {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
       val githubClient = GithubClient(config.github)
-      val redisClient = new RedisClient("localhost", 6379)
-      WustReceiver.run(config.wust, githubClient).foreach {
-        case Right(receiver) => AppServer.run(config.server, config.github, redisClient, receiver)
-        case Left(err) => println(s"Cannot connect to Wust: $err")
-      }
+      val redisClient = new RedisClient(config.redis.host, config.redis.port)
+      val receiver = WustReceiver.run(config.wust, githubClient)
+      AppServer.run(config.server, config.github, redisClient, receiver)
   }
 }

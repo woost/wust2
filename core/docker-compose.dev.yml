@@ -1,0 +1,6 @@
+version: '3'
+
+services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT_CORE}:5432"

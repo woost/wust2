@@ -3,12 +3,15 @@ set -e
 set -o pipefail
 
 script_dir="$(dirname $0)"
-stage="dev"
 
-function compose() { "$script_dir/docker/compose" $stage $@; }
+function docker_compose() {
+    project="$1"
+    stage="$2"
+    [[ -n "$stage" ]] && add_args="-f $project/docker-compose.$stage.yml" || add_args=""
+    docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args ${@:3}
+}
 function postgres_command() {
-    name=$(echo $stage | tr -d ".")
-    docker exec -it "wust${name}_wust-postgres_1" "$@"
+    docker exec -it "devcore_postgres_1" "$@"
 }
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
@@ -17,29 +20,20 @@ function sbt_with_args() {
 
     sbt -Dquill.macro.log=false $args
 }
-function run_db_migration() {
-    compose run wust-db-migration
-    # compose run github-db-migration
-}
 
+DOCKERHOST_IP=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
 
-env_wust_secret="WUST_AUTH_SECRET=secret"
-env_wust_local="WUST_HOSTNAME=localhost WUST_USER=wust WUST_PASSWORD=wust"
+env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust"
+env_wust_local="WUST_HOSTNAME=localhost WUST_DOCKERHOST_IP=$DOCKERHOST_IP"
 env_postgres_secret="POSTGRES_PASSWORD=test"
-env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust"
+env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5433"
+env_redis_local="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6380"
 
-env_wust_backendport="WUST_BACKEND_PORT=${WUST_BACKEND_PORT:-8080}"
-env_wust_devport="WUST_DEVSERVER_PORT=${WUST_DEVSERVER_PORT:-12345}"
-env_wust_devcomp="WUST_DEVSERVER_COMPRESS=${WUST_DEVSERVER_COMPRESS:-false}"
+env_wust_local_connectivity="WUST_PORT=${WUST_PORT:-12345} WUST_CORE_PORT=${WUST_CORE_PORT:-9000} WUST_WEB_PORT=${WUST_WEB_PORT:-9001} WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-9002} WUST_DEVSERVER_COMPRESS=${WUST_DEVSERVER_COMPRESS:-false}"
 
 if [[ -f tokens.sh ]]; then
     source tokens.sh
 fi
-
-echo "Starting with parameters"
-echo -e "\tBackend Port:\t\t\e[1m\e[32m$env_wust_backendport\e[0m"
-echo -e "\tDevServer Port:\t\t\e[1m\e[32m$env_wust_devport\e[0m"
-echo -e "\tDevServer Compression:\t\e[1m\e[32m$env_wust_devcomp\e[0m"
 
 function self() {
     case "$1" in
@@ -57,14 +51,27 @@ function self() {
         postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         ;;
     sbt)
-        export $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_devport $env_wust_backendport $env_wust_devcomp
-        compose up -d wust-postgres wust-db-migration github-redis
+        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
+        echo -e "- ENV: \e[1m\e[32m$env\e[0m"
+        export $env
+        docker_compose core dev up -d db-migration
+        docker_compose githubApp dev up -d redis
         sbt_with_args
         ;;
+    apps)
+        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
+        echo -e "- ENV: \e[1m\e[32m$env\e[0m"
+        export $env
+        docker_compose githubApp dev up -d github
+        docker_compose webApp dev up -d web
+        ;;
+    env)
+        echo "export $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
+        ;;
     migrate)
-        export $env_postgres_secret
-        CI=true sbt dbMigration/docker
-        run_db_migration
+        export $env_postgres_secret $env_wust_local_connectivity
+        sbt dbMigration/docker
+        docker_compose core dev run db-migration
         ;;
     test)
         sbt docker
@@ -73,29 +80,27 @@ function self() {
         self test.integration
         ;;
     test.postgres)
-        stage="test.postgres"
-        compose down
-        run_db_migration
-        compose run test-wust-postgres
-        compose down
+        export $env_wust_local_connectivity
+        docker_compose core test.postgres run db-migration
+        docker_compose core test.postgres run test-postgres
+        docker_compose core test.postgres down -v
         ;;
     test.integration)
-        stage="test.integration"
-        # POSTGRES_POST 5431 for travis, as default port 5432 is already in use
-        export $env_postgres_secret $env_wust_secret $env_postgres_local POSTGRES_PORT=5431
-        compose rm -f -v
-        compose up -d --force-recreate
-        run_db_migration
+        export $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local_connectivity
+        docker_compose core dev up -d
+        docker_compose core dev run db-migration
         postgres_command psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
         postgres_command psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
-        CI=true sbt_with_args coverage it:test coverageReport
-        compose down
+        sbt_with_args coverage it:test coverageReport
+        docker_compose core dev down -v
         ;;
     *)
         cat <<EOF
     unknown option '$1', expected one of:
 
     sbt
+    apps
+    env
     migrate
 
     psql [options]

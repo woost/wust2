@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  postgres:
+    restart: on-failure
+    image: postgres:10.1-alpine
+    environment: &pg_env
+      POSTGRES_USER: 'wust'
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: 'wust'
+    volumes:
+      - core_postgres_data/:/var/lib/postgresql/data
+
+  db-migration:
+    restart: on-failure
+    image: woost/db-migration:core
+    environment:
+      <<: *pg_env
+    depends_on:
+      - postgres
+
+  core:
+    restart: on-failure
+    image: woost/core:latest
+    environment:
+      <<: *pg_env
+      POSTGRES_HOSTNAME: "postgres"
+      WUST_CORE_PORT: ${WUST_CORE_PORT}
+      WUST_AUTH_SECRET: ${WUST_AUTH_SECRET}
+      WUST_EMAIL_ADDRESS: ${WUST_EMAIL_ADDRESS}
+      WUST_SMTP_ENDPOINT: ${WUST_SMTP_ENDPOINT}
+      WUST_SMTP_USER: ${WUST_SMTP_USER}
+      WUST_SMTP_PASS: ${WUST_SMTP_PASS}
+    depends_on:
+      - postgres
+    ports:
+      - "127.0.0.1:${WUST_CORE_PORT}:${WUST_CORE_PORT}"
+
+volumes:
+  core_postgres_data:

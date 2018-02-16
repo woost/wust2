@@ -33,8 +33,9 @@ object Server {
     implicit val materializer = ActorMaterializer()
     implicit val scheduler = Scheduler(system.dispatcher)
 
+    val wsServer = createWebsocketServer(config)
     val route = path("ws") {
-      websocketRoute(config)
+      wsServer()
     } ~ (path("health") & get) {
       complete("ok")
     }
@@ -49,7 +50,7 @@ object Server {
     }
   }
 
-  private def websocketRoute(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
+  private def createWebsocketServer(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
     import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
@@ -63,6 +64,6 @@ object Server {
     val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, router)
     val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
 
-    router.asWsRoute(serverConfig, requestHandler)
+    () => router.asWsRoute(serverConfig, requestHandler)
   }
 }

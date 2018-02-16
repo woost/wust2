@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  web:
+    restart: on-failure
+    image: woost/web:latest
+    ports:
+      - "127.0.0.1:${WUST_WEB_PORT}:80"

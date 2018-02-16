@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  redis:
+    restart: on-failure
+    image: redis:4.0-alpine
+    volumes:
+      - github_redis_data:/data
+
+  github:
+    restart: on-failure
+    image: woost/github:latest
+    environment:
+      REDIS_HOSTNAME: "redis"
+      WUST_GITHUB_TOKEN: ${WUST_GITHUB_TOKEN} # TODO: do not use static token in production
+      WUST_GITHUB_ID: ${WUST_GITHUB_ID}
+      WUST_GITHUB_SECRET: ${WUST_GITHUB_SECRET}
+      WUST_GITHUB_PORT: ${WUST_GITHUB_PORT}
+      WUST_USER: ${WUST_USER}
+      WUST_PASSWORD: ${WUST_PASSWORD}
+      WUST_HOSTNAME: ${WUST_HOSTNAME}
+      WUST_PORT: ${WUST_PORT}
+    depends_on:
+      - redis
+    ports:
+      - "127.0.0.1:${WUST_GITHUB_PORT}:${WUST_GITHUB_PORT}"
+
+volumes:
+  github_redis_data:

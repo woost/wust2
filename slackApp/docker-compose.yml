@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  slack:
+    restart: on-failure
+    image: woost/slack:latest
+    environment:
+      WUST_SLACK_TOKEN: ${WUST_SLACK_TOKEN} # TODO: do not use static token in production
+      WUST_USER: ${WUST_USER}
+      WUST_PASSWORD: ${WUST_PASSWORD}
+      WUST_HOSTNAME: ${WUST_HOSTNAME}
+    depends_on:
+      - wust-core
