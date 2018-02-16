@@ -22,12 +22,11 @@ object Client extends WustClientOps {
   private val wustUrl = {
     import window.location
     val protocol = if (location.protocol == "https:") "wss:" else "ws:"
-    s"$protocol//${location.hostname}:${location.port}/ws"
+    s"$protocol//core.${location.hostname}:${location.port}/ws"
   }
   private val githubUrl = {
     import window.location
-    //TODO fix url: port/path/subdomain?
-    s"${location.protocol}//${location.hostname}:54321/api"
+    s"${location.protocol}//github.${location.hostname}:${location.port}/api"
   }
 
   private val githubClient = HttpClient[ByteBuffer](githubUrl)
