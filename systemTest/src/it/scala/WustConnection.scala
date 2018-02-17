@@ -77,13 +77,20 @@ trait Browser extends mutable.After {
   import scala.collection.JavaConversions._
 
   val browser = new PhantomJSDriver {
-    def hasErrors: Boolean = {
-      // exceptions are logged as stacktraces with loglevel warning
-      val logs = manage.logs.get(LogType.BROWSER).filter(Level.WARNING).toList
-      val messages = logs.flatMap(_.getMessage.split("\n"))
+    def errors: List[String] = {
+      val logs = manage.logs.get(LogType.BROWSER)
+
+      // errors in logger
+      val errors = logs.filter(Level.SEVERE).toList
+
+      // some exceptions are logged as stacktraces with loglevel warning
       // look for something that looks like a stacktrace
-      val errors = messages.filter(_.matches(" *at .*\\(http://.*/.*\\.js:[0-9]+:[0-9]+\\)"))
-      errors.nonEmpty
+      val warningStacktraces = logs.filter(Level.WARNING).toList.filter { warning =>
+        val head :: tail = warning.getMessage.split("\n").toList
+        head.startsWith("TypeError: ") || tail.exists(_.matches("  [^ ]+ \\(http://.*/.*\\.js:[0-9]+:[0-9]+\\)"))
+      }
+
+      (errors ++ warningStacktraces).map(_.getMessage)
     }
   }
 
