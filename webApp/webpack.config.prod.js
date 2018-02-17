@@ -16,7 +16,7 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
   compiler: {
     language_in: 'ECMASCRIPT6',
     language_out: 'ECMASCRIPT5',
-    compilation_level: 'ADVANCED',
+    compilation_level: 'SIMPLE', //TODO: ADVANCED
     process_common_js_modules: true,
     jscomp_off: 'checkVars',
     warning_level: 'QUIET'
