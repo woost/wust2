@@ -26,8 +26,8 @@ DOCKERHOST_IP=`ip -4 addr show scope global dev docker0 | grep inet | awk '{prin
 env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust"
 env_wust_local="WUST_HOSTNAME=localhost DEV_DOCKERHOST_IP=$DOCKERHOST_IP"
 env_postgres_secret="POSTGRES_PASSWORD=test"
-env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust DEV_POSTGRES_PORT_CORE=5433"
-env_redis_local="REDIS_HOSTNAME=localhost DEV_REDIS_PORT_GITHUB=6380"
+env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5433"
+env_redis_local="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6380"
 
 env_wust_local_connectivity="WUST_PORT=${WUST_PORT:-12345} WUST_CORE_PORT=${WUST_CORE_PORT:-9000} WUST_WEB_PORT=${WUST_WEB_PORT:-9001} WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-9002} DEV_SERVER_COMPRESS=${DEV_SERVER_COMPRESS:-false}"
 
