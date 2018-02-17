@@ -38,6 +38,7 @@ module.exports.devServer = {
         {
             path: '/web-app', // web app with production assets
             target: 'http://localhost:' + process.env.WUST_WEB_PORT,
+            pathRewrite: {"^/web-app" : ""}
         }
     ],
     compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
