@@ -36,9 +36,9 @@ ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOT
         if [[ -f tokens.sh ]]; then;            \
             source ./tokens.sh;                 \
         fi;                                     \
-        export WUST_CORE_PORT=$BACKEND;      \
-        export WUST_DEVSERVER_PORT=$DEVPORT;    \
-        export WUST_DEVSERVER_COMPRESS=true;    \
+        export WUST_CORE_PORT=$BACKEND;         \
+        export WUST_PORT=$DEVPORT;              \
+        export DEV_SERVER_COMPRESS=true;        \
         ./start sbt;                            \
         zsh -i;                                 \
     \\\"\""
