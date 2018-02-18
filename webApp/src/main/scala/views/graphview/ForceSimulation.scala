@@ -541,21 +541,6 @@ object ForceSimulation {
     canvasContext.clearRect(0, 0, planeDimension.width, planeDimension.height)
     canvasContext.restore()
 
-    // for every connection
-    var i = 0
-    canvasContext.lineWidth = 3
-    canvasContext.strokeStyle = "#333"
-    canvasContext.beginPath()
-    while (i < edgeCount) {
-      val source = staticData.source(i)
-      val target = staticData.target(i)
-      canvasContext.moveTo(simData.x(source), simData.y(source))
-      canvasContext.lineTo(simData.x(target), simData.y(target))
-      i += 1
-    }
-    canvasContext.stroke()
-    canvasContext.closePath()
-
     // for every node
     //    i = 0
     //    canvasContext.lineWidth = 1
@@ -569,7 +554,7 @@ object ForceSimulation {
 
 
     //     for every containment cluster
-    i = 0
+    var i = 0
     //    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < eulerSetCount) {
       val polygon = simData.eulerSetPolygons(i)
@@ -633,6 +618,22 @@ object ForceSimulation {
       //      catmullRom(simData.eulerSetPolygons(i))
       i += 1
     }
+
+    // for every connection
+    i = 0
+    canvasContext.lineWidth = 3
+    canvasContext.strokeStyle = "#333"
+    canvasContext.beginPath()
+    while (i < edgeCount) {
+      val source = staticData.source(i)
+      val target = staticData.target(i)
+      canvasContext.moveTo(simData.x(source), simData.y(source))
+      canvasContext.lineTo(simData.x(target), simData.y(target))
+      i += 1
+    }
+    canvasContext.stroke()
+    canvasContext.closePath()
+
 
     if(debugDrawEnabled) debugDraw(simData,staticData,canvasContext,planeDimension)
   }
