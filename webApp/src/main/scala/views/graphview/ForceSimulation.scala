@@ -169,6 +169,8 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
     }
 
     def hit(dragging:Int):Option[Int] = {
+      if(simData.n <= 1) return None
+
       val x = d3.event.x / transform.k
       val y = d3.event.y / transform.k
 
