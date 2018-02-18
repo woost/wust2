@@ -62,16 +62,18 @@ object PostCreationMenu {
 
     div(
       position.absolute,
+      onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background
       transform <-- transformStyle.toObservable,
       width := "300px",
       div(
         textAreaWithEnter(inputHandler)(
           Placeholders.newPost,
           onInsert.asHtml --> sideEffect(_.focus()),
-          style("resize") := "none" //TODO: outwatch resize?
+          style("resize") := "none", //TODO: outwatch resize?
+          margin := "0px"
         ),
         cls := "shadow",
-        padding := "3px 5px",
+        padding := "3px 5px 0px 5px",
         border := "2px solid #DDDDDD",
         borderRadius := "5px",
         backgroundColor := "#F8F8F8"

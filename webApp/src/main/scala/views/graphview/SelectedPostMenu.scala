@@ -45,7 +45,7 @@ object SelectedPostMenu {
       val t = transformRx()
       //        val p = rxPost()
       //
-      val xOffset = 0//-300 / 2
+      val xOffset = -300 / 2
       val yOffset = 0//-(p.size.y) / 2
       val x = xOffset + t.applyX(pos.x)
       val y = yOffset + t.applyY(pos.y)
@@ -137,6 +137,7 @@ object SelectedPostMenu {
     //TODO: wrap in one observable
     div(
       position.absolute,
+      onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background
       width := "300px",
       transform <-- transformStyle.toObservable,
       div(
@@ -146,6 +147,7 @@ object SelectedPostMenu {
         padding := "3px 5px",
 //        border <-- rxPost.map(_.border).toObservable, //TODO: pass in staticdata
         //        backgroundColor <-- rxPost.map(_.color).toObservable,
+        backgroundColor := "#EEE",
         borderRadius := "5px",
         child <-- parentList.toObservable,
         textAreaWithEnter(insertPostHandler)(Placeholders.newPost, marginTop := "20px")
@@ -190,7 +192,7 @@ object SelectedPostMenu {
           alignItems.center,
           span(action.name),
           onClick --> sideEffect { event =>
-            event.stopImmediatePropagation()
+            event.stopPropagation()
 
             println(s"\nMenu ${action.name}: [${post.id}]${post.content}")
             selectedPostId() = None

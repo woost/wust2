@@ -57,6 +57,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
           forceSimulation.stop()
         })
       ),
+
       forceSimulation.component(
         children <-- forceSimulation.postCreationMenus.map(_.map { menu =>
           PostCreationMenu(state, menu, Var(forceSimulation.transform))

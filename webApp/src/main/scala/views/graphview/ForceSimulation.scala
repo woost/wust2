@@ -227,7 +227,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
     def onClick(post:Post, i:Int): Unit = {
 
       println("clicked post")
-      d3.event.stopImmediatePropagation()
+      d3.event.stopPropagation() // prevent click from bubbling to background
 
       //TODO:
       //   // Var.set(
