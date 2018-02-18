@@ -13,7 +13,7 @@ services:
 
   db-migration:
     restart: on-failure
-    image: woost/db-migration:core
+    image: woost/db-migration:${WUST_VERSION-latest}-core
     environment:
       <<: *pg_env
     depends_on:
@@ -21,7 +21,7 @@ services:
 
   core:
     restart: on-failure
-    image: woost/core:latest
+    image: woost/core:${WUST_VERSION-latest}
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"

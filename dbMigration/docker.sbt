@@ -14,7 +14,7 @@ def dockerDbMigration(name: String) = Seq(
   },
 
   imageNames in docker :=
-    ImageName(namespace = Some("woost"), repository = s"db-migration", tag = Some(name)) ::
+    ImageName(namespace = Some("woost"), repository = s"db-migration", tag = Some("latest-" + name)) ::
     ImageName(namespace = Some("woost"), repository = s"db-migration", tag = Some(version.value + "-" + name)) ::
     Nil
 )
