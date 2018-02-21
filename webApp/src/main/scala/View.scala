@@ -8,7 +8,7 @@ import collection.breakOut
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait View {
-  def apply(state:GlobalState):VNode
+  def apply(state:GlobalState):VNode //TODO: def apply(implicit state:GlobalState):VNode
   val key:String
   val displayName:String
   //TODO: icon

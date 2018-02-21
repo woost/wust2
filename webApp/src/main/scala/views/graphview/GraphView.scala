@@ -33,7 +33,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
   override val displayName = "Mindmap"
 
   override def apply(state: GlobalState) = {
-    val forceSimulation = new ForceSimulation(state, onDrop(state, _, _))
+    val forceSimulation = new ForceSimulation(state, onDrop(state)( _, _), onDropWithCtrl(state)(_, _))
     state.jsErrors.foreach { _ => forceSimulation.stop() }
 
     div(
@@ -70,16 +70,14 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
     )
   }
 
-  def onDrop(state: GlobalState, dragging:PostId, target:PostId): Unit = {
-    // TODO: provide helpers, so that other UIs can easily implement move, copy, ... functionality
+  def onDrop(state: GlobalState)(dragging:PostId, target:PostId): Unit = {
     val graph = state.inner.displayGraphWithoutParents.now.graph
-    val newContainments = Set(Connection(dragging, Label.parent, target))
-    val removeContainments:Set[Connection] = if (graph.ancestors(target).toSet contains dragging) { // cycle
-      Set.empty
-    } else { // no cycle
-      (graph.parents(dragging) map (Connection(dragging, Label.parent, _))) - newContainments.head
-    }
-    state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = newContainments, delConnections = removeContainments))
+    state.eventProcessor.changes.unsafeOnNext(GraphChanges.moveInto(graph, dragging, target))
+  }
+
+  def onDropWithCtrl(state: GlobalState)(dragging:PostId, target:PostId): Unit = {
+    val graph = state.inner.displayGraphWithoutParents.now.graph
+    state.eventProcessor.changes.unsafeOnNext(GraphChanges.tagWith(graph, dragging, target))
   }
 }
 

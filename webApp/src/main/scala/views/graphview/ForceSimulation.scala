@@ -1,6 +1,7 @@
 package views.graphview
 
 import d3v4._
+import org.scalajs.dom.ext.KeyCode
 import io.circe.Decoder.state
 import org.scalajs.dom
 import org.scalajs.dom.html.Element
@@ -42,7 +43,7 @@ object VisualizationType {
 }
 
 
-class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
+class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
   import ForceSimulation._
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph}
 
@@ -65,6 +66,10 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
   private val backgroundElement = Promise[dom.html.Element]
   private val postContainerElement = Promise[dom.html.Element]
   private val canvasLayerElement = Promise[dom.html.Canvas]
+
+  var isCtrlPressed = false
+  keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
+
 
   val component: VNode = {
     import outwatch.dom.dsl._
@@ -220,8 +225,12 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit)(
 
     def dropped(n:html.Element, d:Post, dragging:Int):Unit = {
       hit(dragging).foreach{ target =>
-        onDrop(staticData.posts(dragging).id, staticData.posts(target).id)
+        if(isCtrlPressed)
+          onDropWithCtrl(staticData.posts(dragging).id, staticData.posts(target).id)
+        else
+          onDrop(staticData.posts(dragging).id, staticData.posts(target).id)
       }
+      //TODO: if nothing was changed, jump back to drag start with animation
     }
 
     def onClick(post:Post, i:Int): Unit = {
