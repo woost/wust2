@@ -85,4 +85,10 @@ package object outwatchHelpers {
     def debug(name: String = "") = o.foreach(x => println(s"$name: $x"))
     def debug(print: T => String) = o.foreach(x => println(print(x)))
   }
+
+  //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
+  def keyDown(keyCode: Int):Observable[Boolean] = Observable.merge(
+    outwatch.dom.dsl.events.window.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    outwatch.dom.dsl.events.window.onKeyUp.collect { case e if e.keyCode == keyCode => false },
+    )
 }
