@@ -235,7 +235,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
 
     def onClick(post:Post, i:Int): Unit = {
 
-      println("clicked post")
+      println(s"clicked post[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
 
       //TODO:
@@ -417,6 +417,7 @@ object ForceSimulation {
       post
         .text((post:Post) => post.content)
         .style("width", (post: Post) => calcPostWidth(post).getOrElse(js.undefined))
+        .on("click", onClick)
     }
 
     time(log(s"adding new posts to dom[${post.enter().size()}]")) {
@@ -434,7 +435,7 @@ object ForceSimulation {
             cursor.default
           ).render
         })
-        .on("click", (onClick:js.Function).asInstanceOf[js.Function0[Unit]]) //TODO: update d3v4 to accept more types of listenerfunctions
+        .on("click", onClick)
     }
   }
 
