@@ -126,7 +126,7 @@ object ChatView extends View {
 
   def inputField(newPostSink: Sink[String]): VNode = {
     textAreaWithEnter(newPostSink)(
-      style("resize") := "none", //TODO: outwatch resize?
+      style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newPost,
       flex := "0 0 3em",
       display.flex,
