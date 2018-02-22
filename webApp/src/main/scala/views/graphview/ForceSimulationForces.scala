@@ -159,7 +159,7 @@ object ForceSimulationForces {
 
       // calculate axis aligned bounding box of polygon for quadtree lookup
       // TODO: move to own function?
-      // TODO: include node padding?
+      // TODO: include node spacing?
       var j = 0
       var minX = polygon(0)._1
       var minY = polygon(0)._2
@@ -167,8 +167,8 @@ object ForceSimulationForces {
       var maxY = minY
       j = 1
       while(j < polygon.length) {
-        val x = polygon(0)._1
-        val y = polygon(0)._2
+        val x = polygon(j)._1
+        val y = polygon(j)._2
         if(x < minX) minX = x
         else if(x > maxX) maxX = x
         if(y < minY) minY = y

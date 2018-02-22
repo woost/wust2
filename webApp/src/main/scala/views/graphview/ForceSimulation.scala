@@ -813,6 +813,17 @@ object ForceSimulation {
       canvasContext.stroke()
       canvasContext.closePath()
 
+      // Axis aligned bounding box
+      canvasContext.strokeStyle = "rgba(0,0,0,0.5)"
+      canvasContext.lineWidth = 3
+      canvasContext.beginPath()
+      canvasContext.moveTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMinY(i))
+      canvasContext.lineTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMaxY(i))
+      canvasContext.lineTo(simData.eulerSetPolygonMaxX(i), simData.eulerSetPolygonMaxY(i))
+      canvasContext.lineTo(simData.eulerSetPolygonMaxX(i), simData.eulerSetPolygonMinY(i))
+      canvasContext.lineTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMinY(i))
+      canvasContext.stroke()
+
       i += 1
     }
 
