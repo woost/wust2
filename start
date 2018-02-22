@@ -54,9 +54,25 @@ function self() {
         env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
         export $env
-        docker_compose core dev up -d db-migration
-        docker_compose githubApp dev up -d redis
-        sbt_with_args
+
+        case "$2" in
+        core)
+            docker_compose core dev up -d db-migration
+            ;;
+        githubApp)
+            docker_compose githubApp dev up -d redis
+            ;;
+        gitterApp)
+            ;;
+        slackApp)
+            ;;
+        *)
+            docker_compose core dev up -d db-migration
+            docker_compose githubApp dev up -d redis
+            ;;
+        esac
+
+        sbt
         ;;
     apps)
         env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
