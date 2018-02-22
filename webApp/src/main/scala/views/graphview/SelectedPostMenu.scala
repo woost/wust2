@@ -137,7 +137,7 @@ object SelectedPostMenu {
     //TODO: wrap in one observable
     div(
       position.absolute,
-      onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background
+      onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
       transform <-- transformStyle.toObservable,
       div(

@@ -93,15 +93,15 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
       canvas(
         position := "absolute",
         onInsert.map(_.asInstanceOf[dom.html.Canvas]) --> sideEffect { (e) => canvasLayerElement.success(e) },
-        pointerEvents := "none" // background handles mouse events
+        // pointerEvents := "none" // background handles mouse events
       ),
       div(
         onInsert.asHtml --> sideEffect { e => postContainerElement.success(e); () },
         width := "100%",
         height := "100%",
         position := "absolute",
-        pointerEvents := "none", // background handles mouse events
-        transformOrigin := "top left" // same as svg default //TODO: still relevant without svg?
+        // pointerEvents := "none", // background handles mouse events
+        transformOrigin := "top left" // same as svg/canvas default
       )
     )
   }
@@ -434,12 +434,11 @@ object ForceSimulation {
           import outwatch.dom.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
           val postWidth = calcPostWidth(post)
-          scribe.info(s"Post width = $postWidth")
           div(
             postWidth,
             post.content,
             cls := "graphpost",
-            pointerEvents.auto, // re-enable mouse events
+            // pointerEvents.auto, // re-enable mouse events
             cursor.default
           ).render
         })
@@ -534,7 +533,7 @@ object ForceSimulation {
     edgeLength(simData, staticData)
 
     eulerSetClustering(simData, staticData, strength = 0.1)
-    //    pushOutOfWrongEulerSet(simData,staticData)
+    // pushOutOfWrongEulerSet(simData,staticData)
   }
 
   def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Post]): Unit = {
