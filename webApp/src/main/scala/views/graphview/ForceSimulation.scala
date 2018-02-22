@@ -13,7 +13,7 @@ import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
 import wust.webApp.Color.baseColor
 import wust.webApp.GlobalState
-import wust.webApp.views.graphview.{Constants, PostCreationMenu}
+import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
 import wust.ids.{Label, PostId}
 import wust.util.outwatchHelpers._
@@ -42,14 +42,19 @@ object VisualizationType {
   case object Tag extends VisualizationType
 }
 
+object ForceSimulationConstants {
+  val nodePadding = 10
+  val eulerSetPadding = nodePadding
+  val minimumDragHighlightRadius = 50
+  val nodeSpacing = 70
+}
 
 class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
   //TODO: sometimes dragging parent into child crashes simulation
   import ForceSimulation._
+  import ForceSimulationConstants._
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph}
 
-  val eulerSetPadding = 10
-  val minimumDragHighlightRadius = 50
   val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
   val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
 
@@ -392,6 +397,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
 
 object ForceSimulation {
   private val debugDrawEnabled = false
+  import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
   def calcPostWidth(post: Post) = {
@@ -526,7 +532,7 @@ object ForceSimulation {
     calculateEulerSetPolygons(simData,staticData)
 
     rectBound(simData, staticData, planeDimension, strength = 0.1)
-    keepDistance(simData, staticData, distance = Constants.nodePadding, strength = 0.2)
+    keepDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
     edgeLength(simData, staticData)
 
     eulerSetClustering(simData, staticData, strength = 0.1)

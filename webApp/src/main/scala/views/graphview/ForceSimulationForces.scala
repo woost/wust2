@@ -3,7 +3,7 @@ package views.graphview
 import d3v4.{d3, d3polygon, _}
 import vectory.Algorithms.LineIntersection
 import vectory._
-import wust.webApp.views.graphview.Constants
+import ForceSimulationConstants._
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -322,7 +322,7 @@ object ForceSimulationForces {
     while (i < cn) {
       val source = staticData.source(i)
       val target = staticData.target(i)
-      val targetDistance = radius(source) + Constants.nodePadding + radius(target)
+      val targetDistance = radius(source) + nodeSpacing + radius(target)
       val targetDistanceSq = targetDistance * targetDistance // TODO: cache in array?
       val dx = x(source) - x(target)
       val dy = y(source) - y(target)
@@ -362,7 +362,7 @@ object ForceSimulationForces {
         eulerSetPolygonMaxY(ci)
         ) { ai =>
         val center = Vec2(x(ai), y(ai))
-        val radius = staticData.radius(ai) + Constants.nodePadding
+        val radius = staticData.radius(ai) + nodeSpacing
 
         val belongsToCluster = eulerSetAllNodes(ci).contains(ai) //TODO: fast lookup with precomputed table
         if (!belongsToCluster) {

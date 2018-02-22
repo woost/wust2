@@ -6,7 +6,7 @@ import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge, Tag}
 import wust.webApp.Color.baseColor
 import wust.webApp.ColorPost
-import wust.webApp.views.graphview.Constants
+import ForceSimulationConstants._
 import wust.graph.{Post, _}
 import wust.ids.{Label, PostId}
 import wust.util.time.time
@@ -148,9 +148,9 @@ object StaticData {
         staticData.height(i) = height
         staticData.centerOffsetX(i) = width / -2.0
         staticData.centerOffsetY(i) = height / -2.0
-        staticData.radius(i) = Vec2.length(width, height) / 2.0
+        staticData.radius(i) = Vec2.length(width, height) / 2.0 + nodePadding
         maxRadius = maxRadius max staticData.radius(i)
-        staticData.collisionRadius(i) = staticData.radius(i) + Constants.nodePadding * 0.5
+        staticData.collisionRadius(i) = staticData.radius(i) + nodeSpacing * 0.5
         staticData.containmentRadius(i) = staticData.collisionRadius(i)
 
         staticData.nodeParentCount(i) = graph.parents(post.id).size //TODO: faster?

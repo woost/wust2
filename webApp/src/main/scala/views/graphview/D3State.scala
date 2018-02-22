@@ -12,11 +12,6 @@
  import wust.webApp.DevPrintln
  import wust.util.time.time
 
-object Constants {
-  val nodePadding = 150
-  val invalidPosition = -999999999.99
-}
-
 abstract class CustomForce[N <: SimulationNode] extends js.Object {
   def initialize(nodes: js.Array[N]): Unit = {}
   def force(alpha: Double): Unit
