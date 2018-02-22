@@ -173,6 +173,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     //      selectedGroupId.debug("selectedGroupId")
     // rawPage.debug("rawPage")
     page.debug("page")
+    view.debug("view")
     // viewConfig.debug("viewConfig")
     //      currentUser.debug("\ncurrentUser")
 
