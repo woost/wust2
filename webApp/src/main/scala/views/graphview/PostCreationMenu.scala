@@ -25,25 +25,22 @@ import wust.webApp.views.Placeholders
 
 
 object PostCreationMenu {
-
-  case class Menu(pos: Vec2, author: UserId) //TODO: use tuple instead and use current author upon actual post creation
-
-  def apply(state: GlobalState, m: Menu, transformRx: Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
+  def apply(state: GlobalState, pos: Vec2, transformRx: Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
 //    import graphState.rxPostIdToSimPost
 
     val transformStyle = transformRx.map { t =>
       val xOffset = -300 / 2
       val yOffset = -30
-      val x = xOffset + t.applyX(m.pos.x)
-      val y = yOffset + t.applyY(m.pos.y)
+      val x = xOffset + t.applyX(pos.x)
+      val y = yOffset + t.applyY(pos.y)
       s"translate(${x}px, ${y}px)"
     }
 
     val inputHandler = Handler.create[String].unsafeRunSync()
     var ySimPostOffset: Double = 50
     inputHandler.foreach{ content =>
-      val newPost = Post(PostId.fresh, content, m.author)
-      val changes = GraphChanges(addPosts = Set(newPost))
+      val author = state.inner.currentUser.now
+      val changes = GraphChanges.addPost(content, author.id)
       state.eventProcessor.enriched.changes.unsafeOnNext(changes)
 
       // TODO: move created post below menu (not working yet)

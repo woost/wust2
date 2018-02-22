@@ -55,7 +55,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
   import ForceSimulationConstants._
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph}
 
-  val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
+  val postCreationMenus:Var[List[Vec2]] = Var(Nil)
   val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
 
   private var labelVisualization: PartialFunction[Label,VisualizationType] = {
@@ -145,11 +145,9 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
     background.call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
       .on("click", { () =>
       println("clicked background")
-      //TODO: Also show postCreationMenu when no user is present
       if (postCreationMenus.now.isEmpty && selectedPostId.now.isEmpty) {
-        val author = state.inner.currentUser.now
         val pos = transform.invert(d3.mouse(background.node))
-        postCreationMenus() = List(PostCreationMenu.Menu(Vec2(pos(0), pos(1)), author.id))
+        postCreationMenus() = List(Vec2(pos(0), pos(1)))
       } else {
         // TODO:
         // Var.set(
