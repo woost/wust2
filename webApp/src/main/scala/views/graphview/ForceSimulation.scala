@@ -705,7 +705,7 @@ object ForceSimulation {
 
         // next radius
         canvasContext.lineWidth = 1
-        canvasContext.strokeStyle = "rgba(96,182,242,0.4)"
+        canvasContext.strokeStyle = "rgba(96,182,242,1.0)"
         canvasContext.beginPath()
         canvasContext.arc(nextCenter.x, nextCenter.y, staticData.radius(i), startAngle = 0, endAngle = fullCircle)
         canvasContext.stroke()
@@ -713,7 +713,7 @@ object ForceSimulation {
 
         // next collisionradius
         canvasContext.lineWidth = 1
-        canvasContext.strokeStyle = "rgba(96,182,242,0.2)"
+        canvasContext.strokeStyle = "rgba(96,182,242,1.0)"
         canvasContext.beginPath()
         canvasContext.arc(nextCenter.x, nextCenter.y, staticData.collisionRadius(i), startAngle = 0, endAngle = fullCircle)
         canvasContext.stroke()
