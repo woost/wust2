@@ -19,7 +19,7 @@ object ChatView extends View {
     import state._
 
     val newPostSink = eventProcessor.enriched.changes.redirect { (o: Observable[String]) =>
-      o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges(addPosts = Set(Post(PostId.fresh, msg, user.id))))
+      o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges.addPost(msg, user.id))
     }
 
     component(
