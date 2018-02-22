@@ -18,7 +18,10 @@ function sbt_with_args() {
     args="${@:1}"
     [ -n "$override_sbt_args" ] && args="$override_sbt_args"
 
-    sbt -Dquill.macro.log=false $args
+    sbt $args
+}
+function sbt() {
+    command sbt -Dquill.macro.log=false $@
 }
 
 DOCKERHOST_IP=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
