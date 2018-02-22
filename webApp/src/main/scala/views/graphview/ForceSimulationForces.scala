@@ -23,7 +23,6 @@ object ForceSimulationForces {
     val n = data.n
     while (i < n) {
       if (x(i).isNaN || y(i).isNaN) {
-        // println(s"$i: NaN")
         val radius = spacing * Math.sqrt(i)
         val angle = i * theta
         x(i) = radius * Math.cos(angle)
@@ -277,7 +276,7 @@ object ForceSimulationForces {
     }
   }
 
-  def eulerSetClustering(simData:SimulationData, staticData:StaticData): Unit = {
+  def eulerSetClustering(simData:SimulationData, staticData:StaticData, strength:Double): Unit = {
     // If a node is too far away from the geometric center of its euler set, push it towards it
     import staticData._
     import simData._
@@ -303,7 +302,7 @@ object ForceSimulationForces {
         // be aware: >= produces NaNs
         if (distanceDiff > 0) { // node is too far outside
           //TODO: avoid Vec2 allocation and sqrt
-          val velocity = Vec2(dx, dy).normalized * distanceDiff * alpha
+          val velocity = Vec2(dx, dy).normalized * strength * distanceDiff * alpha
 
           vx(node) += velocity.x
           vy(node) += velocity.y
