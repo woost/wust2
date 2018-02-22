@@ -221,9 +221,9 @@ object MainViewParts {
   def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     val urlImporter = Handler.create[String].unsafeRunSync()
 
-    def importGithubUrl(url: String): Unit = Client.api.importGithubUrl(url)
+    def importGithubUrl(url: String): Unit = Client.githubApi.importContent(url)
+    def importGitterUrl(url: String): Unit = Client.gitterApi.importContent(url)
 
-    def importGitterUrl(url: String): Unit = Client.api.importGitterUrl(url)
 
     def connectToGithub(): Unit = Client.auth.issuePluginToken().foreach { auth =>
       scribe.info(s"Generated plugin token: $auth")

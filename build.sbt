@@ -284,8 +284,6 @@ lazy val core = project
       Deps.jbcrypt.value ::
       Deps.javaMail.value ::
       Deps.monix.value ::
-      Deps.github4s.value ::
-      Deps.gitterSync.value ::
       Deps.stringmetric.value ::
       Deps.webPush.value ::
       Nil,
@@ -377,6 +375,7 @@ lazy val gitterApp = project
   .settings(
     libraryDependencies ++=
       Deps.gitterClient.value ::
+      Deps.gitterSync.value ::
       Nil
   )
 

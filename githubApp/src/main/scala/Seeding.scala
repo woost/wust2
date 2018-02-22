@@ -1,4 +1,4 @@
-package wust.backend
+package wust.github
 
 import wust.graph._
 import wust.ids._
@@ -7,21 +7,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaj.http.HttpResponse
 
-object Constants {
-  //TODO
-  val githubId = PostId("wust-github")
-  val issueTagId = PostId("github-issue")
-  val commentTagId = PostId("github-comment")
-  val gitterId = PostId("wust-gitter")
-}
-object GitHubImporter {
-  import github4s.Github
-  import github4s.Github._
-  import github4s.GithubResponses.GHResult
-  import github4s.free.domain.{Comment, Issue, User => GHUser}
-  import github4s.jvm.Implicits._
+import github4s.Github
+import github4s.Github._
+import github4s.GithubResponses.GHResult
+import github4s.free.domain.{Comment, Issue, User => GHUser}
+import github4s.jvm.Implicits._
+import com.redis._
 
-  private val gitAccessToken = sys.env.get("WUST_GITHUB_TOKEN")
+object GitHubImporter {
 
   def urlExtractor(url: String): (String, String, Option[Int]) = {
 
@@ -34,16 +27,15 @@ object GitHubImporter {
     val numEndPattern = "issues/[0-9]+$".r
     val issueNumGiven = numEndPattern.findFirstIn(_url).getOrElse("/").split("/")
     val issueNum = if (issueNumGiven.isEmpty) None else Some(issueNumGiven(1).toInt)
-    val urlData = _url.stripSuffix("/").stripSuffix((if(issueNum.isDefined) issueNum.get.toString else "")).stripSuffix("/").stripSuffix("/issues").split("/")
+    val urlData = _url.stripSuffix("/").stripSuffix(if (issueNum.isDefined) issueNum.get.toString else "").stripSuffix("/").stripSuffix("/issues").split("/")
 
-    println(s"url ${url}")
-    println(s"urlData: owner = ${urlData(0)}, repo = ${urlData(1)}, issue number = ${issueNum}")
+    println(s"url data: owner = ${urlData(0)}, repo = ${urlData(1)}, issue number = $issueNum")
     assert(urlData.size == 2, "Could not extract url")
 
     (urlData(0), urlData(1), issueNum)
   }
 
-  def getIssues(owner: String, repo: String, issueNumber: Option[Int] = None, user: User): Future[(Set[Post], Set[Connection])] = {
+  def getIssues(redis: RedisClient, owner: String, repo: String, issueNumber: Option[Int] = None, gitAccessToken: Option[String]): Future[(Set[Post], Set[Connection])] = {
 
     val emptyResult = (Set.empty[Post], Set.empty[Connection])
 
@@ -53,10 +45,9 @@ object GitHubImporter {
         .execFuture[HttpResponse[String]]()
         .map {
           case Right(GHResult(result, _, _)) => List(result)
-          case _ => {
+          case _ =>
             println("Error getting Issue")
             List.empty[Issue]
-          }
         }
 
     def getIssueList: Future[List[Issue]] =
@@ -64,10 +55,9 @@ object GitHubImporter {
         .execFuture[HttpResponse[String]]()
         .map {
           case Right(GHResult(result, _, _)) => result
-          case _ => {
+          case _ =>
             println("Error getting List of Issues")
             List.empty[Issue]
-          }
         }
 
     val issueList = issueNumber match {
@@ -79,28 +69,48 @@ object GitHubImporter {
       issueList.flatMap( inner => Future.sequence(inner.map( issue => {
         val issueComments: Future[(Issue, List[Comment])] =
           Github(gitAccessToken).issues.listComments(owner, repo, issue.number)
-            .execFuture[HttpResponse[String]]().map( response => response match {
+            .execFuture[HttpResponse[String]]().map {
             case Right(GHResult(result, _, _)) => (issue, result)
-            case _ => {
+            case _ =>
               println("Error getting Issues")
               (issue, List.empty[Comment])
-            }
-          })
+          }
         issueComments
       })))
     }
 
+    /**
+      * Create property posts and connection for each issue
+      * For each post / comment:
+      *   Check if user exist. if not -> generate uuid for new implicit user. else get wust user
+      * Save data in redis
+      * Get tokens for implicit users from backend
+      *
+      */
     val postAndConnection: Future[Set[(Set[Post], Set[Connection])]] = {
       issueWithComments.map(_.map( issueData => {
         val issue = issueData._1
         val commentsList = issueData._2
 
-        //TODO what about this userid?
-        val userId = UserId(issue.user match {
-          case None => ???
-          case Some(githubUser: GHUser) => githubUser.id.toString
-        }) //TODO: create this user
-        val tempUserId = user.id
+        // Create property connection
+
+
+
+        // Get wust user from github id or create new user
+        val githubUserOfIssue = issue.user
+        val wustUserOfIssue = githubUserOfIssue match {
+          case None => UserId("unknown")
+          case Some(githubUser: GHUser) => PersistAdapter.getWustUser(githubUser.id).getOrElse(UserId.fresh)
+        }
+
+      //TODO what about this userid?
+      val userId = UserId(issue.user match {
+        case None => ???
+        case Some(githubUser: GHUser) => githubUser.id.toString
+      }) //TODO: create this user
+      // val tempUserId = user.id
+      val tempUserId = wustUserOfIssue
+
 
         // Ensure posts
         val _github = Post(Constants.githubId, PostContent.Text("wust-github"), tempUserId)
@@ -112,7 +122,7 @@ object GitHubImporter {
         // TODO: delete transitive containments of comments in issue
 
         // Issue posts and connections
-        implicit def StringToEpochMilli(s:String):EpochMilli = EpochMilli.from(s)
+        implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
         // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order
@@ -156,44 +166,4 @@ object GitHubImporter {
 
   }
 
-}
-
-object GitterImporter {
-  import scala.collection.JavaConverters._
-  import com.amatkivskiy.gitter.sdk.sync.client.SyncGitterApiClient
-
-  private val gitterAccessToken = sys.env.getOrElse("WUST_GITTER_TOKEN", "")
-
-  def getRoomMessages(url: String, user: User): Future[(Set[Post], Set[Connection])] = {
-    val _uri = url.stripLineEnd.stripMargin.trim.
-      stripPrefix("https://").
-      stripPrefix("http://").
-      stripPrefix("gitter.im/").
-      takeWhile(_ != '?').
-      stripSuffix("/")
-    val tempUserId = user.id
-    val client: SyncGitterApiClient = new SyncGitterApiClient.Builder().withAccountToken(gitterAccessToken).build()
-
-    // Ensure gitter post
-    val _gitter = Post(Constants.gitterId, PostContent.Text("wust-gitter"), tempUserId)
-
-    val discussion = Post(PostId.fresh, PostContent.Text(_uri), tempUserId)
-    val discussionTag = Connection(discussion.id, ConnectionContent.Parent, _gitter.id)
-    val postsAndConnection = for {
-      roomId <- Future { client.getRoomIdByUri(_uri).id }
-      roomMessages <- Future { client.getRoomMessages(roomId).asScala.toList }
-    } yield {
-      roomMessages.map { message =>
-        //TODO what about this userid?
-        val post = Post(PostId.fresh, PostContent.Markdown(message.text), tempUserId)
-        val conn = Connection(post.id, ConnectionContent.Parent, discussion.id)
-        (Set(post), Set(conn))
-      }.toSet
-    }
-
-    postsAndConnection.map(zipped => {
-      val (posts, conns) = zipped.unzip
-      (posts.flatten + _gitter + discussion, conns.flatten + discussionTag)
-    })
-  }
 }

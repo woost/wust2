@@ -36,9 +36,15 @@ object Client {
     import window.location
     s"${location.protocol}//github.${location.hostname}:${location.port}/api"
   }
+  private val gitterUrl = {
+    import window.location
+    s"${location.protocol}//${location.hostname}:54321/api"
+  }
 
   private val githubClient = HttpClient[ByteBuffer](githubUrl)
+  private val gitterClient = HttpClient[ByteBuffer](gitterUrl)
   val githubApi = githubClient.wire[PluginApi]
+  val gitterApi = gitterClient.wire[PluginApi]
 
   val factory: WustClientFactory = WustClient(wustUrl)
   val api = factory.defaultPriority.api

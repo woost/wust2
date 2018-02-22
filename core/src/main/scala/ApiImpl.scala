@@ -114,40 +114,45 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+
+//  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
     // TODO: Reuse graph changes instead
-    val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
-    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
-    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
-      db.ctx.transaction { implicit ec =>
-        for {
-          true <- db.post.createPublic(posts)
-          true <- db.connection(connections)
-          changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield NewGraphChanges.ForAll(changes) :: Nil
-      }
-    }
+//    val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
+//    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
+//    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
+//      db.ctx.transaction { implicit ec =>
+//        for {
+//          true <- db.post.createPublic(posts)
+//          true <- db.connection(connections)
+//          changes = GraphChanges(addPosts = posts, addConnections = connections)
+//        } yield NewGraphChanges.ForAll(changes) :: Nil
+//      }
+//    }
 
-    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
-  }
+//    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
 
-  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+
+//    Future.successful(true)
+//  }
+
+//  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
     // TODO: Reuse graph changes instead
 //    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
-    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
-    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
-      db.ctx.transaction { implicit ec =>
-        for {
-          true <- db.post.createPublic(posts)
-          true <- db.connection(connections)
-          changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield NewGraphChanges.ForAll(changes) :: Nil
-      }
-    }
+//    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
+//    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
+//      db.ctx.transaction { implicit ec =>
+//        for {
+//          true <- db.post.createPublic(posts)
+//          true <- db.connection(connections)
+//          changes = GraphChanges(addPosts = posts, addConnections = connections)
+//        } yield NewGraphChanges.ForAll(changes) :: Nil
+//      }
+//    }
 
-    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
-  }
+//    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
+//    Future.successful(true)
+//  }
 
   override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
     getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))

@@ -54,9 +54,21 @@ object UserSettingsView extends View {
           }
       }
     }
+
     def linkWithGitter(userId: UserId) = {
+      Client.auth.issuePluginToken().foreach { auth =>
+        scribe.info(s"Generated plugin token: $auth")
+        val connUser = Client.gitterApi.connectUser(auth.token)
+        connUser foreach {
+          case Some(url) =>
+            org.scalajs.dom.window.location.href = url
+          case None =>
+            scribe.info(s"Could not connect user: $auth")
+        }
+      }
       println(s"Link Gitter with userId: $userId")
     }
+
     def linkWithSlack(userId: UserId) = {
       println(s"Link Slack with userId: $userId")
     }

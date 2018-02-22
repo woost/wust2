@@ -31,6 +31,27 @@ object Constants {
   val gitterId = PostId("wust-gitter")
 }
 
+//class GitterApiImpl(client: WustClient, server: ServerConfig, github: GitterConfig, redis: RedisClient)(implicit ec: ExecutionContext) extends PluginApi {
+//  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
+//    client.auth.verifyToken(auth).map {
+//      case Some(verifiedAuth) =>
+//        scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
+//        // Step 1: Add wustId -> wustToken
+//        AuthClient.addWustToken(redis, verifiedAuth.user.id, verifiedAuth.token)
+//
+//        // Generate url called by client (e.g. WebApp)
+//        AuthClient.generateAuthUrl(verifiedAuth.user.id, server, github)
+//      case None =>
+//        scribe.info(s"Invalid auth")
+//        None
+//    }
+//  }
+//
+//  override def importContent(identifier: String): Future[Boolean] = {
+//    Seeding
+//  }
+//}
+
 case class ExchangeMessage(content: String)
 
 trait MessageReceiver {

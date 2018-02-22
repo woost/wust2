@@ -40,15 +40,16 @@ import github4s.app.GitHub4s
 
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
-import com.redis._
 
 import scala.collection.concurrent.TrieMap
 
 object Constants {
   //TODO
   val githubId = PostId("wust-github")
-  val issueTagId = PostId("github-issue")
-  val commentTagId = PostId("github-comment")
+  val issueTagId = PostId("wust-github-issue")
+  val commentTagId = PostId("wust-github-comment")
+
+  val label = ConnectionContent.Text("describes")
 
   val wustOwner = "woost"
   val wustRepo = "bug"
@@ -57,20 +58,13 @@ object Constants {
 
 }
 
-object DBConstants {
-  val githubUserId = "githubUserId"
-  val wustUserId = "wustUserId"
-  val githubToken = "githubToken"
-  val wustToken = "wustToken"
-}
-
-class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig, redis: RedisClient)(implicit ec: ExecutionContext) extends PluginApi {
+class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig)(implicit ec: ExecutionContext) extends PluginApi {
   def connectUser(auth: Authentication.Token): Future[Option[String]] = {
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
         // Step 1: Add wustId -> wustToken
-        AuthClient.addWustToken(redis, verifiedAuth.user.id, verifiedAuth.token)
+        PersistAdapter.addWustToken(verifiedAuth.user.id, verifiedAuth.token)
 
         // Generate url called by client (e.g. WebApp)
         AuthClient.generateAuthUrl(verifiedAuth.user.id, server, github)
@@ -78,6 +72,11 @@ class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConf
         scribe.info(s"Invalid auth")
         None
     }
+  }
+
+  override def importContent(identifier: String): Future[Boolean] = {
+    // Seeding.
+    Future.successful(true)
   }
 }
 
@@ -89,19 +88,6 @@ object AuthClient {
     * wustUserId -> (wustToken, githubUserId)
     * githubUserId -> (githubToken, wustUserId)
     */
-  def addWustToken(client: RedisClient, wustUserId: UserId, wustToken: String): Option[Long] = {
-    client.hset1(s"wu_$wustUserId", DBConstants.wustToken, wustToken)
-  }
-  def addGithubUser(client: RedisClient, wustUserId: UserId, githubUserId: Int): Option[Long] = {
-    client.hset1(s"wu_$wustUserId", DBConstants.githubUserId, s"gh_$githubUserId")
-  }
-  def addGithubToken(client: RedisClient, githubUserId: Int, githubToken: String): Option[Long] = {
-    client.hset1(s"gh_$githubUserId", DBConstants.githubToken, githubToken)
-  }
-  def addWustUser(client: RedisClient, githubUserId: Int, wustUserId: UserId): Option[Long] = {
-    client.hset1(s"gh_$githubUserId", DBConstants.wustUserId, wustUserId)
-  }
-
   var oAuthRequests: TrieMap[String, UserId] = TrieMap.empty[String, UserId]
 
   def confirmOAuthRequest(code: String, state: String): Boolean = {
@@ -154,14 +140,45 @@ object AppServer {
   import akka.http.scaladsl.Http
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
-  private def createIssue(issue: Issue) = GraphChanges.empty
-  private def editIssue(issue: Issue) = GraphChanges.empty
+  implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
+
+  private def createOrIgnore(issue: Issue): PostId = ???
+  private def createOrIgnore(comment: Comment): PostId = ???
+
+  private def getPostMapping(issue: Issue): PostId = ???
+  private def getPostMapping(comment: Comment): PostId = ???
+
+  private def createIssue(issue: Issue) = {
+
+    val issuePost = Post(PostId.fresh, PostContent.Text(issue.body), Constants.wustUser.id, issue.created_at, issue.updated_at)
+    val issueDesc = Post(PostId.fresh, PostContent.Text(issue.title), Constants.wustUser.id, issue.created_at, issue.updated_at)
+    val issuePosts = Set( issuePost, issueDesc )
+
+    val edges = Set(
+      Connection(issuePost.id, ConnectionContent.Parent, Constants.issueTagId),
+      Connection(issuePost.id, ConnectionContent.Parent, Constants.githubId)
+    )
+
+    GraphChanges(addPosts = issuePosts, addConnections = edges)
+  }
+
+  private def editIssue(/*graph: Graph,*/ issue: Issue) = {
+//    val postId = getPostMapping(issue)
+//    val post = graph.postsById(postId)
+//    post.copy(
+//      content = issue.title,
+//      modified = Post.parseTime(issue.updated_at)
+//    )
+    GraphChanges.empty
+    // Update description
+  }
+
   private def deleteIssue(issue: Issue) = GraphChanges.empty
   private def createComment(issue: Issue, comment: Comment) = GraphChanges.empty
   private def editComment(issue: Issue, comment: Comment) = GraphChanges.empty
   private def deleteComment(issue: Issue, comment: Comment) = GraphChanges.empty
 
-  def run(server: ServerConfig, github: GithubConfig, redis: RedisClient, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
+  def run(server: ServerConfig, github: GithubConfig, wustReceiver: WustReceiver)(implicit system: ActorSystem): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
@@ -169,7 +186,7 @@ object AppServer {
     import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]
-      .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github, redis))
+      .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github))
 
     val corsSettings = CorsSettings.defaultSettings.copy(
       allowedOrigins = HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)): _*))
@@ -196,11 +213,11 @@ object AppServer {
                   val wustUserId = AuthClient.oAuthRequests(state)
                   val githubUserId = r.result.id
                   // Github data
-                  AuthClient.addGithubToken(redis, githubUserId, token.get)
-                  AuthClient.addWustUser(redis, githubUserId, wustUserId)
+                  PersistAdapter.addGithubToken(githubUserId, token.get)
+                  PersistAdapter.addWustUser(githubUserId, wustUserId)
                   // Wust data
-                  AuthClient.addGithubUser(redis, wustUserId, githubUserId)
-                  AuthClient.oAuthRequests.remove(state)
+                  PersistAdapter.addGithubUser(wustUserId, githubUserId)
+//                  PersistAdapter.oAuthRequests.remove(state)
                 case Left(e) => println(s"Could not authenticate with OAuthToken: ${e.getMessage}")
               }
             } else {
@@ -258,7 +275,7 @@ object AppServer {
 
     Http().bindAndHandle(route, interface = server.host, port = server.port).onComplete {
       case Success(binding) =>
-        val separator = "\n" + ("#" * 60)
+        val separator = "\n############################################################"
         val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
         scribe.info(s"$separator$readyMsg$separator")
       case Failure(err) => scribe.error(s"Cannot start GitHub App Server: $err")
@@ -651,8 +668,9 @@ object App extends scala.App {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
       val githubClient = GithubClient(config.github)
-      val redisClient = new RedisClient(config.redis.host, config.redis.port)
+//      val redisClient = new RedisClient(config.redis.host, config.redis.port)
       val receiver = WustReceiver.run(config.wust, githubClient)
-      AppServer.run(config.server, config.github, redisClient, receiver)
+//      AppServer.run(config.server, config.github, redisClient, receiver)
+      AppServer.run(config.server, config.github, receiver)
   }
 }

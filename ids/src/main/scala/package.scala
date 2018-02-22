@@ -30,4 +30,3 @@ package object ids {
   }
   type EpochMilli = EpochMilli.Type
 }
-
