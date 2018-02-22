@@ -13,3 +13,7 @@ docker push woost/web
 docker push woost/github
 docker push woost/gitter
 docker push woost/slack
+
+[[ -z "$STAGING_URL" ]] || exit 0
+
+curl $STAGING_URL 2> /dev/null
