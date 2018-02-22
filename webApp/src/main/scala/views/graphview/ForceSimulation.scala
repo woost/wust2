@@ -44,9 +44,12 @@ object VisualizationType {
 
 
 class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
+  //TODO: sometimes dragging parent into child crashes simulation
   import ForceSimulation._
   import state.inner.{displayGraphWithoutParents => rxDisplayGraph}
 
+  val eulerSetPadding = 10
+  val minimumDragHighlightRadius = 50
   val postCreationMenus:Var[List[PostCreationMenu.Menu]] = Var(Nil)
   val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
 
@@ -173,7 +176,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
       simData.quadtree.remove(dragging)
     }
 
-    def hit(dragging:Int):Option[Int] = {
+    def hit(dragging:Int, minRadius:Double):Option[Int] = {
       if(simData.n <= 1) return None
 
       val x = d3.event.x / transform.k
@@ -181,7 +184,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
 
       val target = simData.quadtree.find(x,y) // ,staticData.maxRadius
       def distance = Vec2.length(x - simData.x(target), y - simData.y(target))
-      if(target != dragging && distance <= staticData.radius(target)) {
+      if(target != dragging && (distance <= minRadius || distance <= staticData.radius(target))) {
         Some(target)
       } else None
     }
@@ -206,14 +209,15 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
       ForceSimulationForces.eulerSetGeometricCenter(simData, staticData)
       drawCanvas(simData,staticData,canvasContext,planeDimension)
 
-      hit(dragging).foreach{ target =>
+      hit(dragging, minimumDragHighlightRadius).foreach{ target =>
         canvasContext.lineWidth = 1
 
         val bgColor = baseColor(staticData.posts(target).id)
+        val radius = (staticData.radius(target) + eulerSetPadding) max minimumDragHighlightRadius
         bgColor.opacity = 0.8
         canvasContext.fillStyle = bgColor
         canvasContext.beginPath()
-        canvasContext.arc(simData.x(target), simData.y(target), staticData.radius(target), startAngle = 0, endAngle = 2*Math.PI)
+        canvasContext.arc(simData.x(target), simData.y(target), radius, startAngle = 0, endAngle = 2*Math.PI)
         canvasContext.fill()
         canvasContext.closePath()
       }
@@ -224,7 +228,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
     }
 
     def dropped(n:html.Element, d:Post, dragging:Int):Unit = {
-      hit(dragging).foreach{ target =>
+      hit(dragging, minimumDragHighlightRadius).foreach{ target =>
         if(isCtrlPressed)
           onDropWithCtrl(staticData.posts(dragging).id, staticData.posts(target).id)
         else
