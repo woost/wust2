@@ -59,6 +59,10 @@ function self() {
         export $env
 
         case "$2" in
+        all)
+            docker_compose core dev up -d db-migration
+            docker_compose githubApp dev up -d redis
+            ;;
         core)
             docker_compose core dev up -d db-migration
             ;;
@@ -71,7 +75,6 @@ function self() {
             ;;
         *)
             docker_compose core dev up -d db-migration
-            docker_compose githubApp dev up -d redis
             ;;
         esac
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env zsh
 
+SBTARG=${SBTARG:-"core"}
 LOCALDIR=${LOCALDIR:-$(pwd)}
-REMOTEHOST=${REMOTEHOST:-fff}
+REMOTEHOST=${REMOTEHOST:-"fff"}
 
 DEVPORT=${DEVPORT:-$(shuf -i 40000-41000 -n 1)}
 BACKEND=${BACKEND:-$(shuf -i 50000-51000 -n 1)}
@@ -39,7 +40,7 @@ ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOT
         export WUST_CORE_PORT=$BACKEND;         \
         export WUST_PORT=$DEVPORT;              \
         export DEV_SERVER_COMPRESS=true;        \
-        ./start sbt;                            \
+        ./start sbt $SBTARG;                    \
         zsh -i;                                 \
     \\\"\""
 
