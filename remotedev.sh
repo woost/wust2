@@ -1,6 +1,7 @@
 #!/usr/bin/env zsh
 
 SBTARG=${SBTARG:-"core"}
+EXTRASBTARG=${EXTRASBTARG:-"-Dsbt.watch.mode=polling"}
 LOCALDIR=${LOCALDIR:-$(pwd)}
 REMOTEHOST=${REMOTEHOST:-"fff"}
 
@@ -40,6 +41,7 @@ ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOT
         export WUST_CORE_PORT=$BACKEND;         \
         export WUST_PORT=$DEVPORT;              \
         export DEV_SERVER_COMPRESS=true;        \
+        export EXTRASBTARGS=$EXTRASBTARGS;        \
         ./start sbt $SBTARG;                    \
         zsh -i;                                 \
     \\\"\""
