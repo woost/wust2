@@ -659,15 +659,22 @@ case object RestructuringTaskGenerator {
 
   def apply(globalState: GlobalState): Observable[VNode] = {
 
-    def renderButton: VNode = div(
-      span("Tasks"),
-      fontWeight.bold,
-      fontSize := "20px",
-      marginBottom := "10px",
-      button("Task me!", width := "100%", onClick(TaskFeedback(true, GraphChanges.empty)) --> taskDisplayWithLogging),
-    )
+    def renderButton(activateTasks: Boolean): VNode = {
+      val buttonType = if(activateTasks) {
+        button("Close tasks!", width := "100%", onClick(TaskFeedback(displayNext = false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      } else {
+        button("Task me!", width := "100%", onClick(TaskFeedback(displayNext = true, GraphChanges.empty)) --> taskDisplayWithLogging)
+      }
+      div(
+        span("Tasks"),
+        fontWeight.bold,
+        fontSize := "20px",
+        marginBottom := "10px",
+        buttonType
+      )
+    }
 
-    val show = taskDisplayWithLogging.map(feedback => {
+    val show = taskDisplayWithLogging.map{ feedback =>
 
       DevPrintln(s"display task! ${feedback.toString}")
       if(feedback.displayNext) {
@@ -676,14 +683,21 @@ case object RestructuringTaskGenerator {
           if (feedback.taskAnswer.nonEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> YES -> ${feedback.taskAnswer}")
           else if (feedback.taskAnswer.isEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> NO")
         }
+        if(_studyTaskIndex >= studyTaskList.size){
+          _studyTaskIndex = 0
+          scribe.info("All tasks are finished")
+          renderButton(activateTasks = false),
+        } else {
+          div(
+            renderButton(activateTasks = true),
+            children <-- Observable.fromFuture(composeStudyTask(globalState).map(_.map(_.render(globalState))))
+          )
+        }
 
-        div(
-          children <-- Observable.fromFuture(composeStudyTask(globalState).map(_.map(_.render(globalState))))
-        )
       } else {
-          renderButton,
+        renderButton(activateTasks = false)
       }
-    })
+    }
 
     show
   }
@@ -695,16 +709,10 @@ case object RestructuringTaskGenerator {
     //    MergePosts.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(2), None),
     //    SplitPosts.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(1), None),
     //    AddTagToPosts.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(1), None)
-    val nextTask = if(_studyTaskIndex < studyTaskList.size) {
-      studyTaskList(_studyTaskIndex).applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic)
-    } else {
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(false, GraphChanges.empty))
-      scribe.info("All tasks are finished")
-      // org.scalajs.dom.window.location.href = "Eval?"
-      Future.successful(List.empty[RestructuringTask])
-    }
-    _studyTaskIndex = _studyTaskIndex + 1
 
+    // org.scalajs.dom.window.location.href = "Eval?"
+    val nextTask = studyTaskList(_studyTaskIndex).applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic)
+    _studyTaskIndex = _studyTaskIndex + 1
     nextTask
   }
 
