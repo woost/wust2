@@ -51,12 +51,11 @@ function self() {
         postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         sbt dbMigration/docker
         docker_compose core dev run db-migration
-        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < taskStudy/discussion1.sql
+        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < taskStudyData/kalte-dusche.sql
         env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
         export $env
         docker_compose core dev up -d db-migration
-        docker_compose githubApp dev up -d redis
         (firefox --new-window "http://localhost:12345/#chat") &
         echo "DO NOT FORGET TO PERSIST LOGS"
         sbt_with_args dev
