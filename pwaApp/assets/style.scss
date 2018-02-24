@@ -1,0 +1,20 @@
+/* https://css-tricks.com/international-box-sizing-awareness-day */
+*, *:before, *:after {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+html, body, #pagegrid {
+    width:100%;
+    height:100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: sans-serif;
+    div {
+        color: red;
+    }
+}

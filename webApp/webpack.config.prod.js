@@ -2,6 +2,7 @@ const Webpack = require('webpack');
 const ZopfliPlugin = require("zopfli-webpack-plugin");
 const BrotliPlugin = require('brotli-webpack-plugin');
 const ClosureCompilerPlugin = require("webpack-closure-compiler");
+const VisualizerPlugin = require("webpack-visualizer-plugin");
 
 module.exports = require('./scalajs.webpack.config');
 
@@ -23,6 +24,8 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
   },
   concurrency: 3,
 }));
+
+module.exports.plugins.push(new VisualizerPlugin());
 
 module.exports.plugins.push(new Webpack.DefinePlugin({
   'process.env.NODE_ENV': JSON.stringify('production')
