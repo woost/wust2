@@ -78,8 +78,42 @@ lazy val sourceMapSettings = Seq(
     },
   )
 
+lazy val webSettings = Seq(
+    scalacOptions += "-P:scalajs:sjsDefinedByDefault",
+    requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
+    scalaJSUseMainModuleInitializer := true,
+
+    emitSourceMaps in fastOptJS := true, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
+    emitSourceMaps in fullOptJS := false,
+
+    useYarn := true, // instead of npm
+    npmDependencies in Compile ++=
+      /* "default-passive-events" -> "1.0.7" :: */
+      Nil,
+    npmDevDependencies in Compile ++=
+      "webpack-closure-compiler" -> "2.1.6" ::
+      "webpack-subresource-integrity" -> "1.0.4" ::
+      "html-webpack-plugin" -> "2.30.1" ::
+      "clean-webpack-plugin" -> "0.1.18" ::
+      "zopfli-webpack-plugin" -> "0.1.0" ::
+      "brotli-webpack-plugin" -> "0.5.0" ::
+      "node-sass" -> "4.7.2" ::
+      "sass-loader" -> "6.0.6" ::
+      "css-loader" -> "0.28.10" ::
+      "extract-text-webpack-plugin" -> "3.0.2" ::
+      Nil,
+
+    version in webpack := "3.10.0",
+    // version in startWebpackDevServer := "2.11.1", //TODO: breaks hot reload
+    webpackResources := (baseDirectory.value / ".." / "webpack" * "*.js"),
+    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
+    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
+    /* webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance */
+    webpackDevServerExtraArgs := Seq("--progress", "--color"),
+)
+
 lazy val root = project.in(file("."))
-  .aggregate(apiJS, apiJVM, database, core, sdkJS, sdkJVM, webApp, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp, gitterApp, githubApp)
+  .aggregate(apiJS, apiJVM, database, core, sdkJS, sdkJVM, webApp, pwaApp, idsJS, idsJVM, graphJS, graphJVM, utilJS, utilJVM, utilWeb, utilBackend, systemTest, dbMigration, slackApp, gitterApp, githubApp)
   .settings(
     publish := {},
     publishLocal := {},
@@ -90,18 +124,18 @@ lazy val root = project.in(file("."))
     addCommandAlias("devwatch", "~; core/reStart; webApp/fastOptJS; webApp/copyFastOptJS"),
     addCommandAlias("devstop", "webApp/fastOptJS::stopWebpackDevServer"),
 
-    addCommandAlias("devf", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devfwatch; devstop; core/reStop; project root"),
+    addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devfwatch; devstop; core/reStop; project root"),
+    addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
-    addCommandAlias("testJS", "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test"),
+    addCommandAlias("testJS", "; utilJS/test; utilWeb/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
-    addCommandAlias("testJVM", "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test; slackApp/test; gitterApp/test; githubApp/test"),
+    addCommandAlias("testJVM", "; utilJVM/test; utilBackend/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test; slackApp/test; gitterApp/test; githubApp/test"),
 
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
-    // watchSources := (watchSources in apiJS).value ++ (watchSources in database).value ++ (watchSources in webApp).value
     // watchSources := Seq(apiJS, apiJVM, database, core, sdkJS, sdkJVM, webApp, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in webApp).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in webApp).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in utilWeb).value ++ (watchSources in utilBackend).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
 lazy val util = crossProject
@@ -109,20 +143,33 @@ lazy val util = crossProject
   .jsSettings(sourceMapSettings)
   .settings(
     libraryDependencies ++= (
-      Deps.pureconfig.value ::
       Deps.sourcecode.value ::
       Nil
     )
   )
-  .jsSettings(
+
+lazy val utilJS = util.js
+lazy val utilJVM = util.jvm
+
+lazy val utilBackend = project
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= (
+      Deps.pureconfig.value ::
+      Nil
+    )
+  )
+
+lazy val utilWeb = project
+  .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings, sourceMapSettings)
+  .settings(
     libraryDependencies ++= (
       Deps.scalarx.value ::
       Deps.outwatch.value ::
       Nil
     )
   )
-lazy val utilJS = util.js
-lazy val utilJVM = util.jvm
 
 lazy val sdk = crossProject
   .dependsOn(api)
@@ -155,9 +202,9 @@ lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
 
 lazy val graph = crossProject.crossType(CrossType.Pure)
+  .dependsOn(ids, util)
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
-  .dependsOn(ids, util)
   .settings(
     libraryDependencies ++=
       Nil
@@ -181,10 +228,10 @@ lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
 lazy val database = project
+  .dependsOn(idsJVM, utilJVM)
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
-  .dependsOn(idsJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       Deps.quill.value ::
@@ -194,8 +241,8 @@ lazy val database = project
   )
 
 lazy val core = project
+  .dependsOn(utilBackend, apiJVM, database)
   .settings(commonSettings)
-  .dependsOn(apiJVM, database)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(
@@ -220,7 +267,7 @@ lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files t
 
 lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(sdkJS, utilJS)
+  .dependsOn(utilWeb, sdkJS)
   .settings(commonSettings, sourceMapSettings)
   .settings(
     libraryDependencies ++= (
@@ -252,6 +299,7 @@ lazy val webApp = project
       Nil,
     npmDevDependencies in Compile ++=
       "webpack-closure-compiler" -> "2.1.6" ::
+      "webpack-visualizer-plugin" -> "0.1.11" ::
       "zopfli-webpack-plugin" -> "0.1.0" ::
       "brotli-webpack-plugin" -> "0.5.0" ::
       Nil,
@@ -272,18 +320,28 @@ lazy val webApp = project
     }
   )
 
+lazy val pwaApp = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(utilWeb, sdkJS)
+  .settings(commonSettings, sourceMapSettings, webSettings)
+  .settings(
+    libraryDependencies ++= (
+      Nil
+    )
+  )
+
 lazy val slackApp = project
+  .dependsOn(utilBackend, sdkJVM)
   .settings(commonSettings)
-  .dependsOn(sdkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       Deps.slackClient.value ::
-        Nil
+      Nil
   )
 
 lazy val gitterApp = project
+  .dependsOn(utilBackend, sdkJVM)
   .settings(commonSettings)
-  .dependsOn(sdkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       Deps.gitterClient.value ::
@@ -291,8 +349,8 @@ lazy val gitterApp = project
   )
 
 lazy val githubApp = project
+  .dependsOn(utilBackend, sdkJVM)
   .settings(commonSettings)
-  .dependsOn(sdkJVM, apiJVM, utilJVM)
   .settings(
     libraryDependencies ++=
       Deps.github4s.value ::
