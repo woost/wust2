@@ -7,7 +7,10 @@ script_dir="$(dirname $0)"
 function docker_compose() {
     project="$1"
     stage="$2"
-    [[ -n "$stage" ]] && add_args="-f $project/docker-compose.$stage.yml" || add_args=""
+    add_args=""
+    if [[ -n "$stage" ]] && [[ -f "$project/docker-compose.$stage.yml" ]]; then
+        add_args="-f $project/docker-compose.$stage.yml"
+    fi
     docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args ${@:3}
 }
 function postgres_command() {
