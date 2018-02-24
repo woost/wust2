@@ -5,9 +5,9 @@ object Deps {
   import Def.{setting => dep}
 
   // testing
-  val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.4")
-  val specs2 = dep("org.specs2" %% "specs2-core" % "4.0.2")
-  val mockito = dep("org.mockito" % "mockito-core" % "2.11.0")
+  val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.5")
+  val specs2 = dep("org.specs2" %% "specs2-core" % "4.0.3")
+  val mockito = dep("org.mockito" % "mockito-core" % "2.15.0")
   val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.3.1")
 
   // core libraries
@@ -16,10 +16,10 @@ object Deps {
     val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
   }
   val scalaz = new {
-    val core = dep("org.scalaz" %%% "scalaz-core" % "7.2.13")
+    val core = dep("org.scalaz" %%% "scalaz-core" % "7.2.19")
   }
   val akka = new {
-    private val version = "2.5.8"
+    private val version = "2.5.10"
     private val httpVersion = "10.1.0-RC1"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
@@ -33,7 +33,7 @@ object Deps {
   // val boopickle = dep("io.suzaku" %%% "boopickle" % "1.2.6")
   val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle" % "084b0c8")
   val circe = new {
-    private val version = "0.9.0-M3"
+    private val version = "0.9.1"
     val core = dep("io.circe" %%% "circe-core" % version)
     val generic = dep("io.circe" %%% "circe-generic" % version)
     val parser = dep("io.circe" %%% "circe-parser" % version)
@@ -82,7 +82,7 @@ object Deps {
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
   val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
-  val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.0")
+  val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.1")
 
   // NLP
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")

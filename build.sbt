@@ -17,7 +17,7 @@ lazy val commonSettings = Seq(
     Nil
   ),
 
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6"),
 
   libraryDependencies ++=
     Deps.scribe.value ::
