@@ -38,10 +38,13 @@ ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOT
         if [[ -f tokens.sh ]]; then;            \
             source ./tokens.sh;                 \
         fi;                                     \
+        if [[ -f .zsh_completion ]]; then;      \
+            source .zsh_completion;             \
+        fi;                                     \
         export WUST_CORE_PORT=$BACKEND;         \
         export WUST_PORT=$DEVPORT;              \
         export DEV_SERVER_COMPRESS=true;        \
-        export EXTRASBTARGS=$EXTRASBTARGS;        \
+        export EXTRASBTARGS=$EXTRASBTARGS;      \
         ./start sbt $SBTARG;                    \
         zsh -i;                                 \
     \\\"\""
