@@ -63,7 +63,7 @@ function self() {
         echo "DO NOT FORGET TO PERSIST LOGS"
         docker_compose core dev up -d db-migration
         (firefox --new-window "http://localhost:12345/#chat") &
-        sbt_with_args dev
+        sbt_with_args devf
         ;;
     psql)
         # PGPASSWORD=test psql -h localhost -U wust

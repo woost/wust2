@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 SBTARG=${SBTARG:-"core"}
-EXTRASBTARG=${EXTRASBTARG:-"-Dsbt.watch.mode=polling"}
+EXTRASBTARGS=${EXTRASBTARGS:-"-Dsbt.watch.mode=polling"}
 LOCALDIR=${LOCALDIR:-$(pwd)}
 REMOTEHOST=${REMOTEHOST:-"fff"}
 
