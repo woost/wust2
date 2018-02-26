@@ -633,18 +633,24 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 
   def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
 
-    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
-      val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now.id))
-      val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
+    ObserverSink(state.eventProcessor.changes.redirectMap) { (tag: String) =>
+      val graph = getGraphFromState(state)
+      val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
+        case None =>
+          val newTag = Post(PostId.fresh, tag, state.inner.currentUser.now.id)
+          val newParent = state.inner.page.now.parentIds
+          val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
+          GraphChanges(
+            addPosts = Set(newTag),
+            addConnections = newParent.map(parent => Connection(newTag.id, Label.parent, parent)) ++ postTag
+          )
+        case Some(t) =>
+          post.map(p => GraphChanges.connect(p.id, Label.parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
+      }
 
-      val changes = GraphChanges(
-        addPosts = Set(tagPost),
-        addConnections = tagConnections.toSet
-      )
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, tagPostWithParents))
 
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, changes))
-
-      changes
+      tagPostWithParents
     }
   }
 
