@@ -88,7 +88,9 @@ sealed trait RestructuringTask {
 
   def stylePost(post: Post): VNode = p(
       post.content,
+      display := "inline-block",
       color.black,
+      maxWidth := "80ch",
       backgroundColor := "#eee",
       padding := "5px 10px",
       borderRadius := "7px",
