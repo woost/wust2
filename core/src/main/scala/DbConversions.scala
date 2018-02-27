@@ -2,7 +2,7 @@ package wust.backend
 
 import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
 
-import scalaz.Tag
+import io.treev.tag._
 import wust.db.Data
 import wust.graph._
 import wust.ids.EpochMilli
@@ -11,7 +11,7 @@ object DbConversions {
 
   //TODO: faster time conversion?
   val utc = ZoneId.ofOffset("UTC", ZoneOffset.UTC)
-  def epochMilliToLocalDateTime(t:EpochMilli):LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(Tag.unwrap(t)),utc)
+  def epochMilliToLocalDateTime(t:EpochMilli):LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(t),utc)
   def localDateTimeToEpochMilli(t:LocalDateTime):EpochMilli = EpochMilli(t.toInstant(ZoneOffset.UTC).toEpochMilli)
 
 

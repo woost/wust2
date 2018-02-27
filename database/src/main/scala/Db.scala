@@ -3,12 +3,12 @@ package wust.db
 import com.typesafe.config.Config
 import io.getquill._
 import wust.ids._
+import io.treev.tag._
 import wust.util._
 
 import java.time.LocalDateTime
 
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz.Tag
 
 object Db {
   def apply(config: Config) = {
@@ -20,13 +20,13 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   import Data._
   import ctx._
 
-  implicit val encodeGroupId = MappedEncoding[GroupId, IdType](Tag.unwrap _)
+  implicit val encodeGroupId = MappedEncoding[GroupId, IdType](identity)
   implicit val decodeGroupId = MappedEncoding[IdType, GroupId](GroupId(_))
-  implicit val encodeUserId = MappedEncoding[UserId, UuidType](Tag.unwrap _)
+  implicit val encodeUserId = MappedEncoding[UserId, UuidType](identity)
   implicit val decodeUserId = MappedEncoding[UuidType, UserId](UserId(_))
-  implicit val encodePostId = MappedEncoding[PostId, UuidType](Tag.unwrap _)
+  implicit val encodePostId = MappedEncoding[PostId, UuidType](identity)
   implicit val decodePostId = MappedEncoding[UuidType, PostId](PostId(_))
-  implicit val encodeLabel = MappedEncoding[Label, String](Tag.unwrap _)
+  implicit val encodeLabel = MappedEncoding[Label, String](identity)
   implicit val decodeLabel = MappedEncoding[String, Label](Label(_))
 
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted

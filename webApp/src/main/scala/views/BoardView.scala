@@ -10,7 +10,6 @@
 
 // import scala.collection.breakOut
 // import scala.concurrent.ExecutionContext.Implicits.global
-// import scalaz.Tag
 
 // import outwatch.dom._
 // import wust.util.outwatchHelpers._

@@ -17,8 +17,6 @@ import vectory._
 import wust.util.outwatchHelpers._
 import rx._
 
-import scalaz.Tag
-
 class GlobalState(implicit ctx: Ctx.Owner) {
 
   import StateHelpers._

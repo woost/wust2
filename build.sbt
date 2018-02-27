@@ -139,7 +139,7 @@ lazy val ids = crossProject.crossType(CrossType.Pure)
   .settings(
     libraryDependencies ++= (
       Deps.cuid.value ::
-      Deps.scalaz.core.value ::
+      Deps.taggedTypes.value ::
       Nil
     )
   )

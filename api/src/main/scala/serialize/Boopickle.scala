@@ -4,15 +4,15 @@ import wust.graph._
 import wust.api._
 import wust.ids._
 import boopickle.DefaultBasic._, PicklerGenerator._
-import scalaz.Tag
+import io.treev.tag._
 
 object Boopickle {
-  implicit val postIdPickler = transformPickler[PostId, UuidType](PostId(_))(Tag.unwrap _)
-  implicit val groupIdPickler = transformPickler[GroupId, IdType](GroupId(_))(Tag.unwrap _)
-  implicit val userIdPickler = transformPickler[UserId, UuidType](UserId(_))(Tag.unwrap _)
-  implicit val labelPickler = transformPickler[Label, String](Label(_))(Tag.unwrap _)
+  implicit val postIdPickler = transformPickler[PostId, UuidType](PostId(_))(identity)
+  implicit val groupIdPickler = transformPickler[GroupId, IdType](GroupId(_))(identity)
+  implicit val userIdPickler = transformPickler[UserId, UuidType](UserId(_))(identity)
+  implicit val labelPickler = transformPickler[Label, String](Label(_))(identity)
 
-  implicit val epochMilliPickler: Pickler[EpochMilli] = transformPickler((t: Long) => EpochMilli(t))(x => Tag.unwrap(x))
+  implicit val epochMilliPickler: Pickler[EpochMilli] = transformPickler((t: Long) => EpochMilli(t))(identity)
 
   implicit val connectionPickler = generatePickler[Connection]
   implicit val postPickler = generatePickler[Post]

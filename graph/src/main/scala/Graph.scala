@@ -2,11 +2,10 @@ package wust.graph
 
 import wust.ids._
 import wust.util.Pipe
+import wust.util.Memo
 import wust.util.algorithm._
 import wust.util.collection._
 import cuid.Cuid
-
-import scalaz._
 
 import collection.mutable
 import collection.breakOut
@@ -116,7 +115,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   private val connectionsByLabelF: (Label) => Set[Connection] = connectionsByLabel.withDefaultValue(Set.empty)
 
-  lazy val chronologicalPostsAscending: List[Post] = posts.toList.sortBy(p => Tag.unwrap(p.id))
+  lazy val chronologicalPostsAscending: List[Post] = posts.toList.sortBy(p => p.id : PostId.Raw)
 
   lazy val connections:Set[Connection] = connectionsByLabel.values.flatMap(identity)(breakOut)
   lazy val connectionsWithoutParent: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)

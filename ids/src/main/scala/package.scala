@@ -1,37 +1,38 @@
 package wust
 
 import java.time.Instant
+import cuid.Cuid
 
-import scalaz._
+import io.treev.tag._
 
 package object ids {
-  import types._
-
   type IdType = Long
   type UuidType = String
 
-  //TODO: simpler tagged types: https://github.com/acjay/taggy
-  // unboxed types with scalaz: http://eed3si9n.com/learning-scalaz/Tagged+type.html
-  object PostId extends UuidTypeFactory[PostIdType]
+  object PostId extends TaggedType[UuidType] {
+    def fresh: PostId = apply(Cuid())
+  }
   type PostId = PostId.Type
 
-  object GroupId extends IdTypeFactory[GroupIdType]
-  type GroupId = GroupId.Type
-
-  object UserId extends UuidTypeFactory[UserIdType]
+  object UserId extends TaggedType[UuidType] {
+    def fresh: UserId = apply(Cuid())
+  }
   type UserId = UserId.Type
 
-  object Label extends TypeFactory[String, LabelType] {
+  object GroupId extends TaggedType[IdType]
+  type GroupId = GroupId.Type
+
+  object Label extends TaggedType[String] {
     val parent = Label("parent")
   }
   type Label = Label.Type
 
-  object EpochMilli extends TypeFactory[Long, EpochMilliType] {
+  object EpochMilli extends TaggedType[Long] {
     def now:EpochMilli = EpochMilli(System.currentTimeMillis())
     def from(time:String) = EpochMilli(Instant.parse(time).toEpochMilli)
     implicit class RichEpochMilli(val t:EpochMilli) extends AnyVal {
-      @inline def <(that:EpochMilli) = Tag.unwrap(t) < Tag.unwrap(that)
-      @inline def >(that:EpochMilli) = Tag.unwrap(t) > Tag.unwrap(that)
+      @inline def <(that:EpochMilli) = t < that
+      @inline def >(that:EpochMilli) = t > that
       @inline def isBefore(that:EpochMilli) = t < that
       @inline def isAfter(that:EpochMilli) = t > that
     }

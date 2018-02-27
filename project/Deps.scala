@@ -15,9 +15,6 @@ object Deps {
     val core = dep("org.typelevel" %%% "cats-core" % "1.0.1")
     val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
   }
-  val scalaz = new {
-    val core = dep("org.scalaz" %%% "scalaz-core" % "7.2.19")
-  }
   val akka = new {
     private val version = "2.5.10"
     private val httpVersion = "10.1.0-RC1"
@@ -40,9 +37,6 @@ object Deps {
     val shapes = dep("io.circe" %%% "circe-shapes" % version)
   }
 
-  // macro/meta
-  val scalaReflect = dep("org.scala-lang" % "scala-reflect")
-
   // webApp
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "08fc8de")
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
@@ -56,6 +50,7 @@ object Deps {
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "4ba036a")
   val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
+  val taggedTypes = dep("io.treev" %%% "tagged-types" % "1.4")
 
   // rpc
   val covenant = new {

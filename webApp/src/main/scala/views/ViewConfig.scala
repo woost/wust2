@@ -5,9 +5,9 @@ import wust.webApp.GlobalState
 import wust.webApp.views.graphview.GraphView
 import wust.graph._
 import wust.ids._
+import io.treev.tag._
 
 import scala.util.Try
-import scalaz.Tag
 
 case class ViewConfig(view: View, page: Page, groupIdOpt: Option[GroupId], invite: Option[String], lockToGroup: Boolean)
 object ViewConfig {
@@ -21,9 +21,9 @@ object ViewConfig {
   private def viewConfigToPath(config: ViewConfig) = {
     val name = config.view.key
     val selection = Option(config.page) collect {
-      case Page.Union(ids) => "select" -> PathOption.StringList.toString(ids.map(Tag.unwrap).toSeq)
+      case Page.Union(ids) => "select" -> PathOption.StringList.toString(ids.toSeq)
     }
-    val group = config.groupIdOpt.map(groupId => "group" -> Tag.unwrap(groupId).toString)
+    val group = config.groupIdOpt.map(groupId => "group" -> (groupId: GroupId.Raw).toString)
     //invite is not listed here, because we don't need to see it after joining the group
     val lockToGroup = if (config.lockToGroup) Some("locktogroup" -> "true") else None
     val options = Seq(selection, group, lockToGroup).flatten.toMap
