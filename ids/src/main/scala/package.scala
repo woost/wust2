@@ -1,5 +1,7 @@
 package wust
 
+import java.time.Instant
+
 import scalaz._
 
 package object ids {
@@ -23,4 +25,16 @@ package object ids {
     val parent = Label("parent")
   }
   type Label = Label.Type
+
+  object EpochMilli extends TypeFactory[Long, EpochMilliType] {
+    def now:EpochMilli = EpochMilli(System.currentTimeMillis())
+    def from(time:String) = EpochMilli(Instant.parse(time).toEpochMilli)
+    implicit class RichEpochMilli(val t:EpochMilli) extends AnyVal {
+      @inline def <(that:EpochMilli) = Tag.unwrap(t) < Tag.unwrap(that)
+      @inline def >(that:EpochMilli) = Tag.unwrap(t) > Tag.unwrap(that)
+      @inline def isBefore(that:EpochMilli) = t < that
+      @inline def isAfter(that:EpochMilli) = t > that
+    }
+  }
+  type EpochMilli = EpochMilli.Type
 }

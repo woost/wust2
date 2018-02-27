@@ -3,12 +3,11 @@ package wust.graph
 import org.scalatest._
 import wust.ids._
 import wust.util.collection._
-import java.time.LocalDateTime
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToPostId(id: Int): PostId = PostId(id.toString)
   implicit def intToGroupId(id: Int): GroupId = GroupId(id)
-  implicit def idToPost(id: Int): Post = Post(id, "content", UserId("user"), LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11))
+  implicit def idToPost(id: Int): Post = Post(id = id, content = "content", author = UserId("user"))
   implicit def idToGroup(id: Int): Group = Group(id)
   implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
   implicit def tupleIsConnection(t: (Int, Int)): Connection = Connection(t._1, t._2)

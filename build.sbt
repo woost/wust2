@@ -152,7 +152,6 @@ lazy val graph = crossProject.crossType(CrossType.Pure)
   .dependsOn(ids, util)
   .settings(
     libraryDependencies ++=
-      Deps.javaTime.value ::
       Nil
   )
 lazy val graphJS = graph.js

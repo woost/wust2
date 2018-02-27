@@ -6,17 +6,13 @@ import wust.ids._
 import boopickle.DefaultBasic._, PicklerGenerator._
 import scalaz.Tag
 
-import java.time.LocalDateTime
-
 object Boopickle {
-  import Helper._
-
   implicit val postIdPickler = transformPickler[PostId, UuidType](PostId(_))(Tag.unwrap _)
   implicit val groupIdPickler = transformPickler[GroupId, IdType](GroupId(_))(Tag.unwrap _)
   implicit val userIdPickler = transformPickler[UserId, UuidType](UserId(_))(Tag.unwrap _)
   implicit val labelPickler = transformPickler[Label, String](Label(_))(Tag.unwrap _)
 
-  implicit val localDateTimePickler: Pickler[LocalDateTime] = transformPickler((t: Long) => fromMillis(t))(x => toMillis(x))
+  implicit val epochMilliPickler: Pickler[EpochMilli] = transformPickler((t: Long) => EpochMilli(t))(x => Tag.unwrap(x))
 
   implicit val connectionPickler = generatePickler[Connection]
   implicit val postPickler = generatePickler[Post]

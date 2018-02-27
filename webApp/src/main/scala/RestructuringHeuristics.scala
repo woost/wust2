@@ -8,6 +8,7 @@ import wust.graph.{Graph, Post}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import wust.ids.EpochMilli._
 
 case object ChooseTaskHeuristic {
     type HeuristicType = List[RestructuringTaskObject] => RestructuringTaskObject

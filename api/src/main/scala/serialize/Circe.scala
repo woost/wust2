@@ -6,11 +6,7 @@ import wust.graph._
 import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._
 import scalaz.Tag
 
-import java.time.LocalDateTime
-
 object Circe {
-  import Helper._
-
   implicit val encodePostId: Encoder[PostId] = Encoder.encodeString.contramap[PostId](Tag.unwrap _)
   implicit val decodePostId: Decoder[PostId] = Decoder.decodeString.map(PostId(_))
   implicit val encodeGroupId: Encoder[GroupId] = Encoder.encodeLong.contramap[GroupId](Tag.unwrap _)
@@ -20,8 +16,8 @@ object Circe {
   implicit val encodeLabel: Encoder[Label] = Encoder.encodeString.contramap[Label](Tag.unwrap _)
   implicit val decodeLabel: Decoder[Label] = Decoder.decodeString.map(Label(_))
 
-  implicit val encodeLocalDateTime: Encoder[LocalDateTime] = Encoder.encodeLong.contramap[LocalDateTime](toMillis)
-  implicit val decodeLocalDateTime: Decoder[LocalDateTime] = Decoder.decodeLong.map(fromMillis)
+  implicit val encodeEpochMilli: Encoder[EpochMilli] = Encoder.encodeLong.contramap[EpochMilli](Tag.unwrap)
+  implicit val decodeEpochMilli: Decoder[EpochMilli] = Decoder.decodeLong.map(EpochMilli(_))
 
   implicit val PostDecoder: Decoder[Post] = deriveDecoder[Post]
   implicit val PostEncoder: Encoder[Post] = deriveEncoder[Post]
