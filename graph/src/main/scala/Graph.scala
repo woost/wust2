@@ -115,7 +115,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   private val connectionsByLabelF: (Label) => Set[Connection] = connectionsByLabel.withDefaultValue(Set.empty)
 
-  lazy val chronologicalPostsAscending: List[Post] = posts.toList.sortBy(p => p.id : PostId.Raw)
+  lazy val chronologicalPostsAscending: IndexedSeq[Post] = posts.toIndexedSeq.sortBy(p => p.created : EpochMilli.Raw)
 
   lazy val connections:Set[Connection] = connectionsByLabel.values.flatMap(identity)(breakOut)
   lazy val connectionsWithoutParent: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)
