@@ -70,6 +70,7 @@ object GraphChanges {
   ) = GraphChanges(addPosts.toSet, addConnections.toSet, addOwnerships.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet, delOwnerships.toSet)
 
   def addPost(content:String, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
+  def addPost(post:Post) = GraphChanges(addPosts = Set(post))
 
   def connect(source:PostId, label:Label, target:PostId) = GraphChanges(addConnections = Set(Connection(source, label, target)))
 
