@@ -55,6 +55,7 @@ class StaticData(
                   var eulerSetArea: Array[Double],
                   var eulerSetRadius: Array[Double],
                   var eulerSetColor: Array[String],
+                  var eulerSetDepth: Array[Int],
               ) {
   def this(nodeCount: Int, edgeCount: Int, containmentCount:Int) = this(
     nodeCount = nodeCount,
@@ -90,6 +91,7 @@ class StaticData(
     eulerSetArea = null,
     eulerSetRadius = null,
     eulerSetColor = null,
+    eulerSetDepth = null,
   )
 }
 
@@ -224,10 +226,13 @@ object StaticData {
       staticData.eulerSetArea = new Array[Double](eulerSetCount)
       staticData.eulerSetRadius = new Array[Double](eulerSetCount)
       staticData.eulerSetColor = new Array[String](eulerSetCount)
+      staticData.eulerSetDepth = new Array[Int](eulerSetCount)
       while(i < eulerSetCount) {
         staticData.eulerSetChildren(i) = eulerSets(i).children.map(postIdToIndex)
         staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes.map(postIdToIndex)
         staticData.eulerSetParent(i) = postIdToIndex(eulerSets(i).parent)
+        staticData.eulerSetDepth(i) = eulerSets(i).depth
+
         val aribtraryFactor = 1.3
         staticData.eulerSetArea(i) = eulerSets(i).allNodes.map{ pid =>
           val pi = postIdToIndex(pid)
