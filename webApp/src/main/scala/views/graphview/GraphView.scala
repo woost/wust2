@@ -40,6 +40,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
       height := "100%",
       backgroundColor <-- state.pageStyle.map(_.bgColor),
 
+      DevOnly(
       div(
         position := "absolute",
         zIndex := 10,
@@ -56,7 +57,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
         button("stop", onClick --> sideEffect {
           forceSimulation.stop()
         })
-      ),
+      )),
 
       forceSimulation.component(
         children <-- forceSimulation.postCreationMenus.map(_.map { menu =>
