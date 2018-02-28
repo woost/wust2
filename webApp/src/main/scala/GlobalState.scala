@@ -1,25 +1,20 @@
 package wust.webApp
 
-import io.circe.Decoder.state
 import monix.execution.Cancelable
+import monix.reactive.OverflowStrategy.Unbounded
 import monocle.macros.GenLens
-import vectory._
+import org.scalajs.dom.{Event, window}
+import outwatch.dom._
+import rx._
 import wust.api._
-import wust.webApp.views.{PageStyle, View, ViewConfig}
 import wust.graph._
 import wust.ids._
-import org.scalajs.dom.{Event, console, window}
-import org.scalajs.dom.experimental.Notification
-import monix.reactive.OverflowStrategy.Unbounded
-import outwatch.dom._
-import wust.util.Analytics
-import vectory._
 import wust.util.outwatchHelpers._
-import rx._
+import wust.webApp.views.{PageStyle, View, ViewConfig}
 
 class GlobalState(implicit ctx: Ctx.Owner) {
 
-  import StateHelpers._
+  import GlobalState._
 
   val inner = new {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
@@ -28,7 +23,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     //TODO: why is this needed?
     viewConfig.foreach { c => UrlRouter.variable() = Some(ViewConfig.toHash(c)) }
 
-    val eventProcessor = EventProcessor(Client.observable.event, syncDisabled.toObservable, viewConfig.toObservable)
+    val eventProcessor = EventProcessor(
+      Client.observable.event,
+      syncDisabled.toObservable,
+      (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes)
+    )
+
     val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
     val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)
@@ -179,10 +179,29 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
 }
 
-object StateHelpers {
+object GlobalState {
   def groupLockFilter(viewConfig: ViewConfig, selectedGroupId: Option[GroupId], graph: Graph): Graph =
     if (viewConfig.lockToGroup) {
       val groupPosts = selectedGroupId.map(graph.postsByGroupId).getOrElse(Set.empty)
       graph.filter(groupPosts)
     } else graph
+
+  private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
+    import changes.consistent._
+
+    val toDelete = delPosts.flatMap { postId =>
+      Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
+    }
+
+    val toOwn = viewConfig.groupIdOpt.toSet.flatMap { (groupId: GroupId) =>
+      addPosts.map(p => Ownership(p.id, groupId))
+    }
+
+    val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
+    val toContain = addPosts
+      .filterNot(p => containedPosts(p.id))
+      .flatMap(p => Page.toParentConnections(viewConfig.page, p.id))
+
+    changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
+  }
 }

@@ -7,7 +7,6 @@ import wust.util.BufferWhenTrue
 import wust.api._, ApiEvent._
 import io.circe.Decoder.state
 import outwatch.Sink
-import wust.webApp.views.ViewConfig
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -46,7 +45,7 @@ object SyncMode {
 object EventProcessor {
 
   //TODO factory and constructor shared responibility
-  def apply(rawEventStream: Observable[Seq[ApiEvent]], syncDisabled: Observable[Boolean], viewConfig: Observable[ViewConfig]): EventProcessor = {
+  def apply(rawEventStream: Observable[Seq[ApiEvent]], syncDisabled: Observable[Boolean], enrich: (GraphChanges, Graph) => GraphChanges): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
       val partitionedEvents:Observable[(Seq[ApiEvent], Seq[ApiEvent])] = rawEventStream.map(_.partition {
         case NewGraphChanges(_) => true
@@ -70,11 +69,15 @@ object EventProcessor {
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
 
-    new EventProcessor(graphEvents, authEvents, viewConfig, syncDisabled)
+    new EventProcessor(graphEvents, authEvents, syncDisabled, enrich)
   }
 }
 
-class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]], authEventStream: Observable[Seq[ApiEvent.AuthContent]], viewConfig: Observable[ViewConfig], syncDisabled: Observable[Boolean]) {
+class EventProcessor private(
+                              eventStream: Observable[Seq[ApiEvent.GraphContent]],
+                              authEventStream: Observable[Seq[ApiEvent.AuthContent]],
+                              syncDisabled: Observable[Boolean],
+                              enrich: (GraphChanges, Graph) => GraphChanges) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
@@ -97,7 +100,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
 
     val rawGraph = PublishSubject[Graph]()
 
-    val enrichedChanges = enriched.changes.withLatestFrom2(rawGraph.startWith(Seq(Graph.empty)), viewConfig){ case (c,g, v) => applyEnrichmentToChanges(c,g,v) }
+    val enrichedChanges = enriched.changes.withLatestFrom(rawGraph)(enrich)
     val allChanges = Observable.merge(enrichedChanges, changes)
     val localChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
 
@@ -110,6 +113,7 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
 
     (localChanges, rawGraph)
   }
+
 
   private val bufferedChanges = BufferWhenTrue(localChanges, syncDisabled)
   private val sendingChanges = Observable.tailRecM(bufferedChanges) { changes =>
@@ -145,25 +149,6 @@ class EventProcessor private(eventStream: Observable[Seq[ApiEvent.GraphContent]]
   // Rx {
   //   storage.graphChanges = changesInTransit() ++ localChanges()
   // }
-
-  private def applyEnrichmentToChanges(changes: GraphChanges, graph: Graph, viewConfig: ViewConfig): GraphChanges = {
-    import changes.consistent._
-
-    val toDelete = delPosts.flatMap { postId =>
-      Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
-    }
-
-    val toOwn = viewConfig.groupIdOpt.toSet.flatMap { (groupId: GroupId) =>
-      addPosts.map(p => Ownership(p.id, groupId))
-    }
-
-    val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
-    val toContain = addPosts
-      .filterNot(p => containedPosts(p.id))
-      .flatMap(p => Page.toParentConnections(viewConfig.page, p.id))
-
-    changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
-  }
 
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
     Client.api.changeGraph(changes.toList).transform {
