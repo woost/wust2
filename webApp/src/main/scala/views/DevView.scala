@@ -95,7 +95,7 @@ object DevView {
           def addRandomPost(count: Int):Unit = {
             val newPosts = List.fill(count)(Post(PostId.fresh, content = rSentence, state.inner.currentUser.now.id)).toSet
             val changes = GraphChanges(addPosts = newPosts)
-            state.eventProcessor.enriched.changes.unsafeOnNext(changes)
+            state.eventProcessor.enriched.changes.onNext(changes)
           }
 
           div(
@@ -109,7 +109,7 @@ object DevView {
           val posts = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.postIds.toSeq)
 
           def deletePost(ids: Seq[PostId]):Unit = {
-            state.eventProcessor.changes.unsafeOnNext(GraphChanges(delPosts = ids.toSet))
+            state.eventProcessor.changes.onNext(GraphChanges(delPosts = ids.toSet))
           }
 
           div(
@@ -131,7 +131,7 @@ object DevView {
                 selected += randomConnection
               }
 
-              state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = selected.toSet))
+              state.eventProcessor.changes.onNext(GraphChanges(addConnections = selected.toSet))
             }
           }
 
@@ -147,7 +147,7 @@ object DevView {
           def randomConnection = Connection(posts(rInt(posts.length)), Label.parent, posts(rInt(posts.length)))
 
           def contain(count:Int):Unit = {
-            state.eventProcessor.changes.unsafeOnNext(GraphChanges(addConnections = Array.fill(count)(randomConnection).toSet))
+            state.eventProcessor.changes.onNext(GraphChanges(addConnections = Array.fill(count)(randomConnection).toSet))
           }
 
           div(
@@ -162,7 +162,7 @@ object DevView {
           println("CONN"+connections.size)
 
           def disconnect(count:Int):Unit = {
-            state.eventProcessor.changes.unsafeOnNext(GraphChanges(delConnections = connections.take(count).toSet))
+            state.eventProcessor.changes.onNext(GraphChanges(delConnections = connections.take(count).toSet))
           }
 
           div(

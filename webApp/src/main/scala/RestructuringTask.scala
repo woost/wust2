@@ -3,6 +3,7 @@ package wust.webApp
 import wust.util.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.{MouseEvent, console, window}
+import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp.views.Elements._
@@ -156,7 +157,7 @@ sealed trait YesNoTask extends RestructuringTask
       postChoice.map(stylePost)(breakOut): List[VNode],
       div(
         button("Yes",
-          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
+          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
           onClick(true) --> RestructuringTaskGenerator.taskDisplay,
         ),
         button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
@@ -172,7 +173,7 @@ sealed trait YesNoTask extends RestructuringTask
       postDisplay,
       div(
         button("Yes",
-          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
+          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
           onClick(true) --> RestructuringTaskGenerator.taskDisplay,
         ),
         button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
@@ -275,7 +276,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
   def tagConnection(sourcePosts: List[Post],
     targetPosts: List[Post],
     state: GlobalState): Sink[String] = {
-    state.eventProcessor.changes.redirectMap { (tag: String) =>
+    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
       val tagConnections = for {
         s <- sourcePosts
         t <- targetPosts if s.id != t.id
@@ -567,7 +568,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         width := "100%",
       ),
       button("Confirm",
-        onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> state.eventProcessor.enriched.changes,
+        onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
         onClick(true) --> RestructuringTaskGenerator.taskDisplay,
       ),
       button("Abort",
@@ -601,7 +602,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 
   def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
 
-    state.eventProcessor.changes.redirectMap { (tag: String) =>
+    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
       val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now.id))
       val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
 

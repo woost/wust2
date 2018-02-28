@@ -73,12 +73,12 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
 
   def onDrop(state: GlobalState)(dragging:PostId, target:PostId): Unit = {
     val graph = state.inner.displayGraphWithoutParents.now.graph
-    state.eventProcessor.changes.unsafeOnNext(GraphChanges.moveInto(graph, dragging, target))
+    state.eventProcessor.changes.onNext(GraphChanges.moveInto(graph, dragging, target))
   }
 
   def onDropWithCtrl(state: GlobalState)(dragging:PostId, target:PostId): Unit = {
     val graph = state.inner.displayGraphWithoutParents.now.graph
-    state.eventProcessor.changes.unsafeOnNext(GraphChanges.tagWith(graph, dragging, target))
+    state.eventProcessor.changes.onNext(GraphChanges.tagWith(graph, dragging, target))
   }
 }
 

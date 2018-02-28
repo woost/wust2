@@ -71,7 +71,7 @@ object SelectedPostMenu {
                   Set.empty
               }
 
-              state.eventProcessor.changes.unsafeOnNext(GraphChanges(
+              state.eventProcessor.changes.onNext(GraphChanges(
                 delConnections = Set(Connection(rxPost.now.id, Label.parent, p.id)),
                 addConnections = addedGrandParents
               ))
@@ -88,7 +88,7 @@ object SelectedPostMenu {
     val updatePostHandler = Handler.create[String].unsafeRunSync()
     updatePostHandler.foreach { newContent =>
       val changes = GraphChanges(updatePosts = Set(rxPost.now.copy(content = newContent)))
-      state.eventProcessor.enriched.changes.unsafeOnNext(changes)
+      state.eventProcessor.enriched.changes.onNext(changes)
 
       editMode.unsafeOnNext(false)
     }
@@ -99,7 +99,7 @@ object SelectedPostMenu {
       val newPost = Post(PostId.fresh, content, author.id)
 
       val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxPost.now.id)))
-      state.eventProcessor.enriched.changes.unsafeOnNext(changes)
+      state.eventProcessor.enriched.changes.onNext(changes)
     }
 
     val connectPostHandler = Handler.create[String].unsafeRunSync()
@@ -113,7 +113,7 @@ object SelectedPostMenu {
           Connection(rxPost.now.id, Label("related"), newPost.id)
         ) ++ state.inner.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, Label.parent, parentId))
       )
-      state.eventProcessor.enriched.changes.unsafeOnNext(changes)
+      state.eventProcessor.enriched.changes.onNext(changes)
     }
 
     val editableTitle = div(
@@ -224,7 +224,7 @@ object SelectedPostMenu {
 //      showIf = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
 //    ),
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
-    MenuAction("Delete", { (p: Post, state: GlobalState) => state.eventProcessor.enriched.changes.unsafeOnNext(GraphChanges(delPosts = Set(p.id))) }),
+    MenuAction("Delete", { (p: Post, state: GlobalState) => state.eventProcessor.enriched.changes.onNext(GraphChanges(delPosts = Set(p.id))) }),
     // MenuAction(
     //   "Autopos",
     //   { (p: Post) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },

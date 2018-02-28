@@ -1,14 +1,15 @@
 package wust.webApp.views
 
 import org.scalajs.dom.raw.Element
-import outwatch.{Sink}
+import outwatch.{ObserverSink, Sink}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
 import wust.webApp.Color._
 import wust.graph._
 import wust.ids.PostId
-import Elements._, Rendered._
+import Elements._
+import Rendered._
 import wust.util.outwatchHelpers._
 
 object ChatView extends View {
@@ -18,7 +19,8 @@ object ChatView extends View {
   override def apply(state: GlobalState) = {
     import state._
 
-    val newPostSink = eventProcessor.enriched.changes.redirect { (o: Observable[String]) =>
+
+    val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
       o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges.addPost(msg, user.id))
     }
 

@@ -1,27 +1,15 @@
 package wust.webApp
 
+import monix.execution.Scheduler
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
+import wust.api.ApiEvent._
+import wust.api._
 import wust.graph._
-import wust.ids._
-import wust.util.collection._
 import wust.util.BufferWhenTrue
-import wust.api._, ApiEvent._
-import io.circe.Decoder.state
-import outwatch.Sink
 
-import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
-import wust.util.Analytics
-
-import scala.collection.mutable
-import scala.scalajs.js.timers.setTimeout
 import scala.concurrent.Future
-import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.{PublishSubject}
-import monix.reactive.OverflowStrategy.Unbounded
-import monix.execution.Cancelable
-import monix.execution.Ack.Continue
-import outwatch.dom._
-import wust.util.outwatchHelpers._
+import scala.util.{Failure, Success}
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -45,8 +33,14 @@ object SyncMode {
 object EventProcessor {
 
   //TODO factory and constructor shared responibility
-  def apply(rawEventStream: Observable[Seq[ApiEvent]], syncDisabled: Observable[Boolean], enrich: (GraphChanges, Graph) => GraphChanges): EventProcessor = {
+  def apply(
+             rawEventStream: Observable[Seq[ApiEvent]],
+             syncDisabled: Observable[Boolean],
+             enrich: (GraphChanges, Graph) => GraphChanges,
+             sendChange: List[GraphChanges] => Future[Boolean]
+           )(implicit scheduler: Scheduler): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
+      // when sync is disabled, holding back incoming graph events
       val partitionedEvents:Observable[(Seq[ApiEvent], Seq[ApiEvent])] = rawEventStream.map(_.partition {
         case NewGraphChanges(_) => true
         case _ => false
@@ -69,7 +63,7 @@ object EventProcessor {
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
 
-    new EventProcessor(graphEvents, authEvents, syncDisabled, enrich)
+    new EventProcessor(graphEvents, authEvents, syncDisabled, enrich, sendChange)
   }
 }
 
@@ -77,15 +71,17 @@ class EventProcessor private(
                               eventStream: Observable[Seq[ApiEvent.GraphContent]],
                               authEventStream: Observable[Seq[ApiEvent.AuthContent]],
                               syncDisabled: Observable[Boolean],
-                              enrich: (GraphChanges, Graph) => GraphChanges) {
+                              enrich: (GraphChanges, Graph) => GraphChanges,
+                              sendChange: List[GraphChanges] => Future[Boolean]
+                            )(implicit scheduler: Scheduler) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
   val currentAuth: Observable[Authentication] = authEventStream.map(_.lastOption.map(EventUpdate.createAuthFromEvent)).collect { case Some(auth) => auth }
 
-  val changes = Handler.create[GraphChanges]().unsafeRunSync()
+  val changes = PublishSubject[GraphChanges]
   object enriched {
-    val changes = Handler.create[GraphChanges]().unsafeRunSync()
+    val changes = PublishSubject[GraphChanges]
   }
 
   // public reader
@@ -151,24 +147,17 @@ class EventProcessor private(
   // }
 
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
-    Client.api.changeGraph(changes.toList).transform {
+    sendChange(changes.toList).transform {
       case Success(success) =>
         if (success) {
           val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
-          if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
-          if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
-          if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
-          if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
-          if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
         } else {
-          Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
           scribe.warn(s"ChangeGraph request returned false: $changes")
         }
 
         Success(success)
       case Failure(t) =>
         scribe.warn(s"ChangeGraph request failed '${t}': $changes")
-        Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
         Success(false)
     }

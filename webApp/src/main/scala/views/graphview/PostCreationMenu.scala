@@ -41,7 +41,7 @@ object PostCreationMenu {
     inputHandler.foreach{ content =>
       val author = state.inner.currentUser.now
       val changes = GraphChanges.addPost(content, author.id)
-      state.eventProcessor.enriched.changes.unsafeOnNext(changes)
+      state.eventProcessor.enriched.changes.onNext(changes)
 
       // TODO: move created post below menu (not working yet)
 //      val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)

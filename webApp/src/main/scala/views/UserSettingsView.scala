@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import outwatch.{Sink, dom}
+import outwatch.{ObserverSink, Sink, dom}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
@@ -18,7 +18,7 @@ object UserSettingsView extends View {
   override def apply(state: GlobalState): VNode = {
     import state._
 
-    val newPostSink = eventProcessor.enriched.changes.redirect { (o: Observable[String]) =>
+    val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
       o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges(addPosts = Set(Post(PostId.fresh, msg, user.id))))
     }
 
