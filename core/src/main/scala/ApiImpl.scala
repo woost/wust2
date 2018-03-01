@@ -63,11 +63,11 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
 
-  def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
-  def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
+  override def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
+  override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
   //TODO: error handling
-  def addGroup(): ApiFunction[GroupId] = Effect.assureDbUser { (_, user) =>
+  override def addGroup(): ApiFunction[GroupId] = Effect.assureDbUser { (_, user) =>
     for {
       //TODO: simplify db.createForUser return values
       Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
@@ -78,7 +78,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   //TODO: error handling
-  def addMember(groupId: GroupId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMember(groupId: GroupId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
@@ -89,7 +89,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def addMemberByName(groupId: GroupId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMemberByName(groupId: GroupId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         for {
@@ -100,7 +100,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def recreateGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
+  override def recreateGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         setRandomGroupInviteToken(groupId).map(Returns(_))
@@ -108,7 +108,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def getGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
+  override def getGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isGroupMember(groupId, user.id) {
         db.group.getInviteToken(groupId).flatMap {
@@ -119,7 +119,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def acceptGroupInvite(token: String): ApiFunction[Option[GroupId]] = Effect.assureDbUser { (_, user) =>
+  override def acceptGroupInvite(token: String): ApiFunction[Option[GroupId]] = Effect.assureDbUser { (_, user) =>
     //TODO optimize into one request?
     db.ctx.transaction { implicit ec =>
       db.group.fromInvite(token).flatMap {
@@ -135,7 +135,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-  def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
+  override def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
     val userIdOpt = state.auth.dbUserOpt.map(_.id)
     val graph = selection match {
       case Page.Root =>
@@ -145,6 +145,52 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
 
     graph
+  }
+
+
+  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+
+    // TODO: Reuse graph changes instead
+    val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
+    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
+    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
+      db.ctx.transaction { implicit ec =>
+        for {
+          true <- db.post.createPublic(posts)
+          true <- db.connection(connections)
+          changes = GraphChanges(addPosts = posts, addConnections = connections)
+        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
+      }
+    }
+
+    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
+  }
+
+  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+
+    // TODO: Reuse graph changes instead
+//    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
+    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
+      db.ctx.transaction { implicit ec =>
+        for {
+          true <- db.post.createPublic(posts)
+          true <- db.connection(connections)
+          changes = GraphChanges(addPosts = posts, addConnections = connections)
+        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
+      }
+    }
+
+    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
+  }
+
+  override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>
+    Future { PostHeuristic(state.graph, heuristic, posts, num) }
+  }
+
+  override def log(message: String): ApiFunction[Boolean] = Action { state =>
+    ApiLogger.client.info(s"[${state.auth.user}] $message")
+    Future.successful(true)
   }
 
   // def getComponent(id: Id): Graph = {
@@ -169,45 +215,19 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       graph removePosts graph.postIds.filterNot(descendantsWithDirectParents)
     }
   }
+}
 
-  def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+object ApiLogger {
+  import scribe._
+  import scribe.format._
+  import scribe.writer._
 
-    // TODO: Reuse graph changes instead
-    val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
-    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
-    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
-      db.ctx.transaction { implicit ec =>
-        for {
-          true <- db.post.createPublic(posts)
-          true <- db.connection(connections)
-          changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
-      }
-    }
-
-    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
+  val client: Logger = {
+    val s = "client-log"
+    val formatter = formatter"$date $levelPaddedRight - $message$newLine"
+    Logger.update(s)(
+      _.clearHandlers()
+        .withHandler(formatter = formatter, writer = FileNIOWriter.daily(prefix = s), minimumLevel = Level.Info)
+    )
   }
-
-  def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
-
-    // TODO: Reuse graph changes instead
-//    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
-    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
-    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
-      db.ctx.transaction { implicit ec =>
-        for {
-          true <- db.post.createPublic(posts)
-          true <- db.connection(connections)
-          changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
-      }
-    }
-
-    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
-  }
-
-  def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>
-    Future { PostHeuristic(state.graph, heuristic, posts, num) }
-  }
-
 }

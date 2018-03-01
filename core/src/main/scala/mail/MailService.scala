@@ -26,8 +26,7 @@ class SendingMailService(fromAddress: String, client: MailClient) extends MailSe
     client.sendMessage(fromAddress, recipient, message) match {
       case Success(_) => true
       case Failure(t) =>
-        scribe.error("failed to send mail")
-        scribe.error(t)
+        scribe.error("failed to send mail", t)
         false
     }
   }

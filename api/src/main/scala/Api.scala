@@ -22,6 +22,8 @@ trait Api[Result[_]] {
   def importGithubUrl(url: String): Result[Boolean]
   def importGitterUrl(url: String): Result[Boolean]
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
+
+  def log(message: String): Result[Boolean]
 }
 
 @PathName("Auth")

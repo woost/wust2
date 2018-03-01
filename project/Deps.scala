@@ -44,7 +44,7 @@ object Deps {
   val outwatch = dep("io.github.outwatch" % "outwatch" % "6dd72a31cb4")
 
   // utility
-  val scribe = dep("com.outr" %%% "scribe" % "1.4.5")
+  val scribe = dep("com.outr" %%% "scribe" % "2.1.0")
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.0")
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
@@ -54,7 +54,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "234f5ef"
+    private val version = "80605b5"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
