@@ -34,6 +34,9 @@ services:
       - postgres
     ports:
       - "127.0.0.1:${WUST_CORE_PORT-8080}:8080"
+    volumes:
+      - core_logs/:/app/logs
 
 volumes:
   core_postgres_data:
+  core_logs:
