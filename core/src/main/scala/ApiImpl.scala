@@ -219,15 +219,20 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
 object ApiLogger {
   import scribe._
-  import scribe.format._
+  import scribe.formatter.FormatterBuilder
   import scribe.writer._
 
   val client: Logger = {
     val s = "client-log"
-    val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-    Logger.update(s)(
-      _.clearHandlers()
-        .withHandler(formatter = formatter, writer = FileNIOWriter.daily(prefix = s), minimumLevel = Level.Info)
-    )
+
+    val formatter = FormatterBuilder()
+      .date()
+      .string(" ")
+      .level
+      .string(" - ")
+      .message.newLine
+    Logger.byName(s).clearHandlers()
+    Logger.byName(s).addHandler(LogHandler(formatter = formatter, writer = FileWriter.daily(name = s), level = Level.Info))
+    Logger.byName(s)
   }
 }
