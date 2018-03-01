@@ -12,7 +12,7 @@ import scala.collection.immutable
 object CorsSupport {
   def check(allowedOrigins: HttpOriginRange.Default)(inner: Route): Route =
     checkSameOrigin(allowedOrigins) {
-      headerValueByType[Origin]() { origin =>
+      headerValueByType[Origin](()) { origin =>
         respondWithHeaders(corsHeaders(origin.origins)) {
           inner
         }
