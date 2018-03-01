@@ -91,6 +91,26 @@ object ChatView extends View {
           padding := "0px 3px",
           margin := "2px 0px",
         ),
+        div(
+//          span( // author id
+//            graph.usersById(post.author).toString,
+//            fontSize.small,
+//            color := "black",
+//            borderRadius := "2px",
+//            padding := "0px 3px",
+//            marginRight := "3px",
+//          ),
+          span( // post id
+            post.id.toString,
+            fontSize.small,
+            color := "black",
+            borderRadius := "2px",
+            padding := "0px 3px",
+            marginRight := "3px",
+          ),
+          margin := "0px",
+          padding := "0px",
+        ),
         div( // post tags
           postTags.map{ tag =>
               span(
