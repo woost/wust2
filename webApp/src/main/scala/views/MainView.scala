@@ -293,7 +293,7 @@ object MainView {
     // val persistStatus = state.persistence.status
     // val hasEvents = state.eventCache.hasEvents
 
-    import wust.webApp.SyncMode
+    import wust.sdk.SyncMode
     div(
       "Syncmode: ",
       child <-- state.syncMode.map(_.toString),

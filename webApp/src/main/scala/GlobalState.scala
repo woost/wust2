@@ -11,6 +11,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.outwatchHelpers._
 import wust.webApp.views.{PageStyle, View, ViewConfig}
+import wust.sdk._
 
 class GlobalState(implicit ctx: Ctx.Owner) {
 

@@ -1,5 +1,6 @@
 package wust.webApp
 
+import wust.sdk.SyncMode
 import cats.effect.IO
 import org.scalajs.dom.ext.Storage
 import outwatch.Sink

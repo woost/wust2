@@ -675,7 +675,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 
   def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
 
-    ObserverSink(state.eventProcessor.changes.redirectMap) { (tag: String) =>
+    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
       val graph = getGraphFromState(state)
       val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
         case None =>
