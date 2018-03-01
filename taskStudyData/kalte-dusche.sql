@@ -540,38 +540,38 @@ COPY password (id, digest) FROM stdin;
 --
 
 COPY rawconnection (sourceid, targetid, label) FROM stdin;
-cjdyoepe40002z9bkb4wa0hyy	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoevu00003z9bkw3l56hyp	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyof3vz0004z9bkw2gzbn1i	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyof8m40005z9bk8cg2jzuk	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyofeli0006z9bkpeiebfas	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoflc30007z9bkhukn4qro	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyofs360008z9bkobx8x5w0	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyofxjs0009z9bkusrv3zbz	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyog1g8000az9bk5d4m5wex	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyog4qf000bz9bk650z9rlj	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyog7v8000cz9bkfz2bjixl	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyogc6d000dz9bkjt5wv7q1	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyogf79000ez9bk4tb2wnka	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyogm43000fz9bko8dbcye2	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyogsdj000gz9bk2i5mvs1l	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyogvtc000hz9bkdea0ia6c	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyogz9m000iz9bkaryif9rd	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoh5ms000jz9bkyazv9291	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoh9s2000kz9bk65842vi6	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoheuk000lz9bk7yi26gud	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyohjmm000mz9bkd108llyu	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyohn1z000nz9bkesgw1ipm	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyohqz7000oz9bkfolge96s	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoi4dn000pz9bk0dry5w9z	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoi97c000qz9bkbgf5x8p3	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoidct000rz9bkn2gryp7x	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoigut000sz9bk4pwmxa6n	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoimal000tz9bkc743hpai	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoipkh000uz9bksu55ptlm	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyoiu46000vz9bkbds2xc3q	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyojgr4000wz9bks1ydwtt0	cjdyoeaj80001z9bk2z7p7tlo	2
-cjdyojnca000xz9bkvm9lgefr	cjdyoeaj80001z9bk2z7p7tlo	2
+101	100	2
+102	100	2
+103	100	2
+104	100	2
+105	100	2
+106	100	2
+107	100	2
+108	100	2
+109	100	2
+110	100	2
+111	100	2
+112	100	2
+113	100	2
+114	100	2
+115	100	2
+116	100	2
+117	100	2
+118	100	2
+119	100	2
+120	100	2
+121	100	2
+122	100	2
+123	100	2
+124	100	2
+125	100	2
+126	100	2
+127	100	2
+128	100	2
+129	100	2
+130	100	2
+131	100	2
+132	100	2
 \.
 
 
@@ -580,39 +580,39 @@ cjdyojnca000xz9bkvm9lgefr	cjdyoeaj80001z9bk2z7p7tlo	2
 --
 
 COPY rawpost (id, content, isdeleted, author, created, modified) FROM stdin;
-cjdyoeaj80001z9bk2z7p7tlo	Kalt duschen	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:41:56.039	2018-02-22 16:41:56.039
-cjdyoepe40002z9bkb4wa0hyy	Ich habe es mir zur Gewohnheit gemacht jeden Morgen kalt zu duschen. Und ja, ich frage mich jeden Morgen aufs Neue wieso ich mir das antue.\n\nAber, ich glaube, dass ich dadurch mein Immunsystem gestärkt habe. Immerhin ein halbes Jahr schon ohne Infekt oder ähnlichem. Und man trainiert seine Willensstärke. Denn wenn man sich jeden Tag kalt duscht, geht man auch eher in die Kälte raus um laufen zu gehen. Habt ihr ähnliche Erfahrungen gemacht oder seit ihr eher Warmduscher?	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:42:15.067	2018-02-22 16:42:15.067
-cjdyoevu00003z9bkw3l56hyp	Im Sommer ja - im Winter nur nach der Sauna!	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:42:23.428	2018-02-22 16:42:23.428
-cjdyof3vz0004z9bkw2gzbn1i	Jetzt um diese Jahreszeit dusche ich warm und nur warm.\nIn den Sommermonaten bei Temperaturen von >30° muss es dann aber schon mal eine eiskalte Dusche sein.\nInsofern als dass mir die Ganzjahreserfahrung fehlt, kann ich deiner Frage / Aussage nur bis zu einer gewissen Grenze zuverlässig antworten. Zumindest was die Willensstärke angeht, mache ich immer wieder Erfahrungen wie du. Selbst im Hochsommer braucht Kaltduschen Überwindung.\n\nFür die Abhärtung wird es wohl auch ganz gut sein. Kälte ist ja im Grunde - genauso wie extreme Hitze - eine Art Schmerz, schlägt also auf den Schmerzrezeptoren auf. Doch eben, die Schmerzgrenzen kann man verschieben, wenn man sich entsprechend trainiert. Deswegen glaube ich schon, dass Kaltduschen die eisigen Temperaturen erträglicher macht\n\nEine andere Frage ist, ob das Immunsystem gestärkt wird. Ich vermute schon. Doch einen Beweis habe ich dafür keinen. Vielleicht gibt es im Netz irgendwo Studien dazu	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:42:33.889	2018-02-22 16:42:33.889
-cjdyof8m40005z9bk8cg2jzuk	Ja gut, im Sommer ist die Abkühlung einfach erfrischend. Im Winter kann man damit eben auch die Komfortzone erweitern. Und ich bin ein absoluter Morgenmuffel - nach einer eiskalten Dusche bin dann sogar ich hellwach.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:42:39.981	2018-02-22 16:42:39.981
-cjdyofeli0006z9bkpeiebfas	Nein, ich meinte es nicht zur Erfrischung ... da ich Optimist bin, geht bei mir der "Sommer" auch von März bis Oktober\n\nIch mache es schon bewusst zur Abhärtung, nur habe ich im Winter das Problem, dass ich nach dem Duschen meine Hände nicht mehr warm kriege - eigentlich selbst nach der Sauna nicht.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:42:47.75	2018-02-22 16:42:47.75
-cjdyoflc30007z9bkhukn4qro	Das mit den kalten Händen kenn ich nur zu gut. Um Weihnachten herum war ich sogar im Bodensee baden. Nur ca. 1 Minute und danach gings gleich zum Kachelofen. Durch das Weihnachtsschwimmen zuvor war dass dann so richtig angenehm.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:42:56.473	2018-02-22 16:42:56.473
-cjdyofs360008z9bkobx8x5w0	Ich fahre regelmäßig im Februar mit Freunden in ein Ferienhaus nach Dänemark. Einmal muss Ostsee bei 4 Grad sein - danach aber gleich Sauna	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:05.209	2018-02-22 16:43:05.209
-cjdyofxjs0009z9bkusrv3zbz	Also ich dusche mich auch kalt/warm, aber nur kalt, das schaffe ich nur im Sommer.\n\nIch stärke mein Immunsystem mit regelmäßigen Saunagängen und danach eiskalt duschen und Tauchbecken.\n\nBin auch nie verkühlt und nie krank. Durch viele Sport gibts eher die Sportverletzungen...\n\nAlso ganz so brutal muß man es sicher nicht angehen...\n\nlg\nPowerlady	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:12.352	2018-02-22 16:43:12.352
-cjdyog1g8000az9bk5d4m5wex	Ein Tauchbecken wäre in unserem Fitness-Studio noch genial ... Glückwunsch	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:17.341	2018-02-22 16:43:17.341
-cjdyog4qf000bz9bk650z9rlj	Ich probiers auch immer wieder mit den kalten Duschen, auf Dauer krieg ich das bislang jedoch nicht hin... mal schauen wie's in zwei, drei Monaten aussieht, vielleicht fällt's mir dann leichter!	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:21.615	2018-02-22 16:43:21.615
-cjdyog7v8000cz9bkfz2bjixl	Nach dem Duschen (warm), dusch ich mich immer noch kurz mit kaltem Wasser ab. Nur kalt duschen wäre nichts für mich	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:25.674	2018-02-22 16:43:25.674
-cjdyogc6d000dz9bkjt5wv7q1	Hallo zwischenzeitlich mache ich das auch nach der warmen Dusche. Nur kalt alleine fände ich irgendwie nicht so toll zu mal man dann auch nicht richtig sauber wird, wenn man nur kalt duscht. Viele Grüße	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:31.251	2018-02-22 16:43:31.251
-cjdyogf79000ez9bk4tb2wnka	Ich wollte auch mal damit anfangen, aber ich bin eine zu große Mimose. Ich kann einen abgebrochenen Kaltduschversuch vorweisen. :S	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:35.169	2018-02-22 16:43:35.169
-cjdyogm43000fz9bko8dbcye2	Da kann ich dir nur einen Tip geben:\n\nVersuche, dich mit aller Kraft aus der Mimosenhaftigkeit zu befreien! Das ist für mich DER Benefit aus dem Training überhaupt: nicht mehr so von äußeren Gegebenheiten abhängig zu sein.\n\nNicht auf Warmwasser angewiesen zu sein, nicht auf stärkere Menschen, nicht auf das Geld von anderen oder deren Anerkennung - das ist für mich Freiheit.\n\nAlso mach noch mal einen Versuch	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:44.155	2018-02-22 16:43:44.155
-cjdyogsdj000gz9bk2i5mvs1l	Ich dusche nur warm, am besten sogar heiß  wenn ihr kalt duscht dann ist das ja ausreichend genug. Nee spaß bei seite, ich muss für mich nicht kalt duschen weil ich mein immunsystem auf andere art und weise trainiere. Es führen bekanntlich viele wege nach Rom	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:52.264	2018-02-22 16:43:52.264
-cjdyogvtc000hz9bkdea0ia6c	Ich mach ja vieles aber kalt duschen... Ich glaube die Wirkung wird auch etwas übertrieben, wenn man sich gesund ernährt und viel Obst isst bekommt man ebenso wenig eine Grippe.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:43:56.71	2018-02-22 16:43:56.71
-cjdyogz9m000iz9bkaryif9rd	Ich dusch mich morgens auch "gern" eiskalt, aber nur weil ich mich dann einfach frischer und munterer fühle. Dass das weitere großartige Effekte hat wage ich mal zu bezweifeln	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:01.193	2018-02-22 16:44:01.193
-cjdyoh5ms000jz9bkyazv9291	Ich dusche auch jedes Mal kalt! Schon wegen Blutdruck und Kreislauf!\n\nDer Trick ist nicht, sich mit den Füßen langsam an die Kälte zu gewöhnen, sondern direkt rein mit dem Kopf zuerst! Damit wirds mMn weitaus weniger schlimm	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:09.418	2018-02-22 16:44:09.418
-cjdyoh9s2000kz9bk65842vi6	Seh ich auch so. Zum "wach werden" bzw. für den Kreislauf ists aber top und praktiziere ich auch gerne so!	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:14.84	2018-02-22 16:44:14.84
-cjdyoheuk000lz9bk7yi26gud	Jeden Tag Kalt duschen ist effektiv auch für das Immunsystem. Mache ich immer fühle mich dadürch auch fitter.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:21.367	2018-02-22 16:44:21.367
-cjdyohjmm000mz9bkd108llyu	Da muss man ziemlich schmerzfrei sein und man gewöhnt sich auch nach langer Zeit nicht daran. Ich spreche aus Erfahrung .\n\nEs soll aber gut sein für das Immunsystem. Vielleicht ist es aber auch nur der Glaube daran, der hilft.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:27.553	2018-02-22 16:44:27.553
-cjdyohn1z000nz9bkesgw1ipm	Ist sicher gut für das Immunsystem, aber mir ist das zu heftig. In der Früh brauche ich da noch meine Ruhe!	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:31.993	2018-02-22 16:44:31.993
-cjdyohqz7000oz9bkfolge96s	Ich bin auch eher der Warmduscher. Nach dem Training wechsele ich allerdings zwischen heiß und kalt ab, hat mir eine frühere Trainerin mal empfohlen (fragt mich aber bitte nicht warum das gut ist, das habe ich vergessen) und im Sommer muss es auch mal, wie bei den Meisten eine Abkühlung sein.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:37.077	2018-02-22 16:44:37.077
-cjdyoi4dn000pz9bk0dry5w9z	Auf Highexistance gibt einen sehr guten englischsprachigen Artikel über die körperlichen und mentalen Vorteile des Kaltduschens. Neben den Goodies wie verbesserter Durchblutung, festerer Haut ist es auch Training für Disziplin und Resilienz. Ist ein besserer Start in den Tag als der Becher Kaffee, der einen unruhig und verrückt macht.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:44:54.48	2018-02-22 16:44:54.48
-cjdyoi97c000qz9bkbgf5x8p3	Ich wollte das auch mal. Aber ich kanns einfach nicht!\nManchmal drehe ich das Wasser am Schluss auch nochmal kalt, aber das finde ich auch so schrecklich dass ich es mich meistens nicht mehr traue	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:00.717	2018-02-22 16:45:00.717
-cjdyoidct000rz9bkn2gryp7x	Wechselduschen sind super. Regt die Durchblutung an und soll auch gegen Cellulite helfen. Auf jeden Fall kommt der Kreislauf dadurch auf Touren.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:06.097	2018-02-22 16:45:06.097
-cjdyoigut000sz9bk4pwmxa6n	Bin da etwas skeptisch, aber ich hab auch schon oft gehört, dass es wirklich helfen soll. Jedenfalls der schlagartige Wechsel von kalt auf heiß	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:10.668	2018-02-22 16:45:10.668
-cjdyoipkh000uz9bksu55ptlm	Ob das wirklich etwas bringt muß jeder für sich selbst entscheiden. Das man davon wach wird aufjedenfall, ich bin ein absoluter Warmduscher. Setze mich oft genug der kälte aus wegen dem Training für Hindernisläufe, wenn man da auf das Eiswasserbecken oder auf eine Artik Area zu läuft ist mein Kreislauf ganz oben.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:21.963	2018-02-22 16:45:21.963
-cjdyojgr4000wz9bks1ydwtt0	Ich persönlich bin eher ein Warm- bzw. Heißduscher... vorallem in den Wintermonaten\nAllerdings hab ich so oft das problem, dass ich nicht richtig in schwung komme. Für mich wäre es das schlimmste mich morgens direkt unter eine kalte Dusche stellen zu müssen. Ich dusche daher immer warm und zum Schluss drehe ich die Temperatur dann etwas kälter	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:57.18	2018-02-22 16:45:57.18
-cjdyoimal000tz9bkc743hpai	Ich mache morgens die Variante von Tim Ferriss:\n\nHeiß duschen, dann 3 min kalt über Nacken und Rücken laufen lassen. Dort sitzt das braune Körperfett, welches zu Stoffwechsel und Wärmeproduktion angeregt wird.	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:17.671	2018-02-22 16:45:17.671
-cjdyoiu46000vz9bkbds2xc3q	Ich mache es auch schon einen Monat lang. Am Anfang war es super schwer, habe nur mit den Füßen angefangen und dann immer mehr nach oben Man fühlt sich wirklich erfrischt und erholt danach. Es stärk das Immunsystem und ist auch gut gegen Stress. Empfehlenswert!	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:45:27.812	2018-02-22 16:45:27.812
-cjdyojnca000xz9bkvm9lgefr	Morgens kalt Duschen bringt den Stoffwechsel in Schwung	f	cjdyodqj50000z9bkozpyw4rs	2018-02-22 16:46:05.694	2018-02-22 16:46:05.694
+100	Kalt duschen	f	101	2018-02-22 16:41:56.039	2018-02-22 16:41:56.039
+101	Ich habe es mir zur Gewohnheit gemacht jeden Morgen kalt zu duschen. Und ja, ich frage mich jeden Morgen aufs Neue wieso ich mir das antue.\n\nAber, ich glaube, dass ich dadurch mein Immunsystem gestärkt habe. Immerhin ein halbes Jahr schon ohne Infekt oder ähnlichem. Und man trainiert seine Willensstärke. Denn wenn man sich jeden Tag kalt duscht, geht man auch eher in die Kälte raus um laufen zu gehen. Habt ihr ähnliche Erfahrungen gemacht oder seit ihr eher Warmduscher?	f	101	2018-02-22 16:42:15.067	2018-02-22 16:42:15.067
+102	Im Sommer ja - im Winter nur nach der Sauna!	f	102	2018-02-22 16:42:23.428	2018-02-22 16:42:23.428
+103	Jetzt um diese Jahreszeit dusche ich warm und nur warm.\nIn den Sommermonaten bei Temperaturen von >30° muss es dann aber schon mal eine eiskalte Dusche sein.\nInsofern als dass mir die Ganzjahreserfahrung fehlt, kann ich deiner Frage / Aussage nur bis zu einer gewissen Grenze zuverlässig antworten. Zumindest was die Willensstärke angeht, mache ich immer wieder Erfahrungen wie du. Selbst im Hochsommer braucht Kaltduschen Überwindung.\n\nFür die Abhärtung wird es wohl auch ganz gut sein. Kälte ist ja im Grunde - genauso wie extreme Hitze - eine Art Schmerz, schlägt also auf den Schmerzrezeptoren auf. Doch eben, die Schmerzgrenzen kann man verschieben, wenn man sich entsprechend trainiert. Deswegen glaube ich schon, dass Kaltduschen die eisigen Temperaturen erträglicher macht\n\nEine andere Frage ist, ob das Immunsystem gestärkt wird. Ich vermute schon. Doch einen Beweis habe ich dafür keinen. Vielleicht gibt es im Netz irgendwo Studien dazu	f	103	2018-02-22 16:42:33.889	2018-02-22 16:42:33.889
+104	Ja gut, im Sommer ist die Abkühlung einfach erfrischend. Im Winter kann man damit eben auch die Komfortzone erweitern. Und ich bin ein absoluter Morgenmuffel - nach einer eiskalten Dusche bin dann sogar ich hellwach.	f	101	2018-02-22 16:42:39.981	2018-02-22 16:42:39.981
+105	Nein, ich meinte es nicht zur Erfrischung ... da ich Optimist bin, geht bei mir der "Sommer" auch von März bis Oktober\n\nIch mache es schon bewusst zur Abhärtung, nur habe ich im Winter das Problem, dass ich nach dem Duschen meine Hände nicht mehr warm kriege - eigentlich selbst nach der Sauna nicht.	f	102	2018-02-22 16:42:47.75	2018-02-22 16:42:47.75
+106	Das mit den kalten Händen kenn ich nur zu gut. Um Weihnachten herum war ich sogar im Bodensee baden. Nur ca. 1 Minute und danach gings gleich zum Kachelofen. Durch das Weihnachtsschwimmen zuvor war dass dann so richtig angenehm.	f	101	2018-02-22 16:42:56.473	2018-02-22 16:42:56.473
+107	Ich fahre regelmäßig im Februar mit Freunden in ein Ferienhaus nach Dänemark. Einmal muss Ostsee bei 4 Grad sein - danach aber gleich Sauna	f	102	2018-02-22 16:43:05.209	2018-02-22 16:43:05.209
+108	Also ich dusche mich auch kalt/warm, aber nur kalt, das schaffe ich nur im Sommer.\n\nIch stärke mein Immunsystem mit regelmäßigen Saunagängen und danach eiskalt duschen und Tauchbecken.\n\nBin auch nie verkühlt und nie krank. Durch viele Sport gibts eher die Sportverletzungen...\n\nAlso ganz so brutal muß man es sicher nicht angehen...\n\nlg\nPowerlady	f	104	2018-02-22 16:43:12.352	2018-02-22 16:43:12.352
+109	Ein Tauchbecken wäre in unserem Fitness-Studio noch genial ... Glückwunsch	f	102	2018-02-22 16:43:17.341	2018-02-22 16:43:17.341
+110	Ich probiers auch immer wieder mit den kalten Duschen, auf Dauer krieg ich das bislang jedoch nicht hin... mal schauen wie's in zwei, drei Monaten aussieht, vielleicht fällt's mir dann leichter!	f	105	2018-02-22 16:43:21.615	2018-02-22 16:43:21.615
+111	Nach dem Duschen (warm), dusch ich mich immer noch kurz mit kaltem Wasser ab. Nur kalt duschen wäre nichts für mich	f	106	2018-02-22 16:43:25.674	2018-02-22 16:43:25.674
+112	Hallo zwischenzeitlich mache ich das auch nach der warmen Dusche. Nur kalt alleine fände ich irgendwie nicht so toll zu mal man dann auch nicht richtig sauber wird, wenn man nur kalt duscht. Viele Grüße	f	107	2018-02-22 16:43:31.251	2018-02-22 16:43:31.251
+113	Ich wollte auch mal damit anfangen, aber ich bin eine zu große Mimose. Ich kann einen abgebrochenen Kaltduschversuch vorweisen. :S	f	108	2018-02-22 16:43:35.169	2018-02-22 16:43:35.169
+114	Da kann ich dir nur einen Tip geben:\n\nVersuche, dich mit aller Kraft aus der Mimosenhaftigkeit zu befreien! Das ist für mich DER Benefit aus dem Training überhaupt: nicht mehr so von äußeren Gegebenheiten abhängig zu sein.\n\nNicht auf Warmwasser angewiesen zu sein, nicht auf stärkere Menschen, nicht auf das Geld von anderen oder deren Anerkennung - das ist für mich Freiheit.\n\nAlso mach noch mal einen Versuch	f	102	2018-02-22 16:43:44.155	2018-02-22 16:43:44.155
+115	Ich dusche nur warm, am besten sogar heiß  wenn ihr kalt duscht dann ist das ja ausreichend genug. Nee spaß bei seite, ich muss für mich nicht kalt duschen weil ich mein immunsystem auf andere art und weise trainiere. Es führen bekanntlich viele wege nach Rom	f	109	2018-02-22 16:43:52.264	2018-02-22 16:43:52.264
+116	Ich mach ja vieles aber kalt duschen... Ich glaube die Wirkung wird auch etwas übertrieben, wenn man sich gesund ernährt und viel Obst isst bekommt man ebenso wenig eine Grippe.	f	110	2018-02-22 16:43:56.71	2018-02-22 16:43:56.71
+117	Ich dusch mich morgens auch "gern" eiskalt, aber nur weil ich mich dann einfach frischer und munterer fühle. Dass das weitere großartige Effekte hat wage ich mal zu bezweifeln	f	111	2018-02-22 16:44:01.193	2018-02-22 16:44:01.193
+118	Ich dusche auch jedes Mal kalt! Schon wegen Blutdruck und Kreislauf!\n\nDer Trick ist nicht, sich mit den Füßen langsam an die Kälte zu gewöhnen, sondern direkt rein mit dem Kopf zuerst! Damit wirds mMn weitaus weniger schlimm	f	112	2018-02-22 16:44:09.418	2018-02-22 16:44:09.418
+119	Seh ich auch so. Zum "wach werden" bzw. für den Kreislauf ists aber top und praktiziere ich auch gerne so!	f	113	2018-02-22 16:44:14.84	2018-02-22 16:44:14.84
+120	Jeden Tag Kalt duschen ist effektiv auch für das Immunsystem. Mache ich immer fühle mich dadürch auch fitter.	f	114	2018-02-22 16:44:21.367	2018-02-22 16:44:21.367
+121	Da muss man ziemlich schmerzfrei sein und man gewöhnt sich auch nach langer Zeit nicht daran. Ich spreche aus Erfahrung .\n\nEs soll aber gut sein für das Immunsystem. Vielleicht ist es aber auch nur der Glaube daran, der hilft.	f	115	2018-02-22 16:44:27.553	2018-02-22 16:44:27.553
+122	Ist sicher gut für das Immunsystem, aber mir ist das zu heftig. In der Früh brauche ich da noch meine Ruhe!	f	116	2018-02-22 16:44:31.993	2018-02-22 16:44:31.993
+123	Ich bin auch eher der Warmduscher. Nach dem Training wechsele ich allerdings zwischen heiß und kalt ab, hat mir eine frühere Trainerin mal empfohlen (fragt mich aber bitte nicht warum das gut ist, das habe ich vergessen) und im Sommer muss es auch mal, wie bei den Meisten eine Abkühlung sein.	f	117	2018-02-22 16:44:37.077	2018-02-22 16:44:37.077
+124	Auf Highexistance gibt einen sehr guten englischsprachigen Artikel über die körperlichen und mentalen Vorteile des Kaltduschens. Neben den Goodies wie verbesserter Durchblutung, festerer Haut ist es auch Training für Disziplin und Resilienz. Ist ein besserer Start in den Tag als der Becher Kaffee, der einen unruhig und verrückt macht.	f	118	2018-02-22 16:44:54.48	2018-02-22 16:44:54.48
+125	Ich wollte das auch mal. Aber ich kanns einfach nicht!\nManchmal drehe ich das Wasser am Schluss auch nochmal kalt, aber das finde ich auch so schrecklich dass ich es mich meistens nicht mehr traue	f	119	2018-02-22 16:45:00.717	2018-02-22 16:45:00.717
+126	Wechselduschen sind super. Regt die Durchblutung an und soll auch gegen Cellulite helfen. Auf jeden Fall kommt der Kreislauf dadurch auf Touren.	f	120	2018-02-22 16:45:06.097	2018-02-22 16:45:06.097
+127	Bin da etwas skeptisch, aber ich hab auch schon oft gehört, dass es wirklich helfen soll. Jedenfalls der schlagartige Wechsel von kalt auf heiß	f	121	2018-02-22 16:45:10.668	2018-02-22 16:45:10.668
+129	Ob das wirklich etwas bringt muß jeder für sich selbst entscheiden. Das man davon wach wird aufjedenfall, ich bin ein absoluter Warmduscher. Setze mich oft genug der kälte aus wegen dem Training für Hindernisläufe, wenn man da auf das Eiswasserbecken oder auf eine Artik Area zu läuft ist mein Kreislauf ganz oben.	f	122	2018-02-22 16:45:21.963	2018-02-22 16:45:21.963
+131	Ich persönlich bin eher ein Warm- bzw. Heißduscher... vorallem in den Wintermonaten\nAllerdings hab ich so oft das problem, dass ich nicht richtig in schwung komme. Für mich wäre es das schlimmste mich morgens direkt unter eine kalte Dusche stellen zu müssen. Ich dusche daher immer warm und zum Schluss drehe ich die Temperatur dann etwas kälter	f	124	2018-02-22 16:45:57.18	2018-02-22 16:45:57.18
+128	Ich mache morgens die Variante von Tim Ferriss:\n\nHeiß duschen, dann 3 min kalt über Nacken und Rücken laufen lassen. Dort sitzt das braune Körperfett, welches zu Stoffwechsel und Wärmeproduktion angeregt wird.	f	102	2018-02-22 16:45:17.671	2018-02-22 16:45:17.671
+130	Ich mache es auch schon einen Monat lang. Am Anfang war es super schwer, habe nur mit den Füßen angefangen und dann immer mehr nach oben Man fühlt sich wirklich erfrischt und erholt danach. Es stärk das Immunsystem und ist auch gut gegen Stress. Empfehlenswert!	f	125	2018-02-22 16:45:27.812	2018-02-22 16:45:27.812
+132	Morgens kalt Duschen bringt den Stoffwechsel in Schwung	f	123	2018-02-22 16:46:05.694	2018-02-22 16:46:05.694
 \.
 
 
@@ -649,7 +649,31 @@ COPY schema_version (installed_rank, version, description, type, script, checksu
 
 COPY "user" (id, name, revision, isimplicit) FROM stdin;
 1	unknown	0	f
-cjdyodqj50000z9bkozpyw4rs	anon-cjdyodqj50000z9bkozpyw4rs	0	t
+101	Mr. Marathon	0	t
+102	Das Experiment	0	f
+103	Rik	0	f
+104	IngridPowerlady	0	f
+105	Gelbes_Schaf	0	f
+106	Lauredana	0	f
+107	Peter201082	0	f
+108	Unixx	0	f
+109	fitnessandrea	0	f
+110	Michaela-Bln	0	f
+111	Monica123	0	f
+112	FFNiko	0	f
+113	Buddy58	0	f
+114	gemix.2	0	f
+115	Healthfan	0	f
+116	mario_schwarz	0	f
+117	KemperMo	0	f
+118	KJJ	0	f
+119	marina2	0	f
+120	Bella1981	0	f
+121	Bench4Life	0	f
+122	FitterFit	0	f
+123	TheBeast	0	f
+124	fitness4life	0	f
+125	SportuhrenNerd	0	f
 \.
 
 
