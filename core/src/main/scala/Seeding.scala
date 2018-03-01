@@ -112,8 +112,12 @@ object GitHubImporter {
         // TODO: delete transitive containments of comments in issue
 
         // Issue posts and connections
-        implicit def StringToEpochMilli(s:String):EpochMilli = EpochMilli.from(s)
-        val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+        // implicit def StringToEpochMilli(s:String):EpochMilli = EpochMilli.from(s)
+        // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+        // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+        val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order
+        val issueTitle = Post(PostId("1" + "0"*issueIdZeros + issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+
         val titleIssueTag = Connection(issueTitle.id, Label.parent, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
