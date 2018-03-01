@@ -19,6 +19,7 @@ object Restructure {
   type Posts = List[Post]
   type Probability = Double
   case class HeuristicParameters(probability: Probability, heuristic: PostHeuristicType = PostHeuristic.Random.heuristic, measureBoundary: Option[Double] = None, numMaxPosts: Option[Int] = None)
+  case class TaskFeedback(displayNext: Boolean, taskAnswer: GraphChanges)
 }
 
 sealed trait RestructuringTaskObject {
@@ -105,7 +106,7 @@ sealed trait RestructuringTask {
             title,
             span(
               "×",
-              onClick(false) --> RestructuringTaskGenerator.taskDisplay,
+              onClick(TaskFeedback(false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
               cursor.pointer,
               float.right,
               fontSize := "28px",
@@ -158,9 +159,9 @@ sealed trait YesNoTask extends RestructuringTask
       div(
         button("Yes",
           onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(true) --> RestructuringTaskGenerator.taskDisplay,
+          onClick(TaskFeedback(true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
-        button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
+        button("No", onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
@@ -174,9 +175,9 @@ sealed trait YesNoTask extends RestructuringTask
       div(
         button("Yes",
           onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(true) --> RestructuringTaskGenerator.taskDisplay,
+          onClick(TaskFeedback(true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
-        button("No", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
+        button("No", onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
@@ -194,7 +195,7 @@ sealed trait AddTagTask extends RestructuringTask
           views.Placeholders.newTag,
           flex := "0 0 3em",
         ),
-        button("Abort", onClick(true) --> RestructuringTaskGenerator.taskDisplay),
+        button("Abort", onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
@@ -284,11 +285,13 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
         Connection(s.id, Label(tag), t.id)
       }
 
-      RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
-
-      GraphChanges(
+      val changes = GraphChanges(
         addConnections = tagConnections.toSet
       )
+
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, changes))
+
+      changes
     }
   }
 
@@ -569,10 +572,10 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       ),
       button("Confirm",
         onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
-        onClick(true) --> RestructuringTaskGenerator.taskDisplay,
+        onClick(postPreview).map(preview => TaskFeedback(true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
       button("Abort",
-        onClick(true) --> RestructuringTaskGenerator.taskDisplay,
+        onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
     )
   }
@@ -606,12 +609,14 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       val tagPost = state.inner.rawGraph.now.posts.find(_.content == tag).getOrElse(Post(PostId.fresh, tag, state.inner.currentUser.now.id))
       val tagConnections = post.map(p => Connection(p.id, Label.parent, tagPost.id))
 
-      RestructuringTaskGenerator.taskDisplay.unsafeOnNext(true)
-
-      GraphChanges(
+      val changes = GraphChanges(
         addPosts = Set(tagPost),
         addConnections = tagConnections.toSet
       )
+
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, changes))
+
+      changes
     }
   }
 
@@ -622,6 +627,14 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 }
 
 case object RestructuringTaskGenerator {
+
+  var _studyTaskIndex: Int = 0
+  val studyTaskList = List(
+        ConnectPostsWithTag,
+        MergePosts,
+        SplitPosts,
+        AddTagToPosts
+  )
 
   val allTasks: List[RestructuringTaskObject] = List(
     ConnectPosts,
@@ -634,7 +647,15 @@ case object RestructuringTaskGenerator {
     AddTagToPosts,
   )
 
-  val taskDisplay: Handler[Boolean] = Handler.create[Boolean](false).unsafeRunSync()
+//  val taskDisplay: Handler[Boolean] = Handler.create[Boolean](false).unsafeRunSync()
+  val taskDisplayWithLogging: Handler[TaskFeedback] = Handler.create[TaskFeedback](TaskFeedback(false, GraphChanges.empty)).unsafeRunSync()
+
+//  taskDisplayWithLogging.foreach{ feedback =>
+//    val taskTitle = studyTaskList(_studyTaskIndex).toString
+//    if(feedback.displayNext && feedback.taskAnswer.nonEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> YES -> ${feedback.taskAnswer}")
+//    else if(feedback.displayNext && feedback.taskAnswer.isEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> NO -> ${feedback.taskAnswer}")
+//    else scribe.info(s"RESTRUCTURING TASKS LOG: FINISHED")
+//  }
 
   def apply(globalState: GlobalState): Observable[VNode] = {
 
@@ -643,22 +664,48 @@ case object RestructuringTaskGenerator {
       fontWeight.bold,
       fontSize := "20px",
       marginBottom := "10px",
-      button("Task me!", width := "100%", onClick(true) --> taskDisplay),
+      button("Task me!", width := "100%", onClick(TaskFeedback(true, GraphChanges.empty)) --> taskDisplayWithLogging),
     )
 
-    val show = taskDisplay.map(d => {
-      DevPrintln(s"display task! ${d.toString}")
-      if(d) {
-        div(
-          children <-- Observable.fromFuture(composeTask(globalState).map(_.map(_.render(globalState))))
-        )
+    val show = taskDisplayWithLogging.map(feedback => {
 
+      DevPrintln(s"display task! ${feedback.toString}")
+      if(feedback.displayNext) {
+        if(_studyTaskIndex > 0) {
+          val taskTitle = studyTaskList(_studyTaskIndex - 1).toString
+          if (feedback.taskAnswer.nonEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> YES -> ${feedback.taskAnswer}")
+          else if (feedback.taskAnswer.isEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> NO")
+        }
+
+        div(
+          children <-- Observable.fromFuture(composeStudyTask(globalState).map(_.map(_.render(globalState))))
+        )
       } else {
           renderButton,
       }
     })
 
     show
+  }
+
+  // Deterministic with predefined task composition
+  def composeStudyTask(globalState: GlobalState): Future[List[RestructuringTask]] = {
+    val graph = globalState.inner.displayGraphWithoutParents.now.graph
+    //    ConnectPostsWithTag.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(2), None),
+    //    MergePosts.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(2), None),
+    //    SplitPosts.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(1), None),
+    //    AddTagToPosts.applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic, Some(1), None)
+    val nextTask = if(_studyTaskIndex < studyTaskList.size) {
+      studyTaskList(_studyTaskIndex).applyWithStrategy(graph, PostHeuristic.Deterministic(List.empty[Post]).heuristic)
+    } else {
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(false, GraphChanges.empty))
+      scribe.info("All tasks are finished")
+      // org.scalajs.dom.window.location.href = "Eval?"
+      Future.successful(List.empty[RestructuringTask])
+    }
+    _studyTaskIndex = _studyTaskIndex + 1
+
+    nextTask
   }
 
   // Currently, we choose a task at random and decide afterwards which heuristic is used
