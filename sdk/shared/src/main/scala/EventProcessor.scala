@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.sdk
 
 import monix.execution.Scheduler
 import monix.reactive.Observable
@@ -79,6 +79,7 @@ class EventProcessor private(
 
   val currentAuth: Observable[Authentication] = authEventStream.map(_.lastOption.map(EventUpdate.createAuthFromEvent)).collect { case Some(auth) => auth }
 
+  //TODO: publish only Observer?
   val changes = PublishSubject[GraphChanges]
   object enriched {
     val changes = PublishSubject[GraphChanges]
