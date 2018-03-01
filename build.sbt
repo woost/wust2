@@ -58,6 +58,11 @@ lazy val commonSettings = Seq(
       "-Ywarn-nullary-override" ::
       "-Ywarn-nullary-unit" ::
       Nil,
+
+  Defs.dockerVersionTags :=
+    (if (git.gitCurrentBranch.value == "master") "latest" else git.gitCurrentBranch.value) ::
+    version.value ::
+    Nil
 )
 
 lazy val sourceMapSettings = Seq(

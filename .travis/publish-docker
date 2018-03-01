@@ -2,7 +2,7 @@
 set -e
 set -o pipefail
 
-[[ "$TRAVIS_BRANCH" == "master" ]] || exit 0
+[[ -n "$DOCKER_USERNAME" ]] || exit 0
 
 docker images
 docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";

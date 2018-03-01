@@ -8,6 +8,7 @@ node_js: 9
 branches:
   only:
   - master
+  - /release-.*/
 
 //TODO: use https://github.com/dwijnand/sbt-travisci
 script:

@@ -13,7 +13,6 @@ dockerfile in docker := {
   }
 }
 
-imageNames in docker :=
-  ImageName(namespace = Some("woost"), repository = "github") ::
-  ImageName(namespace = Some("woost"), repository = "github", tag = Some(version.value)) ::
-  Nil
+imageNames in docker := Defs.dockerVersionTags.value.map { v =>
+  ImageName(namespace = Some("woost"), repository = "github", tag = Some(v))
+}
