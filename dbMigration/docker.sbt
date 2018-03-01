@@ -1,5 +1,6 @@
+lazy val projectRef = ProjectRef(file("."), "core") // TODO need some projectref with settings, depending dbMigration does not work because cycle.
 
-def dockerDbMigration(name: String) = Seq(
+def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
   dockerfile in docker := {
     val postgresHost = "postgres"
     new Dockerfile {
@@ -13,10 +14,9 @@ def dockerDbMigration(name: String) = Seq(
     }
   },
 
-  imageNames in docker :=
-    ImageName(namespace = Some("woost"), repository = s"db-migration", tag = Some("latest-" + name)) ::
-    ImageName(namespace = Some("woost"), repository = s"db-migration", tag = Some(version.value + "-" + name)) ::
-    Nil
+  imageNames in docker := (Defs.dockerVersionTags in projectRef).value.map { v =>
+    ImageName(namespace = Some("woost"), repository = "db-migration", tag = Some(v + "-" + name))
+  }
 )
 
 lazy val dbMigration = project.in(file("."))

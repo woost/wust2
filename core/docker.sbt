@@ -1,6 +1,6 @@
 enablePlugins(DockerPlugin)
 
-import sbtdocker.Instructions.Raw
+import scala.concurrent.duration._
 
 dockerfile in docker := {
   val artifact: File = assembly.value
@@ -12,12 +12,11 @@ dockerfile in docker := {
     run("adduser", "user", "-D", "-u", "1000")
     user("user")
     copy(artifact, artifactPath)
-    addInstruction(Raw("healthcheck", "--interval=30s --timeout=10s --retries=2 CMD curl -f -X GET localhost:8080/health"))
+    healthCheck(Seq("curl", "-f", "-X", "GET", "localhost:8080/health"), interval = Some(30 seconds), timeout = Some(10 seconds), retries = Some(2))
     entryPoint("java", "-jar", artifactPath)
   }
 }
 
-imageNames in docker :=
-  ImageName(namespace = Some("woost"), repository = "core") ::
-  ImageName(namespace = Some("woost"), repository = "core", tag = Some(version.value)) ::
-  Nil
+imageNames in docker := Defs.dockerVersionTags.value.map { v =>
+  ImageName(namespace = Some("woost"), repository = "core", tag = Some(v))
+}
