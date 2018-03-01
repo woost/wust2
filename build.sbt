@@ -60,7 +60,10 @@ lazy val commonSettings = Seq(
       Nil,
 
   Defs.dockerVersionTags :=
-    (if (git.gitCurrentBranch.value == "master") "latest" else git.gitCurrentBranch.value) ::
+    {
+      val branch = sys.env.get("TRAVIS_BRANCH") getOrElse git.gitCurrentBranch.value
+      if (branch == "master") "latest" else branch
+    } ::
     version.value ::
     Nil
 )
