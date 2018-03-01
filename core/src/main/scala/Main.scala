@@ -1,18 +1,21 @@
 package wust.backend
 
 import scribe._
-import scribe.format._
-import scribe.writer._
+import scribe.formatter.FormatterBuilder
+import scribe.writer.ConsoleWriter
 import wust.backend.config.Config
 
 object Main extends App {
-  //TODO: threadName.replaceFirst("server-akka.actor.default-dispatcher-", "")
-  val logFormatter: Formatter = formatter"$date $levelPaddedRight [$threadName] $positionAbbreviated - $message$newLine"
-  Logger.update(Logger.rootName) {
-    _.clearHandlers()
-      .withHandler(formatter = logFormatter, minimumLevel = Level.Debug, writer = ConsoleWriter)
-      .withHandler(formatter = logFormatter, writer = FileNIOWriter.daily(), minimumLevel = Level.Info)
-  }
+  val formatter = FormatterBuilder()
+    .date()
+    .string(" ")
+    .level
+    .add(l => "[" + l.threadName.replaceFirst("server-akka.actor.default-dispatcher-", "") + "]")
+    .string(": ")
+    .message.newLine
+
+  Logger.root.clearHandlers()
+  Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
   Config.load match {
     case Left(error) =>

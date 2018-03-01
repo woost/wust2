@@ -9,7 +9,7 @@ import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 
 import scribe._
-import scribe.format._
+import scribe.formatter.FormatterBuilder
 import scribe.writer.ConsoleWriter
 
 import scala.util.Success
@@ -18,10 +18,15 @@ import wust.util.outwatchHelpers._
 import rx.Ctx
 
 object Main {
-  val logFormatter: Formatter = formatter"$levelPaddedRight $positionAbbreviated - $message$newLine"
-  Logger.update(Logger.rootName) { l =>
-    l.clearHandlers().withHandler(formatter = logFormatter, minimumLevel = Level.Debug, writer = ConsoleWriter)
-  }
+  val formatter = FormatterBuilder()
+    .date(format = "%1$tT:%1$tL")
+    .string(" ")
+    .levelPaddedRight
+    .string(": ")
+    .message.newLine
+
+  Logger.root.clearHandlers()
+  Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
