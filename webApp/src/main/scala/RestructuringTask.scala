@@ -255,7 +255,11 @@ object ConnectPosts extends RestructuringTaskObject {
 case class ConnectPosts(posts: Posts) extends YesNoTask
 {
   val title = "Connect posts"
-  val description = "Is the first post related to the other post(s)?"
+  val description =
+    """
+      |Is the first post related to the other post(s)?
+      |If yes - they will be connected.
+    """.stripMargin
 
   def constructGraphChanges(posts: Posts): GraphChanges = {
     val source = posts.head
@@ -298,7 +302,12 @@ object ConnectPostsWithTag extends RestructuringTaskObject {
 case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 {
   val title = "Connect posts with tag"
-  val description = "How would you describe the relation between the first post and the second / others? Tag it!"
+  val description =
+    """How would you tag the relation between the first post and the others?
+      |Enter a tag that describes their relation!
+      |You can just type any tag and press Enter to confirm the tag.
+    """.stripMargin
+
 
   def tagConnection(sourcePosts: List[Post],
     targetPosts: List[Post],
@@ -351,8 +360,13 @@ object ContainPosts extends RestructuringTaskObject {
 }
 case class ContainPosts(posts: Posts) extends YesNoTask
 {
-  val title = "Contain Posts"
-  val description = "Is the first post a topic description of the second / others?"
+  val title = "Topic Posts"
+  val description =
+    """Does the first post topic description of the others?
+      |In other words: Does the later posts follow the first post contentual?
+      |If so, the first post represents a new thread within the current discussion and the later posts will be moved
+      |into this thread.
+    """.stripMargin
 
   def constructGraphChanges(posts: Posts): GraphChanges = {
     val target = posts.head
@@ -396,7 +410,11 @@ object MergePosts extends RestructuringTaskObject {
 case class MergePosts(posts: Posts) extends YesNoTask
 {
   val title = "Merge Posts"
-  val description = "Does these posts state the same but in different words? If yes, they will be merged."
+  val description =
+    """
+      |Does these posts state the same but in different words?
+      |If yes, their content will be merged into a single post.
+    """.stripMargin
 
   def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
     val target = posts.head
@@ -448,7 +466,11 @@ object UnifyPosts extends RestructuringTaskObject {
 case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as MergePosts
 {
   val title = "Unify Posts"
-  val description = "Does these posts state the same and are redundant? If yes, they will be unified."
+  val description =
+    """
+      |Does these posts state the same and are redundant? If yes, they will be unified.
+      |Therefore - only the first post will be kept while the other will be removed.
+    """.stripMargin
 
   def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
     val target = posts.head
@@ -499,7 +521,11 @@ object DeletePosts extends RestructuringTaskObject {
 case class DeletePosts(posts: Posts) extends YesNoTask
 {
   val title = "Delete Post"
-  val description = "Is this posts irrelevant for this discussion? (e.g. Hello post)"
+  val description =
+    """
+      |Is this posts irrelevant for this discussion? (e.g. Hello post / Spam)
+      |If yes - the post will be deleted.
+    """.stripMargin
 
   def component(state: GlobalState): VNode = {
     constructComponent(state,
@@ -531,7 +557,17 @@ object SplitPosts extends RestructuringTaskObject {
 case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
-  val description = "Does this Post contain multiple statements? Please split the post. You can split a part of this post by selecting it and confirm the selectio with the button."
+  val description =
+    """
+      |Does this Post contain multiple statements?
+      |
+      |Please split the post so that each chunk contains a separate statement.
+      |You can split a part of this post by selecting it.
+      |If you select a statement in the middle of the post - it will be splitted in 3 chunks:
+      |The text before the selection, the selected text and the text after the selection.
+      |
+      |Confirm the selection with the button when you are finished.
+    """.stripMargin
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
@@ -629,7 +665,13 @@ object AddTagToPosts extends RestructuringTaskObject {
 case class AddTagToPosts(posts: Posts) extends AddTagTask
 {
   val title = "Add tag to post"
-  val description = "How would you describe this post? Please add a tag."
+  val description =
+    """
+      |How would you describe this post? Please add a tag.
+      |This will categorize the post within this discussion.
+      |
+      |You can confirm the tag by pressing Enter.
+    """.stripMargin
 
   def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
 
