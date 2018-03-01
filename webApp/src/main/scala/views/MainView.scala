@@ -392,7 +392,7 @@ object MainView {
       br(),
       dataImport(state),
       br(),
-      child <-- RestructuringTaskGenerator(state),
+      child <-- RestructuringTaskGenerator.render(state),
       br(),
       channels(state),
       br(),
