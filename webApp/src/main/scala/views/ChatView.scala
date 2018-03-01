@@ -24,6 +24,9 @@ object ChatView extends View {
       o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges.addPost(msg, user.id))
     }
 
+    state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
+
+
     component(
       currentUser,
       newPostSink,
@@ -84,6 +87,18 @@ object ChatView extends View {
     val isMine = currentUser.id == post.author
     div( // wrapper for floats
       div( // post wrapper
+//        div(
+//          span( // author id
+//            graph.usersById.get(post.author).map(_.name).getOrElse(s"unknown: ${post.author}").toString,
+//            fontSize.small,
+//            color := "black",
+//            borderRadius := "2px",
+//            padding := "0px 3px",
+//            marginRight := "3px",
+//          ),
+//          margin := "0px",
+//          padding := "0px",
+//        ),
         div( // post content as markdown
           mdHtml(post.content),
           onClick(Page.Union(Set(post.id))) --> page,
@@ -92,14 +107,6 @@ object ChatView extends View {
           margin := "2px 0px",
         ),
         div(
-//          span( // author id
-//            graph.usersById(post.author).toString,
-//            fontSize.small,
-//            color := "black",
-//            borderRadius := "2px",
-//            padding := "0px 3px",
-//            marginRight := "3px",
-//          ),
           span( // post id
             post.id.toString,
             fontSize.small,
