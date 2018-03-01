@@ -4,16 +4,25 @@ import scala.concurrent.duration._
 
 dockerfile in docker := {
   val artifact: File = assembly.value
-  val artifactPath = s"/app/${artifact.name}"
+  val appFolder = "/app"
+  val logsFolder = s"$appFolder/logs"
 
   new Dockerfile {
     from("openjdk:8-jre-alpine")
     runRaw("apk update && apk add curl")
     run("adduser", "user", "-D", "-u", "1000")
+    run("mkdir", "-p", appFolder)
+    run("mkdir", "-p", logsFolder)
+    run("chown", "-R", "user:user", appFolder)
+    run("chown", "-R", "user:user", logsFolder)
+    volume(logsFolder)
     user("user")
-    copy(artifact, artifactPath)
+
     healthCheck(Seq("curl", "-f", "-X", "GET", "localhost:8080/health"), interval = Some(30 seconds), timeout = Some(10 seconds), retries = Some(2))
-    entryPoint("java", "-jar", artifactPath)
+
+    workDir(appFolder)
+    copy(artifact, appFolder)
+    entryPoint("java", "-jar", artifact.name)
   }
 }
 
