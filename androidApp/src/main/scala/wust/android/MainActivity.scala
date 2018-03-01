@@ -42,6 +42,8 @@ import cool.graph.cuid.Cuid
 import concurrent.duration._
 import mycelium.client._
 import monix.execution.Scheduler.Implicits.global
+import wust.sdk.EventProcessor
+import monix.reactive.{Observable, Observer}
 
 object Id extends IdGenerator(start = 1000)
 
@@ -53,8 +55,16 @@ class MainActivity extends Activity with Contexts[Activity] {
   val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
 
   val assumedLogin = UserId(cuid)
-  var rawGraph:Graph = Graph.empty
   wustClient.observable.connected.foreach(_ => client.auth.assumeLogin(assumedLogin)); //TODO: loginflow
+
+  val eventProcessor = EventProcessor(
+    rawEventStream = wustClient.observable.event,
+    syncDisabled = Observable(false),
+    enrich = (changes, graph) => changes,
+    sendChange = client.api.changeGraph _
+  )
+  val rawGraph:Observable[Graph] = eventProcessor.rawGraph
+  var rawGraphNow = Graph.empty // TODO: replace with rx
 
 
   var chatHistorySlot = slot[RecyclerView]
@@ -63,16 +73,13 @@ class MainActivity extends Activity with Contexts[Activity] {
   }
   def updateChatHistory(posts:IndexedSeq[Post]) = {
     // TODO: https://android.jlelse.eu/smart-way-to-update-recyclerview-using-diffutil-345941a160e0
-    (chatHistorySlot <~ rvAdapter(new PostsAdapter(posts)) <~ vInvalidate) //~ (chatHistorySlot <~ Tweak[RecyclerView](_.smoothScrollToPosition(posts.size - 1)))
+    (chatHistorySlot <~ rvAdapter(new PostsAdapter(posts)) <~ vInvalidate)
   }
 
-  wustClient.observable.event.foreach { events =>
-    println(events)
-    rawGraph = events.collect{case e:ApiEvent.GraphContent => e }.foldLeft(rawGraph)(EventUpdate.applyEventOnGraph)
-    updateChatHistory(rawGraph.chronologicalPostsAscending).run
+  rawGraph.foreach { graph => 
+    updateChatHistory(graph.chronologicalPostsAscending).run
+    rawGraphNow = graph
   }
-
-
 
   def chatInput = {
     var value = slot[EditText]
@@ -80,12 +87,15 @@ class MainActivity extends Activity with Contexts[Activity] {
       w[EditText] <~ wire(value) <~ llMatchWeightHorizontal,
       w[Button] <~ text("Send") <~
       On.click {
-        val post = Post(PostId(cuid), value.get.getText.toString, assumedLogin)
-
-        val changes = List(GraphChanges.addPost(post))
+        val content = value.get.getText.toString.trim
         Ui{ 
-          value.get.getText.clear()
-          client.api.changeGraph(changes) 
+          if(content.nonEmpty) {
+            val post = Post(PostId(cuid), value.get.getText.toString, assumedLogin)
+            value.get.getText.clear()
+            eventProcessor.changes.onNext(GraphChanges.addPost(post)).foreach { _ =>
+              (chatHistorySlot <~ Tweak[RecyclerView](_.smoothScrollToPosition(rawGraphNow.posts.size - 1))).run
+            }
+          }
         }
       }
     )
