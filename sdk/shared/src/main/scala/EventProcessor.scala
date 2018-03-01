@@ -147,7 +147,9 @@ class EventProcessor private(
   // }
 
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
-    sendChange(changes.toList).transform {
+    //TODO: why is import wust.util._ not enough to resolve RichFuture?
+    // We only need it for the 2.12 polyfill
+    new wust.util.RichFuture(sendChange(changes.toList)).transform {
       case Success(success) =>
         if (success) {
           val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
