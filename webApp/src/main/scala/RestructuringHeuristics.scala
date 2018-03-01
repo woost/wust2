@@ -59,6 +59,15 @@ object PostHeuristic {
     }
   }
 
+  case object Deterministic {
+    def apply(deterministicPosts: List[Post]) = new Deterministic(deterministicPosts)
+  }
+  case class Deterministic(deterministicPosts: List[Post]) extends FrontendHeuristic {
+    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(deterministicPosts.length)): List[Post] = {
+      wrapHeuristic(deterministicPosts => deterministicPosts, posts, num)
+    }
+  }
+
   case object Random extends FrontendHeuristic {
     def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
       def _random(p: List[Post]) = scala.util.Random.shuffle(p)
