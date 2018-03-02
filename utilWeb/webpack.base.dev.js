@@ -10,6 +10,8 @@ module.exports = commons.webpack;
 
 const filenamePattern = '[name]';
 
+
+
 ////////////////////////////////////////
 // html template generate index.html
 ////////////////////////////////////////
@@ -42,6 +44,7 @@ module.exports.module.rules.push({
 ////////////////////////////////////////
 // dev server
 ////////////////////////////////////////
+module.exports.devtool = "cheap-source-map";
 module.exports.devServer = {
     // https://webpack.js.org/configuration/dev-server
     port: process.env.WUST_PORT,
