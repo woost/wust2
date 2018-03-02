@@ -103,6 +103,8 @@ lazy val webSettings = Seq(
       "sass-loader" -> "6.0.6" ::
       "css-loader" -> "0.28.10" ::
       "extract-text-webpack-plugin" -> "3.0.2" ::
+      "offline-plugin" -> "4.9.0" ::
+      "webpack-merge" -> "4.1.2" ::
       "source-map-loader" -> "cornerman/source-map-loader#282668b" :: //TODO: waiting for new release: https://github.com/webpack/loader-utils/issues/110
       Nil,
 
@@ -127,7 +129,6 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("dev", "; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwatch; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
     addCommandAlias("devwatch", "~; core/reStart; webApp/fastOptJS::webpack"),
-    addCommandAlias("devstop", ""),
 
     addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),

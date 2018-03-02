@@ -1,1 +1,5 @@
-module.exports = require('./webpack.base.dev.js');
+const merge = require('webpack-merge');
+
+module.exports = merge(
+    require('./webpack.base.dev.js'),
+);
