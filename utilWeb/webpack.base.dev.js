@@ -9,8 +9,7 @@ const appName = commons.woost.appName;
 module.exports = commons.webpack;
 
 const filenamePattern = '[name]';
-
-
+module.exports.output.filename = filenamePattern + '.js';
 
 ////////////////////////////////////////
 // html template generate index.html

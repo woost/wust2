@@ -26,6 +26,9 @@ object Main {
   Logger.root.clearHandlers()
   Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
+  // require offline plugin, setup in webpack
+  OfflinePlugin.install()
+
   // require default passive events for scroll/mouse/touch events
   // global.require("default-passive-events")
 
