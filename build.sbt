@@ -7,7 +7,6 @@ dynver in ThisBuild ~= (_.replace('+', '-'))
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
 scalaVersion in ThisBuild := "2.12.4"
-import Def.{setting => dep}
 
 lazy val commonSettings = Seq(
   resolvers ++= (
@@ -104,7 +103,12 @@ lazy val webSettings = Seq(
       "sass-loader" -> "6.0.6" ::
       "css-loader" -> "0.28.10" ::
       "extract-text-webpack-plugin" -> "3.0.2" ::
+      "source-map-loader" -> "cornerman/source-map-loader#282668b" :: //TODO: waiting for new release: https://github.com/webpack/loader-utils/issues/110
       Nil,
+
+    npmResolutions in Compile := Map(
+        "source-map-loader" -> "cornerman/source-map-loader#282668b"
+    ),
 
     version in webpack := "3.10.0",
     //TODO: version in startWebpackDevServer := "2.11.1",
