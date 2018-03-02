@@ -65,35 +65,37 @@ module.exports.devServer = {
     proxy : [
         subdomainProxy("core", process.env.WUST_CORE_PORT, true),
         subdomainProxy("github", process.env.WUST_GITHUB_PORT),
-
-        {
-            path: '/web-app', // web app with production assets
-            target: 'http://localhost:' + process.env.WUST_WEB_PORT,
-            pathRewrite: {"^/web-app" : ""}
-        },
-        {
-            path: '/pwa-app', // web app with production assets
-            target: 'http://localhost:' + process.env.WUST_PWA_PORT,
-            pathRewrite: {"^/pwa-app" : ""}
-        }
+        pathProxy("apps/web", process.env.WUST_WEB_PORT),
+        pathProxy("apps/pwa", process.env.WUST_PWA_PORT)
     ],
     compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
 };
 
 module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
 
-function subdomainProxy(subdomain, port, ws) {
+function basicProxy(port, ws) {
     ws = !!ws;
     var protocol = ws ? "ws" : "http";
     var url = protocol + "://localhost:" + port;
-
     return {
-        path: '/*',
         ws: ws,
-        target: url,
+        target: url
+    }
+}
+function subdomainProxy(subdomain, port, ws) {
+    return Object.assign(basicProxy(port, ws), {
+        path: '/*',
         bypass: function (req, res, proxyOptions) {
             if (req.headers.host.startsWith(subdomain + ".")) return true
             else return req.path;
         }
-    };
+    });
+}
+function pathProxy(path, port, ws) {
+    return Object.assign(basicProxy(port, ws), {
+        path: '/' + path,
+        pathRewrite: {
+            ["^/" + path]: ""
+        }
+    });
 }
