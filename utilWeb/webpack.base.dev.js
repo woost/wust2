@@ -8,6 +8,8 @@ const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
 module.exports = commons.webpack;
 
+const filenamePattern = '[name]';
+
 ////////////////////////////////////////
 // html template generate index.html
 ////////////////////////////////////////
@@ -21,13 +23,19 @@ module.exports.plugins.push(new HtmlPlugin({
 // styles generated from scss
 ////////////////////////////////////////
 const extractSass = new ExtractTextPlugin({
-    filename: 'style.css'
+    filename: filenamePattern + '.css'
 });
 module.exports.plugins.push(extractSass);
 module.exports.module.rules.push({
     test: /style\.scss$/,
     use: extractSass.extract({
         use: [{ loader: "css-loader", options: { sourceMap: true }}, { loader: "sass-loader", options: { sourceMap: true }}],
+    })
+});
+module.exports.module.rules.push({
+    test: /\.css$/,
+    use: extractSass.extract({
+        use: [{ loader: "css-loader", options: { sourceMap: true }}],
     })
 });
 

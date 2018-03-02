@@ -14,7 +14,7 @@ module.exports = commons.webpack;
 
 const filenamePattern = '[name].[chunkhash]';
 module.exports.output.filename = filenamePattern + '.js';
-module.exports.output.publicPath = "/assets"
+module.exports.output.publicPath = "assets"
 
 module.exports.plugins.push(new Webpack.DefinePlugin({
   'process.env.NODE_ENV': JSON.stringify('production')
@@ -23,7 +23,7 @@ module.exports.plugins.push(new Webpack.DefinePlugin({
 ////////////////////////////////////////
 // clean
 ////////////////////////////////////////
-webpack.plugins.push(new CleanPlugin([ webpack.output.path ]));
+module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 
 ////////////////////////////////////////
 // closure compiler
@@ -66,6 +66,12 @@ module.exports.module.rules.push({
     test: /style\.scss$/,
     use: extractSass.extract({
         use: [{ loader: "css-loader" }, { loader: "sass-loader" }],
+    })
+});
+module.exports.module.rules.push({
+    test: /\.css$/,
+    use: extractSass.extract({
+        use: [{ loader: "css-loader" }],
     })
 });
 
