@@ -69,7 +69,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val sourceMapSettings = Seq(
-    // To enable source map support, all sub-project folders are symlinked to assets/project-root.
+    // To enable source map support, all sub-project folders are symlinked to webpack/project-root.
     // This folder is served via webpack devserver.
     scalacOptions += {
       val local = s"${(ThisBuild / baseDirectory).value.toURI}"
@@ -82,6 +82,9 @@ lazy val webSettings = Seq(
     scalacOptions += "-P:scalajs:sjsDefinedByDefault",
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
     scalaJSUseMainModuleInitializer := true,
+
+    //TODO: scalaJSStage in Test := FullOptStage,
+    //TODO: scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
 
     emitSourceMaps in fastOptJS := true, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     emitSourceMaps in fullOptJS := false,
@@ -104,11 +107,11 @@ lazy val webSettings = Seq(
       Nil,
 
     version in webpack := "3.10.0",
-    // version in startWebpackDevServer := "2.11.1", //TODO: breaks hot reload
-    webpackResources := (baseDirectory.value / ".." / "webpack" * "*.js"),
+    //TODO: version in startWebpackDevServer := "2.11.1",
+    webpackResources := (baseDirectory.value / ".." / "utilWeb" * "*.js"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
-    /* webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance */
+    //TODO: webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     webpackDevServerExtraArgs := Seq("--progress", "--color"),
 )
 
@@ -118,15 +121,12 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("clean", "; root/clean; assets/clean"),
+    addCommandAlias("dev", "; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwatch; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
+    addCommandAlias("devwatch", "~; core/reStart; webApp/fastOptJS::webpack"),
+    addCommandAlias("devstop", ""),
 
-    addCommandAlias("dev", "; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwatch; devstop; core/reStop"),
-    addCommandAlias("devwatch", "~; core/reStart; webApp/fastOptJS; webApp/copyFastOptJS"),
-    addCommandAlias("devstop", "webApp/fastOptJS::stopWebpackDevServer"),
-
-    addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devfwatch; devstop; core/reStop; project root"),
+    addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
-    addCommandAlias("devfwatch", "~; fastOptJS; copyFastOptJS"),
 
     addCommandAlias("testJS", "; utilJS/test; utilWeb/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
@@ -263,16 +263,12 @@ lazy val core = project
     javaOptions in reStart += "-Xmx50m"
   )
 
-lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
-
 lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(utilWeb, sdkJS)
-  .settings(commonSettings, sourceMapSettings)
+  .settings(commonSettings, sourceMapSettings, webSettings)
   .settings(
     libraryDependencies ++= (
-      Deps.outwatch.value ::
-      Deps.scalarx.value ::
       Deps.vectory.value ::
       Deps.d3v4.value ::
       Deps.monocle.value ::
@@ -282,42 +278,9 @@ lazy val webApp = project
       Nil
     ),
 
-    scalacOptions += "-P:scalajs:sjsDefinedByDefault",
-    requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
-    scalaJSUseMainModuleInitializer := true,
-    //TODO: scalaJSStage in Test := FullOptStage,
-
-    // scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
-    emitSourceMaps in fastOptJS := true, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
-    emitSourceMaps in fullOptJS := false,
-
-    version in webpack := "3.10.0",
-    version in startWebpackDevServer := "2.9.6", // watchOptions is only fixed in this version. https://github.com/scalacenter/scalajs-bundler/issues/200
-    useYarn := true, // instead of npm
     npmDependencies in Compile ++=
       "marked" -> "0.3.12" ::
       Nil,
-    npmDevDependencies in Compile ++=
-      "webpack-closure-compiler" -> "2.1.6" ::
-      "webpack-visualizer-plugin" -> "0.1.11" ::
-      "zopfli-webpack-plugin" -> "0.1.0" ::
-      "brotli-webpack-plugin" -> "0.5.0" ::
-      Nil,
-    webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
-
-    // Devserver and hot-reload configuration:
-    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
-    webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
-    webpackDevServerExtraArgs := Seq("--progress", "--color"),
-    // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
-    // a folder which is served and watched by the webpack devserver.
-    // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
-    copyFastOptJS := {
-      val inDir = (crossTarget in (Compile, fastOptJS)).value
-      val outDir = (crossTarget in (Compile, fastOptJS)).value / "fastopt"
-      val files = Seq("webapp-fastopt-loader.js", "webapp-fastopt.js", "webapp-fastopt.js.map") map { p => (inDir / p, outDir / p) }
-      IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
-    }
   )
 
 lazy val pwaApp = project
@@ -358,34 +321,6 @@ lazy val githubApp = project
       Deps.akka.httpCirce.value ::
       Deps.redis.value ::
       Nil
-  )
-
-lazy val assets = project
-  .enablePlugins(SbtWeb, ScalaJSWeb, WebScalaJSBundlerPlugin)
-  .settings(
-    //TODO: https://github.com/jantimon/html-webpack-plugin for asset checksums
-    //TODO: minify html
-    resourceGenerators in Assets += Def.task {
-      val file = (resourceManaged in Assets).value / "version.txt"
-      IO.write(file, version.value)
-      Seq(file)
-    },
-    unmanagedResourceDirectories in Assets ++= (
-      baseDirectory.value / "public" ::
-      baseDirectory.value / "prod" ::
-      Nil
-    ),
-    scalaJSProjects := Seq(webApp),
-    npmAssets ++= {
-      // without dependsOn, the file list is generated before webpack does its thing.
-      // Which would mean that generated files by webpack do not land in the pipeline.
-      val assets =
-        ((npmUpdate in Compile in webApp).dependsOn(webpack in fullOptJS in Compile in webApp).value ** "*.gz") +++
-          ((npmUpdate in Compile in webApp).dependsOn(webpack in fullOptJS in Compile in webApp).value ** "*.br")
-      val nodeModules = (npmUpdate in (webApp, Compile)).value
-      assets.pair(Path.relativeTo(nodeModules))
-    },
-    pipelineStages in Assets := Seq(scalaJSPipeline)
   )
 
 lazy val systemTest = project
