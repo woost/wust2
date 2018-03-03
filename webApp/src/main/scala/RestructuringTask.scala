@@ -883,11 +883,8 @@ object RestructuringTaskGenerator {
         scribe.info("All tasks are finished")
         renderButton(activateTasks = false),
       } else {
-//        scribe.info(s"task index: ${_studyTaskIndex}")
-//        scribe.info(s"task list: ${_studyTaskList}")
-        val nextTask = _studyTaskList(_studyTaskIndex)
+        val nextTask: StrategyResult = _studyTaskList(_studyTaskIndex)
         _studyTaskIndex = _studyTaskIndex + 1
-//        scribe.info(s"next task: $nextTask")
         div(
           renderButton(activateTasks = true),
           children <-- Observable.fromFuture(nextTask.map(_.map(_.render(initState.get))))
