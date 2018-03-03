@@ -9,7 +9,7 @@ dockerfile in docker := {
     new Dockerfile {
         from("nginx:1.13.9-alpine")
         copy(baseDirectory(_ / "nginx" / "default.conf").value, "/etc/nginx/conf.d/default.conf")
-        copy(assetFolder, "/public/assets")
+        copy(assetFolder, "/public")
     }
 }
 
