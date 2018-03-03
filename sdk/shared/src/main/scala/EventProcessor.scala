@@ -10,6 +10,7 @@ import wust.util.BufferWhenTrue
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
+import concurrent.Promise
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -110,6 +111,18 @@ class EventProcessor private(
 
     (localChanges, rawGraph)
   }
+
+  def applyChanges(changes:GraphChanges):Future[Graph] = {
+    //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
+    //TODO should by sync
+    this.changes.onNext(changes)
+    val appliedToGraph = Promise[Graph]
+    val obs = rawGraph.take(1)
+    obs.foreach(appliedToGraph.success)
+    obs.doOnError(appliedToGraph.failure) // das compiled
+    appliedToGraph.future
+  }
+
 
 
   private val bufferedChanges = BufferWhenTrue(localChanges, syncDisabled)
