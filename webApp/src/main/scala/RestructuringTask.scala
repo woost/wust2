@@ -24,7 +24,7 @@ object Restructure {
   type Probability = Double
   type StrategyResult = Future[List[RestructuringTask]]
   case class HeuristicParameters(probability: Probability, heuristic: PostHeuristicType = PostHeuristic.Random.heuristic, measureBoundary: Option[Double] = None, numMaxPosts: Option[Int] = None)
-  case class TaskFeedback(displayNext: Boolean, taskAnswer: GraphChanges)
+  case class TaskFeedback(displayNext: Boolean, taskAnswer: Boolean, graphChanges: GraphChanges)
 }
 
 sealed trait RestructuringTaskObject {
@@ -116,7 +116,7 @@ sealed trait RestructuringTask {
             title,
             span(
               "×",
-              onClick(TaskFeedback(false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+              onClick(TaskFeedback(false, false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
               cursor.pointer,
               float.right,
               fontSize := "28px",
@@ -169,11 +169,11 @@ sealed trait YesNoTask extends RestructuringTask
       div(
         button("Yes",
           onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(TaskFeedback(true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+          onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
           onClick --> sideEffect(scribe.info(s"$title($postChoice) = YES")),
         ),
         button("No",
-          onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
+          onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
           onClick --> sideEffect(scribe.info(s"$title($postChoice) = NO")),
         width := "100%",
       )
@@ -188,9 +188,9 @@ sealed trait YesNoTask extends RestructuringTask
       div(
         button("Yes",
           onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(TaskFeedback(true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+          onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
-        button("No", onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
+        button("No", onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
@@ -224,8 +224,7 @@ sealed trait AddTagTask extends RestructuringTask
           flex := "0 0 3em",
         ),
         button("Abort",
-          onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-          onClick --> sideEffect(scribe.info(s"$title($sourcePosts -> $targetPosts) = NO")),
+          onClick(TaskFeedback(true, false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
         width := "100%",
       )
@@ -341,7 +340,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
         addConnections = tagConnections.toSet
       )
 
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, changes))
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, changes))
 
       changes
     }
@@ -686,12 +685,10 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       ),
       button("Confirm",
         onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
-        onClick(postPreview).map(preview => TaskFeedback(true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        onClick --> sideEffect(scribe.info(s"$title($splitPost -> $postPreview) = YES")),
+        onClick(postPreview).map(preview => TaskFeedback(true, true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
       button("Abort",
-        onClick(TaskFeedback(true, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        onClick --> sideEffect(scribe.info(s"$title($splitPost) = NO")),
+        onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
     )
   }
@@ -749,7 +746,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
           post.map(p => GraphChanges.connect(p.id, Label.parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
       }
 
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, tagPostWithParents))
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, tagPostWithParents))
 
       tagPostWithParents
     }
@@ -775,13 +772,13 @@ object RestructuringTaskGenerator {
     //    UnifyPosts,
   )
 
-  val taskDisplayWithLogging: Handler[TaskFeedback] = Handler.create[TaskFeedback](TaskFeedback(false, GraphChanges.empty)).unsafeRunSync()
+  val taskDisplayWithLogging: Handler[TaskFeedback] = Handler.create[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty)).unsafeRunSync()
 
   def renderButton(activateTasks: Boolean): VNode = {
     val buttonType = if(activateTasks) {
-      button("Close tasks!", width := "100%", onClick(TaskFeedback(displayNext = false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Close tasks!", width := "100%", onClick(TaskFeedback(displayNext = false, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     } else {
-      button("Task me!", width := "100%", onClick(TaskFeedback(displayNext = true, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Task me!", width := "100%", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     }
     div(
       span("Tasks"),
@@ -835,7 +832,8 @@ object RestructuringTaskGenerator {
   private var initState: Option[GlobalState] = None
 
   //  private var _studyTaskList = List.empty[Future[List[RestructuringTask]]]
-  private var _studyTaskList = List.empty[Restructure.StrategyResult]
+//  private var _studyTaskList = List.empty[Restructure.StrategyResult]
+    private var _studyTaskList = Future.successful(List.empty[RestructuringTask])
 
   def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
     scribe.info(s"study index: ${_studyTaskIndex}")
@@ -852,7 +850,7 @@ object RestructuringTaskGenerator {
           h
         }
         def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
-        _studyTaskList = List(
+        val tmpStudyTaskList = List(
           mapTask(DeletePosts,          List(PostId("107"))),                 //11
           mapTask(SplitPosts,           List(PostId("108"))),                 //18
           mapTask(ContainPosts,         List(PostId("126"), PostId("127"))),  //7
@@ -872,32 +870,35 @@ object RestructuringTaskGenerator {
           mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
           mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
         )
+        _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
       }
-      if(_studyTaskIndex > 0) {
-        val taskTitle = _studyTaskList(_studyTaskIndex - 1)
-        if (feedback.taskAnswer.nonEmpty){
-          val str = s"RESTRUCTURING TASKS LOG -> YES: $taskTitle -> ${feedback.taskAnswer}"
-          scribe.info(str)
-          Client.api.log(str)
-        } else {
-          val str = s"RESTRUCTURING TASKS LOG -> NO: $taskTitle"
-          scribe.info(str)
-          Client.api.log(str)
+
+      _studyTaskList.foreach { tasks =>
+        if (_studyTaskIndex > 0) {
+          val taskTitle = tasks(_studyTaskIndex - 1).title
+          val str = s"RESTRUCTURING TASKS LOG -> ${if(feedback.taskAnswer) "YES" else "NO"}: $taskTitle -> ${feedback.graphChanges}"
+            scribe.info(str)
+            Client.api.log(str)
         }
       }
 
-      if(_studyTaskIndex >= _studyTaskList.size){
-        _studyTaskIndex = 0
-        scribe.info("All tasks are finished")
-        renderButton(activateTasks = false),
-      } else {
-        val nextTask: StrategyResult = _studyTaskList(_studyTaskIndex)
-        _studyTaskIndex = _studyTaskIndex + 1
-        div(
-          renderButton(activateTasks = true),
-          children <-- Observable.fromFuture(nextTask.map(_.map(_.render(initState.get))))
-        )
+      val buttonToRender = _studyTaskList.map { list =>
+        if (_studyTaskIndex >= list.size) {
+          _studyTaskIndex = 0
+          scribe.info("All tasks are finished")
+          renderButton(activateTasks = false)
+        } else {
+          _studyTaskIndex = _studyTaskIndex + 1
+            renderButton(activateTasks = true),
+        }
       }
+
+      val nextTask = _studyTaskList.map(list => list(_studyTaskIndex))
+      div(
+        child <-- Observable.fromFuture(buttonToRender),
+        child <-- Observable.fromFuture(nextTask.map(task => task.render(initState.get)))
+      )
+
 
     } else {
       renderButton(activateTasks = false)
