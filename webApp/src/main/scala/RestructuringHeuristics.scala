@@ -33,15 +33,15 @@ object PostHeuristic {
 
   sealed trait FrontendHeuristic extends PostHeuristic {
     def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = {
-      Future.successful(List(frontendHeuristic(graph.posts.toSet, num)).map(l => Heuristic.PostResult(None, l)))
+      Future.successful(List(frontendHeuristic(graph.posts.toList, num)).map(l => Heuristic.PostResult(None, l)))
     }
-    def frontendHeuristic(posts: Set[Post], num: Option[Int]): List[Post]
+    def frontendHeuristic(posts: List[Post], num: Option[Int]): List[Post]
 
-    protected def wrapHeuristic(f: List[Post] => List[Post], posts: Set[Post], num: Option[Int]): List[Post] = {
+    protected def wrapHeuristic(f: List[Post] => List[Post], posts: List[Post], num: Option[Int]): List[Post] = {
       assert(math.abs(num.getOrElse(0)) <= posts.size, "Cannot pick more elements than there are")
       if (posts.isEmpty) return List.empty[Post]
 
-      val choice = f(posts.toList)
+      val choice = f(posts)
       num match {
         case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(math.abs(n))
         case None => choice
@@ -64,13 +64,13 @@ object PostHeuristic {
     def apply(deterministicPosts: List[Post]) = new Deterministic(deterministicPosts)
   }
   case class Deterministic(deterministicPosts: List[Post]) extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(deterministicPosts.length)): List[Post] = {
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(deterministicPosts.length)): List[Post] = {
       wrapHeuristic(deterministicPosts => deterministicPosts, posts, num)
     }
   }
 
   case object Random extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(2)): List[Post] = {
       def _random(p: List[Post]) = scala.util.Random.shuffle(p)
 
       wrapHeuristic(_random, posts, num)
@@ -78,7 +78,7 @@ object PostHeuristic {
   }
 
   case object Newest extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(2)): List[Post] = {
       def _newest(p: List[Post]) = p.sortWith((p1, p2) => p1.created.isBefore(p2.created))
 
       wrapHeuristic(_newest, posts, num)
@@ -86,7 +86,7 @@ object PostHeuristic {
   }
 
   case object Oldest extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(2)): List[Post] = {
       def _oldest(p: List[Post]) = p.sortWith((p1, p2) => p1.created.isAfter(p2.created))
 
       wrapHeuristic(_oldest, posts, num)
@@ -94,7 +94,7 @@ object PostHeuristic {
   }
 
   case object MaxPostSize extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(1)): List[Post] = { // for e.g. SplitPost
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(1)): List[Post] = { // for e.g. SplitPost
       def _maxPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.length > p2.content.length)
 
       wrapHeuristic(_maxPostSize, posts, num)
@@ -102,7 +102,7 @@ object PostHeuristic {
   }
 
   case object MinPostSize extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(1)): List[Post] = {
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(1)): List[Post] = {
       def _minPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.length < p2.content.length)
 
       wrapHeuristic(_minPostSize, posts, num)
@@ -110,7 +110,7 @@ object PostHeuristic {
   }
 
   case object GaussTime extends FrontendHeuristic {
-    def frontendHeuristic(posts: Set[Post], num: Option[Int] = Some(2)): List[Post] = {
+    def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(2)): List[Post] = {
       def _gaussTime(posts: List[Post]) = {
         def clamp(value: Int, minValue: Int, maxValue: Int) = math.min(math.max(value, minValue), maxValue)
 
