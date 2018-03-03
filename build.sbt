@@ -105,12 +105,7 @@ lazy val webSettings = Seq(
       "extract-text-webpack-plugin" -> "3.0.2" ::
       "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::
-      "source-map-loader" -> "cornerman/source-map-loader#282668b" :: //TODO: waiting for new release: https://github.com/webpack/loader-utils/issues/110
       Nil,
-
-    npmResolutions in Compile := Map(
-        "source-map-loader" -> "cornerman/source-map-loader#282668b"
-    ),
 
     version in webpack := "3.10.0",
     //TODO: version in startWebpackDevServer := "2.11.1",
