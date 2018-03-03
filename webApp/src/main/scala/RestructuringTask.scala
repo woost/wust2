@@ -736,6 +736,7 @@ object RestructuringTaskGenerator {
   def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
 
     DevPrintln(s"display task! ${feedback.toString}")
+    Client.api.log(feedback.toString)
     if(feedback.displayNext) {
       div(
         renderButton(activateTasks = true),
@@ -807,8 +808,15 @@ object RestructuringTaskGenerator {
       }
       if(_studyTaskIndex > 0) {
         val taskTitle = _studyTaskList(_studyTaskIndex - 1).toString
-        if (feedback.taskAnswer.nonEmpty) scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> YES -> ${feedback.taskAnswer}")
-        else scribe.info(s"RESTRUCTURING TASKS LOG: $taskTitle -> NO")
+        if (feedback.taskAnswer.nonEmpty){
+          val str = s"RESTRUCTURING TASKS LOG -> YES: $taskTitle -> ${feedback.taskAnswer}"
+          scribe.info(str)
+          Client.api.log(str)
+        } else {
+          val str = s"RESTRUCTURING TASKS LOG -> NO: $taskTitle"
+          scribe.info(str)
+          Client.api.log(str)
+        }
       }
 
       if(_studyTaskIndex >= _studyTaskList.size){
