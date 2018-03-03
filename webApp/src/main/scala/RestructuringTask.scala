@@ -834,6 +834,7 @@ object RestructuringTaskGenerator {
   private var initGraph = Graph.empty
   private var initState: Option[GlobalState] = None
 
+  //  private var _studyTaskList = List.empty[Future[List[RestructuringTask]]]
   private var _studyTaskList = List.empty[Restructure.StrategyResult]
 
   def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
@@ -844,29 +845,36 @@ object RestructuringTaskGenerator {
         initLoad = true
         initGraph = globalState.inner.displayGraphWithParents.now.graph
         initState = Some(globalState)
+//        MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("113"), PostId("122"))).heuristic), //15
+        def mapPid(pids: List[PostId]): PostHeuristicType = {
+          val posts: List[Post] = pids.map(pid => initGraph.postsById(pid))
+          val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
+          h
+        }
+        def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
         _studyTaskList = List(
-          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("107")).map(initGraph.postsById)).heuristic), //11
-          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("108")).map(initGraph.postsById)).heuristic), //18
-          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("126"), PostId("127")).map(initGraph.postsById)).heuristic), //7
-          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("119"), PostId("132")).map(initGraph.postsById)).heuristic), //13
-          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("132"), PostId("119")).map(initGraph.postsById)).heuristic), //9
-          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("103")).map(initGraph.postsById)).heuristic), //16
-          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("109")).map(initGraph.postsById)).heuristic), //12
-          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("116"), PostId("101")).map(initGraph.postsById)).heuristic), //6
-          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("111"), PostId("112")).map(initGraph.postsById)).heuristic), //14
-          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("126")).map(initGraph.postsById)).heuristic), //3
-          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("101")).map(initGraph.postsById)).heuristic), //17
-          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("120"), PostId("117")).map(initGraph.postsById)).heuristic), //8
-          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("113"), PostId("122")).map(initGraph.postsById)).heuristic), //15
-          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("106")).map(initGraph.postsById)).heuristic), //10
-          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("114"), PostId("113")).map(initGraph.postsById)).heuristic), //4
-          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("121")).map(initGraph.postsById)).heuristic), //2
-          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("120")).map(initGraph.postsById)).heuristic), //1
-          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("109"), PostId("108")).map(initGraph.postsById)).heuristic), //5
+          mapTask(DeletePosts,          List(PostId("107"))),                 //11
+          mapTask(SplitPosts,           List(PostId("108"))),                 //18
+          mapTask(ContainPosts,         List(PostId("126"), PostId("127"))),  //7
+          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
+          mapTask(ContainPosts,         List(PostId("132"), PostId("119"))),  //9
+          mapTask(SplitPosts,           List(PostId("103"))),                 //16
+          mapTask(DeletePosts,          List(PostId("109"))),                 //12
+          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
+          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
+          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
+          mapTask(SplitPosts,           List(PostId("101"))),                 //17
+          mapTask(ContainPosts,         List(PostId("120"), PostId("117"))),  //8
+          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
+          mapTask(DeletePosts,          List(PostId("106"))),                 //10
+          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
+          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
+          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
+          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
         )
       }
       if(_studyTaskIndex > 0) {
-        val taskTitle = _studyTaskList(_studyTaskIndex - 1).toString
+        val taskTitle = _studyTaskList(_studyTaskIndex - 1)
         if (feedback.taskAnswer.nonEmpty){
           val str = s"RESTRUCTURING TASKS LOG -> YES: $taskTitle -> ${feedback.taskAnswer}"
           scribe.info(str)
