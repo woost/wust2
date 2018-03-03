@@ -794,7 +794,7 @@ object RestructuringTaskGenerator {
 
   def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
 
-    DevPrintln(s"display task! ${feedback.toString}")
+    scribe.info(s"display task! ${feedback.toString}")
     Client.api.log(feedback.toString)
     if(feedback.displayNext) {
       div(
@@ -837,8 +837,8 @@ object RestructuringTaskGenerator {
   private var _studyTaskList = List.empty[Restructure.StrategyResult]
 
   def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
+    scribe.info(s"study index: ${_studyTaskIndex}")
 
-    DevPrintln(s"display task! ${feedback.toString}")
     if(feedback.displayNext) {
       if(!initLoad) {
         initLoad = true
@@ -883,8 +883,11 @@ object RestructuringTaskGenerator {
         scribe.info("All tasks are finished")
         renderButton(activateTasks = false),
       } else {
+//        scribe.info(s"task index: ${_studyTaskIndex}")
+//        scribe.info(s"task list: ${_studyTaskList}")
         val nextTask = _studyTaskList(_studyTaskIndex)
         _studyTaskIndex = _studyTaskIndex + 1
+//        scribe.info(s"next task: $nextTask")
         div(
           renderButton(activateTasks = true),
           children <-- Observable.fromFuture(nextTask.map(_.map(_.render(initState.get))))
