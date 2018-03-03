@@ -74,7 +74,7 @@ sealed trait RestructuringTask {
   val title: String
   val descriptionEng: String
   val descriptionGer: String
-  val description: String = descriptionGer
+  def description: String = descriptionGer
 
   def component(state: GlobalState): VNode
 
@@ -317,11 +317,11 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
       |You can just type any tag and press Enter to confirm the tag.
     """.stripMargin
   val descriptionGer: String =
-  """
-    |Wie würden Sie die Relation des ersten Posts mit den anderen taggen?
-    |Gib einen Tag ein, der dessen Relation beschreibt!
-    |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
-  """.stripMargin
+    """
+      |Wie würden Sie die Relation des ersten Posts mit den anderen taggen?
+      |Gib einen Tag ein, der dessen Relation beschreibt!
+      |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
+    """.stripMargin
 
 
   def tagConnection(sourcePosts: List[Post],
@@ -384,12 +384,12 @@ case class ContainPosts(posts: Posts) extends YesNoTask
       |into this thread.
     """.stripMargin
   val descriptionGer: String =
-  """
-    |Beschreibt der erste Post einen eigenen Thread, dem die weiteren Posts zugeordnet werden sollen?
-    |In anderen Worten: Folgen die weiteren Posts dem ersten Post inhaltlich?
-    |Falls ja, so repräsentiert der erste Post eine Unterdiskussion innerhalb der aktuellen Diskussion und die weitern
-    |Posts werden in diese Unterdiskussion verschoben.
-  """.stripMargin
+    """
+      |Beschreibt der erste Post einen eigenen Thread, dem die weiteren Posts zugeordnet werden sollen?
+      |In anderen Worten: Folgen die weiteren Posts dem ersten Post inhaltlich?
+      |Falls ja, so repräsentiert der erste Post eine Unterdiskussion innerhalb der aktuellen Diskussion und die weitern
+      |Posts werden in diese Unterdiskussion verschoben.
+    """.stripMargin
 
   def constructGraphChanges(posts: Posts): GraphChanges = {
     val target = posts.head
@@ -724,12 +724,12 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       |You can confirm the tag by pressing Enter.
     """.stripMargin
   val descriptionGer: String =
-  """
-    |Wie würden Sie den Post beschreiben? Taggen Sie ihn.
-    |Damit kategorisieren Sie den Post innerhalb der aktuellen Diskussion.
-    |
-    |Sie können den Tag bestätigen indem Sie Enter drücken.
-  """.stripMargin
+    """
+      |Wie würden Sie den Post beschreiben? Taggen Sie ihn.
+      |Damit kategorisieren Sie den Post innerhalb der aktuellen Diskussion.
+      |
+      |Sie können den Tag bestätigen indem Sie Enter drücken.
+    """.stripMargin
 
   def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
 
