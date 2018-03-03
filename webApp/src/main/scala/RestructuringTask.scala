@@ -134,7 +134,7 @@ sealed trait RestructuringTask {
           backgroundColor := "green",
           color := "black",
         ),
-        width := "90%",
+        width := "120ch",
         position.fixed,
         left := "0",
         right := "0",
@@ -537,12 +537,11 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
 // Single Post RestructuringTask
 object DeletePosts extends RestructuringTaskObject {
   private val defaultMeasureBoundary = None
-  private val defaultNumMaxPosts = Some(-1)
+  private val defaultNumMaxPosts = Some(1)
 
   private val possibleHeuristics: List[HeuristicParameters] = List(
     HeuristicParameters(1,  PostHeuristic.Random.heuristic,     defaultMeasureBoundary, defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic, None,                   defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,  None,                   defaultNumMaxPosts)
+    HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic, None,                   Some(-1)),
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -844,24 +843,24 @@ object RestructuringTaskGenerator {
         initGraph = globalState.inner.displayGraphWithParents.now.graph
         initState = Some(globalState)
         _studyTaskList = List(
-          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo"), PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
-          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("cjdyoeaj80001z9bk2z7p7tlo")).map(initGraph.postsById)).heuristic),
+          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("107")).map(initGraph.postsById)).heuristic), //11
+          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("108")).map(initGraph.postsById)).heuristic), //18
+          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("126"), PostId("127")).map(initGraph.postsById)).heuristic), //7
+          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("119"), PostId("132")).map(initGraph.postsById)).heuristic), //13
+          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("132"), PostId("119")).map(initGraph.postsById)).heuristic), //9
+          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("103")).map(initGraph.postsById)).heuristic), //16
+          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("109")).map(initGraph.postsById)).heuristic), //12
+          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("116"), PostId("101")).map(initGraph.postsById)).heuristic), //6
+          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("111"), PostId("112")).map(initGraph.postsById)).heuristic), //14
+          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("126")).map(initGraph.postsById)).heuristic), //3
+          SplitPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("101")).map(initGraph.postsById)).heuristic), //17
+          ContainPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("120"), PostId("117")).map(initGraph.postsById)).heuristic), //8
+          MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("113"), PostId("122")).map(initGraph.postsById)).heuristic), //15
+          DeletePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("106")).map(initGraph.postsById)).heuristic), //10
+          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("114"), PostId("113")).map(initGraph.postsById)).heuristic), //4
+          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("121")).map(initGraph.postsById)).heuristic), //2
+          AddTagToPosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("120")).map(initGraph.postsById)).heuristic), //1
+          ConnectPostsWithTag.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("109"), PostId("108")).map(initGraph.postsById)).heuristic), //5
         )
       }
       if(_studyTaskIndex > 0) {
