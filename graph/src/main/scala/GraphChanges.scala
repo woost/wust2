@@ -9,7 +9,7 @@ case class GraphChanges(
   updatePosts:     Set[Post]        = Set.empty,
   delPosts:        Set[PostId]      = Set.empty,
   delConnections:  Set[Connection]  = Set.empty,
-  delOwnerships:   Set[Ownership]   = Set.empty,
+  delOwnerships:   Set[Ownership]   = Set.empty
 ) {
   def merge(other: GraphChanges): GraphChanges = {
     val otherAddPosts = other.addPosts.map(_.id)
@@ -20,7 +20,7 @@ case class GraphChanges(
       updatePosts.filterNot(p => other.delPosts(p.id)) ++ other.updatePosts,
       delPosts -- otherAddPosts ++ other.delPosts,
       (delConnections -- other.addConnections).filter(c => !otherAddPosts(c.sourceId) && !otherAddPosts(c.targetId)) ++ other.delConnections,
-      (delOwnerships -- other.addOwnerships).filter(o => !otherAddPosts(o.postId)) ++ other.delOwnerships,
+      (delOwnerships -- other.addOwnerships).filter(o => !otherAddPosts(o.postId)) ++ other.delOwnerships
     )
   }
 
@@ -37,7 +37,7 @@ case class GraphChanges(
     Set.empty, //TODO edit history
     addPosts.map(_.id),
     addConnections -- delConnections,
-    addOwnerships -- delOwnerships,
+    addOwnerships -- delOwnerships
   )
 
   lazy val consistent = GraphChanges(
