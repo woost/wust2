@@ -14,7 +14,7 @@ module.exports = commons.webpack;
 
 const filenamePattern = '[name].[chunkhash]';
 module.exports.output.filename = filenamePattern + '.js';
-module.exports.output.publicPath = "assets"
+// module.exports.output.publicPath = "/assets/"
 
 module.exports.plugins.push(new Webpack.DefinePlugin({
   'process.env.NODE_ENV': JSON.stringify('production')
