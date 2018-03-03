@@ -73,7 +73,11 @@ class MainActivity extends Activity with Contexts[Activity] {
   }
   def updateChatHistory(posts:IndexedSeq[Post]) = {
     // TODO: https://android.jlelse.eu/smart-way-to-update-recyclerview-using-diffutil-345941a160e0
-    (chatHistorySlot <~ rvAdapter(new PostsAdapter(posts)) <~ vInvalidate)
+    Ui {
+      println("start updating history")
+    } ~ (chatHistorySlot <~ rvAdapter(new PostsAdapter(posts)) <~ vInvalidate) ~ Ui {
+      println("done updating history")
+    }
   }
 
   rawGraph.foreach { graph => 
@@ -92,7 +96,8 @@ class MainActivity extends Activity with Contexts[Activity] {
           if(content.nonEmpty) {
             val post = Post(PostId(cuid), value.get.getText.toString, assumedLogin)
             value.get.getText.clear()
-            eventProcessor.changes.onNext(GraphChanges.addPost(post)).foreach { _ =>
+            eventProcessor.applyChanges(GraphChanges.addPost(post)).foreach { _ =>
+              println("scrolling down")
               (chatHistorySlot <~ Tweak[RecyclerView](_.smoothScrollToPosition(rawGraphNow.posts.size - 1))).run
             }
           }
