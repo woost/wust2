@@ -28,7 +28,7 @@ object Deps {
 
   // serialization
   // val boopickle = dep("io.suzaku" %%% "boopickle" % "1.2.6")
-  val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle" % "084b0c8")
+  val boopickle = dep("com.github.fdietze.boopickle" %%% "boopickle" % "e8f9331")
   val circe = new {
     private val version = "0.9.1"
     val core = dep("io.circe" %%% "circe-core" % version)
@@ -48,7 +48,7 @@ object Deps {
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.0")
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
-  val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "4ba036a")
+  val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
   val taggedTypes = dep("io.treev" %%% "tagged-types" % "1.4")
 

@@ -6,15 +6,18 @@ dynver in ThisBuild ~= (_.replace('+', '-'))
 
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
-scalaVersion in ThisBuild := "2.12.4"
+import Def.{setting => dep}
 
 lazy val commonSettings = Seq(
-  resolvers ++= (
+  scalaVersion := "2.12.4",
+  crossScalaVersions := Seq("2.11.12", "2.12.4"), // 2.11 is needed for android app
+
+
+  resolvers ++=
     /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
     Resolver.jcenterRepo ::
     ("jitpack" at "https://jitpack.io") ::
-    Nil
-  ),
+    Nil,
 
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6"),
 
@@ -48,15 +51,21 @@ lazy val commonSettings = Seq(
       "-feature" ::
       "-language:_" ::
       "-Xfuture" ::
-      "-Xlint:-unused,_" ::
       "-Yno-adapted-args" ::
-      "-Ywarn-unused:-imports" ::
-        // "-Ywarn-dead-code" :: // does not work with js.native
-      "-Ywarn-extra-implicit" ::
       "-Ywarn-infer-any" ::
       "-Ywarn-nullary-override" ::
       "-Ywarn-nullary-unit" ::
       Nil,
+
+    scalacOptions ++=(CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, scalaMajor)) if scalaMajor >= 12 =>
+        "-Xlint:-unused,_" ::
+        "-Ywarn-unused:-imports" ::
+        // "-Ywarn-dead-code" :: // does not work with js.native
+        "-Ywarn-extra-implicit" ::
+        Nil
+      case _ => Nil
+    }),
 
   Defs.dockerVersionTags :=
     {
@@ -71,10 +80,10 @@ lazy val sourceMapSettings = Seq(
     // To enable source map support, all sub-project folders are symlinked to webpack/project-root.
     // This folder is served via webpack devserver.
     scalacOptions += {
-      val local = s"${(ThisBuild / baseDirectory).value.toURI}"
+      val local = s"${(baseDirectory in ThisBuild).value.toURI}"
       val remote = s"/"
       s"-P:scalajs:mapSourceURI:$local->$remote"
-    },
+    }
   )
 
 lazy val webSettings = Seq(
@@ -113,7 +122,7 @@ lazy val webSettings = Seq(
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
     //TODO: webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
-    webpackDevServerExtraArgs := Seq("--progress", "--color"),
+    webpackDevServerExtraArgs := Seq("--progress", "--color")
 )
 
 lazy val root = project.in(file("."))
@@ -142,10 +151,9 @@ lazy val util = crossProject
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++=
       Deps.sourcecode.value ::
       Nil
-    )
   )
 
 lazy val utilJS = util.js
@@ -154,21 +162,19 @@ lazy val utilJVM = util.jvm
 lazy val utilBackend = project
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++=
       Deps.pureconfig.value ::
       Nil
-    )
   )
 
 lazy val utilWeb = project
   .enablePlugins(ScalaJSPlugin)
   .settings(commonSettings, sourceMapSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++=
       Deps.scalarx.value ::
       Deps.outwatch.value ::
       Nil
-    )
   )
 
 lazy val sdk = crossProject
@@ -176,13 +182,12 @@ lazy val sdk = crossProject
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++=
       Deps.covenant.ws.value ::
       Deps.covenant.http.value ::
       Deps.boopickle.value ::
       Deps.monix.value ::
       Nil
-    )
   )
 
 lazy val sdkJS = sdk.js
@@ -192,11 +197,10 @@ lazy val ids = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(sourceMapSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++=
       Deps.cuid.value ::
       Deps.taggedTypes.value ::
       Nil
-    )
   )
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
@@ -268,19 +272,18 @@ lazy val webApp = project
   .dependsOn(utilWeb, sdkJS)
   .settings(commonSettings, sourceMapSettings, webSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++=
       Deps.vectory.value ::
       Deps.d3v4.value ::
       Deps.monocle.value ::
       Deps.circe.core.value ::
       Deps.circe.generic.value ::
       Deps.circe.parser.value ::
-      Nil
-    ),
+      Nil,
 
     npmDependencies in Compile ++=
       "marked" -> "0.3.12" ::
-      Nil,
+      Nil
   )
 
 lazy val pwaApp = project
@@ -288,9 +291,8 @@ lazy val pwaApp = project
   .dependsOn(utilWeb, sdkJS)
   .settings(commonSettings, sourceMapSettings, webSettings)
   .settings(
-    libraryDependencies ++= (
+    libraryDependencies ++= 
       Nil
-    )
   )
 
 lazy val slackApp = project
