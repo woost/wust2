@@ -699,9 +699,6 @@ COPY "user" (id, name, revision, isimplicit) FROM stdin;
 123	TheBeast	0	f
 124	fitness4life	0	f
 125	SportuhrenNerd	0	f
-cjea08j580000y7lrppp4l5p7	anon-cjea08j580000y7lrppp4l5p7	0	t
-cjea2ptok0000z7l2xbwe6czl	anon-cjea2ptok0000z7l2xbwe6czl	0	t
-cjecspfuh0000u7lq9u180j75	anon-cjecspfuh0000u7lq9u180j75	0	t
 \.
 
 
