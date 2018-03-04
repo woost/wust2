@@ -14,7 +14,7 @@ html, body, #pagegrid {
 
 #pagegrid {
     display: grid;
-    grid-template-columns: 220px 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     grid-gap: 0px;
     grid-auto-rows: minmax(100px, auto);
 }
