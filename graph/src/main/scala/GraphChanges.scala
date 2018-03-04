@@ -75,6 +75,7 @@ object GraphChanges {
   def connect(source:PostId, label:Label, target:PostId) = GraphChanges(addConnections = Set(Connection(source, label, target)))
 
   def moveInto(graph:Graph, subject:PostId, target:PostId) = {
+    // TODO: only keep deepest parent in transitive chain
     val newContainments = Set(Connection(subject, Label.parent, target))
     val removeContainments:Set[Connection] = if (graph.ancestors(target).toSet contains subject) { // creating cycle
       Set.empty // remove nothing, because in cycle
