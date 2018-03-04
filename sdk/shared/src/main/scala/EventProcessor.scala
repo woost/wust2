@@ -98,7 +98,7 @@ class EventProcessor private(
 
     val rawGraph = PublishSubject[Graph]()
 
-    val enrichedChanges = enriched.changes.withLatestFrom(rawGraph)(enrich)
+    val enrichedChanges = enriched.changes.withLatestFrom(rawGraph.startWith(Seq(Graph.empty)))(enrich)
     val allChanges = Observable.merge(enrichedChanges, changes)
     val localChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
 
