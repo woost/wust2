@@ -113,7 +113,6 @@ sealed trait RestructuringTask {
         ),
         div( //content
           div(
-            title,
             span(
               "×",
               onClick(TaskFeedback(false, false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
@@ -122,12 +121,16 @@ sealed trait RestructuringTask {
               fontSize := "28px",
               fontWeight.bold,
             ),
+            h2(title),
             width := "100%",
           ),
-          p(description),
           div(
-            // children <-- component(state) // This differs for every task
+            Rendered.mdHtml(description),
+            borderTop := "2px dotted",
+          ),
+          div(
             component(state),
+            borderTop := "2px dotted",
           ),
           padding := "2px 16px",
         ),
@@ -262,11 +265,13 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
   val descriptionEng: String =
     """
       |Is the first post related to the other post(s)?
+      |
       |If yes - they will be connected.
     """.stripMargin
   val descriptionGer: String =
     """
       |Steht der erste Post in Beziehung zu den Anderen?
+      |
       |Falls ja - so werden die beiden Posts verbunden.
     """.stripMargin
 
@@ -314,13 +319,17 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
   val descriptionEng: String =
     """
       |How would you tag the relation between the first post and the others?
+      |
       |Enter a tag that describes their relation!
+      |
       |You can just type any tag and press Enter to confirm the tag.
     """.stripMargin
   val descriptionGer: String =
     """
       |Wie würden Sie die Relation des ersten Posts mit den anderen taggen?
+      |
       |Gib einen Tag ein, der dessen Relation beschreibt!
+      |
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
 
@@ -380,14 +389,18 @@ case class ContainPosts(posts: Posts) extends YesNoTask
   val descriptionEng: String =
     """
       |Does the first post topic description of the others?
+      |
       |In other words: Does the later posts follow the first post contentual?
+      |
       |If so, the first post represents a new thread within the current discussion and the later posts will be moved
       |into this thread.
     """.stripMargin
   val descriptionGer: String =
     """
       |Beschreibt der erste Post einen eigenen Thread, dem die weiteren Posts zugeordnet werden sollen?
+      |
       |In anderen Worten: Folgen die weiteren Posts dem ersten Post inhaltlich?
+      |
       |Falls ja, so repräsentiert der erste Post eine Unterdiskussion innerhalb der aktuellen Diskussion und die weitern
       |Posts werden in diese Unterdiskussion verschoben.
     """.stripMargin
@@ -437,11 +450,13 @@ case class MergePosts(posts: Posts) extends YesNoTask
   val descriptionEng: String =
     """
       |Does these posts state the same but in different words?
+      |
       |If yes, their content will be merged into a single post.
     """.stripMargin
   val descriptionGer: String =
     """
       |Ist die (inhaltliche) Aussage der beiden Posts gleich?
+      |
       |Falls ja, so wird dessen inhalt zusammengeführt.
     """.stripMargin
 
@@ -498,13 +513,17 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
   val descriptionEng: String =
     """
       |Does these posts state the same and are redundant?
+      |
       |If yes, they will be unified.
+      |
       |Therefore - only the first post will be kept while the other will be removed.
     """.stripMargin
   val descriptionGer: String =
     """
       |Sind die Posts inhaltlich identisch und somit redundant?
-      |Falls ja - so werden die Posts unifiziert.
+      |
+      |Falls ja - so werden die Posts vereint.
+      |
       |Dafür wird lediglich der erste Post beibehalten, während die anderen gelöscht werden.
     """.stripMargin
 
@@ -558,12 +577,14 @@ case class DeletePosts(posts: Posts) extends YesNoTask
   val title = "Delete Post"
   val descriptionEng: String =
     """
-      |Is this posts irrelevant for this discussion? (e.g. Hello post / Spam)
+      |Is this posts irrelevant for this discussion (e.g. Hello post / Spam)?
+      |
       |If yes - the post will be deleted.
     """.stripMargin
   val descriptionGer: String =
     """
-      |Ist der angegebene Post irrelevant für die Diskussion (z.B. Hallo Post / Spam)
+      |Ist der angegebene Post irrelevant für die Diskussion (z.B. Hallo Post / Spam)?
+      |
       |Falls ja - so wird der Post gelöscht.
     """.stripMargin
 
@@ -602,7 +623,9 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       |Does this Post contain multiple / different statements?
       |
       |Please split the post so that each chunk contains a separate statement.
+      |
       |You can split a part of this post by selecting it.
+      |
       |If you select a statement in the middle of the post - it will be splitted in 3 chunks:
       |The text before the selection, the selected text and the text after the selection.
       |
@@ -613,7 +636,9 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       |Beinhalted der Post unterschiedliche Aussagen?
       |
       |Bitte teilen Sie den Post in Untereinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
+      |
       |Sie können den Post splitten indem Sie eine Teil markieren.
+      |
       |Falls Sie eine Aussage in der Mitte des Posts makieren, so wird der Post in eine Einheit vor dem Markierung,
       |eine Einheit nach der Markierung und einer einheit für die Markierung unterteilt.
       |
@@ -716,14 +741,18 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
   val title = "Add tag to post"
   val descriptionEng: String =
     """
-      |How would you describe this post? Please add a tag.
+      |How would you describe this post?
+      |Please add a tag!
+      |
       |This will categorize the post within this discussion.
       |
       |You can confirm the tag by pressing Enter.
     """.stripMargin
   val descriptionGer: String =
     """
-      |Wie würden Sie den Post beschreiben? Taggen Sie ihn.
+      |Wie würden Sie den Post beschreiben?
+      |Fügen Sie einen Tag hinzu!
+      |
       |Damit kategorisieren Sie den Post innerhalb der aktuellen Diskussion.
       |
       |Sie können den Tag bestätigen indem Sie Enter drücken.
