@@ -139,6 +139,13 @@ class PostsAdapter(posts: IndexedSeq[Post])
   }
 }
 
+class ViewHolderPostsAdapter(adapter: PostsLayoutAdapter)(implicit context: ActivityContextWrapper)
+    extends RecyclerView.ViewHolder(adapter.view) {
+
+  val view: LinearLayout = adapter.view
+  val content: Option[TextView] = adapter.content
+}
+
 class PostsLayoutAdapter(implicit context: ActivityContextWrapper) {
 
   var content: Option[TextView] = slot[TextView]
@@ -146,14 +153,8 @@ class PostsLayoutAdapter(implicit context: ActivityContextWrapper) {
 
   private def layout(implicit context: ActivityContextWrapper) = Ui.get(
     l[LinearLayout](
-      w[TextView] <~ wire(content)
-    )
+      w[TextView] <~ wire(content) <~ llMatchWeightHorizontal
+    ) <~ vBackgroundColor(0xFFEEEEEE) <~ vPaddings(2)
   )
 }
 
-class ViewHolderPostsAdapter(adapter: PostsLayoutAdapter)(implicit context: ActivityContextWrapper)
-    extends RecyclerView.ViewHolder(adapter.view) {
-
-  val view: LinearLayout = adapter.view
-  val content: Option[TextView] = adapter.content
-}
