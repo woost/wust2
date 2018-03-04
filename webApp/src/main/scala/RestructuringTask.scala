@@ -9,6 +9,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.utilWeb.views.Elements._
 import wust.utilWeb.views.Placeholders
+import wust.utilWeb.views.Rendered._
 import wust.utilWeb._
 import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
@@ -125,7 +126,7 @@ sealed trait RestructuringTask {
             width := "100%",
           ),
           div(
-            Rendered.mdHtml(description),
+            mdHtml(description),
             borderTop := "2px dotted",
           ),
           div(
@@ -694,7 +695,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         children <-- postPreview.map {posts =>
           posts.last.map {post =>
             div(
-              Rendered.mdHtml(post.content),
+              mdHtml(post.content),
               color.black,
               maxWidth := "60%",
               backgroundColor := "#eee",
