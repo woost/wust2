@@ -826,29 +826,27 @@ object RestructuringTaskGenerator {
     //    finalTask
   }
 
-  private var _studyTaskIndex: Int = 0
+  private var _studyTaskIndex: Int = 1
   private var initLoad = false
   private var initGraph = Graph.empty
   private var initState: Option[GlobalState] = None
 
-  //  private var _studyTaskList = List.empty[Future[List[RestructuringTask]]]
-//  private var _studyTaskList = List.empty[Restructure.StrategyResult]
     private var _studyTaskList = Future.successful(List.empty[RestructuringTask])
 
   def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
-    scribe.info(s"study index: ${_studyTaskIndex}")
 
     if(feedback.displayNext) {
       if(!initLoad) {
         initLoad = true
         initGraph = globalState.inner.displayGraphWithParents.now.graph
         initState = Some(globalState)
-//        MergePosts.applyWithStrategy(initGraph, PostHeuristic.Deterministic(List(PostId("113"), PostId("122"))).heuristic), //15
+
         def mapPid(pids: List[PostId]): PostHeuristicType = {
           val posts: List[Post] = pids.map(pid => initGraph.postsById(pid))
           val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
           h
         }
+
         def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
         val tmpStudyTaskList = List(
           mapTask(DeletePosts,          List(PostId("107"))),                 //11
@@ -870,37 +868,40 @@ object RestructuringTaskGenerator {
           mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
           mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
         )
+
         _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
       }
 
       _studyTaskList.foreach { tasks =>
         if (_studyTaskIndex > 0) {
           val taskTitle = tasks(_studyTaskIndex - 1).title
-          val str = s"RESTRUCTURING TASKS LOG -> ${if(feedback.taskAnswer) "YES" else "NO"}: $taskTitle -> ${feedback.graphChanges}"
+          val str = s"RESTRUCTURING TASKS ${_studyTaskIndex} LOG -> ${if(feedback.taskAnswer) "YES" else "NO"}: $taskTitle -> ${feedback.graphChanges}"
             scribe.info(str)
             Client.api.log(str)
         }
       }
 
-      val buttonToRender = _studyTaskList.map { list =>
+      val doRenderThis: Future[VNode] = _studyTaskList.map { list =>
         if (_studyTaskIndex >= list.size) {
           _studyTaskIndex = 0
           scribe.info("All tasks are finished")
           renderButton(activateTasks = false)
         } else {
-          _studyTaskIndex = _studyTaskIndex + 1
+          val dom = div(
             renderButton(activateTasks = true),
+            list(_studyTaskIndex).render(initState.get)
+          )
+          _studyTaskIndex = _studyTaskIndex + 1
+          dom
         }
       }
 
-      val nextTask = _studyTaskList.map(list => list(_studyTaskIndex))
       div(
-        child <-- Observable.fromFuture(buttonToRender),
-        child <-- Observable.fromFuture(nextTask.map(task => task.render(initState.get)))
+        child <-- Observable.fromFuture(doRenderThis)
       )
 
-
     } else {
+      _studyTaskIndex = _studyTaskIndex - 1
       renderButton(activateTasks = false)
     }
   }

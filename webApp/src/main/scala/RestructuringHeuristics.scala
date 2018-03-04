@@ -65,7 +65,7 @@ object PostHeuristic {
   }
   case class Deterministic(deterministicPosts: List[Post]) extends FrontendHeuristic {
     def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(deterministicPosts.length)): List[Post] = {
-      wrapHeuristic(deterministicPosts => deterministicPosts, posts, num)
+      deterministicPosts
     }
   }
 
