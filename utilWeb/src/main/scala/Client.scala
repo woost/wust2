@@ -19,10 +19,16 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 
 object Client extends WustClientOps {
+  import window.location
+  private val isDev = location.port == "12345" // TODO better config with require
   private val wustUrl = {
-    import window.location
     val protocol = if (location.protocol == "https:") "wss:" else "ws:"
-    val hostname = if (location.hostname.startsWith("m.")) location.hostname.drop(2) else location.hostname //TODO: better config for such things...
+    val hostname = location.hostname match {
+      //TODO: better config for such things...
+      case hostname if isDev => "localhost"
+      case hostname if hostname.startsWith("m.") => location.hostname.drop(2)
+      case hostname => hostname
+    }
     s"$protocol//core.${hostname}:${location.port}/ws"
   }
   private val githubUrl = {

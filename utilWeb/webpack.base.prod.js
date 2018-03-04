@@ -5,6 +5,7 @@ const BrotliPlugin = require('brotli-webpack-plugin');
 const ClosureCompilerPlugin = require("webpack-closure-compiler");
 const SriPlugin = require("webpack-subresource-integrity");
 const HtmlPlugin = require("html-webpack-plugin");
+const PreloadNginxPlugin = require("preload-nginx-webpack-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
 
@@ -54,6 +55,9 @@ module.exports.plugins.push(new HtmlPlugin({
         collapseWhitespace: true,
         removeAttributeQuotes: true
     },
+}));
+module.exports.plugins.push(new PreloadNginxPlugin({
+    include: 'allChunks'
 }));
 
 ////////////////////////////////////////
