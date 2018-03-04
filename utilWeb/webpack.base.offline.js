@@ -4,7 +4,8 @@ module.exports = {
     plugins: [
         new OfflinePlugin({
             ServiceWorker: {
-                minify: true
+                minify: true,
+                events: true
             },
             AppCache: false
         })

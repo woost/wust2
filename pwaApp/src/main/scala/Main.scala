@@ -28,7 +28,24 @@ object Main {
   Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
   // require offline plugin, setup in webpack
-  OfflinePlugin.install()
+  OfflinePlugin.install(new OfflinePluginConfig {
+    def onUpdating(): Unit = {
+      scribe.info("SW: onUpdating")
+    }
+    def onUpdateReady(): Unit = {
+      scribe.info("SW: onUpdateReady")
+      OfflinePlugin.applyUpdate()
+    }
+    def onUpdated(): Unit = {
+      scribe.info("SW: onUpdated")
+      //TODO: better update strategy
+      //TODO: how is the update interval configured?
+      window.location.reload()
+    }
+    def onUpdateFailed(): Unit = {
+      scribe.info("SW: onUpdateFailed")
+    }
+  })
 
   // require default passive events for scroll/mouse/touch events
   // global.require("default-passive-events")
