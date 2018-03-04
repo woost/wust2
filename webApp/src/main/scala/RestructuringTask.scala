@@ -671,13 +671,13 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     List(before, middle, after).flatten
   }
 
-  def generateGraphChanges(originalPosts: List[Post], previewPosts: List[Post], graph: Graph): GraphChanges = {
+  def generateGraphChanges(originalPosts: List[Post], previewPosts: List[List[Post]], graph: Graph): GraphChanges = {
 
     if(previewPosts.isEmpty) return GraphChanges.empty
 
-    val keepRelatives = originalPosts.flatMap(originalPost => previewPosts.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
-    val newConnections = originalPosts.flatMap(originalPost => previewPosts.map(p => Connection(p.id, Label("splitFrom"), originalPost.id))).toSet
-    val newPosts = originalPosts.flatMap(originalPost => previewPosts.filter(_.id != originalPost.id)).toSet
+    val keepRelatives = originalPosts.flatMap(originalPost => previewPosts.last.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
+    val newConnections = originalPosts.flatMap(originalPost => previewPosts.last.map(p => Connection(p.id, Label("splitFrom"), originalPost.id))).toSet
+    val newPosts = originalPosts.flatMap(originalPost => previewPosts.last.filter(_.id != originalPost.id)).toSet
     GraphChanges(
       addPosts = newPosts,
       addConnections = newConnections ++ keepRelatives,
@@ -687,12 +687,12 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
   def component(state: GlobalState): VNode = {
     val splitPost = posts.take(1)
-    val postPreview = Handler.create[List[Post]](splitPost).unsafeRunSync()
+    val postPreview = Handler.create[List[List[Post]]](List(splitPost)).unsafeRunSync()
 
     div(
       div(
         children <-- postPreview.map {posts =>
-          posts.map {post =>
+          posts.last.map {post =>
             p(
               post.content,
               color.black,
@@ -702,7 +702,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
               borderRadius := "7px",
               border := "1px solid gray",
               margin := "5px 0px",
-              onMouseUp.map(e => posts.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else List(p))) --> postPreview,
+              onMouseUp.map(e => posts :+ posts.last.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else List(p))) --> postPreview,
             )
           }
         },
@@ -711,6 +711,12 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       button("Confirm",
         onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
         onClick(postPreview).map(preview => TaskFeedback(true, true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+      ),
+      button("Undo",
+        onClick(postPreview.map(ll => ll.takeRight(2).take(1))) --> postPreview,
+      ),
+      button("Reset",
+        onClick(List(splitPost)) --> postPreview,
       ),
       button("Abort",
         onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
