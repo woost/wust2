@@ -1,3 +1,4 @@
+const CopyPlugin = require("copy-webpack-plugin");
 const fs = require("fs");
 const glob = require("glob");
 const Path = require("path");
@@ -23,10 +24,25 @@ fs.closeSync(fs.openSync(Path.join(webpack.output.path, appName + '-bundle.js'),
 // set up output path
 webpack.output.path = Path.join(__dirname, "dist");
 webpack.entry[appName].push(Path.join(dirs.assets, "style.scss"));
+//TODO import css files in scss!
 const cssFiles = glob.sync(Path.join(dirs.assets, "*.css"));
 cssFiles.forEach(function (file) {
     webpack.entry[appName].push(file);
 });
+
+// copy some assets to dist folder
+webpack.plugins.push(new CopyPlugin([
+    { from: '*.ico', to: webpack.output.path }
+]));
+webpack.plugins.push(new CopyPlugin([
+    { from: '*.svg', to: webpack.output.path }
+]));
+webpack.plugins.push(new CopyPlugin([
+    { from: '*.png', to: webpack.output.path }
+]));
+webpack.plugins.push(new CopyPlugin([
+    { from: 'manifest.json', to: webpack.output.path }
+]));
 
 // export
 module.exports.webpack = webpack;

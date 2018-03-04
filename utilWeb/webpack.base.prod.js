@@ -47,6 +47,7 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost',
     template: Path.join(dirs.assets, 'index.template.html'),
+    favicon: 'icon.ico',
     minify: {
         // https://github.com/kangax/html-minifier#options-quick-reference
         removeComments: true,

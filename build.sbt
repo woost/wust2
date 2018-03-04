@@ -114,11 +114,14 @@ lazy val webSettings = Seq(
       "extract-text-webpack-plugin" -> "3.0.2" ::
       "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::
+      "copy-webpack-plugin" -> "4.5.0" ::
       Nil,
 
     version in webpack := "3.10.0",
     //TODO: version in startWebpackDevServer := "2.11.1",
-    webpackResources := (baseDirectory.value / ".." / "utilWeb" * "*.js"),
+    webpackResources :=
+        (baseDirectory.value / ".." / "utilWeb" * "*.js") +++
+        (baseDirectory.value / ".." / "utilWeb" / "assets" * "*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
     //TODO: webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance

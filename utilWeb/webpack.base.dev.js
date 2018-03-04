@@ -18,6 +18,7 @@ module.exports.output.filename = filenamePattern + '.js';
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost-DEV',
     template: Path.join(dirs.assets, 'index.template.html'),
+    favicon: 'icon.ico',
 }));
 
 ////////////////////////////////////////
