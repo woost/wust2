@@ -883,7 +883,11 @@ object RestructuringTaskGenerator {
           h
         }
 
+
         def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
+        //        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
+        //          (for(p <- initGraph.postIds) yield mapTask(SplitPosts, List(PostId(p)))).toList
+
         val tmpStudyTaskList = List(
           mapTask(DeletePosts,          List(PostId("107"))),                 //11
           mapTask(SplitPosts,           List(PostId("108"))),                 //18
