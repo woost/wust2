@@ -59,7 +59,7 @@ function self() {
         # Migrate
         sbt dbMigration/docker
         docker_compose core dev run db-migration
-        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < taskStudyData/kalte-dusche-ordered_1.sql
+        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < taskStudyData/kalte-dusche-ordered_f1.sql
 
         docker stop devcore_core_1
         ;;
