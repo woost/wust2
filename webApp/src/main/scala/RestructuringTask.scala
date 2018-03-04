@@ -77,6 +77,8 @@ sealed trait RestructuringTask {
   val title: String
   val descriptionEng: String
   val descriptionGer: String
+  val positiveText: String
+  val negativeText: String
   def description: String = descriptionGer
 
   def component(state: GlobalState): VNode
@@ -122,7 +124,7 @@ sealed trait RestructuringTask {
               fontSize := "28px",
               fontWeight.bold,
             ),
-            h2(title),
+            h2(s"Kalt duschen"),
             width := "100%",
           ),
           div(
@@ -171,12 +173,12 @@ sealed trait YesNoTask extends RestructuringTask
     div(
       postChoice.map(stylePost)(breakOut): List[VNode],
       div(
-        button("Yes",
+        button(positiveText,
           onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
           onClick --> sideEffect(scribe.info(s"$title($postChoice) = YES")),
         ),
-        button("No",
+        button(negativeText,
           onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
           onClick --> sideEffect(scribe.info(s"$title($postChoice) = NO")),
         width := "100%",
@@ -190,11 +192,11 @@ sealed trait YesNoTask extends RestructuringTask
     div(
       postDisplay,
       div(
-        button("Yes",
+        button(positiveText,
           onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
-        button("No", onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
+        button(negativeText, onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
@@ -206,10 +208,9 @@ sealed trait AddTagTask extends RestructuringTask
 
   def constructComponent(sourcePosts: List[Post], targetPosts: List[Post], sink: Sink[String]): VNode = {
 
+    val userInput = Handler.create[String].unsafeRunSync()
     def textAreaWithEnterAndLog(actionSink: Sink[String]) = {
-      val userInput = Handler.create[String].unsafeRunSync()
       val clearHandler = userInput.map(_ => "")
-      userInput.foreach(txt => scribe.info(s"$title($sourcePosts -> $targetPosts) $txt"))
 
       textArea(
         width := "100%",
@@ -227,7 +228,10 @@ sealed trait AddTagTask extends RestructuringTask
           Placeholders.newTag,
           flex := "0 0 3em",
         ),
-        button("Abort",
+//        button(positiveText,
+//          onClick(TaskFeedback(true, true, userInput)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+//        ),
+        button(negativeText,
           onClick(TaskFeedback(true, false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
         width := "100%",
@@ -263,6 +267,8 @@ object ConnectPosts extends RestructuringTaskObject {
 case class ConnectPosts(posts: Posts) extends YesNoTask
 {
   val title = "Connect posts"
+  val positiveText: String = "Verbinden"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |Is the first post related to the other post(s)?
@@ -271,9 +277,7 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Steht der erste Post in Beziehung zu den Anderen?
-      |
-      |Falls ja - so werden die beiden Posts verbunden.
+      |Steht der erste Beitrag in Beziehung zu den Anderen?
     """.stripMargin
 
   def constructGraphChanges(posts: Posts): GraphChanges = {
@@ -317,6 +321,8 @@ object ConnectPostsWithTag extends RestructuringTaskObject {
 case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 {
   val title = "Connect posts with tag"
+  val positiveText: String = "Verbinden"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |How would you tag the relation between the first post and the others?
@@ -327,9 +333,9 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Wie würden Sie die Relation des ersten Posts mit den anderen taggen?
+      |Wie würden Sie die Beziehung des ersten Beitrags mit den Weiteren beschreiben?
       |
-      |Gib einen Tag ein, der dessen Relation beschreibt!
+      |Geben Sie einen Tag ein, der dessen Beziehung in einem Wort beschreibt!
       |
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
@@ -364,7 +370,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
   }
 }
 
-object ContainPosts extends RestructuringTaskObject {
+object SameTopicPosts extends RestructuringTaskObject {
   private val defaultMeasureBoundary = None
   private val defaultNumMaxPosts = Some(2)
 
@@ -382,11 +388,13 @@ object ContainPosts extends RestructuringTaskObject {
   override val numMaxPosts: Option[Int] = heuristicParam.numMaxPosts
   override def taskHeuristic: PostHeuristicType = heuristicParam.heuristic
 
-  def apply(posts: Posts): ContainPosts = new ContainPosts(posts)
+  def apply(posts: Posts): SameTopicPosts = new SameTopicPosts(posts)
 }
-case class ContainPosts(posts: Posts) extends YesNoTask
+case class SameTopicPosts(posts: Posts) extends YesNoTask
 {
   val title = "Topic Posts"
+  val positiveText: String = "Zuordnen"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |Does the first post topic description of the others?
@@ -398,9 +406,9 @@ case class ContainPosts(posts: Posts) extends YesNoTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Beschreibt der erste Post einen eigenen Thread, dem die weiteren Posts zugeordnet werden sollen?
+      |Beschreibt der erste Beitrag ein eigenes Thema, dem die weiteren Beiträge zugeordnet werden sollen?
       |
-      |In anderen Worten: Folgen die weiteren Posts dem ersten Post inhaltlich?
+      |Beziehungsweise: Folgen die weiteren Beiträge dem ersten Beitrag inhaltlich?
       |
       |Falls ja, so repräsentiert der erste Post eine Unterdiskussion innerhalb der aktuellen Diskussion und die weitern
       |Posts werden in diese Unterdiskussion verschoben.
@@ -448,6 +456,8 @@ object MergePosts extends RestructuringTaskObject {
 case class MergePosts(posts: Posts) extends YesNoTask
 {
   val title = "Merge Posts"
+  val positiveText: String = "Zusammenführen"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |Does these posts state the same but in different words?
@@ -457,8 +467,6 @@ case class MergePosts(posts: Posts) extends YesNoTask
   val descriptionGer: String =
     """
       |Ist die (inhaltliche) Aussage der beiden Posts gleich?
-      |
-      |Falls ja, so wird dessen inhalt zusammengeführt.
     """.stripMargin
 
   def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
@@ -511,6 +519,8 @@ object UnifyPosts extends RestructuringTaskObject {
 case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as MergePosts
 {
   val title = "Unify Posts"
+  val positiveText: String = "Vereinen"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |Does these posts state the same and are redundant?
@@ -576,17 +586,17 @@ object DeletePosts extends RestructuringTaskObject {
 case class DeletePosts(posts: Posts) extends YesNoTask
 {
   val title = "Delete Post"
+  val positiveText: String = "Löschen"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
-      |Is this posts irrelevant for this discussion (e.g. Hello post / Spam)?
+      |Is this posts irrelevant for this discussion (e.g. empty phrase / spam)?
       |
       |If yes - the post will be deleted.
     """.stripMargin
   val descriptionGer: String =
     """
-      |Ist der angegebene Post irrelevant für die Diskussion (z.B. Hallo Post / Spam)?
-      |
-      |Falls ja - so wird der Post gelöscht.
+      |Ist der angegebene Beitrag irrelevant für die Diskussion (z.B. Floskel / Spam)?
     """.stripMargin
 
   def component(state: GlobalState): VNode = {
@@ -619,6 +629,8 @@ object SplitPosts extends RestructuringTaskObject {
 case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
+  val positiveText: String = "Teilen"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |Does this Post contain multiple / different statements?
@@ -634,16 +646,14 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Beinhalted der Post unterschiedliche Aussagen?
+      |Beinhaltet der Beitrag unterschiedliche Aussagen?
       |
-      |Bitte teilen Sie den Post in Untereinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
+      |Bitte teilen Sie den Post in Sinneseinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
       |
-      |Sie können den Post splitten indem Sie eine Teil markieren.
+      |Sie können den Beitrag aufteilen, indem Sie einen Teil markieren.
       |
-      |Falls Sie eine Aussage in der Mitte des Posts makieren, so wird der Post in eine Einheit vor dem Markierung,
-      |eine Einheit nach der Markierung und einer einheit für die Markierung unterteilt.
-      |
-      |Wenn Sie mit dem Unterteilen des Posts fertig sind, können Sie dies mit dem "Confirm" Button bestätigen.
+      |Falls Sie eine Aussage in der Mitte des Beitrags makieren, so wird der Beitrag in drei Einheiten geteilt.
+      |Eine Einheit vor dem Markierung, eine Einheit für die Markierung und eine nach der Markierung unterteilt.
     """.stripMargin
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
@@ -709,17 +719,17 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         },
         width := "100%",
       ),
-      button("Confirm",
+      button(positiveText,
         onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
         onClick(postPreview).map(preview => TaskFeedback(true, true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
-      button("Undo",
+      button("Rückgängig",
         onClick(postPreview.map(ll => ll.takeRight(2).take(1))) --> postPreview,
       ),
       button("Reset",
         onClick(List(splitPost)) --> postPreview,
       ),
-      button("Abort",
+      button(negativeText,
         onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
     )
@@ -746,6 +756,8 @@ object AddTagToPosts extends RestructuringTaskObject {
 case class AddTagToPosts(posts: Posts) extends AddTagTask
 {
   val title = "Add tag to post"
+  val positiveText: String = "Kategorisieren"
+  val negativeText: String = "Abbrechen"
   val descriptionEng: String =
     """
       |How would you describe this post?
@@ -757,7 +769,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Wie würden Sie den Post beschreiben?
+      |Wie würden Sie den Beitrag kategorisieren?
       |Fügen Sie einen Tag hinzu!
       |
       |Damit kategorisieren Sie den Post innerhalb der aktuellen Diskussion.
@@ -802,7 +814,7 @@ object RestructuringTaskGenerator {
     DeletePosts,
     //    ConnectPosts,
     ConnectPostsWithTag,
-    ContainPosts,
+    SameTopicPosts,
     MergePosts,
     SplitPosts,
     //    UnifyPosts,
@@ -891,16 +903,16 @@ object RestructuringTaskGenerator {
         val tmpStudyTaskList = List(
           mapTask(DeletePosts,          List(PostId("107"))),                 //11
           mapTask(SplitPosts,           List(PostId("108"))),                 //18
-          mapTask(ContainPosts,         List(PostId("126"), PostId("127"))),  //7
+          mapTask(SameTopicPosts,         List(PostId("126"), PostId("127"))),  //7
           mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
-          mapTask(ContainPosts,         List(PostId("132"), PostId("119"))),  //9
+          mapTask(SameTopicPosts,         List(PostId("132"), PostId("119"))),  //9
           mapTask(SplitPosts,           List(PostId("103"))),                 //16
           mapTask(DeletePosts,          List(PostId("109"))),                 //12
           mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
           mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
           mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
           mapTask(SplitPosts,           List(PostId("101"))),                 //17
-          mapTask(ContainPosts,         List(PostId("120"), PostId("117"))),  //8
+          mapTask(SameTopicPosts,         List(PostId("120"), PostId("117"))),  //8
           mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
           mapTask(DeletePosts,          List(PostId("106"))),                 //10
           mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
