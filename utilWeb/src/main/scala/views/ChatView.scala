@@ -77,7 +77,7 @@ object ChatView extends View {
       overflow.auto,
       padding := "20px",
 
-      children <-- Observable.combineLatestMap2(graph, currentUser)((graph, currentUser) => graph.chronologicalPostsAscending.map(chatMessage(currentUser, _, page, graph))),
+      children <-- Observable.combineLatestMap2(graph, currentUser)((graph, currentUser) => graph.sortPostsById.map(chatMessage(currentUser, _, page, graph))),
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
