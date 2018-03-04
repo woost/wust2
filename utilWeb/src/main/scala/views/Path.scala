@@ -1,4 +1,4 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
 import scala.util.Try
 

@@ -10,18 +10,18 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
-import wust.webApp.Color._
-import wust.webApp.views.View
-import wust.webApp.{DevOnly, DevPrintln, GlobalState}
+import wust.utilWeb.Color._
+import wust.utilWeb.views.View
+import wust.utilWeb.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 import wust.util.time.time
 import wust.ids._
 
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
-import wust.webApp.views.Elements._
-import wust.webApp.views.Placeholders
+import wust.utilWeb.views.Elements._
+import wust.utilWeb.views.Placeholders
 
 
 object PostCreationMenu {

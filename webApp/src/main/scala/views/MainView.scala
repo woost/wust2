@@ -1,5 +1,7 @@
 package wust.webApp.views
 
+import wust.utilWeb._
+import wust.utilWeb.views._
 import wust.webApp._
 import cats.effect.IO
 import outwatch.dom._
@@ -7,10 +9,10 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.events.window
 import rx._
 import wust.api._
-import wust.webApp.Color._
+import wust.utilWeb.Color._
 import wust.webApp.views.graphview.GraphView
-import wust.util.Analytics
-import wust.util.outwatchHelpers._
+import wust.utilWeb.Analytics
+import wust.utilWeb.outwatchHelpers._
 import outwatch.dom.dsl.styles.extra._
 
 object MainView {
@@ -410,7 +412,7 @@ object MainView {
   }
 
   def settingsButton(state: GlobalState): VNode = {
-    button("Settings", width := "100%", onClick(views.UserSettingsView) --> state.view),
+    button("Settings", width := "100%", onClick(wust.webApp.views.UserSettingsView) --> state.view),
   }
 
   def channels(state: GlobalState): VNode = {

@@ -1,8 +1,7 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
 import outwatch.dom.VNode
-import wust.webApp.GlobalState
-import wust.webApp.views.graphview.GraphView
+import wust.utilWeb.GlobalState
 import wust.graph._
 import wust.ids._
 import io.treev.tag._

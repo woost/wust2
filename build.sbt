@@ -171,12 +171,22 @@ lazy val utilBackend = project
   )
 
 lazy val utilWeb = project
-  .enablePlugins(ScalaJSPlugin)
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(sdkJS)
   .settings(commonSettings, sourceMapSettings)
   .settings(
     libraryDependencies ++=
       Deps.scalarx.value ::
       Deps.outwatch.value ::
+      Deps.monocle.value ::
+      Deps.d3v4.value :: //TODO should not depend on d3 (just because of Colors)
+      Deps.circe.core.value ::
+      Deps.circe.generic.value ::
+      Deps.circe.parser.value ::
+      Nil,
+
+    npmDependencies in Compile ++=
+      "marked" -> "0.3.12" ::
       Nil
   )
 
@@ -272,29 +282,21 @@ lazy val core = project
 
 lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(utilWeb, sdkJS)
+  .dependsOn(utilWeb)
   .settings(commonSettings, sourceMapSettings, webSettings)
   .settings(
     libraryDependencies ++=
       Deps.vectory.value ::
       Deps.d3v4.value ::
-      Deps.monocle.value ::
-      Deps.circe.core.value ::
-      Deps.circe.generic.value ::
-      Deps.circe.parser.value ::
       Nil,
-
-    npmDependencies in Compile ++=
-      "marked" -> "0.3.12" ::
-      Nil
   )
 
 lazy val pwaApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(utilWeb, sdkJS)
+  .dependsOn(utilWeb)
   .settings(commonSettings, sourceMapSettings, webSettings)
   .settings(
-    libraryDependencies ++= 
+    libraryDependencies ++=
       Nil
   )
 

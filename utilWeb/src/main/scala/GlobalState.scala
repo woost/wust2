@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
@@ -9,8 +9,8 @@ import rx._
 import wust.api._
 import wust.graph._
 import wust.ids._
-import wust.util.outwatchHelpers._
-import wust.webApp.views.{PageStyle, View, ViewConfig}
+import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.views.{PageStyle, View, ViewConfig}
 import wust.sdk._
 
 class GlobalState(implicit ctx: Ctx.Owner) {

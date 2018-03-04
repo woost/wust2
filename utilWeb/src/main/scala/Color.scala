@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import d3v4._
 import wust.graph.Graph
@@ -31,7 +31,7 @@ object Color {
 }
 
 object ColorPost {
-  import wust.webApp.Color._
+  import wust.utilWeb.Color._
 
   def mixedDirectParentColors(graph: Graph, postId: PostId) = mixColors(graph.parents(postId).map(baseColor))
 

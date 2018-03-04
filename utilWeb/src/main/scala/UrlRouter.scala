@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import org.scalajs.dom.raw.HashChangeEvent
 import org.scalajs.dom.window

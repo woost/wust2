@@ -9,7 +9,7 @@
  import scala.scalajs.js.JSConverters._
  import scala.scalajs.js.annotation._
  import rx._
- import wust.webApp.DevPrintln
+ import wust.utilWeb.DevPrintln
  import wust.util.time.time
 
 abstract class CustomForce[N <: SimulationNode] extends js.Object {

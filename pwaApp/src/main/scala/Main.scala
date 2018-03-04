@@ -2,7 +2,6 @@ package wust.pwaApp
 
 import org.scalajs.dom._
 import scala.scalajs.js.Dynamic.global
-import wust.util.{Analytics, RichFuture}
 import wust.api.{ApiEvent, Authentication}
 import wust.ids._
 import wust.graph.{Graph, Page}
@@ -12,7 +11,9 @@ import scribe._
 import scribe.formatter.FormatterBuilder
 import scribe.writer.ConsoleWriter
 
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.GlobalState
+import wust.utilWeb.views._
 import rx.Ctx
 
 object Main {
@@ -33,6 +34,11 @@ object Main {
   // global.require("default-passive-events")
 
   def main(args: Array[String]): Unit = {
-    OutWatch.renderReplace("#container", div("HALLO")).unsafeRunSync()
+    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
+
+    val state = new GlobalState
+
+    val view = View.default.apply(state)
+    OutWatch.renderReplace("#container", view).unsafeRunSync()
   }
 }

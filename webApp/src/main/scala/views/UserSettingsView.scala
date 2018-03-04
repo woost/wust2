@@ -4,12 +4,14 @@ import outwatch.{ObserverSink, Sink, dom}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
-import wust.webApp.Color._
+import wust.utilWeb._
+import wust.utilWeb.Color._
 import wust.graph._
 import wust.ids.{PostId, UserId}
-import Rendered._
+import wust.utilWeb.views._
+import wust.utilWeb.views.Rendered._
 import outwatch.dom.dsl.events.window
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 
 object UserSettingsView extends View {
   override val key = "usersettings"

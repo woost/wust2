@@ -1,8 +1,7 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
 import outwatch.dom.VNode
-import wust.webApp.GlobalState
-import wust.webApp.views.graphview.GraphView
+import wust.utilWeb.GlobalState
 
 import collection.breakOut
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,18 +16,10 @@ trait View {
 }
 
 object View {
-  val list:Seq[View] = (
+  //TODO better
+  var list: Seq[View] =
     ChatView ::
-      //    BoardView ::
-      //    MyBoardView ::
-         ArticleView ::
-      UserSettingsView ::
-      //    CodeView ::
-      //    ListView ::
-      new GraphView() ::
-      TestView ::
-      Nil
-    )
+    Nil
 
   def default = list.head
 

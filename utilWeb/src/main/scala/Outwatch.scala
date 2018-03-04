@@ -1,4 +1,4 @@
-package wust.util
+package wust.utilWeb
 
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.Element

@@ -1,16 +1,16 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
 import org.scalajs.dom.raw.Element
 import outwatch.{ObserverSink, Sink}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp._
-import wust.webApp.Color._
+import wust.utilWeb._
+import wust.utilWeb.Color._
 import wust.graph._
 import wust.ids.PostId
 import Elements._
 import Rendered._
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 
 object ChatView extends View {
   override val key = "chat"

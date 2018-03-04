@@ -1,18 +1,20 @@
 package wust.webApp
 
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp.views.Elements._
+import wust.utilWeb.views.Elements._
+import wust.utilWeb.views.Placeholders
+import wust.utilWeb._
 import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
 import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
-import wust.webApp
+import wust.utilWeb._
 
 import scala.collection.breakOut
 import scala.concurrent.{Future, Promise}
@@ -218,7 +220,7 @@ sealed trait AddTagTask extends RestructuringTask
       targetPosts.map(stylePost)(breakOut): List[VNode],
       div(
         textAreaWithEnterAndLog(sink)(
-          views.Placeholders.newTag,
+          Placeholders.newTag,
           flex := "0 0 3em",
         ),
         button("Abort",

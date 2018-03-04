@@ -1,9 +1,9 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import wust.api._
-import wust.webApp.{Client, GlobalState}
+import wust.utilWeb.{Client, GlobalState}
 import wust.graph._
 import wust.ids._
 
@@ -15,7 +15,7 @@ import rx._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 
 object DevView {
 

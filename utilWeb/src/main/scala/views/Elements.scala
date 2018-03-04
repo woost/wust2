@@ -1,12 +1,12 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
-import wust.webApp.marked
+import wust.utilWeb.marked
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import outwatch.Sink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 
 object Placeholders {
   val newPost = placeholder := "Create new post. Press Enter to submit."

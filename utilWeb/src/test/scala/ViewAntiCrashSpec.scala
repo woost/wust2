@@ -1,15 +1,15 @@
-package wust.webApp.views
+// package wust.utilWeb.views
 
-import org.scalatest._
-import org.scalatest.prop._
-import rx.Ctx.Owner.Unsafe._
-import wust.webApp._
-import wust.webApp.views.graphview.GraphView
-import wust.ids._
-import wust.graph._
-import scala.concurrent.ExecutionContext.Implicits.global
+// import org.scalatest._
+// import org.scalatest.prop._
+// import rx.Ctx.Owner.Unsafe._
+// import wust.utilWeb._
+// import wust.utilWeb.views.graphview.GraphView
+// import wust.ids._
+// import wust.graph._
+// import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.collection.immutable._
+// import scala.collection.immutable._
 
 // class ViewsExamples extends Tables {
 //   DevOnly.enabled = false
