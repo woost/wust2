@@ -1,7 +1,7 @@
-package wust.webApp.views
+package wust.utilWeb.views
 
 import d3v4.{Color, Hcl, d3}
-import wust.webApp.Color._
+import wust.utilWeb.Color._
 import wust.graph.{Graph, Page, Post}
 
 object PageStyle {

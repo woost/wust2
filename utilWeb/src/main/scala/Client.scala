@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import covenant.http._
 import java.nio.ByteBuffer
@@ -10,7 +10,7 @@ import wust.sdk._
 import wust.graph.User
 import wust.util.RichFuture
 import outwatch.Handler
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 import rx._
 import scala.scalajs.js
 import scala.scalajs.js.annotation._

@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import wust.sdk.SyncMode
 import cats.effect.IO
@@ -16,7 +16,7 @@ import wust.graph.{User, GraphChanges}
 import scala.util.Try
 import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._, io.circe.parser._
 import rx._
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 import outwatch.util.LocalStorage //TODO use outwatch.util.Storage(dom.Storage)
 
 class ClientStorage(implicit owner: Ctx.Owner) {

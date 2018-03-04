@@ -5,6 +5,7 @@ import wust.ids._
 import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
 import wust.graph.{Graph, Post}
+import wust.utilWeb._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

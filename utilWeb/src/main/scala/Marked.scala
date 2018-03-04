@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation._

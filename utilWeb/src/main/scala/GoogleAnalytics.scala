@@ -1,4 +1,4 @@
-package wust.util
+package wust.utilWeb
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobalScope

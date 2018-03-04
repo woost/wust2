@@ -1,7 +1,6 @@
 package wust.webApp
 
 import org.scalajs.dom._
-import wust.util.{Analytics, RichFuture}
 import wust.api.{ApiEvent, Authentication}
 import wust.ids._
 import wust.graph.{Graph, Page}
@@ -14,7 +13,11 @@ import scribe.writer.ConsoleWriter
 
 import scala.util.Success
 import concurrent.Future
-import wust.util.outwatchHelpers._
+import wust.utilWeb.views._
+import wust.utilWeb._
+import wust.webApp.views.graphview._
+import wust.webApp.views._
+import wust.utilWeb.outwatchHelpers._
 import rx.Ctx
 
 object Main {
@@ -30,6 +33,18 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
+
+    View.list =
+      ChatView ::
+      //    BoardView ::
+      //    MyBoardView ::
+      ArticleView ::
+      UserSettingsView ::
+      //    CodeView ::
+      //    ListView ::
+      new GraphView() ::
+      // TestView ::
+      Nil
 
     val state = new GlobalState()
 

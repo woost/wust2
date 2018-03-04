@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import scala.scalajs.LinkingInfo
 object DevOnly {

@@ -11,12 +11,12 @@ import outwatch.dom.dsl.events
 import rx._
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
-import wust.webApp.Color.baseColor
-import wust.webApp.GlobalState
+import wust.utilWeb.Color.baseColor
+import wust.utilWeb.GlobalState
 import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
 import wust.ids.{Label, PostId}
-import wust.util.outwatchHelpers._
+import wust.utilWeb.outwatchHelpers._
 import wust.util.time.time
 
 import scala.concurrent.Promise

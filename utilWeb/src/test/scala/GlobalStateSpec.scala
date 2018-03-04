@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 import org.scalatest._
 import rx.Ctx.Owner.Unsafe._

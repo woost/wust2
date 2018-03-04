@@ -4,8 +4,8 @@ import d3v4._
 import org.scalajs.dom.html
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge, Tag}
-import wust.webApp.Color.baseColor
-import wust.webApp.ColorPost
+import wust.utilWeb.Color.baseColor
+import wust.utilWeb.ColorPost
 import ForceSimulationConstants._
 import wust.graph.{Post, _}
 import wust.ids.{Label, PostId}

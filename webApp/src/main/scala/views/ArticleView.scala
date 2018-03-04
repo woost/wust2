@@ -5,11 +5,13 @@ import outwatch.Sink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
-import wust.webApp.views.Elements._
+import wust.utilWeb.views.Elements._
 import wust.graph._
 import wust.ids.PostId
-import wust.util.outwatchHelpers._
-import Color._
+import wust.utilWeb._
+import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.views._
+import wust.utilWeb.Color._
 
 import scala.scalajs.js.timers.setTimeout
 

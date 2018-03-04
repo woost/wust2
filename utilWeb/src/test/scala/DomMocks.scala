@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.utilWeb
 
 trait LocalStorageMock {
   import scala.collection.mutable
