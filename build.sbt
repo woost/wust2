@@ -15,6 +15,7 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
   crossScalaVersions := Seq("2.11.12", "2.12.4"), // 2.11 is needed for android app
 
+  exportJars := true, // for android app
   resolvers ++=
     /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
     Resolver.jcenterRepo ::
@@ -29,13 +30,13 @@ lazy val commonSettings = Seq(
     Deps.mockito.value % Test ::
     Nil,
 
-  dependencyOverrides ++=
-    Deps.circe.core.value ::
-    Deps.circe.parser.value ::
-    Deps.circe.generic.value ::
-    Deps.cats.core.value ::
-    Deps.akka.httpCore.value ::
-    Nil,
+  dependencyOverrides ++= Set(
+    Deps.circe.core.value,
+    Deps.circe.parser.value,
+    Deps.circe.generic.value,
+    Deps.cats.core.value,
+    Deps.akka.httpCore.value
+  ),
 
   // do not run tests in assembly command
   test in assembly := {},
@@ -75,7 +76,7 @@ lazy val commonSettings = Seq(
       if (branch == "master") "latest" else branch
     } ::
     version.value ::
-    Nil
+        Nil
 )
 
 lazy val sourceMapSettings = Seq(
@@ -154,6 +155,7 @@ lazy val root = project.in(file("."))
     addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
+    addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.4"),
 
     addCommandAlias("testJS", "; utilJS/test; utilWeb/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
@@ -314,6 +316,48 @@ lazy val pwaApp = project
   .settings(
     libraryDependencies ++=
       Nil
+    )
+lazy val androidApp = project
+  .settings(commonSettings)
+  .dependsOn(sdkJVM)
+  .enablePlugins(AndroidApp)
+  .settings(
+
+    resolvers ++= (
+      ("google" at "https://maven.google.com") ::
+      // ("vivareal" at "http://dl.bintray.com/vivareal/maven") ::
+      Nil
+    ),
+
+    android.useSupportVectors,
+    versionCode := Some(1),
+    version := "0.1-SNAPSHOT",
+    platformTarget := "android-25",
+    minSdkVersion in Android :="25",
+    targetSdkVersion in Android := "25",
+    javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil,
+    libraryDependencies ++=
+      aar("org.macroid" %% "macroid" % "2.0") ::
+      aar("org.macroid" %% "macroid-extras" % "2.0") ::
+      "com.android.support" % "appcompat-v7" % "24.0.0" ::
+      "com.android.support.constraint" % "constraint-layout" % "1.0.2" ::
+      // "br.com.vivareal" % "cuid-android" % "0.1.0" ::
+      Nil,
+    dependencyOverrides ++= Set(
+    ), 
+    // excludeDependencies += "cool.graph.cuid-java",
+
+    dexMaxHeap in Android :="8048M",
+    dexMulti in Android := true,
+    // dexAdditionalParams in Android ++= Seq("--min-sdk-version=25"),
+    proguardScala in Android := true,
+    proguardCache := Nil,
+    shrinkResources := true,
+
+    proguardOptions in Android ++= Seq(
+      "-ignorewarnings"
+    ),
+    packagingOptions in Android := PackagingOptions(excludes = Seq("reference.conf"))
   )
 
 lazy val slackApp = project
@@ -362,3 +406,4 @@ lazy val systemTest = project
   )
 
 lazy val dbMigration = project
+

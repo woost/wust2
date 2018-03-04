@@ -3,3 +3,4 @@ target/
 /phantomjsdriver.log
 /*-backup.sql*
 /tokens.sh
+proguard-sbt.txt
