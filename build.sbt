@@ -115,7 +115,6 @@ lazy val webSettings = Seq(
       "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::
       "copy-webpack-plugin" -> "4.5.0" ::
-      "preload-nginx-webpack-plugin" -> "cornerman/preload-nginx-webpack-plugin#feb8a4b" ::
       Nil,
 
     version in webpack := "3.10.0",
