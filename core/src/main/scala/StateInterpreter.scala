@@ -1,5 +1,6 @@
 package wust.backend
 
+import cats.syntax.group
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._
@@ -22,10 +23,11 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
         Future.successful(Nil)
 
     case NewGraphChanges(changes) =>
-      visibleChangesForState(state, changes).map { visibleChanges =>
-        if (visibleChanges.isEmpty) Nil
-        else NewGraphChanges(visibleChanges) :: Nil
-      }
+      Future.successful{
+      val visibleChanges = visibleChangesForState(state, changes)
+      if (visibleChanges.isEmpty) Nil
+      else NewGraphChanges(visibleChanges) :: Nil
+    }
 
     case other => Future.successful(other :: Nil)
   }).map(_.flatten)
@@ -34,23 +36,15 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     import membership._
 
     def currentUserInvolved = state.auth.user.id == userId
-    def ownGroupInvolved = state.graph.groupsById.isDefinedAt(groupId)
+    def ownGroupInvolved = state.graph.postsById.isDefinedAt(postId)
     if (currentUserInvolved) {
       // query all other members of groupId
-      val groupFut = db.group.get(groupId)
-      val iterableFut = db.group.members(groupId)
-      val postsFut = db.group.getOwnedPosts(groupId)
+      val postFut = db.post.get(postId)
       for {
-        Some(group) <- groupFut
-        iterable <- iterableFut
-        posts <- postsFut
-      } yield (for {
-        (user, membership) <- iterable.toList
-        addPosts = posts.map(forClient).toSet
-        addOwnerships = posts.map(post => Ownership(post.id, membership.groupId)).toSet
-        changes = Some(GraphChanges(addPosts = addPosts, addOwnerships = addOwnerships)).filterNot(_.isEmpty)
-        event <- List(NewUser(user), NewMembership(membership)) ++ changes.map(NewGraphChanges(_))
-      } yield event) :+ NewGroup(group)
+        post <- postFut
+      } yield for {
+        event <- List(NewMembership(membership), NewGraphChanges(GraphChanges(addPosts = post.map(forClient).toSet)))
+      } yield event
     } else if (ownGroupInvolved) {
       for {
         //TODO we should not need this, the newuser should be in the events already
@@ -60,17 +54,12 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     } else Future.successful(Nil)
   }
 
-  private def visibleChangesForState(state: State, changes: GraphChanges): Future[GraphChanges] = {
+  private def visibleChangesForState(state: State, changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 
-    val postIds = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
-    val ownGroups = state.graph.groups.map(_.id).toSet
-    db.post.getGroupIds(postIds).map { postGroups =>
-      val allowedPostIds = postIds.filter { postId =>
-        postGroups.get(postId).map(_ exists ownGroups).getOrElse(true)
-      }
-
-      changes.consistent.filter(allowedPostIds)
-    }
+    val changedPostIds = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
+    val ownPosts = state.graph.postIds.toSet
+    val allowedPostIds = changedPostIds intersect ownPosts
+    changes.consistent.filter(allowedPostIds)
   }
 }

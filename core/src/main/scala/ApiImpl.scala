@@ -43,11 +43,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
               for {
                 true <- db.post.createPublic(addPosts)
                 true <- db.connection(addConnections)
-                true <- db.ownership(addOwnerships)
                 true <- db.post.update(updatePosts)
                 true <- db.post.delete(delPosts)
                 true <- db.connection.delete(delConnections)
-                true <- db.ownership.delete(delOwnerships)
               } yield true
             } else Future.successful(false)
           }
@@ -67,70 +65,24 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
   //TODO: error handling
-  override def addGroup(): ApiFunction[GroupId] = Effect.assureDbUser { (_, user) =>
-    for {
-      //TODO: simplify db.createForUser return values
-      Some((_, dbMembership, dbGroup)) <- db.group.createForUser(user.id)
-    } yield {
-      val group = forClient(dbGroup)
-      Returns(group.id, Seq(NewMembership(dbMembership)))
-    }
-  }
-
-  //TODO: error handling
-  override def addMember(groupId: GroupId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMember(postId: PostId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isGroupMember(groupId, user.id) {
+      isPostMember(postId, user.id) {
         for {
           Some(user) <- db.user.get(userId)
-          Some((_, dbMembership, group)) <- db.group.addMember(groupId, userId)
+          Some((_, dbMembership)) <- db.post.addMember(postId, userId)
         } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
       }
     }
   }
 
-  override def addMemberByName(groupId: GroupId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMemberByName(postId: PostId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isGroupMember(groupId, user.id) {
+      isPostMember(postId, user.id) {
         for {
           Some(user) <- db.user.byName(userName)
-          Some((_, dbMembership, group)) <- db.group.addMember(groupId, user.id)
+          Some((_, dbMembership)) <- db.post.addMember(postId, user.id)
         } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-      }
-    }
-  }
-
-  override def recreateGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      isGroupMember(groupId, user.id) {
-        setRandomGroupInviteToken(groupId).map(Returns(_))
-      }
-    }
-  }
-
-  override def getGroupInviteToken(groupId: GroupId): ApiFunction[Option[String]] = Action.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      isGroupMember(groupId, user.id) {
-        db.group.getInviteToken(groupId).flatMap {
-          case someToken @ Some(_) => Future.successful(someToken)
-          case None                => setRandomGroupInviteToken(groupId)
-        }
-      }
-    }
-  }
-
-  override def acceptGroupInvite(token: String): ApiFunction[Option[GroupId]] = Effect.assureDbUser { (_, user) =>
-    //TODO optimize into one request?
-    db.ctx.transaction { implicit ec =>
-      db.group.fromInvite(token).flatMap {
-        case Some(group) =>
-          db.group.addMember(group.id, user.id).map {
-            case Some((_, dbMembership, dbGroup)) =>
-              val group = forClient(dbGroup)
-              Returns(Option(group.id), Seq(NewMembership(dbMembership)))
-            case None => Returns(Option.empty[GroupId])
-          }
-        case None => Future.successful(Returns(Option.empty[GroupId]))
       }
     }
   }
@@ -196,13 +148,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
-
-  private def setRandomGroupInviteToken(groupId: GroupId)(implicit ec: ExecutionContext): Future[Option[String]] = {
-    val randomToken = RandomUtil.alphanumeric()
-    db.group.setInviteToken(groupId, randomToken)
-      .collect { case true => Option(randomToken) }
-      .recover { case NonFatal(_) => None }
-  }
 
   private def getUnion(userIdOpt: Option[UserId], rawParentIds: Set[PostId])(implicit ec: ExecutionContext): Future[Graph] = {
     //TODO: in stored procedure

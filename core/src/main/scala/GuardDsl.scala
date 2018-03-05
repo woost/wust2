@@ -53,16 +53,16 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
     newAuth.flatMap(_.fold[Future[F[T]]](Future.successful(ApiData.MonadError.raiseError(ApiError.Forbidden)))(code))
   }
 
-  def isGroupMember[T, F[_] : ApiData.MonadError](groupId: GroupId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
+  def isPostMember[T, F[_] : ApiData.MonadError](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
-      true <- db.group.isMember(groupId, userId)
+      true <- db.user.isMember(postId, userId)
       result <- code
     } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }
 
   def hasAccessToPost[T, F[_] : ApiData.MonadError](postId: PostId, userId: UserId)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
-      true <- db.group.hasAccessToPost(userId, postId)
+      true <- db.user.hasAccessToPost(userId, postId)
       result <- code
     } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }

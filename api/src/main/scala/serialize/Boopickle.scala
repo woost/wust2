@@ -8,7 +8,6 @@ import io.treev.tag._
 
 object Boopickle {
   implicit val postIdPickler = transformPickler[PostId, UuidType](PostId(_))(identity)
-  implicit val groupIdPickler = transformPickler[GroupId, IdType](GroupId(_))(identity)
   implicit val userIdPickler = transformPickler[UserId, UuidType](UserId(_))(identity)
   implicit val labelPickler = transformPickler[Label, String](Label(_))(identity)
 
@@ -16,13 +15,11 @@ object Boopickle {
 
   implicit val connectionPickler = generatePickler[Connection]
   implicit val postPickler = generatePickler[Post]
-  implicit val ownershipPickler = generatePickler[Ownership]
   implicit val userPickler1 = generatePickler[User.Assumed]
   implicit val userPickler2 = generatePickler[User.Real]
   implicit val userPickler3 = generatePickler[User.Implicit]
   implicit val userPickler4 = generatePickler[User.Persisted]
   implicit val userPickler = generatePickler[User]
-  implicit val groupPickler = generatePickler[Group]
   implicit val membershipPickler = generatePickler[Membership]
   implicit val graphPickler = generatePickler[Graph]
   implicit val graphChangesPickler = generatePickler[GraphChanges]
@@ -32,7 +29,6 @@ object Boopickle {
   implicit val authenticationPickler = generatePickler[Authentication]
 
   implicit val apiEventPickler1 = generatePickler[ApiEvent.NewUser]
-  implicit val apiEventPickler2 = generatePickler[ApiEvent.NewGroup]
   implicit val apiEventPickler3 = generatePickler[ApiEvent.NewMembership]
   implicit val apiEventPickler5 = generatePickler[ApiEvent.NewGraphChanges.ForPublic]
   implicit val apiEventPickler6 = generatePickler[ApiEvent.NewGraphChanges.ForPrivate]

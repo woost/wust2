@@ -8,7 +8,6 @@ object EventUpdate {
   def applyEventOnGraph(graph: Graph, event: ApiEvent.GraphContent): Graph = event match {
     case NewMembership(membership) => graph + membership
     case NewUser(user) => graph + user
-    case NewGroup(group) => graph + group
     case NewGraphChanges(changes) => graph applyChanges changes
 
     case ReplaceGraph(newGraph) => newGraph

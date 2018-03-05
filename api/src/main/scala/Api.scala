@@ -12,12 +12,8 @@ trait Api[Result[_]] {
   def getPost(id: PostId): Result[Option[Post]]
   def getGraph(selection: Page): Result[Graph]
   def getUser(userId: UserId): Result[Option[User]]
-  def addGroup(): Result[GroupId]
-  def addMember(groupId: GroupId, userId: UserId): Result[Boolean]
-  def addMemberByName(groupId: GroupId, userName: String): Result[Boolean]
-  def getGroupInviteToken(groupId: GroupId): Result[Option[String]]
-  def recreateGroupInviteToken(groupId: GroupId): Result[Option[String]]
-  def acceptGroupInvite(token: String): Result[Option[GroupId]]
+  def addMember(postId: PostId, userId: UserId): Result[Boolean]
+  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
   def importGithubUrl(url: String): Result[Boolean]
   def importGitterUrl(url: String): Result[Boolean]
@@ -70,7 +66,6 @@ object ApiEvent {
   sealed trait AuthContent extends Any with ApiEvent
 
   case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
-  case class NewGroup(group: Group) extends AnyVal with GraphContent with Public with Private
   case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
 
   sealed trait NewGraphChanges extends GraphContent {
