@@ -28,7 +28,8 @@ in
     shellHook=''
     echo --- Welcome to woost! ---
     echo "Make sure you have the docker service running and added your user to the group 'docker'."
-    echo Now run ./start sbt dev
+    echo Now run ./start sbt
+    echo Then type devweb
     echo Then point your browser to http://localhost:12345
     #zsh -ic "                                   \
     #    if [[ -f tokens.sh ]]; then;            \
