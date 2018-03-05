@@ -19,9 +19,6 @@ package object ids {
   }
   type UserId = UserId.Type
 
-  object GroupId extends TaggedType[IdType]
-  type GroupId = GroupId.Type
-
   object Label extends TaggedType[String] {
     val parent = Label("parent")
   }

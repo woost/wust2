@@ -12,17 +12,14 @@ object Data {
   case class Connection(sourceId: PostId, label: Label, targetId: PostId)
 
   case class Password(id: UserId, digest: Array[Byte])
-  case class Membership(userId: UserId, groupId: GroupId)
-  case class GroupInvite(groupId: GroupId, token: String)
-  case class UserGroup(id: GroupId)
-  case class Ownership(postId: PostId, groupId: GroupId)
+  case class Membership(userId: UserId, postId: PostId)
 
   object Post {
     def apply(
                id: PostId,
                content: String,
                author: UserId) = {
-        val currTime = LocalDateTime.now();
+        val currTime = LocalDateTime.now()
         new Post(
           id,
           content,
@@ -33,5 +30,5 @@ object Data {
     }
   }
 
-  type Graph = (Iterable[Post], Iterable[Connection], Iterable[UserGroup], Iterable[Ownership], Iterable[User], Iterable[Membership])
+  type Graph = (Iterable[Post], Iterable[Connection], Iterable[User], Iterable[Membership])
 }

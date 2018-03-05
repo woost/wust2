@@ -21,9 +21,7 @@ object DbConversions {
     if (user.isImplicit) User.Implicit(user.id, user.name, user.revision)
     else User.Real(user.id, user.name, user.revision)
   }
-  implicit def forClient(group: Data.UserGroup): Group = Group(group.id)
-  implicit def forClient(ownership: Data.Ownership): Ownership = Ownership(ownership.postId, ownership.groupId)
-  implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.groupId)
+  implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.postId)
 
   implicit def forDb(post: Post): Data.Post = Data.Post(post.id, post.content, post.author,
     epochMilliToLocalDateTime(post.created),
@@ -33,19 +31,15 @@ object DbConversions {
     case User.Implicit(id, name, revision) => Data.User(id, name, isImplicit = true, revision = revision)
   }
   implicit def forDb(c: Connection): Data.Connection = Data.Connection(c.sourceId, c.label, c.targetId)
-  implicit def forDb(c: Ownership): Data.Ownership = Data.Ownership(c.postId, c.groupId)
   implicit def forDbPosts(posts: Set[Post]): Set[Data.Post] = posts.map(forDb _)
   implicit def forDbUsers(users: Set[User.Persisted]): Set[Data.User] = users.map(forDb _)
   implicit def forDbConnections(cs: Set[Connection]): Set[Data.Connection] = cs.map(forDb _)
-  implicit def forDbOwnerships(cs: Set[Ownership]): Set[Data.Ownership] = cs.map(forDb _)
 
   def forClient(tuple: Data.Graph): Graph = {
-    val (posts, connections, groups, ownerships, users, memberships) = tuple
+    val (posts, connections, users, memberships) = tuple
     Graph(
       posts.map(forClient),
       connections.map(forClient),
-      groups.map(forClient),
-      ownerships.map(forClient),
       users.map(forClient),
       memberships.map(forClient)
     )
