@@ -59,6 +59,25 @@ From here, you can also run db migrations, access psql, run tests or start a pro
 start [ sbt, migrate, psql <options>, pgdump, pgrestore <file>, pgclean, prod, prod.http, prod.slack, test, test.postgres, test.integration ]
 ```
 
+## Developing transactions
+
+Test migration in transaction, then rollback.
+```sql
+begin transaction;
+
+alter table ...;
+drop table ...;
+
+\d+ yourtable;
+\dt public.*;
+
+rollback transaction;
+```
+
+Run sql from vim:
+```vimscript
+:w !docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432<cr>
+```
 
 # Docker images
 Build all docker images in project:
