@@ -4,7 +4,7 @@ import org.scalajs.dom._
 import scala.scalajs.js.Dynamic.global
 import wust.api.{ApiEvent, Authentication}
 import wust.ids._
-import wust.graph.{Graph, Page}
+import wust.graph.{Graph, Page, GraphChanges}
 import outwatch.dom._, dsl._
 
 import scribe._
@@ -12,7 +12,7 @@ import scribe.formatter.FormatterBuilder
 import scribe.writer.ConsoleWriter
 
 import wust.utilWeb.outwatchHelpers._
-import wust.utilWeb.GlobalState
+import wust.utilWeb.{GlobalState, Client, Notifications}
 import wust.utilWeb.views._
 import rx.Ctx
 
@@ -55,7 +55,14 @@ object Main {
 
     val state = new GlobalState
 
-    val view = View.default.apply(state)
-    OutWatch.renderReplace("#container", view).unsafeRunSync()
+    Client.observable.event.foreach { events =>
+      val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
+      if (changes.addPosts.nonEmpty) {
+        val msg = if (changes.addPosts.size == 1) "New Post" else s"New Post (${changes.addPosts.size})"
+        Notifications.serviceWorkerNotify(msg, Some(changes.addPosts.map(_.content).mkString(", ")))
+      }
+    }
+
+    OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }
 }
