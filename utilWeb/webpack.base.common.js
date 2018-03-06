@@ -36,7 +36,6 @@ webpack.plugins.push(new CopyPlugin([
     { from: '*.ico', to: webpack.output.path },
     { from: '*.svg', to: webpack.output.path },
     { from: '*.png', to: webpack.output.path },
-    { from: 'sw-entry.js', to: webpack.output.path },
     { from: 'manifest.json', to: webpack.output.path }
 ]));
 
