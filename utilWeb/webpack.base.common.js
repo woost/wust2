@@ -33,15 +33,10 @@ cssFiles.forEach(function (file) {
 
 // copy some assets to dist folder
 webpack.plugins.push(new CopyPlugin([
-    { from: '*.ico', to: webpack.output.path }
-]));
-webpack.plugins.push(new CopyPlugin([
-    { from: '*.svg', to: webpack.output.path }
-]));
-webpack.plugins.push(new CopyPlugin([
-    { from: '*.png', to: webpack.output.path }
-]));
-webpack.plugins.push(new CopyPlugin([
+    { from: '*.ico', to: webpack.output.path },
+    { from: '*.svg', to: webpack.output.path },
+    { from: '*.png', to: webpack.output.path },
+    { from: 'sw-entry.js', to: webpack.output.path },
     { from: 'manifest.json', to: webpack.output.path }
 ]));
 
