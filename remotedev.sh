@@ -9,7 +9,7 @@ DEVPORT=${DEVPORT:-$(shuf -i 40000-41000 -n 1)}
 BACKEND=${BACKEND:-$(shuf -i 50000-51000 -n 1)}
 REMOTETMP=$(mktemp)
 
-rsync -aP --delete $LOCALDIR/ $REMOTEHOST:$REMOTETMP/ --exclude-from=$LOCALDIR/.ignore || exit 1
+rsync -aP --delete ${LOCALDIR}/ ${REMOTEHOST}:${REMOTETMP}/ --exclude-from=${LOCALDIR}/.ignore || exit 1
 
 lsyncd =(cat <<EOF
 settings {
@@ -21,9 +21,9 @@ settings {
 sync {
    default.rsync,
    delay    = 1,
-   source   = "$LOCALDIR",
-   target   = "$REMOTEHOST:$REMOTETMP",
-   excludeFrom="$LOCALDIR/.ignore"
+   source   = "${LOCALDIR}",
+   target   = "${REMOTEHOST}:${REMOTETMP}",
+   excludeFrom="${LOCALDIR}/.ignore"
 }
 EOF
 ) &>/dev/null &
@@ -51,4 +51,4 @@ ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhost:${DEVPORT} ${REMOT
 
 ssh ${REMOTEHOST} "rm -rf $REMOTETMP"
 
-kill $LSYNCDPID
+kill ${LSYNCDPID}
