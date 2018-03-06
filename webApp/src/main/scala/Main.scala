@@ -48,16 +48,6 @@ object Main {
 
     val state = new GlobalState()
 
-    state.inviteToken.foreach(_.foreach { token =>
-      Client.api.acceptGroupInvite(token).onComplete {
-        case Success(Some(_)) =>
-          Analytics.sendEvent("group", "invitelink", "success")
-        case failedResult =>
-          println(s"Failed to accept group invite: $failedResult")
-          Analytics.sendEvent("group", "invitelink", "failure")
-      }
-    })
-
     Client.api.log("Starting web app")
 
     OutWatch.renderReplace("#container", views.MainView(state)).unsafeRunSync()
