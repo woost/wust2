@@ -30,7 +30,7 @@ function sbt() {
     command sbt -Dquill.macro.log=false "$EXTRASBTARGS" "$@"
 }
 
-dockerhost_ip=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
+dockerhost_ip=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1 | head -n 1`
 [ -n "$TRAVIS_BRANCH" ] && git_branch=$TRAVIS_BRANCH || git_branch=`git rev-parse --abbrev-ref HEAD`
 
 [ $git_branch == "master" ] && env_wust_version="WUST_VERSION=latest" || env_wust_version="WUST_VERSION=$git_branch"
