@@ -119,6 +119,8 @@ class EventProcessor private(
     val action = PublishSubject[ChangesHistory.UserAction]
   }
 
+  val unsafeManualEvents = PublishSubject[ApiEvent.GraphContent] // TODO: this is a hack
+
   // public reader
   val (changesHistory: Observable[ChangesHistory], localChanges: Observable[GraphChanges], rawGraph: Observable[Graph]) = {
 
@@ -144,7 +146,7 @@ class EventProcessor private(
     val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
 
     val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents, unsafeManualEvents.map(Seq(_)))
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(EventUpdate.applyEventOnGraph) }
 

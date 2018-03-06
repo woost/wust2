@@ -6,6 +6,7 @@ import monocle.macros.GenLens
 import org.scalajs.dom.{Event, window}
 import outwatch.dom._
 import rx._
+import wust.api.ApiEvent.ReplaceGraph
 import wust.api._
 import wust.graph._
 import wust.ids._
@@ -46,6 +47,15 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
 
     val currentUser: Rx[User] = currentAuth.map(_.user)
+
+    viewConfig.foreach { vc =>
+      //TODO: api function which accepts a list
+      vc.page.parentIds.foreach { postId =>
+        Client.api.addCurrentUserAsMember(postId)
+      }
+      Client.api.getGraph(vc.page).foreach{g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g))}
+    }
+
 
     val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
 

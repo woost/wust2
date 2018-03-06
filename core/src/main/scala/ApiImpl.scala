@@ -64,15 +64,21 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
+  override def addCurrentUserAsMember(postId: PostId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+    //TODO: only add member if post is not public
+    db.ctx.transaction { implicit ec =>
+      for {
+        Some((_, dbMembership)) <- db.post.addMember(postId, user.id)
+      } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
+    }
+  }
   //TODO: error handling
   override def addMember(postId: PostId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isPostMember(postId, user.id) {
-        for {
-          Some(user) <- db.user.get(userId)
-          Some((_, dbMembership)) <- db.post.addMember(postId, userId)
-        } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-      }
+      for {
+        Some(user) <- db.user.get(userId)
+        Some((_, dbMembership)) <- db.post.addMember(postId, userId)
+      } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
     }
   }
 
