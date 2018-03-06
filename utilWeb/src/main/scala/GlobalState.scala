@@ -47,8 +47,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
     val currentUser: Rx[User] = currentAuth.map(_.user)
 
-    val inviteToken = viewConfig.map(_.invite)
-
     val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
 
     val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
@@ -67,10 +65,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       PageStyle(page(), pageParentPosts())
     }
 
-    val selectedGroupId: Var[Option[GroupId]] = viewConfig.zoom(GenLens[ViewConfig](_.groupIdOpt)).mapRead{ groupId =>
-        groupId().filter(rawGraph().groupsById.isDefinedAt)
-    }
-
     // be aware that this is a potential memory leak.
     // it contains all ids that have ever been collapsed in this session.
     // this is a wanted feature, because manually collapsing posts is preserved with navigation
@@ -83,7 +77,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     //TODO: when updating, both displayGraphs are recalculated
     // if possible only recalculate when needed for visualization
     val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
-      val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
+      val graph = rawGraph().consistent
       page() match {
         case Page.Root =>
           perspective().applyOnGraph(graph)
@@ -96,7 +90,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
 
     val displayGraphWithParents: Rx[DisplayGraph] = Rx {
-      val graph = groupLockFilter(viewConfig(), selectedGroupId(), rawGraph().consistent)
+      val graph = rawGraph().consistent
       page() match {
         case Page.Root =>
           perspective().applyOnGraph(graph)
@@ -127,7 +121,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   val rawGraph = inner.rawGraph.toObservable
   val perspective = inner.perspective.toHandler
   val page = inner.page.toHandler
-  val inviteToken = inner.inviteToken.toObservable
   val pageStyle = inner.pageStyle.toObservable
   val view = inner.view.toHandler
   val pageParentPosts = inner.pageParentPosts.toObservable
@@ -191,12 +184,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 }
 
 object GlobalState {
-  def groupLockFilter(viewConfig: ViewConfig, selectedGroupId: Option[GroupId], graph: Graph): Graph =
-    if (viewConfig.lockToGroup) {
-      val groupPosts = selectedGroupId.map(graph.postsByGroupId).getOrElse(Set.empty)
-      graph.filter(groupPosts)
-    } else graph
-
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 
@@ -204,15 +191,11 @@ object GlobalState {
       Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
     }
 
-    val toOwn = viewConfig.groupIdOpt.toSet.flatMap { (groupId: GroupId) =>
-      addPosts.map(p => Ownership(p.id, groupId))
-    }
-
     val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
     val toContain = addPosts
       .filterNot(p => containedPosts(p.id))
       .flatMap(p => Page.toParentConnections(viewConfig.page, p.id))
 
-    changes.consistent merge GraphChanges(delPosts = toDelete, addOwnerships = toOwn, addConnections = toContain)
+    changes.consistent merge GraphChanges(delPosts = toDelete, addConnections = toContain)
   }
 }
