@@ -169,19 +169,27 @@ class EventProcessor private(
   private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
     BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
+  private var sendingChangesInvokeWTF = false
   private val sendingChanges: Observable[Long] = Observable.tailRecM(bufferedChanges) { changes =>
-    changes.flatMap { case (c, idx) =>
-      Observable.fromFuture(sendChanges(c)).map {
-        case true => Right(idx)
-        case false =>
-          // TODO delay with exponential backoff
-          // TODO: take more from buffer if fails?
-          Left(Observable((c, idx)).sample(1 seconds))
+    //TODO: seriously wtf? why is this called twice?
+    if (sendingChangesInvokeWTF) Observable.empty
+    else {
+      sendingChangesInvokeWTF = true
+
+      changes.flatMap { case (c, idx) =>
+        Observable.fromFuture(sendChanges(c)).map {
+          case true =>
+            scribe.info(s"Sent out changes: $c")
+            Right(idx)
+          case false =>
+            // TODO delay with exponential backoff
+            // TODO: take more from buffer if fails?
+            Left(Observable((c, idx)).sample(1 seconds))
+        }
       }
     }
   }
-  localChangesIndexed.foreach(c => println("TRIGGER LOCAL: " + c._2)) // trigger sendingChanges
-  sendingChanges.foreach(c => println("TRIGGER SEND: " + c)) // trigger sendingChanges
+  sendingChanges.foreach(_ => ()) // trigger sendingChanges
 
   val areChangesSynced: Observable[Boolean] = {
     val lastLocalIndex = localChangesIndexed.map(_._2).startWith(Seq(-1))
