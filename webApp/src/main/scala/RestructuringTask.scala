@@ -77,6 +77,8 @@ sealed trait RestructuringTask {
   val descriptionGer: String
   val positiveText: String
   val negativeText: String
+  val taskImg: VNode
+
   def description: String = descriptionGer
 
   def component(state: GlobalState): VNode
@@ -92,29 +94,34 @@ sealed trait RestructuringTask {
     childrenConnections ++ parentConnections
   }
 
-  def arrowDiv(arrowLengthPixel: Int = 90): VNode = div(
-    //      div("------------------->"),
+  def arrowDiv(text: String = "", color: String = "black", arrowLengthPixel: Int = 120, arrowHeight: Int = 40, arrowLineHeight: Int = 10): VNode = {
+    // div("------------------->"),
     div(
-      marginTop := "14px",
-      width := s"${arrowLengthPixel}px",
-      background := "black",
-      height := "10px",
-      float.left,
-    ),
-    div(
-      width := "0",
-      height:= "0",
-      borderTop := "20px solid transparent",
-      borderBottom := "20px solid transparent",
-      borderLeft := "30px solid black",
-      float.right,
-    ),
-    width := s"${arrowLengthPixel + 30}px",
-  )
+      text,
+      div(
+        div( //line
+          marginTop := s"${((arrowHeight - 2) / 2) - (arrowLineHeight / 2)}px",
+          width := s"${arrowLengthPixel - 30}px",
+          background := color,
+          height := s"${arrowLineHeight}px",
+          float.left,
+        ) ,
+        div( //point
+          width := "0",
+          height := "0",
+          borderTop := s"${arrowHeight / 2}px solid transparent",
+          borderBottom := s"${arrowHeight / 2}px solid transparent",
+          borderLeft := "30px solid black",
+          float.right,
+        ),
+        width := s"${arrowLengthPixel}px",
+      ),
+      textAlign := "center",
+    )
+  }
 
-  def stylePost(post: Post): VNode = p(
-      post.content,
-      display := "inline-block",
+  def stylePost(post: Post): VNode = div(
+      mdHtml(post.content),
       color.black,
       maxWidth := "80ch",
       backgroundColor := "#eee",
@@ -128,37 +135,56 @@ sealed trait RestructuringTask {
     div( //modal outer container
       div( //modal inner container
         div( //header
-          padding := "2px 16px",
-          backgroundColor := "green",
-          color := "black",
+          paddingTop := "8px",
+          margin := "0",
+          backgroundColor := "#70db70",
         ),
         div( //content
           div(
-            span(
+            div(
+              "Kalt duschen",
+              fontWeight.bold,
+              float.left,
+            ),
+            div(
               "×",
               onClick(TaskFeedback(false, false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
               cursor.pointer,
-              float.right,
               fontSize := "28px",
               fontWeight.bold,
+              float.right,
             ),
-            h2(s"Kalt duschen"),
             width := "100%",
+            backgroundColor := "rgb(0.4, 0.4, 0.4)",
           ),
           div(
-            mdHtml(description),
-            borderTop := "2px dotted",
+            div(
+              taskImg,
+              flex := "0",
+              margin := "auto",
+            ),
+            div(
+              mdHtml(description),
+              paddingLeft := "20px",
+              flex := "1",
+            ),
+            display := "flex",
+            alignItems := "flex-start",
+            flexDirection := "row",
+            flexWrap := "nowrap",
+            clear.both,
           ),
           div(
             component(state),
             borderTop := "2px dotted",
           ),
           padding := "2px 16px",
+          color := "black",
         ),
         div(//footer
-          padding := "2px 16px",
+          padding := "0",
+          margin := "0",
           backgroundColor := "green",
-          color := "black",
         ),
         width := "120ch",
         position.fixed,
@@ -166,9 +192,8 @@ sealed trait RestructuringTask {
         right := "0",
         bottom := "0",
         margin := "0 auto",
-        border := "1px solid #888",
-        boxShadow := "0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19)",
-        backgroundColor := "gray",
+        boxShadow := "0 4px 8px 0 rgba(0, 0, 0, e0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
+        backgroundColor := "white",
       ),
       display.block,
       position.fixed,
@@ -194,6 +219,21 @@ sealed trait YesNoTask extends RestructuringTask
     )
   }
 
+  def confirmButton(state: GlobalState, graphChanges: GraphChanges): VNode = {
+    button(positiveText,
+      onClick(graphChanges) --> ObserverSink(state.eventProcessor.enriched.changes),
+      onClick(TaskFeedback(true, true, graphChanges)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+    )
+  }
+
+  def abortButton(graphChanges: GraphChanges): VNode = {
+    button(
+      negativeText,
+      onClick(TaskFeedback(true, false, graphChanges)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+      marginLeft := "10px",
+    )
+  }
+
   def constructComponent(state: GlobalState,
                          sourcePosts: Posts,
                          targetPosts: Posts): VNode = {
@@ -203,12 +243,10 @@ sealed trait YesNoTask extends RestructuringTask
     div(
       createPreviewNode(state, sourcePosts, targetPosts),
       div(
-        button(positiveText,
-          onClick(graphChanges) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(TaskFeedback(true, true, graphChanges)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        ),
-        button(negativeText, onClick(TaskFeedback(true, false, graphChanges)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
+        confirmButton(state, graphChanges),
+        abortButton(graphChanges),
         width := "100%",
+        textAlign := "center",
       )
     )
   }
@@ -250,9 +288,27 @@ sealed trait AddTagTask extends RestructuringTask
     val sink: Sink[String] = tagConnection(state, sourcePosts, targetPosts)
 
     textAreaWithEnter(sink)(
-      Placeholders.newTag,
-      flex := "0 0 3em",
+      "Bitte Tag eingeben",
+      flex := "0 0 2em",
+      width := "20ch",
+      rows := 1,
+      style("resize") := "none",
       onChange.value --> userTagInput
+    )
+  }
+
+  def confirmButton(state: GlobalState, graphChanges: Observable[GraphChanges]): VNode = {
+    button(positiveText,
+      onClick(graphChanges) --> ObserverSink(state.eventProcessor.enriched.changes),
+      onClick(graphChanges.map(TaskFeedback(true, true, _))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+    )
+  }
+
+  def abortButton(graphChanges: Observable[GraphChanges]): VNode = {
+    button(
+      negativeText,
+      onClick(graphChanges.map(TaskFeedback(true, false, _))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+      marginLeft := "10px",
     )
   }
 
@@ -266,14 +322,10 @@ sealed trait AddTagTask extends RestructuringTask
     div(
       createPreviewNode(state, tagArea(state, sourcePosts, targetPosts), sourcePosts, targetPosts),
       div(
-        button(positiveText,
-          onClick(graphChanges) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(graphChanges.map(TaskFeedback(true, true, _))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        ),
-        button(
-          negativeText,
-          onClick(graphChanges.map(TaskFeedback(true, false, _))) --> RestructuringTaskGenerator.taskDisplayWithLogging),
+        confirmButton(state, graphChanges),
+        abortButton(graphChanges),
         width := "100%",
+        textAlign := "center",
       )
     )
   }
@@ -309,7 +361,8 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
 {
   val title = "Connect posts"
   val positiveText: String = "Verbinden"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht verbinden"
+  val taskImg: VNode = img(src := "connect.png")
   val descriptionEng: String =
     """
       |Is the first post related to the other post(s)?
@@ -332,15 +385,19 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
   }
 
   override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
+    val arrowWidth = 120 //px
     div(
       div(
         sourcePosts.map(stylePost)(breakOut): List[VNode],
+        flex := "1",
       ),
-      arrowDiv(100),
+      arrowDiv("related"),
       div(
         targetPosts.map(stylePost)(breakOut): List[VNode],
+        flex := "1",
       ),
       display := "flex",
+      alignItems := "center",
       flexDirection := "row",
       flexWrap := "nowrap",
       justifyContent := "center"
@@ -378,7 +435,8 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
 {
   val title = "Connect posts with tag"
   val positiveText: String = "Verbinden"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht verbinden"
+  val taskImg: VNode = img(src := "connectWithTag.png")
   val descriptionEng: String =
     """
       |How would you tag the relation between the first post and the others?
@@ -420,13 +478,20 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     div(
       div(
         sourcePosts.map(stylePost)(breakOut): List[VNode],
+        margin := "auto",
       ),
       div(
-        tagField,
-        "→"
+        div(
+          tagField,
+          paddingBottom := "3px",
+        ),
+        arrowDiv(arrowLengthPixel = 250, arrowHeight = 30, arrowLineHeight = 6),
+        textAlign := "center",
+        margin := "auto",
       ),
       div(
         targetPosts.map(stylePost)(breakOut): List[VNode],
+        margin := "auto",
       ),
       display := "flex",
       flexDirection := "row",
@@ -466,7 +531,8 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
 {
   val title = "Topic Posts"
   val positiveText: String = "Zuordnen"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht zuordnen"
+  val taskImg: VNode = img(src := "sameTopic.png")
   val descriptionEng: String =
     """
       |Does the first post topic description of the others?
@@ -498,12 +564,18 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
   }
 
   override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
-    val todo = """
-      |
-      |A, B =>  (A > B)
-      |
-    """.stripMargin
-    div(todo)
+    div(
+      div(
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
+      ),
+      div(
+        targetPosts.map(stylePost)(breakOut): List[VNode],
+      ),
+      display := "flex",
+      flexDirection := "row",
+      flexWrap := "nowrap",
+      justifyContent := "center"
+    )
   }
 
   def component(state: GlobalState): VNode = {
@@ -537,7 +609,8 @@ case class MergePosts(posts: Posts) extends YesNoTask
 {
   val title = "Merge Posts"
   val positiveText: String = "Zusammenführen"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht zusammeführen"
+  val taskImg: VNode = img(src := "merge.png")
   val descriptionEng: String =
     """
       |Does these posts state the same but in different words?
@@ -551,17 +624,6 @@ case class MergePosts(posts: Posts) extends YesNoTask
 
   def mergePosts(mergeTarget: Post, source: Post): Post = {
     mergeTarget.copy(content = mergeTarget.content + "\n" + source.content)
-  }
-
-  def changePreview = {
-    //    val postA = Post("A", "unknown")
-    //    val postB = Post("B", "unknown")
-
-    """
-      |A \
-      |   | => A B
-      |B /
-    """.stripMargin
   }
 
   def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
@@ -582,13 +644,28 @@ case class MergePosts(posts: Posts) extends YesNoTask
   override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
     div(
       div(
-        stylePost(sourcePosts.foldLeft(targetPosts.head)(mergePosts),
+        targetPosts.map(stylePost)(breakOut): List[VNode],
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
+        flex := "1",
+      ),
+      div(
+        div(
+          confirmButton(state, constructGraphChanges(state, sourcePosts, targetPosts)),
+          paddingBottom := "3px",
         ),
-        display := "flex",
-        flexDirection := "row",
-        flexWrap := "nowrap",
-        justifyContent := "center"
-      )
+        arrowDiv(arrowLengthPixel = 250, arrowHeight = 30, arrowLineHeight = 6),
+        textAlign := "center",
+        margin := "auto",
+      ),
+      div(
+        stylePost(sourcePosts.foldLeft(targetPosts.head)(mergePosts)),
+        flex := "1",
+      ),
+      display := "flex",
+      flexDirection := "row",
+      flexWrap := "nowrap",
+      justifyContent := "center",
+      width := "100%",
     )
   }
 
@@ -622,7 +699,8 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
 {
   val title = "Unify Posts"
   val positiveText: String = "Vereinen"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht vereinen"
+  val taskImg: VNode = img(src := "merge.png")
   val descriptionEng: String =
     """
       |Does these posts state the same and are redundant?
@@ -679,6 +757,7 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
 }
 
 // Single Post RestructuringTask
+
 object DeletePosts extends RestructuringTaskObject {
   private val defaultMeasureBoundary = None
   private val defaultNumMaxPosts = Some(1)
@@ -700,7 +779,8 @@ case class DeletePosts(posts: Posts) extends YesNoTask
 {
   val title = "Delete Post"
   val positiveText: String = "Löschen"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Beibehalten"
+  val taskImg: VNode = img(src := "delete.png")
   val descriptionEng: String =
     """
       |Is this posts irrelevant for this discussion (e.g. empty phrase / spam)?
@@ -746,7 +826,8 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
   val positiveText: String = "Teilen"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht teilen"
+  val taskImg: VNode = img(src := "split.png")
   val descriptionEng: String =
     """
       |Does this Post contain multiple / different statements?
@@ -771,14 +852,6 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       |Falls Sie eine Aussage in der Mitte des Beitrags makieren, so wird der Beitrag in drei Einheiten geteilt.
       |Eine Einheit vor dem Markierung, eine Einheit für die Markierung und eine nach der Markierung unterteilt.
     """.stripMargin
-
-  def changePreview = {
-    """
-      |      A1
-      |A =>  A2
-      |      A3
-    """.stripMargin
-  }
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
@@ -837,25 +910,34 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
               borderRadius := "7px",
               border := "1px solid gray",
               margin := "5px 0px",
+              textAlign := "left",
               onMouseUp.map(e => posts :+ posts.last.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else List(p))) --> postPreview,
             )
           }
         },
         width := "100%",
       ),
-      button(positiveText,
+      button(
+        positiveText,
         onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
         onClick(postPreview).map(preview => TaskFeedback(true, true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
       ),
-      button("Rückgängig",
+      button(
+        "Rückgängig",
         onClick(postPreview.map(ll => ll.takeRight(2).take(1))) --> postPreview,
+        marginLeft := "10px",
       ),
-      button("Reset",
+      button(
+        "Reset",
         onClick(List(splitPost)) --> postPreview,
+        marginLeft := "10px",
       ),
-      button(negativeText,
+      button(
+        negativeText,
         onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+        marginLeft := "10px",
       ),
+      textAlign := "center",
     )
   }
 }
@@ -882,6 +964,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
   val title = "Add tag to post"
   val positiveText: String = "Kategorisieren"
   val negativeText: String = "Abbrechen"
+  val taskImg: VNode = img(src := "tag.png")
   val descriptionEng: String =
     """
       |How would you describe this post?
@@ -900,14 +983,6 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       |
       |Sie können den Tag bestätigen indem Sie Enter drücken.
     """.stripMargin
-
-  def changePreview = {
-    """
-      |
-      |A =>  tag(A)
-      |
-    """.stripMargin
-  }
 
   override def constructGraphChanges(state: GlobalState,
                                      tag: String,
@@ -936,10 +1011,34 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
                                  tagField: VNode,
                                  sourcePosts: Posts,
                                  targetPosts: Posts): VNode = {
+
     div(
-      "TODO",
-      tagField,
+      targetPosts.map { p =>
+        div(
+          div(
+            mdHtml(p.content),
+            color.black,
+            maxWidth := "80ch",
+          ),
+          tagField(
+            width := "20ch",
+            fontSize.small,
+            color := "#2db300",
+            padding := "0px 3px",
+            float.right,
+          ),
+          div(clear.right),
+          backgroundColor := "#eee",
+          padding := "5px 10px",
+          borderRadius := "7px",
+          border := "0",
+          boxShadow := "0 2px 6px 0 gray",
+          margin := "5px 0px",
+          maxWidth := "80ch",
+        ),
+      }(breakOut): List[VNode]
     )
+
   }
 
   def component(state: GlobalState): VNode = {
@@ -1037,39 +1136,39 @@ object RestructuringTaskGenerator {
         def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
 
         // DEBUG purpose
-//        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
-//          mapTask(AddTagToPosts, List(PostId("111"))),
-//          mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
-//          mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
-//          mapTask(DeletePosts, List(PostId("111"))),
-//          mapTask(MergePosts, List(PostId("111"), PostId("112"))),
-//          mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
-//          mapTask(SplitPosts, List(PostId("111"))),
-//          mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
-//        )
+        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
+          mapTask(AddTagToPosts, List(PostId("111"))),
+          mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
+          mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
+          mapTask(DeletePosts, List(PostId("111"))),
+          mapTask(MergePosts, List(PostId("111"), PostId("112"))),
+          mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
+          mapTask(SplitPosts, List(PostId("111"))),
+          mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
+        )
 //        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
 //                  (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
 
-        val tmpStudyTaskList = List(
-          mapTask(DeletePosts,          List(PostId("107"))),                 //11
-          mapTask(SplitPosts,           List(PostId("108"))),                 //18
-          mapTask(SameTopicPosts,         List(PostId("126"), PostId("127"))),  //7
-          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
-          mapTask(SameTopicPosts,         List(PostId("132"), PostId("119"))),  //9
-          mapTask(SplitPosts,           List(PostId("103"))),                 //16
-          mapTask(DeletePosts,          List(PostId("109"))),                 //12
-          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
-          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
-          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
-          mapTask(SplitPosts,           List(PostId("101"))),                 //17
-          mapTask(SameTopicPosts,         List(PostId("120"), PostId("117"))),  //8
-          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
-          mapTask(DeletePosts,          List(PostId("106"))),                 //10
-          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
-          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
-          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
-          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
-        )
+//        val tmpStudyTaskList = List(
+//          mapTask(DeletePosts,          List(PostId("107"))),                 //11
+//          mapTask(SplitPosts,           List(PostId("108"))),                 //18
+//          mapTask(SameTopicPosts,         List(PostId("126"), PostId("127"))),  //7
+//          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
+//          mapTask(SameTopicPosts,         List(PostId("132"), PostId("119"))),  //9
+//          mapTask(SplitPosts,           List(PostId("103"))),                 //16
+//          mapTask(DeletePosts,          List(PostId("109"))),                 //12
+//          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
+//          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
+//          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
+//          mapTask(SplitPosts,           List(PostId("101"))),                 //17
+//          mapTask(SameTopicPosts,         List(PostId("120"), PostId("117"))),  //8
+//          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
+//          mapTask(DeletePosts,          List(PostId("106"))),                 //10
+//          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
+//          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
+//          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
+//          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
+//        )
 
         _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
       }
