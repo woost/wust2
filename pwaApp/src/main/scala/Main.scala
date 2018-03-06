@@ -40,7 +40,7 @@ object Main {
       scribe.info("SW: onUpdated")
       //TODO: better update strategy
       //TODO: how is the update interval configured?
-      window.location.reload()
+      // window.location.reload()
     }
     def onUpdateFailed(): Unit = {
       scribe.info("SW: onUpdateFailed")
