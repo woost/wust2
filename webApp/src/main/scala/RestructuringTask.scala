@@ -94,6 +94,25 @@ sealed trait RestructuringTask {
     childrenConnections ++ parentConnections
   }
 
+  def arrowDiv(arrowLengthPixel: Int = 90): VNode = div(
+    div(
+      marginTop := "14px",
+      width := s"${arrowLengthPixel}px",
+      background := "black",
+      height := "10px",
+      float.left,
+    ),
+    div(
+      width := "0",
+      height:= "0",
+      borderTop := "20px solid transparent",
+      borderBottom := "20px solid transparent",
+      borderLeft := "30px solid black",
+      float.right,
+    ),
+    width := s"${arrowLengthPixel + 30}px",
+  )
+
   def stylePost(post: Post): VNode = p(
       post.content,
       display := "inline-block",
