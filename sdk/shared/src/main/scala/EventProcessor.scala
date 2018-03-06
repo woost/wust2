@@ -37,6 +37,8 @@ object SyncMode {
 }
 
 case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], current: GraphChanges) {
+  def canUndo = undos.nonEmpty
+  def canRedo = redos.nonEmpty
   def undo = undos match {
     case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
     case Nil => copy(current = GraphChanges.empty)
@@ -118,7 +120,7 @@ class EventProcessor private(
   }
 
   // public reader
-  val (localChanges: Observable[GraphChanges], rawGraph: Observable[Graph]) = {
+  val (changesHistory: Observable[ChangesHistory], localChanges: Observable[GraphChanges], rawGraph: Observable[Graph]) = {
 
     // events  withLatestFrom
     // --------O----------------> localchanges
@@ -139,7 +141,7 @@ class EventProcessor private(
       case (history, ChangesHistory.Redo) => history.redo
     }
 
-    val localChanges = changesHistory collect { case history if history.current.nonEmpty => history.current }
+    val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
 
     val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
@@ -148,7 +150,7 @@ class EventProcessor private(
 
     graphWithChanges subscribe rawGraph
 
-    (localChanges, rawGraph)
+    (changesHistory, localChanges, rawGraph)
   }
 
   def applyChanges(changes:GraphChanges):Future[Graph] = {
