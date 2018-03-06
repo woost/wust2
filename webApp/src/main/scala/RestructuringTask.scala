@@ -845,13 +845,11 @@ object RestructuringTaskGenerator {
     val buttonType = if(activateTasks) {
       button("Close tasks!", width := "100%", onClick(TaskFeedback(displayNext = false, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     } else {
-      button("Task me!", width := "100%", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Task Studie beginnen", width := "100%", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     }
     div(
-      span("Tasks"),
       fontWeight.bold,
       fontSize := "20px",
-      marginBottom := "10px",
       buttonType
     )
   }
