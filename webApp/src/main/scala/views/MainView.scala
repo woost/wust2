@@ -18,6 +18,7 @@ import outwatch.dom.dsl.styles.extra._
 import outwatch.ObserverSink
 
 object MainView {
+  import MainViewParts._
 
   def upButton(state: GlobalState): VNode = {
     //TODO: outwatch child <-- Option[VNode]
@@ -293,30 +294,6 @@ object MainView {
   //  )
   //}
 
-  def syncStatus(state: GlobalState): VNode = {
-    val historySink = ObserverSink(state.eventProcessor.history.action)
-    val isOnline = Observable.merge(Client.observable.connected.map(_ => SyncMode.Live), Client.observable.closed.map(_ => SyncMode.Offline))
-    div(
-      managed(state.syncMode <--isOnline),
-      child <-- state.syncMode.map { mode =>
-        span(
-          mode.toString,
-          title := "Click to switch syncing modes (Live/Offline)",
-          onClick.map(_ => if (mode == SyncMode.Live) SyncMode.Offline else SyncMode.Live) --> state.syncMode
-        )
-      },
-      child <-- state.eventProcessor.areChangesSynced.map { synced =>
-        span(
-          " ⬤ ", // middle dot
-          color := (if (synced) "green" else "red"),
-          title := (if (synced) "Everything is synced" else "Some changes are only local, just wait until they are send online."),
-          button("Undo", onClick(ChangesHistory.Undo) --> historySink),
-          button("Redo", onClick(ChangesHistory.Redo) --> historySink)
-        )
-      }
-    )
-  }
-
    def topBar(state: GlobalState, allViews: Seq[View]): VNode = {
 //     val lockToGroup = state.viewConfig.now.lockToGroup
 //     if (lockToGroup) {
@@ -384,7 +361,7 @@ object MainView {
       color := "white",
       titleBanner,
       br(),
-      user(state),
+      userStatus(state),
       br(),
       dataImport(state),
       br(),
@@ -397,15 +374,6 @@ object MainView {
       br(),
       syncStatus(state)
     )
-  }
-
-  val titleBanner: VNode = {
-      div(
-        "Woost",
-        fontWeight.bold,
-        fontSize := "20px",
-        marginBottom := "10px"
-      )
   }
 
   def settingsButton(state: GlobalState): VNode = {
