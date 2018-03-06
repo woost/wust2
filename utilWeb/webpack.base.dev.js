@@ -67,8 +67,8 @@ module.exports.devServer = {
     proxy : [
         subdomainProxy("core", process.env.WUST_CORE_PORT, true),
         subdomainProxy("github", process.env.WUST_GITHUB_PORT),
-        subdomainProxy("web", process.env.WUST_WEB_PORT),
-        subdomainProxy("pwa", process.env.WUST_PWA_PORT)
+        pathProxy("apps/web", process.env.WUST_WEB_PORT),
+        pathProxy("apps/pwa", process.env.WUST_PWA_PORT)
     ],
     compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
 };
