@@ -2,7 +2,6 @@ package wust.webApp
 
 import wust.utilWeb.outwatchHelpers._
 import org.scalajs.dom
-import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.ObserverSink
 import outwatch.dom._
@@ -15,10 +14,9 @@ import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
 import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
-import wust.utilWeb._
 
 import scala.collection.breakOut
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 object Restructure {
   type Posts = List[Post]
@@ -95,6 +93,7 @@ sealed trait RestructuringTask {
   }
 
   def arrowDiv(arrowLengthPixel: Int = 90): VNode = div(
+    //      div("------------------->"),
     div(
       marginTop := "14px",
       width := s"${arrowLengthPixel}px",
@@ -186,80 +185,103 @@ sealed trait RestructuringTask {
 
 sealed trait YesNoTask extends RestructuringTask
 {
-  def constructComponent(state: GlobalState,
-                         postChoice: List[Post],
-                         graphChangesYes: GraphChanges): VNode = {
+  def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges
+
+  def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
     div(
-      postChoice.map(stylePost)(breakOut): List[VNode],
+      sourcePosts.map(stylePost)(breakOut): List[VNode],
+      targetPosts.map(stylePost)(breakOut): List[VNode],
+    )
+  }
+
+  def constructComponent(state: GlobalState,
+                         sourcePosts: Posts,
+                         targetPosts: Posts): VNode = {
+
+    val graphChanges = constructGraphChanges(state, sourcePosts, targetPosts)
+
+    div(
+      createPreviewNode(state, sourcePosts, targetPosts),
       div(
         button(positiveText,
-          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-          onClick --> sideEffect(scribe.info(s"$title($postChoice) = YES")),
+          onClick(graphChanges) --> ObserverSink(state.eventProcessor.enriched.changes),
+          onClick(TaskFeedback(true, true, graphChanges)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
-        button(negativeText,
-          onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
-          onClick --> sideEffect(scribe.info(s"$title($postChoice) = NO")),
+        button(negativeText, onClick(TaskFeedback(true, false, graphChanges)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
   }
 
-  def constructComponent(state: GlobalState,
-                         postDisplay: VNode,
-                         graphChangesYes: GraphChanges): VNode = {
-    div(
-      postDisplay,
-      div(
-        button(positiveText,
-          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
-          onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        ),
-        button(negativeText, onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging),
-        width := "100%",
-      )
-    )
-  }
+  def constructComponent(state: GlobalState, targetPosts: Posts): VNode =
+    constructComponent(state, List.empty[Post], targetPosts)
+
 }
 
 sealed trait AddTagTask extends RestructuringTask
 {
 
-  def constructComponent(sourcePosts: List[Post], targetPosts: List[Post], sink: Sink[String]): VNode = {
+  def constructGraphChanges(state: GlobalState, tag: String, sourcePosts: Posts, targetPosts: Posts): GraphChanges
 
-    val userInput = Handler.create[String].unsafeRunSync()
-    def textAreaWithEnterAndLog(actionSink: Sink[String]) = {
-      val clearHandler = userInput.map(_ => "")
-
-      textArea(
-        width := "100%",
-        value <-- clearHandler,
-        managed(actionSink <-- userInput),
-        onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e }.value.filter(_.nonEmpty) --> userInput
-      )
-    }
-
+  def createPreviewNode(state: GlobalState, tagField: VNode, sourcePosts: Posts, targetPosts: Posts): VNode = {
     div(
       sourcePosts.map(stylePost)(breakOut): List[VNode],
       targetPosts.map(stylePost)(breakOut): List[VNode],
+    )
+  }
+
+  private val userTagInput: Handler[String] = Handler.create[String].unsafeRunSync()
+
+  private def tagConnection(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): Sink[String] = {
+    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
+
+      val graphChanges = constructGraphChanges(state, tag, sourcePosts, targetPosts)
+
+      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, graphChanges))
+
+      graphChanges
+    }
+  }
+
+  private def tagArea(state: GlobalState,
+                      sourcePosts: Posts,
+                      targetPosts: Posts): VNode = {
+
+    val sink: Sink[String] = tagConnection(state, sourcePosts, targetPosts)
+
+    textAreaWithEnter(sink)(
+      Placeholders.newTag,
+      flex := "0 0 3em",
+      onChange.value --> userTagInput
+    )
+  }
+
+  def constructComponent(state: GlobalState,
+                         sourcePosts: Posts,
+                         targetPosts: Posts): VNode = {
+    val graphChanges = userTagInput
+      .map(tag => constructGraphChanges(state, tag, sourcePosts, targetPosts))
+      .startWith(Seq(GraphChanges.empty))
+
+    div(
+      createPreviewNode(state, tagArea(state, sourcePosts, targetPosts), sourcePosts, targetPosts),
       div(
-        textAreaWithEnterAndLog(sink)(
-          Placeholders.newTag,
-          flex := "0 0 3em",
+        button(positiveText,
+          onClick(graphChanges) --> ObserverSink(state.eventProcessor.enriched.changes),
+          onClick(graphChanges.map(TaskFeedback(true, true, _))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
-//        button(positiveText,
-//          onClick(TaskFeedback(true, true, userInput)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-//        ),
-        button(negativeText,
-          onClick(TaskFeedback(true, false, GraphChanges.empty)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        ),
+        button(
+          negativeText,
+          onClick(graphChanges.map(TaskFeedback(true, false, _))) --> RestructuringTaskGenerator.taskDisplayWithLogging),
         width := "100%",
       )
     )
   }
-  def constructComponent(sourcePosts: List[Post], sink: Sink[String]): VNode = {
-    constructComponent(sourcePosts, List.empty[Post], sink)
+
+  def constructComponent(state: GlobalState, targetPosts: Posts): VNode = {
+    constructComponent(state, List.empty[Post], targetPosts)
   }
+
 }
 
 // Multiple Post RestructuringTask
@@ -299,21 +321,36 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
       |Steht der erste Beitrag in Beziehung zu den Anderen?
     """.stripMargin
 
-  def constructGraphChanges(posts: Posts): GraphChanges = {
-    val source = posts.head
+  def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
+    val source = sourcePosts.head
     val connectionsToAdd = for {
-      t <- posts.drop(1) if t.id != source.id
+      t <- targetPosts if t.id != source.id
     } yield {
         Connection(source.id, Label("related"), t.id)
       }
     GraphChanges(addConnections = connectionsToAdd.toSet)
   }
 
-  def component(state: GlobalState): VNode = {
-    constructComponent(state,
-      posts,
-      constructGraphChanges(posts)
+  override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
+    div(
+      div(
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
+      ),
+      arrowDiv(100),
+      div(
+        targetPosts.map(stylePost)(breakOut): List[VNode],
+      ),
+      display := "flex",
+      flexDirection := "row",
+      flexWrap := "nowrap",
+      justifyContent := "center"
     )
+  }
+
+  def component(state: GlobalState): VNode = {
+    val (sourcePosts, targetPosts) = posts.splitAt(1)
+
+    constructComponent(state, sourcePosts, targetPosts)
   }
 }
 
@@ -359,34 +396,50 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
 
+  def constructGraphChanges(state: GlobalState,
+                            tag: String,
+                            sourcePosts: Posts,
+                            targetPosts: Posts): GraphChanges = {
 
-  def tagConnection(sourcePosts: List[Post],
-    targetPosts: List[Post],
-    state: GlobalState): Sink[String] = {
-    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
-      val tagConnections = for {
-        s <- sourcePosts
-        t <- targetPosts if s.id != t.id
-      } yield {
-        Connection(s.id, Label(tag), t.id)
-      }
+    scribe.info(s"construct graph changes: $tag, $sourcePosts, $targetPosts")
+    if(tag.isEmpty) return GraphChanges.empty
 
-      val changes = GraphChanges(
-        addConnections = tagConnections.toSet
-      )
-
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, changes))
-
-      changes
+    val tagConnections = for {
+      s <- sourcePosts
+      t <- targetPosts if s.id != t.id
+    } yield {
+      Connection(s.id, Label(tag), t.id)
     }
+
+    GraphChanges(
+      addConnections = tagConnections.toSet
+    )
+  }
+
+  override def createPreviewNode(state: GlobalState, tagField: VNode, sourcePosts: Posts, targetPosts: Posts): VNode = {
+    div(
+      div(
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
+      ),
+      div(
+        tagField,
+        "→"
+      ),
+      div(
+        targetPosts.map(stylePost)(breakOut): List[VNode],
+      ),
+      display := "flex",
+      flexDirection := "row",
+      flexWrap := "nowrap",
+      justifyContent := "center"
+    )
   }
 
   def component(state: GlobalState): VNode = {
-    val sourcePosts = posts.take(1)
-    val targetPosts = posts.slice(1, 2)
-
-    constructComponent(sourcePosts, targetPosts, tagConnection(sourcePosts, targetPosts, state))
+    val (sourcePosts, targetPosts) = posts.splitAt(1)
+    constructComponent(state, sourcePosts, targetPosts)
   }
+
 }
 
 object SameTopicPosts extends RestructuringTaskObject {
@@ -433,10 +486,10 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
       |Posts werden in diese Unterdiskussion verschoben.
     """.stripMargin
 
-  def constructGraphChanges(posts: Posts): GraphChanges = {
-    val target = posts.head
+  def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
+    val target = targetPosts.head
     val containmentsToAdd = for {
-      s <- posts.drop(1) if s.id != target.id
+      s <- sourcePosts if s.id != target.id
     } yield {
         Connection(s.id, Label.parent, target.id)
     }
@@ -444,11 +497,19 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
     GraphChanges(addConnections = containmentsToAdd.toSet)
   }
 
+  override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
+    val todo = """
+      |
+      |A, B =>  (A > B)
+      |
+    """.stripMargin
+    div(todo)
+  }
+
   def component(state: GlobalState): VNode = {
-    constructComponent(state,
-      posts,
-      constructGraphChanges(posts)
-    )
+    val (targetPosts, sourcePosts) = posts.splitAt(1)
+
+    constructComponent(state, sourcePosts, targetPosts)
   }
 }
 
@@ -488,11 +549,26 @@ case class MergePosts(posts: Posts) extends YesNoTask
       |Ist die (inhaltliche) Aussage der beiden Posts gleich?
     """.stripMargin
 
-  def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
-    val target = posts.head
-    val postsToDelete = posts.drop(1)
+  def mergePosts(mergeTarget: Post, source: Post): Post = {
+    mergeTarget.copy(content = mergeTarget.content + "\n" + source.content)
+  }
+
+  def changePreview = {
+    //    val postA = Post("A", "unknown")
+    //    val postB = Post("B", "unknown")
+
+    """
+      |A \
+      |   | => A B
+      |B /
+    """.stripMargin
+  }
+
+  def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
+    val graph = getGraphFromState(state)
+    val target = targetPosts.head
     val postsToUpdate = for {
-      source <- postsToDelete if source.id != target.id
+      source <- sourcePosts if source.id != target.id
     } yield {
       (mergePosts(target, source), transferChildrenAndParents(graph, source.id, target.id))
     }
@@ -500,18 +576,25 @@ case class MergePosts(posts: Posts) extends YesNoTask
     GraphChanges(
       addConnections = postsToUpdate.flatMap(_._2).toSet,
       updatePosts = postsToUpdate.map(_._1).toSet,
-      delPosts = postsToDelete.map(_.id).toSet)
+      delPosts = sourcePosts.map(_.id).toSet)
   }
 
-  def mergePosts(mergeTarget: Post, source: Post): Post = {
-    mergeTarget.copy(content = mergeTarget.content + "\n" + source.content)
+  override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
+    div(
+      div(
+        stylePost(sourcePosts.foldLeft(targetPosts.head)(mergePosts),
+        ),
+        display := "flex",
+        flexDirection := "row",
+        flexWrap := "nowrap",
+        justifyContent := "center"
+      )
+    )
   }
 
   def component(state: GlobalState): VNode = {
-    constructComponent(state,
-      posts,
-      constructGraphChanges(getGraphFromState(state), posts)
-    )
+    val (targetPosts, sourcePosts) = posts.splitAt(1)
+    constructComponent(state, sourcePosts, targetPosts)
   }
 }
 
@@ -557,11 +640,15 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
       |Dafür wird lediglich der erste Post beibehalten, während die anderen gelöscht werden.
     """.stripMargin
 
-  def constructGraphChanges(graph: Graph, posts: Posts): GraphChanges = {
-    val target = posts.head
-    val postsToDelete = posts.drop(1)
+  def unifyPosts(unifyTarget: Post, post: Post): Post = {
+    unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
+  }
+
+  def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
+    val graph = getGraphFromState(state)
+    val target = targetPosts.head
     val postsToUpdate = for {
-      source <- posts.drop(1) if source.id != target.id
+      source <- sourcePosts if source.id != target.id
     } yield {
       (unifyPosts(target, source), transferChildrenAndParents(graph, source.id, target.id))
     }
@@ -569,18 +656,25 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
     GraphChanges(
       addConnections = postsToUpdate.flatMap(_._2).toSet,
       updatePosts = postsToUpdate.map(_._1).toSet,
-      delPosts = postsToDelete.map(_.id).toSet)
+      delPosts = sourcePosts.map(_.id).toSet)
   }
 
-  def unifyPosts(unifyTarget: Post, post: Post): Post = {
-    unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
+  override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
+    div(
+      div(
+        stylePost(sourcePosts.foldLeft(targetPosts.head)(unifyPosts),
+        ),
+        display := "flex",
+        flexDirection := "row",
+        flexWrap := "nowrap",
+        justifyContent := "center"
+      )
+    )
   }
 
   def component(state: GlobalState): VNode = {
-    constructComponent(state,
-      posts,
-      constructGraphChanges(getGraphFromState(state), posts)
-    )
+    val (targetPosts, sourcePosts) = posts.splitAt(1)
+    constructComponent(state, sourcePosts, targetPosts)
   }
 }
 
@@ -618,11 +712,14 @@ case class DeletePosts(posts: Posts) extends YesNoTask
       |Ist der angegebene Beitrag irrelevant für die Diskussion (z.B. Floskel / Spam)?
     """.stripMargin
 
+  def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
+    GraphChanges(delPosts = targetPosts.map(_.id).toSet)
+  }
+
+//  override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = div("TODO")
+
   def component(state: GlobalState): VNode = {
-    constructComponent(state,
-      posts,
-      GraphChanges(delPosts = posts.map(_.id).toSet)
-    )
+    constructComponent(state, posts)
   }
 }
 
@@ -675,12 +772,20 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       |Eine Einheit vor dem Markierung, eine Einheit für die Markierung und eine nach der Markierung unterteilt.
     """.stripMargin
 
+  def changePreview = {
+    """
+      |      A1
+      |A =>  A2
+      |      A3
+    """.stripMargin
+  }
+
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
     Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now.id))
   }
 
-  def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): List[Post] = {
+  def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): Posts = {
     val selection = window.getSelection()
     if(selection.rangeCount > 1)// what about multiple Selections?
       return List(originalPost)
@@ -701,7 +806,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     List(before, middle, after).flatten
   }
 
-  def generateGraphChanges(originalPosts: List[Post], previewPosts: List[List[Post]], graph: Graph): GraphChanges = {
+  def generateGraphChanges(originalPosts: Posts, previewPosts: List[Posts], graph: Graph): GraphChanges = {
 
     if(previewPosts.isEmpty) return GraphChanges.empty
 
@@ -717,7 +822,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
   def component(state: GlobalState): VNode = {
     val splitPost = posts.take(1)
-    val postPreview = Handler.create[List[List[Post]]](List(splitPost)).unsafeRunSync()
+    val postPreview = Handler.create[List[Posts]](List(splitPost)).unsafeRunSync()
 
     div(
       div(
@@ -796,32 +901,49 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       |Sie können den Tag bestätigen indem Sie Enter drücken.
     """.stripMargin
 
-  def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
+  def changePreview = {
+    """
+      |
+      |A =>  tag(A)
+      |
+    """.stripMargin
+  }
 
-    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
-      val graph = getGraphFromState(state)
-      val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
-        case None =>
-          val newTag = Post(PostId.fresh, tag, state.inner.currentUser.now.id)
-          val newParent = state.inner.page.now.parentIds
-          val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
-          GraphChanges(
-            addPosts = Set(newTag),
-            addConnections = newParent.map(parent => Connection(newTag.id, Label.parent, parent)) ++ postTag
-          )
-        case Some(t) =>
-          post.map(p => GraphChanges.connect(p.id, Label.parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
-      }
+  override def constructGraphChanges(state: GlobalState,
+                                     tag: String,
+                                     sourcePosts: Posts,
+                                     targetPosts: Posts): GraphChanges = {
 
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, tagPostWithParents))
+    val graph = getGraphFromState(state)
 
-      tagPostWithParents
+    val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
+      case None =>
+        val newTag = Post(PostId.fresh, tag, state.inner.currentUser.now.id)
+        val newParent = state.inner.page.now.parentIds
+        val postTag = targetPosts.map(p => Connection(p.id, Label.parent, newTag.id))
+        GraphChanges(
+          addPosts = Set(newTag),
+          addConnections = newParent.map(parent => Connection(newTag.id, Label.parent, parent)) ++ postTag
+        )
+      case Some(t) =>
+        targetPosts.map(p => GraphChanges.connect(p.id, Label.parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
     }
+
+    tagPostWithParents
+  }
+
+  override def createPreviewNode(state: GlobalState,
+                                 tagField: VNode,
+                                 sourcePosts: Posts,
+                                 targetPosts: Posts): VNode = {
+    div(
+      "TODO",
+      tagField,
+    )
   }
 
   def component(state: GlobalState): VNode = {
-    val postsToTag = posts
-    constructComponent(postsToTag, addTagToPost(postsToTag, state))
+    constructComponent(state, posts)
   }
 }
 
@@ -830,13 +952,13 @@ object RestructuringTaskGenerator {
   // Tasks for study
   val tasks: List[RestructuringTaskObject] = List(
     AddTagToPosts,
-    DeletePosts,
-    //    ConnectPosts,
+    ConnectPosts,
     ConnectPostsWithTag,
-    SameTopicPosts,
+    DeletePosts,
     MergePosts,
+    SameTopicPosts,
     SplitPosts,
-    //    UnifyPosts,
+    UnifyPosts,
   )
 
   val taskDisplayWithLogging: Handler[TaskFeedback] = Handler.create[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty)).unsafeRunSync()
@@ -907,15 +1029,26 @@ object RestructuringTaskGenerator {
         initState = Some(globalState)
 
         def mapPid(pids: List[PostId]): PostHeuristicType = {
-          val posts: List[Post] = pids.map(pid => initGraph.postsById(pid))
+          val posts: Posts = pids.map(pid => initGraph.postsById(pid))
           val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
           h
         }
 
-
         def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
-        //        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
-        //          (for(p <- initGraph.postIds) yield mapTask(SplitPosts, List(PostId(p)))).toList
+
+        // DEBUG purpose
+//        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
+//          mapTask(AddTagToPosts, List(PostId("111"))),
+//          mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
+//          mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
+//          mapTask(DeletePosts, List(PostId("111"))),
+//          mapTask(MergePosts, List(PostId("111"), PostId("112"))),
+//          mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
+//          mapTask(SplitPosts, List(PostId("111"))),
+//          mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
+//        )
+//        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
+//                  (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
 
         val tmpStudyTaskList = List(
           mapTask(DeletePosts,          List(PostId("107"))),                 //11
