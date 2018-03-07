@@ -465,7 +465,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     """
       |Wie würden Sie die Beziehung des ersten Beitrags mit dem Zweiten beschreiben?
       |
-      |Geben Sie einen Tag ein, der dessen Beziehung in ein bis zwei Worten beschreibt.
+      |Geben Sie einen Tag (Label / Relation) ein, der dessen Beziehung in ein bis zwei Worten beschreibt.
       |
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
@@ -857,7 +857,7 @@ case class DeletePosts(posts: Posts) extends YesNoTask
 {
   val title = "Delete Post"
   val positiveText: String = "Löschen"
-  val negativeText: String = "Beibehalten"
+  val negativeText: String = "Nicht löschen"
   val taskImg: VNode = img(src := "delete.png")
   val descriptionEng: String =
     """
@@ -903,7 +903,7 @@ object SplitPosts extends RestructuringTaskObject {
 case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
-  val positiveText: String = "Teilen"
+  val positiveText: String = "Aufteilung bestätigen"
   val negativeText: String = "Nicht teilen"
   val taskImg: VNode = img(src := "split.png")
   val descriptionEng: String =
@@ -1049,7 +1049,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 {
   val title = "Add tag to post"
   val positiveText: String = "Kategorisieren"
-  val negativeText: String = "Abbrechen"
+  val negativeText: String = "Nicht kategorsieren"
   val taskImg: VNode = img(src := "tag.png")
   val descriptionEng: String =
     """
@@ -1063,7 +1063,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
   val descriptionGer: String =
     """
       |Wie würden Sie den Beitrag kategorisieren?
-      |Fügen Sie einen Tag hinzu.
+      |Fügen Sie einen Tag (Label / Kategorie) hinzu.
       |
       |Damit kategorisieren Sie den Beintrag innerhalb der aktuellen Diskussion.
       |
@@ -1211,91 +1211,102 @@ object RestructuringTaskGenerator {
 
     private var _studyTaskList = Future.successful(List.empty[RestructuringTask])
 
-  def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
+    def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
 
-    if(feedback.displayNext) {
-      if(!initLoad) {
-        initLoad = true
-        initGraph = globalState.inner.displayGraphWithParents.now.graph
-        initState = Some(globalState)
+      if(feedback.displayNext) {
+        if(!initLoad) {
+          initLoad = true
+          initGraph = globalState.inner.displayGraphWithParents.now.graph
+          initState = Some(globalState)
 
-        def mapPid(pids: List[PostId]): PostHeuristicType = {
-          val posts: Posts = pids.map(pid => initGraph.postsById(pid))
-          val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
-          h
+          def mapPid(pids: List[PostId]): PostHeuristicType = {
+            val posts: Posts = pids.map(pid => initGraph.postsById(pid))
+            val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
+            h
+          }
+
+          def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
+
+          // val graph = globalState.inner.displayGraphWithoutParents.now.graph
+          // val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
+          //   AddTagToPosts.applyStrategically(graph),
+          //   ConnectPostsWithTag.applyStrategically(graph),
+          //   DeletePosts.applyStrategically(graph),
+          //   MergePosts.applyStrategically(graph),
+          //   SameTopicPosts.applyStrategically(graph),
+          //   SplitPosts.applyStrategically(graph),
+          //   // ConnectPosts.applyStrategically(graph),
+          //   // UnifyPosts.applyStrategically(graph),
+          //   )
+          // DEBUG purpose
+          // val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
+          //   mapTask(AddTagToPosts, List(PostId("111"))),
+          //   mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
+          //   mapTask(DeletePosts, List(PostId("111"))),
+          //   mapTask(MergePosts, List(PostId("111"), PostId("112"))),
+          //   mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
+          //   mapTask(SplitPosts, List(PostId("111"))),
+          // mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
+          // mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
+          // )
+          // val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
+          //           (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
+
+          val tmpStudyTaskList = List(
+            mapTask(DeletePosts,          List(PostId("107"))),                 //11
+            mapTask(SplitPosts,           List(PostId("108"))),                 //18
+            mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7
+            mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
+            mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9
+            mapTask(SplitPosts,           List(PostId("103"))),                 //16
+            mapTask(DeletePosts,          List(PostId("109"))),                 //12
+            mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
+            mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
+            mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
+            mapTask(SplitPosts,           List(PostId("101"))),                 //17
+            mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8
+            mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
+            mapTask(DeletePosts,          List(PostId("106"))),                 //10
+            mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
+            mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
+            mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
+            mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
+            )
+
+          _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
         }
 
-        def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
-
-        // DEBUG purpose
-//        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
-//          mapTask(AddTagToPosts, List(PostId("111"))),
-//          mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
-//          mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
-//          mapTask(DeletePosts, List(PostId("111"))),
-//          mapTask(MergePosts, List(PostId("111"), PostId("112"))),
-//          mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
-//          mapTask(SplitPosts, List(PostId("111"))),
-//          mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
-//        )
-//        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
-//                  (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
-
-        val tmpStudyTaskList = List(
-          mapTask(DeletePosts,          List(PostId("107"))),                 //11
-          mapTask(SplitPosts,           List(PostId("108"))),                 //18
-          mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7
-          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
-          mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9
-          mapTask(SplitPosts,           List(PostId("103"))),                 //16
-          mapTask(DeletePosts,          List(PostId("109"))),                 //12
-          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
-          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
-          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
-          mapTask(SplitPosts,           List(PostId("101"))),                 //17
-          mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8
-          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
-          mapTask(DeletePosts,          List(PostId("106"))),                 //10
-          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
-          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
-          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
-          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
-        )
-
-        _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
-      }
-
-      _studyTaskList.foreach { tasks =>
-        if (_studyTaskIndex > 0) {
-          val taskTitle = tasks(_studyTaskIndex - 1).title
-          val str = s"RESTRUCTURING TASKS ${_studyTaskIndex} LOG -> ${if(feedback.taskAnswer) "YES" else "NO"}: $taskTitle -> ${feedback.graphChanges}"
+        _studyTaskList.foreach { tasks =>
+          if (_studyTaskIndex > 0) {
+            val taskTitle = tasks(_studyTaskIndex - 1).title
+            val str = s"RESTRUCTURING TASKS ${_studyTaskIndex} LOG -> ${if(feedback.taskAnswer) "YES" else "NO"}: $taskTitle -> ${feedback.graphChanges}"
             scribe.info(str)
             Client.api.log(str)
+          }
         }
-      }
 
-      val doRenderThis: Future[VNode] = _studyTaskList.map { list =>
-        if (_studyTaskIndex >= list.size) {
-          _studyTaskIndex = 0
-          scribe.info("All tasks are finished")
-          renderButton(activateTasks = false)
-        } else {
-          val dom = div(
-            renderButton(activateTasks = true),
-            list(_studyTaskIndex).render(initState.get)
-          )
-          _studyTaskIndex = _studyTaskIndex + 1
-          dom
+        val doRenderThis: Future[VNode] = _studyTaskList.map { list =>
+          if (_studyTaskIndex >= list.size) {
+            _studyTaskIndex = 0
+            scribe.info("All tasks are finished")
+            renderButton(activateTasks = false)
+          } else {
+            val dom = div(
+              renderButton(activateTasks = true),
+              list(_studyTaskIndex).render(initState.get)
+            )
+            _studyTaskIndex = _studyTaskIndex + 1
+            dom
+          }
         }
+
+        div(
+          child <-- Observable.fromFuture(doRenderThis)
+        )
+
+      } else {
+        _studyTaskIndex = _studyTaskIndex - 1
+        renderButton(activateTasks = false)
       }
-
-      div(
-        child <-- Observable.fromFuture(doRenderThis)
-      )
-
-    } else {
-      _studyTaskIndex = _studyTaskIndex - 1
-      renderButton(activateTasks = false)
     }
-  }
 }
