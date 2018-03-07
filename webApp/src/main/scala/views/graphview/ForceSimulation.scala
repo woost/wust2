@@ -425,7 +425,7 @@ object ForceSimulation {
       post
         .text((post:Post) => post.content)
         .style("width", (post: Post) => calcPostWidth(post).getOrElse(js.undefined))
-        .on("click", onClick)
+        .on("click", onClick) //TODO: does d3 provide a wrong index?
     }
 
     time(log(s"adding new posts to dom[${post.enter().size()}]")) {
