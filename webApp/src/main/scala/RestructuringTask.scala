@@ -1228,39 +1228,39 @@ object RestructuringTaskGenerator {
         def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
 
         // DEBUG purpose
-        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
-          mapTask(AddTagToPosts, List(PostId("111"))),
-          mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
-          mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
-          mapTask(DeletePosts, List(PostId("111"))),
-          mapTask(MergePosts, List(PostId("111"), PostId("112"))),
-          mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
-          mapTask(SplitPosts, List(PostId("111"))),
-          mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
-        )
+//        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] = List(
+//          mapTask(AddTagToPosts, List(PostId("111"))),
+//          mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
+//          mapTask(ConnectPostsWithTag, List(PostId("111"), PostId("112"))),
+//          mapTask(DeletePosts, List(PostId("111"))),
+//          mapTask(MergePosts, List(PostId("111"), PostId("112"))),
+//          mapTask(SameTopicPosts, List(PostId("111"), PostId("112"))),
+//          mapTask(SplitPosts, List(PostId("111"))),
+//          mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
+//        )
 //        val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
 //                  (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
 
-//        val tmpStudyTaskList = List(
-//          mapTask(DeletePosts,          List(PostId("107"))),                 //11
-//          mapTask(SplitPosts,           List(PostId("108"))),                 //18
-//          mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7
-//          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
-//          mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9
-//          mapTask(SplitPosts,           List(PostId("103"))),                 //16
-//          mapTask(DeletePosts,          List(PostId("109"))),                 //12
-//          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
-//          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
-//          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
-//          mapTask(SplitPosts,           List(PostId("101"))),                 //17
-//          mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8
-//          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
-//          mapTask(DeletePosts,          List(PostId("106"))),                 //10
-//          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
-//          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
-//          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
-//          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
-//        )
+        val tmpStudyTaskList = List(
+          mapTask(DeletePosts,          List(PostId("107"))),                 //11
+          mapTask(SplitPosts,           List(PostId("108"))),                 //18
+          mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7
+          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
+          mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9
+          mapTask(SplitPosts,           List(PostId("103"))),                 //16
+          mapTask(DeletePosts,          List(PostId("109"))),                 //12
+          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
+          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
+          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
+          mapTask(SplitPosts,           List(PostId("101"))),                 //17
+          mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8
+          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
+          mapTask(DeletePosts,          List(PostId("106"))),                 //10
+          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
+          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
+          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
+          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
+        )
 
         _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
       }
