@@ -356,24 +356,27 @@ object MainView {
   //
   def sidebar(state: GlobalState): VNode = {
     div(
-      backgroundColor <-- state.pageStyle.map(_.darkBgColor),
-      padding := "15px",
-      color := "white",
-      titleBanner,
-      br(),
-      userStatus(state),
-      br(),
-      dataImport(state),
-      br(),
       child <-- RestructuringTaskGenerator.renderStudy(state),
-      br(),
-      channels(state),
-      br(),
-      settingsButton(state),
-      br(),
-      br(),
-      syncStatus(state)
-    )
+      )
+    // div(
+    //   backgroundColor <-- state.pageStyle.map(_.darkBgColor),
+    //   padding := "15px",
+    //   color := "white",
+    //   titleBanner,
+    //   br(),
+    //   userStatus(state),
+    //   br(),
+    //   dataImport(state),
+    //   br(),
+    //   child <-- RestructuringTaskGenerator.renderStudy(state),
+    //   br(),
+    //   channels(state),
+    //   br(),
+    //   settingsButton(state),
+    //   br(),
+    //   br(),
+    //   syncStatus(state)
+    // )
   }
 
   def settingsButton(state: GlobalState): VNode = {
@@ -423,6 +426,7 @@ object MainView {
   def apply(state: GlobalState, disableSimulation: Boolean = false)(implicit owner: Ctx.Owner): VNode = {
     div(
       height := "100%",
+//      child <-- RestructuringTaskGenerator.renderStudy(state),
       div(
 //              height := "100%",
         id := "pagegrid",
