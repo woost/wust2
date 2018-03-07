@@ -59,7 +59,8 @@ object Main {
       val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
       if (changes.addPosts.nonEmpty) {
         val msg = if (changes.addPosts.size == 1) "New Post" else s"New Post (${changes.addPosts.size})"
-        Notifications.serviceWorkerNotify(msg, Some(changes.addPosts.map(_.content).mkString(", ")))
+        val body = changes.addPosts.map(_.content).mkString(", ")
+        Notifications.notify(msg, body = Some(body), tag = Some("new-post"))
       }
     }
 
