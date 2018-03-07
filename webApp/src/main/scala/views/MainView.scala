@@ -1,22 +1,16 @@
 package wust.webApp.views
 
-import wust.utilWeb._
-import wust.utilWeb.views._
-import wust.sdk.{ChangesHistory, SyncMode}
-import wust.webApp._
 import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.dsl.events.window
 import rx._
-import wust.api._
-import wust.utilWeb.Color._
-import wust.webApp.views.graphview.GraphView
-import wust.utilWeb.Analytics
-import wust.utilWeb.outwatchHelpers._
-import outwatch.dom.dsl.styles.extra._
-import outwatch.ObserverSink
 import wust.graph.{GraphChanges, Page, Post}
+import wust.utilWeb.Color._
+import wust.utilWeb.{Analytics, _}
+import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.views._
+import wust.webApp._
+import wust.webApp.views.graphview.GraphView
 
 object MainView {
   import MainViewParts._
@@ -47,10 +41,14 @@ object MainView {
 
   def newGroupButton(state: GlobalState) = {
     button("new group", onClick --> sideEffect{ _ =>
-      val post = Post("new group", state.inner.currentUser.now.id)
-      state.eventProcessor.enriched.changes.onNext(GraphChanges.addPost(post))
-      Client.api.addCurrentUserAsMember(post.id)
-      state.inner.page() = Page.Union(Set(post.id))
+      val post = Post("new group " + scala.util.Random.alphanumeric.take(5).mkString, state.inner.currentUser.now.id)
+      for {
+        _ <- state.eventProcessor.enriched.changes.onNext(GraphChanges.addPost(post))
+        _ <- Client.api.addCurrentUserAsMember(post.id)
+      } {
+        state.inner.page() = Page.Union(Set(post.id))
+      }
+
       ()
     })
   }
