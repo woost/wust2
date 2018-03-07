@@ -581,12 +581,12 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
   override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
     div(
       div(
-        sourcePosts.map(stylePost)(breakOut): List[VNode],
+        targetPosts.map(stylePost)(breakOut): List[VNode],
         padding := "2px 3px",
         flex := "1",
       ),
       div(
-        targetPosts.map(stylePost)(breakOut): List[VNode],
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
         padding := "2px 3px",
         flex := "1",
       ),
@@ -1006,7 +1006,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
           onClick(postPreview.map(ll => ll.takeRight(2).take(1))) --> postPreview,
         ),
         button(
-          "Reset",
+          "Zurücksetzen",
           onClick(List(splitPost)) --> postPreview,
           marginLeft := "10px",
         ),
