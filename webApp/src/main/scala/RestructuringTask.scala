@@ -457,7 +457,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     """
       |How would you tag the relation between the first post and the others?
       |
-      |Enter a tag that describes their relation!
+      |Enter a tag that describes their relation.
       |
       |You can just type any tag and press Enter to confirm the tag.
     """.stripMargin
@@ -465,7 +465,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     """
       |Wie würden Sie die Beziehung des ersten Beitrags mit dem Zweiten beschreiben?
       |
-      |Geben Sie einen Tag ein, der dessen Beziehung in ein bis zwei Worten beschreibt!
+      |Geben Sie einen Tag ein, der dessen Beziehung in ein bis zwei Worten beschreibt.
       |
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
@@ -562,8 +562,6 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
   val descriptionGer: String =
     """
       |Startet der erste Beitrag eine neue Unterdiskussion, zu welcher der zweite Beitrag dazugehört?
-      |
-      |Beziehungsweise: Folget der zweite Beitrag dem ersten Beitrag inhaltlich?
       |
       |Falls ja, so repräsentiert der erste Beitrag eine Unterdiskussion innerhalb der aktuellen Diskussion und
       |der zweite Beitrag wird in diese Unterdiskussion verschoben.
@@ -1056,7 +1054,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
   val descriptionEng: String =
     """
       |How would you describe this post?
-      |Please add a tag!
+      |Please add a tag.
       |
       |This will categorize the post within this discussion.
       |
@@ -1152,6 +1150,8 @@ object RestructuringTaskGenerator {
     UnifyPosts,
   )
 
+  //TrimTask -> delete empty phrases in post
+
   val taskDisplayWithLogging: Handler[TaskFeedback] = Handler.create[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty)).unsafeRunSync()
 
   def renderButton(activateTasks: Boolean): VNode = {
@@ -1169,7 +1169,7 @@ object RestructuringTaskGenerator {
 
   def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
 
-    scribe.info(s"display task! ${feedback.toString}")
+    scribe.info(s"display task ${feedback.toString}")
     Client.api.log(feedback.toString)
     if(feedback.displayNext) {
       div(
