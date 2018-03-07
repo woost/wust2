@@ -179,7 +179,7 @@ lazy val utilWeb = project
       Deps.scalarx.value ::
       Deps.outwatch.value ::
       Deps.monocle.value ::
-      Deps.d3v4.value :: //TODO should not depend on d3 (just because of Colors)
+      Deps.colorado.value ::
       Deps.circe.core.value ::
       Deps.circe.generic.value ::
       Deps.circe.parser.value ::
