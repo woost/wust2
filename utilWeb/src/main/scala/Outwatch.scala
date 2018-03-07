@@ -24,6 +24,7 @@ import scala.scalajs.js
 // observable.filter does not accept partial functions.filter{case (_,text) => text.nonEmpty}
 //
 
+//TODO nicer name
 package object outwatchHelpers {
   implicit val monixScheduler: Scheduler = Scheduler.trampoline(executionModel = SynchronousExecution)
 
