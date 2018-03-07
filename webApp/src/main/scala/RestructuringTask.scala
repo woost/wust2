@@ -117,18 +117,21 @@ sealed trait RestructuringTask {
         width := s"${arrowLengthPixel}px",
       ),
       textAlign := "center",
+      margin := "0 3px",
     )
   }
 
   def stylePost(post: Post): VNode = div(
-      mdHtml(post.content),
-      color.black,
-      maxWidth := "80ch",
-      backgroundColor := "#eee",
-      padding := "5px 10px",
-      borderRadius := "7px",
-      border := "1px solid gray",
-      margin := "5px 0px",
+    mdHtml(post.content),
+    textAlign.left,
+    color.black,
+    maxWidth := "80ch",
+    backgroundColor := "#eee",
+    padding := "5px 10px",
+    borderRadius := "7px",
+    border := "0",
+    boxShadow := "0 2px 6px 0 gray",
+    margin := "5px auto",
   )
 
   def render(state: GlobalState): VNode = {
@@ -140,7 +143,7 @@ sealed trait RestructuringTask {
           backgroundColor := "#70db70",
         ),
         div( //content
-          div(
+          div( //Headline
             div(
               "Kalt duschen",
               fontWeight.bold,
@@ -155,9 +158,10 @@ sealed trait RestructuringTask {
               float.right,
             ),
             width := "100%",
-            backgroundColor := "rgb(0.4, 0.4, 0.4)",
+            padding := "20px 4px",
+            clear.both,
           ),
-          div(
+          div( //Task description
             div(
               taskImg,
               flex := "0",
@@ -169,16 +173,21 @@ sealed trait RestructuringTask {
               flex := "1",
             ),
             display := "flex",
-            alignItems := "flex-start",
             flexDirection := "row",
             flexWrap := "nowrap",
+            alignItems := "center",
+            justifyContent := "center",
+            padding := "20px 4px",
+            margin := "auto",
             clear.both,
           ),
-          div(
+          div( //Task component
             component(state),
             borderTop := "2px dotted",
+            padding := "20px 4px",
+            width := "100%",
           ),
-          padding := "2px 16px",
+          padding := "20px 16px",
           color := "black",
         ),
         div(//footer
@@ -190,9 +199,11 @@ sealed trait RestructuringTask {
         position.fixed,
         left := "0",
         right := "0",
-        bottom := "0",
+        bottom := "20px",
         margin := "0 auto",
-        boxShadow := "0 4px 8px 0 rgba(0, 0, 0, e0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
+        borderRadius := "7px",
+        border := "0",
+        boxShadow := "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.2)",
         backgroundColor := "white",
       ),
       display.block,
@@ -246,8 +257,11 @@ sealed trait YesNoTask extends RestructuringTask
         confirmButton(state, graphChanges),
         abortButton(graphChanges),
         width := "100%",
-        textAlign := "center",
-      )
+        padding := "20px 4px",
+      ),
+      width := "100%",
+      margin := "auto",
+      textAlign := "center",
     )
   }
 
@@ -288,7 +302,7 @@ sealed trait AddTagTask extends RestructuringTask
     val sink: Sink[String] = tagConnection(state, sourcePosts, targetPosts)
 
     textAreaWithEnter(sink)(
-      "Bitte Tag eingeben",
+      placeholder := "Bitte Tag eingeben",
       flex := "0 0 2em",
       width := "20ch",
       rows := 1,
@@ -325,8 +339,11 @@ sealed trait AddTagTask extends RestructuringTask
         confirmButton(state, graphChanges),
         abortButton(graphChanges),
         width := "100%",
-        textAlign := "center",
-      )
+        padding := "20px 4px",
+      ),
+      width := "100%",
+      margin := "auto",
+      textAlign := "center",
     )
   }
 
@@ -371,7 +388,7 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Steht der erste Beitrag in Beziehung zu den Anderen?
+      |Steht der erste Beitrag in Beziehung zu dem Anderen?
     """.stripMargin
 
   def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
@@ -385,7 +402,6 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
   }
 
   override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
-    val arrowWidth = 120 //px
     div(
       div(
         sourcePosts.map(stylePost)(breakOut): List[VNode],
@@ -447,9 +463,9 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Wie würden Sie die Beziehung des ersten Beitrags mit den Weiteren beschreiben?
+      |Wie würden Sie die Beziehung des ersten Beitrags mit dem Zweiten beschreiben?
       |
-      |Geben Sie einen Tag ein, der dessen Beziehung in einem Wort beschreibt!
+      |Geben Sie einen Tag ein, der dessen Beziehung in ein bis zwei Worten beschreibt!
       |
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
@@ -542,14 +558,15 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
       |If so, the first post represents a new thread within the current discussion and the later posts will be moved
       |into this thread.
     """.stripMargin
+  //      |Beschreibt der erste Beitrag ein eigenes Thema, dem der zweite Beitrag zugeordnet werden sollen?
   val descriptionGer: String =
     """
-      |Beschreibt der erste Beitrag ein eigenes Thema, dem die weiteren Beiträge zugeordnet werden sollen?
+      |Startet der erste Beitrag eine neue Unterdiskussion, zu welcher der zweite Beitrag dazugehört?
       |
-      |Beziehungsweise: Folgen die weiteren Beiträge dem ersten Beitrag inhaltlich?
+      |Beziehungsweise: Folget der zweite Beitrag dem ersten Beitrag inhaltlich?
       |
-      |Falls ja, so repräsentiert der erste Post eine Unterdiskussion innerhalb der aktuellen Diskussion und die weitern
-      |Posts werden in diese Unterdiskussion verschoben.
+      |Falls ja, so repräsentiert der erste Beitrag eine Unterdiskussion innerhalb der aktuellen Diskussion und
+      |der zweite Beitrag wird in diese Unterdiskussion verschoben.
     """.stripMargin
 
   def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
@@ -567,14 +584,52 @@ case class SameTopicPosts(posts: Posts) extends YesNoTask
     div(
       div(
         sourcePosts.map(stylePost)(breakOut): List[VNode],
+        padding := "2px 3px",
+        flex := "1",
       ),
       div(
         targetPosts.map(stylePost)(breakOut): List[VNode],
+        padding := "2px 3px",
+        flex := "1",
+      ),
+      div(
+        arrowDiv(),
+        textAlign := "center",
+        margin := "auto",
+      ),
+      div(
+        div(
+          mdHtml(targetPosts.head.content),
+          textAlign.left,
+          color.black,
+          maxWidth := "80ch",
+          backgroundColor := "#eee",
+          padding := "5px 10px",
+          borderRadius := "7px",
+          border := "0",
+          boxShadow := "0 2px 6px 0 gray",
+          margin := "5px auto",
+          div(
+            mdHtml(sourcePosts.head.content),
+            textAlign.left,
+            color.black,
+            maxWidth := "80ch",
+            backgroundColor := "#eee",
+            padding := "5px 10px",
+            borderRadius := "7px",
+            border := "0",
+            boxShadow := "0 2px 6px 0 gray",
+            margin := "5px auto",
+          ),
+        ),
+        padding := "2px 3px",
+        flex := "1",
       ),
       display := "flex",
       flexDirection := "row",
       flexWrap := "nowrap",
-      justifyContent := "center"
+      alignItems := "center",
+      justifyContent := "center",
     )
   }
 
@@ -619,11 +674,11 @@ case class MergePosts(posts: Posts) extends YesNoTask
     """.stripMargin
   val descriptionGer: String =
     """
-      |Ist die (inhaltliche) Aussage der beiden Posts gleich?
+      |Ist die (inhaltliche) Aussage der beiden Beiträge gleich?
     """.stripMargin
 
   def mergePosts(mergeTarget: Post, source: Post): Post = {
-    mergeTarget.copy(content = mergeTarget.content + "\n" + source.content)
+    mergeTarget.copy(content = mergeTarget.content + "\n\n" + source.content)
   }
 
   def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
@@ -645,25 +700,28 @@ case class MergePosts(posts: Posts) extends YesNoTask
     div(
       div(
         targetPosts.map(stylePost)(breakOut): List[VNode],
-        sourcePosts.map(stylePost)(breakOut): List[VNode],
+        padding := "2px 3px",
         flex := "1",
       ),
       div(
-        div(
-          confirmButton(state, constructGraphChanges(state, sourcePosts, targetPosts)),
-          paddingBottom := "3px",
-        ),
-        arrowDiv(arrowLengthPixel = 250, arrowHeight = 30, arrowLineHeight = 6),
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
+        padding := "2px 3px",
+        flex := "1",
+      ),
+      div(
+        arrowDiv(),
         textAlign := "center",
         margin := "auto",
       ),
       div(
         stylePost(sourcePosts.foldLeft(targetPosts.head)(mergePosts)),
+        padding := "2px 3px",
         flex := "1",
       ),
       display := "flex",
       flexDirection := "row",
       flexWrap := "nowrap",
+      alignItems := "center",
       justifyContent := "center",
       width := "100%",
     )
@@ -711,15 +769,15 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
     """.stripMargin
   val descriptionGer: String =
     """
-      |Sind die Posts inhaltlich identisch und somit redundant?
+      |Sind die Beiträge inhaltlich identisch und somit redundant?
       |
-      |Falls ja - so werden die Posts vereint.
+      |Falls ja - so werden die Beiträge vereint.
       |
-      |Dafür wird lediglich der erste Post beibehalten, während die anderen gelöscht werden.
+      |Dafür wird lediglich der erste Beitrag beibehalten, während die anderen gelöscht werden.
     """.stripMargin
 
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
-    unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
+    unifyTarget.copy(content = unifyTarget.content + "\n\n" + post.content)
   }
 
   def constructGraphChanges(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): GraphChanges = {
@@ -740,13 +798,35 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
   override def createPreviewNode(state: GlobalState, sourcePosts: Posts, targetPosts: Posts): VNode = {
     div(
       div(
-        stylePost(sourcePosts.foldLeft(targetPosts.head)(unifyPosts),
+        targetPosts.map(stylePost)(breakOut): List[VNode],
+        padding := "2px 3px",
+        flex := "1",
+      ),
+      div(
+        sourcePosts.map(stylePost)(breakOut): List[VNode],
+        padding := "2px 3px",
+        flex := "1",
+      ),
+      div(
+        div(
+          confirmButton(state, constructGraphChanges(state, sourcePosts, targetPosts)),
+          paddingBottom := "3px",
         ),
-        display := "flex",
-        flexDirection := "row",
-        flexWrap := "nowrap",
-        justifyContent := "center"
-      )
+        arrowDiv(),
+        textAlign := "center",
+        margin := "auto",
+      ),
+      div(
+        stylePost(sourcePosts.foldLeft(targetPosts.head)(unifyPosts)),
+        padding := "2px 3px",
+        flex := "1",
+      ),
+      display := "flex",
+      flexDirection := "row",
+      flexWrap := "nowrap",
+      alignItems := "center",
+      justifyContent := "center",
+      width := "100%",
     )
   }
 
@@ -845,16 +925,18 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     """
       |Beinhaltet der Beitrag unterschiedliche Aussagen?
       |
-      |Bitte teilen Sie den Post in Sinneseinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
+      |Bitte teilen Sie den Beitrag in Sinneseinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
       |
       |Sie können den Beitrag aufteilen, indem Sie einen Teil markieren.
       |
       |Falls Sie eine Aussage in der Mitte des Beitrags makieren, so wird der Beitrag in drei Einheiten geteilt.
       |Eine Einheit vor dem Markierung, eine Einheit für die Markierung und eine nach der Markierung unterteilt.
+      |
+      |Alternativ können Sie an eine entsprechende Stelle klicken, um den Beitrag an dieser Stelle zu teilen.
     """.stripMargin
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
-    if(!condition) return None
+    if(!condition || str.trim.isEmpty) return None
     Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now.id))
   }
 
@@ -904,38 +986,44 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
             div(
               mdHtml(post.content),
               color.black,
+              textAlign.left,
               maxWidth := "60%",
               backgroundColor := "#eee",
               padding := "5px 10px",
               borderRadius := "7px",
-              border := "1px solid gray",
-              margin := "5px 0px",
-              textAlign := "left",
+              border := "0",
+              boxShadow := "0 2px 6px 0 gray",
+              margin := "5px auto",
               onMouseUp.map(e => posts :+ posts.last.flatMap(p => if(p == post) splittedPostPreview(e, post, state) else List(p))) --> postPreview,
             )
           }
         },
+        textAlign.center,
         width := "100%",
+        margin := "auto",
       ),
-      button(
-        positiveText,
-        onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
-        onClick(postPreview).map(preview => TaskFeedback(true, true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-      ),
-      button(
-        "Rückgängig",
-        onClick(postPreview.map(ll => ll.takeRight(2).take(1))) --> postPreview,
-        marginLeft := "10px",
-      ),
-      button(
-        "Reset",
-        onClick(List(splitPost)) --> postPreview,
-        marginLeft := "10px",
-      ),
-      button(
-        negativeText,
-        onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-        marginLeft := "10px",
+      div(
+        button(
+          "Rückgängig",
+          onClick(postPreview.map(ll => ll.takeRight(2).take(1))) --> postPreview,
+        ),
+        button(
+          "Reset",
+          onClick(List(splitPost)) --> postPreview,
+          marginLeft := "10px",
+        ),
+        button(
+          positiveText,
+          onClick(postPreview).map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(state.eventProcessor.enriched.changes),
+          onClick(postPreview).map(preview => TaskFeedback(true, true, generateGraphChanges(splitPost, preview, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+          marginLeft := "50px",
+        ),
+        button(
+          negativeText,
+          onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
+          marginLeft := "10px",
+        ),
+        padding := "3px 20px",
       ),
       textAlign := "center",
     )
@@ -977,9 +1065,9 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
   val descriptionGer: String =
     """
       |Wie würden Sie den Beitrag kategorisieren?
-      |Fügen Sie einen Tag hinzu!
+      |Fügen Sie einen Tag hinzu.
       |
-      |Damit kategorisieren Sie den Post innerhalb der aktuellen Diskussion.
+      |Damit kategorisieren Sie den Beintrag innerhalb der aktuellen Diskussion.
       |
       |Sie können den Tag bestätigen indem Sie Enter drücken.
     """.stripMargin
@@ -1012,33 +1100,37 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
                                  sourcePosts: Posts,
                                  targetPosts: Posts): VNode = {
 
-    div(
-      targetPosts.map { p =>
+    val postComponents = targetPosts.map { p =>
+      div(
         div(
-          div(
-            mdHtml(p.content),
-            color.black,
-            maxWidth := "80ch",
-          ),
-          tagField(
-            width := "20ch",
-            fontSize.small,
-            color := "#2db300",
-            padding := "0px 3px",
-            float.right,
-          ),
-          div(clear.right),
-          backgroundColor := "#eee",
-          padding := "5px 10px",
-          borderRadius := "7px",
-          border := "0",
-          boxShadow := "0 2px 6px 0 gray",
-          margin := "5px 0px",
+          mdHtml(p.content),
+          color.black,
+          textAlign.left,
           maxWidth := "80ch",
         ),
-      }(breakOut): List[VNode]
-    )
+        tagField(
+          fontSize.small,
+          float.right,
+          width := "20ch",
+          color := "#2db300",
+          padding := "0px 3px",
+        ),
+        div(clear.right),
+        backgroundColor := "#eee",
+        padding := "5px 10px",
+        borderRadius := "7px",
+        border := "0",
+        boxShadow := "0 2px 6px 0 gray",
+        margin := "5px auto",
+        maxWidth := "80ch",
+      )
+    }(breakOut): List[VNode]
 
+    div(
+      postComponents,
+      width := "100%",
+      margin := "5px 0px",
+    )
   }
 
   def component(state: GlobalState): VNode = {
@@ -1064,9 +1156,9 @@ object RestructuringTaskGenerator {
 
   def renderButton(activateTasks: Boolean): VNode = {
     val buttonType = if(activateTasks) {
-      button("Close tasks!", width := "100%", onClick(TaskFeedback(displayNext = false, false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Task Studie beenden / unterbrechen", width := "100%", onClick(TaskFeedback(displayNext = false, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     } else {
-      button("Task Studie beginnen", width := "100%", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Task Studie beginnen / fortsetzen", width := "100%", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     }
     div(
       fontWeight.bold,
@@ -1152,16 +1244,16 @@ object RestructuringTaskGenerator {
 //        val tmpStudyTaskList = List(
 //          mapTask(DeletePosts,          List(PostId("107"))),                 //11
 //          mapTask(SplitPosts,           List(PostId("108"))),                 //18
-//          mapTask(SameTopicPosts,         List(PostId("126"), PostId("127"))),  //7
+//          mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7
 //          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
-//          mapTask(SameTopicPosts,         List(PostId("132"), PostId("119"))),  //9
+//          mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9
 //          mapTask(SplitPosts,           List(PostId("103"))),                 //16
 //          mapTask(DeletePosts,          List(PostId("109"))),                 //12
 //          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
 //          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
 //          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
 //          mapTask(SplitPosts,           List(PostId("101"))),                 //17
-//          mapTask(SameTopicPosts,         List(PostId("120"), PostId("117"))),  //8
+//          mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8
 //          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
 //          mapTask(DeletePosts,          List(PostId("106"))),                 //10
 //          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
