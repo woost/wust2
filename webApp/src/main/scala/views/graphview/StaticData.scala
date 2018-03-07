@@ -240,7 +240,7 @@ object StaticData {
         }.sum * aribtraryFactor
         staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i)/PI) // a = pi*r^2 solved by r = sqrt(a/pi)
 
-        val color = baseColor(eulerSets(i).parent)
+        val color = d3.lab(baseColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
         color.opacity = 0.8
         staticData.eulerSetColor(i) = color.toString
 

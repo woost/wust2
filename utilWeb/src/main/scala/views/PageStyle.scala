@@ -1,15 +1,15 @@
 package wust.utilWeb.views
 
-import d3v4.{Color, Hcl, d3}
+import colorado.{Color, HCL, RGB}
 import wust.utilWeb.Color._
 import wust.graph.{Graph, Page, Post}
 
 object PageStyle {
   object Color {
     //TODO: ensure that these are calculated at compile time
-    val baseBg = d3.hcl("#F3EFCC")
-    val baseBgDark = d3.hcl("#4D394B")
-    val border = d3.hcl("#95CCDF")
+    val baseBg = RGB("#F3EFCC").hcl
+    val baseBgDark = RGB("#4D394B").hcl
+    val border = RGB("#95CCDF").hcl
   }
 
 
@@ -18,9 +18,9 @@ object PageStyle {
     val title = parents.map(_.content).mkString(", ")
 
     val mixedDirectParentColors = mixColors(page.parentIds.map(baseColor))
-    val baseHue = d3.hcl(mixedDirectParentColors).h
+    val baseHue = mixedDirectParentColors.hcl.h
 
-    def withBaseHue(base:Hcl) = d3.hcl(baseHue, base.c, base.l)
+    def withBaseHue(base:HCL) = HCL(baseHue, base.c, base.l)
 
     val accentLineColor = withBaseHue(Color.border)
     val darkBgColor = withBaseHue(Color.baseBgDark)

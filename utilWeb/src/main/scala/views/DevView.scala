@@ -27,7 +27,7 @@ object DevView {
     val inactiveDisplay = display <-- show.map(if (_) "none" else "block").toObservable
 
     val baseDiv = div(position.fixed, top := "100px", right := "0", boxSizing.borderBox,
-      padding := "5px", backgroundColor <-- state.pageStyle.map(_.bgColor.toString), border  <-- state.pageStyle.map(c => s"1px solid ${c.accentLineColor.toString}"), cls := "shadow")
+      padding := "5px", backgroundColor <-- state.pageStyle.map(_.bgColor.toHex), border  <-- state.pageStyle.map(c => s"1px solid ${c.accentLineColor.toHex}"), cls := "shadow")
 
 
     div(

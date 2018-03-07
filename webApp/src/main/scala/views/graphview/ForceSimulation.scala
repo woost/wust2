@@ -215,7 +215,7 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
       hit(dragging, minimumDragHighlightRadius).foreach{ target =>
         canvasContext.lineWidth = 1
 
-        val bgColor = baseColor(staticData.posts(target).id)
+        val bgColor = d3.lab(baseColor(staticData.posts(target).id).toHex) //TODO: use d3.rgb or make colorado handle opacity
         val radius = (staticData.radius(target) + eulerSetPadding) max minimumDragHighlightRadius
         bgColor.opacity = 0.8
         canvasContext.fillStyle = bgColor

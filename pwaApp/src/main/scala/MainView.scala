@@ -31,7 +31,7 @@ object MainView {
   def sidebar(state: GlobalState): VNode = {
     div(
       width := "175px",
-      backgroundColor <-- state.pageStyle.map(_.darkBgColor.toString),
+      backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       padding := "10px",
       color := "white",
       titleBanner,
