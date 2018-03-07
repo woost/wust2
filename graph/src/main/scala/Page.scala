@@ -24,6 +24,10 @@ object Page {
     }
   }
 
+  def apply(postId: PostId) = {
+    Union(Set(postId))
+  }
+
   def default = Root
 
   def toParentConnections(page: Page, postId: PostId): Seq[Connection] = {

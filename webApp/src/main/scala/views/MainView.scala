@@ -16,6 +16,7 @@ import wust.utilWeb.Analytics
 import wust.utilWeb.outwatchHelpers._
 import outwatch.dom.dsl.styles.extra._
 import outwatch.ObserverSink
+import wust.graph.{GraphChanges, Page, Post}
 
 object MainView {
   import MainViewParts._
@@ -44,129 +45,16 @@ object MainView {
     )
   }
 
-  //def groupSelector(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  div(" group: ", state.rawGraph.map { graph =>
-  //    select {
-  //      // only looking at memberships is sufficient to list groups, because the current user is member of each group
-  //      val groupNames = graph.usersByGroupId.mapValues { users =>
-  //        val userNames = users.map { id =>
-  //          val user = graph.usersById(id)
-  //          if (user.isImplicit)
-  //            user.name.split("-").take(2).mkString("-") // shorten to "anon-987452"
-  //          else
-  //            user.name
-  //        }
-  //        val names = userNames.take(3).mkString(", ")
-  //        val more = if (users.size > 3) ", ..." else ""
-  //        val count = users.size
-  //        s"$names$more ($count)"
-  //      }
+  def newGroupButton(state: GlobalState) = {
+    button("new group", onClick --> sideEffect{ _ =>
+      val post = Post("new group", state.inner.currentUser.now.id)
+      state.eventProcessor.enriched.changes.onNext(GraphChanges.addPost(post))
+      Client.api.addCurrentUserAsMember(post.id)
+      state.inner.page() = Page.Union(Set(post.id))
+      ()
+    })
+  }
 
-  //      val publicOption = option("public", value := "public")
-  //      // val newGroupOption = option("create new private group", value := "newgroup")
-  //      val groupOptions = groupNames.map {
-  //        case (groupId, name) =>
-  //          // val opt = option(s"${groupId.id}: $name", value := groupId.id)
-  //          val opt = option(s"$name", value := Tag.unwrap(groupId))
-  //          if (state.selectedGroupId().contains(groupId)) opt(selected)
-  //          else opt
-  //      }
-
-  //      publicOption +: groupOptions.toSeq
-  //    }(
-  //      onchange := { (e: Event) =>
-  //        val value = e.target.asInstanceOf[HTMLSelectElement].value
-  //        if (value == "public") {
-  //          state.selectedGroupId() = None
-  //        } else if (value == "newgroup") {
-  //          Client.api.addGroup().foreach { group =>
-  //            state.selectedGroupId() = Option(group)
-  //          }
-  //        } else { // probably groupId
-  //          val id = Option(value).filter(_.nonEmpty).map(_.toLong)
-  //          state.selectedGroupId() = id.map(GroupId(_))
-  //        }
-  //      }
-  //    ).render
-  //  }).render
-  //}
-
-  //def newGroupButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  button("new group", onclick := { () =>
-  //    val groupNameOpt = Option(window.prompt("Enter a name for the group", "New Group"))
-  //    groupNameOpt.foreach { groupName =>
-  //      Client.api.addGroup().onComplete {
-  //        case Success(groupId) =>
-  //          val newPost = Post.newId(groupName)
-  //          state.persistence.addChanges(
-  //            addPosts = Set(newPost),
-  //            addOwnerships = Set(Ownership(newPost.id, groupId))
-  //          )
-
-  //          Var.set(
-  //            VarTuple(state.selectedGroupId, Option(groupId)),
-  //            VarTuple(state.graphSelection, GraphSelection.Union(Set(newPost.id)))
-  //          )
-  //          Analytics.sendEvent("group", "created", "success")
-  //        case Failure(_) =>
-  //          Analytics.sendEvent("group", "created", "failure")
-  //      }
-  //    }
-  //  }).render
-  //}
-
-  //def undoButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  val disableAttr = if (state.persistence.canUndo()) None else Some(attr("disabled") := "")
-  //  button(
-  //    "↶",
-  //    disableAttr,
-  //    onclick := { () =>
-  //      state.persistence.undoChanges()
-  //    }
-  //  ).render
-  //}
-
-  //def redoButton(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  val disableAttr = if (state.persistence.canRedo()) None else Some(attr("disabled") := "")
-  //  button(
-  //    "↷",
-  //    disableAttr,
-  //    onclick := { () =>
-  //      state.persistence.redoChanges()
-  //    }
-  //  ).render
-  //}
-
-  //def inviteUserToGroupField(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-  //  (if (state.selectedGroupId().isDefined) {
-  //    val field = input(tpe := "text", placeholder := "invite user by name").render
-  //    form(field, input(tpe := "submit", value := "invite"), onsubmit := { () =>
-  //      val userName = field.value
-  //      state.selectedGroupId().foreach(Client.api.addMemberByName(_, userName).foreach { success =>
-  //        field.value = ""
-  //        Analytics.sendEvent("group", "invitebyname", if (success) "success" else "failure")
-  //      })
-
-  //      false
-  //    }).render
-  //  } else div().render)
-  //}
-
-  //def currentGroupInviteLink(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Option[String]] = {
-  //  val inviteLink = Var[Option[String]](None)
-  //  Rx {
-  //    state.selectedGroupId() match {
-  //      case Some(groupId) =>
-  //        Client.api.getGroupInviteToken(groupId).foreach {
-  //          //TODO: we should not construct absolute paths here
-  //          case Some(token) => inviteLink() = Some(s"${location.href.split("#").head}#${ViewConfig.toHash(state.viewConfig())}&invite=$token")
-  //          case None        =>
-  //        }
-  //      case None => inviteLink() = None
-  //    }
-  //  }
-  //  inviteLink
-  //}
 
   def viewSelection(state:GlobalState, allViews: Seq[View]): VNode = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
@@ -187,16 +75,6 @@ object MainView {
         )
       }
     )
-    // select(
-    //   onInput.value.map(View.fromString) --> viewHandler,
-    //   allViews.map{view =>
-    //     option(
-    //       view.displayName,
-    //       value := view.key,
-    //       selected <-- state.view.map(_ == view)
-    //     )
-    //   }
-    // )
   }
 
   //def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -263,61 +141,7 @@ object MainView {
   //  )
   //}
 
-  //def invitePopup(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-  //  val show = Var(false)
-  //  val activeDisplay = display := show.map(if (_) "block" else "none")
-  //  val inactiveDisplay = display := show.map(if (_) "none" else "block")
-
-  //  div(
-  //    div(
-  //      inactiveDisplay,
-  //      button("invite...", onclick := { () => show() = !show.now })
-  //    ),
-  //    div(
-  //      activeDisplay,
-  //      zIndex := 100,
-  //      cls := "shadow",
-  //      position.fixed, top := 5, left := 5, boxSizing.`border-box`,
-  //      padding := "15px", background := "#F8F8F8", border := "1px solid #DDD",
-  //      div("x", cursor.pointer, float.right, onclick := { () => show() = false }),
-  //      h4("Invite participants to group"),
-  //      groupSelector(state),
-  //      inviteUserToGroupField(state),
-  //      currentGroupInviteLink(state).map(linkOpt => linkOpt.map{ link =>
-  //        val linkField = input(tpe := "text", value := link, readonly).render
-  //        div(
-  //          linkField,
-  //          button("copy", onclick := { () => linkField.select(); document.execCommand("Copy") })
-  //        )
-  //      }.getOrElse(span()).render)
-  //    )
-  //  )
-  //}
-
    def topBar(state: GlobalState, allViews: Seq[View]): VNode = {
-//     val lockToGroup = state.viewConfig.now.lockToGroup
-//     if (lockToGroup) {
-//       div(
-//         padding := "5px", background := "#F8F8F8", borderBottom := "1px solid #DDD",
-//         display.flex, alignItems.center, justifyContent.spaceBetween,
-//
-//         div(
-//           display.flex, alignItems.center, justifyContent.flexStart,
-//
-//           upButton(state),
-//           showPage(state)
-//         ),
-//
-//         if (viewPages.size > 1) div("view: ")(viewSelection(state, viewPages))
-//         else div(),
-//
-//         syncStatus(state),
-//         div(
-//           undoButton(state),
-//           redoButton(state)
-//         )
-//       )
-//     } else {
        div(
          padding := "5px", background := "#FAFAFA", borderBottom := "1px solid #DDD",
          display := "flex", alignItems := "center", justifyContent := "spaceBetween",
@@ -326,34 +150,14 @@ object MainView {
            display := "flex", alignItems := "center", justifyContent := "flexStart",
 
            upButton(state),
-           showPage(state),
-           // viewSelection(state, allViews),
-//           groupSelector(state),
-//           invitePopup(state),
-//           newGroupButton(state)
+           showPage(state)
          ),
 
 
-        syncStatus(state),
-//         div(
-//           undoButton(state),
-//           redoButton(state)
-//         ),
-//
-//         div(
-//           display.flex, alignItems.center, justifyContent.flexEnd,
-//           UserView.topBarUserStatus(state)
-//         )
+        syncStatus(state)
        )
-//     }
    }
 
-  // def bottomBar(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-  //   div(
-  //     padding := "5px", background := "#F8F8F8", borderTop := "1px solid #DDD"
-  //   )
-  // }
-  //
   def sidebar(state: GlobalState): VNode = {
     div(
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
@@ -361,6 +165,7 @@ object MainView {
       color := "white",
       titleBanner,
       br(),
+      newGroupButton(state),
       userStatus(state),
       br(),
       dataImport(state),
