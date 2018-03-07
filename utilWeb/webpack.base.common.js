@@ -24,8 +24,7 @@ fs.closeSync(fs.openSync(Path.join(webpack.output.path, appName + '-bundle.js'),
 // set up output path
 webpack.output.path = Path.join(__dirname, "dist");
 // webpack.output.publicPath = "/";
-webpack.entry[appName].push(Path.join(dirs.assets, "style.scss"));
-//TODO import css files in scss!
+//webpack.entry[appName].push(Path.join(dirs.assets, "style.scss"));
 const cssFiles = glob.sync(Path.join(dirs.assets, "*.css"));
 cssFiles.forEach(function (file) {
     webpack.entry[appName].push(file);
