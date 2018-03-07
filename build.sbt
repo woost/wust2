@@ -111,6 +111,7 @@ lazy val webSettings = Seq(
       "node-sass" -> "4.7.2" ::
       "sass-loader" -> "6.0.6" ::
       "css-loader" -> "0.28.10" ::
+      "style-loader" -> "0.20.2" ::
       "extract-text-webpack-plugin" -> "3.0.2" ::
       "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::

@@ -24,22 +24,20 @@ module.exports.plugins.push(new HtmlPlugin({
 ////////////////////////////////////////
 // styles generated from scss
 ////////////////////////////////////////
-const extractSass = new ExtractTextPlugin({
-    filename: filenamePattern + '.css'
-});
-module.exports.plugins.push(extractSass);
-module.exports.module.rules.push({
-    test: /style\.scss$/,
-    use: extractSass.extract({
-        use: [{ loader: "css-loader", options: { sourceMap: true }}, { loader: "sass-loader", options: { sourceMap: true }}],
-    })
-});
-module.exports.module.rules.push({
-    test: /\.css$/,
-    use: extractSass.extract({
-        use: [{ loader: "css-loader", options: { sourceMap: true }}],
-    })
-});
+// const extractSass = new ExtractTextPlugin({
+//     filename: filenamePattern + '.css'
+// });
+// module.exports.plugins.push(extractSass);
+// module.exports.module.rules.push({
+//     test: /\.scss$/,
+//     use: extractSass.extract({
+//         use: [{ loader: "css-loader", options: { sourceMap: true }}, { loader: "sass-loader", options: { sourceMap: true }}],
+//     })
+// });
+ module.exports.module.rules.push({
+     test: /\.css$/,
+     use: ['style-loader', 'css-loader']
+ });
 
 ////////////////////////////////////////
 // dev server
