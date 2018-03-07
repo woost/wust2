@@ -356,8 +356,11 @@ object MainView {
   //
   def sidebar(state: GlobalState): VNode = {
     div(
+      backgroundColor <-- state.pageStyle.map(_.darkBgColor),
+      padding := "15px",
+      color := "white",
       child <-- RestructuringTaskGenerator.renderStudy(state),
-      )
+    )
     // div(
     //   backgroundColor <-- state.pageStyle.map(_.darkBgColor),
     //   padding := "15px",
