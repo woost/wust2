@@ -136,7 +136,7 @@ lazy val root = project.in(file("."))
     publishLocal := {},
 
     addCommandAlias("dev", "; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwatch; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
-    addCommandAlias("devwatch", "~; core/reStart; webApp/fastOptJS::webpack"),
+    addCommandAlias("devwatch", "~; webApp/fastOptJS::webpack; core/reStart"),
 
     addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
