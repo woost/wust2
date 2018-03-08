@@ -28,7 +28,7 @@ if (!fs.existsSync(dummyOutputFile)) {
 webpack.output.path = Path.join(__dirname, "dist");
 // webpack.output.publicPath = "/";
 //webpack.entry[appName].push(Path.join(dirs.assets, "style.scss"));
-const cssFiles = glob.sync(Path.join(dirs.assets, "*.css"));
+const cssFiles = glob.sync(Path.join(dirs.assets, "*.css")).concat(glob.sync(Path.join(__dirname, "*.css")));
 cssFiles.forEach(function (file) {
     webpack.entry[appName].push(file);
 });
