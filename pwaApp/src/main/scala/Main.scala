@@ -27,6 +27,8 @@ object Main {
   Logger.root.clearHandlers()
   Logger.root.addHandler(LogHandler(Level.Info, formatter, ConsoleWriter))
 
+  scribe.info("PENOS")
+
   // require offline plugin, setup in webpack
   OfflinePlugin.install(new OfflinePluginConfig {
     def onUpdating(): Unit = {
