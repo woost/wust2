@@ -22,7 +22,6 @@ trait SpecsLikeMockito extends MockitoSugar {
 trait DbMocks extends SpecsLikeMockito {
   def mockedDb = {
     val db = mock[Db]
-    db.group returns mock[db.group.type]
     db.user returns mock[db.user.type]
     db.post returns mock[db.post.type]
     db.connection returns mock[db.connection.type]
