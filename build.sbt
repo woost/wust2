@@ -88,6 +88,8 @@ lazy val sourceMapSettings = Seq(
     }
   )
 
+
+lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
 lazy val webSettings = Seq(
     scalacOptions += "-P:scalajs:sjsDefinedByDefault",
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
@@ -107,6 +109,7 @@ lazy val webSettings = Seq(
       "webpack-closure-compiler" -> "2.1.6" ::
       "webpack-subresource-integrity" -> "1.0.4" ::
       "html-webpack-plugin" -> "2.30.1" ::
+      "html-webpack-include-assets-plugin" -> "1.0.4" ::
       "clean-webpack-plugin" -> "0.1.18" ::
       "zopfli-webpack-plugin" -> "0.1.0" ::
       "brotli-webpack-plugin" -> "0.5.0" ::
@@ -122,13 +125,19 @@ lazy val webSettings = Seq(
 
     version in webpack := "3.10.0",
     //TODO: version in startWebpackDevServer := "2.11.1",
-    webpackResources :=
-        (baseDirectory.value / ".." / "utilWeb" * "*.js") +++
-        (baseDirectory.value / ".." / "utilWeb" / "assets" * "*"),
+    webpackResources := (baseDirectory.value / ".." / "utilWeb" * "*.js"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
     webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
-    webpackDevServerExtraArgs := Seq("--progress", "--color")
+    webpackDevServerExtraArgs := Seq("--progress", "--color"),
+
+    // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
+    // a folder which is served and watched by the webpack devserver.
+    // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
+    copyFastOptJS := {
+      val fastOptFile = (crossTarget in (Compile, fastOptJS)).value / "_fastopt_file_"
+      IO.write(fastOptFile, "")
+    }
 )
 
 lazy val root = project.in(file("."))
@@ -138,10 +147,11 @@ lazy val root = project.in(file("."))
     publishLocal := {},
 
     addCommandAlias("dev", "; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwatch; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
-    addCommandAlias("devwatch", "~; webApp/fastOptJS::webpack; core/reStart"),
+    addCommandAlias("devwatch", "~; webApp/fastOptJS; core/reStart"),
 
-    addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
-    addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; ~fastOptJS::webpack; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
+    addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
+    addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
+    addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
 
     addCommandAlias("testJS", "; utilJS/test; utilWeb/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),

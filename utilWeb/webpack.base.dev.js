@@ -1,23 +1,24 @@
 const Webpack = require('webpack');
 const HtmlPlugin = require("html-webpack-plugin");
+const HtmlAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
 
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
+const cssFiles = commons.woost.cssFiles;
 module.exports = commons.webpack;
-
-const filenamePattern = '[name]';
-module.exports.output.filename = filenamePattern + '.js';
 
 ////////////////////////////////////////
 // add additional generated js files from libraryOnly bundlingmode
 ////////////////////////////////////////
 const baseJsFile = appName + '.js';
 const loaderJsFile = appName + '-loader.js';
-module.exports.entry[appName].push('./' + baseJsFile);
-module.exports.entry[appName].push('./' + loaderJsFile);
+//this would bundle all js files into one
+// module.exports.entry[appName].push('./' + baseJsFile);
+// module.exports.entry[appName].push('./' + loaderJsFile);
+const extraAssets = [ loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f) { return Path.basename(f); }));
 
 ////////////////////////////////////////
 // html template generate index.html
@@ -25,27 +26,10 @@ module.exports.entry[appName].push('./' + loaderJsFile);
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost-DEV',
     template: Path.join(dirs.assets, 'index.template.html'),
-    favicon: 'icon.ico',
+    // favicon: 'icon.ico',
     showErrors: true
 }));
-
-////////////////////////////////////////
-// styles generated from scss
-////////////////////////////////////////
-// const extractSass = new ExtractTextPlugin({
-//     filename: filenamePattern + '.css'
-// });
-// module.exports.plugins.push(extractSass);
-// module.exports.module.rules.push({
-//     test: /\.scss$/,
-//     use: extractSass.extract({
-//         use: [{ loader: "css-loader", options: { sourceMap: true }}, { loader: "sass-loader", options: { sourceMap: true }}],
-//     })
-// });
- module.exports.module.rules.push({
-     test: /\.css$/,
-     use: ['style-loader', 'css-loader']
- });
+module.exports.plugins.push(new HtmlAssetsPlugin({ assets: extraAssets, append: true }))
 
 ////////////////////////////////////////
 // dev server
@@ -54,22 +38,29 @@ module.exports.devServer = {
     // https://webpack.js.org/configuration/dev-server
     port: process.env.WUST_PORT,
     contentBase: [
-        __dirname, // only needed for watching
-        module.exports.output.path // this is the folder with actual assets
+        module.exports.output.path,
+        dirs.assets,
+        dirs.sharedAssets
         //dirs.projectRoot, // serve project files for source-map access
     ],
     watchContentBase: true,
     watchOptions: {
         ignored: [
             // dirs.projectRoot,
-            // dirs.projectRoot + '**/*',
+            function(file) {
+                var shouldReload = (file == module.exports.output.path) || file.startsWith(dirs.assets) || file.startsWith(dirs.sharedAssets) || (file == Path.join(module.exports.output.path, '_fastopt_file_'));
+                if (shouldReload)
+                    console.log(file, shouldReload);
+                return !shouldReload;
+            }
         ]
     },
     // watchOptions: { poll: true },
     open: false, // open page in browser
-    hotOnly: true, // only reload when build is sucessful
+    hot: false,
+    hotOnly: false, // only reload when build is sucessful
     inline: true, // show build errors in browser console
-    overlay: true, // show full screen overlay for compile errors
+    overlay: false, // this breaks the compiled app-fastopt-library.js
     host: "0.0.0.0", //TODO this is needed so that in dev docker containers can access devserver through docker bridge
     allowedHosts: [ ".localhost" ],
 
@@ -82,8 +73,7 @@ module.exports.devServer = {
     ],
     compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
 };
-
-module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
+// module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
 
 function basicProxy(port, ws) {
     ws = !!ws;

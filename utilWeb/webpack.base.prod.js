@@ -1,4 +1,5 @@
 const Webpack = require('webpack');
+const CopyPlugin = require("copy-webpack-plugin");
 const CleanPlugin = require("clean-webpack-plugin");
 const ZopfliPlugin = require("zopfli-webpack-plugin");
 const BrotliPlugin = require('brotli-webpack-plugin');
@@ -7,11 +8,32 @@ const SriPlugin = require("webpack-subresource-integrity");
 const HtmlPlugin = require("html-webpack-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
+const fs = require("fs");
 
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
+const cssFiles = commons.woost.cssFiles;
 module.exports = commons.webpack;
+
+// TODO bug with custom output in https://github.com/scalacenter/scalajs-bundler/issues/192
+// expects the originally configured output file to exist, just create it.
+const dummyOutputFile = Path.join(module.exports.output.path, module.exports.output.filename.replace('[name]', appName));
+if (!fs.existsSync(dummyOutputFile)) {
+    fs.closeSync(fs.openSync(dummyOutputFile, 'w'));
+}
+
+// set up output path
+module.exports.output.path = Path.join(__dirname, "dist");
+// module.exports.output.publicPath = "/";
+
+// copy some assets to dist folder
+module.exports.plugins.push(new CopyPlugin([
+    dirs.sharedAssets + "*.ico",
+    dirs.sharedAssets + "*.svg",
+    dirs.sharedAssets + "*.png",
+    dirs.sharedAssets + "manifest.json"
+]));
 
 const filenamePattern = '[name].[chunkhash]';
 module.exports.output.filename = filenamePattern + '.js';
@@ -60,16 +82,20 @@ module.exports.plugins.push(new HtmlPlugin({
 ////////////////////////////////////////
 // styles generated from scss
 ////////////////////////////////////////
+//module.exports.entry[appName].push(Path.join(dirs.assets, "style.scss"));
+cssFiles.forEach(function (file) {
+    module.exports.entry[appName].push(file);
+});
 const extractSass = new ExtractTextPlugin({
     filename: filenamePattern + '.css'
 });
 module.exports.plugins.push(extractSass);
-module.exports.module.rules.push({
-    test: /style\.scss$/,
-    use: extractSass.extract({
-        use: [{ loader: "css-loader" }, { loader: "sass-loader" }],
-    })
-});
+// module.exports.module.rules.push({
+//     test: /style\.scss$/,
+//     use: extractSass.extract({
+//         use: [{ loader: "css-loader" }, { loader: "sass-loader" }],
+//     })
+// });
 module.exports.module.rules.push({
     test: /\.css$/,
     use: extractSass.extract({
