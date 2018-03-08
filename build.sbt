@@ -180,7 +180,6 @@ lazy val utilWeb = project
       Deps.scalarx.value ::
       Deps.outwatch.value ::
       Deps.monocle.value ::
-      Deps.colorado.value ::
       Deps.circe.core.value ::
       Deps.circe.generic.value ::
       Deps.circe.parser.value ::
@@ -201,6 +200,7 @@ lazy val sdk = crossProject
       Deps.covenant.http.value ::
       Deps.boopickle.value ::
       Deps.monix.value ::
+      Deps.colorado.value ::
       Nil
   )
 

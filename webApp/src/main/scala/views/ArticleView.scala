@@ -11,7 +11,7 @@ import wust.ids.PostId
 import wust.utilWeb._
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 
 import scala.scalajs.js.timers.setTimeout
 

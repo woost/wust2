@@ -4,8 +4,7 @@ import d3v4._
 import org.scalajs.dom.html
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge, Tag}
-import wust.utilWeb.Color.baseColor
-import wust.utilWeb.ColorPost
+import wust.sdk.PostColor._
 import ForceSimulationConstants._
 import wust.graph.{Post, _}
 import wust.ids.{Label, PostId}
@@ -135,7 +134,7 @@ object StaticData {
       var maxRadius = 0.0
       var reservedArea = 0.0
       selection.each[html.Element] { (node: html.Element, post: Post, i: Int) =>
-        staticData.bgColor(i) = ColorPost.computeColor(graph, post.id).toString
+        staticData.bgColor(i) = computeColor(graph, post.id).toString
 //        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size

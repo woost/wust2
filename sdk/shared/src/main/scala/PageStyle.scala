@@ -3,7 +3,7 @@ package wust.utilWeb.views
 import cats.data.NonEmptyList
 import colorado.{Color, HCL, LAB, RGB}
 import wust.graph.{Page, Post}
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 
 import scala.collection.breakOut
 
