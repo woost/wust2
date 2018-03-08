@@ -212,9 +212,10 @@ sealed trait RestructuringTask {
       left := "0",
       bottom := "0",
       width := "100%",
+      height := "100%",
       overflow.auto,
-      backgroundColor := "rgb(0,0,0)",
-      backgroundColor := "rgba(0,0,0,0.4)",
+      // backgroundColor := "rgb(0,0,0)",
+      // backgroundColor := "rgba(0,0,0,0.4)",
     )
   }
 }
@@ -904,7 +905,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
   val positiveText: String = "Aufteilung abschicken"
-  val negativeText: String = "Aufteilung abberechen"
+  val negativeText: String = "Aufteilung abbrechen"
   val taskImg: VNode = img(src := "split2.png")
   val descriptionEng: String =
     """
@@ -926,9 +927,6 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       |Bitte teilen Sie den Beitrag in Sinneseinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
       |
       |Sie können den Beitrag aufteilen, indem Sie einen Teil markieren.
-      |
-      |Falls Sie eine Aussage in der Mitte des Beitrags makieren, so wird der Beitrag in drei Einheiten geteilt.
-      |Eine Einheit vor dem Markierung, eine Einheit für die Markierung und eine nach der Markierung unterteilt.
       |
       |Alternativ können Sie an eine entsprechende Stelle klicken, um den Beitrag an dieser Stelle zu teilen.
     """.stripMargin
