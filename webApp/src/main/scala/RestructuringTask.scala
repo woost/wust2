@@ -905,7 +905,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
   val title = "Split Post"
   val positiveText: String = "Aufteilung bestätigen"
   val negativeText: String = "Nicht teilen"
-  val taskImg: VNode = img(src := "split.png")
+  val taskImg: VNode = img(src := "split2.png")
   val descriptionEng: String =
     """
       |Does this Post contain multiple / different statements?
