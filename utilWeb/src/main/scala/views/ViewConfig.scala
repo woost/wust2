@@ -20,7 +20,7 @@ object ViewConfig {
   private def viewConfigToPath(config: ViewConfig) = {
     val name = config.view.key
     val page = Option(config.page) collect {
-      case Page.Union(ids) => "page" -> PathOption.StringList.toString(ids.toSeq)
+      case Page(ids) => "page" -> PathOption.StringList.toString(ids.toSeq)
     }
     val options = Seq(page).flatten.toMap
     Path(name, options)
@@ -29,7 +29,7 @@ object ViewConfig {
   private def pathToViewConfig(path: Path) = {
     val page = View.fromString(path.name)
     val selection = path.options.get("page").map(PathOption.StringList.parse) match {
-      case Some(ids) => Page.Union(ids.map(PostId(_)).toSet)
+      case Some(ids) => Page(ids.map(PostId(_)).toSet)
       case None      => Page.default
     }
     ViewConfig(page, selection)
