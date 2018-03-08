@@ -51,7 +51,7 @@ object Deps {
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val monix = dep("io.monix" %%% "monix" % "3.0.0-M3")
   val taggedTypes = dep("io.treev" %%% "tagged-types" % "1.4")
-  val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "944e8f7")
+  val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "b490fdf")
 
   // rpc
   val covenant = new {
