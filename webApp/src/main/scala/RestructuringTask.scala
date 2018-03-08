@@ -904,8 +904,8 @@ object SplitPosts extends RestructuringTaskObject {
 case class SplitPosts(posts: Posts) extends RestructuringTask
 {
   val title = "Split Post"
-  val positiveText: String = "Aufteilung abschicken"
-  val negativeText: String = "Aufteilung abbrechen"
+  val positiveText: String = "Aufteilung bestätigen"
+  val negativeText: String = "Keine Aufteilung vornehmen"
   val taskImg: VNode = img(src := "split2.png")
   val descriptionEng: String =
     """
