@@ -125,7 +125,7 @@ lazy val webSettings = Seq(
         (baseDirectory.value / ".." / "utilWeb" / "assets" * "*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
-    //TODO: webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
+    webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     webpackDevServerExtraArgs := Seq("--progress", "--color")
 )
 

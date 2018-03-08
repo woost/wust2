@@ -12,6 +12,14 @@ const filenamePattern = '[name]';
 module.exports.output.filename = filenamePattern + '.js';
 
 ////////////////////////////////////////
+// add additional generated js files from libraryOnly bundlingmode
+////////////////////////////////////////
+const baseJsFile = appName + '.js';
+const loaderJsFile = appName + '-loader.js';
+module.exports.entry[appName].push('./' + baseJsFile);
+module.exports.entry[appName].push('./' + loaderJsFile);
+
+////////////////////////////////////////
 // html template generate index.html
 ////////////////////////////////////////
 //TODO does not trigger when only changing html template file
