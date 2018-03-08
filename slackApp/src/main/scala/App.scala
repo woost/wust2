@@ -79,7 +79,7 @@ object WustReceiver {
       if loggedIn
       changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", wustUser)))))
       if changed
-      graph <- client.api.getGraph(Page.Root)
+      graph <- client.api.getGraph(Page.empty)
     } yield Right(new WustReceiver(client))
 
     res recover { case e =>

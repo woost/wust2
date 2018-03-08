@@ -10,7 +10,7 @@ import scala.util.Try
 
 case class ViewConfig(view: View, page: Page)
 object ViewConfig {
-  val default = ViewConfig(View.default, Page.default)
+  val default = ViewConfig(View.default, Page.empty)
   def fromHash(hash: Option[String]): ViewConfig = hash.collect {
     case Path(path) => pathToViewConfig(path)
   }.getOrElse(default)
@@ -30,7 +30,7 @@ object ViewConfig {
     val page = View.fromString(path.name)
     val selection = path.options.get("page").map(PathOption.StringList.parse) match {
       case Some(ids) => Page(ids.map(PostId(_)).toSet)
-      case None      => Page.default
+      case None      => Page.empty
     }
     ViewConfig(page, selection)
   }

@@ -8,7 +8,7 @@ case class Page(parentIds: Set[PostId]) {
 }
 
 object Page {
-  val default = Page(Set.empty)
+  val empty = Page(Set.empty)
 }
 
 
