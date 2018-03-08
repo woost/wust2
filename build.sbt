@@ -94,7 +94,7 @@ lazy val webSettings = Seq(
     //TODO: scalaJSStage in Test := FullOptStage,
     //TODO: scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
 
-    emitSourceMaps in fastOptJS := true, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
+    emitSourceMaps in fastOptJS := false, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     emitSourceMaps in fullOptJS := false,
 
     useYarn := true, // instead of npm
