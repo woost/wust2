@@ -1047,7 +1047,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 {
   val title = "Add tag to post"
   val positiveText: String = "Kategorisieren"
-  val negativeText: String = "Nicht kategorsieren"
+  val negativeText: String = "Nicht kategorisieren"
   val taskImg: VNode = img(src := "tag.png")
   val descriptionEng: String =
     """
