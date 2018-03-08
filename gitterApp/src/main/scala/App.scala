@@ -87,7 +87,7 @@ object WustReceiver {
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
       changes = GraphChanges(addPosts = Set(Post(Constants.gitterId, "wust-gitter", wustUser)))
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
-      graph <- valid(client.api.getGraph(Page.Root))
+      graph <- valid(client.api.getGraph(Page.empty))
     } yield new WustReceiver(client)
 
     res.value
