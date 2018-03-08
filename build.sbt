@@ -6,6 +6,8 @@ dynver in ThisBuild ~= (_.replace('+', '-'))
 
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
+parallelExecution := !isCI // https://github.com/scalacenter/scalajs-bundler/pull/225
+
 import Def.{setting => dep}
 
 lazy val commonSettings = Seq(
@@ -87,7 +89,6 @@ lazy val sourceMapSettings = Seq(
   )
 
 lazy val webSettings = Seq(
-    parallelExecution := false, // https://github.com/scalacenter/scalajs-bundler/pull/225
     scalacOptions += "-P:scalajs:sjsDefinedByDefault",
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
     scalaJSUseMainModuleInitializer := true,
