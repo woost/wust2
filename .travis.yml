@@ -25,7 +25,7 @@ after_success:
     - set +e
 
 cache:
-  yarn: false
+  yarn: true
   directories:
   - $HOME/.ivy2/cache
   - $HOME/.ivy2/local
