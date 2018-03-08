@@ -19,6 +19,7 @@ import scala.collection.breakOut
 import scala.concurrent.Future
 
 object Restructure {
+  val taskBg = "gray" // "gray" | "transparent"
   type Posts = List[Post]
   type Probability = Double
   type StrategyResult = Future[List[RestructuringTask]]
@@ -214,6 +215,7 @@ sealed trait RestructuringTask {
       width := "100%",
       height := "100%",
       overflow.auto,
+      backgroundColor := Restructure.taskBg,
       // backgroundColor := "rgb(0,0,0)",
       // backgroundColor := "rgba(0,0,0,0.4)",
     )
@@ -1152,16 +1154,32 @@ object RestructuringTaskGenerator {
 
   val taskDisplayWithLogging: Handler[TaskFeedback] = Handler.create[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty)).unsafeRunSync()
 
-  def renderButton(activateTasks: Boolean): VNode = {
+  def renderButton(activateTasks: Boolean, hide: Boolean = true): VNode = {
     val buttonType = if(activateTasks) {
-      button("Task Studie beenden / unterbrechen", width := "100%", onClick(TaskFeedback(displayNext = false, false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Task Studie beenden / unterbrechen", onClick(TaskFeedback(displayNext = false, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     } else {
-      button("Task Studie beginnen / fortsetzen", width := "100%", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
+      button("Task Studie beginnen / fortsetzen", onClick(TaskFeedback(displayNext = true, false, GraphChanges.empty)) --> taskDisplayWithLogging)
     }
-    div(
+
+    val buttonBasis = div(
       fontWeight.bold,
       fontSize := "20px",
-      buttonType
+      buttonType,
+      )
+
+    if(!hide) buttonBasis
+    else buttonBasis(
+      display.flex,
+      overflow.auto,
+      position.fixed,
+      zIndex := 99,
+      alignItems := "center",
+      justifyContent := "center",
+      backgroundColor := Restructure.taskBg,
+      top := "0",
+      left := "0",
+      width := "100%",
+      height := "100%",
     )
   }
 
@@ -1287,7 +1305,7 @@ object RestructuringTaskGenerator {
           if (_studyTaskIndex >= list.size) {
             _studyTaskIndex = 0
             scribe.info("All tasks are finished")
-            renderButton(activateTasks = false)
+            renderButton(activateTasks = false, hide = false)
           } else {
             val dom = div(
               renderButton(activateTasks = true),
