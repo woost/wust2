@@ -87,6 +87,7 @@ lazy val sourceMapSettings = Seq(
   )
 
 lazy val webSettings = Seq(
+    parallelExecution := false, // https://github.com/scalacenter/scalajs-bundler/pull/225
     scalacOptions += "-P:scalajs:sjsDefinedByDefault",
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
     scalaJSUseMainModuleInitializer := true,
