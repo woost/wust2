@@ -12,14 +12,17 @@ dirs.projectRoot = Path.join(dirs.root, 'utilWeb', 'project-root'); // project-r
 
 // initialize module exports
 const webpack = require(Path.join(__dirname, 'scalajs.webpack.config'));
+const appName = Object.keys(webpack.entry)[0];
 webpack.plugins = webpack.plugins || [];
 webpack.module = webpack.module || {};
 webpack.module.rules = webpack.module.rules || [];
 
 // TODO bug with custom output in https://github.com/scalacenter/scalajs-bundler/issues/192
 // expects the originally configured output file to exist, just create it.
-const appName = Object.keys(webpack.entry)[0];
-fs.closeSync(fs.openSync(Path.join(webpack.output.path, appName + '-bundle.js'), 'w'));
+const dummyOutputFile = Path.join(webpack.output.path, webpack.output.filename.replace('[name]', appName));
+if (!fs.existsSync(dummyOutputFile)) {
+    fs.closeSync(fs.openSync(dummyOutputFile, 'w'));
+}
 
 // set up output path
 webpack.output.path = Path.join(__dirname, "dist");
