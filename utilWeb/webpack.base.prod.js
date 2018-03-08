@@ -10,6 +10,7 @@ const Path = require('path');
 
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
+const appName = commons.woost.appName;
 module.exports = commons.webpack;
 
 const filenamePattern = '[name].[chunkhash]';
