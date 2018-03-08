@@ -54,12 +54,16 @@ module.exports.devServer = {
     // https://webpack.js.org/configuration/dev-server
     port: process.env.WUST_PORT,
     contentBase: [
-        module.exports.output.path,
-        dirs.projectRoot, // serve project files for source-map access
+        __dirname, // only needed for watching
+        module.exports.output.path // this is the folder with actual assets
+        //dirs.projectRoot, // serve project files for source-map access
     ],
     watchContentBase: true,
     watchOptions: {
-        ignored: dirs.projectRoot
+        ignored: [
+            // dirs.projectRoot,
+            // dirs.projectRoot + '**/*',
+        ]
     },
     // watchOptions: { poll: true },
     open: false, // open page in browser
