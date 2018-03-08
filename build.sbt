@@ -291,7 +291,7 @@ lazy val webApp = project
     libraryDependencies ++=
       Deps.vectory.value ::
       Deps.d3v4.value ::
-      Nil,
+      Nil
   )
 
 lazy val pwaApp = project
