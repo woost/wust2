@@ -125,7 +125,7 @@ lazy val webSettings = Seq(
 
     version in webpack := "3.10.0",
     //TODO: version in startWebpackDevServer := "2.11.1",
-    webpackResources := (baseDirectory.value / ".." / "utilWeb" * "*.js"),
+    webpackResources := (baseDirectory.value / ".." / "utilWeb" / "webpack" ** "*.*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
     webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
@@ -135,8 +135,10 @@ lazy val webSettings = Seq(
     // a folder which is served and watched by the webpack devserver.
     // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
     copyFastOptJS := {
-      val fastOptFile = (crossTarget in (Compile, fastOptJS)).value / "_fastopt_file_"
-      IO.write(fastOptFile, "")
+      val inDir = (crossTarget in (Compile, fastOptJS)).value
+      val outDir = (crossTarget in (Compile, fastOptJS)).value / "dev"
+      val files = Seq(name.value.toLowerCase + "-fastopt-loader.js", name.value.toLowerCase + "-fastopt.js") map { p => (inDir / p, outDir / p) }
+      IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
     }
 )
 

@@ -10,6 +10,8 @@ const appName = commons.woost.appName;
 const cssFiles = commons.woost.cssFiles;
 module.exports = commons.webpack;
 
+module.exports.output.path = Path.join(__dirname, "dev");
+
 ////////////////////////////////////////
 // add additional generated js files from libraryOnly bundlingmode
 ////////////////////////////////////////
@@ -26,7 +28,7 @@ const extraAssets = [ loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f)
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost-DEV',
     template: Path.join(dirs.assets, 'index.template.html'),
-    // favicon: 'icon.ico',
+    favicon: Path.join(dirs.sharedAssets, 'icon.ico'),
     showErrors: true
 }));
 module.exports.plugins.push(new HtmlAssetsPlugin({ assets: extraAssets, append: true }))
@@ -47,12 +49,12 @@ module.exports.devServer = {
     watchOptions: {
         ignored: [
             // dirs.projectRoot,
-            function(file) {
-                var shouldReload = (file == module.exports.output.path) || file.startsWith(dirs.assets) || file.startsWith(dirs.sharedAssets) || (file == Path.join(module.exports.output.path, '_fastopt_file_'));
-                if (shouldReload)
-                    console.log(file, shouldReload);
-                return !shouldReload;
-            }
+            // function(file) {
+            //     var shouldReload = (file == module.exports.output.path) || file.startsWith(dirs.assets) || file.startsWith(dirs.sharedAssets) || (file == Path.join(module.exports.output.path, '_fastopt_file_'));
+            //     if (shouldReload)
+            //         console.log(file, shouldReload);
+            //     return !shouldReload;
+            // }
         ]
     },
     // watchOptions: { poll: true },

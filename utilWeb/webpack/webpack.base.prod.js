@@ -8,7 +8,6 @@ const SriPlugin = require("webpack-subresource-integrity");
 const HtmlPlugin = require("html-webpack-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
-const fs = require("fs");
 
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
@@ -16,24 +15,22 @@ const appName = commons.woost.appName;
 const cssFiles = commons.woost.cssFiles;
 module.exports = commons.webpack;
 
-// TODO bug with custom output in https://github.com/scalacenter/scalajs-bundler/issues/192
-// expects the originally configured output file to exist, just create it.
-const dummyOutputFile = Path.join(module.exports.output.path, module.exports.output.filename.replace('[name]', appName));
-if (!fs.existsSync(dummyOutputFile)) {
-    fs.closeSync(fs.openSync(dummyOutputFile, 'w'));
-}
-
 // set up output path
 module.exports.output.path = Path.join(__dirname, "dist");
 // module.exports.output.publicPath = "/";
 
 // copy some assets to dist folder
-module.exports.plugins.push(new CopyPlugin([
-    dirs.sharedAssets + "*.ico",
-    dirs.sharedAssets + "*.svg",
-    dirs.sharedAssets + "*.png",
-    dirs.sharedAssets + "manifest.json"
-]));
+//TODO entry and handle with loader (hash)
+function copyAssets(context) {
+    return new CopyPlugin([
+        { from: "**/*.ico", to: module.exports.output.path },
+        { from: "**/*.svg", to: module.exports.output.path },
+        { from: "**/*.png", to: module.exports.output.path },
+        { from: "**/*.json", to: module.exports.output.path }
+    ], { context: context });
+}
+module.exports.plugins.push(copyAssets(dirs.sharedAssets));
+module.exports.plugins.push(copyAssets(dirs.assets));
 
 const filenamePattern = '[name].[chunkhash]';
 module.exports.output.filename = filenamePattern + '.js';
@@ -70,7 +67,7 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost',
     template: Path.join(dirs.assets, 'index.template.html'),
-    favicon: 'icon.ico',
+    favicon: Path.join(dirs.sharedAssets, 'icon.ico'),
     minify: {
         // https://github.com/kangax/html-minifier#options-quick-reference
         removeComments: true,
