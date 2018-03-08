@@ -6,9 +6,7 @@ import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToPostId(id: Int): PostId = PostId(id.toString)
-  implicit def intToGroupId(id: Int): GroupId = GroupId(id)
   implicit def idToPost(id: Int): Post = Post(id = id, content = "content", author = UserId("user"), EpochMilli(0))
-  implicit def idToGroup(id: Int): Group = Group(id)
   implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
   implicit def tupleIsConnection(t: (Int, Int)): Connection = Connection(t._1, t._2)
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Connection] = connections.map(tupleIsConnection)
@@ -80,17 +78,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
         connections ++ containments
       )
       graph.consistent mustEqual Graph(List(1, 2, 3, 4, 5), List[Connection](1 -> 2, 2 -> 3) ++ List[Connection](1 cont 2, 2 cont 3))
-    }
-
-    "consistent on inconsistent graph with ownership" in {
-      val graph = Graph(
-        List(1, 2, 3),
-        groups = List(1),
-        ownerships = List(Ownership(postId = 4, groupId = 1), Ownership(postId = 1, groupId = 2))
-      )
-      graph.consistent mustEqual graph.copy(ownerships = Set.empty)
-      (graph + idToPost(4)).consistent mustEqual (graph + idToPost(4)).copy(ownerships = Set(Ownership(postId = 4, groupId = 1)))
-      graph.copy(groupsById = Seq[Group](1, 2).by(_.id)).consistent mustEqual graph.copy(groupsById = Seq[Group](1, 2).by(_.id), ownerships = Set(Ownership(postId = 1, groupId = 2)))
     }
 
     "consistent on inconsistent graph (reverse)" in {
