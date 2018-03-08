@@ -6,7 +6,7 @@ dynver in ThisBuild ~= (_.replace('+', '-'))
 
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
-parallelExecution := !isCI // https://github.com/scalacenter/scalajs-bundler/pull/225
+parallelExecution in ThisBuild := !isCI // https://github.com/scalacenter/scalajs-bundler/pull/225
 
 import Def.{setting => dep}
 
