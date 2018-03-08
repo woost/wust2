@@ -22,11 +22,11 @@ module.exports.entry[appName].push('./' + loaderJsFile);
 ////////////////////////////////////////
 // html template generate index.html
 ////////////////////////////////////////
-//TODO does not trigger when only changing html template file
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost-DEV',
     template: Path.join(dirs.assets, 'index.template.html'),
     favicon: 'icon.ico',
+    showErrors: true
 }));
 
 ////////////////////////////////////////
