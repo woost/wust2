@@ -15,7 +15,6 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.12.4",
   crossScalaVersions := Seq("2.11.12", "2.12.4"), // 2.11 is needed for android app
 
-
   resolvers ++=
     /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
     Resolver.jcenterRepo ::
@@ -291,6 +290,7 @@ lazy val core = project
       Deps.github4s.value ::
       Deps.gitterSync.value ::
       Deps.stringmetric.value ::
+      Deps.webPush.value ::
       Nil,
 
     javaOptions in reStart += "-Xmx50m"

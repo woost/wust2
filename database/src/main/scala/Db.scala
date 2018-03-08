@@ -115,6 +115,21 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
   }
 
+  object notifications {
+    def subscribeWebPush(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(query[WebPushSubscription].insert(lift(subscription))).map(_ == 1)
+    }
+
+    def getSubscriptions(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
+      ctx.run{
+        for {
+          // m <- query[Membership].filter(m => liftQuery(postIds.toList).contains(m.postId))
+          s <- query[WebPushSubscription]//.filter(_.userId == m.userId)
+        } yield s
+      }
+    }
+  }
+
   object connection {
     private val insert = quote { (connection: Connection) => query[Connection].insert(connection).ignoreDuplicates }
 
@@ -204,6 +219,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
    // }
 
     //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
+    //TODO: this needs to be tested and udpated
+    //TODO: missing push notifications
     def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
       if (implicitId == userId) Future.successful(false)
       else {

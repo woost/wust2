@@ -42,6 +42,8 @@ case class GraphChanges(
     delConnections,
   )
 
+  def involvedPostIds: Set[PostId] = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
+
   private val allProps = addPosts :: addConnections :: updatePosts :: delPosts :: delConnections :: Nil
 
   lazy val isEmpty = allProps.forall(s => s.isEmpty)

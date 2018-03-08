@@ -21,6 +21,7 @@ trait Api[Result[_]] {
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 
   def log(message: String): Result[Boolean]
+  def subscribeWebPush(subscription: WebPushSubscription): Result[Boolean]
 }
 
 @PathName("Auth")
@@ -111,6 +112,8 @@ object ApiEvent {
       case (ev: AuthContent, (gs, as)) => (gs, ev :: as)
     }
 }
+
+case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
 
 object Heuristic {
   case class PostResult(measure: Option[Double], posts: List[Post])
