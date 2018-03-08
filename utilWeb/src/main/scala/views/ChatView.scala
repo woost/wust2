@@ -5,7 +5,7 @@ import outwatch.{ObserverSink, Sink}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.utilWeb._
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 import wust.graph._
 import wust.ids.PostId
 import wust.sdk.EventProcessor
@@ -124,7 +124,7 @@ object ChatView extends View {
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
                 onClick(Page.Union(Set(tag.id))) --> page,
-                backgroundColor := ColorPost.computeTagColor(graph, tag.id),
+                backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",
                 borderRadius := "2px",
@@ -138,7 +138,7 @@ object ChatView extends View {
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
-        borderColor := ColorPost.computeColor(graph, post.id),
+        borderColor := computeColor(graph, post.id),
         backgroundColor := postDefaultColor,
         display.block,
         maxWidth := "80%",

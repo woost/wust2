@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph.{GraphChanges, Page, Post}
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 import wust.utilWeb.{Analytics, _}
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._

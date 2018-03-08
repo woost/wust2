@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
 import wust.utilWeb._
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 import wust.graph._
 import wust.ids.{PostId, UserId}
 import wust.utilWeb.views._

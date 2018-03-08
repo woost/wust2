@@ -11,7 +11,7 @@ import outwatch.dom.dsl.events
 import rx._
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
-import wust.utilWeb.Color.baseColor
+import wust.sdk.PostColor._
 import wust.utilWeb.GlobalState
 import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._

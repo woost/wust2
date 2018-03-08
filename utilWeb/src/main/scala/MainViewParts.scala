@@ -7,7 +7,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.events.window
 import rx._
 import wust.api._
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 import wust.utilWeb.outwatchHelpers._
 import outwatch.ObserverSink
 

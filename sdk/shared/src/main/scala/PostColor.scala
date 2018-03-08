@@ -1,10 +1,12 @@
-package wust.utilWeb
+package wust.sdk
 import cats.data.NonEmptyList
 import colorado._
 import wust.graph.Graph
 import wust.ids._
 
-object Color {
+object PostColor {
+  implicit def ColorToString(c:Color) = c.toHex
+
   val postDefaultColor = RGB("#f8f8f8")
 
   @inline def baseHue(id: PostId):Int = (id.hashCode * 137) % 360
@@ -19,6 +21,7 @@ object Color {
     import bLab.{a => ba, b => bb, l => bl}
     LAB((al + bl) / 2, (aa + ba) / 2, (ab + bb) / 2)
   }
+
   def mixColors(colors: NonEmptyList[Color]): LAB = {
     val colorSum = colors.foldLeft(LAB(0,0,0))((c1, c2Color) => {
       val c2 = c2Color.lab
@@ -27,13 +30,6 @@ object Color {
     val colorCount = colors.size
     LAB(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
   }
-
-  implicit def ColorToString(c:Color) = c.toHex
-}
-
-//TODO: move to sdk
-object ColorPost {
-  import wust.utilWeb.Color._
 
   def mixedDirectParentColors(graph: Graph, postId: PostId):Option[Color] = NonEmptyList.fromList(graph.parents(postId).map(baseColor).toList).map(mixColors)
 

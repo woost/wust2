@@ -11,7 +11,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
-import wust.utilWeb.Color._
+import wust.sdk.PostColor._
 import wust.utilWeb.views.View
 import wust.utilWeb.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
