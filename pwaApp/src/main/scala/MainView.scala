@@ -28,6 +28,8 @@ object MainView {
     )
   }
 
+  val pushNotifications = button("enable push", onClick --> sideEffect { Notifications.subscribeWebPush() })
+
   def sidebar(state: GlobalState): VNode = {
     div(
       width := "175px",
@@ -39,6 +41,8 @@ object MainView {
       userStatus(state),
       br(),
       settings,
+      br(),
+      pushNotifications,
       br(),
       syncStatus(state)
     )

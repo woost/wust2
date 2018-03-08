@@ -78,6 +78,7 @@ object Deps {
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
   val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.1")
+  val webPush = dep("nl.martijndwars" % "web-push" % "3.1.0")
 
   // NLP
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")

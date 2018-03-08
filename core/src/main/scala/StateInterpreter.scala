@@ -14,23 +14,26 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   import ApiEvent._
 
   //TODO: refactor! this is difficult to reason about
-  def triggeredEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] = Future.sequence(events.map {
-    case NewMembership(membership) =>
-      membershipEventsForState(state, membership)
+  def triggeredEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =
+    //TODO: broken
+  Future.successful(events)
+    //Future.sequence(events.map {
+    //case NewMembership(membership) =>
+    //  membershipEventsForState(state, membership)
 
-    case NewUser(_) =>
-        //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
-        Future.successful(Nil)
+    //case NewUser(_) =>
+    //    //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
+    //    Future.successful(Nil)
 
-    case NewGraphChanges(changes) =>
-      Future.successful{
-      val visibleChanges = visibleChangesForState(state, changes)
-      if (visibleChanges.isEmpty) Nil
-      else NewGraphChanges(visibleChanges) :: Nil
-    }
+    //case NewGraphChanges(changes) =>
+    //  Future.successful{
+    //  val visibleChanges = visibleChangesForState(state, changes)
+    //  if (visibleChanges.isEmpty) Nil
+    //  else NewGraphChanges(visibleChanges) :: Nil
+    //}
 
-    case other => Future.successful(other :: Nil)
-  }).map(_.flatten)
+    //case other => Future.successful(other :: Nil)
+  //}).map(_.flatten)
 
   private def membershipEventsForState(state: State, membership: Membership): Future[List[ApiEvent.Public]] = {
     import membership._

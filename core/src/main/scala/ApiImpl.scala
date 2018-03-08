@@ -151,6 +151,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     Future.successful(true)
   }
 
+  override def subscribeWebPush(subscription: WebPushSubscription): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+    db.notifications.subscribeWebPush(forDb(user.id, subscription))
+  }
+
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
