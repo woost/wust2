@@ -980,7 +980,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         children <-- postPreview.map {posts =>
           posts.last.map {post =>
             div(
-              mdHtml(post.content),
+              (post.content),
               color.black,
               textAlign.left,
               maxWidth := "60%",
