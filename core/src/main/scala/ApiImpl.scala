@@ -96,9 +96,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
     val userIdOpt = state.auth.dbUserOpt.map(_.id)
     val graph = selection match {
-      case Page.Root =>
+      case Page(parentIds) if parentIds.isEmpty =>
         db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
-      case Page.Union(parentIds) =>
+      case Page(parentIds) =>
         getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
     }
 

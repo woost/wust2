@@ -212,7 +212,7 @@ object SelectedPostMenu {
   case class MenuAction(name: String, action: (Post, GlobalState) => Unit, showIf: (Post, GlobalState) => Boolean = (_, _) => true)
 
   val menuActions: List[MenuAction] = List(
-    MenuAction("Focus", { (p: Post, state: GlobalState) => state.inner.page() = Page.Union(Set(p.id)) }),
+    MenuAction("Focus", { (p: Post, state: GlobalState) => state.inner.page() = Page(Set(p.id)) }),
 //    MenuAction(
 //      "Collapse",
 //      action = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.update(_ + p.id),

@@ -43,7 +43,7 @@
 //       minHeight := "12px",
 //       border := "solid 1px",
 //       cursor.pointer,
-//       onClick(Page.Union(Set(post.id))) --> graphSelection
+//       onClick(Page(Set(post.id))) --> graphSelection
 //     )
 //   }
 // }

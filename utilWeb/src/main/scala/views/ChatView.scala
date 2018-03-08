@@ -102,7 +102,7 @@ object ChatView extends View {
 //        ),
         div( // post content as markdown
           mdHtml(post.content),
-          onClick(Page.Union(Set(post.id))) --> page,
+          onClick(Page(Set(post.id))) --> page,
           cls := "chatpost",
           padding := "0px 3px",
           margin := "2px 0px",
@@ -123,7 +123,7 @@ object ChatView extends View {
           postTags.map{ tag =>
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
-                onClick(Page.Union(Set(tag.id))) --> page,
+                onClick(Page(Set(tag.id))) --> page,
                 backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",

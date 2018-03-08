@@ -46,7 +46,7 @@ object MainView {
         _ <- state.eventProcessor.enriched.changes.onNext(GraphChanges.addPost(post))
         _ <- Client.api.addCurrentUserAsMember(post.id)
       } {
-        state.inner.page() = Page.Union(Set(post.id))
+        state.inner.page() = Page(Set(post.id))
       }
 
       ()

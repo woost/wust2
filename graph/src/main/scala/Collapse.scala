@@ -1,12 +1,13 @@
 package wust.graph
 
 import wust.ids._
+import wust.util.Selector
 import wust.util.algorithm._
 
 import scala.collection.breakOut
 
 object Collapse {
-  def apply(collapsing: Selector)(displayGraph: DisplayGraph): DisplayGraph = {
+  def apply(collapsing: Selector[PostId])(displayGraph: DisplayGraph): DisplayGraph = {
     import displayGraph.graph
 
     val collapsingPosts: Set[PostId] = graph.postsById.keySet.filter(collapsing)

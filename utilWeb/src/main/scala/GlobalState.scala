@@ -13,6 +13,8 @@ import wust.ids._
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views.{PageStyle, View, ViewConfig}
 import wust.sdk._
+import wust.util.Selector
+import collection.breakOut
 
 class GlobalState(implicit ctx: Ctx.Owner) {
 
@@ -60,11 +62,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
 
     val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
-      rawPage() match {
-        case Page.Union(ids) =>
-          Page.Union(ids.filter(rawGraph().postsById.isDefinedAt))
-        case s => s
-      }
+      rawPage().copy(
+        parentIds = rawPage().parentIds.filter(rawGraph().postsById.isDefinedAt)
+      )
     }
 
     val pageParentPosts: Rx[Set[Post]] = Rx {
@@ -81,7 +81,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val collapsedPostIds: Var[Set[PostId]] = Var(Set.empty)
 
     val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
-        perspective().union(Perspective(collapsed = Selector.IdSet(collapsedPostIds())))
+        perspective().union(Perspective(collapsed = Selector.Predicate(collapsedPostIds())))
     }
 
     //TODO: when updating, both displayGraphs are recalculated
@@ -89,10 +89,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
       val graph = rawGraph().consistent
       page() match {
-        case Page.Root =>
+        case Page(parentIds) if parentIds.isEmpty =>
           perspective().applyOnGraph(graph)
 
-        case Page.Union(parentIds) =>
+        case Page(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) -- parentIds
           val selectedGraph = graph.filter(descendants)
           perspective().applyOnGraph(selectedGraph)
@@ -102,10 +102,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val displayGraphWithParents: Rx[DisplayGraph] = Rx {
       val graph = rawGraph().consistent
       page() match {
-        case Page.Root =>
+        case Page(parentIds) if parentIds.isEmpty =>
           perspective().applyOnGraph(graph)
 
-        case Page.Union(parentIds) =>
+        case Page(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
           val selectedGraph = graph.filter(descendants)
           perspective().applyOnGraph(selectedGraph)
@@ -116,13 +116,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val upButtonTargetPage:Rx[Option[Page]] = Rx {
       //TODO: handle containment cycles
       page() match {
-        case Page.Root => None
-        case Page.Union(parentIds) =>
+        case Page(parentIds) if parentIds.isEmpty => None
+        case Page(parentIds) =>
           val newParentIds = parentIds.flatMap(rawGraph().parents)
-          Some(if (newParentIds.nonEmpty) Page.Union(newParentIds) else Page.Root)
+          Some(Page(newParentIds))
       }
     }
-
   }
 
   val eventProcessor = inner.eventProcessor
@@ -201,10 +200,13 @@ object GlobalState {
       Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
     }
 
+    def toParentConnections(page: Page, postId: PostId): Seq[Connection] = page.parentIds.map(Connection(postId,Label.parent, _))(breakOut)
+
     val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
     val toContain = addPosts
       .filterNot(p => containedPosts(p.id))
-      .flatMap(p => Page.toParentConnections(viewConfig.page, p.id))
+      .flatMap(p => toParentConnections(viewConfig.page, p.id))
+
 
     changes.consistent merge GraphChanges(delPosts = toDelete, addConnections = toContain)
   }
