@@ -5,5 +5,6 @@ set -o pipefail
 export CI=true # also set by travis, but helps when running locally
 
 sbt -Dquill.macro.log=false docker \
+ compileAndroid \
  testJSNonPure \
  coverage testJVM coverageReport
