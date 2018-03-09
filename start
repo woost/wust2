@@ -152,6 +152,7 @@ function self() {
         self test.integration
         ;;
     test.postgres)
+        docker_compose core test.postgres down -v
         export $env_wust_version $env_wust_local_connectivity
         docker_compose core test.postgres run db-migration
         docker_compose core test.postgres run test-postgres
