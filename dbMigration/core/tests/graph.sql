@@ -1,16 +1,13 @@
 BEGIN;
-SELECT plan(19);
--- SELECT plan(8);
+SELECT plan(17);
 
 /* structure */
 SELECT col_not_null('rawpost', 'content');
 SELECT col_not_null('rawpost', 'isdeleted');
 SELECT col_not_null('rawconnection', 'sourceid');
 SELECT col_not_null('rawconnection', 'targetid');
-SELECT col_not_null('ownership', 'postid');
-SELECT col_not_null('ownership', 'groupid');
 SELECT col_not_null('membership', 'userid');
-SELECT col_not_null('membership', 'groupid');
+SELECT col_not_null('membership', 'postid');
 
 /* insert label */
 SELECT isnt_empty(
