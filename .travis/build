@@ -6,7 +6,7 @@ export CI=true # also set by travis, but helps when running locally
 
 sbt \
  -Dquill.macro.log=false \
- coverage testJVM coverageReport \
+ testJVM \
  testJSNonPure \
  compileAndroid \
  it:compile \
