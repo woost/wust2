@@ -7,7 +7,7 @@ dynver in ThisBuild ~= (_.replace('+', '-'))
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
 parallelExecution in ThisBuild := !isCI // https://github.com/scalacenter/scalajs-bundler/pull/225
-concurrentRestrictions in Global ++= (if(isCI) Some(Tags.limit(Tags.All, 1)) else None)
+concurrentRestrictions in Global ++= (if(isCI) List(Tags.limit(Tags.All, 1)) else Nil)
 
 import Def.{setting => dep}
 
@@ -139,7 +139,7 @@ lazy val webSettings = Seq(
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "dev"
       val files = Seq(name.value.toLowerCase + "-fastopt-loader.js", name.value.toLowerCase + "-fastopt.js") map { p => (inDir / p, outDir / p) }
-      IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
+      IO.copy(files, overwrite = true, preserveLastModified = true)
     }
 )
 
