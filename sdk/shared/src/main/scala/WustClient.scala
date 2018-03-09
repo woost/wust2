@@ -8,7 +8,7 @@ import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import boopickle.Default._
+import boopickle.shapeless.Default._
 import covenant.ws._
 import sloth._
 import mycelium.client._

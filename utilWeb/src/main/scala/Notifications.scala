@@ -57,32 +57,35 @@ class Notifications {
 
   //TODO
   private val serverKey = new Uint8Array(Base64Codec.decode("BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0").arrayBuffer())
-  def subscribeWebPush()(implicit ec: ExecutionContext): Unit =
-    if (window.navigator.serviceWorker == js.undefined) {
-      scribe.info("Push notifications are not available in this browser")
-    } else {
-      console.log("AS", serverKey)
-      console.log("AS", PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = serverKey))
 
-      scribe.info("GO")
-      window.navigator.serviceWorker.getRegistration().toFuture.foreach { reg =>
-        scribe.info("REG YOU" + reg)
-        reg.foreach { reg =>
-          scribe.info("REG YOU, too" + reg)
-          reg.pushManager.subscribe(PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = serverKey)).toFuture.onComplete {
-            case Success(sub) =>
-              scribe.info(s"Got subscription: $sub")
-              if (sub != js.undefined) {
-                //TODO rename p256dh attribute of WebPushSub to publicKey
-                val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
-                scribe.info(s"WebPush subscription: $webpush")
-                Client.api.subscribeWebPush(webpush)
-              }
-            case Failure(t) => scribe.info(s"Failed to subscribe to push: $t")
-          }
-        }
-      }
-    }
+  def subscribeAndPersistWebPush()(implicit ec: ExecutionContext): Unit =
+    persistPushSubscription(_.subscribe(PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = serverKey)))
+
+  //TODO pushsubscriptionchanged event (in serviceworker?)
+  def persistExistingWebPush()(implicit ec: ExecutionContext): Unit =
+    persistPushSubscription(_.getSubscription)
+
+  private def persistPushSubscription(getSubscription: PushManager => js.Promise[PushSubscription])(implicit ec: ExecutionContext): Unit =
+    ()
+    //TODO
+    // if (window.navigator.serviceWorker == js.undefined) {
+    //   scribe.info("Push notifications are not available in this browser")
+    // } else {
+    //   window.navigator.serviceWorker.getRegistration().toFuture.foreach { reg =>
+    //     reg.foreach { reg =>
+    //       getSubscription(reg.pushManager).toFuture.onComplete {
+    //         case Success(sub) =>
+    //           if (sub != js.undefined) {
+    //             //TODO rename p256dh attribute of WebPushSub to publicKey
+    //             val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
+    //             scribe.info(s"WebPush subscription: $webpush")
+    //             Client.api.subscribeWebPush(webpush)
+    //           }
+    //         case Failure(t) => scribe.info(s"Failed to subscribe to push: $t")
+    //       }
+    //     }
+    //   }
+    // }
 
   //TODO: modernizr
   def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(implicit ec: ExecutionContext): Unit =

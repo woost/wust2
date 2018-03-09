@@ -1,6 +1,7 @@
 package wust.backend
 
 import wust.api._
+import wust.backend.Dsl._
 import wust.backend.DbConversions._
 import wust.db.Db
 import wust.graph._

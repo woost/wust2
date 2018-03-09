@@ -59,6 +59,8 @@ object Main {
       }
     }
 
+    Notifications.persistExistingWebPush()
+
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }
 }

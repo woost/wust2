@@ -33,7 +33,7 @@ object MainView {
     )
   }
 
-  val pushNotifications = button("enable push", onClick --> sideEffect { Notifications.subscribeWebPush() })
+  val pushNotifications = button("Enable Push Notifications", onClick --> sideEffect { Notifications.subscribeWebPush() })
 
   def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     def buttonStyle = Seq(

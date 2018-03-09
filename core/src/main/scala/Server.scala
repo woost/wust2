@@ -4,16 +4,21 @@ import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import boopickle.Default._
-import wust.api._, serialize.Boopickle._
+import wust.api._, serialize.Boopickle._, serialize.Circe._
 import wust.ids._
+import wust.backend.Dsl._
 import wust.backend.auth._
 import wust.backend.config.Config
+import wust.util.CorsSupport
 import wust.db.Db
 import covenant.ws._
+import covenant.http._
 import sloth._
 import mycelium.server._
 import chameleon.ext.boopickle._
+import boopickle.shapeless.Default._
+import chameleon.ext.circe._
+import io.circe._, io.circe.syntax._, io.circe.generic.auto._
 import wust.util.{ Pipe, RichFuture }
 import cats.implicits._
 import monix.execution.Scheduler
@@ -33,12 +38,7 @@ object Server {
     implicit val materializer = ActorMaterializer()
     implicit val scheduler = Scheduler(system.dispatcher)
 
-    val wsServer = createWebsocketServer(config)
-    val route = path("ws") {
-      wsServer()
-    } ~ (path("health") & get) {
-      complete("ok")
-    }
+    val route = createRoute(config)
 
     Http().bindAndHandle(route, interface = "0.0.0.0", port = config.server.port).onComplete {
       case Success(binding) => {
@@ -50,20 +50,35 @@ object Server {
     }
   }
 
-  private def createWebsocketServer(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
+  private def createRoute(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
     import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = new GuardDsl(jwt, db)
 
-    val router = Router[ByteBuffer, ApiFunction]
-      .route[Api[ApiFunction]](new ApiImpl(guardDsl, db))
-      .route[AuthApi[ApiFunction]](new AuthApiImpl(guardDsl, db, jwt))
+    val apiImpl = new ApiImpl(guardDsl, db)
+    val authApiImpl = new AuthApiImpl(guardDsl, db, jwt)
+    val jsonRouter = Router[String, ApiFunction]
+      .route[Api[ApiFunction]](apiImpl)
+      .route[AuthApi[ApiFunction]](authApiImpl)
+    val binaryRouter = Router[ByteBuffer, ApiFunction]
+      .route[Api[ApiFunction]](apiImpl)
+      .route[AuthApi[ApiFunction]](authApiImpl)
 
-    val requestHandler = new ApiRequestHandler(new EventDistributor(db), stateInterpreter, router)
+    val eventDistributor = new HashSetEventDistributorWithPush(db)
+    val apiConfig = new ApiConfiguration(guardDsl, eventDistributor)
     val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
 
-    () => router.asWsRoute(serverConfig, requestHandler)
+    path("ws") {
+      AkkaWsRoute.fromApiRouter(binaryRouter, serverConfig, apiConfig)
+    } ~ pathPrefix("api") {
+      //TODO no hardcode
+      CorsSupport.check(List("http://localhost:12345", "https://woost.space")) {
+        AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
+      }
+    } ~ (path("health") & get) {
+      complete("ok")
+    }
   }
 }

@@ -3,6 +3,7 @@ package wust.backend
 import wust.api._
 import wust.db.Db
 import wust.ids._
+import covenant.ws.api.EventDistributor
 import mycelium.server.NotifiableClient
 import nl.martijndwars.webpush._
 
@@ -14,10 +15,11 @@ import scala.concurrent.duration._
 import java.security.{Security, PublicKey, PrivateKey}
 import scala.util.{Try, Success, Failure}
 
-class EventDistributor(db: Db) {
-  val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent]]
-
+class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
+  //TODO: somewhere else?
   Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+  private val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent, State]]
 
   private val vapidPublicKey: String = "BDP21xA-AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY-q0"
   private val vapidPrivateKey: String = "or76yI5iDE-S9gWkVU2g0JuHyq4OD_AtwHTHefkoo3k"
@@ -25,20 +27,20 @@ class EventDistributor(db: Db) {
 
   private val pushService = new PushService(vapidPublicKey, vapidPrivateKey, subject) //TODO: expiry?
 
-  def subscribe(client: NotifiableClient[ApiEvent]): Unit = {
+  def subscribe(client: NotifiableClient[ApiEvent, State]): Unit = {
     subscribers += client
   }
 
-  def unsubscribe(client: NotifiableClient[ApiEvent]): Unit = {
+  def unsubscribe(client: NotifiableClient[ApiEvent, State]): Unit = {
     subscribers -= client
   }
 
   //TODO is this async? it should be. we do not want to block a running request for sending out events.
-  def publish(origin: NotifiableClient[ApiEvent], events: List[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = if (events.nonEmpty) {
-    scribe.info(s"Backend events (${subscribers.size - 1} clients): $events")
+  override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
+    scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
     subscribers.foreach { client =>
-      if (client != origin) client.notify(events)
+      if (origin.fold(true)(_ != client)) client.notify(_ => Future.successful(events))
     }
 
     distributeNotifications(events)
@@ -46,7 +48,7 @@ class EventDistributor(db: Db) {
 
   //TODO
   private def urlsafebase64(s:String) = s.replace("/", "_").replace("+", "-")
-  private def distributeNotifications(events: List[ApiEvent.Public])(implicit ec: ExecutionContext): Unit = {
+  private def distributeNotifications(events: List[ApiEvent]): Unit = {
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
     val expiryStatusCodes = Set(404, 410)
     val successStatusCode = 201

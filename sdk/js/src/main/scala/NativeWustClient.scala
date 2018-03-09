@@ -4,7 +4,7 @@ import wust.api._, serialize.Boopickle._
 import mycelium.client._
 import covenant.ws._
 import chameleon.ext.boopickle._
-import boopickle.Default._
+import boopickle.shapeless.Default._
 
 import java.nio.ByteBuffer
 import scala.concurrent.ExecutionContext

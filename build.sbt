@@ -186,6 +186,8 @@ lazy val utilBackend = project
   .settings(
     libraryDependencies ++=
       Deps.pureconfig.value ::
+      Deps.akka.http.value ::
+      Deps.akka.stream.value ::
       Nil
   )
 
@@ -255,9 +257,10 @@ lazy val api = crossProject.crossType(CrossType.Pure)
   .settings(
     libraryDependencies ++=
       Deps.covenant.core.value ::
-      Deps.boopickle.value % Optional ::
-      Deps.circe.core.value % Optional ::
-      Deps.circe.generic.value % Optional ::
+      Deps.boopickle.value ::
+      Deps.circe.core.value ::
+      Deps.circe.generic.value ::
+      Deps.circe.parser.value ::
       Nil
   )
 lazy val apiJS = api.js
@@ -284,6 +287,7 @@ lazy val core = project
   .settings(
     libraryDependencies ++=
       Deps.covenant.ws.value ::
+      Deps.covenant.http.value ::
       Deps.boopickle.value ::
       Deps.cats.kittens.value ::
       Deps.jwt.value ::

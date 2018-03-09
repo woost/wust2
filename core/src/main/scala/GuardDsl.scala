@@ -3,6 +3,7 @@ package wust.backend
 import wust.ids._
 import wust.api._
 import wust.db.Db
+import wust.backend.Dsl._
 import wust.backend.auth._
 import wust.graph._
 import DbConversions._
@@ -11,7 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import cats.implicits._
 import scala.util.control.NonFatal
 
-class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) extends ApiDsl {
+class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
   private def createImplicitAuth(userId: UserId, userName: String): Future[Option[Authentication.Verified]] = {
     db.user
