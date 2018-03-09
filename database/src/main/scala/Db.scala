@@ -1,13 +1,11 @@
 package wust.db
 
+import java.time.LocalDateTime
+
 import com.typesafe.config.Config
 import io.getquill._
 import wust.ids._
-import io.treev.tag._
 import wust.util._
-import java.time.LocalDateTime
-
-import wust.db.Data.{Membership, User}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -165,6 +163,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         m <- allMembershipsQuery(userId)
         p <- query[Post].join(p => p.id == m.postId)
       } yield p
+    }
+
+    def visiblePosts(userId:UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext):Future[List[PostId]] = {
+      ctx.run{
+        for {
+          m <- query[Membership].filter(m => m.userId == lift(userId) && liftQuery(postIds.toList).contains(m.postId))
+          child <- query[Connection].filter(c => c.targetId == m.postId && c.label == lift(Label.parent)).map(_.sourceId).distinct // get all direct children
+        } yield child
+      }
     }
 
     def getAllPosts(userId:UserId)(implicit ec: ExecutionContext):Future[List[Post]] = ctx.run { AllPostsQuery(userId) }
