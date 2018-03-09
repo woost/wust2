@@ -1,19 +1,19 @@
 package wust.github
 
-import covenant.http._
+import covenant.http._, ByteBufferImplicits._
 import sloth._
 import java.nio.ByteBuffer
 
-import boopickle.Default._
+import boopickle.shapeless.Default._
 import chameleon.ext.boopickle._
 import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
+import wust.util.CorsSupport
 import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
@@ -173,8 +173,8 @@ object AppServer {
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
     val route = {
       pathPrefix("api") {
-        CorsSupport.check(HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)) :_*)) {
-          apiRouter.asHttpRoute
+        CorsSupport.check(server.allowedOrigins) {
+          AkkaHttpRoute.fromFutureRouter(apiRouter)
         }
       } ~ path(server.authPath) {
         get {

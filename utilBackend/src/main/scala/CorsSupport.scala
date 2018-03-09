@@ -1,4 +1,4 @@
-package wust.sdk
+package wust.util
 
 import akka.http.scaladsl.model.HttpHeader
 import akka.http.scaladsl.model.HttpMethods._
@@ -10,6 +10,9 @@ import akka.http.scaladsl.server.Route
 import scala.collection.immutable
 
 object CorsSupport {
+  def check(allowedOrigins: Seq[String])(inner: Route): Route =
+    check(HttpOriginRange(allowedOrigins.map(HttpOrigin(_)) :_*))(inner)
+
   def check(allowedOrigins: HttpOriginRange.Default)(inner: Route): Route =
     checkSameOrigin(allowedOrigins) {
       headerValueByType[Origin](()) { origin =>

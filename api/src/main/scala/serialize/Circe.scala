@@ -20,6 +20,8 @@ object Circe {
   implicit val PostEncoder: Encoder[Post] = deriveEncoder[Post]
   implicit val ConnectionDecoder: Decoder[Connection] = deriveDecoder[Connection]
   implicit val ConnectionEncoder: Encoder[Connection] = deriveEncoder[Connection]
+  implicit val MembershipDecoder: Decoder[Membership] = deriveDecoder[Membership]
+  implicit val MembershipEncoder: Encoder[Membership] = deriveEncoder[Membership]
 
   implicit val UserAssumedDecoder: Decoder[User.Assumed] = deriveDecoder[User.Assumed]
   implicit val UserAssumedEncoder: Encoder[User.Assumed] = deriveEncoder[User.Assumed]
@@ -31,4 +33,14 @@ object Circe {
   implicit val AuthenticationEncoder: Encoder[Authentication] = deriveEncoder[Authentication]
   implicit val GraphChangesDecoder: Decoder[GraphChanges] = deriveDecoder[GraphChanges]
   implicit val GraphChangesEncoder: Encoder[GraphChanges] = deriveEncoder[GraphChanges]
+
+  implicit val userIdKeyDecoder: KeyDecoder[UserId] = KeyDecoder[String].map(UserId(_))
+  implicit val userIdKeyEncoder: KeyEncoder[UserId] = KeyEncoder[String].contramap[UserId](identity)
+  implicit val postIdKeyDecoder: KeyDecoder[PostId] = KeyDecoder[String].map(PostId(_))
+  implicit val postIdKeyEncoder: KeyEncoder[PostId] = KeyEncoder[String].contramap[PostId](identity)
+  implicit val labelKeyDecoder: KeyDecoder[Label] = KeyDecoder[String].map(Label(_))
+  implicit val labelKeyEncoder: KeyEncoder[Label] = KeyEncoder[String].contramap[Label](identity)
+
+  implicit val GraphDecoder: Decoder[Graph] = deriveDecoder[Graph]
+  implicit val GraphEncoder: Encoder[Graph] = deriveEncoder[Graph]
 }

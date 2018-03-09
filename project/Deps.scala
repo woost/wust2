@@ -28,7 +28,8 @@ object Deps {
 
   // serialization
   // val boopickle = dep("io.suzaku" %%% "boopickle" % "1.2.6")
-  val boopickle = dep("com.github.fdietze.boopickle" %%% "boopickle" % "e8f9331")
+  // val boopickle = dep("com.github.fdietze.boopickle" %%% "boopickle" % "e8f9331")
+  val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle-shapeless" % "680e03c")
   val circe = new {
     private val version = "0.9.1"
     val core = dep("io.circe" %%% "circe-core" % version)
@@ -55,7 +56,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "34f726d"
+    private val version = "de37c65"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)

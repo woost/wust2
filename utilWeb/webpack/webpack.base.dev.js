@@ -68,38 +68,32 @@ module.exports.devServer = {
 
     //proxy websocket requests to app
     proxy : [
-        subdomainProxy("core", process.env.WUST_CORE_PORT, true),
-        subdomainProxy("github", process.env.WUST_GITHUB_PORT),
-        pathProxy("apps/web", process.env.WUST_WEB_PORT),
-        pathProxy("apps/pwa", process.env.WUST_PWA_PORT)
+        //TODO: subdomain and path proxy?
+        setupProxy({ /*subdomain: "core", */path: "ws", port: process.env.WUST_CORE_PORT, ws: true }),
+        setupProxy({ /*subdomain: "core", */path: "api", port: process.env.WUST_CORE_PORT }),
+        setupProxy({ subdomain: "core", port: process.env.WUST_CORE_PORT }),
+        setupProxy({ subdomain: "github", port: process.env.WUST_GITHUB_PORT, pathRewrite: true }),
+        setupProxy({ path: "apps/web", port: process.env.WUST_WEB_PORT, pathRewrite: true }),
+        setupProxy({ path: "apps/pwa", port: process.env.WUST_PWA_PORT, pathRewrite: true })
     ],
     compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
 };
 // module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
 
-function basicProxy(port, ws) {
-    ws = !!ws;
-    var protocol = ws ? "ws" : "http";
-    var url = protocol + "://localhost:" + port;
+function setupProxy(config) {
+    var ws = !!config.ws;
+    var protocol = config.ws ? "ws" : "http";
+    var url = protocol + "://localhost:" + config.port;
     return {
         ws: ws,
-        target: url
-    }
-}
-function subdomainProxy(subdomain, port, ws) {
-    return Object.assign(basicProxy(port, ws), {
-        path: '/*',
-        bypass: function (req, res, proxyOptions) {
-            if (req.headers.host.startsWith(subdomain + ".")) return true
+        target: url,
+        path: config.path ? ('/' + config.path) : '/*',
+        pathRewrite: (config.path && config.pathRewrite) ? ({
+            ["^/" + config.path]: ""
+        }) : undefined,
+        bypass: config.subdomain ? (function (req, res, proxyOptions) {
+            if (req.headers.host.startsWith(config.subdomain + ".")) return true
             else return req.path;
-        }
-    });
-}
-function pathProxy(path, port, ws) {
-    return Object.assign(basicProxy(port, ws), {
-        path: '/' + path,
-        pathRewrite: {
-            ["^/" + path]: ""
-        }
-    });
+        }) : undefined
+    };
 }

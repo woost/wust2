@@ -1,3 +1,10 @@
+console.log("Hi from ServiceWorker", self.location);
+var baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
+fetch(baseUrl + '/Api/log', {
+  method: 'POST',
+  body: { message: "Hi du Ei" }
+})
+
 self.addEventListener('push', function(e) {
   var body;
 

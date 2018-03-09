@@ -4,6 +4,7 @@ import com.roundeights.hasher.Hasher
 import wust.api._
 import wust.graph.User
 import wust.ids._
+import wust.backend.Dsl._
 import wust.backend.DbConversions._
 import wust.backend.auth._
 import wust.db.Db

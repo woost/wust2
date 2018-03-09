@@ -2,7 +2,7 @@ package wust.utilWeb
 
 import covenant.http._
 import java.nio.ByteBuffer
-import boopickle.Default._
+import boopickle.shapeless.Default._
 import chameleon.ext.boopickle._
 import wust.api._
 import wust.ids._
