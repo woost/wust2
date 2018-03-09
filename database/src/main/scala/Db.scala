@@ -120,6 +120,11 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       ctx.run(query[WebPushSubscription].insert(lift(subscription))).map(_ == 1)
     }
 
+    def delete(subscriptions: Set[WebPushSubscription])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(subscriptions.toList).foreach(s => query[WebPushSubscription].filter(_.id == s.id).delete))
+        .map(_.forall(_ == 1))
+    }
+
     def getSubscriptions(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
       ctx.run{
         for {
