@@ -69,12 +69,12 @@ object ApiFunction {
   object Response {
     private val handleUserException: PartialFunction[Throwable, ApiError.HandlerFailure] = {
       case NonFatal(e) =>
-        scribe.error(s"Exception in API method: $e")
+        scribe.error(s"Exception in API method", e)
         ApiError.InternalServerError
     }
     private val handleDelayedUserException: PartialFunction[Throwable, Observable[Seq[ApiEvent]]] = {
       case NonFatal(e) =>
-        scribe.error(s"Exception in API delayed events: $e")
+        scribe.error(s"Exception in API delayed events", e)
         Observable.empty
     }
 

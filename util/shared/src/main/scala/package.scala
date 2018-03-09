@@ -23,11 +23,9 @@ package object util {
       val message = Option(customMessage).fold("")(" - " + _)
       fut.onComplete {
         case Success(res) =>
-          scribe.info(s"${name.value}:${line.value}$message")
-          scribe.info(res)
+          scribe.info(s"${name.value}:${line.value}$message - $res")
         case Failure(e) =>
-          scribe.error(s"${name.value}:${line.value}$message")
-          scribe.error(e)
+          scribe.error(s"${name.value}:${line.value}$message", e)
       }
       fut
     }
