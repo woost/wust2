@@ -7,7 +7,7 @@ dynver in ThisBuild ~= (_.replace('+', '-'))
 lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
 
 parallelExecution in ThisBuild := !isCI // https://github.com/scalacenter/scalajs-bundler/pull/225
-concurrentRestrictions in Global += Tags.limit(Tags.Compile, 1)
+concurrentRestrictions in Global ++= (if(isCI) Some(Tags.limit(Tags.All, 1)) else None)
 
 import Def.{setting => dep}
 
