@@ -291,8 +291,7 @@ lazy val core = project
       Deps.jbcrypt.value ::
       Deps.javaMail.value ::
       Deps.monix.value ::
-      Deps.gitterSync.value ::
-      Deps.stringmetric.value ::
+      Deps.github4s.value ::
       Deps.webPush.value ::
       Nil,
 
