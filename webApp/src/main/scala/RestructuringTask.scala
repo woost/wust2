@@ -19,7 +19,7 @@ import scala.collection.breakOut
 import scala.concurrent.Future
 
 object Restructure {
-  val taskBg = "gray" // "gray" | "transparent"
+  val taskBg = "transparent" // "gray" | "transparent"
   type Posts = List[Post]
   type Probability = Double
   type StrategyResult = Future[List[RestructuringTask]]
@@ -926,7 +926,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     """
       |Beinhaltet der Beitrag unterschiedliche Aussagen?
       |
-      |Bitte teilen Sie den Beitrag in Sinneseinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
+      |Bitte teilen Sie den Beitrag in beliebig viele Sinneseinheiten ein, sodass jede Einheit eine separate Aussage repräsentiert.
       |
       |Sie können den Beitrag aufteilen, indem Sie einen Teil markieren.
       |
@@ -1021,7 +1021,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
           onClick(postPreview).map(p => TaskFeedback(true, false, generateGraphChanges(splitPost, p, getGraphFromState(state)))) --> RestructuringTaskGenerator.taskDisplayWithLogging,
           marginLeft := "10px",
         ),
-        padding := "3px 20px",
+        padding := "5px 20px 3px",
       ),
       textAlign := "center",
     )
@@ -1065,7 +1065,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       |Wie würden Sie den Beitrag kategorisieren?
       |Fügen Sie einen Tag (Label / Kategorie) hinzu.
       |
-      |Damit kategorisieren Sie den Beintrag innerhalb der aktuellen Diskussion.
+      |Damit kategorisieren Sie den Beitrag innerhalb der aktuellen Diskussion.
       |
       |Sie können den Tag bestätigen indem Sie Enter drücken.
     """.stripMargin
@@ -1167,7 +1167,7 @@ object RestructuringTaskGenerator {
       buttonType,
       )
 
-    if(!hide) buttonBasis
+    if(!hide || (Restructure.taskBg == "transparent")) buttonBasis
     else buttonBasis(
       display.flex,
       overflow.auto,
