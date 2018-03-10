@@ -292,6 +292,7 @@ lazy val core = project
       Deps.javaMail.value ::
       Deps.monix.value ::
       Deps.github4s.value ::
+      Deps.stringmetric.value ::
       Deps.webPush.value ::
       Nil,
 
