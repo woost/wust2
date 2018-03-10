@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "167212921632",
+    "firebase_url": "https://woost-space.firebaseio.com",
+    "project_id": "woost-space",
+    "storage_bucket": "woost-space.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:167212921632:android:220a0dcb39d82093",
+        "android_client_info": {
+          "package_name": "space.woost"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "167212921632-jnbn06gp6kl645mufttjot7v4tfdllgc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCchwRkuk_y6fG1kHx4hlD8mginbyDwVqo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
