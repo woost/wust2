@@ -4,7 +4,7 @@ import android.support.constraint.ConstraintLayout
 import android.support.constraint.ConstraintSet
 import android.support.v7.widget.LinearLayoutManager
 import macroid.Contexts
-import android.widget.{FrameLayout, LinearLayout, ProgressBar}
+import android.widget.{FrameLayout, LinearLayout}
 import android.view.View
 import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener

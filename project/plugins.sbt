@@ -17,5 +17,6 @@ addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.5")
 
 // android
 addSbtPlugin("org.scala-android" % "sbt-android" % "1.7.10")
+addSbtPlugin("org.scala-android" % "sbt-android-gms" % "0.3")
 
 addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.2")

@@ -319,10 +319,11 @@ lazy val pwaApp = project
     libraryDependencies ++=
       Nil
     )
+
 lazy val androidApp = project
   .settings(commonSettings)
   .dependsOn(sdkJVM)
-  .enablePlugins(AndroidApp)
+  .enablePlugins(AndroidGms, AndroidApp)
   .settings(
 
     resolvers ++= (
@@ -341,8 +342,11 @@ lazy val androidApp = project
     libraryDependencies ++=
       aar("org.macroid" %% "macroid" % "2.0") ::
       aar("org.macroid" %% "macroid-extras" % "2.0") ::
-      "com.android.support" % "appcompat-v7" % "24.0.0" ::
+      "com.android.support" % "appcompat-v7" % "24.2.1" ::
       "com.android.support.constraint" % "constraint-layout" % "1.0.2" ::
+        "com.google.firebase"       % "firebase-messaging" % "11.8.0" ::
+      "com.google.android.gms"    % "play-services"     % "11.8.0" ::
+//      "com.google.firebase" % "firebase-core" % "11.8.0" ::
       // "br.com.vivareal" % "cuid-android" % "0.1.0" ::
       Nil,
     dependencyOverrides ++= Set(
@@ -359,6 +363,7 @@ lazy val androidApp = project
     proguardOptions in Android ++= Seq(
       "-ignorewarnings"
     ),
+//    proguardConfig -= "-dontoptimize",
     packagingOptions in Android := PackagingOptions(excludes = Seq("reference.conf"))
   )
 
