@@ -57,12 +57,13 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   }
 
   private def visibleChangesForState(state: State, changes: GraphChanges): Future[GraphChanges] = {
-    import changes.consistent._
-    val affectedPostId = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
-    scribe.info(s"are $affectedPostId visible to ${state.auth.user.id}?")
-    db.user.visiblePosts(state.auth.user.id, affectedPostId).map {visiblePostIds =>
-      scribe.info(s"visible: $visiblePostIds")
-      changes.consistent.filter(visiblePostIds.toSet)
-    }
+    Future.successful(changes)
+//    import changes.consistent._
+//    val affectedPostId = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
+//    scribe.info(s"are $affectedPostId visible to ${state.auth.user.id}?")
+//    db.user.visiblePosts(state.auth.user.id, affectedPostId).map {visiblePostIds =>
+//      scribe.info(s"visible: $visiblePostIds")
+//      changes.consistent.filter(visiblePostIds.toSet)
+//    }
   }
 }
