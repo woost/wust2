@@ -11,7 +11,7 @@ import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
 import android.support.v4.app.Fragment
 import android.app.Activity
 import android.os.Bundle
-import android.widget.{Button, LinearLayout, TextView, ScrollView, EditText}
+import android.widget.{Button, EditText, LinearLayout, ScrollView, TextView}
 import android.support.v7.widget.RecyclerView
 import android.view.ViewGroup
 import macroid._
@@ -24,8 +24,10 @@ import covenant.ws._
 import wust.api._
 import mycelium.client.OkHttpWebsocketConnection
 import java.nio.ByteBuffer
+
 import macroid._
 import wust.sdk._
+
 import concurrent.Future
 import wust.api.serialize.Boopickle._
 import boopickle.Default._
@@ -34,11 +36,12 @@ import macroid.extras.LinearLayoutTweaks._
 import macroid.extras.RecyclerViewTweaks.{W, _}
 import macroid.extras.ViewTweaks._
 import android.view.LayoutInflater
-
+import com.google.firebase.iid.FirebaseInstanceId
 import macroid.IdGenerator
 import wust.graph._
 import wust.ids._
 import cool.graph.cuid.Cuid
+
 import concurrent.duration._
 import mycelium.client._
 import monix.execution.Scheduler.Implicits.global
@@ -48,6 +51,12 @@ import monix.reactive.{Observable, Observer}
 object Id extends IdGenerator(start = 1000)
 
 class MainActivity extends Activity with Contexts[Activity] {
+
+
+  val token = FirebaseInstanceId.getInstance().getToken()
+  println(s"got initial token: $token")
+
+
   def cuid = scala.util.Random.alphanumeric.take(36).mkString
 
   val con = new OkHttpWebsocketConnection[ByteBuffer]
