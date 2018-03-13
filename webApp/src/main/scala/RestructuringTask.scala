@@ -19,7 +19,7 @@ import scala.collection.breakOut
 import scala.concurrent.Future
 
 object Restructure {
-  val taskBg = "gray" // "gray" | "transparent"
+  val taskBg = "transparent" // "gray" | "transparent"
   type Posts = List[Post]
   type Probability = Double
   type StrategyResult = Future[List[RestructuringTask]]
