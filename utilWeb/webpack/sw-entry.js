@@ -25,7 +25,9 @@ self.addEventListener('push', function(e) {
     //     icon: 'images/xmark.png'},
     // ]
   };
-  e.waitUntil(
-    self.registration.showNotification('Push Notification', options)
-  );
+  if(Notification.permission == "granted") {
+      e.waitUntil(
+          self.registration.showNotification('Push Notification', options)
+      );
+  }
 });
