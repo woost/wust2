@@ -4,7 +4,7 @@ module.exports = {
     plugins: [
         new OfflinePlugin({
             ServiceWorker: {
-                minify: false,
+                minify: true,
                 events: true,
                 entry: "./sw-entry.js"
             },
