@@ -102,7 +102,6 @@ object ChatView extends View {
 //        ),
         div( // post content as markdown
           mdHtml(post.content),
-          onClick(Page(Set(post.id))) --> page,
           cls := "chatpost",
           padding := "0px 3px",
           margin := "2px 0px",
@@ -135,6 +134,7 @@ object ChatView extends View {
           margin := "0px",
           padding := "0px",
         ),
+        onClick(Page(Set(post.id))) --> page,
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
