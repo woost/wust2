@@ -288,6 +288,7 @@ lazy val core = project
     libraryDependencies ++=
       Deps.covenant.ws.value ::
       Deps.covenant.http.value ::
+      Deps.akka.httpCors.value ::
       Deps.boopickle.value ::
       Deps.cats.kittens.value ::
       Deps.jwt.value ::
@@ -394,6 +395,7 @@ lazy val githubApp = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
+      Deps.akka.httpCors.value ::
       Deps.github4s.value ::
       Deps.graphQl.value ::
       Deps.akka.httpCirce.value ::

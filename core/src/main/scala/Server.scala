@@ -9,7 +9,9 @@ import wust.ids._
 import wust.backend.Dsl._
 import wust.backend.auth._
 import wust.backend.config.Config
-import wust.util.CorsSupport
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import wust.db.Db
 import covenant.ws._
 import covenant.http._
@@ -74,7 +76,8 @@ object Server {
       AkkaWsRoute.fromApiRouter(binaryRouter, serverConfig, apiConfig)
     } ~ pathPrefix("api") {
       //TODO no hardcode
-      CorsSupport.check(List("http://localhost:12345", "https://woost.space")) {
+      val allowedOrigins = List("http://localhost:12345", "https://woost.space")
+      cors(CorsSettings.defaultSettings.copy(allowedOrigins = HttpOriginRange(allowedOrigins.map(HttpOrigin(_)): _*))) {
         AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
       }
     } ~ (path("health") & get) {
