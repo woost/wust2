@@ -64,6 +64,9 @@ object GraphChanges {
   def addPost(content:String, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
   def addPost(post:Post) = GraphChanges(addPosts = Set(post))
 
+  def delete(post:Post) = GraphChanges(delPosts = Set(post.id))
+  def delete(postId:PostId) = GraphChanges(delPosts = Set(postId))
+
   def connect(source:PostId, label:Label, target:PostId) = GraphChanges(addConnections = Set(Connection(source, label, target)))
 
   def moveInto(graph:Graph, subject:PostId, target:PostId) = {
