@@ -10,7 +10,9 @@ import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
-import wust.util.CorsSupport
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
@@ -51,7 +53,7 @@ object Constants {
   val wustOwner = "woost"
   val wustRepo = "bug"
 
-  val wustUser = UserId("wust") // get rid of this static user assumption 
+  val wustUser = UserId("wust") // TODO get rid of this static user assumption
 
 }
 
@@ -173,7 +175,7 @@ object AppServer {
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
     val route = {
       pathPrefix("api") {
-        CorsSupport.check(server.allowedOrigins) {
+        cors(CorsSettings.defaultSettings.copy(allowedOrigins = HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)): _*))) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
         }
       } ~ path(server.authPath) {
