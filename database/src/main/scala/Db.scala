@@ -158,11 +158,30 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       query[Membership].filter(m => m.userId == lift(userId))
     }
 
+    def allTopLevelPostsQuery = quote {
+      query[Post]
+        .leftJoin(query[Connection])
+        .on((p,c) => c.label == lift(Label.parent) && c.sourceId == p.id)
+        .filter{case (_,c) => c.isEmpty}
+        .map{case (p,_) => p}
+    }
+
     def AllPostsQuery(userId:UserId) = quote {
       for {
         m <- allMembershipsQuery(userId)
         p <- query[Post].join(p => p.id == m.postId)
       } yield p
+    }
+
+    def highLevelGroups(userId:UserId)(implicit ec: ExecutionContext):Future[List[Post]] = {
+      println("########### yo gorups")
+      ctx.run {
+        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
+        // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
+        // for {
+        //   (p,m) <- allTopLevelPostsQuery.join(allMembershipsQuery(userId)).on{case (p,m) => p.id == m.postId}.distinct
+        // } yield p
+      }
     }
 
     def visiblePosts(userId:UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext):Future[List[PostId]] = {

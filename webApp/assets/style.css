@@ -9,53 +9,6 @@
     grid-auto-rows: minmax(100px, auto);
 }
 
-input[readonly=readonly] {
-    background-color: #EEE;
-    color: #666;
-}
-
-input[type=text], input[type=password], button, input[type=button], input[type=submit], textarea, select {
-    border: 1px solid #BBB;
-    border-radius: 3px;
-    padding: 3px 10px;
-    margin: 2px;
-    transition: background 0.2s, border 0.1s;
-}
-
-select {
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='70' height='50' fill='%23666'><polygon points='0,0 70,0 35,50'/></svg>") no-repeat;
-  background-size: 9px;
-
-  background-position: calc(100% - 8px) center;
-  background-repeat: no-repeat;
-}
-
-button, input[type=button], input[type=submit], select {
-    color: #333;
-    background-color: #F2F2F2;
-}
-
-button:hover, input[type=button]:hover, input[type=submit]:hover, select:hover {
-    background-color: #FAFAFA;
-    border-color: #888;
-}
-
-select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-
-  padding-right: 25px;
-}
-
-
-
-.shadow {
-    /* http://www.cssmatic.com/box-shadow */
-    -webkit-box-shadow: 0px 7px 21px -6px rgba(0,0,0,0.75);
-    -moz-box-shadow: 0px 7px 21px -6px rgba(0,0,0,0.75);
-    box-shadow: 0px 7px 21px -6px rgba(0,0,0,0.75);
-}
 
 /* inspired by https://github.com/markdowncss/air/blob/master/index.css */
 .article {

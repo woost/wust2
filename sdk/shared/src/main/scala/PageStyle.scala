@@ -12,9 +12,9 @@ object PageStyle {
     //TODO: ensure that these are calculated at compile time
     private[PageStyle] val baseBg = RGB("#F3EFCC").hcl
     private[PageStyle] val baseBgDark = RGB("#4D394B").hcl
+    private[PageStyle] val baseBgDarkHighlight = RGB("#9D929B").hcl
     private[PageStyle] val border = RGB("#95CCDF").hcl
   }
-
 
   def apply(page:Page, parents:Set[Post]) = {
 
@@ -25,14 +25,17 @@ object PageStyle {
 
     def withBaseHueDefaultGray(base:HCL) = baseHue.fold(LAB(base.l, 0, 0):Color)(hue => HCL(hue, base.c, base.l))
 
-    val accentLineColor = withBaseHueDefaultGray(Color.border)
-    val darkBgColor = withBaseHueDefaultGray(Color.baseBgDark)
-    val bgColor = withBaseHueDefaultGray(Color.baseBg)
-
-    new PageStyle(title, baseHue, bgColor, accentLineColor, darkBgColor)
+    new PageStyle(
+      title,
+      baseHue,
+      bgColor = withBaseHueDefaultGray(Color.baseBg),
+      accentLineColor = withBaseHueDefaultGray(Color.border),
+      darkBgColor = withBaseHueDefaultGray(Color.baseBgDark),
+      darkBgColorHighlight = withBaseHueDefaultGray(Color.baseBgDarkHighlight)
+    )
   }
 }
 
-case class PageStyle(title:String, baseHue:Option[Double], bgColor:Color, accentLineColor:Color, darkBgColor:Color)
+case class PageStyle(title:String, baseHue:Option[Double], bgColor:Color, accentLineColor:Color, darkBgColor:Color, darkBgColorHighlight:Color)
 
 

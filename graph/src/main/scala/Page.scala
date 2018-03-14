@@ -8,7 +8,8 @@ case class Page(parentIds: Set[PostId]) {
 }
 
 object Page {
-  val empty = Page(Set.empty)
+  val empty = new Page(Set.empty)
+  def apply(parentId:PostId):Page = Page(Set(parentId))
 }
 
 

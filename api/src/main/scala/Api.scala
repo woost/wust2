@@ -16,6 +16,8 @@ trait Api[Result[_]] {
   def addCurrentUserAsMember(postId: PostId): Result[Boolean]
   def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
+  def getHighLevelPosts():Result[List[Post]]
+
   def importGithubUrl(url: String): Result[Boolean]
   def importGitterUrl(url: String): Result[Boolean]
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
