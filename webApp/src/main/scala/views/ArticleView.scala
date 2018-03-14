@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import rx._
 import org.scalajs.dom.raw.Element
 import outwatch.Sink
 import outwatch.dom._
@@ -19,7 +20,7 @@ object ArticleView extends View {
   override val key = "article"
   override val displayName = "Article"
 
-  override def apply(state: GlobalState): VNode = {
+  override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
 
     component(displayGraphWithParents, page, pageStyle)

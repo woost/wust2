@@ -5,6 +5,7 @@ import outwatch.{ObserverSink, Sink}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.utilWeb._
+import rx._
 import wust.sdk.PostColor._
 import wust.graph._
 import wust.ids.PostId
@@ -17,8 +18,8 @@ object ChatView extends View {
   override val key = "chat"
   override val displayName = "Chat"
 
-  override def apply(state: GlobalState) = {
-    import state._
+  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    import state.inner._
 
 
     val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
@@ -38,21 +39,21 @@ object ChatView extends View {
   }
 
   def component(
-                 currentUser: Observable[User],
+                 currentUser: Rx[User],
                  newPostSink: Sink[String],
-                 page: Handler[Page],
-                 pageStyle: Observable[PageStyle],
-                 graph: Observable[Graph]
-               ): VNode = {
+                 page: Var[Page],
+                 pageStyle: Rx[PageStyle],
+                 graph: Rx[Graph]
+               )(implicit ctx: Ctx.Owner): VNode = {
     div(
       // height := "100%",
-      backgroundColor <-- pageStyle.map(_.bgColor),
+      backgroundColor <-- pageStyle.map(_.bgColor.toString).toObservable,
 
       borderRight := "2px solid",
-      borderColor <-- pageStyle.map(_.accentLineColor),
+      borderColor <-- pageStyle.map(_.accentLineColor.toString).toObservable,
 
       div(
-        p( mdHtml(pageStyle.map(_.title)) ),
+        p( mdHtml(pageStyle.map(_.title).toObservable) ),
 
         chatHistory(currentUser, page, graph),
         inputField(newPostSink),
@@ -71,18 +72,18 @@ object ChatView extends View {
     )
   }
 
-  def chatHistory(currentUser: Observable[User], page: Sink[Page], graph: Observable[Graph]): VNode = {
+  def chatHistory(currentUser: Rx[User], page: Var[Page], graph: Rx[Graph])(implicit ctx: Ctx.Owner): VNode = {
     div(
       height := "100%",
       overflow.auto,
       padding := "20px",
 
-      children <-- Observable.combineLatestMap2(graph, currentUser)((graph, currentUser) => graph.chronologicalPostsAscending.map(chatMessage(currentUser, _, page, graph))),
+      children <-- Rx{ graph().chronologicalPostsAscending.map(chatMessage(currentUser(), _, page, graph())) }.toObservable,
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
 
-  def chatMessage(currentUser: User, post: Post, page: Sink[Page], graph: Graph): VNode = {
+  def chatMessage(currentUser: User, post: Post, page: Var[Page], graph: Graph)(implicit ctx: Ctx.Owner): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
@@ -122,7 +123,7 @@ object ChatView extends View {
           postTags.map{ tag =>
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
-                onClick(Page(Set(tag.id))) --> page,
+                onClick(Page(Set(tag.id))) --> sideEffect(page() = _),
                 backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",
@@ -134,7 +135,7 @@ object ChatView extends View {
           margin := "0px",
           padding := "0px",
         ),
-        onClick(Page(Set(post.id))) --> page,
+        onClick(Page(Set(post.id))) --> sideEffect{page() = _},
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
@@ -152,7 +153,7 @@ object ChatView extends View {
     )
   }
 
-  def inputField(newPostSink: Sink[String]): VNode = {
+  def inputField(newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
     textAreaWithEnter(newPostSink)(
       style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newPost,
