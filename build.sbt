@@ -30,7 +30,7 @@ lazy val commonSettings = Seq(
     Deps.mockito.value % Test ::
     Nil,
 
-  dependencyOverrides ++= Set(
+  dependencyOverrides ++= List(
     Deps.circe.core.value,
     Deps.circe.parser.value,
     Deps.circe.generic.value,
@@ -139,7 +139,7 @@ lazy val webSettings = Seq(
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "dev"
       val files = Seq(name.value.toLowerCase + "-fastopt-loader.js", name.value.toLowerCase + "-fastopt.js") map { p => (inDir / p, outDir / p) }
-      IO.copy(files, overwrite = true, preserveLastModified = true)
+      IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
     }
 )
 
@@ -155,9 +155,9 @@ lazy val root = project.in(file("."))
     addCommandAlias("devweb", "; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
-    addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.4"),
+    // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.4"),
 
-    addCommandAlias("compileAndroid", "; project androidApp; ++2.11.12; compile; project root; ++2.12.4"),
+    // addCommandAlias("compileAndroid", "; project androidApp; ++2.11.12; compile; project root; ++2.12.4"),
     addCommandAlias("testJS", "; utilJS/test; utilWeb/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSNonPure", "; utilWeb/test; sdkJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSOpt", "; set scalaJSStage in Global := FullOptStage; testJS"),
@@ -320,52 +320,52 @@ lazy val pwaApp = project
       Nil
     )
 
-lazy val androidApp = project
-  .settings(commonSettings)
-  .dependsOn(sdkJVM)
-  .enablePlugins(AndroidGms, AndroidApp)
-  .settings(
+// lazy val androidApp = project
+//   .settings(commonSettings)
+//   .dependsOn(sdkJVM)
+//   .enablePlugins(AndroidGms, AndroidApp)
+//   .settings(
 
-    resolvers ++= (
-      ("google" at "https://maven.google.com") ::
-      // ("vivareal" at "http://dl.bintray.com/vivareal/maven") ::
-      Nil
-    ),
+//     resolvers ++= (
+//       ("google" at "https://maven.google.com") ::
+//       // ("vivareal" at "http://dl.bintray.com/vivareal/maven") ::
+//       Nil
+//     ),
 
-    android.useSupportVectors,
-    versionCode := Some(1),
-    version := "0.1-SNAPSHOT",
-    platformTarget := "android-25",
-    minSdkVersion in Android :="25",
-    targetSdkVersion in Android := "25",
-    javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil,
-    libraryDependencies ++=
-      aar("org.macroid" %% "macroid" % "2.0") ::
-      aar("org.macroid" %% "macroid-extras" % "2.0") ::
-      "com.android.support" % "appcompat-v7" % "24.2.1" ::
-      "com.android.support.constraint" % "constraint-layout" % "1.0.2" ::
-        "com.google.firebase"       % "firebase-messaging" % "11.8.0" ::
-      "com.google.android.gms"    % "play-services"     % "11.8.0" ::
-//      "com.google.firebase" % "firebase-core" % "11.8.0" ::
-      // "br.com.vivareal" % "cuid-android" % "0.1.0" ::
-      Nil,
-    dependencyOverrides ++= Set(
-    ), 
-    // excludeDependencies += "cool.graph.cuid-java",
+//     android.useSupportVectors,
+//     versionCode := Some(1),
+//     version := "0.1-SNAPSHOT",
+//     platformTarget := "android-25",
+//     minSdkVersion in Android :="25",
+//     targetSdkVersion in Android := "25",
+//     javacOptions in Compile ++= "-source" :: "1.7" :: "-target" :: "1.7" :: Nil,
+//     libraryDependencies ++=
+//       aar("org.macroid" %% "macroid" % "2.0") ::
+//       aar("org.macroid" %% "macroid-extras" % "2.0") ::
+//       "com.android.support" % "appcompat-v7" % "24.2.1" ::
+//       "com.android.support.constraint" % "constraint-layout" % "1.0.2" ::
+//         "com.google.firebase"       % "firebase-messaging" % "11.8.0" ::
+//       "com.google.android.gms"    % "play-services"     % "11.8.0" ::
+// //      "com.google.firebase" % "firebase-core" % "11.8.0" ::
+//       // "br.com.vivareal" % "cuid-android" % "0.1.0" ::
+//       Nil,
+//     dependencyOverrides ++= Set(
+//     ), 
+//     // excludeDependencies += "cool.graph.cuid-java",
 
-    dexMaxHeap in Android :="8048M",
-    dexMulti in Android := true,
-    // dexAdditionalParams in Android ++= Seq("--min-sdk-version=25"),
-    proguardScala in Android := true,
-    proguardCache := Nil,
-    shrinkResources := true,
+//     dexMaxHeap in Android :="8048M",
+//     dexMulti in Android := true,
+//     // dexAdditionalParams in Android ++= Seq("--min-sdk-version=25"),
+//     proguardScala in Android := true,
+//     proguardCache := Nil,
+//     shrinkResources := true,
 
-    proguardOptions in Android ++= Seq(
-      "-ignorewarnings"
-    ),
-//    proguardConfig -= "-dontoptimize",
-    packagingOptions in Android := PackagingOptions(excludes = Seq("reference.conf"))
-  )
+//     proguardOptions in Android ++= Seq(
+//       "-ignorewarnings"
+//     ),
+// //    proguardConfig -= "-dontoptimize",
+//     packagingOptions in Android := PackagingOptions(excludes = Seq("reference.conf"))
+//   )
 
 lazy val slackApp = project
   .dependsOn(utilBackend, sdkJVM)
