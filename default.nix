@@ -19,7 +19,7 @@ in
       redis-dump
       visualvm
       travis
-      androidsdk
+      # androidsdk
     ];
 
     installPhase= ''
@@ -39,7 +39,7 @@ in
     #    fi;                                     \
     #    "
 
-    adb devices
+    # adb devices
     cat <<EOF
     Make soure your user is in the group 'adbusers' (configuration.nix):
     {
@@ -62,8 +62,8 @@ in
     To log output only form the app, use:
     adb logcat | grep -F \$(adb shell ps | grep space.woost | cut -c10-15)
     EOF
-    mkdir -p ~/.android/sbt/sdk/{platform-tools,build-tools/27.0.3}/
-    cp -a ${pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/platform-tools/
-    cp -a ${pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/build-tools/27.0.3/
+    # mkdir -p ~/.android/sbt/sdk/{platform-tools,build-tools/27.0.3}/
+    # cp -a ${pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/platform-tools/
+    # cp -a ${pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/build-tools/27.0.3/
     '';
   }
