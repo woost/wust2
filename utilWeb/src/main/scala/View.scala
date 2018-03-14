@@ -5,9 +5,10 @@ import wust.utilWeb.GlobalState
 
 import collection.breakOut
 import scala.concurrent.ExecutionContext.Implicits.global
+import rx._
 
 trait View {
-  def apply(state:GlobalState):VNode //TODO: def apply(implicit state:GlobalState):VNode
+  def apply(state:GlobalState)(implicit ctx: Ctx.Owner):VNode //TODO: def apply(implicit state:GlobalState):VNode
   val key:String
   val displayName:String
   //TODO: icon

@@ -106,7 +106,7 @@ object MainView {
       width := "100%",
       display.flex,
       sidebar(state),
-      ChatView(state)(width := "100%")
+      ChatView(state)(owner)(width := "100%")
     )
   }
 }

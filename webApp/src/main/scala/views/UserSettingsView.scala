@@ -12,12 +12,13 @@ import wust.utilWeb.views._
 import wust.utilWeb.views.Rendered._
 import outwatch.dom.dsl.events.window
 import wust.utilWeb.outwatchHelpers._
+import rx._
 
 object UserSettingsView extends View {
   override val key = "usersettings"
   override val displayName = "User Settings"
 
-  override def apply(state: GlobalState): VNode = {
+  override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
 
     val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>

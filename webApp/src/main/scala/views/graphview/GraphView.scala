@@ -32,7 +32,7 @@ class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContex
   override val key = "graph"
   override val displayName = "Mindmap"
 
-  override def apply(state: GlobalState) = {
+  override def apply(state: GlobalState)(implicit owner: Ctx.Owner) = {
     val forceSimulation = new ForceSimulation(state, onDrop(state)( _, _), onDropWithCtrl(state)(_, _))
     state.jsErrors.foreach { _ => forceSimulation.stop() }
 

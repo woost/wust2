@@ -26,8 +26,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
     val syncDisabled = syncMode.map(_ != SyncMode.Live)
     private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
-    //TODO: why is this needed?
-    viewConfig.foreach { c => UrlRouter.variable() = Some(ViewConfig.toHash(c)) }
 
     val eventProcessor = EventProcessor(
       Client.observable.event,
@@ -71,12 +69,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
     val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
       rawPage().copy(
-        parentIds = rawPage().parentIds.filter(rawGraph().postsById.isDefinedAt)
+        parentIds = rawPage().parentIds//.filter(rawGraph().postsById.isDefinedAt)
       )
     }
 
     val pageParentPosts: Rx[Set[Post]] = Rx {
-      page().parentIds.map(rawGraph().postsById)
+      page().parentIds.flatMap(rawGraph().postsById.get)
     }
 
     val pageStyle = Rx {
