@@ -41,7 +41,7 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "08fc8de")
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "27ce1da")
-  val outwatch = dep("io.github.outwatch" % "outwatch" % "6dd72a31cb4")
+  val outwatch = dep("io.github.outwatch" % "outwatch" % "9dda3c2")
 
   // utility
   val scribe = dep("com.outr" %%% "scribe" % "2.2.0")
@@ -67,7 +67,7 @@ object Deps {
   val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.14.1")
 
   // database
-  val quill = dep("io.getquill" %% "quill-async-postgres" % "2.3.1")
+  val quill = dep("io.getquill" %% "quill-async-postgres" % "2.3.3")
 
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here

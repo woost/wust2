@@ -35,7 +35,6 @@ object MainViewParts {
   }
 
   def syncStatus(state: GlobalState): VNode = {
-    val historySink = ObserverSink(state.eventProcessor.history.action)
     val isOnline = Observable.merge(Client.observable.connected.map(_ => SyncMode.Live), Client.observable.closed.map(_ => SyncMode.Offline))
     div(
       managed(state.syncMode <--isOnline),
@@ -55,8 +54,16 @@ object MainViewParts {
           title := (if (synced) "Everything is synced" else "Some changes are only local, just wait until they are send online."),
         )
       },
+    )
+  }
+
+  def undoRedo(state:GlobalState):VNode = {
+    val historySink = ObserverSink(state.eventProcessor.history.action)
+    div(
       child <-- state.eventProcessor.changesHistory.startWith(Seq(ChangesHistory.empty)).map { history =>
-        span(
+        div(
+          display.flex,
+          style("justify-content") := "space-evenly",
           button("Undo", title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
           button("Redo", title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
         )

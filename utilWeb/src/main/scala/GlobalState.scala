@@ -6,6 +6,7 @@ import monocle.macros.GenLens
 import org.scalajs.dom.{Event, window}
 import outwatch.dom._
 import rx._
+import rx.async._
 import wust.api.ApiEvent.ReplaceGraph
 import wust.api._
 import wust.graph._
@@ -15,6 +16,7 @@ import wust.utilWeb.views.{PageStyle, View, ViewConfig}
 import wust.sdk._
 import wust.util.Selector
 import collection.breakOut
+
 
 class GlobalState(implicit ctx: Ctx.Owner) {
 
@@ -49,6 +51,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
 
     val currentUser: Rx[User] = currentAuth.map(_.user)
+    val highLevelPosts =  Var[List[Post]](Nil)
+    currentUser.foreach { _ =>
+      Client.api.getHighLevelPosts().foreach {
+        highLevelPosts() = _
+      }
+    }
 
     viewConfig.foreach { vc =>
       //TODO: api function which accepts a list

@@ -93,6 +93,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
+  def getHighLevelPosts():ApiFunction[List[Post]] = Action.requireDbUser { (_, user) =>
+    db.user.highLevelGroups(user.id).map(_.map(forClient))
+  }
+
   override def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
     val userIdOpt = state.auth.dbUserOpt.map(_.id)
     val graph = selection match {
@@ -125,7 +129,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
-
     // TODO: Reuse graph changes instead
 //    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
     val postsOfUrl = GitterImporter.getRoomMessages(url, user)
