@@ -1,18 +1,18 @@
 package wust.pwaApp
 
 import org.scalajs.dom._
+
 import scala.scalajs.js.Dynamic.global
 import wust.api.{ApiEvent, Authentication}
 import wust.ids._
-import wust.graph.{Graph, Page, GraphChanges}
-import outwatch.dom._, dsl._
-
-import scribe.{Logger, Level}
+import wust.graph.{Graph, GraphChanges, Page}
+import wust.utilWeb._
+import outwatch.dom._
+import dsl._
+import scribe.{Level, Logger}
 import scribe.format._
 import scribe.writer.ConsoleWriter
-
 import wust.utilWeb.outwatchHelpers._
-import wust.utilWeb.{GlobalState, Client, Notifications}
 import wust.utilWeb.views._
 import rx.Ctx
 
@@ -50,6 +50,8 @@ object Main {
 
     val state = new GlobalState
 
+    state.inner.currentAuth.foreach(IndexedDbOps.storeAuth)
+
     Client.observable.event.foreach { events =>
       val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
       if (changes.addPosts.nonEmpty) {
@@ -58,8 +60,6 @@ object Main {
         Notifications.notify(msg, body = Some(body), tag = Some("new-post"))
       }
     }
-
-    Notifications.persistExistingWebPush()
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }

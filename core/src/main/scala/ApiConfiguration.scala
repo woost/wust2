@@ -16,7 +16,7 @@ object Dsl extends ApiDsl[ApiEvent, ApiError, State] {
   override def unhandledException(t: Throwable): ApiError = ApiError.InternalServerError
 }
 
-class ApiConfiguration(guardDsl: GuardDsl, val eventDistributor: EventDistributor[ApiEvent, State])(implicit ec: ExecutionContext) extends WsApiConfiguration[ApiEvent, ApiError, State] with HttpApiConfiguration[ApiEvent, ApiError, State] {
+class ApiConfiguration(guardDsl: GuardDsl, stateInterpreter: StateInterpreter, val eventDistributor: EventDistributor[ApiEvent, State])(implicit ec: ExecutionContext) extends WsApiConfiguration[ApiEvent, ApiError, State] with HttpApiConfiguration[ApiEvent, ApiError, State] {
   override def initialState: State = State.initial
   override def isStateValid(state: State): Boolean = state.auth match {
     case auth: Authentication.Verified => !JWT.isExpired(auth)
@@ -26,8 +26,12 @@ class ApiConfiguration(guardDsl: GuardDsl, val eventDistributor: EventDistributo
   override def serverFailure(error: ServerFailure): ApiError = ApiError.ServerError(error.toString)
   override def dsl: ApiDsl[ApiEvent, ApiError, State] = Dsl
 
-  override def scopeOutgoingEvents(events: List[ApiEvent]): ScopedEvents[ApiEvent] = ScopedEvents(events, events)
-  override def adjustIncomingEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] = Future.successful(events)
+  override def scopeOutgoingEvents(events: List[ApiEvent]): ScopedEvents[ApiEvent] = {
+    val (privateEvents, publicEvents) = ApiEvent.separateByScope(events)
+    ScopedEvents(privateEvents = privateEvents, publicEvents = publicEvents)
+  }
+  override def adjustIncomingEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =
+    stateInterpreter.triggeredEvents(state, events)
 
   override def requestToState(request: HttpRequest): Future[State] = {
     request.headers.find(_.is("authorization")).map { authHeader =>

@@ -69,7 +69,7 @@ object Server {
       .route[AuthApi[ApiFunction]](authApiImpl)
 
     val eventDistributor = new HashSetEventDistributorWithPush(db)
-    val apiConfig = new ApiConfiguration(guardDsl, eventDistributor)
+    val apiConfig = new ApiConfiguration(guardDsl, stateInterpreter, eventDistributor)
     val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
 
     path("ws") {
