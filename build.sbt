@@ -79,20 +79,20 @@ lazy val commonSettings = Seq(
         Nil
 )
 
-lazy val sourceMapSettings = Seq(
+lazy val commonWebSettings = Seq(
     // To enable source map support, all sub-project folders are symlinked to webpack/project-root.
     // This folder is served via webpack devserver.
     scalacOptions += {
       val local = s"${(baseDirectory in ThisBuild).value.toURI}"
       val remote = s"/"
       s"-P:scalajs:mapSourceURI:$local->$remote"
-    }
+    },
+    scalacOptions += "-P:scalajs:sjsDefinedByDefault"
   )
 
 
 lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
 lazy val webSettings = Seq(
-    scalacOptions += "-P:scalajs:sjsDefinedByDefault",
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
     scalaJSUseMainModuleInitializer := true,
 
@@ -171,7 +171,7 @@ lazy val root = project.in(file("."))
 
 lazy val util = crossProject
   .settings(commonSettings)
-  .jsSettings(sourceMapSettings)
+  .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
       Deps.sourcecode.value ::
@@ -194,7 +194,7 @@ lazy val utilBackend = project
 lazy val utilWeb = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(sdkJS)
-  .settings(commonSettings, sourceMapSettings)
+  .settings(commonSettings, commonWebSettings)
   .settings(
     libraryDependencies ++=
       Deps.scalarx.value ::
@@ -213,7 +213,7 @@ lazy val utilWeb = project
 lazy val sdk = crossProject
   .dependsOn(api)
   .settings(commonSettings)
-  .jsSettings(sourceMapSettings)
+  .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
       Deps.covenant.ws.value ::
@@ -229,7 +229,7 @@ lazy val sdkJVM = sdk.jvm
 
 lazy val ids = crossProject.crossType(CrossType.Pure)
   .settings(commonSettings)
-  .jsSettings(sourceMapSettings)
+  .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
       Deps.cuid.value ::
@@ -242,7 +242,7 @@ lazy val idsJVM = ids.jvm
 lazy val graph = crossProject.crossType(CrossType.Pure)
   .dependsOn(ids, util)
   .settings(commonSettings)
-  .jsSettings(sourceMapSettings)
+  .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
       Nil
@@ -253,7 +253,7 @@ lazy val graphJVM = graph.jvm
 lazy val api = crossProject.crossType(CrossType.Pure)
   .dependsOn(graph)
   .settings(commonSettings)
-  .jsSettings(sourceMapSettings)
+  .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
       Deps.covenant.core.value ::
@@ -308,7 +308,7 @@ lazy val core = project
 lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(utilWeb)
-  .settings(commonSettings, sourceMapSettings, webSettings)
+  .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
     libraryDependencies ++=
       Deps.vectory.value ::
@@ -319,7 +319,7 @@ lazy val webApp = project
 lazy val pwaApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .dependsOn(utilWeb)
-  .settings(commonSettings, sourceMapSettings, webSettings)
+  .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
     libraryDependencies ++=
       Nil
