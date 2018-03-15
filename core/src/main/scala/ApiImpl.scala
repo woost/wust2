@@ -64,34 +64,38 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
-  override def addCurrentUserAsMember(postId: PostId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addCurrentUserAsMember(postIds: List[PostId]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     //TODO: only add member if post is not public
+    //TODO: add multiple memberships in one query
     db.ctx.transaction { implicit ec =>
       for {
-        Some((_, dbMembership)) <- db.post.addMember(postId, user.id)
-      } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-    }
-  }
-  //TODO: error handling
-  override def addMember(postId: PostId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      for {
-        Some(user) <- db.user.get(userId)
-        Some((_, dbMembership)) <- db.post.addMember(postId, userId)
-      } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-    }
-  }
-
-  override def addMemberByName(postId: PostId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      isPostMember(postId, user.id) {
-        for {
-          Some(user) <- db.user.byName(userName)
-          Some((_, dbMembership)) <- db.post.addMember(postId, user.id)
-        } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
+        addedMemberships <- Future.sequence(postIds.map(postId => db.post.addMember(postId, user.id).map(if(_) Option(postId) else None))).map(_.flatten)
+      } yield {
+        val addedAtleastOne = addedMemberships.nonEmpty
+        Returns(addedAtleastOne, postIds.map(NewMembership(user.id, _)))
       }
     }
   }
+  //TODO: error handling
+  override def addMember(postId: PostId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
+    db.ctx.transaction { implicit ec =>
+      for {
+        Some(user) <- db.user.get(userId)
+        added <- db.post.addMember(postId, userId)
+      } yield Returns(added, if(added) Seq(NewMembership(userId, postId), NewUser(user)) else Nil)
+    }
+  }
+
+//  override def addMemberByName(postId: PostId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+//    db.ctx.transaction { implicit ec =>
+//      isPostMember(postId, user.id) {
+//        for {
+//          Some(user) <- db.user.byName(userName)
+//          Some((_, dbMembership)) <- db.post.addMember(postId, user.id)
+//        } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
+//      }
+//    }
+//  }
 
   def getHighLevelPosts():ApiFunction[List[Post]] = Action.requireDbUser { (_, user) =>
     db.user.highLevelGroups(user.id).map(_.map(forClient))
