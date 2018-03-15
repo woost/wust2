@@ -8,8 +8,9 @@ import org.scalajs.dom
 import scala.scalajs.js.typedarray.Uint8Array
 
 //TODO: pr scala-js-dom
-trait PushSubscriptionOptionsWithServerKey extends js.Object with PushSubscriptionOptions {
-  def applicationServerKey: Uint8Array
+@js.native
+trait PushSubscriptionOptionsWithServerKey extends PushSubscriptionOptions {
+  def applicationServerKey: js.UndefOr[Uint8Array] = js.native
 }
 
 object PushSubscriptionOptionsWithServerKey {
