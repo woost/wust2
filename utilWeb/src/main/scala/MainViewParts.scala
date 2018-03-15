@@ -10,6 +10,8 @@ import wust.api._
 import wust.sdk.PostColor._
 import wust.utilWeb.outwatchHelpers._
 import outwatch.ObserverSink
+import scala.scalajs.js.Date
+import wust.graph._
 
 object MainViewParts {
   val titleBanner: VNode = {
@@ -70,4 +72,26 @@ object MainViewParts {
       }
     )
   }
+
+  def newGroupButton(state: GlobalState)(implicit ctx:Ctx.Owner) = {
+    def suffix = {
+      var today = new Date()
+      // January is 0!
+      s"${today.getMonth+1}-${today.getDate}"
+    }
+    button( "new group",
+      onClick --> sideEffect{ _ =>
+        val post = Post("new group " + suffix, state.inner.currentUser.now.id)
+        for {
+          _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
+        } {
+          state.inner.page() = Page(post.id)
+          state.inner.highLevelPosts.update(post :: _)
+        }
+
+        ()
+      })
+  }
+
+
 }

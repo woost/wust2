@@ -39,21 +39,6 @@ object MainView {
     )
   }
 
-  def newGroupButton(state: GlobalState) = {
-    button("new group", onClick --> sideEffect{ _ =>
-      val post = Post("new group " + scala.util.Random.alphanumeric.take(5).mkString, state.inner.currentUser.now.id)
-      for {
-        _ <- state.eventProcessor.enriched.changes.onNext(GraphChanges.addPost(post))
-        _ <- Client.api.addCurrentUserAsMember(post.id)
-      } {
-        state.inner.page() = Page(Set(post.id))
-      }
-
-      ()
-    })
-  }
-
-
   def viewSelection(state:GlobalState, allViews: Seq[View]): VNode = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
     val viewHandler = Handler.create[View]().unsafeRunSync()
@@ -156,7 +141,7 @@ object MainView {
        )
    }
 
-  def sidebar(state: GlobalState): VNode = {
+  def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     div(
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
       padding := "15px",

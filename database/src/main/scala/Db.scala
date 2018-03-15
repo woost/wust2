@@ -103,13 +103,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    def addMember(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Option[(User, Membership)]] = {
-      ctx.transaction { implicit ec =>
-        for {
-          _ <- ctx.run(infix"""insert into membership(postId, userId) values (${lift(postId)}, ${lift(userId)}) on conflict do nothing""".as[Insert[Membership]])
-          user <- ctx.run(query[User].filter(_.id == lift(userId)))
-        } yield Option((user.head, Membership(userId, postId)))
-      }.recoverValue(None)
+    def addMember(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(infix"""insert into membership(postId, userId) values (${lift(postId)}, ${lift(userId)}) on conflict do nothing""".as[Insert[Membership]]).map(_ == 1)
     }
   }
 

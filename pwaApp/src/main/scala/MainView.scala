@@ -59,28 +59,6 @@ object MainView {
     )
   }
 
-  def newGroupButton(state: GlobalState)(implicit ctx:Ctx.Owner) = {
-    def suffix = {
-      var today = new Date()
-      // January is 0!
-      s"${today.getMonth+1}-${today.getDate}"
-    }
-    button( "new group",
-      onClick --> sideEffect{ _ =>
-      val post = Post("new group " + suffix, state.inner.currentUser.now.id)
-      for {
-        _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
-        _ <- Client.api.addCurrentUserAsMember(post.id)
-      } {
-        state.inner.page() = Page(post.id)
-        state.inner.highLevelPosts.update(post :: _)
-      }
-
-      ()
-    })
-  }
-
-
   def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
       div(
         color := "#C4C4CA",

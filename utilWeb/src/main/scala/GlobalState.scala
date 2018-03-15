@@ -57,11 +57,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
 
     viewConfig.foreach { vc =>
-      //TODO: api function which accepts a list
-      vc.page.parentIds.foreach { postId =>
-        Client.api.addCurrentUserAsMember(postId)
-      }
-      Client.api.getGraph(vc.page).foreach{g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g))}
+        Client.api.addCurrentUserAsMember(vc.page.parentIds.toList).foreach { addedAtLeastOne =>
+          if(addedAtLeastOne)
+            Client.api.getGraph(vc.page).foreach{g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g))}
+        }
     }
 
 

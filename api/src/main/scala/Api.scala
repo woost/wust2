@@ -13,8 +13,8 @@ trait Api[Result[_]] {
   def getGraph(selection: Page): Result[Graph]
   def getUser(userId: UserId): Result[Option[User]]
   def addMember(postId: PostId, userId: UserId): Result[Boolean]
-  def addCurrentUserAsMember(postId: PostId): Result[Boolean]
-  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
+  def addCurrentUserAsMember(postIds: List[PostId]): Result[Boolean]
+//  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
   def getHighLevelPosts():Result[List[Post]]
 
@@ -71,6 +71,9 @@ object ApiEvent {
 
   case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
   case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
+  object NewMembership {
+    def apply(userId:UserId, postId:PostId):NewMembership = new NewMembership(Membership(userId, postId))
+  }
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
