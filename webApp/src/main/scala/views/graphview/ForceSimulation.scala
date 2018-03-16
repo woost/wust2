@@ -49,11 +49,10 @@ object ForceSimulationConstants {
   val nodeSpacing = 70
 }
 
-class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
+class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
   //TODO: sometimes dragging parent into child crashes simulation
   import ForceSimulation._
   import ForceSimulationConstants._
-  import state.inner.{displayGraphWithoutParents => rxDisplayGraph}
 
   val postCreationMenus:Var[List[Vec2]] = Var(Nil)
   val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
@@ -119,10 +118,9 @@ class ForceSimulation(val state: GlobalState, onDrop: (PostId, PostId) => Unit, 
 
     val graphTopology: Rx[GraphTopology] = Rx {
       //val rawGraph = state.inner.rawGraph().consistent
-      val graph = rxDisplayGraph().graph
-      println(log("\n") + log(s"---- graph update[${graph.posts.size}] ----"))
+      println(log("\n") + log(s"---- graph update[${graph().posts.size}] ----"))
       time(log("graph to wrapper arrays")) {
-        new GraphTopology( graph, posts = graph.posts.toArray )
+        new GraphTopology( graph(), posts = graph().posts.toArray )
       }
     }
 

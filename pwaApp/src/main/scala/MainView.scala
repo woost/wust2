@@ -59,32 +59,19 @@ object MainView {
     )
   }
 
-  def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-      div(
-        color := "#C4C4CA",
-        Rx {
-          state.inner.highLevelPosts().map{p => div(
-            padding := "5px 3px",
-            p.content, 
-            cursor.pointer,
-            onClick(Page(p.id)) --> state.page,
-            title := p.id,
-            if(state.inner.page().parentIds.contains(p.id)) Seq(
-              color := state.inner.pageStyle().darkBgColor.toHex,
-              backgroundColor := state.inner.pageStyle().darkBgColorHighlight.toHex)
-            else Option.empty[VDomModifier]
-          )}
-        }.toObservable
-      )
-  }
-
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div(
       height := "100%",
       width := "100%",
       display.flex,
       sidebar(state),
-      ChatView(state)(owner)(width := "100%")
+      Rx {
+        if(state.inner.page().parentIds.nonEmpty) {
+          ChatView(state)(owner)(width := "100%")
+        } else {
+          newGroupButton(state)
+        }
+      }.toObservable
     )
   }
 }

@@ -91,8 +91,8 @@ object DevView {
 //            }))
 //          ).render
 //        },
-        child <-- Rx {
-          def addRandomPost(count: Int):Unit = {
+        Rx {
+         def addRandomPost(count: Int):Unit = {
             val newPosts = List.fill(count)(Post(PostId.fresh, content = rSentence, state.inner.currentUser.now.id)).toSet
             val changes = GraphChanges(addPosts = newPosts)
             state.eventProcessor.enriched.changes.onNext(changes)
@@ -105,7 +105,7 @@ object DevView {
             button("100", onClick --> sideEffect { addRandomPost(100) })
           )
         }.toObservable,
-        child <-- Rx {
+        Rx {
           val posts = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.postIds.toSeq)
 
           def deletePost(ids: Seq[PostId]):Unit = {
@@ -119,7 +119,7 @@ object DevView {
             button("100", onClick --> sideEffect { deletePost(posts.take(100)) })
           )
         }.toObservable,
-        child <-- Rx {
+        Rx {
           val posts = state.inner.displayGraphWithoutParents().graph.postIds.toArray
           def randomConnection = Connection(posts(rInt(posts.length)), Label(rWord), posts(rInt(posts.length)))
 
@@ -142,7 +142,7 @@ object DevView {
             button("100", onClick --> sideEffect {connect(100)})
           )
         }.toObservable,
-        child <-- Rx {
+        Rx {
           val posts = state.inner.displayGraphWithoutParents().graph.postIds.toArray
           def randomConnection = Connection(posts(rInt(posts.length)), Label.parent, posts(rInt(posts.length)))
 
@@ -157,7 +157,7 @@ object DevView {
             button("100", onClick --> sideEffect {contain(100)})
           )
         }.toObservable,
-        child <-- Rx {
+        Rx {
           val connections = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
           println("CONN"+connections.size)
 
@@ -239,7 +239,7 @@ object DevView {
         //        ) // ,Rx {
         //   state.rawGraph().toSummaryString
         // },
-//        pre(maxWidth := "400px", maxHeight := "300px", overflow.scroll, fontSize := "11px", child <-- Rx {
+//        pre(maxWidth := "400px", maxHeight := "300px", overflow.scroll, fontSize := "11px", Rx {
 //          apiEvents().mkString("\n")
 //          // pre(apiEvents().mkString("\n")).render
 //        }.toObservable), button("clear", onClick --> sideEffect {

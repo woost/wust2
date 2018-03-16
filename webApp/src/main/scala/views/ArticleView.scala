@@ -32,7 +32,7 @@ object ArticleView extends View {
       backgroundColor <-- pageStyle.map(_.bgColor),
       div(
         cls := "article",
-        children <-- dgo.map {
+        dgo.map {
           dg =>
             val sortedPosts = HierarchicalTopologicalSort(dg.graph.postIds, successors = dg.graph.successorsWithoutParent, children = dg.graph.children)
 

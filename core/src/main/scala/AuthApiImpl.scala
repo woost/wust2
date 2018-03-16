@@ -2,7 +2,7 @@ package wust.backend
 
 import com.roundeights.hasher.Hasher
 import wust.api._
-import wust.graph.User
+import wust.graph.{Graph, User}
 import wust.ids._
 import wust.backend.Dsl._
 import wust.backend.DbConversions._
@@ -78,12 +78,21 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
   private def authChangeEvents(auth: Authentication): Future[Seq[ApiEvent]] = {
-    db.graph.getAllVisiblePosts(auth.dbUserOpt.map(_.id)).map { dbGraph =>
-      val graph = forClient(dbGraph).consistent
-      val authEvent = auth match {
-        case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
-        case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
-      }
+    val authEvent = auth match {
+      case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
+      case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
+    }
+
+    val graph = auth.dbUserOpt match {
+      case Some(user) =>
+        db.graph.getAllVisiblePosts(user.id).map { dbGraph =>
+          forClient(dbGraph).consistent
+        }
+      case None =>
+        Future.successful(Graph.empty)
+    }
+
+    graph.map {graph =>
       authEvent :: ApiEvent.ReplaceGraph(graph) :: Nil
     }
   }

@@ -24,23 +24,22 @@ object MainViewParts {
   }
 
   def upButton(state: GlobalState): VNode = {
-    //TODO: outwatch child <-- Option[VNode]
     span(
-      children <-- state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
+      state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
           button("↑", width := "2.5em", onClick(upTarget) --> state.page)
       ))
     )
   }
 
   def userStatus(state: GlobalState): VNode = {
-    div( "User: ", child <-- state.currentUser.map(u => s"${u.id}" ))
+    div( "User: ", state.currentUser.map(u => s"${u.id}" ))
   }
 
   def syncStatus(state: GlobalState): VNode = {
     val isOnline = Observable.merge(Client.observable.connected.map(_ => SyncMode.Live), Client.observable.closed.map(_ => SyncMode.Offline))
     div(
       managed(state.syncMode <--isOnline),
-      child <-- state.syncMode.map { mode =>
+      state.syncMode.map { mode =>
         span(
           mode.toString,
           color := (if (mode == SyncMode.Live) "white" else "red"),
@@ -49,20 +48,20 @@ object MainViewParts {
           onClick.map(_ => if (mode == SyncMode.Live) SyncMode.Offline else SyncMode.Live) --> state.syncMode
         )
       },
-      child <-- state.eventProcessor.areChangesSynced.map { synced =>
+      state.eventProcessor.areChangesSynced.map { synced =>
         span(
           " ⬤ ", // middle dot
           color := (if (synced) "green" else "blue"),
-          title := (if (synced) "Everything is synced" else "Some changes are only local, just wait until they are send online."),
+          title := (if (synced) "Everything is synced" else "Some changes are only local, just wait until they are send online.")
         )
-      },
+      }
     )
   }
 
   def undoRedo(state:GlobalState):VNode = {
     val historySink = ObserverSink(state.eventProcessor.history.action)
     div(
-      child <-- state.eventProcessor.changesHistory.startWith(Seq(ChangesHistory.empty)).map { history =>
+      state.eventProcessor.changesHistory.startWith(Seq(ChangesHistory.empty)).map { history =>
         div(
           display.flex,
           style("justify-content") := "space-evenly",
@@ -73,7 +72,7 @@ object MainViewParts {
     )
   }
 
-  def newGroupButton(state: GlobalState)(implicit ctx:Ctx.Owner) = {
+  def newGroupButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     def suffix = {
       var today = new Date()
       // January is 0!
@@ -91,6 +90,25 @@ object MainViewParts {
 
         ()
       })
+  }
+
+  def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    div(
+      color := "#C4C4CA",
+      Rx {
+        state.inner.highLevelPosts().map{p => div(
+          padding := "5px 3px",
+          p.content,
+          cursor.pointer,
+          onClick(Page(p.id)) --> state.page,
+          title := p.id,
+          if(state.inner.page().parentIds.contains(p.id)) Seq(
+            color := state.inner.pageStyle().darkBgColor.toHex,
+            backgroundColor := state.inner.pageStyle().darkBgColorHighlight.toHex)
+          else Option.empty[VDomModifier]
+        )}
+      }.toObservable
+    )
   }
 
 

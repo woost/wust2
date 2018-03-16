@@ -11,22 +11,15 @@ import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._
 import wust.webApp._
 import wust.webApp.views.graphview.GraphView
+import MainViewParts._
 
 object MainView {
   import MainViewParts._
-
-  def upButton(state: GlobalState): VNode = {
-    //TODO: outwatch child <-- Option[VNode]
-    span(
-      children <-- state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
-          button("↑", width := "2.5em", onClick(upTarget) --> state.page)
-      ))
-    )
-  }
+  //TODO: outwatch child <-- Option[VNode]
 
   def showPage(state: GlobalState): VNode = {
     div(
-      children <-- state.pageParentPosts.map { posts => posts.toSeq.map { post =>
+      state.pageParentPosts.map { posts => posts.toSeq.map { post =>
           span(
             post.content,
             backgroundColor := baseColor(post.id).toString,
@@ -143,21 +136,21 @@ object MainView {
 
   def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     div(
-      backgroundColor <-- state.pageStyle.map(_.darkBgColor),
+      backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       padding := "15px",
       color := "white",
       titleBanner,
-      br(),
-      newGroupButton(state),
-      userStatus(state),
-      br(),
-      dataImport(state),
-      br(),
-      child <-- RestructuringTaskGenerator.renderStudy(state),
-      br(),
+      upButton(state),
       channels(state),
+      newGroupButton(state),
+//      userStatus(state),
       br(),
-      settingsButton(state),
+//      dataImport(state),
+      br(),
+//      RestructuringTaskGenerator.renderStudy(state),
+      br(),
+      br(),
+//      settingsButton(state),
       br(),
       br(),
       syncStatus(state)
@@ -168,15 +161,8 @@ object MainView {
     button("Settings", width := "100%", onClick(wust.webApp.views.UserSettingsView) --> state.view),
   }
 
-  def channels(state: GlobalState): VNode = {
-      div(
-        color := "#C4C4CA",
-        "#channels"
-      )
-  }
-
   def user(state: GlobalState): VNode = {
-    div( "User: ", child <-- state.currentUser.map(u => s"${u.id}, ${u.name}" ))
+    div( "User: ", state.currentUser.map(u => s"${u.id}, ${u.name}" ))
   }
 
   def dataImport(state:GlobalState): VNode = {
@@ -212,15 +198,35 @@ object MainView {
     div(
       height := "100%",
       div(
-//              height := "100%",
         id := "pagegrid",
         sidebar(state),
-        ChatView(state),
-        new GraphView().apply(state)
+        backgroundColor <-- state.inner.pageStyle.map(_.accentLineColor.toHex).toObservable,
+        div(
+          id := "viewgrid",
+          backgroundColor <-- state.inner.pageStyle.map(_.bgColor.toHex).toObservable,
+
+          Rx {
+            if(state.inner.page().parentIds.nonEmpty) {
+              List(
+                ChatView(state),
+                new GraphView().apply(state),
+//                GraphView(state, state.inner.rawGraph)
+              )
+            } else {
+              List(
+                div(
+                  display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
+                  newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
+                ),
+                GraphView(state, state.inner.rawGraph)
+              )
+            }
+          }.toObservable
+        )
       ),
 
       // feedbackForm (state),
-      DevOnly { DevView.devPeek(state) },
+      DevOnly { DevView.devPeek(state) }
       // DevOnly { DevView.jsError(state) }
     )
   }

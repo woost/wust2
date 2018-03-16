@@ -312,68 +312,42 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    def getAllVisiblePosts(userIdOpt: Option[UserId])(implicit ec: ExecutionContext): Future[Graph] = {
+    def getAllVisiblePosts(userId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
 
-      val publicPosts = quote {
-        query[Post]
-          .leftJoin(query[Membership])
-          .on((p, m) => p.id == m.postId)
-          .filter { case (_, m) => m.isEmpty }
-          .map { case (p, _) => p }
+      val myPostsMemberships = quote {
+        for {
+          p <- user.AllPostsQuery(userId)
+          m <- query[Membership].filter(_.postId == p.id)
+        } yield m
       }
 
-      userIdOpt match {
-        case Some(userId) =>
-          val myPostsMemberships = quote {
-            for {
-              p <- user.AllPostsQuery(userId)
-              m <- query[Membership].filter(_.postId == p.id)
-            } yield m
-          }
+      val myPostsMembers = quote {
+        for {
+          m <- myPostsMemberships
+          u <- query[User].join(_.id == m.userId)
+        } yield u
+      }
 
-          val myPostsMembers = quote {
-            for {
-              m <- myPostsMemberships
-              u <- query[User].join(_.id == m.userId)
-            } yield u
-          }
+      val postsFut = ctx.run { user.AllPostsQuery(userId) }
+      val connectionsFut = ctx.run(query[Connection])
+      val userFut = ctx.run(query[User].filter(_.id == lift(userId)))
+      val myGroupsMembersFut = ctx.run(myPostsMembers)
+      val myGroupsMembershipsFut = ctx.run(myPostsMemberships)
 
-          val postsFut = ctx.run { user.AllPostsQuery(userId) ++ publicPosts }
-          val connectionsFut = ctx.run(query[Connection])
-          val userFut = ctx.run(query[User].filter(_.id == lift(userId)))
-          val myGroupsMembersFut = ctx.run(myPostsMembers)
-          val myGroupsMembershipsFut = ctx.run(myPostsMemberships)
-
-          for {
-            posts <- postsFut
-            connection <- connectionsFut
-            user <- userFut
-            users <- myGroupsMembersFut
-            memberships <- myGroupsMembershipsFut
-          } yield {
-            val postSet = posts.map(_.id).toSet
-            (
-              posts,
-              connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
-              (users ++ user).toSet,
-              memberships
-            )
-          }
-
-        case None => // not logged in, can only see public posts
-          val postsFut = ctx.run(publicPosts)
-          val connectionsFut = ctx.run(query[Connection])
-          for {
-            posts <- postsFut
-            connection <- connectionsFut
-          } yield {
-            val postSet = posts.map(_.id).toSet
-            (
-              posts,
-              connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
-              Nil, Nil
-            )
-          }
+      for {
+        posts <- postsFut
+        connection <- connectionsFut
+        user <- userFut
+        users <- myGroupsMembersFut
+        memberships <- myGroupsMembershipsFut
+      } yield {
+        val postSet = posts.map(_.id).toSet
+        (
+          posts,
+          connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
+          (users ++ user).toSet,
+          memberships
+        )
       }
     }
   }

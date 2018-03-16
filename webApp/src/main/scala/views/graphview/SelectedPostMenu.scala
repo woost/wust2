@@ -117,12 +117,12 @@ object SelectedPostMenu {
     }
 
     val editableTitle = div(
-      child <-- editMode.map { activated =>
+      editMode.map { activated =>
         if (activated) {
           textAreaWithEnter(updatePostHandler)(rxPost.now.content, onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
-            child <-- rxPost.map(_.content).toObservable,
+            rxPost.map(_.content).toObservable,
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
             wordWrap := "break-word",
@@ -141,7 +141,7 @@ object SelectedPostMenu {
       width := "300px",
       transform <-- transformStyle.toObservable,
       div(
-        child <-- rxPost.map(p => actionMenu(p, state, selectedPostId)(zIndex := -10)).toObservable, // z-index to overlap shadow
+        rxPost.map(p => actionMenu(p, state, selectedPostId)(zIndex := -10)).toObservable, // z-index to overlap shadow
         cls := "shadow",
         editableTitle,
         padding := "3px 5px",
@@ -149,7 +149,7 @@ object SelectedPostMenu {
         //        backgroundColor <-- rxPost.map(_.color).toObservable,
         backgroundColor := "#EEE",
         borderRadius := "5px",
-        child <-- parentList.toObservable,
+        parentList.toObservable,
         textAreaWithEnter(insertPostHandler)(Placeholders.newPost, marginTop := "20px")
       ),
       div(

@@ -692,7 +692,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
     div(
       div(
-        children <-- postPreview.map {posts =>
+        postPreview.map {posts =>
           posts.last.map {post =>
             div(
               mdHtml(post.content),
@@ -832,7 +832,7 @@ object RestructuringTaskGenerator {
     if(feedback.displayNext) {
       div(
         renderButton(activateTasks = true),
-        children <-- Observable.fromFuture(composeTask(globalState).map(_.map(_.render(globalState))))
+        Observable.fromFuture(composeTask(globalState).map(_.map(_.render(globalState))))
       )
     } else {
       renderButton(activateTasks = false)
@@ -933,7 +933,7 @@ object RestructuringTaskGenerator {
       }
 
       div(
-        child <-- Observable.fromFuture(doRenderThis)
+        Observable.fromFuture(doRenderThis)
       )
 
     } else {
