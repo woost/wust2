@@ -4,9 +4,20 @@
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: 220px 1fr 1fr;
     grid-gap: 0px;
-    grid-auto-rows: minmax(100px, auto);
+    grid-template-columns: 220px 1fr;
+    grid-auto-rows: minmax(300px, auto);
+}
+
+#viewgrid {
+    width:100%;
+    height:100%;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-gap: 0px;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 1fr;
 }
 
 

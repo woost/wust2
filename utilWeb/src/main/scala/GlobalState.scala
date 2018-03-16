@@ -57,10 +57,9 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
 
     viewConfig.foreach { vc =>
-        Client.api.addCurrentUserAsMember(vc.page.parentIds.toList).foreach { addedAtLeastOne =>
-          if(addedAtLeastOne)
-            Client.api.getGraph(vc.page).foreach{g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g))}
-        }
+      Client.api.addCurrentUserAsMember(vc.page.parentIds.toList).foreach { _ =>
+        Client.api.getGraph(vc.page).foreach{g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g))}
+      }
     }
 
 

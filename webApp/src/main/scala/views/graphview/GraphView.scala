@@ -28,43 +28,45 @@ import wust.utilWeb.views.Placeholders
 
 
 //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
-class GraphView(disableSimulation: Boolean = false)(implicit ec: ExecutionContext, owner: Ctx.Owner) extends View {
+class GraphView(disableSimulation: Boolean = false) extends View {
   override val key = "graph"
   override val displayName = "Mindmap"
 
-  override def apply(state: GlobalState)(implicit owner: Ctx.Owner) = {
-    val forceSimulation = new ForceSimulation(state, onDrop(state)( _, _), onDropWithCtrl(state)(_, _))
+  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = GraphView(state, state.inner.displayGraphWithoutParents.map(_.graph))
+}
+
+object GraphView {
+  def apply(state: GlobalState, graph:Rx[Graph])(implicit owner: Ctx.Owner) = {
+    val forceSimulation = new ForceSimulation(state, graph, onDrop(state)( _, _), onDropWithCtrl(state)(_, _))
     state.jsErrors.foreach { _ => forceSimulation.stop() }
 
     div(
       height := "100%",
-      backgroundColor <-- state.pageStyle.map(_.bgColor),
-
       DevOnly(
-      div(
-        position := "absolute",
-        zIndex := 10,
-        button("start", onClick --> sideEffect {
-          forceSimulation.startAnimated()
-        }),
-        button("start hidden", onClick --> sideEffect {
-          forceSimulation.startHidden()
-        }),
-        button("step", onClick --> sideEffect {
-          forceSimulation.step()
-          ()
-        }),
-        button("stop", onClick --> sideEffect {
-          forceSimulation.stop()
-        })
-      )),
+        div(
+          position := "absolute",
+          zIndex := 10,
+          button("start", onClick --> sideEffect {
+            forceSimulation.startAnimated()
+          }),
+          button("start hidden", onClick --> sideEffect {
+            forceSimulation.startHidden()
+          }),
+          button("step", onClick --> sideEffect {
+            forceSimulation.step()
+            ()
+          }),
+          button("stop", onClick --> sideEffect {
+            forceSimulation.stop()
+          })
+        )),
 
       forceSimulation.component(
-        children <-- forceSimulation.postCreationMenus.map(_.map { menu =>
+        forceSimulation.postCreationMenus.map(_.map { menu =>
           PostCreationMenu(state, menu, Var(forceSimulation.transform))
         }).toObservable,
 
-        child <-- forceSimulation.selectedPostId.map(_.map { case (pos, id) =>
+        forceSimulation.selectedPostId.map(_.map { case (pos, id) =>
           SelectedPostMenu(pos, id, state, forceSimulation.selectedPostId, Var(forceSimulation.transform))
         }).toObservable
       )

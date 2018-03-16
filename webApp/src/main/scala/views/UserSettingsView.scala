@@ -43,15 +43,10 @@ object UserSettingsView extends View {
                ): VNode = {
     div(
        height := "100%",
-      backgroundColor <-- pageStyle.map(_.bgColor),
-
-      borderRight := "2px solid",
-      borderColor <-- pageStyle.map(_.accentLineColor),
-
       div(
         p( mdHtml(pageStyle.map(_.title)) ),
 
-        child <-- currentUser.map(listSettings),
+        currentUser.map(listSettings),
 
 
         margin := "0 auto",

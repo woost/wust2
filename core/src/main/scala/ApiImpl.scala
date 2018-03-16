@@ -104,11 +104,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   override def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
     val userIdOpt = state.auth.dbUserOpt.map(_.id)
-    val graph = selection match {
-      case Page(parentIds) if parentIds.isEmpty =>
-        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
-      case Page(parentIds) =>
-        getUnion(userIdOpt, parentIds).map(_.consistent) // TODO: consistent should not be necessary here
+    val graph = (selection,userIdOpt) match {
+      case (Page(parentIds), _) if parentIds.isEmpty =>
+        Future.successful(Graph.empty)
+//        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
+      case (page,Some(user)) =>
+        getPage(user, page).map(_.consistent) // TODO: consistent should not be necessary here
     }
 
     graph
@@ -167,12 +168,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  private def getUnion(userIdOpt: Option[UserId], rawParentIds: Set[PostId])(implicit ec: ExecutionContext): Future[Graph] = {
+  private def getPage(userIdOpt: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
     //TODO: in stored procedure
     // we also include the direct parents of the parentIds to be able no navigate upwards
     db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
       val graph = forClient(dbGraph)
-      val parentIds = rawParentIds filter graph.postsById.isDefinedAt
+      val parentIds = page.parentIds filter graph.postsById.isDefinedAt
       val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
       val descendantsWithDirectParents = descendants ++ parentIds.flatMap(graph.parents)
       graph removePosts graph.postIds.filterNot(descendantsWithDirectParents)

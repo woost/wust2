@@ -46,12 +46,6 @@ object ChatView extends View {
                  graph: Rx[Graph]
                )(implicit ctx: Ctx.Owner): VNode = {
     div(
-      // height := "100%",
-      backgroundColor <-- pageStyle.map(_.bgColor.toString).toObservable,
-
-      borderRight := "2px solid",
-      borderColor <-- pageStyle.map(_.accentLineColor.toString).toObservable,
-
       div(
         p( mdHtml(pageStyle.map(_.title).toObservable) ),
 
@@ -78,7 +72,7 @@ object ChatView extends View {
       overflow.auto,
       padding := "20px",
 
-      children <-- Rx{ graph().chronologicalPostsAscending.map(chatMessage(currentUser(), _, page, graph())) }.toObservable,
+      Rx{ graph().chronologicalPostsAscending.map(chatMessage(currentUser(), _, page, graph())) }.toObservable,
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
