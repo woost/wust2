@@ -312,43 +312,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    def getAllVisiblePosts(userId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+    def graphPage(parents:Seq[PostId], children:Seq[PostId]) = quote {
+       infix"select * from graph_page(${lift(parents)}, ${lift(children)})".as[Query[GraphRow]]
+    }
 
-      val myPostsMemberships = quote {
-        for {
-          p <- user.AllPostsQuery(userId)
-          m <- query[Membership].filter(_.postId == p.id)
-        } yield m
-      }
-
-      val myPostsMembers = quote {
-        for {
-          m <- myPostsMemberships
-          u <- query[User].join(_.id == m.userId)
-        } yield u
-      }
-
-      val postsFut = ctx.run { user.AllPostsQuery(userId) }
-      val connectionsFut = ctx.run(query[Connection])
-      val userFut = ctx.run(query[User].filter(_.id == lift(userId)))
-      val myGroupsMembersFut = ctx.run(myPostsMembers)
-      val myGroupsMembershipsFut = ctx.run(myPostsMemberships)
-
-      for {
-        posts <- postsFut
-        connection <- connectionsFut
-        user <- userFut
-        users <- myGroupsMembersFut
-        memberships <- myGroupsMembershipsFut
-      } yield {
-        val postSet = posts.map(_.id).toSet
-        (
-          posts,
-          connection.filter(c => (postSet contains c.sourceId) && (postSet contains c.targetId)),
-          (users ++ user).toSet,
-          memberships
-        )
-      }
+    def getPage(parentIds: Seq[PostId], childIds: Seq[PostId])(implicit ec: ExecutionContext):Future[Graph] = {
+      //TODO: also get visible direct parents in stored procedure
+      ctx.run {
+        graphPage(parentIds, childIds)
+      }.map(Graph.from)
     }
   }
 }

@@ -35,17 +35,16 @@ object DbConversions {
     case User.Implicit(id, name, revision) => Data.User(id, name, isImplicit = true, revision = revision)
   }
   implicit def forDb(c: Connection): Data.Connection = Data.Connection(c.sourceId, c.label, c.targetId)
-  implicit def forDbPosts(posts: Set[Post]): Set[Data.Post] = posts.map(forDb _)
-  implicit def forDbUsers(users: Set[User.Persisted]): Set[Data.User] = users.map(forDb _)
-  implicit def forDbConnections(cs: Set[Connection]): Set[Data.Connection] = cs.map(forDb _)
+  implicit def forDbPosts(posts: Set[Post]): Set[Data.Post] = posts.map(forDb)
+  implicit def forDbUsers(users: Set[User.Persisted]): Set[Data.User] = users.map(forDb)
+  implicit def forDbConnections(cs: Set[Connection]): Set[Data.Connection] = cs.map(forDb)
 
-  def forClient(tuple: Data.Graph): Graph = {
-    val (posts, connections, users, memberships) = tuple
+  def forClient(dbGraph: Data.Graph):Graph = {
     Graph(
-      posts.map(forClient),
-      connections.map(forClient),
-      users.map(forClient),
-      memberships.map(forClient)
+      posts = dbGraph.posts.map(forClient),
+      connections = dbGraph.connections.map(forClient),
+      users = Nil,
+      memberships = Nil
     )
   }
 

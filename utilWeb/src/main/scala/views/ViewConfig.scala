@@ -20,7 +20,7 @@ object ViewConfig {
   private def viewConfigToPath(config: ViewConfig) = {
     val name = config.view.key
     val page = Option(config.page) collect {
-      case Page(ids) => "page" -> PathOption.StringList.toString(ids.toSeq)
+      case Page(ids, _) => "page" -> PathOption.StringList.toString(ids.toSeq)
     }
     val options = Seq(page).flatten.toMap
     Path(name, options)

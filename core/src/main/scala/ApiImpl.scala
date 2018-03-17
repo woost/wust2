@@ -102,17 +102,15 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     db.user.highLevelGroups(user.id).map(_.map(forClient))
   }
 
-  override def getGraph(selection: Page): ApiFunction[Graph] = Action { state =>
+  override def getGraph(page: Page): ApiFunction[Graph] = Action { state =>
     val userIdOpt = state.auth.dbUserOpt.map(_.id)
-    val graph = (selection,userIdOpt) match {
-      case (Page(parentIds), _) if parentIds.isEmpty =>
+    userIdOpt match {
+      case Some(user) if page.parentIds.nonEmpty =>
+        scribe.info(s"$userIdOpt, $page")
+        getPage(user, page)
+      case _ =>
         Future.successful(Graph.empty)
-//        db.graph.getAllVisiblePosts(userIdOpt).map(forClient(_).consistent) // TODO: consistent should not be necessary here
-      case (page,Some(user)) =>
-        getPage(user, page).map(_.consistent) // TODO: consistent should not be necessary here
     }
-
-    graph
   }
 
 
@@ -169,14 +167,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   // }
 
   private def getPage(userIdOpt: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
-    //TODO: in stored procedure
-    // we also include the direct parents of the parentIds to be able no navigate upwards
-    db.graph.getAllVisiblePosts(userIdOpt).map { dbGraph =>
-      val graph = forClient(dbGraph)
-      val parentIds = page.parentIds filter graph.postsById.isDefinedAt
-      val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
-      val descendantsWithDirectParents = descendants ++ parentIds.flatMap(graph.parents)
-      graph removePosts graph.postIds.filterNot(descendantsWithDirectParents.contains)
+    // TODO: also include the direct parents of the parentIds to be able no navigate upwards
+    db.graph.getPage(page.parentIds.toList, page.childrenIds.toList).map { dbGraph =>
+      forClient(dbGraph)
     }
   }
 }
