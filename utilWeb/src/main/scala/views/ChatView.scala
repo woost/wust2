@@ -34,6 +34,7 @@ object ChatView extends View {
       newPostSink,
       page,
       pageStyle,
+      pageParentPosts,
       displayGraphWithoutParents.map(_.graph)
     )
   }
@@ -43,11 +44,19 @@ object ChatView extends View {
                  newPostSink: Sink[String],
                  page: Var[Page],
                  pageStyle: Rx[PageStyle],
+                 pageParentPosts: Rx[Seq[Post]],
                  graph: Rx[Graph]
                )(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(
-        p( mdHtml(pageStyle.map(_.title).toObservable) ),
+        pageParentPosts.map { parents =>
+          span(
+            parents.map { parent =>
+              p(mdHtml(parent.content))
+            }
+          )
+        }.toObservable,
+        // p( mdHtml(pageStyle.map(_.title).toObservable) ),
 
         chatHistory(currentUser, page, graph),
         inputField(newPostSink),
@@ -117,7 +126,7 @@ object ChatView extends View {
           postTags.map{ tag =>
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
-                onClick(Page(Set(tag.id))) --> sideEffect(page() = _),
+                onClick(Page(Seq(tag.id))) --> sideEffect(page() = _),
                 backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",
@@ -129,7 +138,7 @@ object ChatView extends View {
           margin := "0px",
           padding := "0px",
         ),
-        onClick(Page(Set(post.id))) --> sideEffect{page() = _},
+        onClick(Page(Seq(post.id))) --> sideEffect{page() = _},
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),

@@ -44,8 +44,6 @@ object UserSettingsView extends View {
     div(
        height := "100%",
       div(
-        p( mdHtml(pageStyle.map(_.title)) ),
-
         currentUser.map(listSettings),
 
 

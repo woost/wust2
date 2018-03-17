@@ -38,7 +38,7 @@ function currentAuth() {
 }
 
 function sendSubscriptionToBackend(subscription) {
-    if (!subscription) {
+    if (!subscription) { // current subscription can be null if user did not enable it
         return;
     }
 

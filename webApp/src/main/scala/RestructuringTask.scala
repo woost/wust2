@@ -776,7 +776,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
           val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
           GraphChanges(
             addPosts = Set(newTag),
-            addConnections = newParent.map(parent => Connection(newTag.id, Label.parent, parent)) ++ postTag
+            addConnections = newParent.map(parent => Connection(newTag.id, Label.parent, parent)).toSet ++ postTag
           )
         case Some(t) =>
           post.map(p => GraphChanges.connect(p.id, Label.parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
