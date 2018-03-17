@@ -218,7 +218,7 @@ object MainView {
                   display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
                   newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
                 ),
-                GraphView(state, state.inner.rawGraph)
+                // GraphView(state, state.inner.rawGraph)
               )
             }
           }.toObservable
