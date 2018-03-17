@@ -2,7 +2,7 @@ package wust.backend
 
 import com.roundeights.hasher.Hasher
 import wust.api._
-import wust.graph.{Graph, User}
+import wust.graph.{Graph, Post, User}
 import wust.ids._
 import wust.backend.Dsl._
 import wust.backend.DbConversions._
@@ -83,14 +83,16 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
     }
 
-    val graph = auth.dbUserOpt match {
-      case Some(user) =>
-        db.graph.getAllVisiblePosts(user.id).map { dbGraph =>
-          forClient(dbGraph).consistent
-        }
-      case None =>
-        Future.successful(Graph.empty)
-    }
+    //TODO: don't send whole graph when auth changed
+//    val graph = auth.dbUserOpt match {
+//      case Some(user) =>
+//        db.graph.getAllVisiblePosts(user.id).map { dbGraph =>
+//          forClient(dbGraph).consistent
+//        }
+//      case None =>
+//        Future.successful(Graph.empty)
+//    }
+    val graph = Future.successful(Graph(posts = List(Post("TODO: Don't send whole graph when auth changed", auth.user.id))))
 
     graph.map {graph =>
       authEvent :: ApiEvent.ReplaceGraph(graph) :: Nil

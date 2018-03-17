@@ -4,6 +4,8 @@ import java.time.LocalDateTime
 
 import wust.ids._
 
+import scala.collection.mutable
+
 object Data {
   val DEFAULT = 0L
 
@@ -36,5 +38,37 @@ object Data {
     }
   }
 
-  type Graph = (Iterable[Post], Iterable[Connection], Iterable[User], Iterable[Membership])
+  // adjacency list which comes out of postgres stored procedure graph_page(parents, children)
+  case class GraphRow(postId: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, targetIds: List[PostId], labels: List[Label])
+  case class Graph(posts: Seq[Post], connections:Seq[Connection])
+  object Graph {
+    def from(rowsList:List[GraphRow]):Graph = {
+      scribe.info("Graph.from")
+      val rows = rowsList.toArray
+      val posts = mutable.ArrayBuffer.empty[Post]
+      val connections = mutable.ArrayBuffer.empty[Connection]
+      var i = 0
+      var j = 0
+      while( i < rows.length ) {
+        val row = rows(i)
+        val labels = row.labels
+        val targetIds = row.targetIds
+        val post = Post(row.postId, row.content, row.author, row.created, row.modified)
+
+        posts += post
+
+        j = 0
+        while(j < row.labels.length) {
+          val label = labels(j)
+          val targetId = targetIds(j)
+          connections += Connection(sourceId = post.id, label, targetId)
+          j += 1
+        }
+
+        i += 1
+      }
+      scribe.info("Graph.from DONE")
+      Graph(posts, connections)
+    }
+  }
 }

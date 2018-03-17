@@ -93,10 +93,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
       val graph = rawGraph().consistent
       page() match {
-        case Page(parentIds) if parentIds.isEmpty =>
+        case Page(parentIds,_) if parentIds.isEmpty =>
           perspective().applyOnGraph(graph)
 
-        case Page(parentIds) =>
+        case Page(parentIds,_) =>
           val descendants = parentIds.flatMap(graph.descendants) diff parentIds
           val selectedGraph = graph.filter(descendants.contains)
           perspective().applyOnGraph(selectedGraph)
@@ -106,10 +106,11 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val displayGraphWithParents: Rx[DisplayGraph] = Rx {
       val graph = rawGraph().consistent
       page() match {
-        case Page(parentIds) if parentIds.isEmpty =>
+        case Page(parentIds, _) if parentIds.isEmpty =>
           perspective().applyOnGraph(graph)
 
-        case Page(parentIds) =>
+        case Page(parentIds, _) =>
+          //TODO: this seems to crash when parentid does not exist
           val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
           val selectedGraph = graph.filter(descendants.contains)
           perspective().applyOnGraph(selectedGraph)
@@ -120,8 +121,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     val upButtonTargetPage:Rx[Option[Page]] = Rx {
       //TODO: handle containment cycles
       page() match {
-        case Page(parentIds) if parentIds.isEmpty => None
-        case Page(parentIds) =>
+        case Page(parentIds, _) if parentIds.isEmpty => None
+        case Page(parentIds, _) =>
           val newParentIds = parentIds.flatMap(rawGraph().parents)
           Some(Page(newParentIds))
       }
