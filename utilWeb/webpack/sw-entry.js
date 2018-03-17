@@ -1,10 +1,3 @@
-console.log("ServiceWorker starting!");
-const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
-self.registration.pushManager.getSubscription().then(subscription => {
-    sendSubscriptionToBackend(subscription);
-});
-
-
 Promise.prototype.flatMap = function(fun) {
     let self = this;
     return new Promise((resolve, reject) => {
@@ -44,6 +37,26 @@ function currentAuth() {
     });
 }
 
+function sendSubscriptionToBackend(subscription) {
+    if (!subscription) {
+        return;
+    }
+
+    return currentAuth().flatMap(currentAuth => fetch(baseUrl + '/Api/subscribeWebPush', {
+        method: 'POST',
+        body: JSON.stringify({ subscription: subscription }),
+        headers: {
+            'Authorization': currentAuth
+        }
+    }));
+}
+
+
+// startup
+console.log("ServiceWorker starting!");
+const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
+self.registration.pushManager.getSubscription().then(sendSubscriptionToBackend);
+
 self.addEventListener('push', e => {
     console.log("ServiceWorker received push notification", e);
     if(Notification.permission != "granted") {
@@ -76,26 +89,10 @@ self.addEventListener('push', e => {
 
 self.addEventListener('pushsubscriptionchange', e => {
     // resubscribe and send new subscription to backend
-    self.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: "" //TODO
-    }).then(subscription => {
-        sendSubscriptionToBackend(subscription);
-    });
+    e.waitUntil(
+        self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: "" //TODO
+        }).flatMap(sendSubscriptionToBackend)
+    );
 });
-
-function sendSubscriptionToBackend(subscription) {
-    if (!subscription) {
-        return;
-    }
-
-    currentAuth().then(currentAuth => {
-        fetch(baseUrl + '/Api/subscribeWebPush', {
-            method: 'POST',
-            body: JSON.stringify({ subscription: subscription }),
-            headers: {
-                'Authorization': currentAuth
-            }
-        });
-    });
-}
