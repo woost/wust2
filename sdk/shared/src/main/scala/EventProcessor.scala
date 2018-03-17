@@ -29,11 +29,11 @@ object SyncStatus {
 
 sealed trait SyncMode
 object SyncMode {
-  case object Live extends SyncMode { override def toString = "On" }
-  case object Offline extends SyncMode { override def toString = "Off" }
+  case object Live extends SyncMode
+  case object Local extends SyncMode
 
   val default = Live
-  val all = Seq(Live, Offline)
+  val all = Seq(Live, Local)
 }
 
 case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], current: GraphChanges) {
@@ -171,13 +171,7 @@ class EventProcessor private(
   private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
     BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
-  private var sendingChangesInvokeWTF = false
   private val sendingChanges: Observable[Long] = Observable.tailRecM(bufferedChanges) { changes =>
-    //TODO: seriously wtf? why is this called twice?
-    if (sendingChangesInvokeWTF) Observable.empty
-    else {
-      sendingChangesInvokeWTF = true
-
       changes.flatMap { case (c, idx) =>
         Observable.fromFuture(sendChanges(c)).map {
           case true =>
@@ -189,7 +183,6 @@ class EventProcessor private(
             Left(Observable((c, idx)).sample(1 seconds))
         }
       }
-    }
   }
   sendingChanges.foreach(_ => ()) // trigger sendingChanges
 
