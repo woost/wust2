@@ -12,12 +12,12 @@ object Deps {
 
   // core libraries
   val cats = new {
-    val core = dep("org.typelevel" %%% "cats-core" % "1.0.1")
+    val core = dep("org.typelevel" %%% "cats-core" % "1.1.0")
     val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2")
   }
   val akka = new {
-    private val version = "2.5.10"
-    private val httpVersion = "10.1.0-RC1"
+    private val version = "2.5.11"
+    private val httpVersion = "10.1.0"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.19.0")
@@ -32,7 +32,7 @@ object Deps {
   // val boopickle = dep("com.github.fdietze.boopickle" %%% "boopickle" % "e8f9331")
   val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle-shapeless" % "680e03c")
   val circe = new {
-    private val version = "0.9.1"
+    private val version = "0.9.2"
     val core = dep("io.circe" %%% "circe-core" % version)
     val generic = dep("io.circe" %%% "circe-generic" % version)
     val parser = dep("io.circe" %%% "circe-parser" % version)
@@ -46,7 +46,7 @@ object Deps {
   val outwatch = dep("io.github.outwatch" % "outwatch" % "9dda3c2")
 
   // utility
-  val scribe = dep("com.outr" %%% "scribe" % "2.2.0")
+  val scribe = dep("com.outr" %%% "scribe" % "2.2.1")
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.0")
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
@@ -57,7 +57,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "aad738f"
+    private val version = "f457226"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
