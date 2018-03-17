@@ -5,6 +5,7 @@ import org.scalajs.dom.console
 import org.scalajs.dom.experimental.{Notification, NotificationOptions}
 import org.scalajs.dom.experimental.push._
 import org.scalajs.dom.experimental.serviceworkers._
+import org.scalajs.dom.experimental.permissions._
 
 import scalajs.js
 import org.scalajs.dom
@@ -21,8 +22,7 @@ import java.nio.ByteBuffer
 import cats.data.OptionT
 import cats.implicits._
 import org.scalajs.dom.raw.{IDBDatabase, IDBFactory, IDBObjectStore, IDBRequest}
-
-object Notifications extends Notifications
+import rx.{Rx, Var}
 
 object Base64Codec {
 
@@ -92,21 +92,32 @@ object IndexedDbOps {
   }
 }
 
-class Notifications {
+object Notifications {
+  private val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
   private val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
 
-  // https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API
-  def isGranted = Notification.permission == "granted"
-
-  def isDenied = Notification.permission == "denied"
-
-  def requestPermissions(): Future[String] = {
-    val promise = Promise[String]()
-    Notification.requestPermission { (permission: String) =>
-      scribe.info(s"Requested permission: $permission")
-      promise success permission
+  private def permissionStateRx(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Rx[PermissionState] = {
+    val rx = Var[PermissionState](PermissionState.prompt)
+    permissions.foreach { (permissions: Permissions) =>
+      permissions.query(permissionDescriptor).toFuture.onComplete {
+        case Success(desc) =>
+          rx() = desc.state
+          desc.asInstanceOf[PermissionStatusWithOnChange].onchange = { _ =>
+            rx() = desc.state
+          }
+        case Failure(t) => scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
+      }
     }
-    promise.future
+    rx
+  }
+
+  def notificationPermissionRx(implicit ec: ExecutionContext) = permissionStateRx(PermissionDescriptor(PermissionName.notifications))
+  def pushPermissionRx(implicit ec: ExecutionContext) = permissionStateRx(PushPermissionDescriptor(userVisibleOnly = true))
+
+  def requestPermissions(): Unit = {
+    Notification.requestPermission { (state: String) =>
+      scribe.info(s"Requested permission: $state")
+    }
   }
 
   //TODO
@@ -135,7 +146,7 @@ class Notifications {
     }
 
   def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(implicit ec: ExecutionContext): Unit =
-    if (!isGranted) {
+    if (notificationPermissionRx.now != PermissionState.granted) {
       scribe.info(s"Notifications are not granted, cannot send notification: $title")
     } else {
       scribe.info(s"Go notify: $title")
