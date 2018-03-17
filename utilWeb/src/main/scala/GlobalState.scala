@@ -71,12 +71,12 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       )
     }
 
-    val pageParentPosts: Rx[Set[Post]] = Rx {
+    val pageParentPosts: Rx[Seq[Post]] = Rx {
       page().parentIds.flatMap(rawGraph().postsById.get)
     }
 
     val pageStyle = Rx {
-      PageStyle(page(), pageParentPosts())
+      PageStyle(page())
     }
 
     // be aware that this is a potential memory leak.
@@ -97,8 +97,8 @@ class GlobalState(implicit ctx: Ctx.Owner) {
           perspective().applyOnGraph(graph)
 
         case Page(parentIds) =>
-          val descendants = parentIds.flatMap(graph.descendants) -- parentIds
-          val selectedGraph = graph.filter(descendants)
+          val descendants = parentIds.flatMap(graph.descendants) diff parentIds
+          val selectedGraph = graph.filter(descendants.contains)
           perspective().applyOnGraph(selectedGraph)
       }
     }
@@ -111,7 +111,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
         case Page(parentIds) =>
           val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
-          val selectedGraph = graph.filter(descendants)
+          val selectedGraph = graph.filter(descendants.contains)
           perspective().applyOnGraph(selectedGraph)
       }
     }

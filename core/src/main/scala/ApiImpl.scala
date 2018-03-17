@@ -176,7 +176,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       val parentIds = page.parentIds filter graph.postsById.isDefinedAt
       val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
       val descendantsWithDirectParents = descendants ++ parentIds.flatMap(graph.parents)
-      graph removePosts graph.postIds.filterNot(descendantsWithDirectParents)
+      graph removePosts graph.postIds.filterNot(descendantsWithDirectParents.contains)
     }
   }
 }

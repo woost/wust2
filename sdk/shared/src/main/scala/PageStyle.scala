@@ -16,9 +16,7 @@ object PageStyle {
     private[PageStyle] val border = RGB("#95CCDF").hcl
   }
 
-  def apply(page:Page, parents:Set[Post]) = {
-
-    val title = parents.map(_.content).mkString(", ")
+  def apply(page:Page) = {
 
     val mixedDirectParentColors = NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut):List[Color]).map(mixColors)
     val baseHue = mixedDirectParentColors.map(_.hcl.h)
@@ -26,7 +24,6 @@ object PageStyle {
     def withBaseHueDefaultGray(base:HCL) = baseHue.fold(LAB(base.l, 0, 0):Color)(hue => HCL(hue, base.c, base.l))
 
     new PageStyle(
-      title,
       baseHue,
       bgColor = withBaseHueDefaultGray(Color.baseBg),
       accentLineColor = withBaseHueDefaultGray(Color.border),
@@ -36,6 +33,6 @@ object PageStyle {
   }
 }
 
-case class PageStyle(title:String, baseHue:Option[Double], bgColor:Color, accentLineColor:Color, darkBgColor:Color, darkBgColorHighlight:Color)
+case class PageStyle(baseHue:Option[Double], bgColor:Color, accentLineColor:Color, darkBgColor:Color, darkBgColorHighlight:Color)
 
 

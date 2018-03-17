@@ -52,7 +52,7 @@ object ArticleView extends View {
                 span(
                   span("#"),
                   cls := "focuslink",
-                  onClick(Page(Set(post.id))) --> graphSelection
+                  onClick(Page(Seq(post.id))) --> graphSelection
                 ),
                 post.content
               )
