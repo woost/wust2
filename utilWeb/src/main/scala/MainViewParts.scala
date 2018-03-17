@@ -36,23 +36,31 @@ object MainViewParts {
   }
 
   def syncStatus(state: GlobalState): VNode = {
-    val isOnline = Observable.merge(Client.observable.connected.map(_ => SyncMode.Live), Client.observable.closed.map(_ => SyncMode.Offline))
+    val isOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
     div(
-      managed(state.syncMode <--isOnline),
+      isOnline.map { isOnline =>
+        span(
+          if (isOnline) Seq(asVDomModifier("On"), color := "white", title := "The connection to the server is established.")
+          else Seq(asVDomModifier("Off"), color := "red", title := "The connection to the server has stopped. Will try to reconnect.")
+        )
+      },
+      " (",
       state.syncMode.map { mode =>
         span(
           mode.toString,
-          color := (if (mode == SyncMode.Live) "white" else "red"),
-          title := "Click to switch syncing modes (Live/Offline)",
           cursor.pointer,
-          onClick.map(_ => if (mode == SyncMode.Live) SyncMode.Offline else SyncMode.Live) --> state.syncMode
+          title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
+          if (mode == SyncMode.Live) Seq(color := "white")
+          else Seq(color := "grey"),
+          onClick.map(_ => if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live) --> state.syncMode
         )
       },
+      ")",
       state.eventProcessor.areChangesSynced.map { synced =>
         span(
           " ⬤ ", // middle dot
-          color := (if (synced) "green" else "blue"),
-          title := (if (synced) "Everything is synced" else "Some changes are only local, just wait until they are send online.")
+          if (synced) Seq(color := "green", title := "Everything is synchronized.")
+          else Seq(color := "blue", title := "Some changes are only local, just wait until they are send online.")
         )
       }
     )
