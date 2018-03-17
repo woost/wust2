@@ -81,10 +81,16 @@ object ChatView extends View {
       overflow.auto,
       padding := "20px",
 
-      Rx{ graph().chronologicalPostsAscending.map(chatMessage(currentUser(), _, page, graph())) }.toObservable,
+      Rx{
+        val posts = graph().chronologicalPostsAscending
+        if (posts.isEmpty) Seq(emptyMessage)
+        else posts.map(chatMessage(currentUser(), _, page, graph()))
+      }.toObservable,
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
+
+  def emptyMessage: VNode = h2("Nothing here yet", paddingTop := "50%", color := "grey")
 
   def chatMessage(currentUser: User, post: Post, page: Var[Page], graph: Graph)(implicit ctx: Ctx.Owner): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
