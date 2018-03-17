@@ -172,19 +172,18 @@ class EventProcessor private(
     BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
   private val sendingChanges: Observable[Long] = Observable.tailRecM(bufferedChanges) { changes =>
-      changes.flatMap { case (c, idx) =>
-        Observable.fromFuture(sendChanges(c)).map {
-          case true =>
-            scribe.info(s"Sent out changes: $c")
-            Right(idx)
-          case false =>
-            // TODO delay with exponential backoff
-            // TODO: take more from buffer if fails?
-            Left(Observable((c, idx)).sample(1 seconds))
-        }
+    changes.flatMap { case (c, idx) =>
+      Observable.fromFuture(sendChanges(c)).map {
+        case true =>
+          scribe.info(s"Sent out changes: $c")
+          Right(idx)
+        case false =>
+          // TODO delay with exponential backoff
+          // TODO: take more from buffer if fails?
+          Left(Observable((c, idx)).sample(1 seconds))
       }
-  }
-  sendingChanges.foreach(_ => ()) // trigger sendingChanges
+    }
+  }.share
 
   val areChangesSynced: Observable[Boolean] = {
     val lastLocalIndex = localChangesIndexed.map(_._2).startWith(Seq(-1))
@@ -223,9 +222,7 @@ class EventProcessor private(
     // We only need it for the 2.12 polyfill
     new wust.util.RichFuture(sendChange(changes.toList)).transform {
       case Success(success) =>
-        if (success) {
-          val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
-        } else {
+        if (!success) {
           scribe.warn(s"ChangeGraph request returned false: $changes")
         }
 
