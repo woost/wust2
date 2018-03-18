@@ -21,7 +21,7 @@ object DevView {
 
   def button = outwatch.dom.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
 
-  def devPeek(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def devPeek(state: GlobalState, additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)
     val activeDisplay = display <-- show.map(if (_) "block" else "none").toObservable
     val inactiveDisplay = display <-- show.map(if (_) "none" else "block").toObservable
@@ -41,10 +41,10 @@ object DevView {
         onClick --> sideEffect { show() = true }
       ),
       baseDiv(
-        width := "200px",
+        minWidth := "200px",
         activeDisplay,
         div("×", cursor.pointer, float.right, onClick --> sideEffect { show() = false }),
-        DevView(state),
+        DevView(state, additions),
         borderRight := "none",
       )
     )
@@ -74,7 +74,7 @@ object DevView {
   //    )
   //  }
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, additions: Seq[VDomModifier])(implicit ctx: Ctx.Owner) = {
     span(
       div(
         display.flex, flexDirection.column,
@@ -159,7 +159,6 @@ object DevView {
         }.toObservable,
         Rx {
           val connections = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
-          println("CONN"+connections.size)
 
           def disconnect(count:Int):Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(delConnections = connections.take(count).toSet))
@@ -172,6 +171,7 @@ object DevView {
             button("100", onClick --> sideEffect {disconnect(100)})
           )
         }.toObservable,
+        additions
         //        div(
         //          "Random Events:",
         //          br(),
@@ -258,6 +258,7 @@ object DevView {
 //          case None => span()
 //        }).render
 //      }
+
     )
   }
 }

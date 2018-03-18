@@ -5,7 +5,8 @@ import org.scalajs.dom.ext.KeyCode
 import io.circe.Decoder.state
 import org.scalajs.dom
 import org.scalajs.dom.html.Element
-import org.scalajs.dom.{CanvasRenderingContext2D, console, html, svg}
+import org.scalajs.dom.raw.{MutationObserver, MutationRecord}
+import org.scalajs.dom.{Selection => _, _}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
@@ -46,7 +47,7 @@ object ForceSimulationConstants {
   val nodePadding = 10
   val eulerSetPadding = nodePadding
   val minimumDragHighlightRadius = 50
-  val nodeSpacing = 70
+  val nodeSpacing = 20
 }
 
 class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
@@ -143,23 +144,30 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
     background.call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
       .on("click", { () =>
       println("clicked background")
-      if (postCreationMenus.now.isEmpty && selectedPostId.now.isEmpty) {
-        val pos = transform.invert(d3.mouse(background.node))
-        postCreationMenus() = List(Vec2(pos(0), pos(1)))
+
+      if(transform.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
+        // fixes visualization
+        resized()
+        startAnimated()
       } else {
-        // TODO:
-        // Var.set(
-        //   Var.Assignment(postCreationMenus, Nil),
-        //   Var.Assignment(selectedPostId, None)
-        // )
-        postCreationMenus() = Nil
-        selectedPostId() = None
+        if (postCreationMenus.now.isEmpty && selectedPostId.now.isEmpty) {
+          val pos = transform.invert(d3.mouse(background.node))
+          postCreationMenus() = List(Vec2(pos(0), pos(1)))
+        } else {
+          // TODO:
+          // Var.set(
+          //   Var.Assignment(postCreationMenus, Nil),
+          //   Var.Assignment(selectedPostId, None)
+          // )
+          postCreationMenus() = Nil
+          selectedPostId() = None
+        }
       }
     })
 
 
     events.window.onResize.foreach { _ =>
-      // TODO: https://stackoverflow.com/questions/6492683/how-to-detect-divs-dimension-changed
+      // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
     }
@@ -255,13 +263,22 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
 
 
     def resized():Unit = {
-//      println(log("resized"))
       val rect = backgroundElement.getBoundingClientRect()
       import rect.{height, width}
+      val resizedFromZero = (planeDimension.width == 0 || planeDimension.height == 0) && width > 0 && height > 0
+      if(resizedFromZero) { // happens when graphview was rendered in a hidden element
+        // since postContainer had size zero, all posts also had size zero,
+        // so we have to resize postContainer and then reinitialize the post sizes in static data
+        transform = d3.zoomIdentity
+        postContainer.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
+        staticData = StaticData(graphTopology.now, postSelection, transform, labelVisualization)
+      }
+
       val arbitraryFactor = 1.3
-      // TODO: handle cases where
+      // TODO: handle cases:
       // - long window with big blob in the middle
       val scale = Math.sqrt((width * height) / (staticData.reservedArea * arbitraryFactor)) min 1.5 // scale = sqrt(ratio) because areas grow quadratically
+//      println(log(s"resized: $width x $height, fromZero: $resizedFromZero, scale: $scale"))
       planeDimension = PlaneDimension(
         xOffset = -width / 2 / scale,
         yOffset = -height / 2 / scale,

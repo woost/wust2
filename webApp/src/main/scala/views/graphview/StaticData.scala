@@ -119,8 +119,8 @@ object StaticData {
       import graphTopology.{graph, posts}
 
       val PartitionedConnections(edges,containments,tags) = partitionConnections(graph.connections, labelVisualization)
-      println("edges: " + edges.mkString(", "))
-      println("containments: " + containments.mkString(", "))
+//      println("edges: " + edges.mkString(", "))
+//      println("containments: " + containments.mkString(", "))
 
       val nodeCount = posts.length
       val edgeCount = edges.length

@@ -1,30 +1,17 @@
 package wust.webApp.views.graphview
 
-import scala.scalajs.js.JSConverters._
-import d3v4._
-import io.circe.Decoder.state
-import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
-import org.scalajs.dom.{Element, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
 import rx._
-import vectory._
 import views.graphview.ForceSimulation
-import wust.sdk.PostColor._
-import wust.utilWeb.views.View
-import wust.utilWeb.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
-import wust.utilWeb.outwatchHelpers._
-import wust.util.time.time
 import wust.ids._
+import wust.util._
+import wust.utilWeb.GlobalState
+import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.views.View
 
-import scala.concurrent.ExecutionContext
-import scala.scalajs.js
-import wust.utilWeb.views.Elements._
-import wust.utilWeb.views.Rendered._
-import wust.utilWeb.views.Placeholders
+import scala.scalajs.LinkingInfo
 
 
 //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
@@ -36,13 +23,13 @@ class GraphView(disableSimulation: Boolean = false) extends View {
 }
 
 object GraphView {
-  def apply(state: GlobalState, graph:Rx[Graph])(implicit owner: Ctx.Owner) = {
+  def apply(state: GlobalState, graph:Rx[Graph], controls:Boolean = LinkingInfo.developmentMode)(implicit owner: Ctx.Owner) = {
     val forceSimulation = new ForceSimulation(state, graph, onDrop(state)( _, _), onDropWithCtrl(state)(_, _))
     state.jsErrors.foreach { _ => forceSimulation.stop() }
 
     div(
       height := "100%",
-      DevOnly(
+      controls.option {
         div(
           position := "absolute",
           zIndex := 10,
@@ -59,7 +46,8 @@ object GraphView {
           button("stop", onClick --> sideEffect {
             forceSimulation.stop()
           })
-        )),
+        )
+      },
 
       forceSimulation.component(
         forceSimulation.postCreationMenus.map(_.map { menu =>

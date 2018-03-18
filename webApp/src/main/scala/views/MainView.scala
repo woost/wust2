@@ -14,12 +14,14 @@ import wust.webApp.views.graphview.GraphView
 import MainViewParts._
 
 object MainView {
+
   import MainViewParts._
   //TODO: outwatch child <-- Option[VNode]
 
   def showPage(state: GlobalState): VNode = {
     div(
-      state.pageParentPosts.map { posts => posts.toSeq.map { post =>
+      state.pageParentPosts.map { posts =>
+        posts.toSeq.map { post =>
           span(
             post.content,
             backgroundColor := baseColor(post.id).toString,
@@ -32,7 +34,7 @@ object MainView {
     )
   }
 
-  def viewSelection(state:GlobalState, allViews: Seq[View]): VNode = {
+  def viewSelection(state: GlobalState, allViews: Seq[View]): VNode = {
     //TODO: instead of select show something similar to tabs (require only one click to change)
     val viewHandler = Handler.create[View]().unsafeRunSync()
 
@@ -41,7 +43,7 @@ object MainView {
       managed(IO(viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString)))),
       managed(state.view <-- viewHandler),
       display.flex,
-      allViews.map{ view =>
+      allViews.map { view =>
         div(
           view.displayName,
           padding := "8px",
@@ -117,24 +119,24 @@ object MainView {
   //  )
   //}
 
-   def topBar(state: GlobalState, allViews: Seq[View]): VNode = {
-       div(
-         padding := "5px", background := "#FAFAFA", borderBottom := "1px solid #DDD",
-         display := "flex", alignItems := "center", justifyContent := "spaceBetween",
+  def topBar(state: GlobalState, allViews: Seq[View]): VNode = {
+    div(
+      padding := "5px", background := "#FAFAFA", borderBottom := "1px solid #DDD",
+      display := "flex", alignItems := "center", justifyContent := "spaceBetween",
 
-         div(
-           display := "flex", alignItems := "center", justifyContent := "flexStart",
+      div(
+        display := "flex", alignItems := "center", justifyContent := "flexStart",
 
-           upButton(state),
-           showPage(state)
-         ),
+        upButton(state),
+        showPage(state)
+      ),
 
 
-        syncStatus(state)
-       )
-   }
+      syncStatus(state)
+    )
+  }
 
-  def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+  def sidebar(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       padding := "15px",
@@ -143,14 +145,14 @@ object MainView {
       upButton(state),
       channels(state),
       newGroupButton(state),
-//      userStatus(state),
+      //      userStatus(state),
       br(),
-//      dataImport(state),
+      //      dataImport(state),
       br(),
-//      RestructuringTaskGenerator.renderStudy(state),
+      //      RestructuringTaskGenerator.renderStudy(state),
       br(),
       br(),
-//      settingsButton(state),
+      //      settingsButton(state),
       br(),
       br(),
       syncStatus(state)
@@ -158,17 +160,21 @@ object MainView {
   }
 
   def settingsButton(state: GlobalState): VNode = {
-    button("Settings", width := "100%", onClick(wust.webApp.views.UserSettingsView) --> state.view),
+    button("Settings", width := "100%", onClick(wust.webApp.views.UserSettingsView) --> state.view)
+    ,
   }
 
   def user(state: GlobalState): VNode = {
-    div( "User: ", state.currentUser.map(u => s"${u.id}, ${u.name}" ))
+    div("User: ", state.currentUser.map(u => s"${u.id}, ${u.name}"))
   }
 
-  def dataImport(state:GlobalState): VNode = {
+  def dataImport(state: GlobalState): VNode = {
     val urlImporter = Handler.create[String].unsafeRunSync()
+
     def importGithubUrl(url: String): Unit = Client.api.importGithubUrl(url)
+
     def importGitterUrl(url: String): Unit = Client.api.importGitterUrl(url)
+
     def connectToGithub(): Unit = Client.auth.issuePluginToken().foreach { auth =>
       scribe.info(s"Generated plugin token: $auth")
       val connUser = Client.githubApi.connectUser(auth.token)
@@ -187,7 +193,7 @@ object MainView {
       "Constant synchronization",
       button("Connect to GitHub", width := "100%", onClick --> sideEffect(connectToGithub())),
       "One time import",
-      input(tpe := "text", width:= "100%", onInput.value --> urlImporter),
+      input(tpe := "text", width := "100%", onInput.value --> urlImporter),
       button("GitHub", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGithubUrl(url))),
       button("Gitter", width := "100%", onClick(urlImporter) --> sideEffect((url: String) => importGitterUrl(url))),
     )
@@ -206,19 +212,17 @@ object MainView {
           backgroundColor <-- state.inner.pageStyle.map(_.bgColor.toHex).toObservable,
 
           Rx {
-            if(state.inner.page().parentIds.nonEmpty) {
+            if (state.inner.page().parentIds.nonEmpty) {
               List(
                 ChatView(state),
-                new GraphView().apply(state),
-//                GraphView(state, state.inner.rawGraph)
+                new GraphView().apply(state)
               )
             } else {
               List(
                 div(
                   display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
                   newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
-                ),
-                // GraphView(state, state.inner.rawGraph)
+                )
               )
             }
           }.toObservable
@@ -226,7 +230,19 @@ object MainView {
       ),
 
       // feedbackForm (state),
-      DevOnly { DevView.devPeek(state) }
+      DevOnly {
+        DevView.devPeek(state, List(
+          div(
+            div("Raw Graph. Click to show.", position.absolute, color := "#AAA"),
+            backgroundColor := "#F8F8F8",
+            width := "200px",
+            height := "200px",
+            border := "1px solid #DDD",
+            margin := "5px",
+            GraphView(state, state.inner.rawGraph, controls = false)(owner)(
+            )))
+        )
+      }
       // DevOnly { DevView.jsError(state) }
     )
   }
