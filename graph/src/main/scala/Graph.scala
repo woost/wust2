@@ -133,7 +133,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
     s"memberships: ${memberships.map(o => s"${o.userId} -> ${o.postId}").mkString(", ")})"
   def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connectionsWithoutParent.size}, users: ${users.size}, memberships: ${memberships.size})"
 
-  private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId])
+  private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId]).withDefaultValue(Set.empty[PostId])
   lazy val successorsWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.sourceId, _.targetId)
   lazy val predecessorsWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.targetId, _.sourceId)
   lazy val neighboursWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
@@ -153,7 +153,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def getChildrenOpt(postId: PostId): Option[Set[PostId]] = if(hasChildren(postId)) Some(children(postId)) else None
   def getParentsOpt(postId: PostId): Option[Set[PostId]] = if(hasParents(postId)) Some(parents(postId)) else None
 
-  private lazy val connectionDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Connection])
+  private lazy val connectionDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[Connection]).withDefaultValue(Set.empty[Connection])
   lazy val incomingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
     directedIncidenceList[PostId, Connection](connectionsWithoutParent, _.targetId)
   lazy val outgoingConnections: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++
@@ -164,13 +164,13 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val incidentChildContainments: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ directedIncidenceList[PostId, Connection](containments, _.targetId)
   lazy val incidentContainments: Map[PostId, Set[Connection]] = connectionDefaultNeighbourhood ++ incidenceList[PostId, Connection](containments, _.targetId, _.sourceId)
 
-  private lazy val postDefaultMembers: Map[PostId, Set[UserId]] = postsById.mapValues(_ => Set.empty[UserId])
-  private lazy val userDefaultPosts = usersById.mapValues(_ => Set.empty[PostId])
+  private lazy val postDefaultMembers: Map[PostId, Set[UserId]] = postsById.mapValues(_ => Set.empty[UserId]).withDefaultValue(Set.empty[UserId])
+  private lazy val userDefaultPosts = usersById.mapValues(_ => Set.empty[PostId]).withDefaultValue(Set.empty[PostId])
   lazy val usersByPostId: Map[PostId, Set[UserId]] = postDefaultMembers ++ directedAdjacencyList[PostId, Membership, UserId](memberships, _.postId, _.userId)
   lazy val postsByUserId: Map[UserId, Set[PostId]] = userDefaultPosts ++ directedAdjacencyList[UserId, Membership, PostId](memberships, _.userId, _.postId)
   lazy val publicPostIds: Set[PostId] = postsById.keySet -- postsByUserId.values.flatten
 
-  private lazy val postDefaultDegree = postsById.mapValues(_ => 0)
+  private lazy val postDefaultDegree = postsById.mapValues(_ => 0).withDefaultValue(0)
   lazy val connectionDegree: Map[PostId, Int] = postDefaultDegree ++
     degreeSequence[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
   lazy val containmentDegree: Map[PostId, Int] = postDefaultDegree ++
