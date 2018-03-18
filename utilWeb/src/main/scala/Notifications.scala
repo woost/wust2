@@ -10,6 +10,7 @@ import org.scalajs.dom.experimental.permissions._
 import scalajs.js
 import org.scalajs.dom
 import wust.api._
+import wust.utilWeb.outwatchHelpers.RichObservable
 
 import scalajs.js.JSConverters._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -21,6 +22,8 @@ import java.nio.ByteBuffer
 
 import cats.data.OptionT
 import cats.implicits._
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.raw.{IDBDatabase, IDBFactory, IDBObjectStore, IDBRequest}
 import rx.{Rx, Var}
 
@@ -96,57 +99,63 @@ object Notifications {
   private val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
   private val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
 
-  private def permissionStateRx(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Rx[PermissionState] = {
-    val rx = Var[PermissionState](PermissionState.prompt)
+  private def permissionStateObservableOf(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Observable[PermissionState] = {
+    val subject = PublishSubject[PermissionState]()
     permissions.foreach { (permissions: Permissions) =>
       permissions.query(permissionDescriptor).toFuture.onComplete {
         case Success(desc) =>
-          rx() = desc.state
+          subject.onNext(desc.state)
           desc.asInstanceOf[PermissionStatusWithOnChange].onchange = { _ =>
-            rx() = desc.state
+            subject.onNext(desc.state)
           }
-        case Failure(t) => scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
+        case Failure(t) =>
+          scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
+          subject.onError(t)
       }
     }
-    rx
+    subject
   }
 
-  def notificationPermissionRx(implicit ec: ExecutionContext) = permissionStateRx(PermissionDescriptor(PermissionName.notifications))
-  def pushPermissionRx(implicit ec: ExecutionContext) = permissionStateRx(PushPermissionDescriptor(userVisibleOnly = true))
+  def permissionStateObservable(implicit ec: ExecutionContext) = {
+    permissionStateObservableOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
+      case t => permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
+    }
+  }
 
-  def requestPermissions(): Unit = {
+  def requestPermissions()(implicit ec: ExecutionContext): Unit = {
+    subscribeAndPersistWebPush()
     Notification.requestPermission { (state: String) =>
-      scribe.info(s"Requested permission: $state")
+      scribe.info(s"Requested notification permission: $state")
     }
   }
 
   //TODO
   private val serverKey = new Uint8Array(Base64Codec.decode("BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0").arrayBuffer())
 
-  def subscribeAndPersistWebPush()(implicit ec: ExecutionContext): Unit =
+  private def subscribeAndPersistWebPush()(implicit ec: ExecutionContext): Unit =
     persistPushSubscription(_.subscribe(PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = serverKey)))
 
-  private def persistPushSubscription(getSubscription: PushManager => js.Promise[PushSubscription])(implicit ec: ExecutionContext): Unit =
-    serviceWorker match {
-      case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.foreach { reg =>
-        reg.foreach { reg =>
-          getSubscription(reg.pushManager).toFuture.onComplete {
-            case Success(sub) => if (sub != null) {
-              //TODO rename p256dh attribute of WebPushSub to publicKey
-              val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
-              scribe.info(s"WebPush subscription: $webpush")
-              Client.api.subscribeWebPush(webpush)
-            }
-            case Failure(t) => scribe.info(s"Failed to subscribe to push: $t")
-          }
+  private def persistPushSubscription(getSubscription: PushManager => js.Promise[PushSubscription])(implicit ec: ExecutionContext): Unit = serviceWorker match {
+    case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.foreach { reg =>
+      reg.foreach { reg =>
+        getSubscription(reg.pushManager).toFuture.onComplete {
+          case Success(sub) if sub != null =>
+            //TODO rename p256dh attribute of WebPushSub to publicKey
+            val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
+            scribe.info(s"WebPush subscription: $webpush")
+            Client.api.subscribeWebPush(webpush)
+          case err =>
+            scribe.warn(s"Failed to subscribe to push: $err")
         }
       }
-      case None =>
-        scribe.info("Push notifications are not available in this browser")
     }
+    case None =>
+      scribe.info("Push notifications are not available in this browser")
+      Future.successful(false)
+  }
 
   def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(implicit ec: ExecutionContext): Unit =
-    if (notificationPermissionRx.now != PermissionState.granted) {
+    if (Notification.permission.asInstanceOf[PermissionState] != PermissionState.granted) {
       scribe.info(s"Notifications are not granted, cannot send notification: $title")
     } else {
       scribe.info(s"Go notify: $title")

@@ -14,9 +14,14 @@ import scala.scalajs.js.Date
 object MainView {
   import MainViewParts._
 
+  def buttonStyle = Seq(
+    width := "100%",
+    padding := "5px 3px",
+  )
+
   val notificationSettings: VNode = {
     div(
-      Notifications.notificationPermissionRx.map { state =>
+      Notifications.permissionStateObservable.map { state =>
         if (state == PermissionState.granted) Option.empty[VNode]
         else if (state == PermissionState.denied) Some(
           span("Notifications are blocked", title := "To enable Notifications for this site, reconfigure your browser to not block Notifications from this domain.")
@@ -24,36 +29,15 @@ object MainView {
           button("Enable Notifications",
             padding := "5px 3px",
             width := "100%",
-            onClick --> sideEffect { Notifications.requestPermissions() }
+            onClick --> sideEffect { Notifications.requestPermissions() },
+            buttonStyle
           )
         )
-      }.toObservable
-    )
-  }
-
-  val pushNotificationSettings: VNode = {
-    div(
-      Notifications.pushPermissionRx.map { state =>
-        if (state == PermissionState.granted) Option.empty[VNode]
-        else if (state == PermissionState.denied) Some(
-          span("Push is blocked", title := "To enable Push for this site, reconfigure your browser to not block Push from this domain.")
-        ) else Some(
-          button("Enable Push",
-            padding := "5px 3px",
-            width := "100%",
-            onClick --> sideEffect { Notifications.subscribeAndPersistWebPush() }
-          )
-        )
-      }.toObservable
+      }
     )
   }
 
   def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-    def buttonStyle = Seq(
-      width := "100%",
-      padding := "5px 3px",
-    )
-
     div(
       id := "sidebar",
       width := "175px",
@@ -67,7 +51,6 @@ object MainView {
       newGroupButton(state)(ctx)(buttonStyle),
       // userStatus(state),
       notificationSettings,
-      pushNotificationSettings(buttonStyle),
       overflowY.auto
     )
   }
