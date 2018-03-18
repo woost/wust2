@@ -233,11 +233,11 @@ object MainView {
       DevOnly {
         DevView.devPeek(state, List(
           div(
-            div("Raw Graph. Click to show.", position.absolute, color := "#AAA"),
-            backgroundColor := "#F8F8F8",
+            div("Raw Graph. Click to show.", padding := "3px", position.absolute, color := "#999"),
+            backgroundColor := "#DDD",
             width := "200px",
             height := "200px",
-            border := "1px solid #DDD",
+            border := "1px solid #999",
             margin := "5px",
             GraphView(state, state.inner.rawGraph, controls = false)(owner)(
             )))
