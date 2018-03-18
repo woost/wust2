@@ -1,17 +1,15 @@
 package wust.utilWeb.views
 
-import wust.utilWeb._
-import wust.sdk.{ChangesHistory, SyncMode}
+import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.dsl.events.window
 import rx._
-import wust.api._
-import wust.sdk.PostColor._
-import wust.utilWeb.outwatchHelpers._
-import outwatch.ObserverSink
-import scala.scalajs.js.Date
 import wust.graph._
+import wust.sdk.{ChangesHistory, SyncMode}
+import wust.utilWeb._
+import wust.utilWeb.outwatchHelpers._
+
+import scala.scalajs.js.Date
 
 object MainViewParts {
   val titleBanner: VNode = {
@@ -23,19 +21,19 @@ object MainViewParts {
       )
   }
 
-  def upButton(state: GlobalState): VNode = {
+  def upButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     span(
       state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
-          button("↑", width := "2.5em", onClick(upTarget) --> state.page)
+          button("↑", width := "2.5em", onClick(upTarget) --> state.page.toHandler)
       ))
     )
   }
 
-  def userStatus(state: GlobalState): VNode = {
+  def userStatus(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     div( "User: ", state.currentUser.map(u => s"${u.id}" ))
   }
 
-  def syncStatus(state: GlobalState): VNode = {
+  def syncStatus(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     val isOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
     div(
       isOnline.map { isOnline =>
@@ -52,7 +50,7 @@ object MainViewParts {
           title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
           if (mode == SyncMode.Live) Seq(color := "white")
           else Seq(color := "grey"),
-          onClick.map(_ => if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live) --> state.syncMode
+          onClick.map(_ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live):SyncMode) --> state.syncMode
         )
       },
       ")",
@@ -85,18 +83,18 @@ object MainViewParts {
       var today = new Date()
       // January is 0!
       val title = s"Group: ${today.getMonth+1}-${today.getDate}"
-      val sameNamePosts = state.inner.highLevelPosts.now.filter(_.content.startsWith(title))
+      val sameNamePosts = state.highLevelPosts.now.filter(_.content.startsWith(title))
       if (sameNamePosts.isEmpty) title
       else s"$title (${sameNamePosts.size})"
     }
     button("New Group",
       onClick --> sideEffect{ _ =>
-        val post = Post(groupTitle, state.inner.currentUser.now.id)
+        val post = Post(groupTitle, state.currentUser.now.id)
         for {
           _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
         } {
-          state.inner.page() = Page(post.id)
-          state.inner.highLevelPosts.update(post :: _)
+          state.page() = Page(post.id)
+          state.highLevelPosts.update(post :: _)
         }
 
         ()
@@ -107,15 +105,15 @@ object MainViewParts {
     div(
       color := "#C4C4CA",
       Rx {
-        state.inner.highLevelPosts().map{p => div(
+        state.highLevelPosts().map{p => div(
           padding := "5px 3px",
           p.content,
           cursor.pointer,
           onClick(Page(p.id)) --> state.page,
           title := p.id,
-          if(state.inner.page().parentIds.contains(p.id)) Seq(
-            color := state.inner.pageStyle().darkBgColor.toHex,
-            backgroundColor := state.inner.pageStyle().darkBgColorHighlight.toHex)
+          if(state.page().parentIds.contains(p.id)) Seq(
+            color := state.pageStyle().darkBgColor.toHex,
+            backgroundColor := state.pageStyle().darkBgColorHighlight.toHex)
           else Option.empty[VDomModifier]
         )}
       }.toObservable

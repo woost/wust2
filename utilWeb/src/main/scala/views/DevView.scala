@@ -1,21 +1,17 @@
 package wust.utilWeb.views
 
-import org.scalajs.dom.document
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
-import wust.api._
-import wust.utilWeb.{Client, GlobalState}
-import wust.graph._
-import wust.ids._
-
-import scala.collection.{breakOut, mutable}
-import scala.concurrent.duration.{span => _, _}
-import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
-import org.scalajs.dom.{Event, console}
-import rx._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
+import rx._
+import wust.api._
+import wust.graph._
+import wust.ids._
+import wust.utilWeb.GlobalState
 import wust.utilWeb.outwatchHelpers._
+
+import scala.collection.mutable
+import scala.concurrent.duration.{span => _}
 
 object DevView {
 
@@ -93,7 +89,7 @@ object DevView {
 //        },
         Rx {
          def addRandomPost(count: Int):Unit = {
-            val newPosts = List.fill(count)(Post(PostId.fresh, content = rSentence, state.inner.currentUser.now.id)).toSet
+            val newPosts = List.fill(count)(Post(PostId.fresh, content = rSentence, state.currentUser.now.id)).toSet
             val changes = GraphChanges(addPosts = newPosts)
             state.eventProcessor.enriched.changes.onNext(changes)
           }
@@ -106,7 +102,7 @@ object DevView {
           )
         }.toObservable,
         Rx {
-          val posts = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.postIds.toSeq)
+          val posts = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.postIds.toSeq)
 
           def deletePost(ids: Seq[PostId]):Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(delPosts = ids.toSet))
@@ -120,7 +116,7 @@ object DevView {
           )
         }.toObservable,
         Rx {
-          val posts = state.inner.displayGraphWithoutParents().graph.postIds.toArray
+          val posts = state.displayGraphWithoutParents().graph.postIds.toArray
           def randomConnection = Connection(posts(rInt(posts.length)), Label(rWord), posts(rInt(posts.length)))
 
           def connect(_count:Int):Unit = {
@@ -143,7 +139,7 @@ object DevView {
           )
         }.toObservable,
         Rx {
-          val posts = state.inner.displayGraphWithoutParents().graph.postIds.toArray
+          val posts = state.displayGraphWithoutParents().graph.postIds.toArray
           def randomConnection = Connection(posts(rInt(posts.length)), Label.parent, posts(rInt(posts.length)))
 
           def contain(count:Int):Unit = {
@@ -158,7 +154,7 @@ object DevView {
           )
         }.toObservable,
         Rx {
-          val connections = scala.util.Random.shuffle(state.inner.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
+          val connections = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
 
           def disconnect(count:Int):Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(delConnections = connections.take(count).toSet))

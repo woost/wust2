@@ -37,18 +37,18 @@ object MainView {
     )
   }
 
-  def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+  def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): VNode = {
     div(
       id := "sidebar",
       width := "175px",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       color := "white",
-      div(padding := "8px 8px", titleBanner(syncStatus(state)(fontSize := "9px"))),
+      div(padding := "8px 8px", titleBanner(syncStatus(state)(owner)(fontSize := "9px"))),
       undoRedo(state),
       br(),
       channels(state),
       br(),
-      newGroupButton(state)(ctx)(buttonStyle),
+      newGroupButton(state)(owner)(buttonStyle),
       // userStatus(state),
       notificationSettings,
       overflowY.auto
@@ -62,7 +62,7 @@ object MainView {
       display.flex,
       sidebar(state),
       Rx {
-        if(state.inner.page().parentIds.nonEmpty) {
+        if(state.page().parentIds.nonEmpty) {
           ChatView(state)(owner)(width := "100%")
         } else {
           newGroupButton(state)

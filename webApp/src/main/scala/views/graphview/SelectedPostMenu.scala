@@ -31,12 +31,12 @@ object SelectedPostMenu {
   def apply(pos:Vec2, postId: PostId, state: GlobalState, selectedPostId:Var[Option[(Vec2, PostId)]], transformRx:Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
 
     val rxPost: Rx[Post] = Rx {
-      val graph = state.inner.rawGraph()
+      val graph = state.rawGraph()
       graph.postsById.getOrElse(postId, Post.apply("", UserId(""))) //TODO: getOrElse necessary? Handle post removal.
     }
 
     val rxParents: Rx[Seq[Post]] = Rx {
-      val graph = state.inner.displayGraphWithParents().graph
+      val graph = state.displayGraphWithParents().graph
       val directParentIds = graph.parents.getOrElse(postId, Set.empty)
       directParentIds.flatMap(graph.postsById.get)(breakOut)
     }
@@ -66,7 +66,7 @@ object SelectedPostMenu {
             span("×", onClick --> sideEffect {
               val addedGrandParents: Set[Connection] = {
                 if (parents.size == 1)
-                  state.inner.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxPost.now.id, Label.parent, _))
+                  state.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxPost.now.id, Label.parent, _))
                 else
                   Set.empty
               }
@@ -95,7 +95,7 @@ object SelectedPostMenu {
 
     val insertPostHandler = Handler.create[String].unsafeRunSync()
     insertPostHandler.foreach { content =>
-      val author = state.inner.currentUser.now
+      val author = state.currentUser.now
       val newPost = Post(PostId.fresh, content, author.id)
 
       val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxPost.now.id)))
@@ -104,14 +104,14 @@ object SelectedPostMenu {
 
     val connectPostHandler = Handler.create[String].unsafeRunSync()
     connectPostHandler.foreach { content =>
-      val author = state.inner.currentUser.now
+      val author = state.currentUser.now
       val newPost = Post(PostId.fresh, content, author.id)
 
       val changes = GraphChanges(
         addPosts = Set(newPost),
         addConnections = Set(
           Connection(rxPost.now.id, Label("related"), newPost.id)
-        ) ++ state.inner.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, Label.parent, parentId))
+        ) ++ state.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, Label.parent, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
@@ -212,11 +212,11 @@ object SelectedPostMenu {
   case class MenuAction(name: String, action: (Post, GlobalState) => Unit, showIf: (Post, GlobalState) => Boolean = (_, _) => true)
 
   val menuActions: List[MenuAction] = List(
-    MenuAction("Focus", { (p: Post, state: GlobalState) => state.inner.page() = Page(Seq(p.id)) }),
+    MenuAction("Focus", { (p: Post, state: GlobalState) => state.page() = Page(Seq(p.id)) }),
 //    MenuAction(
 //      "Collapse",
 //      action = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.update(_ + p.id),
-//      showIf = (p: Post, gs: GraphState) => !gs.rxCollapsedPostIds.now(p.id) && gs.state.inner.rawGraph.now.hasChildren(p.id)
+//      showIf = (p: Post, gs: GraphState) => !gs.rxCollapsedPostIds.now(p.id) && gs.state.rawGraph.now.hasChildren(p.id)
 //    ),
 //    MenuAction(
 //      "Expand",

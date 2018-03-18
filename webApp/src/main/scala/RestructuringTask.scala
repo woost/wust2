@@ -81,7 +81,7 @@ sealed trait RestructuringTask {
 
   def component(state: GlobalState): VNode
 
-  def getGraphFromState(state: GlobalState): Graph = state.inner.displayGraphWithParents.now.graph
+  def getGraphFromState(state: GlobalState): Graph = state.displayGraphWithParents.now.graph
 
   def transferChildrenAndParents(graph: Graph, source: PostId, target: PostId): Set[Connection] = {
     val sourceChildren = graph.getChildren(source)
@@ -648,7 +648,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
-    Some(Post(PostId.fresh, str.trim, state.inner.currentUser.now.id))
+    Some(Post(PostId.fresh, str.trim, state.currentUser.now.id))
   }
 
   def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): List[Post] = {
@@ -771,8 +771,8 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       val graph = getGraphFromState(state)
       val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
         case None =>
-          val newTag = Post(PostId.fresh, tag, state.inner.currentUser.now.id)
-          val newParent = state.inner.page.now.parentIds
+          val newTag = Post(PostId.fresh, tag, state.currentUser.now.id)
+          val newParent = state.page.now.parentIds
           val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
           GraphChanges(
             addPosts = Set(newTag),
@@ -845,7 +845,7 @@ object RestructuringTaskGenerator {
   // applicable task after choosing a post (based on a discussion metric)
   private def composeTask(globalState: GlobalState): Future[List[RestructuringTask]] = {
 
-    val graph = globalState.inner.displayGraphWithoutParents.now.graph
+    val graph = globalState.displayGraphWithoutParents.now.graph
     val task = ChooseTaskHeuristic.random(tasks)
     task.applyStrategically(graph)
 
@@ -874,7 +874,7 @@ object RestructuringTaskGenerator {
     if(feedback.displayNext) {
       if(!initLoad) {
         initLoad = true
-        initGraph = globalState.inner.displayGraphWithParents.now.graph
+        initGraph = globalState.displayGraphWithParents.now.graph
         initState = Some(globalState)
 
         def mapPid(pids: List[PostId]): PostHeuristicType = {
