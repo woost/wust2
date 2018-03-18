@@ -18,7 +18,7 @@ import org.scalajs.dom.window
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-object Client extends WustClientOps {
+object Client {
   import window.location
   private val isDev = location.port == "12345" // TODO better config with require
   private val wustUrl = {
@@ -39,8 +39,11 @@ object Client extends WustClientOps {
   private val githubClient = HttpClient[ByteBuffer](githubUrl)
   val githubApi = githubClient.wire[PluginApi]
 
-  val clientFactory = WustClient(wustUrl)
-  clientFactory.observable.connected.foreach { _ =>
+  val factory: WustClientFactory = WustClient(wustUrl)
+  val api = factory.defaultPriority.api
+  val auth = factory.defaultPriority.auth
+  val observable = factory.observable
+  observable.connected.foreach { _ =>
     //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
     loginStorageAuth()
   }
@@ -50,8 +53,8 @@ object Client extends WustClientOps {
   private val initialAssumedAuth = Authentication.Assumed.fresh
   private def loginStorageAuth(): Unit = storageAuthOrAssumed match {
     case auth: Authentication.Assumed =>
-      highPriority.auth.assumeLogin(auth.user.id).log("assume login with storage id")
+      factory.highPriority.auth.assumeLogin(auth.user.id).log("assume login with storage id")
     case auth: Authentication.Verified =>
-      highPriority.auth.loginToken(auth.token).log("login with storage token")
+      factory.highPriority.auth.loginToken(auth.token).log("login with storage token")
   }
 }

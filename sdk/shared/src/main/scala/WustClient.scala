@@ -30,19 +30,10 @@ object WustClient extends NativeWustClient {
 }
 
 class WustClientFactory(val client: WsClient[ByteBuffer, Future, ApiEvent, ApiError, ClientException]) {
-  def sendWith(sendType: SendType, requestTimeout: FiniteDuration) = new WustClient(client.sendWith(sendType, requestTimeout))
+  def sendWith(sendType: SendType = SendType.WhenConnected, requestTimeout: FiniteDuration = 30 seconds): WustClient = new WustClient(client.sendWith(sendType, requestTimeout))
   def observable = client.observable
-}
-trait WustClientOps {
-  val clientFactory: WustClientFactory
-
-  def apply(sendType: SendType = SendType.WhenConnected, requestTimeout: FiniteDuration = 30 seconds) = clientFactory.sendWith(sendType, requestTimeout)
-
-  def observable = clientFactory.observable
-  lazy val nowOrFail = apply(SendType.NowOrFail)
-  lazy val highPriority = apply(SendType.WhenConnected.highPriority)
-  lazy val lowPriority = apply(SendType.WhenConnected.lowPriority)
-  lazy val defaultPriority = apply(SendType.WhenConnected)
-  lazy val api: Api[Future] = defaultPriority.api
-  lazy val auth: AuthApi[Future] = defaultPriority.auth
+  lazy val nowOrFail = sendWith(SendType.NowOrFail)
+  lazy val highPriority = sendWith(SendType.WhenConnected.highPriority)
+  lazy val lowPriority = sendWith(SendType.WhenConnected.lowPriority)
+  lazy val defaultPriority = sendWith(SendType.WhenConnected)
 }
