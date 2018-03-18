@@ -6,11 +6,10 @@ import org.scalajs.dom.experimental.{ Notification, NotificationOptions }
 import org.scalajs.dom.experimental.serviceworkers.ServiceWorkerRegistration
 import org.scalajs.dom
 
-//TODO: pr scala-js-dom
+//TODO: pr scala-js-dom: https://github.com/scala-js/scala-js-dom/pull/325
 @js.native
 trait ServiceWorkerRegistrationWithNotifications extends ServiceWorkerRegistration {
   def getNotifications(options: GetNotificationOptions = ???): js.Promise[js.Array[Notification]] = js.native
-  //TODO: NotificationEvent
   def showNotification(title: String, options: NotificationOptions = ???): js.Promise[dom.Event] = js.native
 }
 
