@@ -7,7 +7,7 @@ import org.scalajs.dom.experimental.serviceworkers.ServiceWorkerRegistration
 import org.scalajs.dom
 import scala.scalajs.js.typedarray.Uint8Array
 
-//TODO: pr scala-js-dom
+//TODO: pr scala-js-dom: https://github.com/scala-js/scala-js-dom/pull/324
 @js.native
 trait PushSubscriptionOptionsWithServerKey extends PushSubscriptionOptions {
   def applicationServerKey: js.UndefOr[Uint8Array] = js.native

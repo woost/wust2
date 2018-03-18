@@ -12,7 +12,7 @@ trait PermissionStatusWithOnChange extends dom.raw.EventTarget {
   var onchange: js.Function1[PermissionState, _]
 }
 
-//TODO: pr scala-js-dom
+//TODO: pr scala-js-dom: https://github.com/scala-js/scala-js-dom/pull/323
 @js.native
 trait PushPermissionDescriptor extends PermissionDescriptor {
   val userVisibleOnly: Boolean
