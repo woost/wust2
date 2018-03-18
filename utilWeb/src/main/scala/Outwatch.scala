@@ -3,15 +3,17 @@ package wust.utilWeb
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.Element
 import cats.effect.IO
+import com.raquo.domtypes.generic.keys.Style
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
-import outwatch.dom.{Handler, OutWatch, VNode}
-import outwatch.{ObserverSink, Sink}
+import outwatch.dom.{Attribute, Handler, OutWatch, StringModifier, VDomModifier, VNode}
+import outwatch.{AsVDomModifier, ObserverSink, Sink, StaticVNodeRender}
 import monix.execution.Scheduler
 import monix.execution.ExecutionModel.SynchronousExecution
+import outwatch.dom.helpers.{AttributeBuilder, BasicStyleBuilder, EmitterBuilder}
 import rx._
 
 import scala.scalajs.js
@@ -46,6 +48,22 @@ package object outwatchHelpers {
     }
   }
 
+  implicit def rxAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[T]] = (value: Rx[T]) => value.toObservable
+  implicit def rxSeqAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => value.toObservable
+  implicit def rxOptionAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
+  implicit class RichEmitterBuilder[E,O,R](val eb:EmitterBuilder[E,O,R]) extends AnyVal {
+    //TODO: scala.rx have a contravariant trait for writing-only
+    def -->(sink: Var[_ >: O])(implicit ctx:Ctx.Owner): IO[R] = eb --> sink.toHandler
+  }
+  implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab:AttributeBuilder[T,A]) extends AnyVal {
+    def <--(valueStream: Rx[T])(implicit ctx:Ctx.Owner) = ab <-- valueStream.toObservable
+  }
+  implicit class RichStyle[T](val ab:Style[T]) {
+    import outwatch.dom.StyleIsBuilder
+    //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
+    def <--(valueStream: Rx[T])(implicit ctx:Ctx.Owner) = StyleIsBuilder[T](ab) <-- valueStream.toObservable
+  }
+
   implicit class RichVar[T](rx:Var[T])(implicit ctx: Ctx.Owner) {
     def toHandler: Handler[T] = {
       import cats._, cats.data._, cats.implicits._
@@ -53,7 +71,7 @@ package object outwatchHelpers {
       implicit val eqFoo: Eq[T] = Eq.fromUniversalEquals
       val h = Handler.create[T](rx.now).unsafeRunSync().transformSource(_.distinctUntilChanged)
       h.filter(_ != rx.now).foreach(rx.update)
-      rx.foreach(h.unsafeOnNext _)
+      rx.foreach(h.unsafeOnNext)
       h
     }
   }
@@ -70,6 +88,14 @@ package object outwatchHelpers {
     def toVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
       o.foreach(rx.update)
+      rx.foreach(o.unsafeOnNext)
+      rx
+    }
+  }
+
+  implicit class RichSink[T](val o: Sink[T]) extends AnyVal {
+    def toVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
+      val rx = Var[T](seed)
       rx.foreach(o.unsafeOnNext)
       rx
     }

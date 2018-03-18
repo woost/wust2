@@ -39,7 +39,7 @@ object PostCreationMenu {
     val inputHandler = Handler.create[String].unsafeRunSync()
     var ySimPostOffset: Double = 50
     inputHandler.foreach{ content =>
-      val author = state.inner.currentUser.now
+      val author = state.currentUser.now
       val changes = GraphChanges.addPost(content, author.id)
       state.eventProcessor.enriched.changes.onNext(changes)
 

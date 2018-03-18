@@ -1,20 +1,12 @@
 package wust.webApp.views
 
-import rx._
-import org.scalajs.dom.raw.Element
-import outwatch.Sink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp._
-import wust.utilWeb.views.Elements._
+import rx._
 import wust.graph._
-import wust.ids.PostId
 import wust.utilWeb._
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._
-import wust.sdk.PostColor._
-
-import scala.scalajs.js.timers.setTimeout
 
 object ArticleView extends View {
   override val key = "article"
@@ -26,10 +18,10 @@ object ArticleView extends View {
     component(displayGraphWithParents, page, pageStyle)
   }
 
-  def component(dgo:Observable[DisplayGraph], graphSelection:Sink[Page], pageStyle: Observable[PageStyle]): VNode = {
+  def component(dgo:Rx[DisplayGraph], graphSelection:Var[Page], pageStyle: Rx[PageStyle])(implicit owner: Ctx.Owner): VNode = {
     div(
       height := "100%",
-      backgroundColor <-- pageStyle.map(_.bgColor),
+      backgroundColor <-- pageStyle.map(_.bgColor.toHex),
       div(
         cls := "article",
         dgo.map {

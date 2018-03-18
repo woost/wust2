@@ -118,7 +118,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
     canvasContext = canvasLayerElement.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
 
     val graphTopology: Rx[GraphTopology] = Rx {
-      //val rawGraph = state.inner.rawGraph().consistent
+      //val rawGraph = state.rawGraph().consistent
       println(log("\n") + log(s"---- graph update[${graph().posts.size}] ----"))
       time(log("graph to wrapper arrays")) {
         new GraphTopology( graph(), posts = graph().posts.toArray )

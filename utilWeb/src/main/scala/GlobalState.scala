@@ -22,7 +22,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
   import GlobalState._
 
-  val inner = new {
     val syncMode: Var[SyncMode] = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
     val syncDisabled = syncMode.map(_ != SyncMode.Live)
     private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
@@ -33,7 +32,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
       Client.api.changeGraph _
     )
-
     // write all initial storage changes, in case they did not get through to the server
     Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
     //TODO: wait for Storage.handlerWithEventsOnly
@@ -61,95 +59,80 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     currentUser.foreach { _ =>
       Client.api.getHighLevelPosts().foreach {
         highLevelPosts() = _
-      }
-    }
-
-    viewConfig.foreach { vc =>
-      Client.api.addCurrentUserAsMember(vc.page.parentIds.toList).foreach { _ =>
-        Client.api.getGraph(vc.page).foreach{g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g))}
-      }
-    }
-
-
-    val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
-
-    val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
-      rawPage().copy(
-        parentIds = rawPage().parentIds//.filter(rawGraph().postsById.isDefinedAt)
-      )
-    }
-
-    val pageParentPosts: Rx[Seq[Post]] = Rx {
-      page().parentIds.flatMap(rawGraph().postsById.get)
-    }
-
-    val pageStyle = Rx {
-      PageStyle(page())
-    }
-
-    // be aware that this is a potential memory leak.
-    // it contains all ids that have ever been collapsed in this session.
-    // this is a wanted feature, because manually collapsing posts is preserved with navigation
-    val collapsedPostIds: Var[Set[PostId]] = Var(Set.empty)
-
-    val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
-        perspective().union(Perspective(collapsed = Selector.Predicate(collapsedPostIds())))
-    }
-
-    //TODO: when updating, both displayGraphs are recalculated
-    // if possible only recalculate when needed for visualization
-    val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
-      val graph = rawGraph().consistent
-      page() match {
-        case Page(parentIds,_) if parentIds.isEmpty =>
-          perspective().applyOnGraph(graph)
-
-        case Page(parentIds,_) =>
-          val descendants = parentIds.flatMap(graph.descendants) diff parentIds
-          val selectedGraph = graph.filter(descendants.contains)
-          perspective().applyOnGraph(selectedGraph)
-      }
-    }
-
-    val displayGraphWithParents: Rx[DisplayGraph] = Rx {
-      val graph = rawGraph().consistent
-      page() match {
-        case Page(parentIds, _) if parentIds.isEmpty =>
-          perspective().applyOnGraph(graph)
-
-        case Page(parentIds, _) =>
-          //TODO: this seems to crash when parentid does not exist
-          val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
-          val selectedGraph = graph.filter(descendants.contains)
-          perspective().applyOnGraph(selectedGraph)
-      }
-    }
-
-
-    val upButtonTargetPage:Rx[Option[Page]] = Rx {
-      //TODO: handle containment cycles
-      page() match {
-        case Page(parentIds, _) if parentIds.isEmpty => None
-        case Page(parentIds, _) =>
-          val newParentIds = parentIds.flatMap(rawGraph().parents)
-          Some(Page(newParentIds))
-      }
     }
   }
 
-  val eventProcessor = inner.eventProcessor
+  viewConfig.foreach { vc =>
+    Client.api.addCurrentUserAsMember(vc.page.parentIds.toList).foreach { _ =>
+      Client.api.getGraph(vc.page).foreach { g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g)) }
+    }
+  }
 
-  val currentUser = inner.currentUser.toObservable
-  val rawGraph = inner.rawGraph.toObservable
-  val perspective = inner.perspective.toHandler
-  val page = inner.page.toHandler
-  val pageStyle = inner.pageStyle.toObservable
-  val view = inner.view.toHandler
-  val pageParentPosts = inner.pageParentPosts.toObservable
-  val syncMode = inner.syncMode.toHandler
-  val displayGraphWithParents = inner.displayGraphWithParents.toObservable
-  val displayGraphWithoutParents = inner.displayGraphWithoutParents.toObservable
-  val upButtonTargetPage = inner.upButtonTargetPage.toObservable
+
+  val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
+
+  val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
+    rawPage().copy(
+      parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
+    )
+  }
+
+  val pageParentPosts: Rx[Seq[Post]] = Rx {
+    page().parentIds.flatMap(rawGraph().postsById.get)
+  }
+
+  val pageStyle = Rx {
+    PageStyle(page())
+  }
+
+  // be aware that this is a potential memory leak.
+  // it contains all ids that have ever been collapsed in this session.
+  // this is a wanted feature, because manually collapsing posts is preserved with navigation
+  val collapsedPostIds: Var[Set[PostId]] = Var(Set.empty)
+
+  val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
+    perspective().union(Perspective(collapsed = Selector.Predicate(collapsedPostIds())))
+  }
+
+  //TODO: when updating, both displayGraphs are recalculated
+  // if possible only recalculate when needed for visualization
+  val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
+    val graph = rawGraph().consistent
+    page() match {
+      case Page(parentIds, _) if parentIds.isEmpty =>
+        perspective().applyOnGraph(graph)
+
+      case Page(parentIds, _) =>
+        val descendants = parentIds.flatMap(graph.descendants) diff parentIds
+        val selectedGraph = graph.filter(descendants.contains)
+        perspective().applyOnGraph(selectedGraph)
+    }
+  }
+
+  val displayGraphWithParents: Rx[DisplayGraph] = Rx {
+    val graph = rawGraph().consistent
+    page() match {
+      case Page(parentIds, _) if parentIds.isEmpty =>
+        perspective().applyOnGraph(graph)
+
+      case Page(parentIds, _) =>
+        //TODO: this seems to crash when parentid does not exist
+        val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
+        val selectedGraph = graph.filter(descendants.contains)
+        perspective().applyOnGraph(selectedGraph)
+    }
+  }
+
+
+  val upButtonTargetPage: Rx[Option[Page]] = Rx {
+    //TODO: handle containment cycles
+    page() match {
+      case Page(parentIds, _) if parentIds.isEmpty => None
+      case Page(parentIds, _) =>
+        val newParentIds = parentIds.flatMap(rawGraph().parents)
+        Some(Page(newParentIds))
+    }
+  }
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
   DevOnly {
@@ -213,7 +196,7 @@ object GlobalState {
       Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
     }
 
-    def toParentConnections(page: Page, postId: PostId): Seq[Connection] = page.parentIds.map(Connection(postId,Label.parent, _))(breakOut)
+    def toParentConnections(page: Page, postId: PostId): Seq[Connection] = page.parentIds.map(Connection(postId, Label.parent, _))(breakOut)
 
     val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
     val toContain = addPosts

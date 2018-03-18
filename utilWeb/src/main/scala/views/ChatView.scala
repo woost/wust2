@@ -1,30 +1,28 @@
 package wust.utilWeb.views
 
 import org.scalajs.dom.raw.Element
-import outwatch.{ObserverSink, Sink}
+import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.utilWeb._
 import rx._
-import wust.sdk.PostColor._
 import wust.graph._
-import wust.ids.PostId
-import wust.sdk.EventProcessor
-import Elements._
-import Rendered._
+import wust.sdk.PostColor._
+import wust.utilWeb._
 import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.views.Elements._
+import wust.utilWeb.views.Rendered._
 
 object ChatView extends View {
   override val key = "chat"
   override val displayName = "Chat"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    import state.inner._
+    import state._
 
 
     val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
-      o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges.addPost(msg, user.id))
-    }
+      o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
+    }.toVar("")
 
     state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
 
@@ -41,7 +39,7 @@ object ChatView extends View {
 
   def component(
                  currentUser: Rx[User],
-                 newPostSink: Sink[String],
+                 newPostSink: Var[String],
                  page: Var[Page],
                  pageStyle: Rx[PageStyle],
                  pageParentPosts: Rx[Seq[Post]],
@@ -55,7 +53,7 @@ object ChatView extends View {
               p(mdHtml(parent.content))
             }
           )
-        }.toObservable,
+        },
         // p( mdHtml(pageStyle.map(_.title).toObservable) ),
 
         chatHistory(currentUser, page, graph),
@@ -162,8 +160,8 @@ object ChatView extends View {
     )
   }
 
-  def inputField(newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
-    textAreaWithEnter(newPostSink)(
+  def inputField(newPostSink: Var[String])(implicit ctx: Ctx.Owner): VNode = {
+    textAreaWithEnter(newPostSink.toHandler)(
       style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newPost,
       flex := "0 0 3em",

@@ -1,18 +1,14 @@
 package wust.webApp.views
 
-import outwatch.{ObserverSink, Sink, dom}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp._
-import wust.utilWeb._
-import wust.sdk.PostColor._
+import outwatch.{ObserverSink, Sink}
+import rx._
 import wust.graph._
 import wust.ids.{PostId, UserId}
-import wust.utilWeb.views._
-import wust.utilWeb.views.Rendered._
-import outwatch.dom.dsl.events.window
+import wust.utilWeb._
 import wust.utilWeb.outwatchHelpers._
-import rx._
+import wust.utilWeb.views._
 
 object UserSettingsView extends View {
   override val key = "usersettings"
@@ -22,8 +18,8 @@ object UserSettingsView extends View {
     import state._
 
     val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
-      o.withLatestFrom(state.currentUser)((msg, user) => GraphChanges(addPosts = Set(Post(PostId.fresh, msg, user.id))))
-    }
+      o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges(addPosts = Set(Post(PostId.fresh, msg, user.id))))
+    }.toVar("")
 
     component(
       currentUser,
@@ -35,12 +31,12 @@ object UserSettingsView extends View {
   }
 
   def component(
-                 currentUser: Observable[User],
-                 newPostSink: Sink[String],
-                 page: Handler[Page],
-                 pageStyle: Observable[PageStyle],
-                 graph: Observable[Graph]
-               ): VNode = {
+                 currentUser: Rx[User],
+                 newPostSink: Var[String],
+                 page: Var[Page],
+                 pageStyle: Rx[PageStyle],
+                 graph: Rx[Graph]
+               )(implicit owner: Ctx.Owner): VNode = {
     div(
        height := "100%",
       div(

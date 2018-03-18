@@ -1,24 +1,20 @@
 package wust.webApp.views
 
-import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.graph.{GraphChanges, Page, Post}
 import wust.sdk.PostColor._
-import wust.utilWeb.{Analytics, _}
+import wust.utilWeb._
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._
-import wust.webApp._
 import wust.webApp.views.graphview.GraphView
-import MainViewParts._
 
 object MainView {
 
   import MainViewParts._
   //TODO: outwatch child <-- Option[VNode]
 
-  def showPage(state: GlobalState): VNode = {
+  def showPage(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div(
       state.pageParentPosts.map { posts =>
         posts.toSeq.map { post =>
@@ -34,26 +30,26 @@ object MainView {
     )
   }
 
-  def viewSelection(state: GlobalState, allViews: Seq[View]): VNode = {
-    //TODO: instead of select show something similar to tabs (require only one click to change)
-    val viewHandler = Handler.create[View]().unsafeRunSync()
-
-    div(
-      managed(IO(viewHandler.debug("selected view"))),
-      managed(IO(viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString)))),
-      managed(state.view <-- viewHandler),
-      display.flex,
-      allViews.map { view =>
-        div(
-          view.displayName,
-          padding := "8px",
-          cursor.pointer,
-          backgroundColor <-- state.view.map(selectedView => if (selectedView == view) "#EAEAEA" else "transparent"),
-          onClick(view) --> viewHandler,
-        )
-      }
-    )
-  }
+//  def viewSelection(state: GlobalState, allViews: Seq[View]): VNode = {
+//    //TODO: instead of select show something similar to tabs (require only one click to change)
+//    val viewHandler = Handler.create[View]().unsafeRunSync()
+//
+//    div(
+//      managed(IO(viewHandler.debug("selected view"))),
+//      managed(IO(viewHandler.foreach(currentView => Analytics.sendEvent("view", "select", currentView.toString)))),
+//      managed(state.view <-- viewHandler),
+//      display.flex,
+//      allViews.map { view =>
+//        div(
+//          view.displayName,
+//          padding := "8px",
+//          cursor.pointer,
+//          backgroundColor <-- state.view.map(selectedView => if (selectedView == view) "#EAEAEA" else "transparent"),
+//          onClick(view) --> viewHandler,
+//        )
+//      }
+//    )
+//  }
 
   //def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
   //  val lockToGroup = state.viewConfig.now.lockToGroup
@@ -119,22 +115,22 @@ object MainView {
   //  )
   //}
 
-  def topBar(state: GlobalState, allViews: Seq[View]): VNode = {
-    div(
-      padding := "5px", background := "#FAFAFA", borderBottom := "1px solid #DDD",
-      display := "flex", alignItems := "center", justifyContent := "spaceBetween",
-
-      div(
-        display := "flex", alignItems := "center", justifyContent := "flexStart",
-
-        upButton(state),
-        showPage(state)
-      ),
-
-
-      syncStatus(state)
-    )
-  }
+//  def topBar(state: GlobalState, allViews: Seq[View])(implicit owner: Ctx.Owner): VNode = {
+//    div(
+//      padding := "5px", background := "#FAFAFA", borderBottom := "1px solid #DDD",
+//      display := "flex", alignItems := "center", justifyContent := "spaceBetween",
+//
+//      div(
+//        display := "flex", alignItems := "center", justifyContent := "flexStart",
+//
+//        upButton(state),
+//        showPage(state)
+//      ),
+//
+//
+//      syncStatus(state)
+//    )
+//  }
 
   def sidebar(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
@@ -159,16 +155,15 @@ object MainView {
     )
   }
 
-  def settingsButton(state: GlobalState): VNode = {
-    button("Settings", width := "100%", onClick(wust.webApp.views.UserSettingsView) --> state.view)
-    ,
+  def settingsButton(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
+    button("Settings", width := "100%", onClick(wust.webApp.views.UserSettingsView:View) --> state.view)
   }
 
-  def user(state: GlobalState): VNode = {
+  def user(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div("User: ", state.currentUser.map(u => s"${u.id}, ${u.name}"))
   }
 
-  def dataImport(state: GlobalState): VNode = {
+  def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     val urlImporter = Handler.create[String].unsafeRunSync()
 
     def importGithubUrl(url: String): Unit = Client.api.importGithubUrl(url)
@@ -206,13 +201,13 @@ object MainView {
       div(
         id := "pagegrid",
         sidebar(state),
-        backgroundColor <-- state.inner.pageStyle.map(_.accentLineColor.toHex).toObservable,
+        backgroundColor <-- state.pageStyle.map(_.accentLineColor.toHex).toObservable,
         div(
           id := "viewgrid",
-          backgroundColor <-- state.inner.pageStyle.map(_.bgColor.toHex).toObservable,
+          backgroundColor <-- state.pageStyle.map(_.bgColor.toHex).toObservable,
 
           Rx {
-            if (state.inner.page().parentIds.nonEmpty) {
+            if (state.page().parentIds.nonEmpty) {
               List(
                 ChatView(state),
                 new GraphView().apply(state)
@@ -239,7 +234,7 @@ object MainView {
             height := "200px",
             border := "1px solid #999",
             margin := "5px",
-            GraphView(state, state.inner.rawGraph, controls = false)(owner)(
+            GraphView(state, state.rawGraph, controls = false)(owner)(
             )))
         )
       }

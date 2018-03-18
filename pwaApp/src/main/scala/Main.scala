@@ -50,7 +50,7 @@ object Main {
 
     val state = new GlobalState
 
-    state.inner.currentAuth.foreach(IndexedDbOps.storeAuth)
+    state.currentAuth.foreach(IndexedDbOps.storeAuth)
 
     Client.observable.event.foreach { events =>
       val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
