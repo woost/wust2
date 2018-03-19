@@ -26,7 +26,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   //TODO assure timestamps of posts are correct
-  //TODO: only accept one GraphChanges object
+  //TODO: only accept one GraphChanges object: we need an api for multiple.
   private def changeGraph(changes: List[GraphChanges], user: User.Persisted): Future[ApiData.Effect[Boolean]] = {
     //TODO more permissions!
     val changesAreAllowed = {
@@ -159,7 +159,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   override def subscribeWebPush(subscription: WebPushSubscription): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
-    db.notifications.subscribeWebPush(forDb(user.id, subscription))
+    db.notifications
+      .subscribeWebPush(forDb(user.id, subscription))
+      .recover { case t =>
+        scribe.info("Failed to persist web push subscription", t)
+        false
+      }
   }
 
   // def getComponent(id: Id): Graph = {
