@@ -110,6 +110,9 @@ class EventProcessor private(
     case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
   }
 
+  // changes that are only applied to the graph but are never sent
+  val nonSendingChanges = PublishSubject[GraphChanges]
+
   //TODO: publish only Observer?
   val changes = PublishSubject[GraphChanges]
   object enriched {
@@ -145,7 +148,8 @@ class EventProcessor private(
 
     val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
 
-    val localEvents = localChanges.map(c => Seq(NewGraphChanges(c)))
+    val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
+    val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents, unsafeManualEvents.map(Seq(_)))
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(EventUpdate.applyEventOnGraph) }
@@ -166,7 +170,7 @@ class EventProcessor private(
     appliedToGraph.future
   }
 
-  private val localChangesIndexed = localChanges.zipWithIndex
+  private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex
   // TODO: NonEmptyList in observables
   private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
     BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
@@ -185,11 +189,13 @@ class EventProcessor private(
     }
   }.share
 
-  val areChangesSynced: Observable[Boolean] = {
-    val lastLocalIndex = localChangesIndexed.map(_._2).startWith(Seq(-1))
-    val lastSendIndex = sendingChanges.startWith(Seq(-1))
-    lastLocalIndex.combineLatest(lastSendIndex).map { case (l,s) => l == s }
-  }
+  val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
+    .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
+    .scan(List.empty[(GraphChanges, Long)]) { case (prevList, (nextLocal, sentIdx)) =>
+      (prevList :+ nextLocal) collect { case t@(_, idx) if idx > sentIdx => t }
+    }
+    .map(_.map(_._1))
+    .startWith(Seq(Nil))
 
   // private val hasError = createHandler[Boolean](false)
   // private val localChanges = Var(storage.graphChanges)

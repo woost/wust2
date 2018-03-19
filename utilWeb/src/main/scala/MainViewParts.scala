@@ -56,10 +56,10 @@ object MainViewParts {
         )
       },
       ")",
-      state.eventProcessor.areChangesSynced.map { synced =>
+      state.eventProcessor.changesInTransit.map { changes =>
         span(
           " ⬤ ", // middle dot
-          if (synced) Seq(color := "green", title := "Everything is synchronized.")
+          if (changes.isEmpty) Seq(color := "green", title := "Everything is synchronized.")
           else Seq(color := "blue", title := "Some changes are only local, just wait until they are send online.")
         )
       }
