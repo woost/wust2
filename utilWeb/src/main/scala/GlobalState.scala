@@ -6,16 +6,16 @@ import monocle.macros.GenLens
 import org.scalajs.dom.{Event, window}
 import outwatch.dom._
 import rx._
-import rx.async._
 import wust.api.ApiEvent.ReplaceGraph
 import wust.api._
 import wust.graph._
 import wust.ids._
-import wust.utilWeb.outwatchHelpers._
-import wust.utilWeb.views.{PageStyle, View, ViewConfig}
 import wust.sdk._
 import wust.util.Selector
-import collection.breakOut
+import wust.utilWeb.outwatchHelpers._
+import wust.utilWeb.views.{PageStyle, View, ViewConfig}
+
+import scala.collection.breakOut
 
 
 class GlobalState(implicit ctx: Ctx.Owner) {
@@ -23,7 +23,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   import GlobalState._
 
   val inner = new {
-    val syncMode = Var[SyncMode](SyncMode.default) //TODO storage.syncMode
+    val syncMode: Var[SyncMode] = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
     val syncDisabled = syncMode.map(_ != SyncMode.Live)
     private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
@@ -33,6 +33,14 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
       Client.api.changeGraph _
     )
+
+    // write all initial storage changes, in case they did not get through to the server
+    Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
+    //TODO: wait for Storage.handlerWithEventsOnly
+    //Client.storage.graphChanges.drop(1) subscribe eventProcessor.nonSendingChanges
+    eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
+
+    //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
     // TODO: Analytics
     // if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
     // if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
