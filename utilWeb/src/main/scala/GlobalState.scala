@@ -97,7 +97,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   //TODO: when updating, both displayGraphs are recalculated
   // if possible only recalculate when needed for visualization
   val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
-    val graph = rawGraph().consistent
+    val graph = rawGraph()
     page() match {
       case Page(parentIds, _) if parentIds.isEmpty =>
         perspective().applyOnGraph(graph)
@@ -110,7 +110,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val displayGraphWithParents: Rx[DisplayGraph] = Rx {
-    val graph = rawGraph().consistent
+    val graph = rawGraph()
     page() match {
       case Page(parentIds, _) if parentIds.isEmpty =>
         perspective().applyOnGraph(graph)
