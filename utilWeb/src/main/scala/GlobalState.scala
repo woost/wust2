@@ -33,10 +33,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       Client.api.changeGraph _
     )
     // write all initial storage changes, in case they did not get through to the server
-    Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
+    // Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
     //TODO: wait for Storage.handlerWithEventsOnly
     //Client.storage.graphChanges.drop(1) subscribe eventProcessor.nonSendingChanges
-    eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
+    // eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
 
     //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
     // TODO: Analytics
