@@ -171,7 +171,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   // }
 
   DevOnly {
-    println("TODO: AGUNOSIUS! check if this string is properly removed in production code.")
     rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}")
     //      collapsedPostIds.debug("collapsedPostIds")
     perspective.debug("perspective")
