@@ -179,7 +179,7 @@ class EventProcessor private(
     changes.flatMap { case (c, idx) =>
       Observable.fromFuture(sendChanges(c)).map {
         case true =>
-          scribe.info(s"Sent out changes: $c")
+          scribe.info(s"Successfully sent out changes from EventProcessor")
           Right(idx)
         case false =>
           // TODO delay with exponential backoff
