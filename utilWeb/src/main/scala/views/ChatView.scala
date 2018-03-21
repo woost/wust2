@@ -22,7 +22,7 @@ object ChatView extends View {
 
     val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
       o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
-    }.toVar("")
+    }
 
     state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
 
@@ -39,7 +39,7 @@ object ChatView extends View {
 
   def component(
                  currentUser: Rx[User],
-                 newPostSink: Var[String],
+                 newPostSink: Sink[String],
                  page: Var[Page],
                  pageStyle: Rx[PageStyle],
                  pageParentPosts: Rx[Seq[Post]],
@@ -160,8 +160,8 @@ object ChatView extends View {
     )
   }
 
-  def inputField(newPostSink: Var[String])(implicit ctx: Ctx.Owner): VNode = {
-    textAreaWithEnter(newPostSink.toHandler)(
+  def inputField(newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
+    textAreaWithEnter(newPostSink)(
       style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newPost,
       flex := "0 0 3em",
