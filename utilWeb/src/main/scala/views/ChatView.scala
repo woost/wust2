@@ -54,7 +54,7 @@ object ChatView extends View {
             }
           )
         },
-        // p( mdHtml(pageStyle.map(_.title).toObservable) ),
+        // p( mdHtml(pageStyle.map(_.title)) ),
 
         chatHistory(currentUser, page, graph),
         inputField(newPostSink),
@@ -83,7 +83,7 @@ object ChatView extends View {
         val posts = graph().chronologicalPostsAscending
         if (posts.isEmpty) Seq(emptyMessage)
         else posts.map(chatMessage(currentUser(), _, page, graph()))
-      }.toObservable,
+      },
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
   }
@@ -130,7 +130,7 @@ object ChatView extends View {
           postTags.map{ tag =>
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
-                onClick(Page(Seq(tag.id))) --> sideEffect(page() = _),
+                onClick(Page(Seq(tag.id))) --> page,
                 backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",
@@ -142,7 +142,7 @@ object ChatView extends View {
           margin := "0px",
           padding := "0px",
         ),
-        onClick(Page(Seq(post.id))) --> sideEffect{page() = _},
+        onClick(Page(Seq(post.id))) --> page,
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),

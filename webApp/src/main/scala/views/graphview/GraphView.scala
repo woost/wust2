@@ -52,11 +52,11 @@ object GraphView {
       forceSimulation.component(
         forceSimulation.postCreationMenus.map(_.map { menu =>
           PostCreationMenu(state, menu, Var(forceSimulation.transform))
-        }).toObservable,
+        }),
 
         forceSimulation.selectedPostId.map(_.map { case (pos, id) =>
           SelectedPostMenu(pos, id, state, forceSimulation.selectedPostId, Var(forceSimulation.transform))
-        }).toObservable
+        })
       )
     )
   }

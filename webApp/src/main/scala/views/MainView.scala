@@ -201,10 +201,10 @@ object MainView {
       div(
         id := "pagegrid",
         sidebar(state),
-        backgroundColor <-- state.pageStyle.map(_.accentLineColor.toHex).toObservable,
+        backgroundColor <-- state.pageStyle.map(_.accentLineColor.toHex),
         div(
           id := "viewgrid",
-          backgroundColor <-- state.pageStyle.map(_.bgColor.toHex).toObservable,
+          backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
 
           Rx {
             if (state.page().parentIds.nonEmpty) {
@@ -220,7 +220,7 @@ object MainView {
                 )
               )
             }
-          }.toObservable
+          }
         )
       ),
 

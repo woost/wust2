@@ -116,7 +116,7 @@ object MainViewParts {
             backgroundColor := state.pageStyle().darkBgColorHighlight.toHex)
           else Option.empty[VDomModifier]
         )}
-      }.toObservable
+      }
     )
   }
 
