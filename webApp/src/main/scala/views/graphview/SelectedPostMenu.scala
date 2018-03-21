@@ -122,7 +122,7 @@ object SelectedPostMenu {
           textAreaWithEnter(updatePostHandler)(rxPost.now.content, onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
-            rxPost.map(_.content).toObservable,
+            rxPost.map(_.content),
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
             wordWrap := "break-word",
@@ -139,17 +139,17 @@ object SelectedPostMenu {
       position.absolute,
       onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
-      transform <-- transformStyle.toObservable,
+      transform <-- transformStyle,
       div(
-        rxPost.map(p => actionMenu(p, state, selectedPostId)(zIndex := -10)).toObservable, // z-index to overlap shadow
+        rxPost.map(p => actionMenu(p, state, selectedPostId)(zIndex := -10)), // z-index to overlap shadow
         cls := "shadow",
         editableTitle,
         padding := "3px 5px",
-//        border <-- rxPost.map(_.border).toObservable, //TODO: pass in staticdata
-        //        backgroundColor <-- rxPost.map(_.color).toObservable,
+//        border <-- rxPost.map(_.border), //TODO: pass in staticdata
+        //        backgroundColor <-- rxPost.map(_.color),
         backgroundColor := "#EEE",
         borderRadius := "5px",
-        parentList.toObservable,
+        parentList,
         textAreaWithEnter(insertPostHandler)(Placeholders.newPost, marginTop := "20px")
       ),
       div(

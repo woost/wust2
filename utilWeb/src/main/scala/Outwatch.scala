@@ -15,6 +15,7 @@ import monix.execution.Scheduler
 import monix.execution.ExecutionModel.SynchronousExecution
 import outwatch.dom.helpers.{AttributeBuilder, BasicStyleBuilder, EmitterBuilder}
 import rx._
+import concurrent.Future
 
 import scala.scalajs.js
 
@@ -53,7 +54,7 @@ package object outwatchHelpers {
   implicit def rxOptionAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
   implicit class RichEmitterBuilder[E,O,R](val eb:EmitterBuilder[E,O,R]) extends AnyVal {
     //TODO: scala.rx have a contravariant trait for writing-only
-    def -->(sink: Var[_ >: O])(implicit ctx:Ctx.Owner): IO[R] = eb --> sink.toHandler
+    def -->(rxVar: Var[_ >: O])(implicit ctx:Ctx.Owner): IO[R] = eb --> rxVar.toSink
   }
   implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab:AttributeBuilder[T,A]) extends AnyVal {
     def <--(valueStream: Rx[T])(implicit ctx:Ctx.Owner) = ab <-- valueStream.toObservable
@@ -64,14 +65,23 @@ package object outwatchHelpers {
     def <--(valueStream: Rx[T])(implicit ctx:Ctx.Owner) = StyleIsBuilder[T](ab) <-- valueStream.toObservable
   }
 
-  implicit class RichVar[T](rx:Var[T])(implicit ctx: Ctx.Owner) {
+  implicit class RichVar[T](rxVar:Var[T])(implicit ctx: Ctx.Owner) {
     def toHandler: Handler[T] = {
       import cats._, cats.data._, cats.implicits._
 
-      val h = Handler.create[T](rx.now).unsafeRunSync()
-      h.filter(_ != rx.now).foreach(rx.update)
-      rx.foreach(h.unsafeOnNext)
+      val h = Handler.create[T](rxVar.now).unsafeRunSync()
+      h.filter(_ != rxVar.now).foreach(rxVar.update)
+      rxVar.foreach(h.unsafeOnNext)
       h
+    }
+
+    def toSink: Sink[T] = {
+      import cats._, cats.data._, cats.implicits._
+
+      Sink.create[T] { event => 
+        rxVar.update(event)
+        Future.successful(Continue)
+      }.unsafeRunSync()
     }
   }
 

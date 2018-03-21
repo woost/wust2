@@ -61,7 +61,7 @@ object PostCreationMenu {
       position.absolute,
       //TODO: prevent drag events to bubble to background
       onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background
-      transform <-- transformStyle.toObservable,
+      transform <-- transformStyle,
       width := "300px",
       div(
         textAreaWithEnter(inputHandler)(

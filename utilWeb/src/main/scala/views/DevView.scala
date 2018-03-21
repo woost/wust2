@@ -19,8 +19,8 @@ object DevView {
 
   def devPeek(state: GlobalState, additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)
-    val activeDisplay = display <-- show.map(if (_) "block" else "none").toObservable
-    val inactiveDisplay = display <-- show.map(if (_) "none" else "block").toObservable
+    val activeDisplay = display <-- show.map(if (_) "block" else "none")
+    val inactiveDisplay = display <-- show.map(if (_) "none" else "block")
 
     val baseDiv = div(position.fixed, top := "100px", right := "0", boxSizing.borderBox,
       padding := "5px", backgroundColor <-- state.pageStyle.map(_.bgColor.toHex), border  <-- state.pageStyle.map(c => s"1px solid ${c.accentLineColor.toHex}"), cls := "shadow")
@@ -34,12 +34,12 @@ object DevView {
         transformOrigin := "100% 0",
         cursor.pointer,
         borderBottom := "none", //TODO: this is not recognized. outwatch-bug?
-        onClick --> sideEffect { show() = true }
+        onClick(true) --> show
       ),
       baseDiv(
         minWidth := "200px",
         activeDisplay,
-        div("×", cursor.pointer, float.right, onClick --> sideEffect { show() = false }),
+        div("×", cursor.pointer, float.right, onClick(false) --> show),
         DevView(state, additions),
         borderRight := "none",
       )
@@ -100,7 +100,7 @@ object DevView {
             button("10", onClick --> sideEffect { addRandomPost(10) }),
             button("100", onClick --> sideEffect { addRandomPost(100) })
           )
-        }.toObservable,
+        },
         Rx {
           val posts = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.postIds.toSeq)
 
@@ -114,7 +114,7 @@ object DevView {
             button("10", onClick --> sideEffect { deletePost(posts.take(10)) }),
             button("100", onClick --> sideEffect { deletePost(posts.take(100)) })
           )
-        }.toObservable,
+        },
         Rx {
           val posts = state.displayGraphWithoutParents().graph.postIds.toArray
           def randomConnection = Connection(posts(rInt(posts.length)), Label(rWord), posts(rInt(posts.length)))
@@ -137,7 +137,7 @@ object DevView {
             button("10", onClick --> sideEffect {connect(10)}),
             button("100", onClick --> sideEffect {connect(100)})
           )
-        }.toObservable,
+        },
         Rx {
           val posts = state.displayGraphWithoutParents().graph.postIds.toArray
           def randomConnection = Connection(posts(rInt(posts.length)), Label.parent, posts(rInt(posts.length)))
@@ -152,7 +152,7 @@ object DevView {
             button("10", onClick --> sideEffect {contain(10)}),
             button("100", onClick --> sideEffect {contain(100)})
           )
-        }.toObservable,
+        },
         Rx {
           val connections = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
 
@@ -166,7 +166,7 @@ object DevView {
             button("10", onClick --> sideEffect {disconnect(10)}),
             button("100", onClick --> sideEffect {disconnect(100)})
           )
-        }.toObservable,
+        },
         additions
         //        div(
         //          "Random Events:",
@@ -238,7 +238,7 @@ object DevView {
 //        pre(maxWidth := "400px", maxHeight := "300px", overflow.scroll, fontSize := "11px", Rx {
 //          apiEvents().mkString("\n")
 //          // pre(apiEvents().mkString("\n")).render
-//        }.toObservable), button("clear", onClick --> sideEffect {
+//        }), button("clear", onClick --> sideEffect {
 //          apiEvents() = Nil
 //        })
       ),

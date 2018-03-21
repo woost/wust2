@@ -67,7 +67,7 @@ object MainView {
         } else {
           newGroupButton(state)
         }
-      }.toObservable
+      }
     )
   }
 }
