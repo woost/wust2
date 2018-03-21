@@ -1,5 +1,6 @@
 package wust.backend
 
+import wust.util.Need
 import wust.api._
 import wust.db.Db
 import wust.ids._
@@ -39,55 +40,65 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
   override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
-    subscribers.foreach { client =>
-      if (origin.fold(true)(_ != client)) client.notify(_ => Future.successful(events))
-    }
-
-    distributeNotifications(events)
-  }
-
-  //TODO
-  private def urlsafebase64(s:String) = s.replace("/", "_").replace("+", "-")
-  private def distributeNotifications(events: List[ApiEvent]): Unit = {
-    // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
-    val expiryStatusCodes = Set(404, 410)
-    val successStatusCode = 201
-
     val involvedPostIds: Set[PostId] = events.flatMap {
       case ApiEvent.NewGraphChanges(changes) => changes.involvedPostIds
       case _ => Set.empty[PostId]
     }(breakOut)
 
-    if (involvedPostIds.nonEmpty) {
-      scribe.info("Sending subs for " + involvedPostIds)
-      db.notifications.getSubscriptions(involvedPostIds).foreach { subscriptions =>
-        val expiredSubscriptions = subscriptions.par.filter { s =>
-          val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), "content")
-          Try(pushService.send(notification)) match {
-            case Success(response) =>
-              response.getStatusLine.getStatusCode match {
-                case `successStatusCode` =>
-                  scribe.info(s"Send push notification: $response")
-                  false
-                case statusCode if expiryStatusCodes.contains(statusCode) =>
-                  scribe.info(s"Cannot send push notification, is expired: $response")
-                  true
-                case _ =>
-                  scribe.info(s"Cannot send push notification: $response")
-                  false
-              }
-            case Failure(t) =>
-              scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
-              false
-          }
-        }
-
-        if (expiredSubscriptions.nonEmpty) {
-          db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
-            scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
-          }
-        }
+    db.notifications.notifiedUsers(involvedPostIds).foreach { notifiedUsers =>
+      val eventsByUser: Map[UserId, Need[List[ApiEvent]]] = notifiedUsers.mapValues { postIds => 
+        Need(events.map{
+          case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(postIds.toSet))
+          case other => other
+        })
       }
+
+      subscribers.foreach { client =>
+        if (origin.fold(true)(_ != client)) client.notify(state => state.map(state => eventsByUser.get(state.auth.user.id).fold(List.empty[ApiEvent])(_.value)))
+      }
+
+      // distributeNotifications(eventsByUser)
     }
   }
+
+  //TODO
+  private def urlsafebase64(s:String) = s.replace("/", "_").replace("+", "-")
+  // private def distributeNotifications(notifiedUsers: Map[UserId, Need[List[ApiEvent]]]): Unit = {
+  //   // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
+  //   val expiryStatusCodes = Set(404, 410)
+  //   val successStatusCode = 201
+
+  //   if (involvedPostIds.nonEmpty) {
+
+  //     scribe.info("Sending subs for " + involvedPostIds)
+  //     db.notifications.getSubscriptions(involvedPostIds).foreach { subscriptions =>
+  //       val expiredSubscriptions = subscriptions.par.filter { s =>
+  //         val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), "content")
+  //         Try(pushService.send(notification)) match {
+  //           case Success(response) =>
+  //             response.getStatusLine.getStatusCode match {
+  //               case `successStatusCode` =>
+  //                 scribe.info(s"Send push notification: $response")
+  //                 false
+  //               case statusCode if expiryStatusCodes.contains(statusCode) =>
+  //                 scribe.info(s"Cannot send push notification, is expired: $response")
+  //                 true
+  //               case _ =>
+  //                 scribe.info(s"Cannot send push notification: $response")
+  //                 false
+  //             }
+  //           case Failure(t) =>
+  //             scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+  //             false
+  //         }
+  //       }
+
+  //       if (expiredSubscriptions.nonEmpty) {
+  //         db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
+  //           scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 }
