@@ -109,6 +109,17 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object notifications {
+    private def notifiedUsersFunction(postIds: List[PostId]) = quote {
+       infix"select * from notified_users(${lift(postIds)})".as[Query[(UserId, List[PostId])]]
+    }
+
+    def notifiedUsers(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[UserId, List[PostId]]] = {
+      ctx.run {
+        notifiedUsersFunction(postIds.toList)
+      }.map(_.toMap)
+    }
+
+
     def subscribeWebPush(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(query[WebPushSubscription].insert(lift(subscription))).map(_ == 1)
     }
