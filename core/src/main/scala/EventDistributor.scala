@@ -58,32 +58,34 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
       case _ => Set.empty[PostId]
     }(breakOut)
 
-    scribe.info("Sending subs for " + involvedPostIds)
-    db.notifications.getSubscriptions(involvedPostIds).foreach { subscriptions =>
-      val expiredSubscriptions = subscriptions.par.filter { s =>
-        val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), "content")
-        Try(pushService.send(notification)) match {
-          case Success(response) =>
-            response.getStatusLine.getStatusCode match {
-              case `successStatusCode` =>
-                scribe.info(s"Send push notification: $response")
-                false
-              case statusCode if expiryStatusCodes.contains(statusCode) =>
-                scribe.info(s"Cannot send push notification, is expired: $response")
-                true
-              case _ =>
-                scribe.info(s"Cannot send push notification: $response")
-                false
-            }
-          case Failure(t) =>
-            scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
-            false
+    if (involvedPostIds.nonEmpty) {
+      scribe.info("Sending subs for " + involvedPostIds)
+      db.notifications.getSubscriptions(involvedPostIds).foreach { subscriptions =>
+        val expiredSubscriptions = subscriptions.par.filter { s =>
+          val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), "content")
+          Try(pushService.send(notification)) match {
+            case Success(response) =>
+              response.getStatusLine.getStatusCode match {
+                case `successStatusCode` =>
+                  scribe.info(s"Send push notification: $response")
+                  false
+                case statusCode if expiryStatusCodes.contains(statusCode) =>
+                  scribe.info(s"Cannot send push notification, is expired: $response")
+                  true
+                case _ =>
+                  scribe.info(s"Cannot send push notification: $response")
+                  false
+              }
+            case Failure(t) =>
+              scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+              false
+          }
         }
-      }
 
-      if (expiredSubscriptions.nonEmpty) {
-        db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
-          scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+        if (expiredSubscriptions.nonEmpty) {
+          db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
+            scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+          }
         }
       }
     }
