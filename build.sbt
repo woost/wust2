@@ -12,8 +12,8 @@ concurrentRestrictions in Global ++= (if(isCI) List(Tags.limit(Tags.All, 1)) els
 import Def.{setting => dep}
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.4",
-  crossScalaVersions := Seq("2.11.12", "2.12.4"), // 2.11 is needed for android app
+  scalaVersion := "2.12.5",
+  crossScalaVersions := Seq("2.11.12", "2.12.5"), // 2.11 is needed for android app
 
 //  exportJars := true, // for android app
   resolvers ++=
@@ -155,9 +155,9 @@ lazy val root = project.in(file("."))
     addCommandAlias("devweb", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; set scalacOptions += \"-Xcheckinit\"; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
-    // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.4"),
+    // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.5"),
 
-    // addCommandAlias("compileAndroid", "; project androidApp; ++2.11.12; compile; project root; ++2.12.4"),
+    // addCommandAlias("compileAndroid", "; project androidApp; ++2.11.12; compile; project root; ++2.12.5"),
     addCommandAlias("testJS", "; set scalacOptions += \"-Xcheckinit\"; utilJS/test; utilWeb/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSNonPure", "; set scalacOptions += \"-Xcheckinit\"; utilWeb/test; sdkJS/test; webApp/test; pwaApp/test"),
     addCommandAlias("testJSOpt", "; set scalacOptions += \"-Xcheckinit\"; set scalaJSStage in Global := FullOptStage; testJS"),
