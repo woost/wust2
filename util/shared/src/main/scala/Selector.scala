@@ -7,6 +7,7 @@ trait Selector[T] extends (T => Boolean) {
   def apply(elem: T): Boolean
 }
 
+//TODO: use dogs for ISet/Set
 object Selector {
   def All[T] = new Selector[T] { override def apply(elem:T) = true }
   def None[T] = new Selector[T] { override def apply(elem:T) = false }
