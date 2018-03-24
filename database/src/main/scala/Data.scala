@@ -43,7 +43,6 @@ object Data {
   case class Graph(posts: Seq[Post], connections:Seq[Connection])
   object Graph {
     def from(rowsList:List[GraphRow]):Graph = {
-      scribe.info("Graph.from")
       val rows = rowsList.toArray
       val posts = mutable.ArrayBuffer.empty[Post]
       val connections = mutable.ArrayBuffer.empty[Connection]
@@ -67,7 +66,6 @@ object Data {
 
         i += 1
       }
-      scribe.info("Graph.from DONE")
       Graph(posts, connections)
     }
   }
