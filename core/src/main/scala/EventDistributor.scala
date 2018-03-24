@@ -37,6 +37,7 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
   }
 
   //TODO is this async? it should be. we do not want to block a running request for sending out events.
+  // origin is optional, since http clients can also trigger events
   override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
@@ -45,60 +46,78 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
       case _ => Set.empty[PostId]
     }(breakOut)
 
-    db.notifications.notifiedUsers(involvedPostIds).foreach { notifiedUsers =>
-      val eventsByUser: Map[UserId, Need[List[ApiEvent]]] = notifiedUsers.mapValues { postIds => 
-        Need(events.map{
-          case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(postIds.toSet))
-          case other => other
-        })
-      }
+    scribe.info(s"involvedPostIds: $involvedPostIds")
 
-      subscribers.foreach { client =>
-        if (origin.fold(true)(_ != client)) client.notify(state => state.map(state => eventsByUser.get(state.auth.user.id).fold(List.empty[ApiEvent])(_.value)))
-      }
+    db.notifications.notifiedUsers(involvedPostIds).onComplete {
+      
+      case Success(notifiedUsers) =>
+        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { postIds => 
+          events.map{
+            case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(postIds.toSet))
+            case other => other
+          }
+        }
 
-      // distributeNotifications(eventsByUser)
+        scribe.info(s"eventsByUser: $eventsByUser")
+
+        subscribers.foreach { client =>
+          scribe.info(s"client: $client")
+          if (origin.fold(true)(_ != client))
+            client.notify(stateFut => stateFut.map{ state =>
+              scribe.info(s"state: $state")
+              eventsByUser.get(state.auth.user.id).getOrElse(List.empty[ApiEvent])
+            })
+        }
+
+        distributeNotifications(eventsByUser)
+
+      case Failure(t) => scribe.warn(s"Failed get notified users for events ($events)", t)
     }
   }
 
   //TODO
   private def urlsafebase64(s:String) = s.replace("/", "_").replace("+", "-")
-  // private def distributeNotifications(notifiedUsers: Map[UserId, Need[List[ApiEvent]]]): Unit = {
-  //   // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
-  //   val expiryStatusCodes = Set(404, 410)
-  //   val successStatusCode = 201
+  private def distributeNotifications(notifiedUsers: Map[UserId, List[ApiEvent]]): Unit = {
+    // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
+    val expiryStatusCodes = Set(404, 410)
+    val successStatusCode = 201
 
-  //   if (involvedPostIds.nonEmpty) {
+    if (notifiedUsers.nonEmpty) {
+      val notifiedUsersGraphChanges = notifiedUsers
+        .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) => changes })
+        .filter(_._2.nonEmpty)
 
-  //     scribe.info("Sending subs for " + involvedPostIds)
-  //     db.notifications.getSubscriptions(involvedPostIds).foreach { subscriptions =>
-  //       val expiredSubscriptions = subscriptions.par.filter { s =>
-  //         val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), "content")
-  //         Try(pushService.send(notification)) match {
-  //           case Success(response) =>
-  //             response.getStatusLine.getStatusCode match {
-  //               case `successStatusCode` =>
-  //                 scribe.info(s"Send push notification: $response")
-  //                 false
-  //               case statusCode if expiryStatusCodes.contains(statusCode) =>
-  //                 scribe.info(s"Cannot send push notification, is expired: $response")
-  //                 true
-  //               case _ =>
-  //                 scribe.info(s"Cannot send push notification: $response")
-  //                 false
-  //             }
-  //           case Failure(t) =>
-  //             scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
-  //             false
-  //         }
-  //       }
+      scribe.info("Sending subs for " + notifiedUsersGraphChanges.keys)
+      db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach { subscriptions =>
+        val expiredSubscriptions = subscriptions.par.filter { s =>
+          val changes = notifiedUsersGraphChanges(s.userId)
+          val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), changes.toString)
+          //TODO sendAsync? really .par?
+          Try(pushService.send(notification)) match {
+            case Success(response) =>
+              response.getStatusLine.getStatusCode match {
+                case `successStatusCode` =>
+                  scribe.info(s"Send push notification: $response")
+                  false
+                case statusCode if expiryStatusCodes.contains(statusCode) =>
+                  scribe.info(s"Cannot send push notification, is expired: $response")
+                  true
+                case _ =>
+                  scribe.info(s"Cannot send push notification: $response")
+                  false
+              }
+            case Failure(t) =>
+              scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+              false
+          }
+        }
 
-  //       if (expiredSubscriptions.nonEmpty) {
-  //         db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
-  //           scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
+        if (expiredSubscriptions.nonEmpty) {
+          db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
+            scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+          }
+        }
+      }
+    }
+  }
 }

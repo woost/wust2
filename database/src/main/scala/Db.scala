@@ -109,13 +109,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object notifications {
+    private case class NotifiedUsersData(userId: UserId, postIds: List[PostId])
     private def notifiedUsersFunction(postIds: List[PostId]) = quote {
-       infix"select * from notified_users(${lift(postIds)})".as[Query[(UserId, List[PostId])]]
+       infix"select * from notified_users(${lift(postIds)})".as[Query[NotifiedUsersData]]
     }
 
     def notifiedUsers(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[UserId, List[PostId]]] = {
       ctx.run {
-        notifiedUsersFunction(postIds.toList)
+        notifiedUsersFunction(postIds.toList).map(d => d.userId -> d.postIds)
       }.map(_.toMap)
     }
 
@@ -129,14 +130,22 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         .map(_.forall(_ == 1))
     }
 
-    def getSubscriptions(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
+    def getSubscriptions(userIds: Set[UserId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
       ctx.run{
         for {
-          // m <- query[Membership].filter(m => liftQuery(postIds.toList).contains(m.postId))
-          s <- query[WebPushSubscription]//.filter(_.userId == m.userId)
+          s <- query[WebPushSubscription].filter(sub => liftQuery(userIds.toList) contains sub.userId)
         } yield s
       }
     }
+    //
+    // def getSubscriptions(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
+    //   ctx.run{
+    //     for {
+    //       // m <- query[Membership].filter(m => liftQuery(postIds.toList).contains(m.postId))
+    //       s <- query[WebPushSubscription]//.filter(_.userId == m.userId)
+    //     } yield s
+    //   }
+    // }
   }
 
   object connection {
