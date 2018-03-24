@@ -46,8 +46,6 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
       case _ => Set.empty[PostId]
     }(breakOut)
 
-    scribe.info(s"involvedPostIds: $involvedPostIds")
-
     db.notifications.notifiedUsers(involvedPostIds).onComplete {
       
       case Success(notifiedUsers) =>
@@ -58,13 +56,9 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
           }
         }
 
-        scribe.info(s"eventsByUser: $eventsByUser")
-
         subscribers.foreach { client =>
-          scribe.info(s"client: $client")
           if (origin.fold(true)(_ != client))
             client.notify(stateFut => stateFut.map{ state =>
-              scribe.info(s"state: $state")
               eventsByUser.get(state.auth.user.id).getOrElse(List.empty[ApiEvent])
             })
         }
@@ -87,7 +81,6 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
         .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) => changes })
         .filter(_._2.nonEmpty)
 
-      scribe.info("Sending subs for " + notifiedUsersGraphChanges.keys)
       db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach { subscriptions =>
         val expiredSubscriptions = subscriptions.par.filter { s =>
           val changes = notifiedUsersGraphChanges(s.userId)
