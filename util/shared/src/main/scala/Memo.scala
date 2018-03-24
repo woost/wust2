@@ -11,6 +11,8 @@ final class Need[+A] private(private[this] var eval: () => A) {
     eval = null
     value0
   }
+
+  final def map[T](f: A => T): Need[T] = Need(f(value))
 }
 
 object Need {
