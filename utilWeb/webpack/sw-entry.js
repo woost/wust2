@@ -96,7 +96,7 @@ self.addEventListener('push', e => {
                     // ]
                 };
 
-                self.registration.showNotification('Push Notification', options)
+                return self.registration.showNotification('Push Notification', options)
             }
         })
     );
