@@ -24,6 +24,7 @@ import scala.util.{Success,Failure}
 class WustClient(client: Client[ByteBuffer, Future, ClientException]) {
   val api = client.wire[Api[Future]]
   val auth = client.wire[AuthApi[Future]]
+  val push = client.wire[PushApi[Future]]
 }
 object WustClient extends NativeWustClient {
   val config = WebsocketClientConfig(pingInterval = 100 seconds) // needs to be in sync with idle timeout of backend

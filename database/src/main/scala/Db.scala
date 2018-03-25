@@ -122,7 +122,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
 
     def subscribeWebPush(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(query[WebPushSubscription].insert(lift(subscription)).returning(_.id)).map(_ == 1)
+      ctx.run(query[WebPushSubscription].insert(lift(subscription)).returning(_.id))
+        .map(_ => true)
+        .recoverValue(false)
     }
 
     def delete(subscriptions: Set[WebPushSubscription])(implicit ec: ExecutionContext): Future[Boolean] = {

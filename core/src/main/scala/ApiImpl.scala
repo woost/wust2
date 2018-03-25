@@ -158,15 +158,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     Future.successful(true)
   }
 
-  override def subscribeWebPush(subscription: WebPushSubscription): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
-    db.notifications
-      .subscribeWebPush(forDb(user.id, subscription))
-      .recover { case t =>
-        scribe.info("Failed to persist web push subscription", t)
-        false
-      }
-  }
-
   // def getComponent(id: Id): Graph = {
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }

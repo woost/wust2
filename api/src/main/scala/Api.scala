@@ -23,7 +23,12 @@ trait Api[Result[_]] {
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 
   def log(message: String): Result[Boolean]
+}
+
+@PathName("Push")
+trait PushApi[Result[_]] {
   def subscribeWebPush(subscription: WebPushSubscription): Result[Boolean]
+  def getPublicKey(): Result[Option[String]]
 }
 
 @PathName("Auth")

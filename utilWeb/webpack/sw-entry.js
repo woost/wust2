@@ -10,6 +10,7 @@ Promise.prototype.map = function(fun) {
         self.then(result => resolve(fun(result)), reject);
     });
 };
+Promise.prototype.empty = new Promise((resolve, reject) => resolve());
 function requestPromise(request) {
     return new Promise((resolve, reject) => {
         request.onsuccess = e => resolve(request.result);
@@ -37,12 +38,16 @@ function currentAuth() {
     });
 }
 
+function getPublicKey() {
+    return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST' });
+}
+
 function sendSubscriptionToBackend(subscription) {
     if (!subscription) { // current subscription can be null if user did not enable it
         return;
     }
 
-    return currentAuth().flatMap(currentAuth => fetch(baseUrl + '/Api/subscribeWebPush', {
+    return currentAuth().flatMap(currentAuth => fetch(baseUrl + '/Push/subscribeWebPush', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscription }),
         headers: {
@@ -88,11 +93,19 @@ self.addEventListener('push', e => {
 });
 
 self.addEventListener('pushsubscriptionchange', e => {
+    console.log("ServiceWorker received pushsubscriptionchange event", e);
     // resubscribe and send new subscription to backend
     e.waitUntil(
-        self.registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: "" //TODO
-        }).flatMap(sendSubscriptionToBackend)
+        getPublicKey().flatMap(publicKey => {
+            console.log("Got public key: " + publicKey)
+            if (publicKey) {
+                return self.registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: publicKey
+                }).flatMap(sendSubscriptionToBackend);
+            } else {
+                return Promise.empty;
+            }
+        })
     );
 });

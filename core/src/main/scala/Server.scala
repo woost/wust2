@@ -25,10 +25,7 @@ import wust.util.{ Pipe, RichFuture }
 import cats.implicits._
 import monix.execution.Scheduler
 
-import scala.concurrent.{ ExecutionContext, Future }
-
 import scala.util.{ Success, Failure }
-import scala.util.control.NonFatal
 
 object Server {
   import akka.http.scaladsl.server.RouteResult._
@@ -60,24 +57,28 @@ object Server {
     val guardDsl = new GuardDsl(jwt, db)
 
     val apiImpl = new ApiImpl(guardDsl, db)
-    val authApiImpl = new AuthApiImpl(guardDsl, db, jwt)
+    val authImpl = new AuthApiImpl(guardDsl, db, jwt)
+    val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
+
     val jsonRouter = Router[String, ApiFunction]
       .route[Api[ApiFunction]](apiImpl)
-      .route[AuthApi[ApiFunction]](authApiImpl)
+      .route[PushApi[ApiFunction]](pushImpl)
     val binaryRouter = Router[ByteBuffer, ApiFunction]
       .route[Api[ApiFunction]](apiImpl)
-      .route[AuthApi[ApiFunction]](authApiImpl)
+      .route[AuthApi[ApiFunction]](authImpl)
+      .route[PushApi[ApiFunction]](pushImpl)
 
-    val eventDistributor = new HashSetEventDistributorWithPush(db)
+    val eventDistributor = new HashSetEventDistributorWithPush(db, config.pushNotification)
     val apiConfig = new ApiConfiguration(guardDsl, stateInterpreter, eventDistributor)
     val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
+
+    val corsSettings = CorsSettings.defaultSettings.copy(
+      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*))
 
     path("ws") {
       AkkaWsRoute.fromApiRouter(binaryRouter, serverConfig, apiConfig)
     } ~ pathPrefix("api") {
-      //TODO no hardcode
-      val allowedOrigins = List("http://localhost:12345", "https://woost.space")
-      cors(CorsSettings.defaultSettings.copy(allowedOrigins = HttpOriginRange(allowedOrigins.map(HttpOrigin(_)): _*))) {
+      cors(corsSettings) {
         AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
       }
     } ~ (path("health") & get) {

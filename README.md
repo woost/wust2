@@ -99,6 +99,9 @@ All used docker services are defined in `docker/services.yml` and can be configu
 * **WUST_SMTP_ENDPOINT**: smtp endpoint (optional)
 * **WUST_SMTP_USER**: smtp username (optional)
 * **WUST_SMTP_PASS**: smtp password (optional)
+* **WUST_PUSH_SUBJECT**: subject (email) for sending push notifications to push service (optional)
+* **WUST_PUSH_PUBLIC_KEY**: vapid public key (optional)
+* **WUST_PUSH_PRIVATE_KEY**: vapid private key (optional)
 
 The compose stack `docker/compose-prod.yml` is an example how to run wust in docker. Start the whole stack with docker-compose:
 ```

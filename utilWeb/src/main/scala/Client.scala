@@ -42,6 +42,7 @@ object Client {
   val factory: WustClientFactory = WustClient(wustUrl)
   val api = factory.defaultPriority.api
   val auth = factory.defaultPriority.auth
+  val push = factory.defaultPriority.push
   val observable = factory.observable
   observable.connected.foreach { _ =>
     //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
