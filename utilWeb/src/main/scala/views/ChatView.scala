@@ -46,30 +46,28 @@ object ChatView extends View {
                  graph: Rx[Graph]
                )(implicit ctx: Ctx.Owner): VNode = {
     div(
-      div(
-        pageParentPosts.map { parents =>
-          span(
-            parents.map { parent =>
-              p(mdHtml(parent.content))
-            }
-          )
-        },
-        // p( mdHtml(pageStyle.map(_.title)) ),
+        div(
+          fontSize := "20px",
+          padding := "0px 20px",
+          pageParentPosts.map(_.map { parent =>
+            span(mdHtml(parent.content))
+          })
+        ),
+      // p( mdHtml(pageStyle.map(_.title)) ),
 
-        chatHistory(currentUser, page, graph),
-        inputField(newPostSink),
+      chatHistory(currentUser, page, graph),
+      inputField(newPostSink),
 
 
-        margin := "0 auto",
-        maxWidth := "48rem",
-        height := "100%",
+      margin := "0 auto",
+      maxWidth := "48rem",
+      height := "100%",
 
-        display.flex,
-        flexDirection.column,
-        justifyContent.flexStart,
-        alignItems.stretch,
-        alignContent.stretch
-      )
+      display.flex,
+      flexDirection.column,
+      justifyContent.flexStart,
+      alignItems.stretch,
+      alignContent.stretch
     )
   }
 
@@ -88,7 +86,7 @@ object ChatView extends View {
     )
   }
 
-  def emptyMessage: VNode = h2("Nothing here yet", paddingTop := "50%", color := "grey")
+  def emptyMessage: VNode = h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
   def chatMessage(currentUser: User, post: Post, page: Var[Page], graph: Graph)(implicit ctx: Ctx.Owner): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
