@@ -29,6 +29,7 @@ input[type=text], input[type=password], button, input[type=button], input[type=s
     padding: 3px 10px;
     margin: 2px;
     transition: background 0.2s, border 0.1s;
+    font-family: sans-serif;
 }
 
 select {

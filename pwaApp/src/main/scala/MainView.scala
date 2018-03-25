@@ -61,11 +61,16 @@ object MainView {
       width := "100%",
       display.flex,
       sidebar(state),
+      backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
-        if(state.page().parentIds.nonEmpty) {
+        if (state.page().parentIds.nonEmpty) {
           ChatView(state)(owner)(width := "100%")
         } else {
-          newGroupButton(state)
+          div(
+            flexGrow := 1,
+            display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
+            newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
+          )
         }
       }
     )
