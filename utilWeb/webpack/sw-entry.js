@@ -47,6 +47,7 @@ function sendSubscriptionToBackend(subscription) {
         return;
     }
 
+    console.log("Sending subscription to backend", subscription);
     return currentAuth().flatMap(currentAuth => fetch(baseUrl + '/Push/subscribeWebPush', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscription }),
@@ -69,26 +70,35 @@ self.addEventListener('push', e => {
         return;
     }
 
-    let body = e.data ? e.data.text() : 'Push message no payload';
-    let options = {
-        body: body,
-        icon: 'icon.ico',
-        vibrate: [100, 50, 100],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1
-        },
-        tag: "push",
-        renotify: true
-        // actions: [
-        //   {action: 'explore', title: 'Explore this new world',
-        //     icon: 'images/checkmark.png'},
-        //   {action: 'close', title: 'I don't want any of this',
-        //     icon: 'images/xmark.png'},
-        // ]
-    };
     e.waitUntil(
-        self.registration.showNotification('Push Notification', options)
+        self.clients.matchAll().flatMap(clients => {
+            let windowClients = (clients || []).filter(client => client.type == 'window');
+            if (windowClients.length > 0) {
+                console.log("ServiceWorker has active clients, ignoring push notification");
+                return Promise.empty;
+            } else {
+                let body = e.data ? e.data.text() : 'Push message no payload';
+                let options = {
+                    body: body,
+                    icon: 'icon.ico',
+                    vibrate: [100, 50, 100],
+                    data: {
+                        dateOfArrival: Date.now(),
+                        primaryKey: 1
+                    },
+                    tag: "push",
+                    renotify: true
+                    // actions: [
+                    //   {action: 'explore', title: 'Explore this new world',
+                    //     icon: 'images/checkmark.png'},
+                    //   {action: 'close', title: 'I don't want any of this',
+                    //     icon: 'images/xmark.png'},
+                    // ]
+                };
+
+                self.registration.showNotification('Push Notification', options)
+            }
+        })
     );
 });
 
