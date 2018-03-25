@@ -110,7 +110,7 @@ object ChatView extends View {
           mdHtml(post.content),
           cls := "chatpost",
           padding := "0px 3px",
-          margin := "2px 0px",
+          margin := "2px 0px"
         ),
 //        div(
 //          span( // post id
@@ -128,17 +128,17 @@ object ChatView extends View {
           postTags.map{ tag =>
               span(
                 if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
-                onClick(Page(Seq(tag.id))) --> page,
+                onClick --> sideEffect{e => page() = Page(Seq(tag.id)); e.stopPropagation()},
                 backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
                 color := "#fefefe",
                 borderRadius := "2px",
                 padding := "0px 3px",
-                marginRight := "3px",
+                marginRight := "3px"
               )
           },
           margin := "0px",
-          padding := "0px",
+          padding := "0px"
         ),
         onClick(Page(Seq(post.id))) --> page,
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
@@ -151,10 +151,10 @@ object ChatView extends View {
         padding := "5px 10px",
         margin := "5px 0px",
         borderStyle := "solid",
-        cursor.pointer, // TODO: What about cursor when selecting text?
+        cursor.pointer // TODO: What about cursor when selecting text?
       ),
       width := "100%",
-      clear.both,
+      clear.both
     )
   }
 
