@@ -37,22 +37,38 @@ object MainView {
     )
   }
 
-  def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): VNode = {
-    div(
-      id := "sidebar",
-      width := "175px",
-      backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-      color := "white",
-      div(padding := "8px 8px", titleBanner(syncStatus(state)(owner)(fontSize := "9px"))),
-      undoRedo(state),
-      br(),
-      channels(state),
-      br(),
-      newGroupButton(state)(owner)(buttonStyle),
-      // userStatus(state),
-      notificationSettings,
-      overflowY.auto
-    )
+  def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): Rx[VNode] = {
+    val expanded = Var(false)
+      Rx {
+        if(expanded()) {
+          div(
+            backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
+            div(cls := "hamburger", margin := "7px", onClick(false) --> expanded),
+            id := "sidebar",
+            width := "175px",
+            color := "white",
+            div(padding := "8px 8px", titleBanner(syncStatus(state)(owner)(fontSize := "9px"))),
+            undoRedo(state),
+            br(),
+            channels(state),
+            br(),
+            newGroupButton(state)(owner)(buttonStyle),
+            // userStatus(state),
+            notificationSettings,
+            overflowY.auto
+          )
+        } else {
+          div(
+            backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
+            div(cls := "hamburger", margin := "7px", onClick(true) --> expanded),
+            id := "sidebar",
+            width := "30px",
+            color := "white",
+            channelIcons(state),
+            overflowY.auto
+          )
+        }
+      }
   }
 
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
@@ -64,7 +80,7 @@ object MainView {
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
         if (state.page().parentIds.nonEmpty) {
-          ChatView(state)(owner)(width := "100%")
+          ChatView(state)(owner)(flexGrow := 1)
         } else {
           div(
             flexGrow := 1,
