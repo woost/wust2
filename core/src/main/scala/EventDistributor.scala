@@ -59,7 +59,7 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
         subscribers.foreach { client =>
           if (origin.fold(true)(_ != client))
             client.notify(stateFut => stateFut.map{ state =>
-              eventsByUser.get(state.auth.user.id).getOrElse(List.empty[ApiEvent])
+              eventsByUser.getOrElse(state.auth.user.id, List.empty[ApiEvent])
             })
         }
 
@@ -78,13 +78,14 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
 
     if (notifiedUsers.nonEmpty) {
       val notifiedUsersGraphChanges = notifiedUsers
-        .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) => changes })
+        .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) if changes.addPosts.nonEmpty =>
+          changes.addPosts.map(_.content.trim).mkString(" | ") }.mkString(" | "))
         .filter(_._2.nonEmpty)
 
       db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach { subscriptions =>
         val expiredSubscriptions = subscriptions.par.filter { s =>
-          val changes = notifiedUsersGraphChanges(s.userId)
-          val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), changes.toString)
+          val payload = notifiedUsersGraphChanges(s.userId)
+          val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), payload.toString)
           //TODO sendAsync? really .par?
           Try(pushService.send(notification)) match {
             case Success(response) =>
