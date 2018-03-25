@@ -3,6 +3,7 @@ package wust.utilWeb.views
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
+import wust.sdk.PostColor._
 import rx._
 import wust.graph._
 import wust.sdk.{ChangesHistory, SyncMode}
@@ -120,5 +121,25 @@ object MainViewParts {
     )
   }
 
+  def channelIcons(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    div(
+      color := "#C4C4CA",
+      Rx {
+        state.highLevelPosts().map{p => div(
+          margin := "0",
+          padding := "0",
+          width := "30px",
+          height := "30px",
+          cursor.pointer,
+          backgroundColor := baseColor(p.id).toHex,
+          onClick(Page(p.id)) --> state.page,
+          if(state.page().parentIds.contains(p.id)) Seq(
+            borderLeft := "4px solid",
+            borderColor := state.pageStyle().bgColor.toHex)
+          else Option.empty[VDomModifier]
+        )}
+      }
+    )
+  }
 
 }
