@@ -24,7 +24,7 @@ object MainView {
       Notifications.permissionStateObservable.map { state =>
         if (state == PermissionState.granted) Option.empty[VNode]
         else if (state == PermissionState.denied) Some(
-          span("Notifications are blocked", title := "To enable Notifications for this site, reconfigure your browser to not block Notifications from this domain.")
+          span("Notifications blocked", title := "To enable Notifications for this site, reconfigure your browser to not block Notifications from this domain.")
         ) else Some(
           button("Enable Notifications",
             padding := "5px 3px",
