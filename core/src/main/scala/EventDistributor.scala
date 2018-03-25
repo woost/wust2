@@ -12,6 +12,7 @@ import scala.concurrent.{Future, ExecutionContext}
 import scala.util.Failure
 import scala.collection.breakOut
 import scala.concurrent.duration._
+import scala.collection.parallel.ExecutionContextTaskSupport
 import java.security.{Security, PublicKey, PrivateKey}
 import scala.util.{Try, Success, Failure}
 
@@ -81,7 +82,10 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
         .filter(_._2.nonEmpty)
 
       db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach { subscriptions =>
-        val expiredSubscriptions = subscriptions.par.filter { s =>
+        val parallelSubscriptions = subscriptions.par
+        parallelSubscriptions.tasksupport = new ExecutionContextTaskSupport(ec)
+
+        val expiredSubscriptions = parallelSubscriptions.filter { s =>
           val payload = notifiedUsersGraphChanges(s.userId)
           val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), payload.toString)
           //TODO sendAsync? really .par?
