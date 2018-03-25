@@ -1,13 +1,10 @@
 package wust.backend
 
-import cats.syntax.group
-import io.circe.Decoder.state
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.auth._
 import wust.db.Db
 import wust.graph._
-import wust.ids._
 
 import scala.concurrent.{ExecutionContext, Future}
 

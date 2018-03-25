@@ -8,9 +8,7 @@ import wust.backend.Dsl._
 import wust.backend.DbConversions._
 import wust.backend.auth._
 import wust.db.Db
-import wust.util.RichFuture
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {

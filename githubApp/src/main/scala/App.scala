@@ -171,11 +171,15 @@ object AppServer {
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github, redis))
 
+    val corsSettings = CorsSettings.defaultSettings.copy(
+      allowedOrigins = HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)): _*))
+
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
+
     val route = {
       pathPrefix("api") {
-        cors(CorsSettings.defaultSettings.copy(allowedOrigins = HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)): _*))) {
+        cors(corsSettings) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
         }
       } ~ path(server.authPath) {

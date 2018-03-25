@@ -8,25 +8,29 @@ import mycelium.server.NotifiableClient
 import nl.martijndwars.webpush._
 
 import scala.collection.mutable
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
 import scala.collection.breakOut
 import scala.concurrent.duration._
 import scala.collection.parallel.ExecutionContextTaskSupport
-import java.security.{Security, PublicKey, PrivateKey}
-import scala.util.{Try, Success, Failure}
+import java.security.{PrivateKey, PublicKey, Security}
 
-class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
-  //TODO: somewhere else?
-  Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+import wust.backend.config.PushNotificationConfig
+
+import scala.util.{Failure, Success, Try}
+
+class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificationConfig])(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
 
   private val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent, State]]
 
-  private val vapidPublicKey: String = "BDP21xA-AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY-q0"
-  private val vapidPrivateKey: String = "or76yI5iDE-S9gWkVU2g0JuHyq4OD_AtwHTHefkoo3k"
-  private val subject: String = "cornerman@unseen.is"
+  //TODO: somewhere else?
+  pushConfig.foreach { _ =>
+    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider())
+  }
 
-  private val pushService = new PushService(vapidPublicKey, vapidPrivateKey, subject) //TODO: expiry?
+  private def base64UrlSafe(s:String) = s.replace("/", "_").replace("+", "-")
+
+  private val pushService = pushConfig.map(c => new PushService(base64UrlSafe(c.keys.publicKey), base64UrlSafe(c.keys.privateKey), c.subject)) //TODO: expiry?
 
   def subscribe(client: NotifiableClient[ApiEvent, State]): Unit = {
     subscribers += client
@@ -36,6 +40,7 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
     subscribers -= client
   }
 
+  //TODO write this in a less unit style, compose tasks.
   // origin is optional, since http clients can also trigger events
   override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
@@ -68,9 +73,7 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
     }
   }
 
-  //TODO
-  private def urlsafebase64(s:String) = s.replace("/", "_").replace("+", "-")
-  private def distributeNotifications(notifiedUsers: Map[UserId, List[ApiEvent]]): Unit = {
+  private def distributeNotifications(notifiedUsers: Map[UserId, List[ApiEvent]]): Unit = pushService.foreach { pushService =>
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
     val expiryStatusCodes = Set(404, 410)
     val successStatusCode = 201
@@ -87,13 +90,13 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
 
         val expiredSubscriptions = parallelSubscriptions.filter { s =>
           val payload = notifiedUsersGraphChanges(s.userId)
-          val notification = new Notification(s.endpointUrl, urlsafebase64(s.p256dh), urlsafebase64(s.auth), payload.toString)
+          val notification = new Notification(s.endpointUrl, base64UrlSafe(s.p256dh), base64UrlSafe(s.auth), payload.toString)
           //TODO sendAsync? really .par?
           Try(pushService.send(notification)) match {
             case Success(response) =>
               response.getStatusLine.getStatusCode match {
                 case `successStatusCode` =>
-                  scribe.info(s"Send push notification: $response")
+                  scribe.info(s"Successfully sent push notification")
                   false
                 case statusCode if expiryStatusCodes.contains(statusCode) =>
                   scribe.info(s"Cannot send push notification, is expired: $response")

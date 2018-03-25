@@ -1,11 +1,7 @@
 package wust.backend
 
 import wust.api._
-import wust.backend.DbConversions._
-import wust.backend.auth._
-import wust.db.Db
 import wust.graph._
-import wust.ids._
 
 case class State(auth: Authentication, graph: Graph) {
   override def toString = s"State($auth, posts# ${graph.posts.size})"

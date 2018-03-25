@@ -37,7 +37,6 @@ object Notifications {
     if (Notification.permission.asInstanceOf[PermissionState] != PermissionState.granted) {
       scribe.info(s"Notifications are not granted, cannot send notification: $title")
     } else {
-      scribe.info(s"Go notify: $title")
       val options = NotificationOptions(
         body = body.orUndefined,
         tag = tag.orUndefined,
@@ -76,11 +75,15 @@ object Notifications {
     subject
   }
 
-  //TODO
-  private val serverKey = new Uint8Array(Base64Codec.decode("BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0").arrayBuffer())
-
+  //TODO send message to serviceworker to manage this stuff for us
   private def subscribeAndPersistWebPush()(implicit ec: ExecutionContext): Unit =
-    persistPushSubscription(_.subscribe(PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = serverKey)))
+    Client.push.getPublicKey().foreach {
+      case Some(publicKey) =>
+        val publicKeyBytes = new Uint8Array(Base64Codec.decode(publicKey).arrayBuffer())
+        val options = PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = publicKeyBytes)
+        persistPushSubscription(_.subscribe(options))
+      case None => scribe.warn("No public key of server available for web push subscriptions. Cannot subscribe to push notifications.")
+    }
 
   private def persistPushSubscription(getSubscription: PushManager => js.Promise[PushSubscription])(implicit ec: ExecutionContext): Unit = serviceWorker match {
     case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.foreach { reg =>
@@ -90,7 +93,7 @@ object Notifications {
             //TODO rename p256dh attribute of WebPushSub to publicKey
             val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
             scribe.info(s"WebPush subscription: $webpush")
-            Client.api.subscribeWebPush(webpush)
+            Client.push.subscribeWebPush(webpush)
           case err =>
             scribe.warn(s"Failed to subscribe to push: $err")
         }

@@ -3,27 +3,28 @@ package wust.backend.config
 import com.typesafe.config.{Config => TConfig}
 import scala.concurrent.duration.Duration
 
-//@derive((tokenLifetime) => toString)
-case class AuthConfig(tokenLifetime: Duration, secret: String)
-{
-  // Don't write secret in logs
-  override def toString: String = s"AuthConfig($tokenLifetime)"
+case class AuthConfig(tokenLifetime: Duration, secret: String) {
+  override def toString: String = s"AuthConfig($tokenLifetime, ***)"
 }
 
-//@derive((endpoint, username) => toString)
-case class SmtpConfig(endpoint: String, username: String, password: String)
-{
-  // Don't write password in logs
-  override def toString: String = s"SmtpConfig($endpoint, $username)"
+//TODO: tagged types for public/private key
+case class VapidKeys(publicKey: String, privateKey: String) {
+  override def toString: String = s"VapidKeys($publicKey, ***)"
+}
+
+case class PushNotificationConfig(subject: String, keys: VapidKeys)
+
+case class SmtpConfig(endpoint: String, username: String, password: String) {
+  override def toString: String = s"SmtpConfig($endpoint, $username, ***)"
 }
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
-case class ServerConfig(port: Int, clientBufferSize: Int)
+case class ServerConfig(port: Int, clientBufferSize: Int, allowedOrigins: List[String])
 
-case class Config(server: ServerConfig, auth: AuthConfig, email: Option[EmailConfig], db: TConfig) {
-  override def toString = {
+case class Config(server: ServerConfig, pushNotification: Option[PushNotificationConfig], auth: AuthConfig, email: Option[EmailConfig], db: TConfig) {
+  override def toString: String = {
     val cleanDb = db.withoutPath("password")
-    s"Config($auth, $email, $cleanDb)"
+    s"Config($server, $pushNotification, $auth, $email, $cleanDb)"
   }
 }
 
