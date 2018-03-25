@@ -35,7 +35,6 @@ class HashSetEventDistributorWithPush(db: Db)(implicit ec: ExecutionContext) ext
     subscribers -= client
   }
 
-  //TODO is this async? it should be. we do not want to block a running request for sending out events.
   // origin is optional, since http clients can also trigger events
   override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
