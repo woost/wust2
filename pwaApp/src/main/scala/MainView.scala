@@ -45,7 +45,7 @@ object MainView {
             backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
             div(cls := "hamburger", margin := "7px", onClick(false) --> expanded),
             id := "sidebar",
-            width := "175px",
+            flexBasis := "175px",
             color := "white",
             div(padding := "8px 8px", titleBanner(syncStatus(state)(owner)(fontSize := "9px"))),
             undoRedo(state),
@@ -62,7 +62,7 @@ object MainView {
             backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
             div(cls := "hamburger", margin := "7px", onClick(true) --> expanded),
             id := "sidebar",
-            width := "30px",
+            flexBasis := "30px",
             color := "white",
             channelIcons(state),
             overflowY.auto
@@ -76,7 +76,7 @@ object MainView {
       height := "100%",
       width := "100%",
       display.flex,
-      sidebar(state),
+      sidebar(state)(owner).map(_(flexGrow := 0, flexShrink := 0)),
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
         if (state.page().parentIds.nonEmpty) {
