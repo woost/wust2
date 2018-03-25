@@ -1,6 +1,5 @@
 package wust.backend
 
-import wust.util.Need
 import wust.api._
 import wust.db.Db
 import wust.ids._
