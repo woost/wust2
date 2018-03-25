@@ -13,7 +13,7 @@ html, body {
 }
 
 body {
-    font-family: sans-serif;
+    font-family: 'Roboto Slab', serif;
     overflow: hidden; /* disables scrolling */
 }
 
@@ -29,7 +29,7 @@ input[type=text], input[type=password], button, input[type=button], input[type=s
     padding: 3px 10px;
     margin: 2px;
     transition: background 0.2s, border 0.1s;
-    font-family: sans-serif;
+    font-family: 'Roboto Slab', serif;
 }
 
 select {
