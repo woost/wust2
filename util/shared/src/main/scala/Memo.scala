@@ -1,25 +1,12 @@
 package wust.util
 
+import cats.Eval
+import scala.collection.mutable
+import scala.collection.immutable
+import reflect.ClassTag
+
 //copied from scalaz:
 // - https://github.com/scalaz/scalaz/blob/series/7.3.x/core/src/main/scala/scalaz/Memo.scala
-// - https://github.com/scalaz/scalaz/blob/fabab8f699d56279d6f2cc28d02cc2b768e314d7/core/src/main/scala/scalaz/Name.scala
-
-/** Call by need */
-final class Need[+A] private(private[this] var eval: () => A) {
-  lazy val value: A = {
-    val value0 = eval()
-    eval = null
-    value0
-  }
-
-  final def map[T](f: A => T): Need[T] = Need(f(value))
-}
-
-object Need {
-  def apply[A](a: => A): Need[A] = new Need(() => a)
-}
-
-import reflect.ClassTag
 
 /** A function memoization strategy.  See companion for various
   * instances employing various strategies.
@@ -28,13 +15,9 @@ sealed abstract class Memo[@specialized(Int) K, @specialized(Int, Long, Double) 
   def apply(z: K => V): K => V
 }
 
-
-sealed abstract class MemoInstances {
-}
-
 /** @define immuMapNote As this memo uses a single var, it's
   * thread-safe. */
-object Memo extends MemoInstances {
+object Memo {
   def memo[@specialized(Int) K, @specialized(Int, Long, Double) V](f: (K => V) => K => V): Memo[K, V] = new Memo[K, V] {
     def apply(z: K => V) = f(z)
   }
@@ -43,7 +26,7 @@ object Memo extends MemoInstances {
 
   private class ArrayMemo[V >: Null : ClassTag](n: Int) extends Memo[Int, V] {
     override def apply(f: (Int) => V) = {
-      val a = Need(new Array[V](n))
+      val a = Eval.later(new Array[V](n))
       k => if (k < 0 || k >= n) f(k) else {
         val t = a.value(k)
         if (t == null) {
@@ -57,7 +40,7 @@ object Memo extends MemoInstances {
 
   private class DoubleArrayMemo(n: Int, sentinel: Double) extends Memo[Int, Double] {
     override def apply(f: (Int) => Double) = {
-      val a = Need {
+      val a = Eval.later {
         if (sentinel == 0d) {
           new Array[Double](n)
         } else {
@@ -83,8 +66,6 @@ object Memo extends MemoInstances {
     */
   def doubleArrayMemo(n: Int, sentinel: Double = 0d): Memo[Int, Double] = new DoubleArrayMemo(n, sentinel)
 
-  import scala.collection.mutable
-
   private def mutableMapMemo[K, V](a: mutable.Map[K, V]): Memo[K, V] = memo[K, V](f => k => a.getOrElseUpdate(k, f(k)))
 
   /** Cache results in a [[scala.collection.mutable.HashMap]].
@@ -92,8 +73,6 @@ object Memo extends MemoInstances {
     * `java.lang.Object.equals`.
     */
   def mutableHashMapMemo[K, V]: Memo[K, V] = mutableMapMemo(new mutable.HashMap[K, V])
-
-  import scala.collection.immutable
 
   def immutableMapMemo[K, V](m: immutable.Map[K, V]): Memo[K, V] = {
     var a = m

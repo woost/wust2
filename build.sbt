@@ -175,6 +175,7 @@ lazy val util = crossProject
   .settings(
     libraryDependencies ++=
       Deps.sourcecode.value ::
+      Deps.cats.core.value ::
       Nil
   )
 
