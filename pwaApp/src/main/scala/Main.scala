@@ -14,7 +14,8 @@ import scribe.format._
 import scribe.writer.ConsoleWriter
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._
-import rx.Ctx
+import rx._
+import cats._
 
 object Main {
   val logFormatter: Formatter = formatter"$levelPaddedRight $positionAbbreviated - $message$newLine"
@@ -23,24 +24,27 @@ object Main {
   }
 
   // require offline plugin, setup in webpack
-  OfflinePlugin.install(new OfflinePluginConfig {
-    def onUpdating(): Unit = {
-      scribe.info("SW: onUpdating")
-    }
-    def onUpdateReady(): Unit = {
-      scribe.info("SW: onUpdateReady")
-      OfflinePlugin.applyUpdate()
-    }
-    def onUpdated(): Unit = {
-      scribe.info("SW: onUpdated")
-      //TODO: better update strategy
-      //TODO: how is the update interval configured?
-      // window.location.reload()
-    }
-    def onUpdateFailed(): Unit = {
-      scribe.info("SW: onUpdateFailed")
-    }
-  })
+  val updateReady:Rx[Eval[Unit]] = Rx.create(Eval.Unit) { ready =>
+    OfflinePlugin.install(new OfflinePluginConfig {
+      def onUpdating(): Unit = {
+        scribe.info("SW: onUpdating")
+      }
+      def onUpdateReady(): Unit = {
+        // fires when all required assets are downloaded and ready to be updated. In this callback, you can either call runtime.applyUpdate() to apply updates directly, or in some way prompt for user input, and then apply them.
+        scribe.info("SW: onUpdateReady")
+        OfflinePlugin.applyUpdate()
+      }
+      def onUpdated(): Unit = {
+        scribe.info("SW: onUpdated")
+        //TODO: better update strategy
+        //TODO: how is the update interval configured?
+        ready() = Eval.later( window.location.reload() )
+      }
+      def onUpdateFailed(): Unit = {
+        scribe.info("SW: onUpdateFailed")
+      }
+    })
+  }
 
   // require default passive events for scroll/mouse/touch events
   // global.require("default-passive-events")
@@ -48,7 +52,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-    val state = new GlobalState
+    val state = new GlobalState(updateReady)
 
     state.currentAuth.foreach(IndexedDbOps.storeAuth)
 
