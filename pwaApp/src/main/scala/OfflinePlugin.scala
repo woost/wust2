@@ -3,6 +3,7 @@ package wust.pwaApp
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
+// https://github.com/NekR/offline-plugin/blob/master/docs/runtime.md
 @js.native
 @JSImport("offline-plugin/runtime", JSImport.Default)
 object OfflinePlugin extends js.Object {
