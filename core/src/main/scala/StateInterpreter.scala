@@ -22,12 +22,6 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
         //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
         Future.successful(Nil)
 
-    case NewGraphChanges(changes) =>
-      visibleChangesForState(state, changes).map {visibleChanges =>
-        if (visibleChanges.isEmpty) Nil
-        else NewGraphChanges(visibleChanges) :: Nil
-      }
-
     case other => Future.successful(other :: Nil)
   }).map(_.flatten)
 
@@ -51,16 +45,5 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       } yield List(NewUser(user), NewMembership(membership))
       // only forward new membership and user
     } else Future.successful(Nil)
-  }
-
-  private def visibleChangesForState(state: State, changes: GraphChanges): Future[GraphChanges] = {
-    Future.successful(changes)
-//    import changes.consistent._
-//    val affectedPostId = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
-//    scribe.info(s"are $affectedPostId visible to ${state.auth.user.id}?")
-//    db.user.visiblePosts(state.auth.user.id, affectedPostId).map {visiblePostIds =>
-//      scribe.info(s"visible: $visiblePostIds")
-//      changes.consistent.filter(visiblePostIds.toSet)
-//    }
   }
 }
