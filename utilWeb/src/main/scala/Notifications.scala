@@ -1,7 +1,7 @@
 package wust.utilWeb
 
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.ReplaySubject
 import org.scalajs.dom.experimental.permissions._
 import org.scalajs.dom.experimental.push._
 import org.scalajs.dom.experimental.serviceworkers._
@@ -20,6 +20,7 @@ object Notifications {
   private val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
   private val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
 
+  //TODO: this fallback code is difficult to read and we want to model this state as a rx var.
   def permissionStateObservable(implicit ec: ExecutionContext) = {
     permissionStateObservableOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
       case t => permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
@@ -28,6 +29,8 @@ object Notifications {
 
   def requestPermissions()(implicit ec: ExecutionContext): Unit = {
     subscribeAndPersistWebPush()
+    // request notifications permissions as fallback if push permissions did not work in the browser.
+    // if it worked, the notification permission are already granted, and will not really request.
     Notification.requestPermission { (state: String) =>
       scribe.info(s"Requested notification permission: $state")
     }
@@ -59,7 +62,7 @@ object Notifications {
     }
 
   private def permissionStateObservableOf(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Observable[PermissionState] = {
-    val subject = PublishSubject[PermissionState]()
+    val subject = ReplaySubject[PermissionState]()
     permissions.foreach { (permissions: Permissions) =>
       permissions.query(permissionDescriptor).toFuture.onComplete {
         case Success(desc) =>
