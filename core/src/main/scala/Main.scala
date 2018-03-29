@@ -1,19 +1,10 @@
 package wust.backend
 
-import scribe.{Logger,Level}
-import scribe.format._
-import scribe.writer._
 import wust.backend.config.Config
+import wust.utilBackend.Logging
 
 object Main extends App {
-  val shortThreadName = threadName.map(_.replaceFirst("server-akka.actor.default-dispatcher-", ""))
-  val shortLevel = levelPaddedRight.map(_.trim)
-  val logFormatter: Formatter = formatter"$date $shortLevel [$shortThreadName] $positionAbbreviated - $message$newLine"
-  Logger.update(Logger.rootName) {
-    _.clearHandlers()
-      .withHandler(formatter = logFormatter, minimumLevel = Level.Debug, writer = ConsoleWriter)
-      .withHandler(formatter = logFormatter, writer = FileNIOWriter.daily(), minimumLevel = Level.Info)
-  }
+  Logging.setup()
 
   Config.load match {
     case Left(error) =>
