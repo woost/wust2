@@ -5,6 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.sdk.PostColor._
 import rx._
+import wust.ids._
 import wust.graph._
 import wust.sdk.{ChangesHistory, SyncMode}
 import wust.utilWeb._
@@ -110,7 +111,7 @@ object MainViewParts {
           padding := "5px 3px",
           p.content,
           cursor.pointer,
-          onClick(Page(p.id)) --> state.page,
+          onChannelClick(p.id)(state),
           title := p.id,
           if(state.page().parentIds.contains(p.id)) Seq(
             color := state.pageStyle().darkBgColor.toHex,
@@ -132,7 +133,7 @@ object MainViewParts {
           height := "30px",
           cursor.pointer,
           backgroundColor := baseColor(p.id).toHex,
-          onClick(Page(p.id)) --> state.page,
+          onChannelClick(p.id)(state),
           if(state.page().parentIds.contains(p.id)) Seq(
             borderLeft := "4px solid",
             borderColor := state.pageStyle().bgColor.toHex)
@@ -142,4 +143,16 @@ object MainViewParts {
     )
   }
 
+  private def onChannelClick(id: PostId)(state: GlobalState)(implicit ctx: Ctx.Owner) = onClick.map { e =>
+    val page = state.page.now
+    //TODO if (e.shiftKey) {
+    val newParents = if (e.ctrlKey) {
+      val filtered = page.parentIds.filterNot(_ == id)
+      if (filtered.size == page.parentIds.size) page.parentIds :+ id
+      else if (filtered.nonEmpty) filtered
+      else Seq(id)
+    } else Seq(id)
+
+    page.copy(parentIds = newParents)
+  } --> state.page
 }
