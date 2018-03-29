@@ -27,9 +27,9 @@ class ClientStorage(implicit owner: Ctx.Owner) {
 
   object keys {
     val auth = "wust.auth"
+    val sidebarOpen = "wust.sidebar.open"
     val graphChanges = "wust.graph.changes"
     val syncMode = "wust.graph.syncMode"
-    val sidebarOpen = "wust.graph.sidebarOpen"
   }
 
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
