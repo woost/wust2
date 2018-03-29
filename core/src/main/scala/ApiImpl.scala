@@ -72,8 +72,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       for {
         addedMemberships <- Future.sequence(postIds.map(postId => db.post.addMember(postId, user.id).map(if(_) Option(postId) else None))).map(_.flatten)
       } yield {
-        val addedAtleastOne = addedMemberships.nonEmpty
-        Returns(addedAtleastOne, postIds.map(NewMembership(user.id, _)))
+        Returns(addedMemberships.nonEmpty, addedMemberships.map(NewMembership(user.id, _)))
       }
     }
   }
