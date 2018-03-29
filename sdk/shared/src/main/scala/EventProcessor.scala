@@ -190,7 +190,7 @@ class EventProcessor private(
   }.share
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
-    .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
+    .combineLatest[Long](sendingChanges)
     .scan(List.empty[(GraphChanges, Long)]) { case (prevList, (nextLocal, sentIdx)) =>
       (prevList :+ nextLocal) collect { case t@(_, idx) if idx > sentIdx => t }
     }
