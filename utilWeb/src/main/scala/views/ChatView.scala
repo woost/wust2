@@ -49,6 +49,8 @@ object ChatView extends View {
         div(
           fontSize := "20px",
           padding := "0px 20px",
+          minHeight := "100px",
+          maxHeight := "100px",
           pageParentPosts.map(_.map { parent =>
             span(mdHtml(parent.content))
           })
