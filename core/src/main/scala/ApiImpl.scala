@@ -70,9 +70,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     //TODO: add multiple memberships in one query
     db.ctx.transaction { implicit ec =>
       for {
-        addedMemberships <- Future.sequence(postIds.map(postId => db.post.addMember(postId, user.id).map(if(_) Option(postId) else None))).map(_.flatten)
+        addedPostIds <- db.post.addMember(postIds, user.id).map(successes => postIds.zip(successes).collect { case (postId, true) => postId })
       } yield {
-        Returns(addedMemberships.nonEmpty, addedMemberships.map(NewMembership(user.id, _)))
+        Returns(addedPostIds.nonEmpty, addedPostIds.map(NewMembership(user.id, _)))
       }
     }
   }
@@ -102,14 +102,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action { state =>
-    val userIdOpt = state.auth.dbUserOpt.map(_.id)
-    userIdOpt match {
-      case Some(user) if page.parentIds.nonEmpty =>
-        scribe.info(s"$userIdOpt, $page")
-        getPage(user, page)
-      case _ =>
-        Future.successful(Graph.empty)
-    }
+    def defaultGraph = Future.successful(Graph.empty)
+    if (page.parentIds.isEmpty) defaultGraph
+    else state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
   }
 
 

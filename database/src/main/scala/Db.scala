@@ -103,8 +103,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    def addMember(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(infix"""insert into membership(postId, userId) values (${lift(postId)}, ${lift(userId)}) on conflict do nothing""".as[Insert[Membership]]).map(_ == 1)
+    private val insertMembership = quote { (post: Membership) =>
+      val q = query[Membership].insert(post)
+      infix"$q ON CONFLICT(postId, userId) DO NOTHING".as[Insert[RawPost]]
+    }
+    def addMember(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMember(postId :: Nil, userId).map(_.head)
+    def addMember(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+      val memberships = postIds.map(postId => Membership(userId, postId))
+      ctx.run(liftQuery(memberships.toList).foreach(insertMembership(_)))
+        .map(_.map(_ == 1))
     }
   }
 
