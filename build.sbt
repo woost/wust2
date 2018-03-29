@@ -149,8 +149,11 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("dev", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwatch; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
-    addCommandAlias("devwatch", "~; core/reStop; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart"),
+    addCommandAlias("dev", "devweb_"),
+    addCommandAlias("devweb_", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
+    addCommandAlias("devwebwatch_", "~; core/reStop; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart"),
+    addCommandAlias("devpwa_", "; set scalacOptions += \"-Xcheckinit\"; core/compile; pwaApp/compile; pwaApp/fastOptJS::startWebpackDevServer; devpwawatch_; pwaApp/fastOptJS::stopWebpackDevServer; core/reStop"),
+    addCommandAlias("devpwawatch_", "~; core/reStop; pwaApp/fastOptJS; pwaApp/copyFastOptJS; core/reStart"),
 
     addCommandAlias("devweb", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devpwa", "; set scalacOptions += \"-Xcheckinit\"; core/compile; pwaApp/compile; core/reStart; project pwaApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
