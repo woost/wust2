@@ -30,7 +30,7 @@ case class Config(server: ServerConfig, pushNotification: Option[PushNotificatio
 
 object Config {
   import pureconfig._
-  import wust.util.Config._
+  import wust.utilBackend.Config._
 
   def load = loadConfig[Config]("wust.core")
 }
