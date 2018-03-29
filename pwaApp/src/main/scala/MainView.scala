@@ -38,12 +38,11 @@ object MainView {
   }
 
   def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): Rx[VNode] = {
-    val expanded = Var(false)
       Rx {
-        if(expanded()) {
+        if(state.sidebarOpen()) {
           div(
             backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-            div(cls := "hamburger", margin := "7px", onClick(false) --> expanded),
+            div(cls := "hamburger", margin := "7px", onClick(false) --> state.sidebarOpen),
             id := "sidebar",
             flexBasis := "175px",
             color := "white",
@@ -60,7 +59,7 @@ object MainView {
         } else {
           div(
             backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-            div(cls := "hamburger", margin := "7px", onClick(true) --> expanded),
+            div(cls := "hamburger", margin := "7px", onClick(true) --> state.sidebarOpen),
             id := "sidebar",
             flexBasis := "30px",
             color := "white",

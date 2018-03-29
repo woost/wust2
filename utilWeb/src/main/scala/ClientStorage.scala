@@ -29,6 +29,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val auth = "wust.auth"
     val graphChanges = "wust.graph.changes"
     val syncMode = "wust.graph.syncMode"
+    val sidebarOpen = "wust.graph.sidebarOpen"
   }
 
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
@@ -51,5 +52,11 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     LocalStorage.handler(keys.syncMode).unsafeRunSync()
       .imap(_.flatMap(fromJson[SyncMode]))(mode => mode.map(toJson(_)))
       .toVar(internal(keys.syncMode).flatMap(fromJson[SyncMode]))
+  }
+
+  val sidebarOpen: Var[Boolean] = {
+    LocalStorage.handler(keys.sidebarOpen).unsafeRunSync()
+      .imap(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
+      .toVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
   }
 }
