@@ -1,4 +1,4 @@
-package wust.util
+package wust.utilBackend
 
 import com.typesafe.config.ConfigValue
 import pureconfig._
