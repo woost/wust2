@@ -81,7 +81,8 @@ class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: C
   }
 
   val pageParentPosts: Rx[Seq[Post]] = Rx {
-    page().parentIds.flatMap(rawGraph().postsById.get)
+    //TODO highLevelPosts should be part of graph
+    page().parentIds.flatMap(id => rawGraph().postsById.get(id) orElse highLevelPosts().find(_.id == id))
   }
 
   val pageStyle = Rx {
