@@ -4,7 +4,7 @@ import covenant.http._, ByteBufferImplicits._
 import sloth._
 import java.nio.ByteBuffer
 
-import boopickle.shapeless.Default._
+import boopickle.Default._
 import chameleon.ext.boopickle._
 import wust.sdk._
 import wust.api._
@@ -345,19 +345,19 @@ object WustReceiver {
         mCallBuffer += c
         github.createIssue(c).foreach {
           case Right(issue) => EventCoordinator.addFutureCompletion(c, issue)
-          case Left(e) => scribe.error(e)
+          case Left(e) => scribe.error(s"CreateIssue failed: $e")
         }
       case c: EditIssue =>
         mCallBuffer += c
         github.editIssue(c).foreach {
           case Right(issue) => EventCoordinator.addFutureCompletion(c, issue)
-          case Left(e) => scribe.error(e)
+          case Left(e) => scribe.error(s"EditIssue failed: $e")
         }
       case c: DeleteIssue =>
         mCallBuffer += c
         github.deleteIssue(c).foreach {
           case Right(issue) => EventCoordinator.addFutureCompletion(c, issue)
-          case Left(e) => scribe.error(e)
+          case Left(e) => scribe.error(s"DeleteIssue failed: $e")
         }
       case c: CreateComment =>
         mCallBuffer += c
@@ -367,20 +367,20 @@ object WustReceiver {
           valid(client.api.changeGraph(List(GraphChanges(addConnections = Set(tag)))), "Could not redirect comment to add tag")
           res match {
             case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
-            case Left(e) => scribe.error(e)
+            case Left(e) => scribe.error(s"CreateComment failed: $e")
           }
         }
       case c: EditComment =>
         mCallBuffer += c
         github.editComment(c).foreach {
           case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
-          case Left(e) => scribe.error(e)
+          case Left(e) => scribe.error(s"EditComment failed: $e")
         }
       case c: DeleteComment =>
         mCallBuffer += c
         github.deleteComment(c).foreach {
           case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
-          case Left(e) => scribe.error(e)
+          case Left(e) => scribe.error(s"DeleteComment failed: $e")
         }
 
       case _ => println("Could not match to github api call")

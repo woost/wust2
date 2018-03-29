@@ -9,19 +9,14 @@ import wust.graph.{Graph, GraphChanges, Page}
 import wust.utilWeb._
 import outwatch.dom._
 import dsl._
-import scribe.{Level, Logger}
-import scribe.format._
-import scribe.writer.ConsoleWriter
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views._
+import wust.utilWeb.Logging
 import rx._
 import cats._
 
 object Main {
-  val logFormatter: Formatter = formatter"$levelPaddedRight $positionAbbreviated - $message$newLine"
-  Logger.update(Logger.rootName) { l =>
-    l.clearHandlers().withHandler(formatter = logFormatter, minimumLevel = Level.Debug, writer = ConsoleWriter)
-  }
+  Logging.setup()
 
   // require offline plugin, setup in webpack
   val updateReady:Rx[Eval[Unit]] = Rx.create(Eval.Unit) { ready =>

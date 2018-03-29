@@ -171,7 +171,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 }
 
 object ApiLogger {
-  import scribe.{Logger, Level}
+  import scribe._
   import scribe.format._
   import scribe.writer._
 
@@ -180,7 +180,7 @@ object ApiLogger {
     val formatter = formatter"$date $levelPaddedRight - $message$newLine"
     Logger.update(s)(
       _.clearHandlers()
-        .withHandler(formatter = formatter, writer = FileNIOWriter.daily(prefix = s), minimumLevel = Level.Info)
+        .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = FileNIOWriter.daily(prefix = s))
     )
   }
 }
