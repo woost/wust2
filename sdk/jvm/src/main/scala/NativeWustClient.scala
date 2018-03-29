@@ -4,7 +4,7 @@ import wust.api._, serialize.Boopickle._
 import covenant.ws._
 import mycelium.client._
 import chameleon.ext.boopickle._
-import boopickle.shapeless.Default._
+import boopickle.Default._
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer

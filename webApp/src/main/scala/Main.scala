@@ -21,10 +21,7 @@ import wust.utilWeb.outwatchHelpers._
 import rx.Ctx
 
 object Main {
-  val logFormatter: Formatter = formatter"$levelPaddedRight $positionAbbreviated - $message$newLine"
-  Logger.update(Logger.rootName) { l =>
-    l.clearHandlers().withHandler(formatter = logFormatter, minimumLevel = Level.Debug, writer = ConsoleWriter)
-  }
+  Logging.setup()
 
   def main(args: Array[String]): Unit = {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()

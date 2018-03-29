@@ -13,8 +13,8 @@ object Logging {
   def setup(): Unit = {
     Logger.update(Logger.rootName) {
       _.clearHandlers()
-        .withHandler(formatter = simpleFormatter, minimumLevel = Level.Debug, writer = ConsoleWriter)
-        .withHandler(formatter = detailFormatter, minimumLevel = Level.Info, writer = FileNIOWriter.daily())
+        .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
+        .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileNIOWriter.daily())
     }
   }
 }

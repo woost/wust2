@@ -30,7 +30,7 @@ import wust.sdk._
 
 import concurrent.Future
 import wust.api.serialize.Boopickle._
-import boopickle.shapeless.Default._
+import boopickle.Default._
 import chameleon.ext.boopickle._
 import macroid.extras.LinearLayoutTweaks._
 import macroid.extras.RecyclerViewTweaks.{W, _}

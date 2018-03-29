@@ -3,7 +3,7 @@ package wust.api.serialize
 import wust.graph._
 import wust.api._
 import wust.ids._
-import boopickle.DefaultBasic._, PicklerGenerator._
+import boopickle.DefaultBasic._
 import io.treev.tag._
 
 object Boopickle {

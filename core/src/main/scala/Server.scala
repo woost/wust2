@@ -18,7 +18,7 @@ import covenant.http._
 import sloth._
 import mycelium.server._
 import chameleon.ext.boopickle._
-import boopickle.shapeless.Default._
+import boopickle.Default._
 import chameleon.ext.circe._
 import io.circe._, io.circe.syntax._, io.circe.generic.auto._
 import wust.util.{ Pipe, RichFuture }
