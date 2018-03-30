@@ -31,16 +31,15 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  def textAreaWithEnter(actionSink: Sink[String]) = {
-    val userInput = Handler.create[String].unsafeRunSync()
-    val clearHandler = userInput.map(_ => "")
-
-    textArea(
+  def textAreaWithEnter(actionSink: Sink[String]) = for {
+    userInput <- Handler.create[String]
+    clearHandler = userInput.map(_ => "")
+    area <- textArea(
       value <-- clearHandler,
       managed(actionSink <-- userInput),
       onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e }.value.filter(_.nonEmpty) --> userInput
     )
-  }
+  } yield area
 
   //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
   //  textarea(
