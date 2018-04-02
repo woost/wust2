@@ -109,20 +109,20 @@ lazy val webSettings = Seq(
       "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
       "html-webpack-plugin" -> "3.1.0" ::
       "html-webpack-include-assets-plugin" -> "1.0.4" ::
-      "clean-webpack-plugin" -> "0.1.18" ::
+      "clean-webpack-plugin" -> "0.1.19" ::
       "zopfli-webpack-plugin" -> "0.1.0" ::
       "brotli-webpack-plugin" -> "0.5.0" ::
       "node-sass" -> "4.7.2" ::
-      "sass-loader" -> "6.0.6" ::
-      "css-loader" -> "0.28.10" ::
-      "style-loader" -> "0.20.2" ::
+      "sass-loader" -> "6.0.7" ::
+      "css-loader" -> "0.28.11" ::
+      "style-loader" -> "0.20.3" ::
       "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
       "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::
-      "copy-webpack-plugin" -> "4.5.0" ::
+      "copy-webpack-plugin" -> "4.5.1" ::
       Nil,
 
-    version in webpack := "4.1.1",
+    version in webpack := "4.4.1",
     version in startWebpackDevServer := "3.1.1",
 
     webpackResources := (baseDirectory.value / ".." / "utilWeb" / "webpack" ** "*.*"),
