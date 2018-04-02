@@ -6,6 +6,7 @@ export CI=true # also set by travis, but helps when running locally
 
 sbt \
  -Dquill.macro.log=false \
+ compile \
  testJVM \
  testJSNonPure \
  it:compile \
