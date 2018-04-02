@@ -77,6 +77,8 @@ lazy val commonSettings = Seq(
 )
 
 lazy val commonWebSettings = Seq(
+    useYarn := true, // makes scalajs-bundler use yarn instead of npm
+
     // To enable source map support, all sub-project folders are symlinked to webpack/project-root.
     // This folder is served via webpack devserver.
     scalacOptions += {
@@ -99,7 +101,6 @@ lazy val webSettings = Seq(
     emitSourceMaps in fastOptJS := false, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
     emitSourceMaps in fullOptJS := false,
 
-    useYarn := true, // instead of npm
     npmDependencies in Compile ++=
       /* "default-passive-events" -> "1.0.7" :: */
       Nil,
