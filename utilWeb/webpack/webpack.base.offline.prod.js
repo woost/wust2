@@ -5,7 +5,7 @@ module.exports = {
     plugins: [
         new OfflinePlugin({
             ServiceWorker: {
-                minify: true,
+                minify: false, // TODO does not work anymore since webpack 4
                 events: true,
                 entry: "./sw-entry.js"
             },
