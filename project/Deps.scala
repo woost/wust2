@@ -17,10 +17,10 @@ object Deps {
   }
   val akka = new {
     private val version = "2.5.11"
-    private val httpVersion = "10.1.0"
+    private val httpVersion = "10.1.1"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
-    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.19.0")
+    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.20.0")
     val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.2.2")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
@@ -31,7 +31,7 @@ object Deps {
   // val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle-shapeless" % "680e03c")
   val boopickle = dep("io.suzaku" %%% "boopickle" % "1.3.0")
   val circe = new {
-    private val version = "0.9.2"
+    private val version = "0.9.3"
     val core = dep("io.circe" %%% "circe-core" % version)
     val generic = dep("io.circe" %%% "circe-generic" % version)
     val parser = dep("io.circe" %%% "circe-parser" % version)
@@ -46,7 +46,7 @@ object Deps {
 
   // utility
   val scribe = dep("com.outr" %%% "scribe" % "2.3.0")
-  val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.0")
+  val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.1")
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.0-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
@@ -65,7 +65,7 @@ object Deps {
   // auth
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
   val jbcrypt = dep("org.mindrot" % "jbcrypt" % "0.4")
-  val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.14.1")
+  val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.16.0")
 
   // database
   val quill = dep("io.getquill" %% "quill-async-postgres" % "2.3.3")
