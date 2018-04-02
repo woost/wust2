@@ -4,10 +4,7 @@ name := "wust"
 version in ThisBuild ~= (_.replace('+', '-'))
 dynver in ThisBuild ~= (_.replace('+', '-'))
 
-lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/issues/3653
-
-parallelExecution in ThisBuild := !isCI // https://github.com/scalacenter/scalajs-bundler/pull/225
-concurrentRestrictions in Global ++= (if(isCI) List(Tags.limit(Tags.All, 1)) else Nil)
+lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/pull/3672
 
 import Def.{setting => dep}
 
@@ -108,8 +105,8 @@ lazy val webSettings = Seq(
       Nil,
     npmDevDependencies in Compile ++=
       "webpack-closure-compiler" -> "2.1.6" ::
-      "webpack-subresource-integrity" -> "1.0.4" ::
-      "html-webpack-plugin" -> "2.30.1" ::
+      "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
+      "html-webpack-plugin" -> "3.1.0" ::
       "html-webpack-include-assets-plugin" -> "1.0.4" ::
       "clean-webpack-plugin" -> "0.1.18" ::
       "zopfli-webpack-plugin" -> "0.1.0" ::
@@ -118,14 +115,15 @@ lazy val webSettings = Seq(
       "sass-loader" -> "6.0.6" ::
       "css-loader" -> "0.28.10" ::
       "style-loader" -> "0.20.2" ::
-      "extract-text-webpack-plugin" -> "3.0.2" ::
+      "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
       "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::
       "copy-webpack-plugin" -> "4.5.0" ::
       Nil,
 
-    version in webpack := "3.10.0",
-    //TODO: version in startWebpackDevServer := "2.11.1",
+    version in webpack := "4.1.1",
+    version in startWebpackDevServer := "3.1.1",
+
     webpackResources := (baseDirectory.value / ".." / "utilWeb" / "webpack" ** "*.*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
     webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack.config.dev.js"),
