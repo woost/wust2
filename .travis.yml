@@ -30,6 +30,7 @@ cache:
   - $HOME/.ivy2/cache
   - $HOME/.ivy2/local
   - $HOME/.sbt/boot
+  - $HOME/.sbt/launchers
   - $HOME/.cache/coursier
 
 before_cache:
