@@ -6,8 +6,8 @@ in
   pkgs.stdenv.mkDerivation {
     name = "Woost";
     buildInputs = with pkgs; [
-      scala
-      sbt
+      git zsh
+      scala sbt
       docker docker_compose
       ngrok # github app -> webhooks to localhost
       nodejs-8_x yarn
