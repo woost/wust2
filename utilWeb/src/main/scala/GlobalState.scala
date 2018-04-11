@@ -50,19 +50,24 @@ class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: C
     // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
     // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
-    val rawGraph:Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
-
     val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)
     //TODO: better in rx/obs operations
     currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
 
     val currentUser: Rx[User] = currentAuth.map(_.user)
     val highLevelPosts =  Var[List[Post]](Nil)
-    currentUser.foreach { _ =>
-      Client.api.getHighLevelPosts().foreach {
-        highLevelPosts() = _
+  currentUser.foreach { _ =>
+    Client.api.getHighLevelPosts().foreach {
+      highLevelPosts() = _
     }
   }
+
+    val rawGraph:Rx[Graph] = {
+      val graph = eventProcessor.rawGraph.toRx(seed = Graph.empty)
+      Rx {
+        graph().addPosts(highLevelPosts()) //TODO: this is a hack, highlevel posts should already be in the graph
+      }
+    }
 
   viewConfig.foreach { vc =>
     updateRunner.now.value // usage: if service worker just updated itself, reload the page
