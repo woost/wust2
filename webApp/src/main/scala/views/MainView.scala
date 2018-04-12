@@ -203,21 +203,16 @@ object MainView {
         sidebar(state),
         backgroundColor <-- state.pageStyle.map(_.accentLineColor.toHex),
         div(
-          id := "viewgrid",
+          height := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
 
           Rx {
             if (state.page().parentIds.nonEmpty) {
-              List(
-                ChatView(state),
-                new GraphView().apply(state)
-              )
+              state.view().apply(state)(owner)
             } else {
-              List(
-                div(
-                  display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
-                  newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
-                )
+              div(
+                display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
+                newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
               )
             }
           }

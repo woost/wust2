@@ -7,6 +7,7 @@ import collection.breakOut
 import scala.concurrent.ExecutionContext.Implicits.global
 import rx._
 
+//TODO: better no oop for views, have a function that maps a string to a view/function?
 trait View {
   def apply(state:GlobalState)(implicit ctx: Ctx.Owner):VNode //TODO: def apply(implicit state:GlobalState):VNode
   val key:String
@@ -24,7 +25,7 @@ object View {
 
   def default = list.head
 
-  val fromString: Map[String,View] = {
+  def fromString: Map[String,View] = {
     val map:Map[String,View] = list.map(v => v.key -> v)(breakOut)
     map.withDefaultValue(default)
   }

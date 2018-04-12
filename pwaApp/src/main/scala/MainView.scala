@@ -79,7 +79,7 @@ object MainView {
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
         if (state.page().parentIds.nonEmpty) {
-          ChatView(state)(owner)(flexGrow := 1)
+          state.view().apply(state)(owner)(flexGrow := 1)
         } else {
           div(
             flexGrow := 1,
