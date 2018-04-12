@@ -13,6 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 import cats.implicits._
+import cats.data.NonEmptyList
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
   import ApiEvent._
@@ -65,12 +66,13 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
-  override def addCurrentUserAsMember(postIds: List[PostId]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addCurrentUserAsMember(postIds: NonEmptyList[PostId]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     //TODO: only add member if post is not public
     //TODO: add multiple memberships in one query
+    val postIdList = postIds.toList
     db.ctx.transaction { implicit ec =>
       for {
-        addedPostIds <- db.post.addMember(postIds, user.id).map(successes => postIds.zip(successes).collect { case (postId, true) => postId })
+        addedPostIds <- db.post.addMember(postIdList, user.id).map(successes => postIdList.zip(successes).collect { case (postId, true) => postId })
       } yield {
         Returns(addedPostIds.nonEmpty, addedPostIds.map(NewMembership(user.id, _)))
       }

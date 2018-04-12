@@ -3,6 +3,7 @@ package wust.api
 import sloth.PathName
 import wust.graph._
 import wust.ids._
+import cats.data.NonEmptyList
 
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]
@@ -13,7 +14,7 @@ trait Api[Result[_]] {
   def getGraph(selection: Page): Result[Graph]
   def getUser(userId: UserId): Result[Option[User]]
   def addMember(postId: PostId, userId: UserId): Result[Boolean]
-  def addCurrentUserAsMember(postIds: List[PostId]): Result[Boolean]
+  def addCurrentUserAsMember(postIds: NonEmptyList[PostId]): Result[Boolean]
 //  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
   def getHighLevelPosts():Result[List[Post]]

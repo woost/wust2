@@ -15,6 +15,7 @@ import wust.util.Selector
 import wust.utilWeb.outwatchHelpers._
 import wust.utilWeb.views.{PageStyle, View, ViewConfig}
 import cats._
+import cats.data.NonEmptyList
 
 import scala.collection.breakOut
 
@@ -71,11 +72,15 @@ class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: C
 
   viewConfig.foreach { vc =>
     updateRunner.now.value // usage: if service worker just updated itself, reload the page
-    Client.api.addCurrentUserAsMember(vc.page.parentIds.toList).foreach { _ =>
-      Client.api.getGraph(vc.page).foreach { g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g)) }
+    NonEmptyList.fromList(vc.page.parentIds.toList).foreach { ids =>
+      Client.api.addCurrentUserAsMember(ids).foreach { success =>
+        if (success) {
+          //get the graph again if successful
+          Client.api.getGraph(vc.page).foreach { g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g)) }
+        }
+      }
     }
   }
-
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
 
