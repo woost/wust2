@@ -31,10 +31,6 @@ object MainViewParts {
     )
   }
 
-  def userStatus(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-    div( "User: ", state.currentUser.map(u => s"${u.id}" ))
-  }
-
   def syncStatus(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     val isOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
     div(
@@ -65,6 +61,17 @@ object MainViewParts {
       }
     )
   }
+
+  def login(state: GlobalState)(implicit ctx:Ctx.Owner) = button("Login", onClick(LoginView: View) --> state.view)
+  val logout = button("Logout", onClick --> sideEffect { Client.auth.logout(); () })
+
+  def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
+    state.currentUser.map {
+      case user: User.Assumed => login(state)
+      case user: User.Implicit => div(login(state), logout)
+      case user: User.Real => logout
+    }
+  )
 
   def undoRedo(state:GlobalState):VNode = {
     val historySink = ObserverSink(state.eventProcessor.history.action)

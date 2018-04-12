@@ -52,7 +52,7 @@ object MainView {
             channels(state),
             br(),
             newGroupButton(state)(owner)(buttonStyle),
-            // userStatus(state),
+            authentication(state),
             notificationSettings,
             overflowY.auto
           )

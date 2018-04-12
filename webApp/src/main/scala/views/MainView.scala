@@ -141,7 +141,7 @@ object MainView {
       upButton(state),
       channels(state),
       newGroupButton(state),
-      //      userStatus(state),
+      authentication(state),
       br(),
       //      dataImport(state),
       br(),
