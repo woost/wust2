@@ -284,9 +284,9 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           ), existingUser as (
             DELETE FROM "user" WHERE id = ${lift(implicitId)} AND isimplicit = true AND EXISTS (SELECT id FROM "user" WHERE id = ${lift(userId)} AND isimplicit = false) RETURNING id
           ), update as (
-            DELETE FROM membership using existingUser WHERE userid = existingUser.id RETURNING groupId
+            DELETE FROM membership using existingUser WHERE userid = existingUser.id RETURNING postid
           )
-          INSERT INTO membership select groupid, ${lift(userId)} from update ON CONFLICT DO NOTHING;
+          INSERT INTO membership select postid, ${lift(userId)} from update ON CONFLICT DO NOTHING;
         """.as[Delete[User]] }
 
         //TODO: cannot detect failures?
