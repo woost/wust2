@@ -17,7 +17,6 @@ sealed trait User {
 }
 object User {
   sealed trait Persisted extends User
-//  @derive((id, revision) => Equality)
   case class Real(id: UserId, name: String, revision: Int) extends Persisted {
     def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
 
@@ -35,7 +34,6 @@ object User {
     }
   }
 
-//  @derive((id, revision) => Equality)
   case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
     def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
 
