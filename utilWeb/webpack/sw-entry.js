@@ -43,7 +43,7 @@ function currentAuth() {
 }
 
 function getPublicKey() {
-    return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST' });
+    return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST', body: '{}' }); // TODO: use empty payload?
 }
 
 function sendSubscriptionToBackend(subscription) {
@@ -74,11 +74,13 @@ function sendSubscriptionToBackend(subscription) {
     }));
 }
 
-
 // startup
 log("ServiceWorker starting!");
 const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
 self.registration.pushManager.getSubscription().then(sendSubscriptionToBackend, t => warn("Failed to get subscription", t));
+
+// to test push renewal, trigger event manually:
+// setTimeout(() => self.dispatchEvent(new ExtendableEvent("pushsubscriptionchange")), 3000);
 
 self.addEventListener('push', e => {
     log("ServiceWorker received push notification", e);
@@ -131,20 +133,21 @@ self.addEventListener('notificationclick', e => {
     );
 });
 
+//TODO: integration test!
 self.addEventListener('pushsubscriptionchange', e => {
     log("ServiceWorker received pushsubscriptionchange event", e);
     // resubscribe and send new subscription to backend
     e.waitUntil(
-        getPublicKey().flatMap(publicKey => {
-            log("Got public key: " + publicKey)
+        getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
             if (publicKey) {
                 return self.registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: publicKey
+                    applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
                 }).flatMap(sendSubscriptionToBackend);
             } else {
                 return Promise.empty;
             }
-        })
+        }
+        ))
     );
 });
