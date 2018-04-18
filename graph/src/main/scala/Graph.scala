@@ -125,10 +125,11 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val allParentIdsTopologicallySortedByParents:Iterable[PostId] = allParentIds.topologicalSortBy(parents) //TODO: ..ByChildren.reverse?
 
   override def toString: String =
-    s"Graph(${posts.map(_.id).mkString(" ")}, " +
-    s"${connectionsByLabel.values.flatten.map(c => s"${c.sourceId}-[${c.label}]->${c.targetId}").mkString(", ")}, " +
-    s"users: $userIds, " +
-    s"memberships: ${memberships.map(o => s"${o.userId} -> ${o.postId}").mkString(", ")})"
+    s"Graph(${posts.map(_.id.takeRight(4)).mkString(" ")}, " +
+    s"${connectionsByLabel.values.flatten.map(c => s"${c.sourceId.takeRight(4)}-[${c.label}]->${c.targetId.takeRight(4)}").mkString(", ")}, " +
+    s"users: ${userIds.map(_.takeRight(4))}, " +
+    s"memberships: ${memberships.map(o => s"${o.userId.takeRight(4)} -> ${o.postId.takeRight(4)}").mkString(", ")})"
+
   def toSummaryString = s"Graph(posts: ${posts.size}, containments; ${containments.size}, connections: ${connectionsWithoutParent.size}, users: ${users.size}, memberships: ${memberships.size})"
 
   private lazy val postDefaultNeighbourhood = postsById.mapValues(_ => Set.empty[PostId]).withDefaultValue(Set.empty[PostId])
