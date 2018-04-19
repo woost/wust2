@@ -103,6 +103,7 @@ object MainViewParts {
         for {
           _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
         } {
+          state.view() = View.default
           state.page() = Page(post.id)
           state.highLevelPosts.update(post :: _)
         }
@@ -161,5 +162,13 @@ object MainViewParts {
     } else Seq(id)
 
     page.copy(parentIds = newParents)
-  } --> state.page
+    } --> sideEffect { page =>
+      state.view() = View.default
+      state.page() = page
+      //TODO: Why does Var.set not work?
+      // Var.set(
+      //   state.page -> page,
+      //   state.view -> view
+      // )
+    }
 }
