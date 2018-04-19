@@ -16,11 +16,13 @@ object PageStyle {
     private[PageStyle] val border = RGB("#95CCDF").hcl
   }
 
-  def apply(page:Page) = {
+  def apply(view: View, page:Page) = {
+    val pageColors = view match {
+      case _: LoginView.type => None
+      case _ => NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut):List[Color]).map(mixColors)
+    }
 
-    val mixedDirectParentColors = NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut):List[Color]).map(mixColors)
-    val baseHue = mixedDirectParentColors.map(_.hcl.h)
-
+    val baseHue = pageColors.map(_.hcl.h)
     def withBaseHueDefaultGray(base:HCL) = baseHue.fold(LAB(base.l, 0, 0):Color)(hue => HCL(hue, base.c, base.l))
 
     new PageStyle(
