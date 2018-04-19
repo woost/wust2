@@ -33,7 +33,7 @@ object LoginView extends View {
               }
             })
           ),
-          button("Already a user? Login", onClick(false) --> isSignup)
+          button("Already a user?", onClick(false) --> isSignup)
         )
         case false => div(
           input(tpe := "text", onChange.value --> userName),
@@ -45,7 +45,7 @@ object LoginView extends View {
               }
             })
           ),
-          button("Want to join? Signup", onClick(true) --> isSignup)
+          button("Want to join?", onClick(true) --> isSignup)
         )
       }
     )
