@@ -8,6 +8,7 @@ import rx._
 import wust.ids._
 import wust.graph._
 import wust.sdk.{ChangesHistory, SyncMode}
+import wust.util.RichBoolean
 import wust.utilWeb._
 import wust.utilWeb.outwatchHelpers._
 
@@ -68,7 +69,7 @@ object MainViewParts {
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
     state.currentUser.map {
       case user: User.Assumed => login(state)
-      case user: User.Implicit => div(login(state), logout)
+      case user: User.Implicit => login(state)
       case user: User.Real => logout
     }
   )
@@ -141,10 +142,9 @@ object MainViewParts {
           cursor.pointer,
           backgroundColor := baseColor(p.id).toHex,
           onChannelClick(p.id)(state),
-          if(state.page().parentIds.contains(p.id)) Seq(
+          state.page().parentIds.contains(p.id).ifTrueSeq(Seq(
             borderLeft := "4px solid",
-            borderColor := state.pageStyle().bgColor.toHex)
-          else Option.empty[VDomModifier]
+            borderColor := state.pageStyle().bgColor.toHex))
         )}
       }
     )

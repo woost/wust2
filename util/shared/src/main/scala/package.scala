@@ -39,6 +39,9 @@ package object util {
   }
 
   implicit class RichBoolean(val b: Boolean) extends AnyVal {
-    final def option[A](a: => A): Option[A] = if (b) Some(a) else None
+    final def ifTrueSeq[A](a: => Seq[A]): Seq[A] = ifTrue(a)
+    final def ifTrueSet[A](a: => Set[A]): Set[A] = ifTrue(a)
+    final def ifTrueOption[A](a: => A): Option[A] = ifTrue(Option(a))
+    final def ifTrue[A](a: => A)(implicit e: Empty[A]): A = if (b) a else e.empty
   }
 }
