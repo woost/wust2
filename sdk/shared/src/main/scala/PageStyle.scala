@@ -1,4 +1,4 @@
-package wust.utilWeb.views
+package wust.webApp.views
 
 import cats.data.NonEmptyList
 import colorado.{Color, HCL, LAB, RGB}

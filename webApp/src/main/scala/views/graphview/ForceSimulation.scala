@@ -13,11 +13,11 @@ import rx._
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
 import wust.sdk.PostColor._
-import wust.utilWeb.GlobalState
+import wust.webApp.GlobalState
 import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
 import wust.ids.{Label, PostId}
-import wust.utilWeb.outwatchHelpers._
+import wust.webApp.outwatchHelpers._
 import wust.util.time.time
 
 import scala.concurrent.Promise

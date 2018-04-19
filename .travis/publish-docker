@@ -10,7 +10,6 @@ docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
 docker push woost/db-migration
 docker push woost/core
 docker push woost/web
-docker push woost/pwa
 docker push woost/github
 docker push woost/gitter
 docker push woost/slack
