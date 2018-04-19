@@ -28,10 +28,7 @@ object User {
       case _ => false
     }
 
-    override def hashCode(): Int = {
-      val state = Seq(id, revision)
-      state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
-    }
+    override def hashCode(): Int = (id, revision).hashCode
   }
 
   case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
@@ -45,10 +42,7 @@ object User {
       case _ => false
     }
 
-    override def hashCode(): Int = {
-      val state = Seq(id, revision)
-      state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
-    }
+    override def hashCode(): Int = (id, revision).hashCode
 
   }
 
