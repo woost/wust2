@@ -1,7 +1,7 @@
 package wust.utilWeb
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.annotation.JSGlobal
 import org.scalajs.dom.experimental.{ Notification, NotificationOptions }
 import org.scalajs.dom.experimental.serviceworkers.ServiceWorkerRegistration
 import org.scalajs.dom
@@ -14,6 +14,7 @@ trait ServiceWorkerRegistrationWithNotifications extends ServiceWorkerRegistrati
 }
 
 @js.native
+@JSGlobal
 class GetNotificationOptions(val tag: String) extends js.Object
 
 object GetNotificationOptions {
