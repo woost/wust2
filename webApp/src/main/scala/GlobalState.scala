@@ -93,7 +93,7 @@ class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: C
   }
 
   val pageStyle = Rx {
-    PageStyle(page())
+    PageStyle(view(), page())
   }
 
   // be aware that this is a potential memory leak.
