@@ -122,8 +122,8 @@ lazy val webSettings = Seq(
       "copy-webpack-plugin" -> "4.5.1" ::
       Nil,
 
-    version in webpack := "4.4.1",
-    version in startWebpackDevServer := "3.1.1",
+    version in webpack := "4.6.0",
+    version in startWebpackDevServer := "3.1.3",
 
     webpackResources := (baseDirectory.value / ".." / "utilWeb" / "webpack" ** "*.*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack.config.prod.js"),
