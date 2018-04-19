@@ -8,11 +8,12 @@ import wust.sdk.PostColor._
 import rx._
 import wust.ids._
 import wust.graph._
-import wust.sdk.{ChangesHistory, SyncMode}
+import wust.sdk.{ChangesHistory, SyncMode, PostColor}
 import wust.util.RichBoolean
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.{LoginView, View}
+import views.PageStyle
 
 import scala.scalajs.js.Date
 
@@ -131,10 +132,10 @@ object MainViewParts {
           cursor.pointer,
           onChannelClick(p.id)(state),
           title := p.id,
-          if(state.page().parentIds.contains(p.id)) Seq(
+          state.page().parentIds.contains(p.id).ifTrueSeq(Seq(
             color := state.pageStyle().darkBgColor.toHex,
-            backgroundColor := state.pageStyle().darkBgColorHighlight.toHex)
-          else Option.empty[VDomModifier]
+            backgroundColor := state.pageStyle().darkBgColorHighlight.toHex
+          ))
         )}
       }
     )
@@ -146,18 +147,18 @@ object MainViewParts {
       Rx {
         state.highLevelPosts().map{p => div(
           margin := "0",
-          padding := "0",
+          padding := "3px",
           width := "30px",
           height := "30px",
           cursor.pointer,
-          backgroundColor := baseColor(p.id).toHex,
           onChannelClick(p.id)(state),
-          state.page().parentIds.contains(p.id).ifTrueSeq(Seq(
-            borderLeft := "4px solid",
-            borderColor := state.pageStyle().bgColor.toHex))
+          backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(p.id)).toHex, //TODO: make different post color tones better accessible
+          Avatar.post(p.id)(
+            opacity := (if(state.page().parentIds.contains(p.id)) 1.0 else 0.6)
+          )
         )}
       }
-    )
+      )
   }
 
   private def onChannelClick(id: PostId)(state: GlobalState)(implicit ctx: Ctx.Owner) = onClick.map { e =>
