@@ -1,5 +1,6 @@
 package wust.webApp
 
+import io.circe.Decoder.state
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -11,7 +12,7 @@ import wust.sdk.{ChangesHistory, SyncMode}
 import wust.util.RichBoolean
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{View,LoginView}
+import wust.webApp.views.{LoginView, View}
 
 import scala.scalajs.js.Date
 
@@ -111,6 +112,13 @@ object MainViewParts {
 
         ()
       })
+  }
+
+  def newGroupPage(state: GlobalState)(implicit owner:Ctx.Owner):VNode = {
+    div(
+      display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
+      newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
+    )
   }
 
   def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
