@@ -28,11 +28,11 @@ object LoginView extends View {
           input(tpe := "text", onChange.value --> userName),
           input(tpe := "password", onChange.value --> password),
           button("Signup",
-            onClick(userName.combineLatest(password)) --> sideEffect(_ match { // TODO: should work with case?
+            onClick(userName.combineLatest(password)) --> sideEffect[(String, String)] {
               case (userName, password) =>  Client.auth.register(userName, password).foreach { success =>
                 if (success) state.view() = View.default
               }
-            })
+            }
           ),
           button("Already a user?", onClick(false) --> isSignup)
         )
@@ -40,11 +40,11 @@ object LoginView extends View {
           input(tpe := "text", onChange.value --> userName),
           input(tpe := "password", onChange.value --> password),
           button("Login",
-            onClick(userName.combineLatest(password)) --> sideEffect(_ match { // TODO: should work with case?
+            onClick(userName.combineLatest(password)) --> sideEffect[(String, String)] {
               case (userName, password) =>  Client.auth.login(userName, password).foreach { success =>
                 if (success) state.view() = View.default
               }
-            })
+            }
           ),
           button("Want to join?", onClick(true) --> isSignup)
         )
