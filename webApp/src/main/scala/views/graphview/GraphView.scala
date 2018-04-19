@@ -29,7 +29,7 @@ object GraphView {
 
     div(
       height := "100%",
-      controls.option {
+      controls.ifTrueOption {
         div(
           position := "absolute",
           zIndex := 10,
