@@ -10,6 +10,8 @@ const appName = commons.woost.appName;
 const cssFiles = commons.woost.cssFiles;
 module.exports = commons.webpack;
 
+module.exports.mode = 'development';
+
 module.exports.output.path = Path.join(__dirname, "dev");
 
 ////////////////////////////////////////
