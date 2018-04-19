@@ -27,7 +27,6 @@ object Main {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
     View.list =
-      ChatGraphView ::
       ChatView ::
       //    BoardView ::
       //    MyBoardView ::

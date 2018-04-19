@@ -25,9 +25,14 @@ object View {
 
   def default = list.head
 
-  def fromString: Map[String,View] = {
-    val map:Map[String,View] = list.map(v => v.key -> v)(breakOut)
-    map.withDefaultValue(default)
+  def getString(key: String): View = {
+    val viewMap = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default) //TODO if list not a var, can be value
+    val splitted = key.split(TiledView.separator)
+    if (splitted.size == 1) {
+      viewMap(splitted(0))
+    } else {
+      new TiledView(splitted.map(viewMap)(breakOut))
+    }
   }
 }
 
