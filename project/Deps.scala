@@ -42,7 +42,7 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "08fc8de")
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("io.github.outwatch" % "outwatch" % "9dda3c2")
+  val outwatch = dep("io.github.cornerman" % "outwatch" % "8b626d")
 
   // utility
   val scribe = dep("com.outr" %%% "scribe" % "2.3.2")

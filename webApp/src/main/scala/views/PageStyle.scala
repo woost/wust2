@@ -10,10 +10,10 @@ import scala.collection.breakOut
 object PageStyle {
   object Color {
     //TODO: ensure that these are calculated at compile time
-    private[PageStyle] val baseBg = RGB("#F3EFCC").hcl
-    private[PageStyle] val baseBgDark = RGB("#4D394B").hcl
-    private[PageStyle] val baseBgDarkHighlight = RGB("#9D929B").hcl
-    private[PageStyle] val border = RGB("#95CCDF").hcl
+    val baseBg = RGB("#F3EFCC").hcl
+    val baseBgDark = RGB("#4D394B").hcl
+    val baseBgDarkHighlight = RGB("#9D929B").hcl
+    val border = RGB("#95CCDF").hcl
   }
 
   def apply(view: View, page:Page) = {

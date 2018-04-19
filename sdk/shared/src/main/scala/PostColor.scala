@@ -1,4 +1,5 @@
 package wust.sdk
+
 import cats.data.NonEmptyList
 import colorado._
 import wust.graph.Graph
@@ -9,7 +10,13 @@ object PostColor {
 
   val postDefaultColor = RGB("#f8f8f8")
 
-  @inline def baseHue(id: PostId):Int = (id.hashCode * 137) % 360
+  def genericBaseHue(seed:Any):Double = {
+    val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
+    rnd.nextDouble()*Math.PI*2
+  }
+
+
+  @inline def baseHue(id: PostId):Double = genericBaseHue(id)
   def baseColor(id: PostId) = HCL(baseHue(id), 50, 75)
   def baseColorDark(id: PostId) = HCL(baseHue(id), 65, 60)
   def baseColorMixedWithDefault(id: PostId) = mixColors(HCL(baseHue(id), 50, 75), postDefaultColor)
