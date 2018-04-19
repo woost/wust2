@@ -49,6 +49,11 @@ object Main {
 
     val state = new GlobalState(updateReady)
 
+    View.list =
+      ChatView ::
+      LoginView ::
+      Nil
+
     state.currentAuth.foreach(IndexedDbOps.storeAuth)
 
     Client.observable.event.foreach { events =>
