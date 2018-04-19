@@ -27,7 +27,7 @@ object ViewConfig {
   }
 
   private def pathToViewConfig(path: Path) = {
-    val page = View.fromString(path.name)
+    val page = View.getString(path.name)
     val selection = path.options.get("page").map(PathOption.StringList.parse) match {
       case Some(ids) => Page(ids.map(PostId(_)))
       case None      => Page.empty
