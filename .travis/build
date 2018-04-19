@@ -4,6 +4,8 @@ set -o pipefail
 
 export CI=true # also set by travis, but helps when running locally
 
+# We compile integration tests here, since the compiler is already hot and gives us a faster feedback
+
 sbt \
  -Dquill.macro.log=false \
  compile \

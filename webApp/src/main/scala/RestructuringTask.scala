@@ -1,21 +1,21 @@
 package wust.webApp
 
-import wust.utilWeb.outwatchHelpers._
+import wust.webApp.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.utilWeb.views.Elements._
-import wust.utilWeb.views.Placeholders
-import wust.utilWeb.views.Rendered._
-import wust.utilWeb._
+import wust.webApp.views.Elements._
+import wust.webApp.views.Placeholders
+import wust.webApp.views.Rendered._
+import wust.webApp._
 import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
 import wust.graph.{Connection, Graph, GraphChanges, Post}
 import wust.ids._
-import wust.utilWeb._
+import wust.webApp._
 
 import scala.collection.breakOut
 import scala.concurrent.{Future, Promise}

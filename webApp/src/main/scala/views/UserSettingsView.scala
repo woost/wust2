@@ -6,9 +6,9 @@ import outwatch.{ObserverSink, Sink}
 import rx._
 import wust.graph._
 import wust.ids.{PostId, UserId}
-import wust.utilWeb._
-import wust.utilWeb.outwatchHelpers._
-import wust.utilWeb.views._
+import wust.webApp._
+import wust.webApp.outwatchHelpers._
+import wust.webApp.views._
 
 object UserSettingsView extends View {
   override val key = "usersettings"

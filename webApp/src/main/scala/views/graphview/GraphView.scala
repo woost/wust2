@@ -7,9 +7,9 @@ import views.graphview.ForceSimulation
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.utilWeb.GlobalState
-import wust.utilWeb.outwatchHelpers._
-import wust.utilWeb.views.View
+import wust.webApp.GlobalState
+import wust.webApp.outwatchHelpers._
+import wust.webApp.views.View
 
 import scala.scalajs.LinkingInfo
 

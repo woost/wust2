@@ -1,7 +1,7 @@
 target/
 /phantomjsdriver.log
 /*-backup.sql*
-/utilWeb/project-root
+/webApp/project-root
 
 /.idea
 #/.git
