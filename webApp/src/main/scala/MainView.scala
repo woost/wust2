@@ -79,14 +79,10 @@ object MainView {
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
         if (state.page().parentIds.nonEmpty) {
-          state.view().apply(state)(owner)(flexGrow := 1)
+          state.view().apply(state)
         } else {
-          div(
-            flexGrow := 1,
-            display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
-            newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
-          )
-        }
+          newGroupPage(state)
+        }.apply(flexGrow := 1)
       }
     )
   }
