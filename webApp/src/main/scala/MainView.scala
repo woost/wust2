@@ -78,11 +78,11 @@ object MainView {
       sidebar(state)(owner).map(_(flexGrow := 0, flexShrink := 0)),
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
-        if (state.page().parentIds.nonEmpty) {
+        (if (state.page().parentIds.nonEmpty) {
           state.view().apply(state)
         } else {
           newGroupPage(state)
-        }.apply(flexGrow := 1)
+        }).apply(flexGrow := 1)
       }
     )
   }
