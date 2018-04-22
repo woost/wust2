@@ -4,7 +4,6 @@ import wust.webApp.Avatar
 import outwatch.dom.VNode
 import rx.Ctx
 import wust.webApp.GlobalState
-import wust.webApp.views.View
 import outwatch.dom.dsl._
 import outwatch.dom._
 import outwatch._
