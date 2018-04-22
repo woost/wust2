@@ -153,8 +153,8 @@ object MainViewParts {
           cursor.pointer,
           onChannelClick(p.id)(state),
           backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(p.id)).toHex, //TODO: make different post color tones better accessible
+            opacity := (if(state.page().parentIds.contains(p.id)) 1.0 else 0.75),
           Avatar.post(p.id)(
-            opacity := (if(state.page().parentIds.contains(p.id)) 1.0 else 0.6)
           )
         )}
       }
