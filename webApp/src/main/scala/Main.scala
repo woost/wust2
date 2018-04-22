@@ -3,6 +3,7 @@ package wust.webApp
 import org.scalajs.dom._
 
 import scala.scalajs.js.Dynamic.global
+import scala.scalajs.js
 import wust.api.{ApiEvent, Authentication}
 import wust.ids._
 import wust.graph.{Graph, GraphChanges, Page}
@@ -14,41 +15,22 @@ import wust.webApp.views._
 import rx._
 import cats._
 import wust.webApp.views.graphview.GraphView
-
+import scala.util.{Success,Failure}
 
 object Main {
-  Logging.setup()
-
-  // require offline plugin, setup in webpack
-  val updateReady:Rx[Eval[Unit]] = Rx.create(Eval.Unit) { ready =>
-    OfflinePlugin.install(new OfflinePluginConfig {
-      def onUpdating(): Unit = {
-        scribe.info("SW: onUpdating")
-      }
-      def onUpdateReady(): Unit = {
-        // fires when all required assets are downloaded and ready to be updated. In this callback, you can either call runtime.applyUpdate() to apply updates directly, or in some way prompt for user input, and then apply them.
-        scribe.info("SW: onUpdateReady")
-        OfflinePlugin.applyUpdate()
-      }
-      def onUpdated(): Unit = {
-        scribe.info("SW: onUpdated")
-        //TODO: better update strategy
-        //TODO: how is the update interval configured?
-        ready() = Eval.later( window.location.reload() )
-      }
-      def onUpdateFailed(): Unit = {
-        scribe.info("SW: onUpdateFailed")
-      }
-    })
-  }
 
   // require default passive events for scroll/mouse/touch events
   // global.require("default-passive-events")
 
   def main(args: Array[String]): Unit = {
+    Logging.setup()
+
+    ServiceWorker.register()
+
+
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-    val state = new GlobalState(updateReady)
+    val state = new GlobalState()
 
     state.currentAuth.foreach(IndexedDbOps.storeAuth)
 
@@ -62,5 +44,24 @@ object Main {
     }
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
+  }
+}
+
+object ServiceWorker {
+  import org.scalajs.dom.experimental.serviceworkers._
+
+  def register():Unit = {
+    // Check that service workers are registered
+    // TODO: check if serviceWorker exists in navigator. probably with js.Dynamic
+    // if ('serviceWorker' in navigator) {
+      // Use the window load event to keep the page load performant
+      window.addEventListener("load", (_:Any) => {
+        //TODO: disable HTTP-cache for this service-worker
+        window.navigator.asInstanceOf[ServiceWorkerNavigator].serviceWorker.register("sw.js").toFuture.onComplete { 
+          case Success(registration) => console.log("SW registered: ", registration)
+          case Failure(registrationError) => console.warn("SW registration failed: ", registrationError.toString)
+        }
+      })
+    // }
   }
 }

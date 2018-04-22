@@ -1,3 +1,5 @@
+workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
+
 warn = s => console.warn("[SW] " + s);
 log = s => console.log("[SW] " + s);
 error = s => console.error("[SW] " + s);
