@@ -117,9 +117,9 @@ lazy val webSettings = Seq(
       "css-loader" -> "0.28.11" ::
       "style-loader" -> "0.20.3" ::
       "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
-      "offline-plugin" -> "4.9.0" ::
       "webpack-merge" -> "4.1.2" ::
       "copy-webpack-plugin" -> "4.5.1" ::
+      "workbox-webpack-plugin" -> "3.1.0" ::
       Nil,
 
     version in webpack := "4.6.0",

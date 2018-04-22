@@ -1,15 +1,11 @@
-const OfflinePlugin = require("offline-plugin");
+const {InjectManifest} = require('workbox-webpack-plugin');
 
-// https://github.com/NekR/offline-plugin/blob/master/docs/options.md
 module.exports = {
     plugins: [
-        new OfflinePlugin({
-            ServiceWorker: {
-                minify: false,
-                events: true,
-                entry: "../../../../../webApp/src/js/sw-entry.js"
-            },
-            AppCache: false
+        new InjectManifest({
+            swSrc: '../../../../../webApp/src/js/sw-entry.js',
+            swDest: 'sw.js',
+            importWorkboxFrom: 'local', // will copy all of the Workbox runtime libraries into a versioned directory alongside your generated service worker, and configure the service worker to use those local copies. 
         })
     ]
-}
+};
