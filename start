@@ -49,7 +49,7 @@ fi
 
 function self() {
     case "$1" in
-    migrateStudy)
+    migrateStudy) # TODO: Julius: remove
         # Cleanup
         env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
@@ -64,7 +64,7 @@ function self() {
 
         docker stop devcore_core_1
         ;;
-    taskStudy)
+    taskStudy) # TODO: Julius: remove
         # Cleanup
         env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
@@ -145,6 +145,17 @@ function self() {
         export $env_wust_version $env_postgres_secret $env_wust_local_connectivity
         sbt dbMigration/docker
         docker_compose core dev run db-migration
+        ;;
+    prodlocal)
+        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
+        echo -e "- ENV: \e[1m\e[32m$env\e[0m"
+        export $env
+        sbt webApp/clean docker
+        docker_compose webApp dev up -d
+        docker_compose core dev up -d db-migration
+        sbt dev
+        # then open: (slash in the end is important)
+        # http://localhost:12345/apps/web/ 
         ;;
     test)
         sbt docker
