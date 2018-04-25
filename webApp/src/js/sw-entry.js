@@ -1,5 +1,20 @@
 workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
 
+// cache google fonts
+workbox.routing.registerRoute(
+  new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
+  workbox.strategies.cacheFirst({
+    cacheName: 'googleapis',
+    plugins: [
+      new workbox.expiration.Plugin({
+        maxEntries: 30,
+      }),
+    ],
+  }),
+);
+
+/////////////////////////////////////////
+
 warn = s => console.warn("[SW] " + s);
 log = s => console.log("[SW] " + s);
 error = s => console.error("[SW] " + s);
