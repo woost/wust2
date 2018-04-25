@@ -275,10 +275,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
       if (implicitId == userId) Future.successful(false)
       else ctx.transaction { implicit ec =>
-        val q = quote {
-          infix"""select mergeFirstUserIntoSecond(${lift(implicitId)}, ${lift(userId)})""".as[Delete[User]]
+        get(implicitId).flatMap { user =>
+          val isAllowed = user.fold(false)(_.isImplicit)
+          if (isAllowed) {
+            val q = quote {
+              infix"""select mergeFirstUserIntoSecond(${lift(implicitId)}, ${lift(userId)})""".as[Delete[User]]
+            }
+            ctx.run(q).map(_ == 1)
+          } else Future.successful(false)
         }
-        ctx.run(q).map(_ == 1)
       }
     }
 
