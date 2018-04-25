@@ -11,6 +11,7 @@ import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
+import cats.effect.IO
 
 object LoginView extends View {
   override val key = "login"
@@ -21,6 +22,7 @@ object LoginView extends View {
     isSignup <- Handler.create[Boolean](true)
     userName <- Handler.create[String]
     password <- Handler.create[String]
+    nameAndPassword <- IO(userName.combineLatest(password))
     elem <- div (
       maxWidth := "400px", width := "400px",
       maxHeight := "400px", height := "400px",
@@ -28,10 +30,10 @@ object LoginView extends View {
       isSignup.map {
         case true => div(
           h2("Create an account"),
-          input(tpe := "text", placeholder := "Username", display.block, margin := "auto", onInput.value --> userName),
-          input(tpe := "password", placeholder := "Password", display.block, margin := "auto", onInput.value --> password),
+          input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
+          input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password),
           button("Signup", display.block, margin := "auto",
-            onClick(userName.combineLatest(password)) --> sideEffect[(String, String)] {
+            onClick(nameAndPassword) --> sideEffect[(String, String)] {
               case (userName, password) =>  Client.auth.register(userName, password).foreach {
                 case true => state.view() = View.default
                 case false => ()
@@ -44,10 +46,10 @@ object LoginView extends View {
         )
         case false => div(
           h2("Login with existing account"),
-          input(tpe := "text", placeholder := "Username", display.block, margin := "auto", onInput.value --> userName),
-          input(tpe := "password", placeholder := "Password", display.block, margin := "auto", onInput.value --> password),
+          input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
+          input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password),
           button("Login", display.block, margin := "auto",
-            onClick(userName.combineLatest(password)) --> sideEffect[(String, String)] {
+            onClick(nameAndPassword) --> sideEffect[(String, String)] {
               case (userName, password) =>  Client.auth.login(userName, password).foreach {
                 case true => state.view() = View.default
                 case false => ()
