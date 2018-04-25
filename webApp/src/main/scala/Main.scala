@@ -1,22 +1,14 @@
 package wust.webApp
 
-import org.scalajs.dom._
-
-import scala.scalajs.js.Dynamic.global
-import scala.scalajs.js
-import wust.api.{ApiEvent, Authentication}
-import wust.ids._
-import wust.graph.{Graph, GraphChanges, Page}
-import wust.webApp._
+import org.scalajs.dom.{window, _}
 import outwatch.dom._
-import org.scalajs.dom.window
-import dsl._
-import wust.webApp.outwatchHelpers._
-import wust.webApp.views._
 import rx._
-import cats._
-import wust.webApp.views.graphview.GraphView
-import scala.util.{Success,Failure}
+import wust.api.ApiEvent
+import wust.graph.GraphChanges
+import wust.webApp.outwatchHelpers._
+
+import scala.scalajs.js
+import scala.util.{Failure, Success}
 
 object Main {
 
@@ -24,6 +16,7 @@ object Main {
   // global.require("default-passive-events")
 
   def main(args: Array[String]): Unit = {
+
     Logging.setup()
 
     ServiceWorker.register()
@@ -50,9 +43,7 @@ object Main {
 
 object Navigator {
   import org.scalajs.dom.experimental.permissions._
-  import org.scalajs.dom.experimental.push._
   import org.scalajs.dom.experimental.serviceworkers._
-  import org.scalajs.dom.experimental.{Notification, NotificationOptions}
 
   val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
   val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
