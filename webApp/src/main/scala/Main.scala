@@ -9,6 +9,7 @@ import wust.ids._
 import wust.graph.{Graph, GraphChanges, Page}
 import wust.webApp._
 import outwatch.dom._
+import org.scalajs.dom.window
 import dsl._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views._
@@ -47,21 +48,27 @@ object Main {
   }
 }
 
-object ServiceWorker {
+object Navigator {
+  import org.scalajs.dom.experimental.permissions._
+  import org.scalajs.dom.experimental.push._
   import org.scalajs.dom.experimental.serviceworkers._
+  import org.scalajs.dom.experimental.{Notification, NotificationOptions}
+
+  val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
+  val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
+}
+
+object ServiceWorker {
 
   def register():Unit = {
-    // Check that service workers are registered
-    // TODO: check if serviceWorker exists in navigator. probably with js.Dynamic
-    // if ('serviceWorker' in navigator) {
-      // Use the window load event to keep the page load performant
+    // Use the window load event to keep the page load performant
+    Navigator.serviceWorker.foreach { sw =>
       window.addEventListener("load", (_:Any) => {
-        //TODO: disable HTTP-cache for this service-worker
-        window.navigator.asInstanceOf[ServiceWorkerNavigator].serviceWorker.register("sw.js").toFuture.onComplete { 
+        sw.register("sw.js").toFuture.onComplete { 
           case Success(registration) => console.log("SW registered: ", registration)
           case Failure(registrationError) => console.warn("SW registration failed: ", registrationError.toString)
         }
       })
-    // }
+    }
   }
 }

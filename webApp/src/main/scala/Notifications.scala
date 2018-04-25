@@ -18,8 +18,7 @@ import scala.scalajs.js.typedarray._
 import scala.util.{Failure, Success}
 
 object Notifications {
-  private val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
-  private val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
+  import Navigator._
 
   //TODO: this fallback code is difficult to read and we want to model this state as a rx var.
   def permissionStateObservable(implicit ec: ExecutionContext) = {
