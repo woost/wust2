@@ -21,7 +21,7 @@ object View {
       LoginView ::
       // UserSettingsView ::
       new GraphView() ::
-      AvatarView ::
+      // AvatarView ::
       Nil
 
 
