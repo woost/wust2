@@ -2,25 +2,6 @@
     margin: 0px;
 }
 
-/* from: https://css-tricks.com/three-line-menu-navicon */
-.hamburger {
-  position: relative;
-  padding-left: 1.25em;
-  height: 1em;
-}
-.hamburger:before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.25em;
-  width: 1em;
-  height: 0.15em;
-  background: white;
-  box-shadow:
-    0 0.25em 0 0 white,
-    0 0.5em 0 0 white;
-}
-
 #viewgrid {
     width:100%;
     height:100%;

@@ -1,15 +1,11 @@
 package wust.webApp
 
 import org.scalajs.dom.experimental.permissions.PermissionState
-import wust.webApp._
-import wust.webApp.views._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp.outwatchHelpers._
 import rx._
-import wust.graph._
-
-import scala.scalajs.js.Date
+import wust.webApp.fontAwesome.freeSolid._
+import wust.webApp.outwatchHelpers._
 
 object MainView {
   import MainViewParts._
@@ -42,7 +38,7 @@ object MainView {
         if(state.sidebarOpen()) {
           div(
             backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-            div(cls := "hamburger", margin := "7px", onClick(false) --> state.sidebarOpen),
+            div(faBars, margin := "7px", onClick(false) --> state.sidebarOpen),
             id := "sidebar",
             flexBasis := "175px",
             color := "white",
@@ -59,7 +55,7 @@ object MainView {
         } else {
           div(
             backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-            div(cls := "hamburger", margin := "7px", onClick(true) --> state.sidebarOpen),
+            div(faBars, margin := "7px", onClick(true) --> state.sidebarOpen),
             id := "sidebar",
             flexBasis := "30px",
             color := "white",

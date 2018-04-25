@@ -1,23 +1,21 @@
 package wust.webApp
 
-import org.scalajs.dom.document
-import org.scalajs.dom.raw.Element
 import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
-import monix.reactive.subjects.PublishSubject
-import monix.reactive.{Observable, Observer}
-import monix.reactive.OverflowStrategy.Unbounded
-import monix.execution.Cancelable
 import monix.execution.Ack.Continue
-import outwatch.dom.{Attribute, Handler, OutWatch, StringModifier, VDomModifier, VNode}
-import outwatch.{AsVDomModifier, ObserverSink, Sink, StaticVNodeRender}
-import monix.execution.Scheduler
 import monix.execution.ExecutionModel.SynchronousExecution
-import outwatch.dom.helpers.{AttributeBuilder, BasicStyleBuilder, EmitterBuilder}
+import monix.execution.{Cancelable, Scheduler}
+import monix.reactive.Observable
+import monix.reactive.OverflowStrategy.Unbounded
+import org.scalajs.dom.document
+import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
+import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode}
+import outwatch.{AsVDomModifier, Sink, StaticVNodeRender}
 import rx._
-import concurrent.Future
+import wust.webApp.fontAwesome.{AbstractTree, IconDefinition, fontawesome}
 
-import scala.scalajs.js
+import scala.collection.breakOut
+import scala.concurrent.Future
 // Outwatch TODOs:
 // when writing: sink <-- obs; obs(action)
 // action is always triggered first, even though it is registered after subscribe(<--)
@@ -65,7 +63,6 @@ package object outwatchHelpers {
 
   implicit class RichVar[T](rxVar:Var[T])(implicit ctx: Ctx.Owner) {
     def toHandler: Handler[T] = {
-      import cats._, cats.data._, cats.implicits._
 
       val h = Handler.create[T](rxVar.now).unsafeRunSync()
       h.filter(_ != rxVar.now).foreach(rxVar.update)
@@ -74,7 +71,6 @@ package object outwatchHelpers {
     }
 
     def toSink: Sink[T] = {
-      import cats._, cats.data._, cats.implicits._
 
       Sink.create[T] { event =>
         rxVar.update(event)
@@ -125,4 +121,15 @@ package object outwatchHelpers {
     outwatch.dom.dsl.events.window.onKeyDown.collect { case e if e.keyCode == keyCode => true },
     outwatch.dom.dsl.events.window.onKeyUp.collect { case e if e.keyCode == keyCode => false },
     )
+
+  implicit def renderFaIcon(icondef:IconDefinition):VNode = {
+    import outwatch.dom.dsl.{attr, tag}
+    def abstractTreeToVNode(tree:AbstractTree):VNode = {
+      tag(tree.tag)(
+        tree.attributes.map{case (name,value) => attr(name) := value}(breakOut):Seq[VDomModifier],
+        tree.children.fold(Seq.empty[VNode]){_.map(abstractTreeToVNode)}
+      )
+    }
+    abstractTreeToVNode(fontawesome.icon(icondef).`abstract`(0))
+  }
 }

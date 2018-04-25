@@ -1,19 +1,16 @@
 package wust.webApp
 
-import io.circe.Decoder.state
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.sdk.PostColor._
 import rx._
-import wust.ids._
 import wust.graph._
-import wust.sdk.{ChangesHistory, SyncMode, PostColor}
+import wust.ids._
+import wust.sdk.{ChangesHistory, PostColor, SyncMode}
 import wust.util.RichBoolean
-import wust.webApp._
+import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{LoginView, View}
-import views.PageStyle
+import wust.webApp.views.{LoginView, PageStyle, View}
 
 import scala.scalajs.js.Date
 
@@ -84,8 +81,8 @@ object MainViewParts {
         div(
           display.flex,
           style("justify-content") := "space-evenly",
-          button("Undo", title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
-          button("Redo", title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
+          button(faUndo, title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
+          button(faRedo, title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
         )
       }
     )
