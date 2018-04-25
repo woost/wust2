@@ -51,7 +51,7 @@ class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: C
     // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
     // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
-    val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.storageAuthOrAssumed)
+    val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
     //TODO: better in rx/obs operations
     currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
 

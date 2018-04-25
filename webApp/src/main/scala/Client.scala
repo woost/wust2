@@ -46,16 +46,20 @@ object Client {
   val observable = factory.observable
   observable.connected.foreach { _ =>
     //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
-    loginStorageAuth()
+    loginStorageAuth(currentAuth).foreach {
+      case true => ()
+      case false =>
+        scribe.warn("Login failed, token is not valid.")
+        storage.auth() = None // forget invalid token
+        loginStorageAuth(initialAssumedAuth)
+    }
   }
 
   val storage = new ClientStorage
-  def storageAuthOrAssumed = storage.auth.now getOrElse initialAssumedAuth
+  def currentAuth = storage.auth.now getOrElse initialAssumedAuth
   private val initialAssumedAuth = Authentication.Assumed.fresh
-  private def loginStorageAuth(): Unit = storageAuthOrAssumed match {
-    case auth: Authentication.Assumed =>
-      factory.highPriority.auth.assumeLogin(auth.user.id).log("assume login with storage id")
-    case auth: Authentication.Verified =>
-      factory.highPriority.auth.loginToken(auth.token).log("login with storage token")
+  private def loginStorageAuth(auth: Authentication): Future[Boolean] = auth match {
+    case auth: Authentication.Assumed => factory.highPriority.auth.assumeLogin(auth.user.id)
+    case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
 }
