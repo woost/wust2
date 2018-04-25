@@ -22,9 +22,12 @@ object Notifications {
 
   //TODO: this fallback code is difficult to read and we want to model this state as a rx var.
   def permissionStateObservable(implicit ec: ExecutionContext) = {
-    permissionStateObservableOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
-      case t => permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
-    }
+    // TODO: we need to disbable permissiondescriptor for push-notifications, as firefox only supports normal notification as a permissiondescriptor when using permissions.query to get a change event.
+    // As push notification contains permissions for normal notifications, this should be enough.
+    //permissionStateObservableOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
+      //case t =>
+      permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
+    //}
   }
 
   def requestPermissions()(implicit ec: ExecutionContext): Unit = {
@@ -62,7 +65,7 @@ object Notifications {
     }
 
   private def permissionStateObservableOf(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Observable[PermissionState] = {
-    val subject = ReplaySubject[PermissionState]()
+    val subject = ReplaySubject[PermissionState]() //TODO should not be a replaysubject, just fixes a problem right now :)
     permissions.foreach { (permissions: Permissions) =>
       permissions.query(permissionDescriptor).toFuture.onComplete {
         case Success(desc) =>
