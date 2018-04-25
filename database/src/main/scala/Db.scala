@@ -272,25 +272,13 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
    //      // .recoverValue(None)
    // }
 
-    //TODO: http://stackoverflow.com/questions/5347050/sql-to-list-all-the-tables-that-reference-a-particular-column-in-a-table (at compile-time?)
-    //TODO: this needs to be tested and udpated
-    //TODO: missing push notifications
     def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
       if (implicitId == userId) Future.successful(false)
-      else {
-        val q = quote { infix"""
-          with postOwner as (
-            UPDATE rawpost SET author = ${lift(userId)} WHERE author = ${lift(implicitId)} RETURNING author
-          ), existingUser as (
-            DELETE FROM "user" WHERE id = ${lift(implicitId)} AND isimplicit = true AND EXISTS (SELECT id FROM "user" WHERE id = ${lift(userId)} AND isimplicit = false) RETURNING id
-          ), update as (
-            DELETE FROM membership using existingUser WHERE userid = existingUser.id RETURNING postid
-          )
-          INSERT INTO membership select postid, ${lift(userId)} from update ON CONFLICT DO NOTHING;
-        """.as[Delete[User]] }
-
-        //TODO: cannot detect failures?
-        ctx.run(q).map(_ => true)
+      else ctx.transaction { implicit ec =>
+        val q = quote {
+          infix"""select mergeFirstUserIntoSecond(${lift(implicitId)}, ${lift(userId)})""".as[Delete[User]]
+        }
+        ctx.run(q).map(_ == 1)
       }
     }
 
