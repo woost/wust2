@@ -20,7 +20,7 @@ import cats.data.NonEmptyList
 import scala.collection.breakOut
 
 
-class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: Ctx.Owner) {
+class GlobalState(implicit ctx: Ctx.Owner) {
 
   import GlobalState._
 
@@ -71,7 +71,6 @@ class GlobalState(updateRunner: Rx[Eval[Unit]] = Var(Eval.Unit))(implicit ctx: C
     }
 
   viewConfig.foreach { vc =>
-    updateRunner.now.value // usage: if service worker just updated itself, reload the page
     NonEmptyList.fromList(vc.page.parentIds.toList).foreach { ids =>
       Client.api.addCurrentUserAsMember(ids).foreach { _ =>
         Client.api.getGraph(vc.page).foreach { g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g)) }
