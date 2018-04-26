@@ -50,7 +50,7 @@ object MainView {
             div(
               display.flex, alignItems.baseline,
               // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-              div(faBars, padding := "7px", onClick --> sideEffect{ev => sidebarOpen() = false; ev.stopPropagation()}),
+              div(faBars, padding := "7px", cursor.pointer, onClick --> sideEffect{ev => sidebarOpen() = false; ev.stopPropagation()}),
               div("Woost", padding := "5px 5px", fontWeight.bold, fontSize := "18px"),
               syncStatus(state)(owner)(fontSize := "9px")
             ),
@@ -64,7 +64,7 @@ object MainView {
           )
         case false =>
           div(
-            div(faBars, padding := "7px", onClick(true) --> sidebarOpen),
+            div(faBars, padding := "7px", cursor.pointer, onClick(true) --> sidebarOpen),
             channelIcons(state)
           )
       }
