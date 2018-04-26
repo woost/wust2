@@ -15,14 +15,6 @@ import wust.webApp.views.{LoginView, PageStyle, View}
 import scala.scalajs.js.Date
 
 object MainViewParts {
-  val titleBanner: VNode = {
-      div(
-        "Woost",
-        fontWeight.bold,
-        fontSize := "20px",
-        marginBottom := "10px"
-      )
-  }
 
   def upButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     span(
