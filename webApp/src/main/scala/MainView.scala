@@ -35,29 +35,37 @@ object MainView {
   }
 
   def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): VNode = {
+    import state.sidebarOpen
+    state.sidebarOpen.debug("sidopen")
     div(
       id := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       color := "white",
-      div(faBars, margin := "7px", onClick.map(_ => !state.sidebarOpen.now) --> state.sidebarOpen),
       transition := "flex-basis 0.2s",
       overflowY.auto,
-      flexBasis <-- state.sidebarOpen.map {case true => "175px"; case false => "30px"},
-      state.sidebarOpen.map {
+      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
+      sidebarOpen.map {
         case true =>
           div(
-            div(padding := "8px 8px", titleBanner(syncStatus(state)(owner)(fontSize := "9px"))),
+            div(
+              display.flex, alignItems.baseline,
+              // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
+              div(faBars, padding := "7px", onClick --> sideEffect{ev => sidebarOpen() = false; ev.stopPropagation()}),
+              div("Woost", padding := "5px 5px", fontWeight.bold, fontSize := "18px"),
+              syncStatus(state)(owner)(fontSize := "9px")
+            ),
             undoRedo(state),
             br(),
             channels(state),
             br(),
             newGroupButton(state)(owner)(buttonStyle),
             authentication(state),
-            notificationSettings,
+            notificationSettings
           )
         case false =>
           div(
-            channelIcons(state),
+            div(faBars, padding := "7px", onClick(true) --> sidebarOpen),
+            channelIcons(state)
           )
       }
     )
