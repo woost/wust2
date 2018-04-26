@@ -55,7 +55,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   }
 
   val sidebarOpen: Var[Boolean] = {
-    LocalStorage.handler(keys.sidebarOpen).unsafeRunSync()
+    LocalStorage.handlerWithoutEvents(keys.sidebarOpen).unsafeRunSync()
       .imap(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
       .toVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
   }
