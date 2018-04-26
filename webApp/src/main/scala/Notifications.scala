@@ -1,7 +1,7 @@
 package wust.webApp
 
 import monix.reactive.Observable
-import monix.reactive.subjects.ReplaySubject
+import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom.experimental.permissions._
 import org.scalajs.dom.experimental.push._
 import org.scalajs.dom.experimental.serviceworkers._
@@ -65,7 +65,7 @@ object Notifications {
     }
 
   private def permissionStateObservableOf(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Observable[PermissionState] = {
-    val subject = ReplaySubject[PermissionState]() //TODO should not be a replaysubject, just fixes a problem right now :)
+    val subject = BehaviorSubject[PermissionState](Notification.permission.asInstanceOf[PermissionState])
     permissions.foreach { (permissions: Permissions) =>
       permissions.query(permissionDescriptor).toFuture.onComplete {
         case Success(desc) =>
@@ -81,9 +81,11 @@ object Notifications {
     subject
   }
 
+  private lazy val serverPublicKey = Client.push.getPublicKey()
+
   //TODO send message to serviceworker to manage this stuff for us
-  private def subscribeAndPersistWebPush()(implicit ec: ExecutionContext): Unit =
-    Client.push.getPublicKey().foreach {
+  def subscribeAndPersistWebPush()(implicit ec: ExecutionContext): Unit =
+    serverPublicKey.foreach {
       case Some(publicKey) =>
         val publicKeyBytes = new Uint8Array(Base64Codec.decode(publicKey).arrayBuffer())
         val options = PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = publicKeyBytes)
