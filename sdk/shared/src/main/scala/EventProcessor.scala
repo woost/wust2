@@ -136,9 +136,14 @@ class EventProcessor private(
 
     val rawGraph = PublishSubject[Graph]()
 
+    changes.foreach { c => println("[Events] Got local changes: " + c) }
+    enriched.changes.foreach { c => println("[Events] Got enriched local changes: " + c) }
+
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraph)(enrich)
     val allChanges = Observable.merge(enrichedChanges, changes)
     val rawLocalChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
+
+    allChanges.foreach { c => println("[Events] Got all local changes: " + c) }
 
     val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action).scan(ChangesHistory.empty) {
       case (history, ChangesHistory.NewChanges(changes)) => history.push(changes)
@@ -147,6 +152,8 @@ class EventProcessor private(
     }
 
     val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
+
+    localChanges.foreach { c => println("[Events] Got local changes after history: " + c) }
 
     val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
     val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
@@ -175,6 +182,8 @@ class EventProcessor private(
   private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
     BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
+  bufferedChanges.foreach { c => println("[Events] Got local changes buffered: " + c) }
+
   private val sendingChanges: Observable[Long] = Observable.tailRecM(bufferedChanges) { changes =>
     changes.flatMap { case (c, idx) =>
       Observable.fromFuture(sendChanges(c)).map {
@@ -188,6 +197,8 @@ class EventProcessor private(
       }
     }
   }.share
+
+  sendingChanges.foreach { c => println("[Events] Sending out changes done: " + c) }
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
     .combineLatest[Long](sendingChanges)
