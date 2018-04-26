@@ -41,9 +41,11 @@ object MainView {
       id := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       color := "white",
-      transition := "flex-basis 0.2s",
+      transition := "flex-basis 0.2s, background-color 0.5s",
       overflowY.auto,
-      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
+//      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
+      flexGrow := 1,
+
       sidebarOpen.map {
         case true =>
           div(
