@@ -136,13 +136,14 @@ object MainViewParts {
       Rx {
         state.highLevelPosts().map{p => div(
           margin := "0",
-          padding := "3px",
           width := "30px",
           height := "30px",
           cursor.pointer,
           onChannelClick(p.id)(state),
           backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(p.id)).toHex, //TODO: make different post color tones better accessible
             opacity := (if(state.page().parentIds.contains(p.id)) 1.0 else 0.75),
+            padding := (if(state.page().parentIds.contains(p.id)) "2px" else "4px"),
+            border := (if(state.page().parentIds.contains(p.id)) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = PostColor.genericBaseHue(p.id)).toHex}" else "none"),
           Avatar.post(p.id)(
           )
         )}
