@@ -1,6 +1,7 @@
 package wust.webApp
 
 import org.scalajs.dom.experimental.permissions.PermissionState
+import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -33,15 +34,18 @@ object MainView {
     )
   }
 
-  def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): Rx[VNode] = {
-      Rx {
-        if(state.sidebarOpen()) {
+  def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): VNode = {
+    div(
+      id := "sidebar",
+      backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
+      color := "white",
+      div(faBars, margin := "7px", onClick.map(_ => !state.sidebarOpen.now) --> state.sidebarOpen),
+      transition := "flex-basis 0.2s",
+      overflowY.auto,
+      flexBasis <-- state.sidebarOpen.map {case true => "175px"; case false => "30px"},
+      state.sidebarOpen.map {
+        case true =>
           div(
-            backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-            div(faBars, margin := "7px", onClick(false) --> state.sidebarOpen),
-            id := "sidebar",
-            flexBasis := "175px",
-            color := "white",
             div(padding := "8px 8px", titleBanner(syncStatus(state)(owner)(fontSize := "9px"))),
             undoRedo(state),
             br(),
@@ -50,20 +54,13 @@ object MainView {
             newGroupButton(state)(owner)(buttonStyle),
             authentication(state),
             notificationSettings,
-            overflowY.auto
           )
-        } else {
+        case false =>
           div(
-            backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-            div(faBars, margin := "7px", onClick(true) --> state.sidebarOpen),
-            id := "sidebar",
-            flexBasis := "30px",
-            color := "white",
             channelIcons(state),
-            overflowY.auto
           )
-        }
       }
+    )
   }
 
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
@@ -71,7 +68,7 @@ object MainView {
       height := "100%",
       width := "100%",
       display.flex,
-      sidebar(state)(owner).map(_(flexGrow := 0, flexShrink := 0)),
+      sidebar(state)(owner)(flexGrow := 0, flexShrink := 0),
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
         (if (state.page().parentIds.nonEmpty) {
