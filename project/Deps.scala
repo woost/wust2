@@ -69,7 +69,7 @@ object Deps {
   val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.16.0")
 
   // database
-  val quill = dep("io.getquill" %% "quill-async-postgres" % "2.3.3")
+  val quill = dep("io.getquill" %% "quill-async-postgres" % "2.4.2")
 
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here

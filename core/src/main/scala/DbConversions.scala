@@ -12,13 +12,15 @@ import wust.ids.EpochMilli
 object DbConversions {
 
   //TODO: faster time conversion?
-  val utc = ZoneId.ofOffset("UTC", ZoneOffset.UTC)
-  def epochMilliToLocalDateTime(t:EpochMilli):LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(t),utc)
+  def epochMilliToLocalDateTime(t:EpochMilli):LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(t),ZoneOffset.UTC)
   def localDateTimeToEpochMilli(t:LocalDateTime):EpochMilli = EpochMilli(t.toInstant(ZoneOffset.UTC).toEpochMilli)
 
 
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription = WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
-  implicit def forClient(post: Data.Post):Post = Post(post.id, post.content, post.author, localDateTimeToEpochMilli(post.created), localDateTimeToEpochMilli(post.modified))
+  implicit def forClient(post: Data.Post):Post = Post(post.id, post.content, post.author,
+    created = localDateTimeToEpochMilli(post.created),
+    modified = localDateTimeToEpochMilli(post.modified),
+    locked = post.locked.map(localDateTimeToEpochMilli))
   implicit def forClient(c: Data.Connection): Connection = Connection(c.sourceId, c.label, c.targetId)
   implicit def forClient(user: Data.User): User.Persisted = {
     if (user.isImplicit) User.Implicit(user.id, user.name, user.revision)
@@ -28,8 +30,9 @@ object DbConversions {
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription = Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
   implicit def forDb(post: Post): Data.Post = Data.Post(post.id, post.content, post.author,
-    epochMilliToLocalDateTime(post.created),
-    epochMilliToLocalDateTime(post.modified))
+    created = epochMilliToLocalDateTime(post.created),
+    modified = epochMilliToLocalDateTime(post.modified),
+    locked = post.locked.map(epochMilliToLocalDateTime))
   implicit def forDb(user: User.Persisted): Data.User = user match {
     case User.Real(id, name, revision) => Data.User(id, name, isImplicit = false, revision = revision)
     case User.Implicit(id, name, revision) => Data.User(id, name, isImplicit = true, revision = revision)

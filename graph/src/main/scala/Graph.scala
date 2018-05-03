@@ -52,17 +52,28 @@ object User {
 }
 
 //TODO: rename Post -> Item?
-final case class Post(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli)
+final case class Post(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli, locked: Option[EpochMilli])
+//TODO: get rid of timestamp created/modified and author. should be relations.
 object Post {
-
-  def apply(id: PostId, content: String, author: UserId, time: EpochMilli = EpochMilli.now): Post = {
-    new Post(id, content, author, time, time)
+  def apply(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli): Post = {
+    new Post(id, content, author, created, modified, None)
+  }
+  def apply(id: PostId, content: String, author: UserId, time: EpochMilli = EpochMilli.now, locked: Option[EpochMilli] = None): Post = {
+    new Post(id, content, author, time, time, locked)
   }
   def apply(content: String, author: UserId, time: EpochMilli): Post = {
-    new Post(PostId.fresh, content, author, time, time)
+    new Post(PostId.fresh, content, author, time, time, None)
+  }
+  def apply(content: String, author: UserId, time: EpochMilli, locked: Option[EpochMilli]): Post = {
+    new Post(PostId.fresh, content, author, time, time, locked)
   }
   def apply(content: String, author: UserId): Post = {
-    new Post(PostId.fresh, content, author, EpochMilli.now, EpochMilli.now)
+    val time = EpochMilli.now
+    new Post(PostId.fresh, content, author, time, time, None)
+  }
+  def apply(content: String, author: UserId, locked: Option[EpochMilli]): Post = {
+    val time = EpochMilli.now
+    new Post(PostId.fresh, content, author, time, time, locked)
   }
 }
 
