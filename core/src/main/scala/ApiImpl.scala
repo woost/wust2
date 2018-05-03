@@ -139,7 +139,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>
-    Future { PostHeuristic(state.graph, heuristic, posts, num) }
+    getPage(state.auth.user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
 
   override def log(message: String): ApiFunction[Boolean] = Action { state =>
