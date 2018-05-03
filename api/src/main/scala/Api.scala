@@ -14,7 +14,6 @@ trait Api[Result[_]] {
   def getGraph(selection: Page): Result[Graph]
   def getUser(userId: UserId): Result[Option[User]]
   def addMember(postId: PostId, userId: UserId): Result[Boolean]
-  def addCurrentUserAsMember(postIds: NonEmptyList[PostId]): Result[Boolean]
 //  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
   def getHighLevelPosts():Result[List[Post]]

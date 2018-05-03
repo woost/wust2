@@ -70,11 +70,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       }
     }
 
+    //TODO flatmap these future to have the right order
   viewConfig.foreach { vc =>
-    NonEmptyList.fromList(vc.page.parentIds.toList).foreach { ids =>
-      Client.api.addCurrentUserAsMember(ids).foreach { _ =>
-        Client.api.getGraph(vc.page).foreach { g => eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(g)) }
-      }
+    Client.api.getGraph(vc.page).foreach { graph =>
+      eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
     }
   }
 
