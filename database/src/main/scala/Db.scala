@@ -1,13 +1,13 @@
 package wust.db
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 import com.typesafe.config.Config
 import io.getquill._
 import wust.ids._
 import wust.util._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 object Db {
   def apply(config: Config) = {
@@ -30,9 +30,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   // Set timestamps in backend
   // implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
 
-  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime)
+  //TODO: get rid of raw post?
+  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, locked: Option[LocalDateTime])
   object RawPost {
-    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified)
+    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.locked)
   }
 
   implicit class IngoreDuplicateKey[T](q: Insert[T]) {
@@ -103,22 +104,45 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    private val insertMembership = quote { (post: Membership) =>
-      val q = query[Membership].insert(post)
-      infix"$q ON CONFLICT(postId, userId) DO NOTHING".as[Insert[RawPost]]
+    def addMemberIfNotLocked(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberIfNotLocked(postId :: Nil, userId).map(_.nonEmpty)
+    def addMemberIfNotLocked(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
+      // TODO: let dexter tell us that an index for post.lock is missing
+      // adding member is only supported for posts that are locked in the future
+      // (future timestamp) or not locked at all (null)
+      val now = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+      val insertMembership = quote {
+        val q = query[Post]
+          .filter(p => liftQuery(postIds).contains(p.id))
+          .map(p => Membership(lift(userId), p.id))
+        infix"""
+          insert into membership(userid, postid)
+          $q ON CONFLICT(postid, userid) DO NOTHING
+        """.as[Insert[Membership]]
+        //TODO: does not work...
+            // returning postid
+        // """.as[ActionReturning[Membership, PostId]]
+      }
+
+      // val r = ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
+      ctx.run(insertMembership)
+        //TODO: fix query with returning
+        .map { _ => postIds }
     }
-    def addMember(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMember(postId :: Nil, userId).map(_.head)
-    def addMember(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-      val memberships = postIds.map(postId => Membership(userId, postId))
-      ctx.run(liftQuery(memberships.toList).foreach(insertMembership(_)))
-        .map(_.map(_ == 1))
+
+    def addMemberEvenIfLocked(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId).map(_.nonEmpty)
+    def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
+      val insertMembership = quote { (postId: PostId) =>
+        val q = query[Membership].insert(Membership(lift(userId), postId))
+        infix"$q ON CONFLICT(postId, userId) DO NOTHING".as[Insert[Membership]].returning(_.postId)
+      }
+      ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
     }
   }
 
   object notifications {
     private case class NotifiedUsersData(userId: UserId, postIds: List[PostId])
     private def notifiedUsersFunction(postIds: List[PostId]) = quote {
-       infix"select * from notified_users(${lift(postIds)})".as[Query[NotifiedUsersData]]
+      infix"select * from notified_users(${lift(postIds)})".as[Query[NotifiedUsersData]]
     }
 
     def notifiedUsers(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[UserId, List[PostId]]] = {
@@ -126,7 +150,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         notifiedUsersFunction(postIds.toList).map(d => d.userId -> d.postIds)
       }.map(_.toMap)
     }
-
 
     def subscribeWebPush(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(query[WebPushSubscription].insert(lift(subscription)).returning(_.id))
@@ -178,28 +201,28 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
   object user {
 
-    def allMembershipsQuery(userId:UserId) = quote {
+    def allMembershipsQuery(userId: UserId) = quote {
       query[Membership].filter(m => m.userId == lift(userId))
     }
 
     def allTopLevelPostsQuery = quote {
       query[Post]
         .leftJoin(query[Connection])
-        .on((p,c) => c.label == lift(Label.parent) && c.sourceId == p.id)
-        .filter{case (_,c) => c.isEmpty}
-        .map{case (p,_) => p}
+        .on((p, c) => c.label == lift(Label.parent) && c.sourceId == p.id)
+        .filter{ case (_, c) => c.isEmpty }
+        .map{ case (p, _) => p }
     }
 
-    def AllPostsQuery(userId:UserId) = quote {
+    def AllPostsQuery(userId: UserId) = quote {
       for {
         m <- allMembershipsQuery(userId)
         p <- query[Post].join(p => p.id == m.postId)
       } yield p
     }
 
-    def highLevelGroups(userId:UserId)(implicit ec: ExecutionContext):Future[List[Post]] = {
+    def highLevelGroups(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = {
       ctx.run {
-        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
+        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.locked FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.locked "locked" FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
         // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
         // for {
         //   (p,m) <- allTopLevelPostsQuery.join(allMembershipsQuery(userId)).on{case (p,m) => p.id == m.postId}.distinct
@@ -207,7 +230,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    def visiblePosts(userId:UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext):Future[List[PostId]] = {
+    def visiblePosts(userId: UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext): Future[List[PostId]] = {
       ctx.run{
         for {
           m <- query[Membership].filter(m => m.userId == lift(userId) && liftQuery(postIds.toList).contains(m.postId))
@@ -216,16 +239,17 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    def getAllPosts(userId:UserId)(implicit ec: ExecutionContext):Future[List[Post]] = ctx.run { AllPostsQuery(userId) }
-
+    def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { AllPostsQuery(userId) }
 
     def apply(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
       val user = User(id, name, isImplicit = false, 0)
-      val q = quote { infix"""
+      val q = quote {
+        infix"""
         with ins as (
           insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}) returning id
         ) insert into password(id, digest) select id, ${lift(digest)} from ins
-      """.as[Insert[User]] }
+      """.as[Insert[User]]
+      }
 
       ctx.run(q)
         .collect { case 1 => Option(user) }
@@ -258,19 +282,19 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }.recoverValue(None)
     }
     //TODO: one query.
-   // def activateImplicitUser(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-   //    val user = newRealUser(name)
-   //    val q = quote { s"""
-   //      with existingUser as (
-   //        UPDATE "user" SET isimplicit = true, revision = revision + 1 WHERE id = ${lift(id)} and isimplicit = true RETURNING revision
-   //      )
-   //      INSERT INTO password(id, digest) values(${lift(id)}, ${lift(digest)}) RETURNING existingUser.revision;
-   //    """}
+    // def activateImplicitUser(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
+    //    val user = newRealUser(name)
+    //    val q = quote { s"""
+    //      with existingUser as (
+    //        UPDATE "user" SET isimplicit = true, revision = revision + 1 WHERE id = ${lift(id)} and isimplicit = true RETURNING revision
+    //      )
+    //      INSERT INTO password(id, digest) values(${lift(id)}, ${lift(digest)}) RETURNING existingUser.revision;
+    //    """}
 
-   //    ctx.executeActionReturning(q, identity, _(0).asInstanceOf[Int], "revision")
-   //      .map(rev => Option(user.copy(revision = rev)))
-   //      // .recoverValue(None)
-   // }
+    //    ctx.executeActionReturning(q, identity, _(0).asInstanceOf[Int], "revision")
+    //      .map(rev => Option(user.copy(revision = rev)))
+    //      // .recoverValue(None)
+    // }
 
     def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
       if (implicitId == userId) Future.successful(false)
@@ -334,11 +358,11 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    def graphPage(parents:Seq[PostId], children:Seq[PostId]) = quote {
-       infix"select * from graph_page(${lift(parents)}, ${lift(children)})".as[Query[GraphRow]]
+    def graphPage(parents: Seq[PostId], children: Seq[PostId]) = quote {
+      infix"select * from graph_page(${lift(parents)}, ${lift(children)})".as[Query[GraphRow]]
     }
 
-    def getPage(parentIds: Seq[PostId], childIds: Seq[PostId])(implicit ec: ExecutionContext):Future[Graph] = {
+    def getPage(parentIds: Seq[PostId], childIds: Seq[PostId])(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
         graphPage(parentIds, childIds)

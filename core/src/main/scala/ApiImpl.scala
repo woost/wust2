@@ -72,7 +72,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     val postIdList = postIds.toList
     db.ctx.transaction { implicit ec =>
       for {
-        addedPostIds <- db.post.addMember(postIdList, user.id).map(successes => postIdList.zip(successes).collect { case (postId, true) => postId })
+        addedPostIds <- db.post.addMemberIfNotLocked(postIdList, user.id)
       } yield {
         Returns(addedPostIds.nonEmpty, addedPostIds.map(NewMembership(user.id, _)))
       }
@@ -83,7 +83,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     db.ctx.transaction { implicit ec =>
       for {
         Some(user) <- db.user.get(userId)
-        added <- db.post.addMember(postId, userId)
+        added <- db.post.addMemberIfNotLocked(postId, userId)
       } yield Returns(added, if(added) Seq(NewMembership(userId, postId), NewUser(user)) else Nil)
     }
   }
