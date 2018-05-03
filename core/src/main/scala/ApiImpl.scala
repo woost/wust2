@@ -67,24 +67,23 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
   override def addCurrentUserAsMember(postIds: NonEmptyList[PostId]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    //TODO: only add member if post is not public
-    //TODO: add multiple memberships in one query
-    val postIdList = postIds.toList
     db.ctx.transaction { implicit ec =>
       for {
-        addedPostIds <- db.post.addMemberIfNotLocked(postIdList, user.id)
+        addedPostIds <- db.post.addMemberIfNotLocked(postIds.toList, user.id)
       } yield {
         Returns(addedPostIds.nonEmpty, addedPostIds.map(NewMembership(user.id, _)))
       }
     }
   }
   //TODO: error handling
-  override def addMember(postId: PostId, userId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
+  override def addMember(postId: PostId, newMemberId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      for {
-        Some(user) <- db.user.get(userId)
-        added <- db.post.addMemberIfNotLocked(postId, userId)
-      } yield Returns(added, if(added) Seq(NewMembership(userId, postId), NewUser(user)) else Nil)
+      isPostMember(postId, user.id) {
+        for {
+          Some(user) <- db.user.get(newMemberId)
+          added <- db.post.addMemberEvenIfLocked(postId, newMemberId)
+        } yield Returns(added, if(added) Seq(NewMembership(newMemberId, postId), NewUser(user)) else Nil)
+      }
     }
   }
 
