@@ -66,15 +66,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
-  override def addCurrentUserAsMember(postIds: NonEmptyList[PostId]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      for {
-        addedPostIds <- db.post.addMemberIfNotLocked(postIds.toList, user.id)
-      } yield {
-        Returns(addedPostIds.nonEmpty, addedPostIds.map(NewMembership(user.id, _)))
-      }
-    }
-  }
   //TODO: error handling
   override def addMember(postId: PostId, newMemberId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
@@ -102,12 +93,15 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     db.user.highLevelGroups(user.id).map(_.map(forClient))
   }
 
-  override def getGraph(page: Page): ApiFunction[Graph] = Action { state =>
+  //TODO: get graph forces new db user...
+  override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
-    if (page.parentIds.isEmpty) defaultGraph
-    else state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
+    if (page.parentIds.isEmpty) defaultGraph.map(Returns(_))
+    else for {
+      newMemberPostIds <- db.post.addMemberIfNotLocked(page.parentIds.toList, user.id)
+      graph <- state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
+    } yield Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
   }
-
 
   override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
