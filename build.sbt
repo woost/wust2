@@ -150,7 +150,7 @@ lazy val root = project.in(file("."))
 
     addCommandAlias("dev", "devweb_"),
     addCommandAlias("devweb_", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
-    addCommandAlias("devwebwatch_", "~; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart"),
+    addCommandAlias("devwebwatch_", "~; core/reStop; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart"),
 
     addCommandAlias("devf", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
