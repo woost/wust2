@@ -111,66 +111,6 @@ object MainViewParts {
     )
   }
 
-  def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-    div(
-      color := "#C4C4CA",
-      Rx {
-        state.highLevelPosts().map{p => div(
-          padding := "5px 3px",
-          p.content,
-          cursor.pointer,
-          onChannelClick(p.id)(state),
-          title := p.id,
-          state.page().parentIds.contains(p.id).ifTrueSeq(Seq(
-            color := state.pageStyle().darkBgColor.toHex,
-            backgroundColor := state.pageStyle().darkBgColorHighlight.toHex
-          ))
-        )}
-      }
-    )
-  }
-
-  def channelIcons(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-    div(
-      color := "#C4C4CA",
-      Rx {
-        state.highLevelPosts().map{p => div(
-          margin := "0",
-          width := "30px",
-          height := "30px",
-          cursor.pointer,
-          onChannelClick(p.id)(state),
-          backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(p.id)).toHex, //TODO: make different post color tones better accessible
-            opacity := (if(state.page().parentIds.contains(p.id)) 1.0 else 0.75),
-            padding := (if(state.page().parentIds.contains(p.id)) "2px" else "4px"),
-            border := (if(state.page().parentIds.contains(p.id)) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = PostColor.genericBaseHue(p.id)).toHex}" else "none"),
-          Avatar.post(p.id)(
-          )
-        )}
-      }
-      )
-  }
-
-  private def onChannelClick(id: PostId)(state: GlobalState)(implicit ctx: Ctx.Owner) = onClick.map { e =>
-    val page = state.page.now
-    //TODO if (e.shiftKey) {
-    val newParents = if (e.ctrlKey) {
-      val filtered = page.parentIds.filterNot(_ == id)
-      if (filtered.size == page.parentIds.size) page.parentIds :+ id
-      else if (filtered.nonEmpty) filtered
-      else Seq(id)
-    } else Seq(id)
-
-    page.copy(parentIds = newParents)
-    } --> sideEffect { page =>
-      state.view() = View.default
-      state.page() = page
-      //TODO: Why does Var.set not work?
-      // Var.set(
-      //   state.page -> page,
-      //   state.view -> view
-      // )
-    }
 
   //def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
   //  val lockToGroup = state.viewConfig.now.lockToGroup
