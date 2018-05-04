@@ -70,11 +70,10 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       }
     }
 
-    //TODO flatmap these future to have the right order
-  viewConfig.foreach { vc =>
-    Client.api.getGraph(vc.page).foreach { graph =>
-      eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
-    }
+  viewConfig.toObservable.switchMap { vc =>
+    Observable.fromFuture(Client.api.getGraph(vc.page))
+  }.foreach { graph =>
+    eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
