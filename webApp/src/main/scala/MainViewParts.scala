@@ -80,18 +80,21 @@ object MainViewParts {
     )
   }
 
-  def newGroupButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-    def groupTitle = {
-      var today = new Date()
-      // January is 0!
-      val title = s"Group: ${today.getMonth+1}-${today.getDate}"
-      val sameNamePosts = state.highLevelPosts.now.filter(_.content.startsWith(title))
-      if (sameNamePosts.isEmpty) title
-      else s"$title (${sameNamePosts.size})"
-    }
-    button("New Group",
+
+  def newGroupTitle(state: GlobalState) = {
+    var today = new Date()
+    // January is 0!
+    val title = s"Group: ${today.getMonth+1}-${today.getDate}"
+    val sameNamePosts = state.highLevelPosts.now.filter(_.content.startsWith(title))
+    if (sameNamePosts.isEmpty) title
+    else s"$title (${sameNamePosts.size})"
+  }
+
+  def newGroupButton(state: GlobalState, label: String = "New Group")(implicit ctx:Ctx.Owner): VNode = {
+    button(
+      label,
       onClick --> sideEffect{ _ =>
-        val post = Post(groupTitle, state.currentUser.now.id)
+        val post = Post(newGroupTitle(state), state.currentUser.now.id)
         for {
           _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
         } {
