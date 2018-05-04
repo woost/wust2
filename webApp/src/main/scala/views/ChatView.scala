@@ -46,37 +46,33 @@ object ChatView extends View {
                  graph: Rx[Graph]
                )(implicit ctx: Ctx.Owner): VNode = {
     div(
-        div(
-          fontSize := "20px",
-          padding := "0px 20px",
-          minHeight := "100px",
-          maxHeight := "100px",
-          pageParentPosts.map(_.map { parent =>
-            span(mdHtml(parent.content))
-          })
-        ),
-      // p( mdHtml(pageStyle.map(_.title)) ),
-
-      chatHistory(currentUser, page, graph),
-      inputField(newPostSink),
-
-
-      margin := "0 auto",
-      maxWidth := "48rem",
+      width := "100%",
       height := "100%",
 
       display.flex,
       flexDirection.column,
       justifyContent.flexStart,
       alignItems.stretch,
-      alignContent.stretch
+      alignContent.stretch,
+
+      chatHeader(pageParentPosts)(ctx)(flexGrow := 0, flexShrink := 0),
+      chatHistory(currentUser, page, graph)(ctx)(height := "100%", overflow.auto),
+      inputField(newPostSink)(ctx)(flexGrow := 0, flexShrink := 0)
+    )
+  }
+
+  def chatHeader(pageParentPosts: Rx[Seq[Post]])(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      fontSize := "20px",
+      padding := "0px 20px",
+      pageParentPosts.map(_.map { parent =>
+        span(mdHtml(parent.content))
+      })
     )
   }
 
   def chatHistory(currentUser: Rx[User], page: Var[Page], graph: Rx[Graph])(implicit ctx: Ctx.Owner): VNode = {
     div(
-      height := "100%",
-      overflow.auto,
       padding := "20px",
 
       Rx{
@@ -162,11 +158,9 @@ object ChatView extends View {
 
   def inputField(newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
     textAreaWithEnter(newPostSink)(
+      height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?
-      Placeholders.newPost,
-      flex := "0 0 3em",
-      display.flex,
-      alignItems.stretch
+      Placeholders.newPost
     )
   }
 }
