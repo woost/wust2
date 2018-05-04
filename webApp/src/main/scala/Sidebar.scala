@@ -7,6 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
+import wust.graph._
 import wust.ids._
 import wust.webApp.views.{LoginView, PageStyle, View}
 import wust.util.RichBoolean
@@ -38,7 +39,7 @@ object Sidebar {
     )
   }
 
-  def sidebar(state: GlobalState)(implicit owner:Ctx.Owner): VNode = {
+  def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     import state.sidebarOpen
     state.sidebarOpen.debug("sidopen")
     div(
@@ -46,34 +47,69 @@ object Sidebar {
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       color := "white",
       transition := "flex-basis 0.2s, background-color 0.5s",
-      overflowY.auto,
+      
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
 
       sidebarOpen.map {
         case true =>
           div(
-            div(
-              display.flex, alignItems.baseline,
-              // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-              div(faBars, padding := "7px", cursor.pointer, onClick --> sideEffect{ev => sidebarOpen() = false; ev.stopPropagation()}),
-              div("Woost", padding := "5px 5px", fontWeight.bold, fontSize := "18px"),
-              syncStatus(state)(owner)(fontSize := "9px")
-            ),
-            undoRedo(state),
-            br(),
-            channels(state),
-            br(),
-            newGroupButton(state)(owner)(buttonStyle),
-            authentication(state),
-            notificationSettings
+            height := "100%",
+
+            display.flex,
+            flexDirection.column,
+            justifyContent.flexStart,
+            alignItems.stretch,
+            alignContent.stretch,
+
+            header(state)(ctx)(flexGrow := 0, flexShrink := 0),
+
+            undoRedo(state)(flexGrow := 0, flexShrink := 0),
+            channels(state)(ctx)(overflowY.auto),
+            newGroupButton(state)(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
+            authentication(state)(ctx)(flexGrow := 0, flexShrink := 0),
+            notificationSettings(flexGrow := 0, flexShrink := 0)
           )
         case false =>
           div(
-            div(faBars, padding := "7px", cursor.pointer, onClick(true) --> sidebarOpen),
-            channelIcons(state)
+            height := "100%",
+
+            display.flex,
+            flexDirection.column,
+            justifyContent.flexStart,
+            alignItems.stretch,
+            alignContent.stretch,
+
+            hamburger(state)(ctx)(flexGrow := 0, flexShrink := 0),
+            channelIcons(state)(ctx)(overflowY.auto),
+            newGroupButton(state, "+")(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
           )
       }
     )
+  }
+
+  def hamburger(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    import state.sidebarOpen
+    div(
+      faBars,
+      padding := "7px",
+      cursor.pointer,
+      onClick --> sideEffect{ev => sidebarOpen() = !sidebarOpen.now; ev.stopPropagation()})
+  }
+
+  def header(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    import state.sidebarOpen
+    div(
+      display.flex, alignItems.baseline,
+      // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
+      hamburger(state),
+      div(
+        "Woost",
+        padding := "5px 5px",
+        fontSize := "14px",
+        fontWeight.bold
+      ),
+      syncStatus(state)(ctx)(fontSize := "9px"),
+    ),
   }
 
   def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
