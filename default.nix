@@ -16,7 +16,7 @@ in
       # Dev tools
       #jetbrains.idea-community
       pgadmin
-      redis-dump
+      # redis-dump
       visualvm
       travis
       # androidsdk
