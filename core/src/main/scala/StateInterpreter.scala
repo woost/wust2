@@ -32,7 +32,7 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
   //  def currentUserInvolved = state.auth.user.id == userId
   //  def ownGroupInvolved = state.graph.postsById.isDefinedAt(postId)
-  //  if (currentUserInvolved) {
+  //  if (currentUserInvolved)
   //    // query all other members of groupId
   //    val postFut = db.post.get(postId)
   //    for {

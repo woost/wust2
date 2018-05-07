@@ -255,6 +255,9 @@ lazy val database = project
   .settings(
     libraryDependencies ++=
       Deps.quill.value ::
+      Deps.doobie.core.value ::
+      Deps.doobie.postgres.value ::
+      Deps.doobie.scalatest.value % IntegrationTest ::
       Deps.scalatest.value % IntegrationTest ::
       Nil
   // parallelExecution in IntegrationTest := false

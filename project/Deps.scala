@@ -70,6 +70,12 @@ object Deps {
 
   // database
   val quill = dep("io.getquill" %% "quill-async-postgres" % "2.4.2")
+  val doobie = new {
+    private val version = "0.5.2"
+    val core = dep("org.tpolecat" %% "doobie-core" % version)
+    val postgres = dep("org.tpolecat" %% "doobie-postgres" % version)
+    val scalatest = dep("org.tpolecat" %% "doobie-scalatest" % version)
+  }
 
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here

@@ -1,21 +1,53 @@
 package wust.db
 
+import doobie._
+import doobie.implicits._
+import cats._
+import cats.data._
+import cats.effect.{Async, IO}
+import cats.effect.implicits._
+import cats.implicits._
+import shapeless._
 import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.util.concurrent.FutureTask
 
 import com.typesafe.config.Config
 import io.getquill._
 import wust.ids._
 import wust.util._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object Db {
-  def apply(config: Config) = {
-    new Db(new PostgresAsyncContext(LowerCase, config))
+  implicit def AsyncFuture(implicit ec: ExecutionContext) = new Async[Future] {
+    override def async[A](k: (Either[Throwable, A] => Unit) => Unit): Future[A] = IO.async(k).unsafeToFuture()
+
+    override def suspend[A](thunk: => Future[A]): Future[A] = Future { thunk }.flatten
+
+    override def raiseError[A](e: Throwable): Future[A] = Future.failed(e)
+
+    override def handleErrorWith[A](fa: Future[A])(f: Throwable => Future[A]): Future[A] = fa transformWith {
+      case Success(a) => Future.successful(a)
+      case Failure(t) => f(t)
+    }
+
+    override def flatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)
+
+    override def tailRecM[A, B](a: A)(f: A => Future[Either[A, B]]): Future[B] = f(a) flatMap {
+      case Right(b) => Future.successful(b)
+      case Left(a) => tailRecM(a)(f)
+    }
+
+    override def pure[A](x: A): Future[A] = Future.successful(x)
+  }
+
+  def apply(config: Config)(implicit ec: ExecutionContext) = {
+    new Db(new PostgresAsyncContext(LowerCase, config), Transactor.fromDriverManager[Future]("org.postgresql.Driver", "jdbc:postgresql:postgres", "wust", "test")) //TODO configure transacotr
   }
 }
 
-class Db(val ctx: PostgresAsyncContext[LowerCase]) {
+class Db(val ctx: PostgresAsyncContext[LowerCase], val transactor: Transactor[Future]) {
   import Data._
   import ctx._
 
@@ -221,13 +253,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def highLevelGroups(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = {
-      ctx.run {
-        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.locked FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.locked "locked" FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
-        // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
-        // for {
-        //   (p,m) <- allTopLevelPostsQuery.join(allMembershipsQuery(userId)).on{case (p,m) => p.id == m.postId}.distinct
-        // } yield p
-      }
+      sql"""
+        SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.locked FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.locked "locked" FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid
+      """
+          .query[Post]
+          .to[List]
+          .transact(transactor)
     }
 
     def visiblePosts(userId: UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext): Future[List[PostId]] = {
