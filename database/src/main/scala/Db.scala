@@ -16,12 +16,16 @@ import io.getquill._
 import wust.ids._
 import wust.util._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
 
 object Db {
   implicit def AsyncFuture(implicit ec: ExecutionContext) = new Async[Future] {
-    override def async[A](k: (Either[Throwable, A] => Unit) => Unit): Future[A] = IO.async(k).unsafeToFuture()
+    override def async[A](k: (Either[Throwable, A] => Unit) => Unit): Future[A] = {
+      val p = Promise[A]()
+      k(e => p.complete(e.toTry))
+      p.future
+    }
 
     override def suspend[A](thunk: => Future[A]): Future[A] = Future { thunk }.flatten
 
