@@ -2,13 +2,13 @@ version: '3'
 
 services:
   redis:
-    restart: on-failure
+    restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: redis:4.0-alpine
     volumes:
       - github_redis_data:/data
 
   github:
-    restart: on-failure
+    restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/github:${WUST_VERSION-latest}
     environment:
       REDIS_HOSTNAME: "redis"

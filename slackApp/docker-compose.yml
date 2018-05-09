@@ -2,7 +2,7 @@ version: '2'
 
 services:
   slack:
-    restart: on-failure
+    restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/slack:${WUST_VERSION-latest}
     environment:
       WUST_SLACK_TOKEN: ${WUST_SLACK_TOKEN} # TODO: do not use static token in production
