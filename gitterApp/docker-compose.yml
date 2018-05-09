@@ -2,7 +2,7 @@ version: '2'
 
 services:
   gitter:
-    restart: on-failure
+    restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/gitter:${WUST_VERSION-latest}
     environment:
       WUST_GITTER_TOKEN: ${WUST_GITTER_TOKEN} # TODO: do not use static token in production

@@ -2,7 +2,7 @@ version: '3'
 
 services:
   web:
-    restart: on-failure
+    restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/web:${WUST_VERSION-latest}
     ports:
       - "127.0.0.1:${WUST_WEB_PORT-8080}:8080"
