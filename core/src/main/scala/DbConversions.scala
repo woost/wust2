@@ -2,7 +2,7 @@ package wust.backend
 
 import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
 
-import io.treev.tag._
+import wust.db.Data.{epochMilliToLocalDateTime, localDateTimeToEpochMilli}
 import wust.api.WebPushSubscription
 import wust.ids._
 import wust.db.Data
@@ -11,16 +11,13 @@ import wust.ids.EpochMilli
 
 object DbConversions {
 
-  //TODO: faster time conversion?
-  def epochMilliToLocalDateTime(t:EpochMilli):LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(t),ZoneOffset.UTC)
-  def localDateTimeToEpochMilli(t:LocalDateTime):EpochMilli = EpochMilli(t.toInstant(ZoneOffset.UTC).toEpochMilli)
-
-
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription = WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
-  implicit def forClient(post: Data.Post):Post = Post(post.id, post.content, post.author,
+  implicit def forClient(post: Data.Post):Post = new Post(post.id, post.content, post.author,
     created = localDateTimeToEpochMilli(post.created),
     modified = localDateTimeToEpochMilli(post.modified),
-    locked = post.locked.map(localDateTimeToEpochMilli))
+    joinDate = JoinDate.from(localDateTimeToEpochMilli(post.joinDate)),
+    joinLevel = post.joinLevel
+  )
   implicit def forClient(c: Data.Connection): Connection = Connection(c.sourceId, c.label, c.targetId)
   implicit def forClient(user: Data.User): User.Persisted = {
     if (user.isImplicit) User.Implicit(user.id, user.name, user.revision)
@@ -32,7 +29,9 @@ object DbConversions {
   implicit def forDb(post: Post): Data.Post = Data.Post(post.id, post.content, post.author,
     created = epochMilliToLocalDateTime(post.created),
     modified = epochMilliToLocalDateTime(post.modified),
-    locked = post.locked.map(epochMilliToLocalDateTime))
+    joinDate = epochMilliToLocalDateTime(post.joinDate.timestamp),
+    joinLevel = post.joinLevel
+  )
   implicit def forDb(user: User.Persisted): Data.User = user match {
     case User.Real(id, name, revision) => Data.User(id, name, isImplicit = false, revision = revision)
     case User.Implicit(id, name, revision) => Data.User(id, name, isImplicit = true, revision = revision)

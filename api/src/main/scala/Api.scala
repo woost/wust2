@@ -13,7 +13,7 @@ trait Api[Result[_]] {
   def getPost(id: PostId): Result[Option[Post]]
   def getGraph(selection: Page): Result[Graph]
   def getUser(userId: UserId): Result[Option[User]]
-  def addMember(postId: PostId, userId: UserId): Result[Boolean]
+  def addMember(postId: PostId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
 //  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
   def getHighLevelPosts():Result[List[Post]]

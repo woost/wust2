@@ -9,6 +9,8 @@ SELECT col_not_null('rawconnection', 'targetid');
 SELECT col_not_null('membership', 'userid');
 SELECT col_not_null('membership', 'postid');
 
+insert into "user" (id, name, revision, isimplicit) values ('bubuid', 'bubu', 0, false);
+
 /* insert label */
 SELECT isnt_empty(
   $$ INSERT INTO label (name) VALUES ('labello')
@@ -19,14 +21,14 @@ SELECT isnt_empty(
 /* insert small graph */
 SELECT isnt_empty(
     $$ INSERT INTO post (id, content, author, created, modified)
-        VALUES ('hester', 'Schneider', 1, NOW(), NOW())
+        VALUES ('hester', 'Schneider', 'bubuid', NOW(), NOW())
         RETURNING (id, content, author, created, modified) $$,
     'insert post'
 );
 
 SELECT isnt_empty(
     $$ INSERT INTO post (id, content, author, created, modified)
-        VALUES ('invester', 'Schneider2', 1, NOW(), NOW())
+        VALUES ('invester', 'Schneider2', 'bubuid', NOW(), NOW())
         RETURNING (id, content, author, created, modified) $$,
     'insert second post'
 );

@@ -16,6 +16,10 @@ object Circe {
   implicit val encodeEpochMilli: Encoder[EpochMilli] = Encoder.encodeLong.contramap[EpochMilli](identity)
   implicit val decodeEpochMilli: Decoder[EpochMilli] = Decoder.decodeLong.map(EpochMilli(_))
 
+  implicit val JoinDateDecoder: Decoder[JoinDate] = deriveDecoder[JoinDate]
+  implicit val JoinDateEncoder: Encoder[JoinDate] = deriveEncoder[JoinDate]
+  implicit val AccessLevelDecoder: Decoder[AccessLevel] = deriveDecoder[AccessLevel]
+  implicit val AccessLevelEncoder: Encoder[AccessLevel] = deriveEncoder[AccessLevel]
   implicit val PostDecoder: Decoder[Post] = deriveDecoder[Post]
   implicit val PostEncoder: Encoder[Post] = deriveEncoder[Post]
   implicit val ConnectionDecoder: Decoder[Connection] = deriveDecoder[Connection]

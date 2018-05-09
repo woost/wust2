@@ -1,19 +1,14 @@
 package wust.backend
 
+import monix.reactive.Observable
 import wust.api._
-import wust.backend.Dsl._
 import wust.backend.DbConversions._
+import wust.backend.Dsl._
 import wust.db.Db
 import wust.graph._
 import wust.ids._
-import wust.util.RandomUtil
-import monix.reactive.Observable
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
-
-import cats.implicits._
-import cats.data.NonEmptyList
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
   import ApiEvent._
@@ -48,6 +43,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
                 true <- db.post.update(updatePosts)
                 true <- db.post.delete(delPosts)
                 true <- db.connection.delete(delConnections)
+                _ <- db.post.addMemberEvenIfLocked(addPosts.map(_.id).toList, user.id, AccessLevel.ReadWrite) //TODO: check
               } yield true
             } else Future.successful(false)
           }
@@ -67,12 +63,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
 
   //TODO: error handling
-  override def addMember(postId: PostId, newMemberId: UserId): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMember(postId: PostId, newMemberId: UserId, accessLevel: AccessLevel): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isPostMember(postId, user.id) {
         for {
           Some(user) <- db.user.get(newMemberId)
-          added <- db.post.addMemberEvenIfLocked(postId, newMemberId)
+          added <- db.post.addMemberEvenIfLocked(postId, newMemberId, accessLevel)
         } yield Returns(added, if(added) Seq(NewMembership(newMemberId, postId), NewUser(user)) else Nil)
       }
     }
@@ -98,7 +94,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     def defaultGraph = Future.successful(Graph.empty)
     if (page.parentIds.isEmpty) defaultGraph.map(Returns(_))
     else for {
-      newMemberPostIds <- db.post.addMemberIfNotLocked(page.parentIds.toList, user.id)
+      newMemberPostIds <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
       graph <- state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
     } yield Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
   }
@@ -151,9 +147,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  private def getPage(userIdOpt: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
+  private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
     // TODO: also include the direct parents of the parentIds to be able no navigate upwards
-    db.graph.getPage(page.parentIds.toList, page.childrenIds.toList).map { dbGraph =>
+    db.graph.getPage(page.parentIds.toList, page.childrenIds.toList, userId).map { dbGraph =>
       forClient(dbGraph)
     }
   }
