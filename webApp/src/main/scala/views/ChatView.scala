@@ -26,25 +26,12 @@ object ChatView extends View {
 
     state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
 
-
-    component(
-      currentUser,
-      newPostSink,
-      page,
-      pageStyle,
-      pageParentPosts,
-      displayGraphWithoutParents.map(_.graph)
-    )
+    component(state, newPostSink)
   }
 
-  def component(
-                 currentUser: Rx[User],
-                 newPostSink: Sink[String],
-                 page: Var[Page],
-                 pageStyle: Rx[PageStyle],
-                 pageParentPosts: Rx[Seq[Post]],
-                 graph: Rx[Graph]
-               )(implicit ctx: Ctx.Owner): VNode = {
+  def component(state: GlobalState, newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
+    import state._
+
     div(
       width := "100%",
       height := "100%",
@@ -56,8 +43,8 @@ object ChatView extends View {
       alignContent.stretch,
 
       chatHeader(pageParentPosts)(ctx)(flexGrow := 0, flexShrink := 0),
-      chatHistory(currentUser, page, graph)(ctx)(height := "100%", overflow.auto),
-      inputField(newPostSink)(ctx)(flexGrow := 0, flexShrink := 0)
+      chatHistory(currentUser, page, displayGraphWithoutParents.map(_.graph))(ctx)(height := "100%", overflow.auto),
+      inputField(displayGraphWithParents.map(_.graph), newPostSink)(ctx)(flexGrow := 0, flexShrink := 0)
     )
   }
 
@@ -156,8 +143,9 @@ object ChatView extends View {
     )
   }
 
-  def inputField(newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(graph: Rx[Graph], newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
     textAreaWithEnter(newPostSink)(
+      disabled <-- graph.map(_.isEmpty),
       height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newPost
