@@ -16,7 +16,7 @@ object Logging {
     Logger.update(Logger.rootName) {
       _.clearHandlers()
         .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
-        .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileNIOWriter.daily())
+        .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily())
     }
   }
 }

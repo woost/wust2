@@ -169,7 +169,7 @@ object ApiLogger {
     val formatter = formatter"$date $levelPaddedRight - $message$newLine"
     Logger.update(s)(
       _.clearHandlers()
-        .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = FileNIOWriter.daily(prefix = s))
+        .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily(prefix = s))
     )
   }
 }
