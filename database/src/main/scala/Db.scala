@@ -1,13 +1,14 @@
 package wust.db
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.{LocalDateTime, ZoneOffset}
 
 import com.typesafe.config.Config
 import io.getquill._
+import io.getquill.ast.NumericOperator.<
 import wust.ids._
 import wust.util._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 object Db {
   def apply(config: Config) = {
@@ -26,14 +27,30 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val encodeLabel = MappedEncoding[Label, String](identity)
   implicit val decodeLabel = MappedEncoding[String, Label](Label(_))
 
+  implicit val encodeAccessLevel = MappedEncoding[AccessLevel, String] {
+    case AccessLevel.Read => "read"
+    case AccessLevel.ReadWrite => "readwrite"
+  }
+  implicit val decodeAccessLevel = MappedEncoding[String, AccessLevel]{
+    case "read" => AccessLevel.Read
+    case "readwrite" => AccessLevel.ReadWrite
+  }
+
+  protected implicit class LocalDateTimeQuillOps(ldt: LocalDateTime) {
+    def > = ctx.quote((date: LocalDateTime) => infix"$ldt > $date".as[Boolean])
+    def >= = ctx.quote((date: LocalDateTime) => infix"$ldt >= $date".as[Boolean])
+    def < = ctx.quote((date: LocalDateTime) => infix"$ldt < $date".as[Boolean])
+    def <= = ctx.quote((date: LocalDateTime) => infix"$ldt <= $date".as[Boolean])
+  }
+
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
   // Set timestamps in backend
-  // implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
+//   implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
 
   //TODO: get rid of raw post?
-  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, locked: Option[LocalDateTime])
+  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
   object RawPost {
-    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.locked)
+    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.joinDate, post.joinLevel)
   }
 
   implicit class IngoreDuplicateKey[T](q: Insert[T]) {
@@ -104,18 +121,16 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    def addMemberIfNotLocked(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberIfNotLocked(postId :: Nil, userId).map(_.nonEmpty)
-    def addMemberIfNotLocked(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
+    def addMemberWithCurrentJoinLevel(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberWithCurrentJoinLevel(postId :: Nil, userId).map(_.nonEmpty)
+    def addMemberWithCurrentJoinLevel(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
       // TODO: let dexter tell us that an index for post.lock is missing
-      // adding member is only supported for posts that are locked in the future
-      // (future timestamp) or not locked at all (null)
-      val now = LocalDateTime.ofInstant(Instant.now, ZoneOffset.UTC)
+      val now = LocalDateTime.now(ZoneOffset.UTC)
       val insertMembership = quote {
         val q = query[Post]
-          .filter(p => liftQuery(postIds).contains(p.id))
-          .map(p => Membership(lift(userId), p.id))
+          .filter(p => liftQuery(postIds).contains(p.id) && lift(now) < p.joinDate)
+          .map(p => Membership(lift(userId), p.id, p.joinLevel))
         infix"""
-          insert into membership(userid, postid)
+          insert into membership(userid, postid, level)
           $q ON CONFLICT(postid, userid) DO NOTHING
         """.as[Insert[Membership]]
         //TODO: https://github.com/getquill/quill/issues/1093
@@ -129,10 +144,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         .map { _ => postIds }
     }
 
-    def addMemberEvenIfLocked(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId).map(_.nonEmpty)
-    def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
+    def addMemberEvenIfLocked(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId, accessLevel).map(_.nonEmpty)
+    def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId, joinLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
       val insertMembership = quote { (postId: PostId) =>
-        val q = query[Membership].insert(Membership(lift(userId), postId))
+        val q = query[Membership].insert(Membership(lift(userId), postId, lift(joinLevel)))
         infix"$q ON CONFLICT(postId, userId) DO NOTHING".as[Insert[Membership]].returning(_.postId)
       }
       ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
@@ -222,7 +237,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def highLevelGroups(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = {
       ctx.run {
-        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.locked FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.locked "locked" FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
+        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.joindate, x08.joinlevel FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.joindate, p.joinlevel FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
         // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
         // for {
         //   (p,m) <- allTopLevelPostsQuery.join(allMembershipsQuery(userId)).on{case (p,m) => p.id == m.postId}.distinct
@@ -358,14 +373,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    def graphPage(parents: Seq[PostId], children: Seq[PostId]) = quote {
-      infix"select * from graph_page(${lift(parents)}, ${lift(children)})".as[Query[GraphRow]]
+    def graphPage(parents: Seq[PostId], children: Seq[PostId], requestingUserId: UserId) = quote {
+      infix"select * from graph_page(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})".as[Query[GraphRow]]
     }
 
-    def getPage(parentIds: Seq[PostId], childIds: Seq[PostId])(implicit ec: ExecutionContext): Future[Graph] = {
+    def getPage(parentIds: Seq[PostId], childIds: Seq[PostId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
-        graphPage(parentIds, childIds)
+        graphPage(parentIds, childIds, requestingUserId)
       }.map(Graph.from)
     }
   }

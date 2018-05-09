@@ -1,12 +1,11 @@
 package wust
 
 import java.time.Instant
-import cuid.Cuid
 
+import cuid.Cuid
 import io.treev.tag._
 
 package object ids {
-  type IdType = Long
   type UuidType = String
 
   object PostId extends TaggedType[UuidType] {
@@ -36,3 +35,4 @@ package object ids {
   }
   type EpochMilli = EpochMilli.Type
 }
+

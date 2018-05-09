@@ -34,7 +34,7 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
 
   def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
     println(s"new message: msg")
-    val post = Post(PostId.fresh, msg.content, author)
+    val post = Post(msg.content, author)
     val connection = Connection(post.id, Label.parent, Constants.slackId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))

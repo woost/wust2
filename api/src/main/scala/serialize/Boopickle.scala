@@ -14,6 +14,13 @@ object Boopickle {
   implicit val epochMilliPickler: Pickler[EpochMilli] = transformPickler((t: Long) => EpochMilli(t))(identity)
 
   implicit val connectionPickler = generatePickler[Connection]
+  implicit val accessLevelPickler1 = generatePickler[AccessLevel.Read.type]
+  implicit val accessLevelPickler2 = generatePickler[AccessLevel.ReadWrite.type]
+  implicit val accessLevelPickler = generatePickler[AccessLevel]
+  implicit val joinDatePickler1 = generatePickler[JoinDate.Never.type]
+  implicit val joinDatePickler2 = generatePickler[JoinDate.Until]
+  implicit val joinDatePickler3 = generatePickler[JoinDate.Always.type]
+  implicit val joinDatePickler = generatePickler[JoinDate]
   implicit val postPickler = generatePickler[Post]
   implicit val userPickler1 = generatePickler[User.Assumed]
   implicit val userPickler2 = generatePickler[User.Real]
