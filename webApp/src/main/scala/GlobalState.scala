@@ -57,6 +57,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
 
     val currentUser: Rx[User] = currentAuth.map(_.user)
     val highLevelPosts =  Var[List[Post]](Nil)
+
   currentUser.foreach { _ =>
     Client.api.getHighLevelPosts().foreach {
       highLevelPosts() = _
@@ -70,6 +71,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
       }
     }
 
+    //TODO: better build up state from server events?
   viewConfig.toObservable.switchMap { vc =>
     Observable.fromFuture(Client.api.getGraph(vc.page))
   }.foreach { graph =>
