@@ -118,7 +118,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           insert into membership(userid, postid)
           $q ON CONFLICT(postid, userid) DO NOTHING
         """.as[Insert[Membership]]
-        //TODO: does not work...
+        //TODO: https://github.com/getquill/quill/issues/1093
             // returning postid
         // """.as[ActionReturning[Membership, PostId]]
       }
