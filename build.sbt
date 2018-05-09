@@ -119,11 +119,11 @@ lazy val webSettings = Seq(
       "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
       "webpack-merge" -> "4.1.2" ::
       "copy-webpack-plugin" -> "4.5.1" ::
-      "workbox-webpack-plugin" -> "3.1.0" ::
+      "workbox-webpack-plugin" -> "3.2.0" ::
       Nil,
 
-    version in webpack := "4.6.0",
-    version in startWebpackDevServer := "3.1.3",
+    version in webpack := "4.8.1",
+    version in startWebpackDevServer := "3.1.4",
 
     webpackResources := (baseDirectory.value / "webpack" ** "*.*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack" / "webpack.config.prod.js"),
