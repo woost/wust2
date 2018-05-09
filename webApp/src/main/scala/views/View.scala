@@ -34,7 +34,7 @@ object View {
     if (splitted.length == 1) {
       viewMap(splitted(0))
     } else {
-      new TiledView(splitted.map(viewMap)(breakOut))
+      new TiledView(splitted.flatMap(viewMap.get)(breakOut))
     }
   }
 }
