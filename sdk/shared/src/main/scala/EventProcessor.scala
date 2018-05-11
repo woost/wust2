@@ -48,6 +48,13 @@ case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], 
     case Nil => copy(current = GraphChanges.empty)
   }
   def push(changes: GraphChanges) = copy(undos = changes :: undos, redos = Nil, current = changes)
+
+  val apply: ChangesHistory.Action => ChangesHistory = {
+    case ChangesHistory.NewChanges(changes) => push(changes)
+    case ChangesHistory.Undo => undo
+    case ChangesHistory.Redo => redo
+    case ChangesHistory.Clear => ChangesHistory.empty
+  }
 }
 object ChangesHistory {
   def empty = ChangesHistory(Nil, Nil, GraphChanges.empty)
@@ -147,12 +154,8 @@ class EventProcessor private(
     allChanges.foreach { c => println("[Events] Got all local changes: " + c) }
 
     val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action).scan(ChangesHistory.empty) {
-      case (history, ChangesHistory.NewChanges(changes)) => history.push(changes)
-      case (history, ChangesHistory.Undo) => history.undo
-      case (history, ChangesHistory.Redo) => history.redo
-      case (_, ChangesHistory.Clear) => ChangesHistory.empty
+      case (history, action) => history apply action
     }
-
     val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
 
     localChanges.foreach { c => println("[Events] Got local changes after history: " + c) }
