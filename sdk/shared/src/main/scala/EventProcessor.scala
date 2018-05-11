@@ -57,6 +57,7 @@ object ChangesHistory {
   sealed trait UserAction extends Action
   case object Undo extends UserAction
   case object Redo extends UserAction
+  case object Clear extends UserAction
 }
 
 object EventProcessor {
@@ -149,6 +150,7 @@ class EventProcessor private(
       case (history, ChangesHistory.NewChanges(changes)) => history.push(changes)
       case (history, ChangesHistory.Undo) => history.undo
       case (history, ChangesHistory.Redo) => history.redo
+      case (_, ChangesHistory.Clear) => ChangesHistory.empty
     }
 
     val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
