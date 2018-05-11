@@ -8,7 +8,6 @@ import wust.graph.GraphChanges
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
-import scala.util.{Failure, Success}
 
 object Main {
 
@@ -24,7 +23,7 @@ object Main {
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-    val state = new GlobalState()
+    val state = GlobalState.create()
 
     state.currentAuth.foreach(IndexedDbOps.storeAuth)
 
@@ -38,28 +37,5 @@ object Main {
     }
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
-  }
-}
-
-object Navigator {
-  import org.scalajs.dom.experimental.permissions._
-  import org.scalajs.dom.experimental.serviceworkers._
-
-  val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
-  val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
-}
-
-object ServiceWorker {
-
-  def register():Unit = {
-    // Use the window load event to keep the page load performant
-    Navigator.serviceWorker.foreach { sw =>
-      window.addEventListener("load", (_:Any) => {
-        sw.register("sw.js").toFuture.onComplete { 
-          case Success(registration) => console.log("SW registered: ", registration)
-          case Failure(registrationError) => console.warn("SW registration failed: ", registrationError.toString)
-        }
-      })
-    }
   }
 }
