@@ -14,7 +14,7 @@ lazy val commonSettings = Seq(
 
 //  exportJars := true, // for android app
   resolvers ++=
-    /* ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") :: */
+    ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
     Resolver.jcenterRepo ::
     ("jitpack" at "https://jitpack.io") ::
     Nil,

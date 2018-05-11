@@ -46,7 +46,7 @@ object Deps {
   val outwatch = dep("io.github.cornerman" % "outwatch" % "8b626d")
 
   // utility
-  val scribe = dep("com.outr" %%% "scribe" % "2.3.4")
+  val scribe = dep("com.outr" %%% "scribe" % "2.3.5-SNAPSHOT")
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.1")
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.1-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
