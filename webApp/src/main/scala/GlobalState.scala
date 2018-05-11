@@ -151,6 +151,11 @@ object GlobalState {
       }
     }
 
+    // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
+    page.foreach { _ =>
+      eventProcessor.history.action.onNext(ChangesHistory.Clear)
+    }
+
     // write all initial storage changes, in case they did not get through to the server
     // Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
     //TODO: wait for Storage.handlerWithEventsOnly
