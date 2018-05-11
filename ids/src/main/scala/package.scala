@@ -20,8 +20,16 @@ package object ids {
 
   object Label extends TaggedType[String] {
     val parent = Label("parent")
+    object meta {
+      val author = Label("meta:author")
+    }
   }
   type Label = Label.Type
+
+  object PostType extends TaggedType[String] {
+    val user = PostType("user")
+  }
+  type PostType = PostType.Type
 
   object EpochMilli extends TaggedType[Long] {
     def now:EpochMilli = EpochMilli(System.currentTimeMillis())

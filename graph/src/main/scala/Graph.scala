@@ -52,21 +52,21 @@ object User {
 }
 
 //TODO: rename Post -> Item?
-final case class Post(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel)
+final case class Post(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel, tpe: Option[PostType])
 //TODO: get rid of timestamp created/modified and author. should be relations.
 object Post {
   def apply(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli): Post = {
-    new Post(id, content, author, created, modified, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(id, content, author, created, modified, JoinDate.Never, AccessLevel.ReadWrite, None)
   }
   def apply(id: PostId, content: String, author: UserId, time: EpochMilli = EpochMilli.now): Post = {
-    new Post(id, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(id, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite, None)
   }
   def apply(content: String, author: UserId, time: EpochMilli): Post = {
-    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite, None)
   }
   def apply(content: String, author: UserId): Post = {
     val time = EpochMilli.now
-    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite, None)
   }
 }
 
