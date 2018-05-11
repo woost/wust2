@@ -26,6 +26,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val decodePostId = MappedEncoding[UuidType, PostId](PostId(_))
   implicit val encodeLabel = MappedEncoding[Label, String](identity)
   implicit val decodeLabel = MappedEncoding[String, Label](Label(_))
+  implicit val encodePostType = MappedEncoding[PostType, String](identity)
+  implicit val decodePostType = MappedEncoding[String, PostType](PostType(_))
 
   implicit val encodeAccessLevel = MappedEncoding[AccessLevel, String] {
     case AccessLevel.Read => "read"
@@ -43,14 +45,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def <= = ctx.quote((date: LocalDateTime) => infix"$ldt <= $date".as[Boolean])
   }
 
+
   implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
   // Set timestamps in backend
 //   implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
 
   //TODO: get rid of raw post?
-  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
+  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, tpe:Option[PostType])
   object RawPost {
-    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.joinDate, post.joinLevel)
+    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.joinDate, post.joinLevel, post.tpe)
   }
 
   implicit class IngoreDuplicateKey[T](q: Insert[T]) {
@@ -236,11 +239,13 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def highLevelGroups(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = {
+      //TODO: compile-safe quill construct...
       ctx.run {
-        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.joindate, x08.joinlevel FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.joindate, p.joinlevel FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
-        // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
+        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.joindate, x08.joinlevel, x08.tpe FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.joindate, p.joinlevel, p.tpe FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
+        // // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
         // for {
-        //   (p,m) <- allTopLevelPostsQuery.join(allMembershipsQuery(userId)).on{case (p,m) => p.id == m.postId}.distinct
+        //   m <- allMembershipsQuery(userId)//.filter{m => p.id == m.postId}//.distinct
+        //   p <- allTopLevelPostsQuery.filter{p => p.id == m.postId}//.distinct
         // } yield p
       }
     }

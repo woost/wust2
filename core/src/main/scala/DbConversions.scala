@@ -16,7 +16,8 @@ object DbConversions {
     created = localDateTimeToEpochMilli(post.created),
     modified = localDateTimeToEpochMilli(post.modified),
     joinDate = JoinDate.from(localDateTimeToEpochMilli(post.joinDate)),
-    joinLevel = post.joinLevel
+    joinLevel = post.joinLevel,
+    tpe = post.tpe
   )
   implicit def forClient(c: Data.Connection): Connection = Connection(c.sourceId, c.label, c.targetId)
   implicit def forClient(user: Data.User): User.Persisted = {
@@ -30,7 +31,8 @@ object DbConversions {
     created = epochMilliToLocalDateTime(post.created),
     modified = epochMilliToLocalDateTime(post.modified),
     joinDate = epochMilliToLocalDateTime(post.joinDate.timestamp),
-    joinLevel = post.joinLevel
+    joinLevel = post.joinLevel,
+    tpe = post.tpe
   )
   implicit def forDb(user: User.Persisted): Data.User = user match {
     case User.Real(id, name, revision) => Data.User(id, name, isImplicit = false, revision = revision)

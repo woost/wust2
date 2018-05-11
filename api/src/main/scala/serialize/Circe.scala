@@ -12,6 +12,8 @@ object Circe {
   implicit val decodeUserId: Decoder[UserId] = Decoder.decodeString.map(UserId(_))
   implicit val encodeLabel: Encoder[Label] = Encoder.encodeString.contramap[Label](identity)
   implicit val decodeLabel: Decoder[Label] = Decoder.decodeString.map(Label(_))
+  implicit val encodePostType: Encoder[PostType] = Encoder.encodeString.contramap[PostType](identity)
+  implicit val decodePostType: Decoder[PostType] = Decoder.decodeString.map(PostType(_))
 
   implicit val encodeEpochMilli: Encoder[EpochMilli] = Encoder.encodeLong.contramap[EpochMilli](identity)
   implicit val decodeEpochMilli: Decoder[EpochMilli] = Decoder.decodeLong.map(EpochMilli(_))
