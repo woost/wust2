@@ -3,7 +3,7 @@ package wust.webApp
 import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
 import monocle.macros.GenLens
-import org.scalajs.dom.{Event, window}
+import org.scalajs.dom.{ Event, window }
 import outwatch.dom._
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
@@ -13,69 +13,36 @@ import wust.ids._
 import wust.sdk._
 import wust.util.Selector
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{PageStyle, View, ViewConfig}
+import wust.webApp.views.{ PageStyle, View, ViewConfig }
 import cats._
 import cats.data.NonEmptyList
 
 import scala.collection.breakOut
 
+class GlobalState private (implicit ctx: Ctx.Owner) {
 
-class GlobalState(implicit ctx: Ctx.Owner) {
+  val syncMode: Var[SyncMode] = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
+  val sidebarOpen: Var[Boolean] = Client.storage.sidebarOpen
+  val syncDisabled = syncMode.map(_ != SyncMode.Live)
+  private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
 
-  import GlobalState._
+  val eventProcessor = EventProcessor(
+    Client.observable.event,
+    syncDisabled.toObservable,
+    (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
+    Client.api.changeGraph _
+  )
 
-    val syncMode: Var[SyncMode] = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
-    val sidebarOpen: Var[Boolean] = Client.storage.sidebarOpen
-    val syncDisabled = syncMode.map(_ != SyncMode.Live)
-    private val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(ViewConfig.fromHash)(x => Option(ViewConfig.toHash(x)))
+  val currentAuth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
 
-    val eventProcessor = EventProcessor(
-      Client.observable.event,
-      syncDisabled.toObservable,
-      (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
-      Client.api.changeGraph _
-    )
-    // write all initial storage changes, in case they did not get through to the server
-    // Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
-    //TODO: wait for Storage.handlerWithEventsOnly
-    //Client.storage.graphChanges.drop(1) subscribe eventProcessor.nonSendingChanges
-    // eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
+  val currentUser: Rx[User] = currentAuth.map(_.user)
+  val highLevelPosts = Var[List[Post]](Nil)
 
-    //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
-    // TODO: Analytics
-    // if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
-    // if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
-    // if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
-    // if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
-    // if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
-    // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
-    // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
-
-    val currentAuth:Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
-    //TODO: better in rx/obs operations
-    currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
-
-    val currentUser: Rx[User] = currentAuth.map(_.user)
-    val highLevelPosts =  Var[List[Post]](Nil)
-
-  currentUser.foreach { _ =>
-    Client.api.getHighLevelPosts().foreach {
-      highLevelPosts() = _
+  val rawGraph: Rx[Graph] = {
+    val graph = eventProcessor.rawGraph.toRx(seed = Graph.empty)
+    Rx {
+      graph().addPosts(highLevelPosts()) //TODO: this is a hack, highlevel posts should already be in the graph
     }
-  }
-
-    val rawGraph:Rx[Graph] = {
-      val graph = eventProcessor.rawGraph.toRx(seed = Graph.empty)
-      Rx {
-        graph().addPosts(highLevelPosts()) //TODO: this is a hack, highlevel posts should already be in the graph
-      }
-    }
-
-    //TODO: better build up state from server events?
-  viewConfig.toObservable.switchMap { vc =>
-    Observable.fromFuture(Client.api.getGraph(vc.page))
-  }.foreach { graph =>
-    eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
@@ -133,7 +100,6 @@ class GlobalState(implicit ctx: Ctx.Owner) {
     }
   }
 
-
   val upButtonTargetPage: Rx[Option[Page]] = Rx {
     //TODO: handle containment cycles
     page() match {
@@ -145,59 +111,7 @@ class GlobalState(implicit ctx: Ctx.Owner) {
   }
 
   val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
-  DevOnly {
-    val errorMessage = Observable.create[String](Unbounded) { observer =>
-      window.onerror = { (msg: Event, source: String, line: Int, col: Int, _: Any) =>
-        //TODO: send and log production js errors in backend
-        observer.onNext(msg.toString)
-      }
-      Cancelable()
-    }
-    jsErrors <-- errorMessage.scan(Vector.empty[String])((acc, msg) => acc :+ msg)
-  }
 
-  //events!!
-  //TODO eventProcessor?
-  // rawGraph() = newGraph applyChanges eventProcessor.currentChanges
-  //TODO: on user login:
-  //     ClientCache.currentAuth = Option(auth)
-  //     if (auth.user.isImplicit) {
-  //       Analytics.sendEvent("auth", "loginimplicit", "success")
-  //     }
-  //     ClientCache.currentAuth = None
-
-  // rawEventStream { events =>
-  // DevOnly {
-  //   views.DevView.apiEvents.updatef(events.toList ++ _)
-  //   events foreach {
-  //     case ReplaceGraph(newGraph) =>
-  //       assert(newGraph.consistent == newGraph, s"got inconsistent graph from server:\n$newGraph\nshould be:\n${newGraph.consistent}")
-  //     //TODO needed?
-  //     // assert(currentUser.now.forall(user => newGraph.usersById.isDefinedAt(user.id)), s"current user is not in Graph:\n$newGraph\nuser: ${currentUser.now}")
-  //     // assert(currentUser.now.forall(user => newGraph.groupsByUserId(user.id).toSet == newGraph.groups.map(_.id).toSet), s"User is not member of all groups:\ngroups: ${newGraph.groups}\nmemberships: ${newGraph.memberships}\nuser: ${currentUser.now}\nmissing memberships for groups:${currentUser.now.map(user => newGraph.groups.map(_.id).toSet -- newGraph.groupsByUserId(user.id).toSet)}")
-  //     case _ =>
-  //   }
-  // }
-  // }
-
-  DevOnly {
-    rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}")
-    //      collapsedPostIds.debug("collapsedPostIds")
-    perspective.debug("perspective")
-    displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
-    //      focusedPostId.debug("focusedPostId")
-    //      selectedGroupId.debug("selectedGroupId")
-    // rawPage.debug("rawPage")
-    page.debug("page")
-    view.debug("view")
-    // viewConfig.debug("viewConfig")
-    //      currentUser.debug("\ncurrentUser")
-
-  }
-
-}
-
-object GlobalState {
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 
@@ -212,7 +126,71 @@ object GlobalState {
       .filterNot(p => containedPosts(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))
 
-
     changes.consistent merge GraphChanges(delPosts = toDelete, addConnections = toContain)
+  }
+}
+
+object GlobalState {
+  def create()(implicit ctx: Ctx.Owner): GlobalState = {
+    val state = new GlobalState
+    import state._
+
+    //TODO: better in rx/obs operations
+    currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
+
+    //TODO: better build up state from server events?
+    viewConfig.toObservable.switchMap { vc =>
+      Observable.fromFuture(Client.api.getGraph(vc.page))
+    }.foreach { graph =>
+      eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
+    }
+
+    currentUser.foreach { _ =>
+      Client.api.getHighLevelPosts().foreach {
+        highLevelPosts() = _
+      }
+    }
+
+    // write all initial storage changes, in case they did not get through to the server
+    // Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
+    //TODO: wait for Storage.handlerWithEventsOnly
+    //Client.storage.graphChanges.drop(1) subscribe eventProcessor.nonSendingChanges
+    // eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
+
+    //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
+    // TODO: Analytics
+    // if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
+    // if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
+    // if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
+    // if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
+    // if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
+    // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
+    // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
+
+    DevOnly {
+      val errorMessage = Observable.create[String](Unbounded) { observer =>
+        window.onerror = { (msg: Event, source: String, line: Int, col: Int, _: Any) =>
+          //TODO: send and log production js errors in backend
+          observer.onNext(msg.toString)
+        }
+        Cancelable()
+      }
+      (jsErrors <-- errorMessage.scan(Vector.empty[String])((acc, msg) => acc :+ msg)).unsafeRunSync
+
+      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}")
+      //      collapsedPostIds.debug("collapsedPostIds")
+      perspective.debug("perspective")
+      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
+      //      focusedPostId.debug("focusedPostId")
+      //      selectedGroupId.debug("selectedGroupId")
+      // rawPage.debug("rawPage")
+      page.debug("page")
+      view.debug("view")
+      // viewConfig.debug("viewConfig")
+      //      currentUser.debug("\ncurrentUser")
+
+    }
+
+    state
   }
 }
