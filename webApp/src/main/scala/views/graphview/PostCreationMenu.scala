@@ -64,7 +64,8 @@ object PostCreationMenu {
       transform <-- transformStyle,
       width := "300px",
       div(
-        textAreaWithEnter(inputHandler)(
+        textArea(
+          valueWithEnter --> inputHandler,
           Placeholders.newPost,
           onInsert.asHtml --> sideEffect(_.focus()),
           style("resize") := "none", //TODO: outwatch resize?

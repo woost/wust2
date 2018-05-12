@@ -3,9 +3,11 @@ package wust.webApp.views
 import wust.webApp.marked
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
-import outwatch.Sink
+import outwatch.{ObserverSink, Sink}
+import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
+import monix.reactive.Observer
 import wust.webApp.outwatchHelpers._
 
 object Placeholders {
@@ -31,15 +33,22 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  def textAreaWithEnter(actionSink: Sink[String]) = for {
-    userInput <- Handler.create[String]
-    clearHandler = userInput.map(_ => "")
-    area <- textArea(
-      value <-- clearHandler,
-      managed(actionSink <-- userInput),
-      onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e }.value.filter(_.nonEmpty) --> userInput
-    )
-  } yield area
+  def onEnter: SimpleEmitterBuilder[dom.Event, Emitter] = SimpleEmitterBuilder { (observer: Observer[dom.Event]) =>
+    (onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e } --> ObserverSink(observer)).unsafeRunSync()
+  }
+
+  def valueWithEnter: SimpleEmitterBuilder[String, Modifier] = SimpleEmitterBuilder { (observer: Observer[String]) =>
+    (for {
+      userInput <- Handler.create[String]
+      clearHandler = userInput.map(_ => "")
+      actionSink = ObserverSink(observer)
+      modifiers <- Seq(
+        value <-- clearHandler,
+        managed(actionSink <-- userInput),
+        onEnter.value.filter(_.nonEmpty) --> userInput
+      )
+    } yield modifiers).unsafeRunSync() //TODO: https://github.com/OutWatch/outwatch/issues/195
+  }
 
   //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
   //  textarea(
