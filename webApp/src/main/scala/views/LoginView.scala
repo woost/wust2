@@ -28,38 +28,38 @@ object LoginView extends View {
       maxHeight := "400px", height := "400px",
       margin := "auto",
       isSignup.map {
-        case true => div(
-          h2("Create an account"),
-          input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
-          input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password),
-          button("Signup", display.block, margin := "auto",
-            onClick(nameAndPassword) --> sideEffect[(String, String)] {
-              case (userName, password) =>  Client.auth.register(userName, password).foreach {
-                case true => state.view() = View.default
-                case false => ()
-              }
+        case true =>
+          val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
+            case (userName, password) =>  Client.auth.register(userName, password).foreach {
+              case true => state.view() = View.default
+              case false => ()
             }
-          ),
-          hr(),
-          div("Already have an account?", textAlign := "center", width := "100%"),
-          button("Login with existing account", display.block, margin := "auto", onClick(false) --> isSignup)
-        )
-        case false => div(
-          h2("Login with existing account"),
-          input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
-          input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password),
-          button("Login", display.block, margin := "auto",
-            onClick(nameAndPassword) --> sideEffect[(String, String)] {
-              case (userName, password) =>  Client.auth.login(userName, password).foreach {
-                case true => state.view() = View.default
-                case false => ()
-              }
+          }
+          div(
+            h2("Create an account"),
+            input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
+            input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink),
+            button("Signup", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
+            hr(),
+            div("Already have an account?", textAlign := "center", width := "100%"),
+            button("Login with existing account", display.block, margin := "auto", onClick(false) --> isSignup)
+          )
+        case false =>
+          val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
+            case (userName, password) =>  Client.auth.login(userName, password).foreach {
+              case true => state.view() = View.default
+              case false => ()
             }
-          ),
-          hr(),
-          div("New to Woost?", textAlign := "center", width := "100%"),
-          button("Create an account", display.block, margin := "auto", onClick(true) --> isSignup)
-        )
+          }
+          div(
+            h2("Login with existing account"),
+            input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
+            input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink),
+            button("Login", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
+            hr(),
+            div("New to Woost?", textAlign := "center", width := "100%"),
+            button("Create an account", display.block, margin := "auto", onClick(true) --> isSignup)
+          )
       }
     )
   } yield elem
