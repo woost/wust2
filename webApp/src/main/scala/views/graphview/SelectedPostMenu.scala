@@ -121,7 +121,10 @@ object SelectedPostMenu {
     val editableTitle = div(
       editMode.map { activated =>
         if (activated) {
-          textAreaWithEnter(updatePostHandler)(rxPost.now.content, onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
+          textArea(
+            valueWithEnter --> updatePostHandler,
+            rxPost.now.content,
+            onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
             rxPost.map(_.content),
@@ -152,7 +155,7 @@ object SelectedPostMenu {
         backgroundColor := "#EEE",
         borderRadius := "5px",
         parentList,
-        textAreaWithEnter(insertPostHandler)(Placeholders.newPost, marginTop := "20px")
+        textArea(valueWithEnter --> insertPostHandler, Placeholders.newPost, marginTop := "20px")
       ),
       div(
         cls := "shadow",
@@ -167,7 +170,7 @@ object SelectedPostMenu {
         border := "2px solid #DDDDDD",
         borderRadius := "5px",
         padding := "5px",
-        textAreaWithEnter(connectPostHandler)(Placeholders.newPost)
+        textArea(valueWithEnter --> connectPostHandler, Placeholders.newPost)
       )
     )
   }

@@ -144,7 +144,8 @@ object ChatView extends View {
   }
 
   def inputField(graph: Rx[Graph], newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
-    textAreaWithEnter(newPostSink)(
+    textArea(
+      valueWithEnter --> newPostSink,
       disabled <-- graph.map(_.isEmpty),
       height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?
