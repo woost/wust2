@@ -137,6 +137,7 @@ object GlobalState {
 
     //TODO: better in rx/obs operations
     currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
+    currentAuth.foreach(IndexedDbOps.storeAuth)
 
     //TODO: better build up state from server events?
     viewConfig.toObservable.switchMap { vc =>
@@ -152,9 +153,7 @@ object GlobalState {
     }
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
-    page.foreach { _ =>
-      eventProcessor.history.action.onNext(ChangesHistory.Clear)
-    }
+    page.foreach { _ => eventProcessor.history.action.onNext(ChangesHistory.Clear) }
 
     // write all initial storage changes, in case they did not get through to the server
     // Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
@@ -171,6 +170,15 @@ object GlobalState {
     // if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
     // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
     // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
+
+    Client.observable.event.foreach { events =>
+      val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
+      if (changes.addPosts.nonEmpty) {
+        val msg = if (changes.addPosts.size == 1) "New Post" else s"New Post (${changes.addPosts.size})"
+        val body = changes.addPosts.map(_.content).mkString(", ")
+        Notifications.notify(msg, body = Some(body), tag = Some("new-post"))
+      }
+    }
 
     DevOnly {
       val errorMessage = Observable.create[String](Unbounded) { observer =>
