@@ -84,8 +84,9 @@ function self() {
         sbt_with_args devf
         ;;
     psql)
-        # PGPASSWORD=test psql -h localhost -U wust
-        postgres_command psql -h localhost -U wust ${@:2}
+        export $env_postgres_secret $env_postgres_local
+        PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
+        # postgres_command psql -h localhost -U $POSTGRES_USER ${@:2}
         ;;
     pgdump)
         postgres_command pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
