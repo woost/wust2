@@ -18,6 +18,16 @@ case object ChooseTaskHeuristic {
       tasks(scala.util.Random.nextInt(tasks.size))
     }
 
+    def byProbability(tasks: List[(Double, RestructuringTaskObject)]): RestructuringTaskObject =  {
+      val totalWeight = tasks.foldLeft(0.0)(_ + _.1)
+      val normalizedHeuristics = tasks.map(t => (t._1 / totalWeight, t._2))
+        .scan((0.0, AddTagToPosts))((t1, t2) => (t1._1 + t2._1, t2._2)).drop(1)
+        val r = scala.util.Random.nextDouble
+        val choice = normalizedHeuristics.filter(h => h.probability >= r).head
+        choice
+    }
+
+
   def defaultHeuristic: HeuristicType = random
 }
 

@@ -1140,8 +1140,8 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 
 object RestructuringTaskGenerator {
 
-  // Tasks for study
-  val tasks: List[RestructuringTaskObject] = List(
+  // Task List
+  val predefTasks: List[RestructuringTaskObject] = List(
     AddTagToPosts,
     ConnectPosts,
     ConnectPostsWithTag,
@@ -1185,28 +1185,33 @@ object RestructuringTaskGenerator {
     )
   }
 
-  def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
+  def render(globalState: GlobalState, tasks: List[RestructuringTaskObject]): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
 
     scribe.info(s"display task ${feedback.toString}")
     Client.api.log(feedback.toString)
     if(feedback.displayNext) {
       div(
         renderButton(activateTasks = true),
-        children <-- Observable.fromFuture(composeTask(globalState).map(_.map(_.render(globalState))))
+        children <-- Observable.fromFuture(composeTask(globalState, tasks).map(_.map(_.render(globalState))))
       )
     } else {
       renderButton(activateTasks = false)
     }
+  }
+  
+  def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
+    render(globalState, predefTasks)
   }
 
   // Currently, we choose a task at random and decide afterwards which heuristic is used
   // But it is also possible to decide a task based on given post metrics
   // Therefore if we can find / define metrics of a discussion, we can choose an
   // applicable task after choosing a post (based on a discussion metric)
-  private def composeTask(globalState: GlobalState): Future[List[RestructuringTask]] = {
+  private def composeTask(globalState: GlobalState, usedTasks: List[RestructuringTaskObject]): Future[List[RestructuringTask]] = {
 
     val graph = globalState.inner.displayGraphWithoutParents.now.graph
-    val task = ChooseTaskHeuristic.random(tasks)
+    // val task = ChooseTaskHeuristic.byProbability(usedTasks)
+    val task = ChooseTaskHeuristic.random(usedTasks)
     task.applyStrategically(graph)
 
     // TODO: Different strategies based on choosing order
@@ -1221,7 +1226,7 @@ object RestructuringTaskGenerator {
     //    }
     //    finalTask
   }
-
+  
   private var _studyTaskIndex: Int = 1
   private var initLoad = false
   private var initGraph = Graph.empty
@@ -1267,36 +1272,36 @@ object RestructuringTaskGenerator {
           // mapTask(ConnectPosts, List(PostId("111"), PostId("112"))),
           // mapTask(UnifyPosts, List(PostId("111"), PostId("112"))),
           // )
-          val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
-                    (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
+          // val tmpStudyTaskList: List[Future[List[RestructuringTask]]] =
+          //           (for(p <- initGraph.postIds) yield mapTask(ConnectPostsWithTag, List(PostId(p), PostId(p)))).toList
 
-          // val tmpStudyTaskList = List(
-          //   mapTask(DeletePosts,          List(PostId("107"))),                 //11  -> 1
-          //   mapTask(SplitPosts,           List(PostId("108"))),                 //18  -> 2
-          //   mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7   -> 3
-          //   mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13  -> 4
-          //   mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9   -> 5
-          //   mapTask(SplitPosts,           List(PostId("103"))),                 //16  -> 6
-          //   mapTask(DeletePosts,          List(PostId("109"))),                 //12  -> 7
-          //   mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6   -> 8
-          //   mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14  -> 9
-          //   mapTask(AddTagToPosts,        List(PostId("126"))),                 //3   -> 10
-          //   mapTask(SplitPosts,           List(PostId("101"))),                 //17  -> 11
-          //   mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8   -> 12
-          //   mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15  -> 13
-          //   mapTask(DeletePosts,          List(PostId("106"))),                 //10  -> 14
-          //   mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4   -> 15
-          //   mapTask(AddTagToPosts,        List(PostId("121"))),                 //2   -> 16
-          //   mapTask(AddTagToPosts,        List(PostId("120"))),                 //1   -> 17
-          //   mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5   -> 18
-          //   )
+          val tmpStudyTaskList = List(
+            mapTask(DeletePosts,          List(PostId("107"))),                 //11  -> 1
+            mapTask(SplitPosts,           List(PostId("108"))),                 //18  -> 2
+            mapTask(SameTopicPosts,       List(PostId("126"), PostId("127"))),  //7   -> 3
+            mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13  -> 4
+            mapTask(SameTopicPosts,       List(PostId("132"), PostId("119"))),  //9   -> 5
+            mapTask(SplitPosts,           List(PostId("103"))),                 //16  -> 6
+            mapTask(DeletePosts,          List(PostId("109"))),                 //12  -> 7
+            mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6   -> 8
+            mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14  -> 9
+            mapTask(AddTagToPosts,        List(PostId("126"))),                 //3   -> 10
+            mapTask(SplitPosts,           List(PostId("101"))),                 //17  -> 11
+            mapTask(SameTopicPosts,       List(PostId("120"), PostId("117"))),  //8   -> 12
+            mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15  -> 13
+            mapTask(DeletePosts,          List(PostId("106"))),                 //10  -> 14
+            mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4   -> 15
+            mapTask(AddTagToPosts,        List(PostId("121"))),                 //2   -> 16
+            mapTask(AddTagToPosts,        List(PostId("120"))),                 //1   -> 17
+            mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5   -> 18
+            )
 
           _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
         }
 
-        _studyTaskList.foreach { tasks =>
+        _studyTaskList.foreach { predefTasks =>
           if (_studyTaskIndex > 0) {
-            val taskTitle = tasks(_studyTaskIndex - 1).title
+            val taskTitle = predefTasks(_studyTaskIndex - 1).title
             val str = s"RESTRUCTURING TASKS ${_studyTaskIndex} LOG -> ${if(feedback.taskAnswer) "YES" else "NO"}: $taskTitle -> ${feedback.graphChanges}"
             scribe.info(str)
             Client.api.log(str)
