@@ -4,4 +4,4 @@ target/
 /webApp/project-root
 
 /.idea
-#/.git
+/.git
