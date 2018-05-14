@@ -8,27 +8,30 @@ DEVPORT=${DEVPORT:-$(shuf -i 40000-41000 -n 1)}
 BACKEND=${BACKEND:-$(shuf -i 50000-51000 -n 1)}
 REMOTETMP=$(mktemp)
 
-rsync -aP --delete ${LOCALDIR}/ ${REMOTEHOST}:${REMOTETMP}/ --exclude-from=${LOCALDIR}/remotedevignore || exit 1
+rsync -aP --delete --compress ${LOCALDIR}/ ${REMOTEHOST}:${REMOTETMP}/ --exclude-from=${LOCALDIR}/remotedevignore || exit 1
 
 lsyncd =(cat <<EOF
 settings {
-   nodaemon     = true,
-   statusFile   = "/dev/null",
-   logfile      = "/dev/null"
+    nodaemon     = true,
+    statusFile   = "/dev/null",
+    logfile      = "/dev/null"
 }
 
 sync {
-   default.rsync,
-   delay       = 1,
-   source      = "${LOCALDIR}",
-   target      = "${REMOTEHOST}:${REMOTETMP}",
-   excludeFrom = "${LOCALDIR}/.ignore"
+    default.rsync,
+    delay       = 1,
+    source      = "${LOCALDIR}",
+    target      = "${REMOTEHOST}:${REMOTETMP}",
+    excludeFrom = "${LOCALDIR}/remotedevignore",
+    rsync     = {
+        compress = true
+    }
 }
 EOF
 ) &>/dev/null &
 
 LSYNCDPID=$!
-echo $LSYNCDPID
+# echo $LSYNCDPID
 
 SBT_OPTS="-Xms512M -Xmx4G -Xss1M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
 
@@ -51,6 +54,6 @@ TERM=xterm-256color ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhos
         zsh -i;                                 \
     \\\"\""
 
-ssh ${REMOTEHOST} "rm -rf $REMOTETMP"
+ssh ${REMOTEHOST} "rm -rf $REMOTETMP" # clean up
 
-kill ${LSYNCDPID}
+kill ${LSYNCDPID} # stop file sync

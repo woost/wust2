@@ -148,7 +148,7 @@ function self() {
         ;;
     migrate)
         export $env_wust_version $env_postgres_secret $env_wust_local_connectivity
-        sbt dbMigration/docker
+        sbt dbMigration/docker # TODO: avoid sbt launch, this makes CI, remotedev and everything faster
         docker_compose core dev run db-migration
         ;;
     prodlocal)
