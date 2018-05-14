@@ -64,7 +64,7 @@ in
     adb logcat | grep -F \$(adb shell ps | grep space.woost | cut -c10-15)
     EOF
     # mkdir -p ~/.android/sbt/sdk/{platform-tools,build-tools/27.0.3}/
-    # cp -a ${pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/platform-tools/
-    # cp -a ${pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/build-tools/27.0.3/
+    # cp -a $\{pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/platform-tools/
+    # cp -a $\{pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/build-tools/27.0.3/
     '';
   }
