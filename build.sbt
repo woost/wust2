@@ -69,7 +69,7 @@ lazy val commonSettings = Seq(
 
   Defs.dockerVersionTags :=
     {
-      val branch = sys.env.get("TRAVIS_BRANCH") getOrElse git.gitCurrentBranch.value
+      val branch = sys.env.get("TRAVIS_BRANCH") orElse scala.util.Try(git.gitCurrentBranch.value).filter(_.nonEmpty).toOption getOrElse "dirty"
       if (branch == "master") "latest" else branch
     } ::
     version.value ::
