@@ -17,20 +17,8 @@ object ChatView extends View {
   override val displayName = "Chat"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    import state._
-
-
-    val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
-      o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
-    }
 
     state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
-
-    component(state, newPostSink)
-  }
-
-  def component(state: GlobalState, newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
-    import state._
 
     div(
       width := "100%",
@@ -42,23 +30,26 @@ object ChatView extends View {
       alignItems.stretch,
       alignContent.stretch,
 
-      chatHeader(pageParentPosts)(ctx)(flexGrow := 0, flexShrink := 0),
-      chatHistory(currentUser, page, displayGraphWithoutParents.map(_.graph))(ctx)(height := "100%", overflow.auto),
-      inputField(displayGraphWithParents.map(_.graph), newPostSink)(ctx)(flexGrow := 0, flexShrink := 0)
+      chatHeader(state)(ctx)(flexGrow := 0, flexShrink := 0),
+      chatHistory(state)(ctx)(height := "100%", overflow.auto),
+      inputField(state)(ctx)(flexGrow := 0, flexShrink := 0)
     )
   }
 
-  def chatHeader(pageParentPosts: Rx[Seq[Post]])(implicit ctx: Ctx.Owner): VNode = {
+  def chatHeader(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       fontSize := "20px",
       padding := "0px 20px",
-      pageParentPosts.map(_.map { parent =>
+      state.pageParentPosts.map(_.map { parent =>
         span(mdHtml(parent.content))
       })
     )
   }
 
-  def chatHistory(currentUser: Rx[User], page: Var[Page], graph: Rx[Graph])(implicit ctx: Ctx.Owner): VNode = {
+  def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    import state._
+    val graph = displayGraphWithoutParents.map(_.graph)
+
     div(
       padding := "20px",
 
@@ -79,36 +70,12 @@ object ChatView extends View {
     val isMine = currentUser.id == post.author
     div( // wrapper for floats
       div( // post wrapper
-//        div(
-//          span( // author id
-//            graph.usersById.get(post.author).map(_.name).getOrElse(s"unknown: ${post.author}").toString,
-//            fontSize.small,
-//            color := "black",
-//            borderRadius := "2px",
-//            padding := "0px 3px",
-//            marginRight := "3px",
-//          ),
-//          margin := "0px",
-//          padding := "0px",
-//        ),
         div( // post content as markdown
           mdHtml(post.content),
           cls := "chatpost",
           padding := "0px 3px",
           margin := "2px 0px"
         ),
-//        div(
-//          span( // post id
-//            post.id.toString,
-//            fontSize.small,
-//            color := "black",
-//            borderRadius := "2px",
-//            padding := "0px 3px",
-//            marginRight := "3px",
-//          ),
-//          margin := "0px",
-//          padding := "0px",
-//        ),
         div( // post tags
           postTags.map{ tag =>
               span(
@@ -143,10 +110,18 @@ object ChatView extends View {
     )
   }
 
-  def inputField(graph: Rx[Graph], newPostSink: Sink[String])(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    import state._
+
+    val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
+      o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
+    }
+
+    val graphIsEmpty = displayGraphWithParents.map(_.graph.isEmpty)
+
     textArea(
       valueWithEnter --> newPostSink,
-      disabled <-- graph.map(_.isEmpty),
+      disabled <-- graphIsEmpty,
       height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newPost
