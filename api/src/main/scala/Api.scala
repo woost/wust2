@@ -14,6 +14,7 @@ trait Api[Result[_]] {
   def getGraph(selection: Page): Result[Graph]
   def getUser(userId: UserId): Result[Option[User]]
   def addMember(postId: PostId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
+  def setJoinDate(postId: PostId, joinDate: JoinDate): Result[Boolean]
 //  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
 
   def getHighLevelPosts():Result[List[Post]]
@@ -82,7 +83,6 @@ object ApiEvent {
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
-    override def toString = s"NewGraphChanges(#changes: ${changes.size})"
   }
   object NewGraphChanges {
     def unapply(event: ApiEvent): Option[GraphChanges] = event match {

@@ -148,12 +148,16 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def addMemberEvenIfLocked(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId, accessLevel).map(_.nonEmpty)
-    def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId, joinLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
+    def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
       val insertMembership = quote { (postId: PostId) =>
-        val q = query[Membership].insert(Membership(lift(userId), postId, lift(joinLevel)))
+        val q = query[Membership].insert(Membership(lift(userId), postId, lift(accessLevel)))
         infix"$q ON CONFLICT(postId, userId) DO NOTHING".as[Insert[Membership]].returning(_.postId)
       }
       ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
+    }
+    def setJoinDate(postId: PostId, joinDate: JoinDate)(implicit ec: ExecutionContext):Future[Boolean] = {
+      val joinDateLocalDateTime = Data.epochMilliToLocalDateTime(joinDate.timestamp)
+      ctx.run(query[RawPost].filter(_.id == lift(postId)).update(_.joinDate -> lift(joinDateLocalDateTime))).map(_ == 1)
     }
   }
 
@@ -364,16 +368,8 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }.map(_.nonEmpty)
     }
 
-    def isMember(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(query[Membership].filter(m => m.postId == lift(postId) && m.userId == lift(userId)).nonEmpty)
-    }
-
-    def hasAccessToPost(userId: UserId, postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run {
-        val postIsPublic = query[Membership].filter(m => m.postId == lift(postId)).isEmpty
-        val userIsMemberOfPost = query[Membership].filter(m => m.postId == lift(postId) && m.userId == lift(userId)).nonEmpty
-        postIsPublic || userIsMemberOfPost
-      }
+    def isMember(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(query[Membership].filter(m => m.postId == lift(postId) && m.userId == lift(userId) && m.level == lift(accessLevel)).nonEmpty)
     }
   }
 

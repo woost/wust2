@@ -147,6 +147,7 @@ object GlobalState {
     }
 
     currentUser.foreach { _ =>
+      //TODO: HighLevelPosts should be part of the graph in the first place
       Client.api.getHighLevelPosts().foreach {
         highLevelPosts() = _
       }
