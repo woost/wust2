@@ -19,6 +19,7 @@ object Sidebar {
   def buttonStyle = Seq(
     width := "100%",
     padding := "5px 3px",
+    margin := "0px"
   )
 
   val notificationSettings: VNode = {
