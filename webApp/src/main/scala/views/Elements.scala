@@ -16,9 +16,9 @@ object Placeholders {
 }
 
 object Rendered {
-  def mdHtml(str: String) = prop("innerHTML") := marked(str)
-  def mdHtml(str: Observable[String]) = prop("innerHTML") <-- str.map(marked(_))
-  def mdString(str: String) = marked(str)
+  def mdHtml(str: String) = span(prop("innerHTML") := marked(str))
+  def mdHtml(str: Observable[String]) = span(prop("innerHTML") <-- str.map(marked(_)))
+  def mdString(str: String):String = marked(str)
 }
 
 object Elements {
