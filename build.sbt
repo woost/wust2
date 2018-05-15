@@ -300,6 +300,7 @@ lazy val webApp = project
       Deps.circe.parser.value ::
       Deps.vectory.value ::
       Deps.d3v4.value ::
+      Deps.fastparse.value ::
       Nil,
 
     npmDependencies in Compile ++=

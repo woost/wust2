@@ -25,18 +25,22 @@ object View {
       Nil
 
 
-  private val viewMap:Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
+  val viewMap:Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
 
   def default = list.head
-
-  def fromString(key: String): View = {
-    val splitted = key.split(TiledView.separator)
-    if (splitted.length == 1) {
-      viewMap(splitted(0))
-    } else {
-      new TiledView(splitted.flatMap(viewMap.get)(breakOut))
-    }
-  }
 }
 
+sealed trait ViewOperator {
+  val separator: String
+}
+object ViewOperator {
+  case object Row extends ViewOperator { override val separator = "|" }
+  case object Column extends ViewOperator { override val separator = "/" }
+  case object Auto extends ViewOperator { override val separator = "," }
 
+  val fromString: PartialFunction[String, ViewOperator] = {
+    case Row.separator => Row
+    case Column.separator => Column
+    case Auto.separator => Auto
+  }
+}
