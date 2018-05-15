@@ -33,9 +33,8 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  def onEnter: SimpleEmitterBuilder[dom.Event, Emitter] = SimpleEmitterBuilder { (observer: Observer[dom.Event]) =>
-    (onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e } --> ObserverSink(observer)).unsafeRunSync()
-  }
+  def onEnter: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
+    onKeyDown.collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e }
 
   def valueWithEnter: SimpleEmitterBuilder[String, Modifier] = SimpleEmitterBuilder { (observer: Observer[String]) =>
     (for {
