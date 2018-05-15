@@ -1,3 +1,13 @@
+/* Custom, iPhone Retina */
+/* @media only screen and (min-width : 320px) { } */
+/* Extra Small Devices, Phones */
+/* @media only screen and (min-width : 480px) { } */
+/* Small Devices, Tablets */
+/* @media only screen and (min-width : 768px) { } */
+/* Medium Devices, Desktops */
+/* @media only screen and (min-width : 992px) { } */
+/* Large Devices, Wide Screens */
+/* @media only screen and (min-width : 1200px) { } */
 
 /* These are viewgrids used by TiledView */
 .viewgridAuto {
@@ -7,8 +17,16 @@
     padding: 0;
     display: grid;
     grid-gap: 0px;
-    grid-template-columns: repeat(2, 1fr); /* media query for length of row, currently fixed to 2 */
+    grid-template-columns: repeat(1, 1fr);
     grid-auto-rows: minmax(50px, 1fr);
+}
+@media only screen and (min-width : 992px) {
+    .viewgridAuto {
+        grid-template-columns: repeat(2, 1fr);
+        .viewgridTile {
+            height: 100%
+        }
+    }
 }
 .viewgridRow {
     width:100%;
