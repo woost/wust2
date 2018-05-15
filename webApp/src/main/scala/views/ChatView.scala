@@ -6,6 +6,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
+import wust.ids.JoinDate
 import wust.sdk.PostColor._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
@@ -39,7 +40,6 @@ object ChatView extends View {
   def chatHeader(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     div(
-      fontSize := "20px",
       padding := "0px 10px",
       pageParentPosts.map(_.map { parent =>
         div(
@@ -50,9 +50,32 @@ object ChatView extends View {
             height := "40px",
             marginRight := "10px"
           ),
-          mdHtml(parent.content)
+          mdHtml(parent.content)(fontSize := "20px"),
+          joinControl(state, parent)(ctx)(marginLeft := "5px")
         )
       })
+    )
+  }
+
+  def joinControl(state:GlobalState, post:Post)(implicit  ctx: Ctx.Owner):VNode = {
+    div(
+      "(", post.joinDate.toString, ")",
+      cursor.pointer,
+      onClick --> sideEffect{ _ =>
+        val newJoinDate = post.joinDate match {
+          case JoinDate.Always => JoinDate.Never
+          case JoinDate.Never => JoinDate.Always
+          case _ => JoinDate.Never
+        }
+
+        Client.api.setJoinDate(post.id, newJoinDate).foreach{ success =>
+          //TODO: this should be automatic, highlevel posts should be in graph
+          if(success)
+            state.highLevelPosts() = state.highLevelPosts.now.map{p =>
+              if(p.id == post.id) p.copy(joinDate = newJoinDate) else p
+            }
+        }
+      }
     )
   }
 

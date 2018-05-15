@@ -65,11 +65,23 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //TODO: error handling
   override def addMember(postId: PostId, newMemberId: UserId, accessLevel: AccessLevel): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isPostMember(postId, user.id) {
+      isPostMember(postId, user.id, AccessLevel.ReadWrite) {
         for {
           Some(user) <- db.user.get(newMemberId)
           added <- db.post.addMemberEvenIfLocked(postId, newMemberId, accessLevel)
         } yield Returns(added, if(added) Seq(NewMembership(newMemberId, postId), NewUser(user)) else Nil)
+      }
+    }
+  }
+  override def setJoinDate(postId: PostId, joinDate: JoinDate): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+    db.ctx.transaction { implicit ec =>
+      isPostMember(postId, user.id, AccessLevel.ReadWrite) {
+        for {
+          updatedJoinDate <- db.post.setJoinDate(postId, joinDate)
+          Some(updatedPost) <- db.post.get(postId)
+        } yield {
+          Returns(updatedJoinDate, Seq(NewGraphChanges.ForAll(GraphChanges.addPost(updatedPost))))
+        }
       }
     }
   }

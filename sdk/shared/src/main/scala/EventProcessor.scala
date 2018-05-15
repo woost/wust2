@@ -119,7 +119,7 @@ class EventProcessor private(
   }
 
   // changes that are only applied to the graph but are never sent
-  val nonSendingChanges = PublishSubject[GraphChanges]
+  val nonSendingChanges = PublishSubject[GraphChanges] // TODO: merge with manualUnsafeEvents?
 
   //TODO: publish only Observer?
   val changes = PublishSubject[GraphChanges]
