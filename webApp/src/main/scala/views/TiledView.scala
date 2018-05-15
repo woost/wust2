@@ -1,19 +1,21 @@
 package wust.webApp.views
 
+import cats.data.NonEmptyList
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
 import rx._
 
-class TiledView(val views: List[View]) extends View {
-  override val key = views.map(_.key).mkString(TiledView.separator.toString)
-  override val displayName = views.map(_.displayName).mkString(TiledView.separator.toString)
+class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends View {
+  override val key = views.map(_.key).toList.mkString(operator.separator.toString)
+  override val displayName = views.map(_.displayName).toList.mkString(operator.separator.toString)
 
   override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
-    id := "viewgrid",
-    views.map(_.apply(state))
+    id := (operator match {
+      case ViewOperator.Row => "viewgridRow"
+      case ViewOperator.Column => "viewgridColumn"
+      case ViewOperator.Auto => "viewgridAuto"
+    }),
+    views.map(_.apply(state)).toList
   )
-}
-object TiledView {
-  val separator:Char = '|' // needs to be a char, because else strings will be interpreted as regexes
 }

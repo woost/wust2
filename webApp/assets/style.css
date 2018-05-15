@@ -2,17 +2,32 @@
     margin: 0px;
 }
 
-#viewgrid {
+/* These are viewgrids used by TiledView */
+#viewgridAuto {
     width:100%;
     height:100%;
     margin: 0;
     padding: 0;
     display: grid;
     grid-gap: 0px;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr); /* media query for length of row, currently fixed to 2 */
     grid-auto-rows: minmax(50px, 1fr);
 }
-
+#viewgridRow {
+    width:100%;
+    height:100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+#viewgridColumn {
+    width:100%;
+    height:100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
 
 /* inspired by https://github.com/markdowncss/air/blob/master/index.css */
 .article {

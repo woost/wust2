@@ -54,6 +54,7 @@ object Deps {
   val monix = dep("io.monix" %%% "monix" % "3.0.0-RC1")
   val taggedTypes = dep("io.treev" %%% "tagged-types" % "1.4")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
+  val fastparse = dep("com.lihaoyi" %%% "fastparse" % "1.0.0")
 
   // rpc
   val covenant = new {
