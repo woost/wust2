@@ -11,7 +11,7 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
   override val displayName = views.map(_.displayName).toList.mkString(operator.separator.toString)
 
   override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
-    id := (operator match {
+    cls := (operator match {
       case ViewOperator.Row => "viewgridRow"
       case ViewOperator.Column => "viewgridColumn"
       case ViewOperator.Auto => "viewgridAuto"
