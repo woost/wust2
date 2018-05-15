@@ -7,6 +7,7 @@ import collection.breakOut
 import scala.concurrent.ExecutionContext.Implicits.global
 import rx._
 import wust.webApp.views.graphview.GraphView
+import cats.data.NonEmptyList
 
 //TODO: better no oop for views, have a function that maps a string to a view/function?
 trait View {
@@ -17,17 +18,17 @@ trait View {
 
 object View {
   val list: Seq[View] =
-    ChatView ::
+      ChatView ::
+      new GraphView ::
       LoginView ::
       // UserSettingsView ::
-      new GraphView() ::
       // AvatarView ::
       Nil
 
 
   val viewMap:Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
 
-  def default = list.head
+  def default = new TiledView(ViewOperator.Auto, NonEmptyList(list.head, list.tail.head :: Nil))
 }
 
 sealed trait ViewOperator {
