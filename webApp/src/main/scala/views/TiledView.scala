@@ -9,6 +9,7 @@ import rx._
 class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends View {
   override val key = views.map(_.key).toList.mkString(operator.separator.toString)
   override val displayName = views.map(_.displayName).toList.mkString(operator.separator.toString)
+  override def innerViews: Seq[View] = views.toList.flatMap(_.innerViews)
 
   override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     cls := (operator match {

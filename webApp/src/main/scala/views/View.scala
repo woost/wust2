@@ -14,21 +14,26 @@ trait View {
   def apply(state:GlobalState)(implicit ctx: Ctx.Owner):VNode //TODO: def apply(implicit state:GlobalState):VNode
   val key:String
   val displayName:String
+
+  //TODO this is needed for tracking content view and deciding whether to show the new group button in mainview
+  def innerViews: Seq[View] = Seq(this)
 }
 
 object View {
-  val list: Seq[View] =
-      ChatView ::
-      new GraphView ::
+  //TODO: can GraphView be an object?
+  val contentList: NonEmptyList[View] = NonEmptyList(ChatView, new GraphView :: Nil)
+
+  val list: List[View] =
+      contentList.toList :::
       LoginView ::
       // UserSettingsView ::
       // AvatarView ::
       Nil
 
 
-  val viewMap:Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
+  val viewMap: Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
 
-  def default = new TiledView(ViewOperator.Auto, NonEmptyList(list.head, list.tail.head :: Nil))
+  def default = new TiledView(ViewOperator.Auto, contentList)
 }
 
 sealed trait ViewOperator {

@@ -7,6 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.View
 import Sidebar.sidebar
 
 object MainView {
@@ -20,7 +21,7 @@ object MainView {
       sidebar(state)(owner)(flexGrow := 0, flexShrink := 0),
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
-        (if (state.page().parentIds.nonEmpty) {
+        (if (!state.view().innerViews.forall(View.contentList.toList.contains) || state.page().parentIds.nonEmpty) {
           state.view().apply(state)
         } else {
           newGroupPage(state)
