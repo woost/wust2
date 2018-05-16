@@ -8,23 +8,25 @@ import wust.webApp.views.graphview.GraphView
 
 class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   def toStringAndBack(viewConfig: ViewConfig): ViewConfig =
-    ViewConfig.fromUrlHash(Some(ViewConfig.toUrlHash(viewConfig)))
+    ViewConfig.fromUrlHash(ViewConfig.toUrlHash(viewConfig))
 
   "empty String" in {
-    ViewConfig.fromUrlHash(Some("")) mustEqual ViewConfig.default
+    val cfg = ViewConfig.fromUrlHash("")
+    val expected = ViewConfig(new ErrorView(""), Page.empty)
+    cfg.page mustEqual expected.page
+    cfg.view.key mustEqual expected.view.key
   }
 
   "invalid String" in {
-   ViewConfig.fromUrlHash(Some("someone said I should write something here")) mustEqual ViewConfig.default
-  }
-
-  "none" in {
-    ViewConfig.fromUrlHash(None) mustEqual ViewConfig.default
+    val cfg = ViewConfig.fromUrlHash("someone said I should write something here")
+    val expected = ViewConfig(new ErrorView(""), Page.empty)
+    cfg.page mustEqual expected.page
+    cfg.view.key mustEqual expected.view.key
   }
 
   "from string to viewconfig - row" in {
     val str = "view=graph|chat&page=abc,def"
-    val cfg = ViewConfig.fromUrlHash(Some(str))
+    val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
       new TiledView(ViewOperator.Row, NonEmptyList[View](new GraphView, ChatView :: Nil)),
       Page(Seq(PostId("abc"), PostId("def"))))
@@ -34,9 +36,29 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
 
   "from string to viewconfig - column" in {
     val str = "view=graph/chat&page=abc,def"
-    val cfg = ViewConfig.fromUrlHash(Some(str))
+    val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
       new TiledView(ViewOperator.Column, NonEmptyList[View](new GraphView, ChatView :: Nil)),
+      Page(Seq(PostId("abc"), PostId("def"))))
+    cfg.page mustEqual expected.page
+    cfg.view.key mustEqual expected.view.key
+  }
+
+  "from string to viewconfig - auto" in {
+    val str = "view=graph,chat&page=abc,def"
+    val cfg = ViewConfig.fromUrlHash(str)
+    val expected = ViewConfig.apply(
+      new TiledView(ViewOperator.Auto, NonEmptyList[View](new GraphView, ChatView :: Nil)),
+      Page(Seq(PostId("abc"), PostId("def"))))
+    cfg.page mustEqual expected.page
+    cfg.view.key mustEqual expected.view.key
+  }
+
+  "from string to viewconfig - optional" in {
+    val str = "view=graph?chat&page=abc,def"
+    val cfg = ViewConfig.fromUrlHash(str)
+    val expected = ViewConfig.apply(
+      new TiledView(ViewOperator.Optional, NonEmptyList[View](new GraphView, ChatView :: Nil)),
       Page(Seq(PostId("abc"), PostId("def"))))
     cfg.page mustEqual expected.page
     cfg.view.key mustEqual expected.view.key
@@ -58,6 +80,13 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
 
   "single view - auto" in {
     val orig = ViewConfig.apply(new TiledView(ViewOperator.Auto, NonEmptyList[View](new GraphView, ChatView :: Nil)), Page.empty)
+    val cfg = toStringAndBack(orig)
+    cfg.page mustEqual orig.page
+    cfg.view.key mustEqual orig.view.key
+  }
+
+  "single view - optional" in {
+    val orig = ViewConfig.apply(new TiledView(ViewOperator.Optional, NonEmptyList[View](new GraphView, ChatView :: Nil)), Page.empty)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.key mustEqual orig.view.key
