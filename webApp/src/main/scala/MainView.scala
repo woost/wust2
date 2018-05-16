@@ -21,7 +21,7 @@ object MainView {
       sidebar(state)(owner)(flexGrow := 0, flexShrink := 0),
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
-        (if (!state.view().innerViews.forall(View.contentList.toList.contains) || state.page().parentIds.nonEmpty) {
+        (if (!state.view().isContent || state.page().parentIds.nonEmpty) {
           state.view().apply(state)
         } else {
           newGroupPage(state)

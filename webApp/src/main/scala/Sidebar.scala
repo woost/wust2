@@ -143,7 +143,6 @@ object Sidebar {
     )
   }
 
-  
   def channelIcon(state: GlobalState, postId:PostId, selected:Rx[Boolean])(implicit ctx:Ctx.Owner): VNode = {
     div(
       margin := "0",
@@ -172,7 +171,7 @@ object Sidebar {
 
     page.copy(parentIds = newParents)
     } --> sideEffect { page =>
-      state.view() = View.default
+      if (!state.view.now.isContent) state.view() = View.default
       state.page() = page
       //TODO: Why does Var.set not work?
       // Var.set(
