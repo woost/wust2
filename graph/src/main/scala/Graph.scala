@@ -51,22 +51,37 @@ object User {
   }
 }
 
+sealed trait PostContent {
+  def externalString: String
+}
+object PostContent {
+  //TODO with auto detection of type?: def fromString(content: String)
+
+  case class Markdown(content: String) extends PostContent {
+    def externalString = content
+  }
+  case class Text(content: String) extends PostContent {
+    def externalString = content
+  }
+}
+
+
 //TODO: rename Post -> Item?
-final case class Post(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel, tpe: Option[PostType])
+final case class Post(id: PostId, content: PostContent, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel)
 //TODO: get rid of timestamp created/modified and author. should be relations.
 object Post {
-  def apply(id: PostId, content: String, author: UserId, created: EpochMilli, modified: EpochMilli): Post = {
-    new Post(id, content, author, created, modified, JoinDate.Never, AccessLevel.ReadWrite, None)
+  def apply(id: PostId, content: PostContent, author: UserId, created: EpochMilli, modified: EpochMilli): Post = {
+    new Post(id, content, author, created, modified, JoinDate.Never, AccessLevel.ReadWrite)
   }
-  def apply(id: PostId, content: String, author: UserId, time: EpochMilli = EpochMilli.now): Post = {
-    new Post(id, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite, None)
+  def apply(id: PostId, content: PostContent, author: UserId, time: EpochMilli = EpochMilli.now): Post = {
+    new Post(id, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
   }
-  def apply(content: String, author: UserId, time: EpochMilli): Post = {
-    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite, None)
+  def apply(content: PostContent, author: UserId, time: EpochMilli): Post = {
+    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
   }
-  def apply(content: String, author: UserId): Post = {
+  def apply(content: PostContent, author: UserId): Post = {
     val time = EpochMilli.now
-    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite, None)
+    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
   }
 }
 

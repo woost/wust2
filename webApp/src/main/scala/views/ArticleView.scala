@@ -1,12 +1,13 @@
 package wust.webApp.views
 
-import outwatch.dom._
+import
+outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views._
+import Rendered._
 
 object ArticleView extends View {
   override val key = "article"
@@ -45,7 +46,7 @@ object ArticleView extends View {
                   cls := "focuslink",
                   onClick(Page(Seq(post.id))) --> graphSelection
                 ),
-                post.content
+                showPostContent(post.content)
               )
             }
         }

@@ -184,7 +184,7 @@ object AppServer {
         }
       } ~ path(server.authPath) {
         get {
-          parameters('code, 'state) { (code, state) =>
+          parameters(('code, 'state)) { (code, state) =>
             if(AuthClient.confirmOAuthRequest(code, state)) {
               val tokenRequest = NewOAuthRequest(github.clientId, github.clientSecret, code, s"http://${server.host}:${server.port}/${server.authPath}", state)
               val token = AuthClient.getToken(tokenRequest).map{ ghToken =>
@@ -319,7 +319,7 @@ object WustReceiver {
       highPriorityClient.auth.login(config.user, config.password)
     }
 
-    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, "wust-github", Constants.wustUser)))
+    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, PostContent.Text("wust-github"), Constants.wustUser)))
     client.api.changeGraph(List(changes))
 
     println("Running WustReceiver")
@@ -439,8 +439,8 @@ object WustReceiver {
           externalId.map(eid => DeleteIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
-            title = prevGraph.postsById(pid).content,
-            content = issuePostOfDesc(prevGraph, pid).map(_.content).getOrElse(""),
+            title = prevGraph.postsById(pid).content.externalString,
+            content = issuePostOfDesc(prevGraph, pid).map(_.content.externalString).getOrElse(""),
             postId = pid))
         }
 
@@ -462,12 +462,12 @@ object WustReceiver {
       val editIssuesCall = issuesToUpdate
         .flatMap { p =>
           val externalId = Try(p.id.toString.toInt).toOption
-          val desc = issuePostOfDesc(currGraph, p.id).map(_.content)
+          val desc = issuePostOfDesc(currGraph, p.id).map(_.content.externalString)
           (externalId, desc).mapN((eid, d) => EditIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
             status = "open",
-            title = p.content,
+            title = p.content.externalString,
             content = d,
             postId = p.id))
         }
@@ -478,7 +478,7 @@ object WustReceiver {
           externalId.map(eid => EditComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalId = eid,
-            content = p.content,
+            content = p.content.externalString,
             postId = p.id))
         }
 
@@ -496,8 +496,8 @@ object WustReceiver {
       val createIssuesCall = issuesToAdd
         .map(p => CreateIssue(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
-          title = p.content,
-          content = issuePostOfDesc(currGraph, p.id).map(_.content).getOrElse(""),
+          title = p.content.externalString,
+          content = issuePostOfDesc(currGraph, p.id).map(_.content.externalString).getOrElse(""),
           postId = p.id
         ))
 
@@ -510,7 +510,7 @@ object WustReceiver {
           issueNumber.map(in => CreateComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalIssueNumber = in, //Get issue id here
-            content = p.content,
+            content = p.content.externalString,
             postId = p.id))
         }
 
@@ -523,7 +523,7 @@ object WustReceiver {
           issueNumber.map( in => CreateComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalIssueNumber = in,
-            content = p.content,
+            content = p.content.externalString,
             postId = p.id))
         }
 

@@ -46,7 +46,7 @@ case object PostHeuristic {
     def f(p: List[Post]): List[Result] = (for {
         l <- p.combinations(2).toList
         } yield {
-          Heuristic.PostResult(metric.compare(l.head.content, l(1).content), l)
+          Heuristic.PostResult(metric.compare(l.head.content.externalString, l(1).content.externalString), l)
         }).sortBy(_.measure)
 
     val result = wrapHeuristic(f, posts, num)

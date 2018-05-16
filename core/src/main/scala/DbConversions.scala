@@ -9,15 +9,20 @@ import wust.db.Data
 import wust.graph._
 import wust.ids.EpochMilli
 
+import wust.api.serialize.Circe._
+import io.circe._, io.circe.syntax._, io.circe.generic.semiauto._, io.circe.parser._
+
 object DbConversions {
 
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription = WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
-  implicit def forClient(post: Data.Post):Post = new Post(post.id, post.content, post.author,
+  implicit def forClient(post: Data.Post):Post = new Post(
+    post.id,
+    decode[PostContent](post.content).fold(_ => PostContent.Text(post.content), identity), // convert failed conversion to text of json.
+    post.author,
     created = localDateTimeToEpochMilli(post.created),
     modified = localDateTimeToEpochMilli(post.modified),
     joinDate = JoinDate.from(localDateTimeToEpochMilli(post.joinDate)),
-    joinLevel = post.joinLevel,
-    tpe = post.tpe
+    joinLevel = post.joinLevel
   )
   implicit def forClient(c: Data.Connection): Connection = Connection(c.sourceId, c.label, c.targetId)
   implicit def forClient(user: Data.User): User.Persisted = {
@@ -27,12 +32,14 @@ object DbConversions {
   implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.postId)
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription = Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
-  implicit def forDb(post: Post): Data.Post = Data.Post(post.id, post.content, post.author,
+  implicit def forDb(post: Post): Data.Post = Data.Post(
+    post.id,
+    post.content.asJson.noSpaces,
+    post.author,
     created = epochMilliToLocalDateTime(post.created),
     modified = epochMilliToLocalDateTime(post.modified),
     joinDate = epochMilliToLocalDateTime(post.joinDate.timestamp),
-    joinLevel = post.joinLevel,
-    tpe = post.tpe
+    joinLevel = post.joinLevel
   )
   implicit def forDb(user: User.Persisted): Data.User = user match {
     case User.Real(id, name, revision) => Data.User(id, name, isImplicit = false, revision = revision)

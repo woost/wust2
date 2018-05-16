@@ -3,7 +3,7 @@ package wust.webApp
 import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
 import monocle.macros.GenLens
-import org.scalajs.dom.{ Event, window }
+import org.scalajs.dom.{Event, window}
 import outwatch.dom._
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
@@ -13,9 +13,10 @@ import wust.ids._
 import wust.sdk._
 import wust.util.Selector
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{ PageStyle, View, ViewConfig }
+import wust.webApp.views.{PageStyle, View, ViewConfig}
 import cats._
 import cats.data.NonEmptyList
+import outwatch.ObserverSink
 
 import scala.collection.breakOut
 
@@ -37,6 +38,10 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
 
   val currentUser: Rx[User] = currentAuth.map(_.user)
   val highLevelPosts = Var[List[Post]](Nil)
+
+  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[PostContent]) =>
+    o.withLatestFrom(currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
+  }
 
   val rawGraph: Rx[Graph] = {
     val graph = eventProcessor.rawGraph.toRx(seed = Graph.empty)

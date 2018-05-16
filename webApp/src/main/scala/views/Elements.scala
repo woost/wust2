@@ -8,6 +8,7 @@ import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.reactive.Observer
+import wust.graph.PostContent
 import wust.webApp.outwatchHelpers._
 
 object Placeholders {
@@ -16,6 +17,15 @@ object Placeholders {
 }
 
 object Rendered {
+  val showPostContent: PostContent => VNode = {
+    case PostContent.Markdown(content) => mdHtml(content)
+    case PostContent.Text(content)  => span(content)
+  }
+  def showPostContent(o: Observable[PostContent]) = o.map {
+    case PostContent.Markdown(content) => mdHtml(content)
+    case PostContent.Text(content)  => span(content)
+  }
+
   def mdHtml(str: String) = span(prop("innerHTML") := marked(str))
   def mdHtml(str: Observable[String]) = span(prop("innerHTML") <-- str.map(marked(_)))
   def mdString(str: String):String = marked(str)

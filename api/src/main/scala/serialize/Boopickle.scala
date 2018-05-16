@@ -10,9 +10,12 @@ object Boopickle {
   implicit val postIdPickler = transformPickler[PostId, UuidType](PostId(_))(identity)
   implicit val userIdPickler = transformPickler[UserId, UuidType](UserId(_))(identity)
   implicit val labelPickler = transformPickler[Label, String](Label(_))(identity)
-  implicit val PostTypePickler = transformPickler[PostType, String](PostType(_))(identity)
 
   implicit val epochMilliPickler: Pickler[EpochMilli] = transformPickler((t: Long) => EpochMilli(t))(identity)
+
+  implicit val postContentPickler1 = generatePickler[PostContent.Markdown]
+  implicit val postContentPickler2 = generatePickler[PostContent.Text]
+  implicit val postContentPickler = generatePickler[PostContent]
 
   implicit val connectionPickler = generatePickler[Connection]
   implicit val accessLevelPickler1 = generatePickler[AccessLevel.Read.type]

@@ -12,8 +12,6 @@ object Circe {
   implicit val decodeUserId: Decoder[UserId] = Decoder.decodeString.map(UserId(_))
   implicit val encodeLabel: Encoder[Label] = Encoder.encodeString.contramap[Label](identity)
   implicit val decodeLabel: Decoder[Label] = Decoder.decodeString.map(Label(_))
-  implicit val encodePostType: Encoder[PostType] = Encoder.encodeString.contramap[PostType](identity)
-  implicit val decodePostType: Decoder[PostType] = Decoder.decodeString.map(PostType(_))
 
   implicit val encodeEpochMilli: Encoder[EpochMilli] = Encoder.encodeLong.contramap[EpochMilli](identity)
   implicit val decodeEpochMilli: Decoder[EpochMilli] = Decoder.decodeLong.map(EpochMilli(_))
@@ -28,6 +26,13 @@ object Circe {
   implicit val ConnectionEncoder: Encoder[Connection] = deriveEncoder[Connection]
   implicit val MembershipDecoder: Decoder[Membership] = deriveDecoder[Membership]
   implicit val MembershipEncoder: Encoder[Membership] = deriveEncoder[Membership]
+
+  implicit val postContentDecoder1: Decoder[PostContent.Markdown] = deriveDecoder[PostContent.Markdown]
+  implicit val postContentEncoder1: Encoder[PostContent.Markdown] = deriveEncoder[PostContent.Markdown]
+  implicit val postContentDecoder2: Decoder[PostContent.Text] = deriveDecoder[PostContent.Text]
+  implicit val postContentEncoder2: Encoder[PostContent.Text] = deriveEncoder[PostContent.Text]
+  implicit val postContentDecoder: Decoder[PostContent] = deriveDecoder[PostContent]
+  implicit val postContentEncoder: Encoder[PostContent] = deriveEncoder[PostContent]
 
   implicit val UserAssumedDecoder: Decoder[User.Assumed] = deriveDecoder[User.Assumed]
   implicit val UserAssumedEncoder: Encoder[User.Assumed] = deriveEncoder[User.Assumed]

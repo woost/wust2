@@ -43,7 +43,7 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
 
   def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
     println(s"new message: ${msg.content}")
-    val post = Post(PostId.fresh, msg.content, author)
+    val post = Post(PostId.fresh, PostContent.Markdown(msg.content), author)
     val connection = Connection(post.id, Label.parent, Constants.gitterId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
@@ -74,7 +74,7 @@ object WustReceiver {
       println(s"Got events in Gitter: $events")
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
       val posts = changes.flatMap(_.addPosts)
-      posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
+      posts.map(p => ExchangeMessage(p.content.externalString)).foreach { msg =>
         gitter.send(msg)
       }
 
@@ -85,7 +85,7 @@ object WustReceiver {
     val res = for { // Assume thas user exists
 //      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-      changes = GraphChanges(addPosts = Set(Post(Constants.gitterId, "wust-gitter", wustUser)))
+      changes = GraphChanges(addPosts = Set(Post(Constants.gitterId, PostContent.Text("wust-gitter"), wustUser)))
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
       graph <- valid(client.api.getGraph(Page.empty))
     } yield new WustReceiver(client)

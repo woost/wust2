@@ -12,7 +12,8 @@ import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
 import wust.sdk.PostColor._
-import wust.webApp.views.View
+import wust.webApp.views.{Placeholders, View}
+import wust.webApp.views.Rendered._
 import wust.webApp.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
 import wust.webApp.outwatchHelpers._
@@ -22,7 +23,6 @@ import wust.ids._
 import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import wust.webApp.views.Elements._
-import wust.webApp.views.Placeholders
 
 import collection.breakOut
 
@@ -32,7 +32,7 @@ object SelectedPostMenu {
 
     val rxPost: Rx[Post] = Rx {
       val graph = state.rawGraph()
-      graph.postsById.getOrElse(postId, Post.apply("", UserId(""))) //TODO: getOrElse necessary? Handle post removal.
+      graph.postsById.getOrElse(postId, Post.apply(PostContent.Text(""), UserId(""))) //TODO: getOrElse necessary? Handle post removal.
     }
 
     val rxParents: Rx[Seq[Post]] = Rx {
@@ -60,7 +60,7 @@ object SelectedPostMenu {
           span(
             p.id,
             br(),
-            p.content,
+            p.content.externalString,
             fontWeight.bold,
             backgroundColor := baseColor(p.id).toString,
             margin := "2px", padding := "1px 0px 1px 5px",
@@ -89,7 +89,7 @@ object SelectedPostMenu {
 
     val updatePostHandler = Handler.create[String].unsafeRunSync()
     updatePostHandler.foreach { newContent =>
-      val changes = GraphChanges(updatePosts = Set(rxPost.now.copy(content = newContent)))
+      val changes = GraphChanges(updatePosts = Set(rxPost.now.copy(content = PostContent.Markdown(newContent))))
       state.eventProcessor.enriched.changes.onNext(changes)
 
       editMode.unsafeOnNext(false)
@@ -98,7 +98,7 @@ object SelectedPostMenu {
     val insertPostHandler = Handler.create[String].unsafeRunSync()
     insertPostHandler.foreach { content =>
       val author = state.currentUser.now
-      val newPost = Post(PostId.fresh, content, author.id)
+      val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
 
       val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxPost.now.id)))
       state.eventProcessor.enriched.changes.onNext(changes)
@@ -107,7 +107,7 @@ object SelectedPostMenu {
     val connectPostHandler = Handler.create[String].unsafeRunSync()
     connectPostHandler.foreach { content =>
       val author = state.currentUser.now
-      val newPost = Post(PostId.fresh, content, author.id)
+      val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
 
       val changes = GraphChanges(
         addPosts = Set(newPost),
@@ -123,11 +123,11 @@ object SelectedPostMenu {
         if (activated) {
           textArea(
             valueWithEnter --> updatePostHandler,
-            rxPost.now.content,
+            rxPost.now.content.externalString,
             onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
-            rxPost.map(_.content),
+            rxPost.map(_.content.externalString),
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
             wordWrap := "break-word",

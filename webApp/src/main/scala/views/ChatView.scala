@@ -47,7 +47,7 @@ object ChatView extends View {
             height := "40px",
             marginRight := "10px"
           ),
-          mdHtml(parent.content)(fontSize := "20px"),
+          showPostContent(parent.content)(fontSize := "20px"),
           joinControl(state, parent)(ctx)(marginLeft := "5px")
         )
       })
@@ -107,7 +107,7 @@ object ChatView extends View {
     div( // wrapper for floats
       div( // post wrapper
         div( // post content as markdown
-          mdHtml(post.content),
+          showPostContent(post.content),
           cls := "chatpost",
           padding := "0px 3px",
           margin := "2px 0px"
@@ -115,7 +115,7 @@ object ChatView extends View {
         div( // post tags
           postTags.map{ tag =>
               span(
-                if(tag.content.length > 20) tag.content.take(20) else tag.content, // there may be better ways
+                showPostContent(tag.content), //TODO trim! fit for tag usage...
                 onClick --> sideEffect{e => page() = Page(Seq(tag.id)); e.stopPropagation()},
                 backgroundColor := computeTagColor(graph, tag.id),
                 fontSize.small,
@@ -149,14 +149,10 @@ object ChatView extends View {
   def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
 
-    val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
-      o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
-    }
-
     val graphIsEmpty = displayGraphWithParents.map(_.graph.isEmpty)
 
     textArea(
-      valueWithEnter --> newPostSink,
+      valueWithEnter.map(PostContent.Markdown) --> state.newPostSink,
       disabled <-- graphIsEmpty,
       height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?

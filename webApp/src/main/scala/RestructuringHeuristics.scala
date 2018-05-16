@@ -95,7 +95,7 @@ object PostHeuristic {
 
   case object MaxPostSize extends FrontendHeuristic {
     def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(1)): List[Post] = { // for e.g. SplitPost
-      def _maxPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.length > p2.content.length)
+      def _maxPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.externalString.length > p2.content.externalString.length)
 
       wrapHeuristic(_maxPostSize, posts, num)
     }
@@ -103,7 +103,7 @@ object PostHeuristic {
 
   case object MinPostSize extends FrontendHeuristic {
     def frontendHeuristic(posts: List[Post], num: Option[Int] = Some(1)): List[Post] = {
-      def _minPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.length < p2.content.length)
+      def _minPostSize(p: List[Post]) = p.sortWith((p1, p2) => p1.content.externalString.length < p2.content.externalString.length)
 
       wrapHeuristic(_minPostSize, posts, num)
     }

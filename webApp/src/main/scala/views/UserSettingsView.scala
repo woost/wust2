@@ -16,27 +16,9 @@ object UserSettingsView extends View {
 
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
+    val graph = displayGraphWithoutParents.map(_.graph)
+    val newPostSink = state.newPostSink.toVar(PostContent.Text(""))
 
-    val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[String]) =>
-      o.withLatestFrom(state.currentUser.toObservable)((msg, user) => GraphChanges(addPosts = Set(Post(PostId.fresh, msg, user.id))))
-    }.toVar("")
-
-    component(
-      currentUser,
-      newPostSink,
-      page,
-      pageStyle,
-      displayGraphWithoutParents.map(_.graph)
-    )
-  }
-
-  def component(
-                 currentUser: Rx[User],
-                 newPostSink: Var[String],
-                 page: Var[Page],
-                 pageStyle: Rx[PageStyle],
-                 graph: Rx[Graph]
-               )(implicit owner: Ctx.Owner): VNode = {
     div(
        height := "100%",
       div(
