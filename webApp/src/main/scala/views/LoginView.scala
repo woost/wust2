@@ -13,13 +13,14 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import cats.effect.IO
 
-object LoginView extends View {
+//TODO no boolean but adt
+class LoginView(isSignup: Boolean) extends View {
   override val key = "login"
   override val displayName = "Login"
 
   //TODO: we need the last view to return to it on success?
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = for {
-    isSignup <- Handler.create[Boolean](true)
+    isSignup <- Handler.create[Boolean](isSignup)
     userName <- Handler.create[String]
     password <- Handler.create[String]
     nameAndPassword <- IO(userName.combineLatest(password))

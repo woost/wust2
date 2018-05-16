@@ -55,7 +55,11 @@ object MainViewParts {
     )
   }
 
-  def login(state: GlobalState)(implicit ctx:Ctx.Owner) = button("Login", onClick(LoginView: View) --> state.view)
+  def login(state: GlobalState)(implicit ctx:Ctx.Owner) = span(
+    span("Signup", textDecoration := "underline", cursor.pointer, onClick(new LoginView(isSignup = true): View) --> state.view),
+    " or ",
+    span("Login", textDecoration := "underline", cursor.pointer, onClick(new LoginView(isSignup = false): View) --> state.view))
+
   val logout = button("Logout", onClick --> sideEffect { Client.auth.logout(); () })
 
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(

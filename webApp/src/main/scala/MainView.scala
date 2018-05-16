@@ -8,7 +8,7 @@ import rx._
 import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.View
-import Sidebar.sidebar
+import Sidebar.{sidebar, topbar}
 
 object MainView {
   import MainViewParts._
@@ -18,15 +18,22 @@ object MainView {
       height := "100%",
       width := "100%",
       display.flex,
-      sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
-      backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
-      Rx {
-        (if (!state.view().isContent || state.page().parentIds.nonEmpty) {
-          state.view().apply(state)(ctx)(height := "100%", width := "100%")
-        } else {
-          newGroupPage(state)
-        }).apply(flexGrow := 1)
-      }
+      flexDirection.column,
+      topbar(state)(ctx)(width := "100%"),
+      div(
+        display.flex,
+        height := "100%",
+        width := "100%",
+        sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
+        backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
+        Rx {
+          (if (!state.view().isContent || state.page().parentIds.nonEmpty) {
+            state.view().apply(state)(ctx)(height := "100%", width := "100%")
+          } else {
+            newGroupPage(state)
+          }).apply(flexGrow := 1)
+        }
+      )
     )
   }
 }
