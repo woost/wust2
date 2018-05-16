@@ -22,9 +22,6 @@ object ChatView extends View {
     state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
 
     div(
-      width := "100%",
-      height := "100%",
-
       display.flex,
       flexDirection.column,
       justifyContent.flexStart,

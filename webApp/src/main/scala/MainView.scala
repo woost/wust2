@@ -13,16 +13,16 @@ import Sidebar.sidebar
 object MainView {
   import MainViewParts._
 
-  def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       height := "100%",
       width := "100%",
       display.flex,
-      sidebar(state)(owner)(flexGrow := 0, flexShrink := 0),
+      sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
       backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
       Rx {
         (if (!state.view().isContent || state.page().parentIds.nonEmpty) {
-          state.view().apply(state)
+          state.view().apply(state)(ctx)(height := "100%", width := "100%")
         } else {
           newGroupPage(state)
         }).apply(flexGrow := 1)
