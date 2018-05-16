@@ -58,7 +58,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "f545505"
+    private val version = "5ee6a22"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
