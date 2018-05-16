@@ -13,7 +13,7 @@ import wust.webApp.views.Rendered._
 import wust.webApp._
 import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
-import wust.graph.{Connection, Graph, GraphChanges, Post}
+import wust.graph._
 import wust.ids._
 import wust.webApp._
 
@@ -93,7 +93,7 @@ sealed trait RestructuringTask {
   }
 
   def stylePost(post: Post): VNode = p(
-      post.content,
+      showPostContent(post.content),
       display := "inline-block",
       color.black,
       maxWidth := "80ch",
@@ -477,7 +477,7 @@ case class MergePosts(posts: Posts) extends YesNoTask
   }
 
   def mergePosts(mergeTarget: Post, source: Post): Post = {
-    mergeTarget.copy(content = mergeTarget.content + "\n" + source.content)
+    mergeTarget.copy(content = PostContent.Markdown(mergeTarget.content.externalString + "\n" + source.content.externalString)) //TODO: proper merge for PostContent?
   }
 
   def component(state: GlobalState): VNode = {
@@ -544,7 +544,7 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
   }
 
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
-    unifyTarget.copy(content = unifyTarget.content + "\n" + post.content)
+    unifyTarget.copy(content = PostContent.Markdown(unifyTarget.content.externalString + "\n" + post.content.externalString)) //TODO: proper merge for PsotContent
   }
 
   def component(state: GlobalState): VNode = {
@@ -648,7 +648,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
-    Some(Post(PostId.fresh, str.trim, state.currentUser.now.id))
+    Some(Post(PostId.fresh, PostContent.Markdown(str.trim), state.currentUser.now.id))
   }
 
   def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): List[Post] = {
@@ -695,7 +695,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         postPreview.map {posts =>
           posts.last.map {post =>
             div(
-              mdHtml(post.content),
+              showPostContent(post.content),
               color.black,
               maxWidth := "60%",
               backgroundColor := "#eee",
@@ -771,7 +771,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       val graph = getGraphFromState(state)
       val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
         case None =>
-          val newTag = Post(PostId.fresh, tag, state.currentUser.now.id)
+          val newTag = Post(PostId.fresh, PostContent.Markdown(tag), state.currentUser.now.id)
           val newParent = state.page.now.parentIds
           val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
           GraphChanges(

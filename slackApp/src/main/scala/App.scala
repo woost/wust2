@@ -34,7 +34,7 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
 
   def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
     println(s"new message: msg")
-    val post = Post(msg.content, author)
+    val post = Post(PostContent.Text(msg.content), author)
     val connection = Connection(post.id, Label.parent, Constants.slackId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
@@ -65,7 +65,7 @@ object WustReceiver {
       println(s"Got events in Slack: $events")
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
       val posts = changes.flatMap(_.addPosts)
-      posts.map(p => ExchangeMessage(p.content)).foreach { msg =>
+      posts.map(p => ExchangeMessage(p.content.externalString)).foreach { msg =>
         slack.send(msg).foreach { success =>
           println(s"Send message success: $success")
         }
@@ -77,7 +77,7 @@ object WustReceiver {
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password)
       if loggedIn
-      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, "wust-slack", wustUser)))))
+      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, PostContent.Text("wust-slack"), wustUser)))))
       if changed
       graph <- client.api.getGraph(Page.empty)
     } yield Right(new WustReceiver(client))

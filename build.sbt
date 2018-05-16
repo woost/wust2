@@ -295,9 +295,6 @@ lazy val webApp = project
       Deps.scalarx.value ::
       Deps.outwatch.value ::
       Deps.monocle.value ::
-      Deps.circe.core.value ::
-      Deps.circe.generic.value ::
-      Deps.circe.parser.value ::
       Deps.vectory.value ::
       Deps.d3v4.value ::
       Deps.fastparse.value ::

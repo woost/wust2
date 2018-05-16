@@ -122,7 +122,7 @@ object Sidebar {
             paddingRight := "3px",
             display.flex, alignItems.center,
             channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
-            p.content,
+            p.content.externalString,
             cursor.pointer,
             onChannelClick(p.id)(state),
             title := p.id,

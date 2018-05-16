@@ -61,7 +61,7 @@ object GraphChanges {
     delConnections:  Iterable[Connection]  = Set.empty
   ) = GraphChanges(addPosts.toSet, addConnections.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet)
 
-  def addPost(content:String, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
+  def addPost(content: PostContent, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
   def addPost(post:Post) = GraphChanges(addPosts = Set(post))
 
   def delete(post:Post) = GraphChanges(delPosts = Set(post.id))

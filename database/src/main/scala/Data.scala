@@ -13,7 +13,7 @@ object Data {
   val DEFAULT = 0L
 
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
-  case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel: AccessLevel, tpe: Option[PostType])
+  case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel: AccessLevel)
   case class Connection(sourceId: PostId, label: Label, targetId: PostId)
 
   case class Password(id: UserId, digest: Array[Byte])
@@ -38,14 +38,13 @@ object Data {
         created = currTime,
         modified = currTime,
         joinDate = epochMilliToLocalDateTime(JoinDate.Never.timestamp),
-        joinLevel = AccessLevel.ReadWrite,
-        tpe = None
+        joinLevel = AccessLevel.ReadWrite
       )
     }
   }
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children)
-  case class GraphRow(postId: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, tpe: Option[PostType], targetIds: List[PostId], labels: List[Label])
+  case class GraphRow(postId: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, targetIds: List[PostId], labels: List[Label])
   case class Graph(posts: Seq[Post], connections:Seq[Connection])
   object Graph {
     def from(rowsList:List[GraphRow]):Graph = {
@@ -58,7 +57,7 @@ object Data {
         val row = rows(i)
         val labels = row.labels
         val targetIds = row.targetIds
-        val post = Post(row.postId, row.content, row.author, row.created, row.modified, row.joinDate, row.joinLevel, row.tpe)
+        val post = Post(row.postId, row.content, row.author, row.created, row.modified, row.joinDate, row.joinLevel)
 
         posts += post
 

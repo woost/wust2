@@ -19,6 +19,7 @@ import wust.graph._
 import wust.ids.{Label, PostId}
 import wust.webApp.outwatchHelpers._
 import wust.util.time.time
+import wust.webApp.views.Rendered._
 
 import scala.concurrent.Promise
 import scala.scalajs.js
@@ -416,7 +417,7 @@ object ForceSimulation {
   def calcPostWidth(post: Post) = {
     import outwatch.dom.dsl._
     val arbitraryFactor = 2.4
-    val contentWidth = post.content.length
+    val contentWidth = post.content.externalString.length // TODO: wrong with markdown rendering
     val calcWidth = if(contentWidth > 10){
       val sqrtWidth = (math.sqrt(contentWidth) * arbitraryFactor) min 60
       Some(width:= s"${sqrtWidth}ch")
@@ -451,7 +452,7 @@ object ForceSimulation {
           val postWidth = calcPostWidth(post)
           div(
             postWidth,
-            post.content,
+            showPostContent(post.content),
             cls := "graphpost",
             // pointerEvents.auto, // re-enable mouse events
             cursor.default

@@ -6,7 +6,7 @@ import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToPostId(id: Int): PostId = PostId(id.toString)
-  implicit def idToPost(id: Int): Post = Post(id = id, content = "content", author = UserId("user"), EpochMilli(0))
+  implicit def idToPost(id: Int): Post = Post(id = id, content = PostContent.Text("content"), author = UserId("user"), EpochMilli(0))
   implicit def postListToMap(posts: List[Int]): List[Post] = posts.map(idToPost)
   implicit def tupleIsConnection(t: (Int, Int)): Connection = Connection(t._1, t._2)
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Connection] = connections.map(tupleIsConnection)

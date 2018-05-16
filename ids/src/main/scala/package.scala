@@ -26,11 +26,6 @@ package object ids {
   }
   type Label = Label.Type
 
-  object PostType extends TaggedType[String] {
-    val user = PostType("user")
-  }
-  type PostType = PostType.Type
-
   object EpochMilli extends TaggedType[Long] {
     def now:EpochMilli = EpochMilli(System.currentTimeMillis())
     def from(time:String) = EpochMilli(Instant.parse(time).toEpochMilli)
