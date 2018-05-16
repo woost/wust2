@@ -34,7 +34,7 @@ object View {
 
   val viewMap: Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
 
-  def default = new TiledView(ViewOperator.Auto, contentList)
+  def default = new TiledView(ViewOperator.Optional, contentList)
 }
 
 sealed trait ViewOperator {
@@ -44,10 +44,12 @@ object ViewOperator {
   case object Row extends ViewOperator { override val separator = "|" }
   case object Column extends ViewOperator { override val separator = "/" }
   case object Auto extends ViewOperator { override val separator = "," }
+  case object Optional extends ViewOperator { override val separator = "?" }
 
   val fromString: PartialFunction[String, ViewOperator] = {
     case Row.separator => Row
     case Column.separator => Column
     case Auto.separator => Auto
+    case Optional.separator => Optional
   }
 }

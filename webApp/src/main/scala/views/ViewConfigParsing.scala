@@ -31,7 +31,7 @@ object ViewConfigParser {
       case view :: views => new TiledView(operator, NonEmptyList(View.viewMap(view), views.map(View.viewMap)))
     }
 
-  val view: P[View] = P( viewKey ~/ (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto)) )
+  val view: P[View] = P( viewKey ~/ (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto) | viewWithOps(ViewOperator.Optional)) )
 
   val postIdList: Parser[Seq[PostId]] = P( word.!.rep(min = 1, sep = idSeparator) ).map(_.map(PostId.apply))
   val page: P[Page] = P( pageKey ~/ (postIdList ~ (parentChildSeparator ~ postIdList).?).? ~ (urlSeparator | End) )
