@@ -17,7 +17,7 @@ trait View {
 
   //TODO this is needed for tracking content view and deciding whether to show the new group button in mainview
   def innerViews: Seq[View] = Seq(this)
-  def isContent: Boolean = innerViews.forall(View.contentList.toList.contains)
+  def isContent: Boolean = innerViews.exists(View.contentList.toList.contains)
 }
 
 object View {
