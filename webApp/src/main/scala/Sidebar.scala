@@ -42,7 +42,6 @@ object Sidebar {
 
   def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     import state.sidebarOpen
-    state.sidebarOpen.debug("sidopen")
     div(
       id := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
