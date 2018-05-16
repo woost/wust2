@@ -9,8 +9,8 @@ U1	U1
 \.
 
 COPY rawpost (id, content, isdeleted, author) FROM stdin;
-1	1	f	U1
-2	2	f	U1
+1	{}	f	U1
+2	{}	f	U1
 \.
 
 COPY rawconnection (sourceid, targetid, label) FROM stdin;

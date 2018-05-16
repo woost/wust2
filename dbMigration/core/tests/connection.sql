@@ -23,13 +23,13 @@ SELECT results_eq(
 
 SELECT isnt_empty(
     $$ INSERT INTO post (id, content, author, created, modified)
-        VALUES ('hester', 'Schneider', 1, NOW(), NOW())
+        VALUES ('hester', '{}'::jsonb, 1, NOW(), NOW())
         RETURNING (id, content, author, created, modified) $$,
     'insert post'
 );
 
 SELECT isnt_empty(
-    $$ INSERT INTO post (id, content, author, created, modified) VALUES ('invester', 'Schneider2', 1, NOW(), NOW()) RETURNING (id, content, author, created, modified) $$,
+    $$ INSERT INTO post (id, content, author, created, modified) VALUES ('invester', '{}'::jsonb, 1, NOW(), NOW()) RETURNING (id, content, author, created, modified) $$,
     'insert second post'
 );
 

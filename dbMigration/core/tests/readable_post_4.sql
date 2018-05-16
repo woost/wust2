@@ -10,12 +10,12 @@ U2	U2
 \.
 
 COPY rawpost (id, content, isdeleted, author) FROM stdin;
-1	1	f	U1
-2	2	f	U1
-3	3	f	U1
-4	4	f	U1
-5	5	f	U1
-6	6	f	U1
+1	{}	f	U1
+2	{}	f	U1
+3	{}	f	U1
+4	{}	f	U1
+5	{}	f	U1
+6	{}	f	U1
 \.
 
 COPY rawconnection (sourceid, targetid, label) FROM stdin;
