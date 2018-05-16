@@ -80,7 +80,7 @@ object Sidebar {
             alignContent.stretch,
 
             hamburger(state)(ctx)(flexGrow := 0, flexShrink := 0),
-            channelIcons(state)(ctx)(overflowY.auto),
+            channelIcons(state, 40)(ctx)(overflowY.auto),
             newGroupButton(state, "+")(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
           )
       }
@@ -121,7 +121,7 @@ object Sidebar {
           div(
             paddingRight := "3px",
             display.flex, alignItems.center,
-            channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)))(ctx)(marginRight := "5px"),
+            channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
             p.content,
             cursor.pointer,
             onChannelClick(p.id)(state),
@@ -136,17 +136,17 @@ object Sidebar {
     )
   }
 
-  def channelIcons(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+  def channelIcons(state: GlobalState, size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
-      state.highLevelPosts.map(_.map{p => channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)))})
+      state.highLevelPosts.map(_.map{p => channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), size)})
     )
   }
 
-  def channelIcon(state: GlobalState, postId:PostId, selected:Rx[Boolean])(implicit ctx:Ctx.Owner): VNode = {
+  def channelIcon(state: GlobalState, postId:PostId, selected:Rx[Boolean], size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
       margin := "0",
-      width := "30px",
-      height := "30px",
+      width := s"${size}px",
+      height := s"${size}px",
       cursor.pointer,
       onChannelClick(postId)(state),
       backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(postId)).toHex, //TODO: make different post color tones better accessible
