@@ -21,14 +21,14 @@ SELECT isnt_empty(
 /* insert small graph */
 SELECT isnt_empty(
     $$ INSERT INTO post (id, content, author, created, modified)
-        VALUES ('hester', 'Schneider', 'bubuid', NOW(), NOW())
+        VALUES ('hester', '{}'::jsonb, 'bubuid', NOW(), NOW())
         RETURNING (id, content, author, created, modified) $$,
     'insert post'
 );
 
 SELECT isnt_empty(
     $$ INSERT INTO post (id, content, author, created, modified)
-        VALUES ('invester', 'Schneider2', 'bubuid', NOW(), NOW())
+        VALUES ('invester', '{}'::jsonb, 'bubuid', NOW(), NOW())
         RETURNING (id, content, author, created, modified) $$,
     'insert second post'
 );
