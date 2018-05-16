@@ -23,9 +23,6 @@
 @media only screen and (min-width : 992px) {
     .viewgridAuto {
         grid-template-columns: repeat(2, 1fr);
-        .viewgridTile {
-            height: 100%
-        }
     }
 }
 .viewgridRow {
