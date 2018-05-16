@@ -18,8 +18,8 @@ object PageStyle {
 
   def apply(view: View, page:Page) = {
     val pageColors = view match {
-      case _: LoginView.type => None
-      case _ => NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut):List[Color]).map(mixColors)
+      case view if view.isContent => NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut):List[Color]).map(mixColors)
+      case _ => None
     }
 
     val baseHue = pageColors.map(_.hcl.h)
