@@ -20,7 +20,6 @@ object ArticleView extends View {
 
   def component(dgo:Rx[DisplayGraph], graphSelection:Var[Page], pageStyle: Rx[PageStyle])(implicit owner: Ctx.Owner): VNode = {
     div(
-      height := "100%",
       backgroundColor <-- pageStyle.map(_.bgColor.toHex),
       div(
         cls := "article",

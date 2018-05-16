@@ -28,7 +28,6 @@ object GraphView {
     state.jsErrors.foreach { _ => forceSimulation.stop() }
 
     div(
-      height := "100%",
       controls.ifTrueOption {
         div(
           position := "absolute",

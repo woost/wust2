@@ -14,29 +14,35 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
 
   override def toString = s"TiledView($operator, ${views.map(_.toString)})"
 
-  override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
+  private def applyView(state: GlobalState)(ctx: Ctx.Owner)(view: View) = {
+    view.apply(state)(ctx)(height := "100%", width := "100%")
+  }
+
+  //TODO: inline styles from viewgrid* css classes. better support in scala-dom-types for viewgrid?
+  //TODO: outwach: Observable[Seq[VDomModifier]] should work, otherwise cannot share code proberly...muliple div.
+  //TOOD: outwatch: make constructor for CompositeModifier public, otherwise need implicit
+  override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
      operator match {
       case ViewOperator.Row => div(
         cls := "viewgridRow",
-        views.map(_.apply(state)).toList)
+        views.map(applyView(state)(ctx)).toList)
       case ViewOperator.Column => div(
         cls := "viewgridColumn",
-        views.map(_.apply(state)).toList)
+        views.map(applyView(state)(ctx)).toList)
       case ViewOperator.Auto => div(
         cls := "viewgridAuto",
-        views.map(_.apply(state)).toList)
+        views.map(applyView(state)(ctx)).toList)
       case ViewOperator.Optional => div(
         cls := "viewgridAuto",
         events.window.onResize
-          .map(_ => ())
-          .startWith(Seq(()))
+          .map(_ => ()).startWith(Seq(()))
           .map { _ =>
             //TODO: min-width corresponds media query in style.css
             if (dom.window.matchMedia("only screen and (min-width : 992px)").matches)
-              views.map(_.apply(state)).toList
+              views.map(applyView(state)(ctx)).toList
             else
-              views.head.apply(state) :: Nil
+              applyView(state)(ctx)(views.head) :: Nil
           }
       )
-    })
+    }
 }
