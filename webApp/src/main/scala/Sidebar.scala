@@ -60,10 +60,10 @@ object Sidebar {
     import state.sidebarOpen
     div(
       minWidth := "40px",
+      maxWidth := "250px",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       color := "white",
       transition := "flex-basis 0.2s, background-color 0.5s",
-      
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
 
       sidebarOpen.map {
@@ -79,6 +79,7 @@ object Sidebar {
 
             channels(state)(ctx)(overflowY.auto),
             newGroupButton(state)(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
+            br(),
             notificationSettings(flexGrow := 0, flexShrink := 0)
           )
         case false =>
