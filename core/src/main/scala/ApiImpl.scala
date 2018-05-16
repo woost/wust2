@@ -81,7 +81,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           updatedJoinDate <- db.post.setJoinDate(postId, joinDate)
           Some(updatedPost) <- db.post.get(postId)
         } yield {
-          Returns(updatedJoinDate, Seq(NewGraphChanges.ForAll(GraphChanges.addPost(updatedPost))))
+          Returns(updatedJoinDate, Seq(NewGraphChanges.ForAll(GraphChanges.updatePost(updatedPost))))
         }
       }
     }

@@ -64,6 +64,8 @@ object GraphChanges {
   def addPost(content: PostContent, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
   def addPost(post:Post) = GraphChanges(addPosts = Set(post))
 
+  def updatePost(post:Post) = GraphChanges(updatePosts = Set(post))
+
   def delete(post:Post) = GraphChanges(delPosts = Set(post.id))
   def delete(postId:PostId) = GraphChanges(delPosts = Set(postId))
 
