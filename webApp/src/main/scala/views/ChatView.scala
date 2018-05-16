@@ -55,8 +55,14 @@ object ChatView extends View {
   }
 
   def joinControl(state:GlobalState, post:Post)(implicit  ctx: Ctx.Owner):VNode = {
+    val text = post.joinDate match {
+      case JoinDate.Always => "Users can join via URL"
+      case JoinDate.Never => "Private Group"
+      case JoinDate.Until(time) => s"Users can join via URL until $time" //TODO: epochmilli format
+    }
     div(
-      "(", post.joinDate.toString, ")",
+      "(", text, ")",
+      title := "Click to toggle",
       cursor.pointer,
       onClick --> sideEffect{ _ =>
         val newJoinDate = post.joinDate match {
