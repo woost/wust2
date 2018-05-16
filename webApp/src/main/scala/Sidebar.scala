@@ -40,10 +40,26 @@ object Sidebar {
     )
   }
 
+  def topbar(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
+    paddingLeft := "5px",
+    paddingRight := "5px",
+    height := "35px",
+    backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
+    color := "white",
+    display.flex,
+    flexDirection.row,
+    justifyContent.spaceBetween,
+    alignItems.baseline,
+
+    header(state),
+    undoRedo(state),
+    authentication(state)
+  )
+
   def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     import state.sidebarOpen
     div(
-      id := "sidebar",
+      minWidth := "40px",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
       color := "white",
       transition := "flex-basis 0.2s, background-color 0.5s",
@@ -61,12 +77,8 @@ object Sidebar {
             alignItems.stretch,
             alignContent.stretch,
 
-            header(state)(ctx)(flexGrow := 0, flexShrink := 0),
-
-            undoRedo(state)(flexGrow := 0, flexShrink := 0),
             channels(state)(ctx)(overflowY.auto),
             newGroupButton(state)(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
-            authentication(state)(ctx)(flexGrow := 0, flexShrink := 0),
             notificationSettings(flexGrow := 0, flexShrink := 0)
           )
         case false =>
@@ -79,7 +91,6 @@ object Sidebar {
             alignItems.stretch,
             alignContent.stretch,
 
-            hamburger(state)(ctx)(flexGrow := 0, flexShrink := 0),
             channelIcons(state, 40)(ctx)(overflowY.auto),
             newGroupButton(state, "+")(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
           )
@@ -97,7 +108,6 @@ object Sidebar {
   }
 
   def header(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
-    import state.sidebarOpen
     div(
       display.flex, alignItems.baseline,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
