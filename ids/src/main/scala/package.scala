@@ -23,6 +23,10 @@ package object ids {
     object meta {
       val author = Label("meta:author")
     }
+    val isMeta: Label => Boolean = {
+      case label if label.startsWith("meta:") => true
+      case _ => false
+    }
   }
   type Label = Label.Type
 
