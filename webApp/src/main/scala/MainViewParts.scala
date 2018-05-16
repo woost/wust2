@@ -98,7 +98,7 @@ object MainViewParts {
         for {
           _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
         } {
-          state.view() = View.default
+          if (!state.view.now.isContent) state.view() = View.default
           state.page() = Page(post.id)
           state.highLevelPosts.update(post :: _)
         }
