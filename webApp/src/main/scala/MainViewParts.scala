@@ -70,15 +70,17 @@ object MainViewParts {
     }
   )
 
-  def undoRedo(state:GlobalState):VNode = {
+  def undoRedo(state:GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val historySink = ObserverSink(state.eventProcessor.history.action)
     div(
-      state.eventProcessor.changesHistory.startWith(Seq(ChangesHistory.empty)).map { history =>
+      state.eventProcessor.changesHistory.startWith(Seq(ChangesHistory.empty)).combineLatestMap(state.view.toObservable) { (history, view) =>
         div(
-          display.flex,
-          style("justify-content") := "space-evenly",
-          button(faUndo, title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
-          button(faRedo, title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
+          if (view.isContent) Seq(
+            display.flex,
+            style("justify-content") := "space-evenly",
+            button(faUndo, padding := "2px", title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
+            button(faRedo, padding := "2px", title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
+          ) else Seq.empty[VDomModifier]
         )
       }
     )
