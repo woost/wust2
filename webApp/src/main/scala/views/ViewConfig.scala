@@ -7,14 +7,14 @@ case class ViewConfig(view: View, page: Page)
 object ViewConfig {
   val default = ViewConfig(View.default, Page.empty)
 
-  def fromUrlHash(hash: Option[String]): ViewConfig = hash.flatMap { str =>
-    ViewConfigParser.viewConfig.parse(str) match {
-      case Parsed.Success(url, _) => Some(url)
+  def fromUrlHash(hash: String): ViewConfig = {
+    ViewConfigParser.viewConfig.parse(hash) match {
+      case Parsed.Success(url, _) => url
       case failure: Parsed.Failure[_,_] =>
-        scribe.warn(s"Failed to parse url from hash '$str' at ${failure.msg}")
-        None
+        val errMsg = s"Failed to parse url from hash '$hash' at ${failure.msg}"
+        ViewConfig(new ErrorView(errMsg), Page.empty)
     }
-  }.getOrElse(default)
+  }
 
   def toUrlHash(config: ViewConfig): String = ViewConfigWriter.write(config)
 }

@@ -32,8 +32,7 @@ object View {
       Nil
 
 
-  val viewMap: Map[String,View] = (list.map(v => v.key -> v)(breakOut): Map[String,View]).withDefaultValue(default)
-
+  val viewMap: Map[String,View] = list.map(v => v.key -> v)(breakOut)
   def default = new TiledView(ViewOperator.Optional, contentList)
 }
 

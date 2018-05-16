@@ -19,16 +19,24 @@ import ViewConfigConstants._
 object ViewConfigParser {
   import fastparse.all._
 
+  private def optionSeq[A](list: NonEmptyList[Option[A]]): Option[NonEmptyList[A]] = list.forall(_.isDefined) match {
+    case true  => Some(list.map(_.get))
+    case false => None
+  }
+
   val word: P[String] = P( ElemsWhileIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9'), min = 1).! )
 
   //TODO: support nested views with different operators and brackets.
   def viewWithOps(operator: ViewOperator): P[View] = P( word.!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End) )
     .map(_.toList)
-    .map {
-      //TODO: better errors for unknown views, error instead?
+    .flatMap {
       case Nil => ??? // cannot happen, because min of repetition is 1
-      case view :: Nil => View.viewMap(view)
-      case view :: views => new TiledView(operator, NonEmptyList(View.viewMap(view), views.map(View.viewMap)))
+      case view :: Nil =>
+        View.viewMap.get(view)
+          .fold[Parser[View]](Fail)(v => Pass.map(_ => v))
+      case view :: views =>
+        optionSeq(NonEmptyList(view, views).map(View.viewMap.get))
+          .fold[Parser[View]](Fail)(v => Pass.map(_ => new TiledView(operator, v)))
     }
 
   val view: P[View] = P( viewKey ~/ (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto) | viewWithOps(ViewOperator.Optional)) )
