@@ -52,7 +52,7 @@ object PostColor {
     }
   }
 
-  def computeTagColor(graph: Graph, postId: PostId): Color = {
+  def computeTagColor(postId: PostId): Color = {
     baseColorDark(postId)
   }
 }
