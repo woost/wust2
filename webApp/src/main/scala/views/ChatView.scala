@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import org.scalajs.dom.raw.Element
+import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -8,6 +9,7 @@ import wust.graph._
 import wust.ids.JoinDate
 import wust.sdk.PostColor._
 import wust.webApp._
+import wust.webApp.fontAwesome.{freeBrands, freeRegular, freeSolid}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
@@ -116,19 +118,35 @@ object ChatView extends View {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
+    val deleteButton = div(
+      freeRegular.faTrashAlt,
+      padding := "5px",
+      onClick.map{e => e.stopPropagation(); GraphChanges.delete(post)} --> ObserverSink(state.eventProcessor.changes)
+    )
+
+    val content = div(
+      showPostContent(post.content),
+      cls := "chatpost",
+      padding := "0px 3px",
+      margin := "2px 0px"
+    )
+
+    val tags = div( // post tags
+      postTags.map{ tag => postTag(state, tag) },
+      margin := "0px",
+      padding := "0px"
+    )
+
     div( // wrapper for floats
       div( // post wrapper
-        div( // post content as markdown
-          showPostContent(post.content),
-          cls := "chatpost",
-          padding := "0px 3px",
-          margin := "2px 0px"
+        div(
+          display.flex,
+          alignItems.center,
+          content,
+          deleteButton
         ),
-        div( // post tags
-          postTags.map{ tag => postTag(state, tag) },
-          margin := "0px",
-          padding := "0px"
-        ),
+        tags,
+
         onClick(Page(Seq(post.id))) --> state.page,
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
