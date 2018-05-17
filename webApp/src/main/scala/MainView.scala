@@ -19,7 +19,7 @@ object MainView {
       width := "100%",
       display.flex,
       flexDirection.column,
-      topbar(state)(ctx)(width := "100%"),
+      topbar(state)(ctx)(width := "100%", flexGrow := 0, flexShrink := 0),
       div(
         display.flex,
         height := "100%",
