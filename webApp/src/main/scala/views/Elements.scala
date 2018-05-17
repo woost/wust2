@@ -21,10 +21,7 @@ object Rendered {
     case PostContent.Markdown(content) => mdHtml(content)
     case PostContent.Text(content)  => span(content)
   }
-  def showPostContent(o: Observable[PostContent]) = o.map {
-    case PostContent.Markdown(content) => mdHtml(content)
-    case PostContent.Text(content)  => span(content)
-  }
+  def showPostContent(o: Observable[PostContent]):Observable[VNode] = o map showPostContent
 
   def mdHtml(str: String) = span(prop("innerHTML") := marked(str))
   def mdHtml(str: Observable[String]) = span(prop("innerHTML") <-- str.map(marked(_)))

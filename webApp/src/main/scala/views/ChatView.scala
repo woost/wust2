@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import org.scalajs.dom.raw.Element
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -92,7 +91,7 @@ object ChatView extends View {
       Rx{
         val posts = graph().chronologicalPostsAscending
         if (posts.isEmpty) Seq(emptyMessage)
-        else posts.map(chatMessage(currentUser(), _, page, graph()))
+        else posts.map(chatMessage(state, _, graph(), currentUser()))
       },
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
@@ -100,7 +99,20 @@ object ChatView extends View {
 
   def emptyMessage: VNode = h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  def chatMessage(currentUser: User, post: Post, page: Var[Page], graph: Graph)(implicit ctx: Ctx.Owner): VNode = {
+  def postTag(state:GlobalState, post:Post):VNode = {
+    span(
+      post.content.externalString, //TODO trim! fit for tag usage...
+      onClick --> sideEffect{e => state.page() = Page(Seq(post.id)); e.stopPropagation()},
+      backgroundColor := computeTagColor(post.id),
+      fontSize.small,
+      color := "#fefefe",
+      borderRadius := "2px",
+      padding := "0px 3px",
+      marginRight := "3px"
+    )
+  }
+
+  def chatMessage(state:GlobalState, post: Post, graph:Graph, currentUser:User)(implicit ctx: Ctx.Owner): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
@@ -113,22 +125,11 @@ object ChatView extends View {
           margin := "2px 0px"
         ),
         div( // post tags
-          postTags.map{ tag =>
-              span(
-                showPostContent(tag.content), //TODO trim! fit for tag usage...
-                onClick --> sideEffect{e => page() = Page(Seq(tag.id)); e.stopPropagation()},
-                backgroundColor := computeTagColor(graph, tag.id),
-                fontSize.small,
-                color := "#fefefe",
-                borderRadius := "2px",
-                padding := "0px 3px",
-                marginRight := "3px"
-              )
-          },
+          postTags.map{ tag => postTag(state, tag) },
           margin := "0px",
           padding := "0px"
         ),
-        onClick(Page(Seq(post.id))) --> page,
+        onClick(Page(Seq(post.id))) --> state.page,
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
