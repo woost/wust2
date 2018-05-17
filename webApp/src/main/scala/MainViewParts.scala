@@ -78,8 +78,8 @@ object MainViewParts {
           if (view.isContent) Seq(
             display.flex,
             style("justify-content") := "space-evenly",
-            button(faUndo, padding := "2px", title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
-            button(faRedo, padding := "2px", title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
+            button(faUndo, padding := "5px 10px", marginRight := "2px", fontSize.small, title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
+            button(faRedo, padding := "5px 10px", fontSize.small, title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
           ) else Seq.empty[VDomModifier]
         )
       }

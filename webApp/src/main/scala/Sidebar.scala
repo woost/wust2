@@ -52,7 +52,7 @@ object Sidebar {
     alignItems.baseline,
 
     header(state),
-    undoRedo(state),
+    undoRedo(state)(ctx)(marginLeft := "20px", marginRight.auto),
     authentication(state)
   )
 
