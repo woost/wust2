@@ -10,6 +10,7 @@ import outwatch.dom.dsl._
 import monix.reactive.Observer
 import wust.graph.PostContent
 import wust.webApp.outwatchHelpers._
+import org.scalajs.dom.window
 
 object Placeholders {
   val newPost = placeholder := "Create new post. Press Enter to submit."
@@ -17,6 +18,16 @@ object Placeholders {
 }
 
 object Rendered {
+  val htmlPostContent: PostContent => String = {
+    case PostContent.Markdown(content) => mdString(content)
+    case PostContent.Text(content)  =>
+      // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
+      val text = window.document.createTextNode(content)
+      val wrap = window.document.createElement("div")
+      wrap.appendChild(text)
+      wrap.innerHTML
+  }
+
   val showPostContent: PostContent => VNode = {
     case PostContent.Markdown(content) => mdHtml(content)
     case PostContent.Text(content)  => span(content)
