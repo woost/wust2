@@ -72,13 +72,7 @@ object ChatView extends View {
           case _ => JoinDate.Never
         }
 
-        Client.api.setJoinDate(post.id, newJoinDate).foreach{ success =>
-          //TODO: this should be automatic, highlevel posts should be in graph
-          if(success)
-            state.highLevelPosts() = state.highLevelPosts.now.map{p =>
-              if(p.id == post.id) p.copy(joinDate = newJoinDate) else p
-            }
-        }
+        Client.api.setJoinDate(post.id, newJoinDate)
       }
     )
   }

@@ -12,7 +12,7 @@ object Data {
 
   val DEFAULT = 0L
 
-  case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int)
+  case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int, channelPostId: PostId)
   case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel: AccessLevel)
   case class Connection(sourceId: PostId, label: Label, targetId: PostId)
 

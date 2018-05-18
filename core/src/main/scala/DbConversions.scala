@@ -26,8 +26,8 @@ object DbConversions {
   )
   implicit def forClient(c: Data.Connection): Connection = Connection(c.sourceId, c.label, c.targetId)
   implicit def forClient(user: Data.User): User.Persisted = {
-    if (user.isImplicit) User.Implicit(user.id, user.name, user.revision)
-    else User.Real(user.id, user.name, user.revision)
+    if (user.isImplicit) User.Implicit(user.id, user.name, user.revision, user.channelPostId)
+    else User.Real(user.id, user.name, user.revision, user.channelPostId)
   }
   implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.postId)
 
@@ -42,8 +42,8 @@ object DbConversions {
     joinLevel = post.joinLevel
   )
   implicit def forDb(user: User.Persisted): Data.User = user match {
-    case User.Real(id, name, revision) => Data.User(id, name, isImplicit = false, revision = revision)
-    case User.Implicit(id, name, revision) => Data.User(id, name, isImplicit = true, revision = revision)
+    case User.Real(id, name, revision, channelPostId) => Data.User(id, name, isImplicit = false, revision = revision, channelPostId = channelPostId)
+    case User.Implicit(id, name, revision, channelPostId) => Data.User(id, name, isImplicit = true, revision = revision, channelPostId = channelPostId)
   }
   implicit def forDb(c: Connection): Data.Connection = Data.Connection(c.sourceId, c.label, c.targetId)
   implicit def forDbPosts(posts: Set[Post]): Set[Data.Post] = posts.map(forDb)

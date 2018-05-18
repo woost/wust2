@@ -127,7 +127,7 @@ object Sidebar {
     div(
       color := "#C4C4CA",
       Rx {
-        state.highLevelPosts().map{ p => 
+        state.channels().map{ p =>
           val selected = state.page().parentIds.contains(p.id)
           div(
             paddingRight := "3px",
@@ -149,7 +149,7 @@ object Sidebar {
 
   def channelIcons(state: GlobalState, size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
-      state.highLevelPosts.map(_.map{p => channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), size)})
+      state.channels.map(_.map{ p => channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), size)})
     )
   }
 

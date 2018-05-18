@@ -16,8 +16,10 @@ sealed trait User {
   def name: String
 }
 object User {
-  sealed trait Persisted extends User
-  case class Real(id: UserId, name: String, revision: Int) extends Persisted {
+  sealed trait Persisted extends User {
+    def channelPostId:PostId
+  }
+  case class Real(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted {
     def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
 
     override def equals(other: Any): Boolean = other match {
@@ -31,7 +33,7 @@ object User {
     override def hashCode(): Int = (id, revision).hashCode
   }
 
-  case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
+  case class Implicit(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted {
     def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
 
     override def equals(other: Any): Boolean = other match {
