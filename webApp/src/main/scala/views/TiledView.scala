@@ -14,35 +14,33 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
 
   override def toString = s"TiledView($operator, ${views.map(_.toString)})"
 
-  private def applyView(state: GlobalState)(ctx: Ctx.Owner)(view: View) = {
-    view.apply(state)(ctx)(height := "100%", width := "100%")
-  }
-
   //TODO: inline styles from viewgrid* css classes. better support in scala-dom-types for viewgrid?
   //TODO: outwach: Observable[Seq[VDomModifier]] should work, otherwise cannot share code proberly...muliple div.
   //TOOD: outwatch: make constructor for CompositeModifier public, otherwise need implicit
-  override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
-     operator match {
-      case ViewOperator.Row => div(
-        cls := "viewgridRow",
-        views.map(applyView(state)(ctx)).toList)
-      case ViewOperator.Column => div(
-        cls := "viewgridColumn",
-        views.map(applyView(state)(ctx)).toList)
-      case ViewOperator.Auto => div(
-        cls := "viewgridAuto",
-        views.map(applyView(state)(ctx)).toList)
-      case ViewOperator.Optional => div(
-        cls := "viewgridAuto",
-        events.window.onResize
-          .map(_ => ()).startWith(Seq(()))
-          .map { _ =>
-            //TODO: min-width corresponds media query in style.css
-            if (dom.window.matchMedia("only screen and (min-width : 992px)").matches)
-              views.map(applyView(state)(ctx)).toList
-            else
-              applyView(state)(ctx)(views.head) :: Nil
-          }
-      )
-    }
+  override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val appliedViews = views.map(_.apply(state)(ctx)(height := "100%", width := "100%")).toList
+    operator match {
+    case ViewOperator.Row => div(
+      cls := "viewgridRow",
+      appliedViews)
+    case ViewOperator.Column => div(
+      cls := "viewgridColumn",
+      appliedViews)
+    case ViewOperator.Auto => div(
+      cls := "viewgridAuto",
+      appliedViews)
+    case ViewOperator.Optional => div(
+      cls := "viewgridAuto",
+      events.window.onResize
+        .map(_ => ()).startWith(Seq(()))
+        .map { _ =>
+          //TODO: min-width corresponds media query in style.css
+          if (dom.window.matchMedia("only screen and (min-width : 992px)").matches)
+            appliedViews
+          else
+            appliedViews.head :: Nil
+        }
+    )
+  }
+  }
 }
