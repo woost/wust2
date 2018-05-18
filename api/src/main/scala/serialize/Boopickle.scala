@@ -15,6 +15,7 @@ object Boopickle {
 
   implicit val postContentPickler1 = generatePickler[PostContent.Markdown]
   implicit val postContentPickler2 = generatePickler[PostContent.Text]
+  implicit val postContentPickler3 = generatePickler[PostContent.Channels.type]
   implicit val postContentPickler = generatePickler[PostContent]
 
   implicit val connectionPickler = generatePickler[Connection]
