@@ -63,6 +63,9 @@ object PostContent {
   case class Text(content: String) extends PostContent {
     def externalString = content
   }
+  case object Channels extends PostContent {
+    def externalString = "Channels"
+  }
 }
 
 

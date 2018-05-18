@@ -26,11 +26,13 @@ object Rendered {
       val wrap = window.document.createElement("div")
       wrap.appendChild(text)
       wrap.innerHTML
+    case PostContent.Channels => "Channels"
   }
 
   val showPostContent: PostContent => VNode = {
     case PostContent.Markdown(content) => mdHtml(content)
     case PostContent.Text(content)  => span(content)
+    case PostContent.Channels => span("Channels")
   }
   def showPostContent(o: Observable[PostContent]):Observable[VNode] = o map showPostContent
 
