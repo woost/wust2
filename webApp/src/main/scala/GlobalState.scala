@@ -37,16 +37,17 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val currentAuth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
 
   val currentUser: Rx[User] = currentAuth.map(_.user)
-  val highLevelPosts = Var[List[Post]](Nil)
 
-  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { (o: Observable[PostContent]) =>
-    o.withLatestFrom(currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
+  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[PostContent] => o.withLatestFrom(currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
   }
 
-  val rawGraph: Rx[Graph] = {
-    val graph = eventProcessor.rawGraph.toRx(seed = Graph.empty)
-    Rx {
-      graph().addPosts(highLevelPosts()) //TODO: this is a hack, highlevel posts should already be in the graph
+  val rawGraph: Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
+
+  val channels: Rx[List[Post]] = Rx {
+    val graph = rawGraph()
+    currentUser() match {
+      case user:User.Persisted => graph.descendants(user.channelPostId).map(graph.postsById)(breakOut)
+      case _ => Nil
     }
   }
 
@@ -59,8 +60,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   }
 
   val pageParentPosts: Rx[Seq[Post]] = Rx {
-    //TODO highLevelPosts should be part of graph
-    page().parentIds.flatMap(id => rawGraph().postsById.get(id) orElse highLevelPosts().find(_.id == id))
+    page().parentIds.flatMap(id => rawGraph().postsById.get(id))
   }
 
   val pageStyle = Rx {
@@ -149,13 +149,6 @@ object GlobalState {
       Observable.fromFuture(Client.api.getGraph(vc.page))
     }.foreach { graph =>
       eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
-    }
-
-    currentUser.foreach { _ =>
-      //TODO: HighLevelPosts should be part of the graph in the first place
-      Client.api.getHighLevelPosts().foreach {
-        highLevelPosts() = _
-      }
     }
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.

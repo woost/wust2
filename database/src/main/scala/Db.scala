@@ -233,23 +233,11 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
         .map{ case (p, _) => p }
     }
 
-    def AllPostsQuery(userId: UserId) = quote {
+    def allPostsQuery(userId: UserId) = quote {
       for {
         m <- allMembershipsQuery(userId)
         p <- query[Post].join(p => p.id == m.postId)
       } yield p
-    }
-
-    def highLevelGroups(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = {
-      //TODO: compile-safe quill construct...
-      ctx.run {
-        infix"""SELECT DISTINCT x08.id, x08.content, x08.author, x08.created, x08.modified, x08.joindate, x08.joinlevel FROM (SELECT p.id id, p.content "content", p.created created, p.author author, p.modified modified, p.joindate, p.joinlevel FROM post p LEFT JOIN connection c ON c.label = ${lift(Label.parent)} AND c.sourceid = p.id WHERE c IS NULL) x08 INNER JOIN (SELECT m.postid FROM membership m WHERE m.userid = ${lift(userId)}) m ON x08.id = m.postid""".as[Query[Post]]
-        // // https://gitter.im/getquill/quill?at=5aa94ff135dd17022e5c1615
-        // for {
-        //   m <- allMembershipsQuery(userId)//.filter{m => p.id == m.postId}//.distinct
-        //   p <- allTopLevelPostsQuery.filter{p => p.id == m.postId}//.distinct
-        // } yield p
-      }
     }
 
     def visiblePosts(userId: UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext): Future[List[PostId]] = {
@@ -261,16 +249,20 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
 
-    def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { AllPostsQuery(userId) }
+    def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { allPostsQuery(userId) }
 
     def apply(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val user = User(id, name, isImplicit = false, 0)
+      val channelPostId = PostId.fresh
+      val user = User(id, name, isImplicit = false, 0, channelPostId)
+      //TODO: author for channelsPost should not be '1'. Author should not even be part of user.
       val q = quote {
         infix"""
-        with ins as (
-          insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}) returning id
-        ) insert into password(id, digest) select id, ${lift(digest)} from ins
+        with insp as (insert into post (id,content,author) values (${lift(channelPostId)}, '{"Channels":{}}', 1)),
+             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)})),
+             insm as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
+                      insert into password(id, digest) select id, ${lift(digest)}
       """.as[Insert[User]]
+        //TODO: update post and set author to userid
       }
 
       ctx.run(q)
@@ -279,8 +271,16 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def createImplicitUser(id: UserId, name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val user = User(id, name, isImplicit = true, 0)
-      val q = quote { query[User].insert(lift(user)) }
+      val channelPostId = PostId.fresh
+      val user = User(id, name, isImplicit = true, 0, channelPostId)
+      val q = quote {
+        infix"""
+        with insp as (insert into post (id,content,author) values (${lift(channelPostId)}, '{"Channels":{}}', 1)),
+             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}))
+                     insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read')
+      """.as[Insert[User]]
+        //TODO: update post and set author to userid
+      }
       ctx.run(q)
         .collect { case 1 => Option(user) }
         .recoverValue(None)

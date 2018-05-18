@@ -91,7 +91,7 @@ object MainViewParts {
     var today = new Date()
     // January is 0!
     val title = s"Group: ${today.getMonth+1}-${today.getDate}"
-    val sameNamePosts = state.highLevelPosts.now.filter(_.content.externalString.startsWith(title))
+    val sameNamePosts = state.channels.now.filter(_.content.externalString.startsWith(title))
     if (sameNamePosts.isEmpty) title
     else s"$title (${sameNamePosts.size})"
   }
@@ -101,12 +101,15 @@ object MainViewParts {
       label,
       onClick --> sideEffect{ _ =>
         val post = Post(PostContent.Text(newGroupTitle(state)), state.currentUser.now.id)
-        for {
-          _ <- state.eventProcessor.changes.onNext(GraphChanges.addPost(post))
-        } {
-          if (!state.view.now.isContent) state.view() = View.default
-          state.page() = Page(post.id)
-          state.highLevelPosts.update(post :: _)
+        state.currentUser.now match {
+          case user:User.Persisted =>
+            for {
+              _ <- state.eventProcessor.changes.onNext(GraphChanges.addPostWithParent(post, user.channelPostId))
+            } {
+              if (!state.view.now.isContent) state.view() = View.default
+              state.page() = Page(post.id)
+            }
+          case _ =>
         }
 
         ()

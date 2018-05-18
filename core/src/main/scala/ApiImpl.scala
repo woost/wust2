@@ -98,10 +98,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //    }
 //  }
 
-  def getHighLevelPosts():ApiFunction[List[Post]] = Action.requireDbUser { (_, user) =>
-    db.user.highLevelGroups(user.id).map(_.map(forClient))
-  }
-
   //TODO: get graph forces new db user...
   override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
