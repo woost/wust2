@@ -20,15 +20,9 @@ import scala.concurrent.duration._
 
 object Client {
   import window.location
-  private val isDev = location.port == "12345" // TODO better config with require
   private val wustUrl = {
     val protocol = if (location.protocol == "https:") "wss:" else "ws:"
-    val hostname = location.hostname match {
-      //TODO: better config for such things...
-      case hostname if isDev => "localhost"
-      case hostname if hostname.startsWith("m.") => location.hostname.drop(2)
-      case hostname => hostname
-    }
+    val hostname = location.hostname
     s"$protocol//core.${hostname}:${location.port}/ws"
   }
   private val githubUrl = {
