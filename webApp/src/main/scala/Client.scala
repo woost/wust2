@@ -2,6 +2,7 @@ package wust.webApp
 
 import covenant.http._
 import java.nio.ByteBuffer
+
 import boopickle.Default._
 import chameleon.ext.boopickle._
 import wust.api._
@@ -12,9 +13,11 @@ import wust.util.RichFuture
 import outwatch.Handler
 import wust.webApp.outwatchHelpers._
 import rx._
-import scala.scalajs.js
+
+import scala.scalajs.{LinkingInfo, js}
 import scala.scalajs.js.annotation._
 import org.scalajs.dom.window
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -23,7 +26,11 @@ object Client {
   private val wustUrl = {
     val protocol = if (location.protocol == "https:") "wss:" else "ws:"
     val hostname = location.hostname
-    s"$protocol//core.${hostname}:${location.port}/ws"
+
+    if(LinkingInfo.developmentMode)
+      s"$protocol//${hostname}:${location.port}/ws" // allows to access the devserver without subdomain
+    else
+      s"$protocol//core.${hostname}:${location.port}/ws"
   }
   private val githubUrl = {
     import window.location
