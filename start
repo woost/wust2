@@ -130,7 +130,9 @@ function self() {
             ;;
         esac
 
+        set +e # after sbt crash or termination, still shut down docker containers
         sbt
+        docker_compose core dev down
         ;;
     apps)
         env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
