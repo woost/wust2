@@ -10,7 +10,8 @@ import wust.sdk.{ChangesHistory, PostColor, SyncMode}
 import wust.util.RichBoolean
 import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{LoginView, PageStyle, View}
+import wust.webApp.views._
+import Elements._
 
 import scala.scalajs.js.Date
 
@@ -55,18 +56,17 @@ object MainViewParts {
     )
   }
 
-  def login(state: GlobalState)(implicit ctx:Ctx.Owner) = span(
-    span("Signup", textDecoration := "underline", cursor.pointer, onClick(new LoginView(isSignup = true): View) --> state.view),
-    " or ",
-    span("Login", textDecoration := "underline", cursor.pointer, onClick(new LoginView(isSignup = false): View) --> state.view))
+  def login(state: GlobalState)(implicit ctx:Ctx.Owner) = state.viewConfig.map { viewConfig =>
+    span(viewConfigLink(viewConfig.overlayView(SignupView))("Signup", color := "white"), " or ", viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white"))
+  }
 
   val logout = button("Logout", onClick --> sideEffect { Client.auth.logout(); () })
 
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
-    state.currentUser.map {
+    state.currentUser.flatMap {
       case user: User.Assumed => login(state)
       case user: User.Implicit => login(state)
-      case user: User.Real => logout
+      case user: User.Real => Var(logout)
     }
   )
 

@@ -34,10 +34,8 @@ object Rendered {
     case PostContent.Text(content)  => span(content)
     case PostContent.Channels => span("Channels")
   }
-  def showPostContent(o: Observable[PostContent]):Observable[VNode] = o map showPostContent
 
   def mdHtml(str: String) = span(prop("innerHTML") := marked(str))
-  def mdHtml(str: Observable[String]) = span(prop("innerHTML") <-- str.map(marked(_)))
   def mdString(str: String):String = marked(str)
 }
 
@@ -45,6 +43,8 @@ object Elements {
   // Enter-behavior which is consistent across mobile and desktop:
   // - textarea: enter emits keyCode for Enter
   // - input: Enter triggers submit
+
+  def viewConfigLink(viewConfig: ViewConfig) = a(href := "#" + ViewConfig.toUrlHash(viewConfig))
 
   def scrollToBottom(elem: dom.Element):Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
