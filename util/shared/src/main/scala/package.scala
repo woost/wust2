@@ -6,10 +6,6 @@ import scala.util.{Failure, Success}
 import scala.util.Try
 
 package object util {
-  implicit class Pipe[T](val v: T) extends AnyVal {
-    def |>[U](f: T => U): U = f(v)
-    def sideEffect(f: T => Any): T = { f(v); v }
-  }
 
   implicit class RichFuture[T](val fut: Future[T]) extends AnyVal {
     def recoverValueWithoutLog(a: T)(implicit ec: ExecutionContext) = fut.recover { case NonFatal(_) => a }
