@@ -32,7 +32,7 @@ trait PushApi[Result[_]] {
 
 @PathName("Auth")
 trait AuthApi[Result[_]] {
-  def assumeLogin(id: UserId): Result[Boolean]
+  def assumeLogin(user: User.Assumed): Result[Boolean]
   def register(name: String, password: String): Result[Boolean]
   def login(name: String, password: String): Result[Boolean]
   def loginToken(token: Authentication.Token): Result[Boolean]
@@ -50,7 +50,7 @@ object Authentication {
 
   case class Assumed(user: User.Assumed) extends Authentication
   object Assumed {
-    def fresh = Assumed(User.Assumed(UserId.fresh))
+    def fresh = Assumed(User.Assumed(UserId.fresh, PostId.fresh))
   }
   case class Verified(user: User.Persisted, expires: Long, token: Token) extends Authentication {
     override def toString = s"Authentication.Verified($user)"

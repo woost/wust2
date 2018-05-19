@@ -100,19 +100,14 @@ object MainViewParts {
     button(
       label,
       onClick --> sideEffect{ _ =>
-        val post = Post(PostContent.Text(newGroupTitle(state)), state.currentUser.now.id)
-        state.currentUser.now match {
-          case user:User.Persisted =>
-            for {
-              _ <- state.eventProcessor.changes.onNext(GraphChanges.addPostWithParent(post, user.channelPostId))
-            } {
-              if (!state.view.now.isContent) state.view() = View.default
-              state.page() = Page(post.id)
-            }
-          case _ =>
+        val user = state.currentUser.now
+        val post = Post(PostContent.Text(newGroupTitle(state)), user.id)
+        for {
+          _ <- state.eventProcessor.changes.onNext(GraphChanges.addPostWithParent(post, user.channelPostId))
+        } {
+          if (!state.view.now.isContent) state.view() = View.default
+          state.page() = Page(post.id)
         }
-
-        ()
       })
   }
 

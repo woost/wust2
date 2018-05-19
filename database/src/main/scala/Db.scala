@@ -258,8 +258,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { allPostsQuery(userId) }
 
-    def apply(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val channelPostId = PostId.fresh
+    def apply(id: UserId, name: String, digest: Array[Byte], channelPostId: PostId)(implicit ec: ExecutionContext): Future[Option[User]] = {
       val user = User(id, name, isImplicit = false, 0, channelPostId)
       //TODO: author for channelsPost should not be '1'. Author should not even be part of user.
       val q = quote {

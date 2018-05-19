@@ -60,7 +60,7 @@ object Client {
   def currentAuth = storage.auth.now getOrElse initialAssumedAuth
   private val initialAssumedAuth = Authentication.Assumed.fresh
   private def loginStorageAuth(auth: Authentication): Future[Boolean] = auth match {
-    case auth: Authentication.Assumed => factory.highPriority.auth.assumeLogin(auth.user.id)
+    case auth: Authentication.Assumed => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
 }
