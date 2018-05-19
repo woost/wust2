@@ -74,7 +74,7 @@ object WustReceiver {
       println(s"Got events in Gitter: $events")
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
       val posts = changes.flatMap(_.addPosts)
-      posts.map(p => ExchangeMessage(p.content.externalString)).foreach { msg =>
+      posts.map(p => ExchangeMessage(p.content.str)).foreach { msg =>
         gitter.send(msg)
       }
 

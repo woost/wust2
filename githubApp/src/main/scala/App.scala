@@ -439,8 +439,8 @@ object WustReceiver {
           externalId.map(eid => DeleteIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
-            title = prevGraph.postsById(pid).content.externalString,
-            content = issuePostOfDesc(prevGraph, pid).map(_.content.externalString).getOrElse(""),
+            title = prevGraph.postsById(pid).content.str,
+            content = issuePostOfDesc(prevGraph, pid).map(_.content.str).getOrElse(""),
             postId = pid))
         }
 
@@ -462,12 +462,12 @@ object WustReceiver {
       val editIssuesCall = issuesToUpdate
         .flatMap { p =>
           val externalId = Try(p.id.toString.toInt).toOption
-          val desc = issuePostOfDesc(currGraph, p.id).map(_.content.externalString)
+          val desc = issuePostOfDesc(currGraph, p.id).map(_.content.str)
           (externalId, desc).mapN((eid, d) => EditIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
             status = "open",
-            title = p.content.externalString,
+            title = p.content.str,
             content = d,
             postId = p.id))
         }
@@ -478,7 +478,7 @@ object WustReceiver {
           externalId.map(eid => EditComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalId = eid,
-            content = p.content.externalString,
+            content = p.content.str,
             postId = p.id))
         }
 
@@ -496,8 +496,8 @@ object WustReceiver {
       val createIssuesCall = issuesToAdd
         .map(p => CreateIssue(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
-          title = p.content.externalString,
-          content = issuePostOfDesc(currGraph, p.id).map(_.content.externalString).getOrElse(""),
+          title = p.content.str,
+          content = issuePostOfDesc(currGraph, p.id).map(_.content.str).getOrElse(""),
           postId = p.id
         ))
 
@@ -510,7 +510,7 @@ object WustReceiver {
           issueNumber.map(in => CreateComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalIssueNumber = in, //Get issue id here
-            content = p.content.externalString,
+            content = p.content.str,
             postId = p.id))
         }
 
@@ -523,7 +523,7 @@ object WustReceiver {
           issueNumber.map( in => CreateComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalIssueNumber = in,
-            content = p.content.externalString,
+            content = p.content.str,
             postId = p.id))
         }
 

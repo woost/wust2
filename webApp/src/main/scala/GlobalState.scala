@@ -35,19 +35,18 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   )
 
   //TODO: rename to auth and user. globalstate implies it is the current value....
-  val currentAuth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
+  val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
 
-  val currentUser: Rx[User] = currentAuth.map(_.user)
+  val user: Rx[User] = auth.map(_.user)
 
-  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[PostContent] => o.withLatestFrom(currentUser.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
+  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[PostContent] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
   }
 
   val rawGraph: Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
   val channels: Rx[List[Post]] = Rx {
     val graph = rawGraph()
-    val user = currentUser()
-    (graph.children(user.channelPostId).map(graph.postsById)(breakOut): List[Post]).sortBy(_.content.externalString)
+    (graph.children(user().channelPostId).map(graph.postsById)(breakOut): List[Post]).sortBy(_.content.str)
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
@@ -142,8 +141,8 @@ object GlobalState {
     import state._
 
     //TODO: better in rx/obs operations
-    currentAuth.foreach(auth => Client.storage.auth() = Some(auth))
-    currentAuth.foreach(IndexedDbOps.storeAuth)
+    auth.foreach(auth => Client.storage.auth() = Some(auth))
+    auth.foreach(IndexedDbOps.storeAuth)
 
     //TODO: better build up state from server events?
     viewConfig.toObservable.switchMap { vc =>

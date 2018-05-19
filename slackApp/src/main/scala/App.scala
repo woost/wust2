@@ -65,7 +65,7 @@ object WustReceiver {
       println(s"Got events in Slack: $events")
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
       val posts = changes.flatMap(_.addPosts)
-      posts.map(p => ExchangeMessage(p.content.externalString)).foreach { msg =>
+      posts.map(p => ExchangeMessage(p.content.str)).foreach { msg =>
         slack.send(msg).foreach { success =>
           println(s"Send message success: $success")
         }

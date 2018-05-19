@@ -60,16 +60,16 @@ object ChatView extends View {
   def channelControl(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): VNode = div(
     freeRegular.faStar,
     color <-- Rx {
-      state.rawGraph().children(state.currentUser().channelPostId).contains(post.id) match {
+      state.rawGraph().children(state.user().channelPostId).contains(post.id) match {
         case true => "orange"
         case false => "black"
       }
     },
     cursor.pointer,
     onClick --> sideEffect {_ =>
-      val changes = state.rawGraph.now.children(state.currentUser.now.channelPostId).contains(post.id) match {
-        case true => GraphChanges.disconnect(post.id, Label.parent, state.currentUser.now.channelPostId)
-        case false => GraphChanges.connect(post.id, Label.parent, state.currentUser.now.channelPostId)
+      val changes = state.rawGraph.now.children(state.user.now.channelPostId).contains(post.id) match {
+        case true => GraphChanges.disconnect(post.id, Label.parent, state.user.now.channelPostId)
+        case false => GraphChanges.connect(post.id, Label.parent, state.user.now.channelPostId)
       }
       state.eventProcessor.changes.onNext(changes)
     }
@@ -107,7 +107,7 @@ object ChatView extends View {
       Rx{
         val posts = graph().chronologicalPostsAscending
         if (posts.isEmpty) Seq(emptyMessage)
-        else posts.map(chatMessage(state, _, graph(), currentUser()))
+        else posts.map(chatMessage(state, _, graph(), user()))
       },
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
     )
@@ -117,7 +117,7 @@ object ChatView extends View {
 
   def postTag(state:GlobalState, post:Post):VNode = {
     span(
-      post.content.externalString, //TODO trim! fit for tag usage...
+      post.content.str, //TODO trim! fit for tag usage...
       onClick --> sideEffect{e => state.page() = Page(Seq(post.id)); e.stopPropagation()},
       backgroundColor := computeTagColor(post.id),
       fontSize.small,

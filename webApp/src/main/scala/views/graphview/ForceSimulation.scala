@@ -417,7 +417,7 @@ object ForceSimulation {
   def calcPostWidth(post: Post) = {
     import outwatch.dom.dsl._
     val arbitraryFactor = 2.4
-    val contentWidth = post.content.externalString.length // TODO: wrong with markdown rendering
+    val contentWidth = post.content.str.length // TODO: wrong with markdown rendering
     val calcWidth = if(contentWidth > 10){
       val sqrtWidth = (math.sqrt(contentWidth) * arbitraryFactor) min 60
       Some(width:= s"${sqrtWidth}ch")
