@@ -52,19 +52,19 @@ object User {
 }
 
 sealed trait PostContent {
-  def externalString: String
+  def str: String
 }
 object PostContent {
   //TODO with auto detection of type?: def fromString(content: String)
 
   case class Markdown(content: String) extends PostContent {
-    def externalString = content
+    def str = content
   }
   case class Text(content: String) extends PostContent {
-    def externalString = content
+    def str = content
   }
   case object Channels extends PostContent {
-    def externalString = "Channels"
+    def str = "Channels"
   }
 }
 

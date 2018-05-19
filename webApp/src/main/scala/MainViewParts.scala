@@ -63,7 +63,7 @@ object MainViewParts {
   val logout = button("Logout", onClick --> sideEffect { Client.auth.logout(); () })
 
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
-    state.currentUser.flatMap {
+    state.user.flatMap {
       case user: User.Assumed => login(state)
       case user: User.Implicit => login(state)
       case user: User.Real => Var(logout)
@@ -91,7 +91,7 @@ object MainViewParts {
     var today = new Date()
     // January is 0!
     val title = s"Group: ${today.getMonth+1}-${today.getDate}"
-    val sameNamePosts = state.channels.now.filter(_.content.externalString.startsWith(title))
+    val sameNamePosts = state.channels.now.filter(_.content.str.startsWith(title))
     if (sameNamePosts.isEmpty) title
     else s"$title (${sameNamePosts.size})"
   }
@@ -100,7 +100,7 @@ object MainViewParts {
     button(
       label,
       onClick --> sideEffect{ _ =>
-        val user = state.currentUser.now
+        val user = state.user.now
         val post = Post(PostContent.Text(newGroupTitle(state)), user.id)
         for {
           _ <- state.eventProcessor.changes.onNext(GraphChanges.addPostWithParent(post, user.channelPostId))
@@ -188,7 +188,7 @@ object MainViewParts {
   }
 
   def user(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
-    div("User: ", state.currentUser.map(u => s"${u.id}, ${u.name}"))
+    div("User: ", state.user.map(u => s"${u.id}, ${u.name}"))
   }
 
   def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {

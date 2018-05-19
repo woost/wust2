@@ -81,7 +81,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     if (notifiedUsers.nonEmpty) {
       val notifiedUsersGraphChanges = notifiedUsers
         .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) if changes.addPosts.nonEmpty =>
-          changes.addPosts.map(_.content.externalString.trim).mkString(" | ") }.mkString(" | "))
+          changes.addPosts.map(_.content.str.trim).mkString(" | ") }.mkString(" | "))
         .filter(_._2.nonEmpty)
 
       db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach { subscriptions =>

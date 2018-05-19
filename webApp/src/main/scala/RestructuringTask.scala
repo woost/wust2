@@ -477,7 +477,7 @@ case class MergePosts(posts: Posts) extends YesNoTask
   }
 
   def mergePosts(mergeTarget: Post, source: Post): Post = {
-    mergeTarget.copy(content = PostContent.Markdown(mergeTarget.content.externalString + "\n" + source.content.externalString)) //TODO: proper merge for PostContent?
+    mergeTarget.copy(content = PostContent.Markdown(mergeTarget.content.str + "\n" + source.content.str)) //TODO: proper merge for PostContent?
   }
 
   def component(state: GlobalState): VNode = {
@@ -544,7 +544,7 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
   }
 
   def unifyPosts(unifyTarget: Post, post: Post): Post = {
-    unifyTarget.copy(content = PostContent.Markdown(unifyTarget.content.externalString + "\n" + post.content.externalString)) //TODO: proper merge for PsotContent
+    unifyTarget.copy(content = PostContent.Markdown(unifyTarget.content.str + "\n" + post.content.str)) //TODO: proper merge for PsotContent
   }
 
   def component(state: GlobalState): VNode = {
@@ -648,7 +648,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
 
   def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
     if(!condition) return None
-    Some(Post(PostId.fresh, PostContent.Markdown(str.trim), state.currentUser.now.id))
+    Some(Post(PostId.fresh, PostContent.Markdown(str.trim), state.user.now.id))
   }
 
   def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): List[Post] = {
@@ -771,7 +771,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       val graph = getGraphFromState(state)
       val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
         case None =>
-          val newTag = Post(PostId.fresh, PostContent.Markdown(tag), state.currentUser.now.id)
+          val newTag = Post(PostId.fresh, PostContent.Markdown(tag), state.user.now.id)
           val newParent = state.page.now.parentIds
           val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
           GraphChanges(

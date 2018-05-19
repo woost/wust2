@@ -89,7 +89,7 @@ object DevView {
 //        },
         Rx {
          def addRandomPost(count: Int):Unit = {
-            val newPosts = List.fill(count)(Post(PostId.fresh, content = PostContent.Text(rSentence), state.currentUser.now.id)).toSet
+            val newPosts = List.fill(count)(Post(PostId.fresh, content = PostContent.Text(rSentence), state.user.now.id)).toSet
             val changes = GraphChanges(addPosts = newPosts)
             state.eventProcessor.enriched.changes.onNext(changes)
           }

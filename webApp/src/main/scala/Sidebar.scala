@@ -115,7 +115,7 @@ object Sidebar {
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       hamburger(state),
       div(
-        state.currentUser.map(user =>
+        state.user.map(user =>
           viewConfigLink(ViewConfig.default.copy(page = Page.ofUser(user)))("Woost", color := "white", textDecoration := "none")
         ),
         padding := "5px 5px",
@@ -136,7 +136,7 @@ object Sidebar {
             paddingRight := "3px",
             display.flex, alignItems.center,
             channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
-            p.content.externalString,
+            p.content.str,
             cursor.pointer,
             onChannelClick(p.id)(state),
             title := p.id,

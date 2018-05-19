@@ -60,7 +60,7 @@ object SelectedPostMenu {
           span(
             p.id,
             br(),
-            p.content.externalString,
+            p.content.str,
             fontWeight.bold,
             backgroundColor := baseColor(p.id).toString,
             margin := "2px", padding := "1px 0px 1px 5px",
@@ -97,7 +97,7 @@ object SelectedPostMenu {
 
     val insertPostHandler = Handler.create[String].unsafeRunSync()
     insertPostHandler.foreach { content =>
-      val author = state.currentUser.now
+      val author = state.user.now
       val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
 
       val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxPost.now.id)))
@@ -106,7 +106,7 @@ object SelectedPostMenu {
 
     val connectPostHandler = Handler.create[String].unsafeRunSync()
     connectPostHandler.foreach { content =>
-      val author = state.currentUser.now
+      val author = state.user.now
       val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
 
       val changes = GraphChanges(
@@ -123,11 +123,11 @@ object SelectedPostMenu {
         if (activated) {
           textArea(
             valueWithEnter --> updatePostHandler,
-            rxPost.now.content.externalString,
+            rxPost.now.content.str,
             onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
-            rxPost.map(_.content.externalString),
+            rxPost.map(_.content.str),
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
             wordWrap := "break-word",

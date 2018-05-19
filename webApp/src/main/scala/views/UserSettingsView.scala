@@ -22,7 +22,7 @@ object UserSettingsView extends View {
     div(
        height := "100%",
       div(
-        currentUser.map(listSettings),
+        user.map(listSettings),
 
 
         margin := "0 auto",
