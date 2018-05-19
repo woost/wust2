@@ -9,7 +9,8 @@ import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
 import wust.graph._
 import wust.ids._
-import wust.webApp.views.{LoginView, PageStyle, View}
+import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
+import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, PostColor, SyncMode}
 
@@ -114,7 +115,9 @@ object Sidebar {
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       hamburger(state),
       div(
-        "Woost",
+        state.currentUser.map(user =>
+          viewConfigLink(ViewConfig.default.copy(page = Page.ofUser(user)))("Woost", color := "white", textDecoration := "none")
+        ),
         padding := "5px 5px",
         fontSize := "14px",
         fontWeight.bold
