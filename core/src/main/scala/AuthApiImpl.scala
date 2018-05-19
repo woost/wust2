@@ -20,8 +20,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       case User.Implicit(prevUserId, _, _, _) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
-      case User.Assumed(userId) => db.user(userId, name, digest)
-      case _ => db.user(UserId.fresh, name, digest)
+      case User.Assumed(userId, channelPostId) => db.user(userId, name, digest, channelPostId)
+      case _ => db.user(UserId.fresh, name, digest, PostId.fresh)
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
@@ -58,8 +58,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     validAuthFromToken(token)
   }
 
-  def assumeLogin(userId: UserId): ApiFunction[Boolean] = Effect { state =>
-    val newAuth = Authentication.Assumed(User.Assumed(userId))
+  def assumeLogin(user: User.Assumed): ApiFunction[Boolean] = Effect { state =>
+    val newAuth = Authentication.Assumed(user)
     resultOnAssumedAuth(newAuth)
   }
 

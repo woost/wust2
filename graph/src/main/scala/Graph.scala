@@ -14,11 +14,10 @@ case class Membership(userId: UserId, postId: PostId)
 sealed trait User {
   def id: UserId
   def name: String
+  def channelPostId:PostId
 }
 object User {
-  sealed trait Persisted extends User {
-    def channelPostId:PostId
-  }
+  sealed trait Persisted extends User
   case class Real(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted {
     def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
 
@@ -48,7 +47,7 @@ object User {
 
   }
 
-  case class Assumed(id: UserId) extends User {
+  case class Assumed(id: UserId, channelPostId: PostId) extends User {
     def name = s"anon-$id"
   }
 }

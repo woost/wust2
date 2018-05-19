@@ -45,10 +45,8 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
 
   val channels: Rx[List[Post]] = Rx {
     val graph = rawGraph()
-    currentUser() match {
-      case user:User.Persisted => graph.descendants(user.channelPostId).map(graph.postsById)(breakOut)
-      case _ => Nil
-    }
+    val user = currentUser()
+    graph.children(user.channelPostId).map(graph.postsById)(breakOut)
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))

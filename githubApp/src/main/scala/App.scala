@@ -53,7 +53,7 @@ object Constants {
   val wustOwner = "woost"
   val wustRepo = "bug"
 
-  val wustUser = UserId("wust") // TODO get rid of this static user assumption
+  val wustUser = User.Assumed(UserId("wust"), PostId.fresh) // TODO get rid of this static user assumption
 
 }
 
@@ -319,7 +319,7 @@ object WustReceiver {
       highPriorityClient.auth.login(config.user, config.password)
     }
 
-    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, PostContent.Text("wust-github"), Constants.wustUser)))
+    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, PostContent.Text("wust-github"), Constants.wustUser.id)))
     client.api.changeGraph(List(changes))
 
     println("Running WustReceiver")
