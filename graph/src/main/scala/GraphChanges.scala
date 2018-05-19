@@ -71,6 +71,7 @@ object GraphChanges {
   def delete(postId:PostId) = GraphChanges(delPosts = Set(postId))
 
   def connect(source:PostId, label:Label, target:PostId) = GraphChanges(addConnections = Set(Connection(source, label, target)))
+  def disconnect(source:PostId, label:Label, target:PostId) = GraphChanges(delConnections = Set(Connection(source, label, target)))
 
   def moveInto(graph:Graph, subject:PostId, target:PostId) = {
     // TODO: only keep deepest parent in transitive chain
