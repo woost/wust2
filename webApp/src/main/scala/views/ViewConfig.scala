@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import fastparse.core.Parsed
 import wust.graph._
+import wust.webApp.parsers.{ViewConfigParser, ViewConfigWriter}
 
 case class ViewConfig(view: View, page: Page, prevView: Option[View]) {
   def overlayView(newView: View): ViewConfig = copy(view = newView, prevView = Some(view).filter(_.isContent) orElse prevView)
