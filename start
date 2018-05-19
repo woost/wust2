@@ -11,7 +11,24 @@ function docker_compose() {
     if [[ -n "$stage" ]] && [[ -f "$project/docker-compose.$stage.yml" ]]; then
         add_args="-f $project/docker-compose.$stage.yml"
     fi
-    docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args ${@:3}
+
+    set +e
+    output=$(docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args ${@:3} 2>&1 | tee /dev/tty )
+    err=$?
+    set -e
+
+    if [[ -n "$(echo $output | grep -E 'manifest for woost/db-migration:[^ ]* not found')" ]]; then
+        echo "Cannot find db-migration image, rebuilding..."
+        sbt dbMigration/docker
+        docker_compose $@
+    elif [[ -n "$(echo $output | grep -E 'manifest for woost/[^ ]* not found')" ]]; then
+        echo "Cannot find some docker image, rebuilding all images..."
+        sbt docker
+        docker_compose $@
+    elif [[ $err -ne 0 ]]; then
+        echo "docker-compose failed, exiting"
+        exit 1
+    fi
 }
 function postgres_nottycommand() {
     docker exec -i "devcore_postgres_1" "$@"
