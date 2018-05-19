@@ -33,6 +33,8 @@ object Circe {
   implicit val postContentEncoder2: Encoder[PostContent.Text] = deriveEncoder[PostContent.Text]
   implicit val postContentDecoder3: Decoder[PostContent.Channels.type] = deriveDecoder[PostContent.Channels.type]
   implicit val postContentEncoder3: Encoder[PostContent.Channels.type] = deriveEncoder[PostContent.Channels.type]
+  implicit val postContentDecoder4: Decoder[PostContent.Link] = deriveDecoder[PostContent.Link]
+  implicit val postContentEncoder4: Encoder[PostContent.Link] = deriveEncoder[PostContent.Link]
   implicit val postContentDecoder: Decoder[PostContent] = deriveDecoder[PostContent]
   implicit val postContentEncoder: Encoder[PostContent] = deriveEncoder[PostContent]
 

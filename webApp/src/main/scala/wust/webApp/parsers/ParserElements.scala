@@ -12,9 +12,5 @@ object ParserElements {
   val whitespaceChar = CharPred(_.isWhitespace)
 
   //TODO better?
-  val url = P( whitespaceChar.rep ~ ("http://" | "https://").! ~ CharPred(s => !s.isWhitespace).rep(min = 1).! )
-    .flatMap { case (proto, rest) =>
-      val url = proto + rest
-      url
-    }
+  val url = P( (("http://" | "https://") ~ CharPred(s => !s.isWhitespace).rep(min = 1)).! )
 }

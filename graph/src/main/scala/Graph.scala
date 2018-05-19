@@ -63,6 +63,10 @@ object PostContent {
   case class Text(content: String) extends PostContent {
     def str = content
   }
+  case class Link(url: String) extends PostContent {
+    //TODO: require url format?
+    def str = url
+  }
   case object Channels extends PostContent {
     def str = "Channels"
   }

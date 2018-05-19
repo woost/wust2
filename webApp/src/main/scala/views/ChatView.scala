@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import fastparse.core.Parsed
 import org.scalajs.dom.raw.Element
 import outwatch.ObserverSink
 import outwatch.dom._
@@ -11,6 +12,7 @@ import wust.sdk.PostColor._
 import wust.webApp._
 import wust.webApp.fontAwesome.{freeBrands, freeRegular, freeSolid}
 import wust.webApp.outwatchHelpers._
+import wust.webApp.parsers.PostContentParser
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 
@@ -181,12 +183,21 @@ object ChatView extends View {
   }
 
   def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state._
-
-    val graphIsEmpty = displayGraphWithParents.map(_.graph.isEmpty)
+    val graphIsEmpty = state.displayGraphWithParents.map(_.graph.isEmpty)
 
     textArea(
-      valueWithEnter.map(PostContent.Markdown) --> state.newPostSink,
+      valueWithEnter --> sideEffect { str =>
+        val graph = state.displayGraphWithParents.now
+        val user = state.user.now
+        val changes = PostContentParser.newPost(graph.graph.posts.toSeq, user.id).parse(str) match {
+          case Parsed.Success(changes, _) => changes
+          case failure: Parsed.Failure[_,_] =>
+            scribe.warn(s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown.")
+            GraphChanges.addPost(Post(PostContent.Markdown(str), user.id))
+        }
+
+        state.eventProcessor.enriched.changes.onNext(changes)
+      },
       disabled <-- graphIsEmpty,
       height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?

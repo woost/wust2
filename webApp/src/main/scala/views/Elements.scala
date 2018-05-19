@@ -11,6 +11,7 @@ import monix.reactive.Observer
 import wust.graph.PostContent
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.window
+import views.MediaViewer
 
 object Placeholders {
   val newPost = placeholder := "Create new post. Press Enter to submit."
@@ -26,12 +27,14 @@ object Rendered {
       val wrap = window.document.createElement("div")
       wrap.appendChild(text)
       wrap.innerHTML
+    case PostContent.Link(url) => s"<a href=$url>" //TODO
     case PostContent.Channels => "Channels"
   }
 
   val showPostContent: PostContent => VNode = {
     case PostContent.Markdown(content) => mdHtml(content)
     case PostContent.Text(content)  => span(content)
+    case c: PostContent.Link => MediaViewer.embed(c)
     case PostContent.Channels => span("Channels")
   }
 
