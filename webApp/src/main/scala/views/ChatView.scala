@@ -50,7 +50,8 @@ object ChatView extends View {
           ),
           showPostContent(parent.content)(fontSize := "20px"),
           channelControl(state, parent)(ctx)(marginLeft := "5px"),
-          joinControl(state, parent)(ctx)(marginLeft := "5px")
+          joinControl(state, parent)(ctx)(marginLeft := "5px"),
+          deleteButton(state, parent)(marginLeft := "5px")
         )
       })
     )
@@ -127,15 +128,16 @@ object ChatView extends View {
     )
   }
 
+  def deleteButton(state: GlobalState, post: Post) = div(
+    freeRegular.faTrashAlt,
+    padding := "5px",
+    onClick.map{e => e.stopPropagation(); GraphChanges.delete(post)} --> ObserverSink(state.eventProcessor.changes)
+  )
+
   def chatMessage(state:GlobalState, post: Post, graph:Graph, currentUser:User)(implicit ctx: Ctx.Owner): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
-    val deleteButton = div(
-      freeRegular.faTrashAlt,
-      padding := "5px",
-      onClick.map{e => e.stopPropagation(); GraphChanges.delete(post)} --> ObserverSink(state.eventProcessor.changes)
-    )
 
     val content = div(
       showPostContent(post.content),
@@ -156,7 +158,7 @@ object ChatView extends View {
           display.flex,
           alignItems.center,
           content,
-          deleteButton
+          deleteButton(state, post)
         ),
         tags,
 
