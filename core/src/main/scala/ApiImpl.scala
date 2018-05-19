@@ -101,7 +101,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //TODO: get graph forces new db user...
   override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
-    if (page.parentIds.isEmpty) defaultGraph.map(Returns(_))
+    if (page.parentIds.isEmpty) state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }.map(Returns(_))
     else for {
       newMemberPostIds <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
       graph <- state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
