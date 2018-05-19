@@ -366,8 +366,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }.map(_.nonEmpty)
     }
 
-    def isMember(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(query[Membership].filter(m => m.postId == lift(postId) && m.userId == lift(userId) && m.level == lift(accessLevel)).nonEmpty)
+    def isMember(postId: PostId, userId: UserId, minAccessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val allowedLevels = minAccessLevel match {
+        case AccessLevel.Read => AccessLevel.Read :: AccessLevel.ReadWrite :: Nil
+        case AccessLevel.ReadWrite => AccessLevel.ReadWrite :: Nil
+      }
+      def find(allowedLevels: List[AccessLevel]) = quote {
+        query[Membership].filter(m => m.postId == lift(postId) && m.userId == lift(userId) && lift(allowedLevels).contains(m.level)).nonEmpty
+      }
+      ctx.run(find(allowedLevels))
     }
   }
 
