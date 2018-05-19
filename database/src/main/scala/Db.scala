@@ -124,7 +124,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def addMemberWithCurrentJoinLevel(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberWithCurrentJoinLevel(postId :: Nil, userId).map(_.nonEmpty)
     def addMemberWithCurrentJoinLevel(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
-      // TODO: let dexter tell us that an index for post.lock is missing
       val now = LocalDateTime.now(ZoneOffset.UTC)
       val insertMembership = quote {
         val q = query[Post]
@@ -132,7 +131,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
           .map(p => Membership(lift(userId), p.id, p.joinLevel))
         infix"""
           insert into membership(userid, postid, level)
-          $q ON CONFLICT(postid, userid) DO NOTHING
+          $q ON CONFLICT(postid, userid) DO UPDATE set level =
+            CASE EXCLUDED.level WHEN 'read' THEN membership.level
+                                WHEN 'readwrite' THEN 'readwrite'
+            END
         """.as[Insert[Membership]]
         //TODO: https://github.com/getquill/quill/issues/1093
             // returning postid
@@ -149,7 +151,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
       val insertMembership = quote { (postId: PostId) =>
         val q = query[Membership].insert(Membership(lift(userId), postId, lift(accessLevel)))
-        infix"$q ON CONFLICT(postId, userId) DO NOTHING".as[Insert[Membership]].returning(_.postId)
+        infix"""
+          $q ON CONFLICT(postid, userid) DO UPDATE set level =
+            CASE EXCLUDED.level WHEN 'read' THEN membership.level
+                                WHEN 'readwrite' THEN 'readwrite'
+            END
+        """.as[Insert[Membership]].returning(_.postId)
       }
       ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
     }
