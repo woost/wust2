@@ -27,7 +27,7 @@ import chameleon.ext.circe._
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.auto._
-import wust.util.{Pipe, RichFuture}
+import wust.util.RichFuture
 import cats.implicits._
 import monix.execution.Scheduler
 

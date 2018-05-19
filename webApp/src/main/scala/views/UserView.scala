@@ -4,7 +4,6 @@
 
 // import wust.graph.{ User, Group }
 // import wust.webApp.{ Client, GlobalState }
-// import wust.util.Pipe
 // import wust.util.tags._
 // import wust.ids._
 

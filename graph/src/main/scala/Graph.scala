@@ -1,7 +1,6 @@
 package wust.graph
 
 import wust.ids._
-import wust.util.Pipe
 import wust.util.Memo
 import wust.util.algorithm._
 import wust.util.collection._
@@ -209,9 +208,8 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   private val _descendants: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
     postsById.isDefinedAt(postId) match {
       case true =>
-        depthFirstSearch(postId, children) |> { children =>
-          if (children.startInvolvedInCycle) children else children.drop(1)
-        } //TODO better?
+        val cs = depthFirstSearch(postId, children)
+        if (cs.startInvolvedInCycle) cs else cs.drop(1)
       case false => Seq.empty
     }
   }
