@@ -1,11 +1,9 @@
-package wust.webApp.views
+package wust.webApp.parsers
 
 import cats.data.NonEmptyList
-import fastparse.all
 import wust.graph.Page
 import wust.ids.PostId
-
-import scala.collection.breakOut
+import wust.webApp.views.{TiledView, View, ViewConfig, ViewOperator}
 
 private object ViewConfigConstants {
   val parentChildSeparator = ":"
@@ -19,13 +17,12 @@ import ViewConfigConstants._
 
 object ViewConfigParser {
   import fastparse.all._
+  import ParserElements._
 
   private def optionSeq[A](list: NonEmptyList[Option[A]]): Option[NonEmptyList[A]] = list.forall(_.isDefined) match {
     case true  => Some(list.map(_.get))
     case false => None
   }
-
-  val word: P[String] = P( ElemsWhileIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9'), min = 1).! )
 
   //TODO: support nested views with different operators and brackets.
   def viewWithOps(operator: ViewOperator): P[View] = P( word.!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End) )
