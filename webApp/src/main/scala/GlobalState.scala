@@ -81,7 +81,8 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     val graph = rawGraph()
     page() match {
       case Page(parentIds, _) if parentIds.isEmpty =>
-        perspective().applyOnGraph(graph)
+        // perspective().applyOnGraph(graph)
+        DisplayGraph(Graph.empty)
 
       case Page(parentIds, _) =>
         val descendants = parentIds.flatMap(graph.descendants) diff parentIds
@@ -94,7 +95,8 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     val graph = rawGraph()
     page() match {
       case Page(parentIds, _) if parentIds.isEmpty =>
-        perspective().applyOnGraph(graph)
+        // perspective().applyOnGraph(graph)
+        DisplayGraph(Graph.empty)
 
       case Page(parentIds, _) =>
         //TODO: this seems to crash when parentid does not exist

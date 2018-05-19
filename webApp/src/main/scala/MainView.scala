@@ -27,7 +27,7 @@ object MainView {
         sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
         backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
         Rx {
-          (if (!state.view().isContent || state.page().parentIds.nonEmpty) {
+          (if (!state.view().isContent || state.displayGraphWithParents().graph.nonEmpty) {
             state.view().apply(state)(ctx)(height := "100%", width := "100%")
           } else {
             newGroupPage(state)
