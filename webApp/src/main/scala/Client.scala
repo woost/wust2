@@ -52,13 +52,16 @@ object Client {
       case false =>
         scribe.warn("Login failed, token is not valid.")
         storage.auth() = None // forget invalid token
+        // get a new initialAssumedAuth, as the old one might have already be used to become a real user.
+        // TODO: is that enough?
+        initialAssumedAuth = Authentication.Assumed.fresh
         loginStorageAuth(initialAssumedAuth)
     }
   }
 
   val storage = new ClientStorage
   def currentAuth = storage.auth.now getOrElse initialAssumedAuth
-  private val initialAssumedAuth = Authentication.Assumed.fresh
+  private var initialAssumedAuth = Authentication.Assumed.fresh
   private def loginStorageAuth(auth: Authentication): Future[Boolean] = auth match {
     case auth: Authentication.Assumed => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
