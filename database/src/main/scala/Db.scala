@@ -68,6 +68,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       // when adding a new post, we undelete it in case it was already there
       //TODO this approach hides conflicts on post ids!!
       //TODO what about title
+      //TODO can undelete posts that i do not own
       infix"$q ON CONFLICT(id) DO UPDATE SET isdeleted = false".as[Insert[RawPost]]
     }
 

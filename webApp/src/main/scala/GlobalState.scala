@@ -34,6 +34,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     Client.api.changeGraph _
   )
 
+  //TODO: rename to auth and user. globalstate implies it is the current value....
   val currentAuth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
 
   val currentUser: Rx[User] = currentAuth.map(_.user)
