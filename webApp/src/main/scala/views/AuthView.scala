@@ -13,14 +13,13 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import cats.effect.IO
 
-//TODO no boolean but adt
-class LoginView(isSignup: Boolean) extends View {
-  override val key = "login"
-  override val displayName = "Login"
+trait AuthView extends View {
+  //TODO no boolean but adt
+  def isInitiallySignup: Boolean
 
   //TODO: we need the last view to return to it on success?
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = for {
-    isSignup <- Handler.create[Boolean](isSignup)
+    isSignup <- Handler.create[Boolean](isInitiallySignup)
     userName <- Handler.create[String]
     password <- Handler.create[String]
     nameAndPassword <- IO(userName.combineLatest(password))
@@ -32,7 +31,7 @@ class LoginView(isSignup: Boolean) extends View {
         case true =>
           val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
             case (userName, password) =>  Client.auth.register(userName, password).foreach {
-              case true => state.view() = View.default
+              case true => state.viewConfig() = state.viewConfig.now.noOverlayView
               case false => ()
             }
           }
@@ -48,7 +47,7 @@ class LoginView(isSignup: Boolean) extends View {
         case false =>
           val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
             case (userName, password) =>  Client.auth.login(userName, password).foreach {
-              case true => state.view() = View.default
+              case true => state.viewConfig() = state.viewConfig.now.noOverlayView
               case false => ()
             }
           }
@@ -64,4 +63,15 @@ class LoginView(isSignup: Boolean) extends View {
       }
     )
   } yield elem
+}
+
+object LoginView extends AuthView {
+  val isInitiallySignup: Boolean = false
+  val key = "login"
+  val displayName = "Login"
+}
+object SignupView extends AuthView {
+  val isInitiallySignup: Boolean = true
+  val key = "signup"
+  val displayName = "Signup"
 }

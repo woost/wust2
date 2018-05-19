@@ -26,7 +26,8 @@ object View {
 
   val list: List[View] =
       contentList.toList :::
-      new LoginView(isSignup = true) :: //TODO: configure login view with config parameter
+      LoginView ::
+      SignupView ::
       // UserSettingsView ::
       // AvatarView ::
       Nil

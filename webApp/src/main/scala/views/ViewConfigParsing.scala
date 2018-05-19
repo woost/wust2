@@ -13,6 +13,7 @@ private object ViewConfigConstants {
   val urlSeparator = "&"
   val viewKey = "view="
   val pageKey = "page="
+  val prevViewKey = "prevView="
 }
 import ViewConfigConstants._
 
@@ -39,10 +40,10 @@ object ViewConfigParser {
           .fold[Parser[View]](Fail)(v => Pass.map(_ => new TiledView(operator, v)))
     }
 
-  val view: P[View] = P( viewKey ~/ (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto) | viewWithOps(ViewOperator.Optional)) )
+  val view: P[View] = P( (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto) | viewWithOps(ViewOperator.Optional)) )
 
   val postIdList: Parser[Seq[PostId]] = P( word.!.rep(min = 1, sep = idSeparator) ).map(_.map(PostId.apply))
-  val page: P[Page] = P( pageKey ~/ (postIdList ~ (parentChildSeparator ~ postIdList).?).? ~ (urlSeparator | End) )
+  val page: P[Page] = P( (postIdList ~ (parentChildSeparator ~ postIdList).?).? ~ (urlSeparator | End) )
     .map {
       case None => Page.empty
       case Some((parentIds, None)) => Page(parentIds = parentIds)
@@ -50,20 +51,21 @@ object ViewConfigParser {
     }
 
   // TODO: marke order of values flexible
-  val viewConfig: P[ViewConfig] = P( view ~/ page )
-    .map { case (view, page) =>
-      ViewConfig(view, page)
+  val viewConfig: P[ViewConfig] = P( viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).? )
+    .map { case (view, page, prevView) =>
+      ViewConfig(view, page, prevView)
     }
 }
 
 object ViewConfigWriter {
-  def write(viewConfig: ViewConfig): String = {
-    val viewString = viewConfig.view.key
-    val pageString = viewConfig.page match {
+  def write(cfg: ViewConfig): String = {
+    val viewString = viewKey + cfg.view.key
+    val pageString = pageKey + (cfg.page match {
       case Page(parentIds, childrenIds) if parentIds.isEmpty && childrenIds.isEmpty => ""
       case Page(parentIds, childrenIds) if childrenIds.isEmpty => s"${parentIds.mkString(idSeparator)}"
       case Page(parentIds, childrenIds) => s"${parentIds.mkString(idSeparator)}$parentChildSeparator${childrenIds.mkString(idSeparator)}"
-    }
-    s"$viewKey$viewString$urlSeparator$pageKey$pageString"
+    })
+    val prevViewStringWithSep = cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.key)
+    s"$viewString$urlSeparator$pageString$prevViewStringWithSep"
   }
 }
