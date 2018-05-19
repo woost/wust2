@@ -47,7 +47,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val channels: Rx[List[Post]] = Rx {
     val graph = rawGraph()
     val user = currentUser()
-    graph.children(user.channelPostId).map(graph.postsById)(breakOut)
+    (graph.children(user.channelPostId).map(graph.postsById)(breakOut): List[Post]).sortBy(_.content.externalString)
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
