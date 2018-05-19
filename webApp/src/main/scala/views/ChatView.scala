@@ -6,7 +6,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
-import wust.ids.JoinDate
+import wust.ids.{JoinDate, Label}
 import wust.sdk.PostColor._
 import wust.webApp._
 import wust.webApp.fontAwesome.{freeBrands, freeRegular, freeSolid}
@@ -49,11 +49,30 @@ object ChatView extends View {
             marginRight := "10px"
           ),
           showPostContent(parent.content)(fontSize := "20px"),
+          channelControl(state, parent)(ctx)(marginLeft := "5px"),
           joinControl(state, parent)(ctx)(marginLeft := "5px")
         )
       })
     )
   }
+
+  def channelControl(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): VNode = div(
+    freeRegular.faStar,
+    color <-- Rx {
+      state.rawGraph().children(state.currentUser().channelPostId).contains(post.id) match {
+        case true => "orange"
+        case false => "black"
+      }
+    },
+    cursor.pointer,
+    onClick --> sideEffect {_ =>
+      val changes = state.rawGraph.now.children(state.currentUser.now.channelPostId).contains(post.id) match {
+        case true => GraphChanges.disconnect(post.id, Label.parent, state.currentUser.now.channelPostId)
+        case false => GraphChanges.connect(post.id, Label.parent, state.currentUser.now.channelPostId)
+      }
+      state.eventProcessor.changes.onNext(changes)
+    }
+  )
 
   def joinControl(state:GlobalState, post:Post)(implicit  ctx: Ctx.Owner):VNode = {
     val text = post.joinDate match {
