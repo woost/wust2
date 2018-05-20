@@ -58,12 +58,11 @@ object ChatView extends View {
   }
 
   def channelControl(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): VNode = div(
-    freeRegular.faStar,
-    color <-- Rx {
-      state.rawGraph().children(state.user().channelPostId).contains(post.id) match {
-        case true => "orange"
-        case false => "black"
-      }
+    Rx {
+      (state.rawGraph().children(state.user().channelPostId).contains(post.id) match {
+        case true => freeSolid.faBookmark
+        case false => freeRegular.faBookmark
+      }):VNode
     },
     cursor.pointer,
     onClick --> sideEffect {_ =>
