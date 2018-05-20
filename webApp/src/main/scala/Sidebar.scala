@@ -127,32 +127,61 @@ object Sidebar {
   }
 
   def channels(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    def channelDiv(selected: Boolean, pageStyle: PageStyle) = div(
+      paddingRight := "3px",
+      display.flex, alignItems.center,
+      cursor.pointer,
+      selected.ifTrueSeq(Seq(
+        color := pageStyle.darkBgColor.toHex,
+        backgroundColor := pageStyle.darkBgColorHighlight.toHex
+      ))
+    )
+
     div(
       color := "#C4C4CA",
       Rx {
-        state.channels().map{ p =>
+        state.channels().map { p =>
           val selected = state.page().parentIds.contains(p.id)
-          div(
-            paddingRight := "3px",
-            display.flex, alignItems.center,
+          channelDiv(selected, state.pageStyle())(
+            //TODO: inner state.page obs again
             channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
             p.content.str,
-            cursor.pointer,
-            onChannelClick(p.id)(state),
-            title := p.id,
-            selected.ifTrueSeq(Seq(
-              color := state.pageStyle().darkBgColor.toHex,
-              backgroundColor := state.pageStyle().darkBgColorHighlight.toHex
-            ))
-        )
+            onChannelClick(ChannelAction.Post(p.id))(state),
+            title := p.id
+          )
         }
+      },
+      Rx {
+        channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle())(
+            //TODO: inner state.page obs again
+          noChannelIcon(state.page.map(_.mode == PageMode.Orphans), 30)(ctx)(marginRight := "5px"),
+          PageMode.Orphans.toString,
+          onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
+        )
       }
     )
   }
 
+  def noChannelIcon(selected: Rx[Boolean], size:Int)(implicit ctx: Ctx.Owner) = div(
+    margin := "0",
+    width := s"${size}px",
+    height := s"${size}px",
+    backgroundColor <-- selected.map {
+      case true => "grey" //TODO: better
+      case false => "white"
+    }
+  )
+
   def channelIcons(state: GlobalState, size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
-      state.channels.map(_.map{ p => channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)})
+      state.channels.map(_.map{ p =>
+        channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)(ctx)(
+          onChannelClick(ChannelAction.Post(p.id))(state)
+        )
+      }),
+      noChannelIcon(state.page.map(_.mode == PageMode.Orphans), size)(ctx)(
+        onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
+      )
     )
   }
 
@@ -163,7 +192,6 @@ object Sidebar {
       height := s"${size}px",
       title := post.content.str,
       cursor.pointer,
-      onChannelClick(post.id)(state),
       backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(post.id)).toHex, //TODO: make different post color tones better accessible
       //TODO: https://github.com/OutWatch/outwatch/issues/187
       opacity <-- selected.map(if(_) 1.0 else 0.75),
@@ -173,24 +201,35 @@ object Sidebar {
     )
   }
 
-  private def onChannelClick(id: PostId)(state: GlobalState)(implicit ctx: Ctx.Owner) = onClick.map { e =>
+  sealed trait ChannelAction extends Any
+  object ChannelAction {
+    case class Post(id: PostId) extends AnyVal with ChannelAction
+    case class Page(mode: PageMode) extends AnyVal with ChannelAction
+  }
+  private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) = onClick.map { e =>
     val page = state.page.now
     //TODO if (e.shiftKey) {
-    val newParents = if (e.ctrlKey) {
-      val filtered = page.parentIds.filterNot(_ == id)
-      if (filtered.size == page.parentIds.size) page.parentIds :+ id
-      else if (filtered.nonEmpty) filtered
-      else Seq(id)
-    } else Seq(id)
-
-    page.copy(parentIds = newParents)
-    } --> sideEffect { page =>
-      if (!state.view.now.isContent) state.view() = View.default
-      state.page() = page
-      //TODO: Why does Var.set not work?
-      // Var.set(
-      //   state.page -> page,
-      //   state.view -> view
-      // )
+    action match {
+      case ChannelAction.Post(id) =>
+        if (e.ctrlKey) {
+          val filtered = page.parentIds.filterNot(_ == id)
+          val parentIds =
+            if (filtered.size == page.parentIds.size) page.parentIds :+ id
+            else if (filtered.nonEmpty) filtered
+            else Seq(id)
+          page.copy(parentIds = parentIds)
+        } else Page(Seq(id))
+      case ChannelAction.Page(mode) =>
+        val newMode = if (page.mode != mode) mode else PageMode.Default
+        if (e.ctrlKey) page.copy(mode = newMode) else Page(Seq.empty, mode = newMode)
     }
+  } --> sideEffect { page =>
+    if (!state.view.now.isContent) state.view() = View.default
+    state.page() = page
+    //TODO: Why does Var.set not work?
+    // Var.set(
+    //   state.page -> page,
+    //   state.view -> view
+    // )
+  }
 }

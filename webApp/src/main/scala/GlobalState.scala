@@ -79,13 +79,14 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
     val graph = rawGraph()
     page() match {
-      case Page(parentIds, _) if parentIds.isEmpty =>
-        // perspective().applyOnGraph(graph)
-        DisplayGraph(Graph.empty)
-
-      case Page(parentIds, _) =>
+      case Page(parentIds, _, mode) =>
+        val modeSet: Set[PostId] = mode match {
+          case PageMode.Orphans => graph.postIds.filter(id => graph.parents(id).isEmpty && id != user().channelPostId).toSet
+          case PageMode.Default => Set.empty
+        }
+        println("MODE SET" + modeSet)
         val descendants = parentIds.flatMap(graph.descendants) diff parentIds
-        val selectedGraph = graph.filter(descendants.contains)
+        val selectedGraph = graph.filter(id => descendants.contains(id) || modeSet.contains(id))
         perspective().applyOnGraph(selectedGraph)
     }
   }
@@ -93,14 +94,15 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val displayGraphWithParents: Rx[DisplayGraph] = Rx {
     val graph = rawGraph()
     page() match {
-      case Page(parentIds, _) if parentIds.isEmpty =>
-        // perspective().applyOnGraph(graph)
-        DisplayGraph(Graph.empty)
-
-      case Page(parentIds, _) =>
+      case Page(parentIds, _, mode) =>
+        val modeSet: Set[PostId] = mode match {
+          case PageMode.Orphans => graph.postIds.filter(id => graph.parents(id).isEmpty && id != user().channelPostId).toSet
+          case PageMode.Default => Set.empty
+        }
+        println("MODE SET" + modeSet)
         //TODO: this seems to crash when parentid does not exist
         val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
-        val selectedGraph = graph.filter(descendants.contains)
+        val selectedGraph = graph.filter(id => descendants.contains(id) || modeSet.contains(id))
         perspective().applyOnGraph(selectedGraph)
     }
   }
@@ -108,8 +110,8 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val upButtonTargetPage: Rx[Option[Page]] = Rx {
     //TODO: handle containment cycles
     page() match {
-      case Page(parentIds, _) if parentIds.isEmpty => None
-      case Page(parentIds, _) =>
+      case Page(parentIds, _, _) if parentIds.isEmpty => None
+      case Page(parentIds, _, _) =>
         val newParentIds = parentIds.flatMap(rawGraph().parents)
         Some(Page(newParentIds))
     }
