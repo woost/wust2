@@ -183,7 +183,9 @@ object ChatView extends View {
   }
 
   def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val graphIsEmpty = state.displayGraphWithParents.map(_.graph.isEmpty)
+    val graphIsEmpty = Rx {
+      state.displayGraphWithParents().graph.isEmpty && state.page().mode == PageMode.Default
+    }
 
     textArea(
       valueWithEnter --> sideEffect { str =>

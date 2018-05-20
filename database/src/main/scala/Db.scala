@@ -386,14 +386,24 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object graph {
-    def graphPage(parents: Seq[PostId], children: Seq[PostId], requestingUserId: UserId) = quote {
+    private def graphPage(parents: Seq[PostId], children: Seq[PostId], requestingUserId: UserId) = quote {
       infix"select * from graph_page(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})".as[Query[GraphRow]]
+    }
+    private def graphPageWithOrphans(parents: Seq[PostId], children: Seq[PostId], requestingUserId: UserId) = quote {
+      infix"select * from graph_page_with_orphans(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})".as[Query[GraphRow]]
     }
 
     def getPage(parentIds: Seq[PostId], childIds: Seq[PostId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
         graphPage(parentIds, childIds, requestingUserId)
+      }.map(Graph.from)
+    }
+
+    def getPageWithOrphans(parentIds: Seq[PostId], childIds: Seq[PostId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+      //TODO: also get visible direct parents in stored procedure
+      ctx.run {
+        graphPageWithOrphans(parentIds, childIds, requestingUserId)
       }.map(Graph.from)
     }
   }

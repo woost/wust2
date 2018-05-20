@@ -158,9 +158,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
     // TODO: also include the direct parents of the parentIds to be able no navigate upwards
-    db.graph.getPage(page.parentIds.toList, page.childrenIds.toList, userId).map { dbGraph =>
-      forClient(dbGraph)
-    }
+    (page.mode match {
+      case PageMode.Default => db.graph.getPage(page.parentIds.toList, page.childrenIds.toList, userId)
+      case PageMode.Orphans => db.graph.getPageWithOrphans(page.parentIds.toList, page.childrenIds.toList, userId)
+    }).map { dbGraph => forClient(dbGraph) }
   }
 }
 

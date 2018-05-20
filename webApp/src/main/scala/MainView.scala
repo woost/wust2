@@ -7,6 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webApp.fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
+import wust.graph.PageMode
 import wust.webApp.views.View
 import Sidebar.{sidebar, topbar}
 
@@ -27,7 +28,8 @@ object MainView {
         sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
         backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
         Rx {
-          (if (!state.view().isContent || state.page().parentIds.nonEmpty) {
+          //TODO: handling of new group button refactor?
+          (if (!state.view().isContent || state.page().parentIds.nonEmpty || state.page().mode != PageMode.Default) {
             state.view().apply(state)(ctx)(height := "100%", width := "100%")
           } else {
             newGroupPage(state)
