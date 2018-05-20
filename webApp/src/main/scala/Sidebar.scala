@@ -135,7 +135,7 @@ object Sidebar {
           div(
             paddingRight := "3px",
             display.flex, alignItems.center,
-            channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
+            channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
             p.content.str,
             cursor.pointer,
             onChannelClick(p.id)(state),
@@ -152,23 +152,24 @@ object Sidebar {
 
   def channelIcons(state: GlobalState, size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
-      state.channels.map(_.map{ p => channelIcon(state, p.id, state.page.map(_.parentIds.contains(p.id)), size)})
+      state.channels.map(_.map{ p => channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)})
     )
   }
 
-  def channelIcon(state: GlobalState, postId:PostId, selected:Rx[Boolean], size:Int)(implicit ctx:Ctx.Owner): VNode = {
+  def channelIcon(state: GlobalState, post:Post, selected:Rx[Boolean], size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
       margin := "0",
       width := s"${size}px",
       height := s"${size}px",
+      title := post.content.str,
       cursor.pointer,
-      onChannelClick(postId)(state),
-      backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(postId)).toHex, //TODO: make different post color tones better accessible
+      onChannelClick(post.id)(state),
+      backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(post.id)).toHex, //TODO: make different post color tones better accessible
       //TODO: https://github.com/OutWatch/outwatch/issues/187
       opacity <-- selected.map(if(_) 1.0 else 0.75),
       padding <-- selected.map(if(_) "2px" else "4px"),
-      border <-- selected.map(if(_) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = PostColor.genericBaseHue(postId)).toHex}" else "none"),
-      Avatar.post(postId)
+      border <-- selected.map(if(_) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = PostColor.genericBaseHue(post.id)).toHex}" else "none"),
+      Avatar.post(post.id)
     )
   }
 
