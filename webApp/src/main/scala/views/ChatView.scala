@@ -51,9 +51,14 @@ object ChatView extends View {
             marginRight := "10px"
           ),
           showPostContent(parent.content)(fontSize := "20px"),
-          channelControl(state, parent)(ctx)(marginLeft := "5px"),
-          joinControl(state, parent)(ctx)(marginLeft := "5px"),
-          deleteButton(state, parent)(marginLeft := "5px")
+
+          state.user.map { user =>
+            if (user.channelPostId == parent.id) Seq.empty
+            else Seq(
+              channelControl(state, parent)(ctx)(marginLeft := "5px"),
+              joinControl(state, parent)(ctx)(marginLeft := "5px"),
+              deleteButton(state, parent)(marginLeft := "5px"))
+          }
         )
       })
     )
