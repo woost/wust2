@@ -1,14 +1,9 @@
 BEGIN;
-SELECT plan(11);
+SELECT plan(10);
 
 /* structure */
 SELECT col_not_null('rawconnection', 'sourceid');
 SELECT col_not_null('rawconnection', 'targetid');
-
-SELECT isnt_empty(
-    $$ INSERT INTO "user" (id, name) VALUES ('heidi', 'Rolufus') RETURNING (id, name) $$,
-    'insert user'
-);
 
 SELECT isnt_empty(
     $$ INSERT INTO label (name) VALUES ('labello') RETURNING (id, name) $$,
