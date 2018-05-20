@@ -4,8 +4,9 @@ SELECT plan(1);
 create temporary table visited (id varchar(36) NOT NULL) on commit drop;
 create unique index on visited (id);
 
-insert into "user" (id, name, revision, isimplicit) values ('U1', 'U1', 0, false);
-insert into "user" (id, name, revision, isimplicit) values ('U2', 'U2', 0, false);
+INSERT INTO post (id, content, author, created, modified) VALUES ('bla', '{}'::jsonb, 1, NOW(), NOW());
+insert into "user" (id, name, revision, isimplicit, channelpostid) values ('U1', 'U1', 0, false, 'bla');
+insert into "user" (id, name, revision, isimplicit, channelpostid) values ('U2', 'U2', 0, false, 'bla');
 
 INSERT INTO post (id, content, author, created, modified)
         VALUES ('1', '{}'::jsonb, 'U1', NOW(), NOW())

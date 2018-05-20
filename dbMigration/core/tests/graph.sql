@@ -9,7 +9,8 @@ SELECT col_not_null('rawconnection', 'targetid');
 SELECT col_not_null('membership', 'userid');
 SELECT col_not_null('membership', 'postid');
 
-insert into "user" (id, name, revision, isimplicit) values ('bubuid', 'bubu', 0, false);
+INSERT INTO post (id, content, author, created, modified) VALUES ('bla', '{}'::jsonb, 1, NOW(), NOW());
+insert into "user" (id, name, revision, isimplicit, channelpostid) values ('bubuid', 'bubu', 0, false, 'bla');
 
 /* insert label */
 SELECT isnt_empty(
@@ -67,14 +68,14 @@ SELECT isnt_empty(
   'insert connection after delete'
 );
 
-/* delete post and collapse on edges */
+/* delete post and collapse on edges (except channelpost of user) */
 SELECT lives_ok(
-  $$ DELETE FROM post WHERE TRUE $$,
+  $$ DELETE FROM post WHERE id not in (select channelpostid from "user") $$,
   'delete post'
 );
 
 select is_empty(
-  $$ SELECT * FROM post $$,
+  $$ SELECT * FROM post WHERE id not in (select channelpostid from "user") $$,
   'post is empty'
 );
 

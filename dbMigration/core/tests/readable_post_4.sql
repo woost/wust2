@@ -4,9 +4,10 @@ SELECT plan(1);
 create temporary table visited (id varchar(36) NOT NULL) on commit drop;
 create unique index on visited (id);
 
-COPY "user" (id, name) FROM stdin;
-U1	U1
-U2	U2
+INSERT INTO post (id, content, author, created, modified) VALUES ('bla', '{}'::jsonb, 1, NOW(), NOW());
+COPY "user" (id, name, channelpostid) FROM stdin;
+U1	U1	bla
+U2	U2	bla
 \.
 
 COPY rawpost (id, content, isdeleted, author) FROM stdin;
