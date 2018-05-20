@@ -41,6 +41,9 @@ trait AbstractTree extends js.Object {
 @JSImport("@fortawesome/fontawesome-free-solid", JSImport.Namespace)
 object freeSolid extends js.Object {
   // https://github.com/FortAwesome/Font-Awesome/blob/master/advanced-options/use-with-node-js/fontawesome-free-solid/index.d.ts
+  // using vim:
+  // :read !curl --silent https://raw.githubusercontent.com/FortAwesome/Font-Awesome/master/advanced-options/use-with-node-js/fontawesome-free-solid/index.d.ts | grep "export const fa" | sed -E "s/export const (.+): IconDefinition;/  def \1: IconDefinition = js.native/"
+
   def faAddressBook: IconDefinition = js.native
   def faAddressCard: IconDefinition = js.native
   def faAdjust: IconDefinition = js.native
@@ -101,11 +104,13 @@ object freeSolid extends js.Object {
   def faBicycle: IconDefinition = js.native
   def faBinoculars: IconDefinition = js.native
   def faBirthdayCake: IconDefinition = js.native
+  def faBlender: IconDefinition = js.native
   def faBlind: IconDefinition = js.native
   def faBold: IconDefinition = js.native
   def faBolt: IconDefinition = js.native
   def faBomb: IconDefinition = js.native
   def faBook: IconDefinition = js.native
+  def faBookOpen: IconDefinition = js.native
   def faBookmark: IconDefinition = js.native
   def faBowlingBall: IconDefinition = js.native
   def faBox: IconDefinition = js.native
@@ -114,6 +119,8 @@ object freeSolid extends js.Object {
   def faBraille: IconDefinition = js.native
   def faBriefcase: IconDefinition = js.native
   def faBriefcaseMedical: IconDefinition = js.native
+  def faBroadcastTower: IconDefinition = js.native
+  def faBroom: IconDefinition = js.native
   def faBug: IconDefinition = js.native
   def faBuilding: IconDefinition = js.native
   def faBullhorn: IconDefinition = js.native
@@ -142,6 +149,8 @@ object freeSolid extends js.Object {
   def faCartArrowDown: IconDefinition = js.native
   def faCartPlus: IconDefinition = js.native
   def faCertificate: IconDefinition = js.native
+  def faChalkboard: IconDefinition = js.native
+  def faChalkboardTeacher: IconDefinition = js.native
   def faChartArea: IconDefinition = js.native
   def faChartBar: IconDefinition = js.native
   def faChartLine: IconDefinition = js.native
@@ -166,6 +175,7 @@ object freeSolid extends js.Object {
   def faChevronRight: IconDefinition = js.native
   def faChevronUp: IconDefinition = js.native
   def faChild: IconDefinition = js.native
+  def faChurch: IconDefinition = js.native
   def faCircle: IconDefinition = js.native
   def faCircleNotch: IconDefinition = js.native
   def faClipboard: IconDefinition = js.native
@@ -182,12 +192,14 @@ object freeSolid extends js.Object {
   def faCoffee: IconDefinition = js.native
   def faCog: IconDefinition = js.native
   def faCogs: IconDefinition = js.native
+  def faCoins: IconDefinition = js.native
   def faColumns: IconDefinition = js.native
   def faComment: IconDefinition = js.native
   def faCommentAlt: IconDefinition = js.native
   def faCommentDots: IconDefinition = js.native
   def faCommentSlash: IconDefinition = js.native
   def faComments: IconDefinition = js.native
+  def faCompactDisc: IconDefinition = js.native
   def faCompass: IconDefinition = js.native
   def faCompress: IconDefinition = js.native
   def faCopy: IconDefinition = js.native
@@ -196,6 +208,8 @@ object freeSolid extends js.Object {
   def faCreditCard: IconDefinition = js.native
   def faCrop: IconDefinition = js.native
   def faCrosshairs: IconDefinition = js.native
+  def faCrow: IconDefinition = js.native
+  def faCrown: IconDefinition = js.native
   def faCube: IconDefinition = js.native
   def faCubes: IconDefinition = js.native
   def faCut: IconDefinition = js.native
@@ -203,14 +217,25 @@ object freeSolid extends js.Object {
   def faDeaf: IconDefinition = js.native
   def faDesktop: IconDefinition = js.native
   def faDiagnoses: IconDefinition = js.native
+  def faDice: IconDefinition = js.native
+  def faDiceFive: IconDefinition = js.native
+  def faDiceFour: IconDefinition = js.native
+  def faDiceOne: IconDefinition = js.native
+  def faDiceSix: IconDefinition = js.native
+  def faDiceThree: IconDefinition = js.native
+  def faDiceTwo: IconDefinition = js.native
+  def faDivide: IconDefinition = js.native
   def faDna: IconDefinition = js.native
   def faDollarSign: IconDefinition = js.native
   def faDolly: IconDefinition = js.native
   def faDollyFlatbed: IconDefinition = js.native
   def faDonate: IconDefinition = js.native
+  def faDoorClosed: IconDefinition = js.native
+  def faDoorOpen: IconDefinition = js.native
   def faDotCircle: IconDefinition = js.native
   def faDove: IconDefinition = js.native
   def faDownload: IconDefinition = js.native
+  def faDumbbell: IconDefinition = js.native
   def faEdit: IconDefinition = js.native
   def faEject: IconDefinition = js.native
   def faEllipsisH: IconDefinition = js.native
@@ -218,6 +243,7 @@ object freeSolid extends js.Object {
   def faEnvelope: IconDefinition = js.native
   def faEnvelopeOpen: IconDefinition = js.native
   def faEnvelopeSquare: IconDefinition = js.native
+  def faEquals: IconDefinition = js.native
   def faEraser: IconDefinition = js.native
   def faEuroSign: IconDefinition = js.native
   def faExchangeAlt: IconDefinition = js.native
@@ -234,6 +260,7 @@ object freeSolid extends js.Object {
   def faFastBackward: IconDefinition = js.native
   def faFastForward: IconDefinition = js.native
   def faFax: IconDefinition = js.native
+  def faFeather: IconDefinition = js.native
   def faFemale: IconDefinition = js.native
   def faFighterJet: IconDefinition = js.native
   def faFile: IconDefinition = js.native
@@ -260,19 +287,25 @@ object freeSolid extends js.Object {
   def faFolder: IconDefinition = js.native
   def faFolderOpen: IconDefinition = js.native
   def faFont: IconDefinition = js.native
+  def faFontAwesomeLogoFull: IconDefinition = js.native
   def faFootballBall: IconDefinition = js.native
   def faForward: IconDefinition = js.native
+  def faFrog: IconDefinition = js.native
   def faFrown: IconDefinition = js.native
   def faFutbol: IconDefinition = js.native
   def faGamepad: IconDefinition = js.native
+  def faGasPump: IconDefinition = js.native
   def faGavel: IconDefinition = js.native
   def faGem: IconDefinition = js.native
   def faGenderless: IconDefinition = js.native
   def faGift: IconDefinition = js.native
   def faGlassMartini: IconDefinition = js.native
+  def faGlasses: IconDefinition = js.native
   def faGlobe: IconDefinition = js.native
   def faGolfBall: IconDefinition = js.native
   def faGraduationCap: IconDefinition = js.native
+  def faGreaterThan: IconDefinition = js.native
+  def faGreaterThanEqual: IconDefinition = js.native
   def faHSquare: IconDefinition = js.native
   def faHandHolding: IconDefinition = js.native
   def faHandHoldingHeart: IconDefinition = js.native
@@ -297,6 +330,7 @@ object freeSolid extends js.Object {
   def faHeadphones: IconDefinition = js.native
   def faHeart: IconDefinition = js.native
   def faHeartbeat: IconDefinition = js.native
+  def faHelicopter: IconDefinition = js.native
   def faHistory: IconDefinition = js.native
   def faHockeyPuck: IconDefinition = js.native
   def faHome: IconDefinition = js.native
@@ -316,15 +350,19 @@ object freeSolid extends js.Object {
   def faInbox: IconDefinition = js.native
   def faIndent: IconDefinition = js.native
   def faIndustry: IconDefinition = js.native
+  def faInfinity: IconDefinition = js.native
   def faInfo: IconDefinition = js.native
   def faInfoCircle: IconDefinition = js.native
   def faItalic: IconDefinition = js.native
   def faKey: IconDefinition = js.native
   def faKeyboard: IconDefinition = js.native
+  def faKiwiBird: IconDefinition = js.native
   def faLanguage: IconDefinition = js.native
   def faLaptop: IconDefinition = js.native
   def faLeaf: IconDefinition = js.native
   def faLemon: IconDefinition = js.native
+  def faLessThan: IconDefinition = js.native
+  def faLessThanEqual: IconDefinition = js.native
   def faLevelDownAlt: IconDefinition = js.native
   def faLevelUpAlt: IconDefinition = js.native
   def faLifeRing: IconDefinition = js.native
@@ -358,32 +396,43 @@ object freeSolid extends js.Object {
   def faMarsStrokeV: IconDefinition = js.native
   def faMedkit: IconDefinition = js.native
   def faMeh: IconDefinition = js.native
+  def faMemory: IconDefinition = js.native
   def faMercury: IconDefinition = js.native
   def faMicrochip: IconDefinition = js.native
   def faMicrophone: IconDefinition = js.native
+  def faMicrophoneAlt: IconDefinition = js.native
+  def faMicrophoneAltSlash: IconDefinition = js.native
   def faMicrophoneSlash: IconDefinition = js.native
   def faMinus: IconDefinition = js.native
   def faMinusCircle: IconDefinition = js.native
   def faMinusSquare: IconDefinition = js.native
   def faMobile: IconDefinition = js.native
   def faMobileAlt: IconDefinition = js.native
+  def faMoneyBill: IconDefinition = js.native
   def faMoneyBillAlt: IconDefinition = js.native
+  def faMoneyBillWave: IconDefinition = js.native
+  def faMoneyBillWaveAlt: IconDefinition = js.native
+  def faMoneyCheck: IconDefinition = js.native
+  def faMoneyCheckAlt: IconDefinition = js.native
   def faMoon: IconDefinition = js.native
   def faMotorcycle: IconDefinition = js.native
   def faMousePointer: IconDefinition = js.native
   def faMusic: IconDefinition = js.native
   def faNeuter: IconDefinition = js.native
   def faNewspaper: IconDefinition = js.native
+  def faNotEqual: IconDefinition = js.native
   def faNotesMedical: IconDefinition = js.native
   def faObjectGroup: IconDefinition = js.native
   def faObjectUngroup: IconDefinition = js.native
   def faOutdent: IconDefinition = js.native
   def faPaintBrush: IconDefinition = js.native
+  def faPalette: IconDefinition = js.native
   def faPallet: IconDefinition = js.native
   def faPaperPlane: IconDefinition = js.native
   def faPaperclip: IconDefinition = js.native
   def faParachuteBox: IconDefinition = js.native
   def faParagraph: IconDefinition = js.native
+  def faParking: IconDefinition = js.native
   def faPaste: IconDefinition = js.native
   def faPause: IconDefinition = js.native
   def faPauseCircle: IconDefinition = js.native
@@ -392,6 +441,7 @@ object freeSolid extends js.Object {
   def faPencilAlt: IconDefinition = js.native
   def faPeopleCarry: IconDefinition = js.native
   def faPercent: IconDefinition = js.native
+  def faPercentage: IconDefinition = js.native
   def faPhone: IconDefinition = js.native
   def faPhoneSlash: IconDefinition = js.native
   def faPhoneSquare: IconDefinition = js.native
@@ -407,12 +457,14 @@ object freeSolid extends js.Object {
   def faPlusSquare: IconDefinition = js.native
   def faPodcast: IconDefinition = js.native
   def faPoo: IconDefinition = js.native
+  def faPortrait: IconDefinition = js.native
   def faPoundSign: IconDefinition = js.native
   def faPowerOff: IconDefinition = js.native
   def faPrescriptionBottle: IconDefinition = js.native
   def faPrescriptionBottleAlt: IconDefinition = js.native
   def faPrint: IconDefinition = js.native
   def faProcedures: IconDefinition = js.native
+  def faProjectDiagram: IconDefinition = js.native
   def faPuzzlePiece: IconDefinition = js.native
   def faQrcode: IconDefinition = js.native
   def faQuestion: IconDefinition = js.native
@@ -421,6 +473,7 @@ object freeSolid extends js.Object {
   def faQuoteLeft: IconDefinition = js.native
   def faQuoteRight: IconDefinition = js.native
   def faRandom: IconDefinition = js.native
+  def faReceipt: IconDefinition = js.native
   def faRecycle: IconDefinition = js.native
   def faRedo: IconDefinition = js.native
   def faRedoAlt: IconDefinition = js.native
@@ -430,12 +483,19 @@ object freeSolid extends js.Object {
   def faRetweet: IconDefinition = js.native
   def faRibbon: IconDefinition = js.native
   def faRoad: IconDefinition = js.native
+  def faRobot: IconDefinition = js.native
   def faRocket: IconDefinition = js.native
   def faRss: IconDefinition = js.native
   def faRssSquare: IconDefinition = js.native
   def faRubleSign: IconDefinition = js.native
+  def faRuler: IconDefinition = js.native
+  def faRulerCombined: IconDefinition = js.native
+  def faRulerHorizontal: IconDefinition = js.native
+  def faRulerVertical: IconDefinition = js.native
   def faRupeeSign: IconDefinition = js.native
   def faSave: IconDefinition = js.native
+  def faSchool: IconDefinition = js.native
+  def faScrewdriver: IconDefinition = js.native
   def faSearch: IconDefinition = js.native
   def faSearchMinus: IconDefinition = js.native
   def faSearchPlus: IconDefinition = js.native
@@ -449,6 +509,7 @@ object freeSolid extends js.Object {
   def faShieldAlt: IconDefinition = js.native
   def faShip: IconDefinition = js.native
   def faShippingFast: IconDefinition = js.native
+  def faShoePrints: IconDefinition = js.native
   def faShoppingBag: IconDefinition = js.native
   def faShoppingBasket: IconDefinition = js.native
   def faShoppingCart: IconDefinition = js.native
@@ -459,9 +520,11 @@ object freeSolid extends js.Object {
   def faSignOutAlt: IconDefinition = js.native
   def faSignal: IconDefinition = js.native
   def faSitemap: IconDefinition = js.native
+  def faSkull: IconDefinition = js.native
   def faSlidersH: IconDefinition = js.native
   def faSmile: IconDefinition = js.native
   def faSmoking: IconDefinition = js.native
+  def faSmokingBan: IconDefinition = js.native
   def faSnowflake: IconDefinition = js.native
   def faSort: IconDefinition = js.native
   def faSortAlphaDown: IconDefinition = js.native
@@ -485,8 +548,12 @@ object freeSolid extends js.Object {
   def faStop: IconDefinition = js.native
   def faStopCircle: IconDefinition = js.native
   def faStopwatch: IconDefinition = js.native
+  def faStore: IconDefinition = js.native
+  def faStoreAlt: IconDefinition = js.native
+  def faStream: IconDefinition = js.native
   def faStreetView: IconDefinition = js.native
   def faStrikethrough: IconDefinition = js.native
+  def faStroopwafel: IconDefinition = js.native
   def faSubscript: IconDefinition = js.native
   def faSubway: IconDefinition = js.native
   def faSuitcase: IconDefinition = js.native
@@ -527,6 +594,7 @@ object freeSolid extends js.Object {
   def faTint: IconDefinition = js.native
   def faToggleOff: IconDefinition = js.native
   def faToggleOn: IconDefinition = js.native
+  def faToolbox: IconDefinition = js.native
   def faTrademark: IconDefinition = js.native
   def faTrain: IconDefinition = js.native
   def faTransgender: IconDefinition = js.native
@@ -538,6 +606,7 @@ object freeSolid extends js.Object {
   def faTruck: IconDefinition = js.native
   def faTruckLoading: IconDefinition = js.native
   def faTruckMoving: IconDefinition = js.native
+  def faTshirt: IconDefinition = js.native
   def faTty: IconDefinition = js.native
   def faTv: IconDefinition = js.native
   def faUmbrella: IconDefinition = js.native
@@ -551,12 +620,29 @@ object freeSolid extends js.Object {
   def faUnlockAlt: IconDefinition = js.native
   def faUpload: IconDefinition = js.native
   def faUser: IconDefinition = js.native
+  def faUserAlt: IconDefinition = js.native
+  def faUserAltSlash: IconDefinition = js.native
+  def faUserAstronaut: IconDefinition = js.native
+  def faUserCheck: IconDefinition = js.native
   def faUserCircle: IconDefinition = js.native
+  def faUserClock: IconDefinition = js.native
+  def faUserCog: IconDefinition = js.native
+  def faUserEdit: IconDefinition = js.native
+  def faUserFriends: IconDefinition = js.native
+  def faUserGraduate: IconDefinition = js.native
+  def faUserLock: IconDefinition = js.native
   def faUserMd: IconDefinition = js.native
+  def faUserMinus: IconDefinition = js.native
+  def faUserNinja: IconDefinition = js.native
   def faUserPlus: IconDefinition = js.native
   def faUserSecret: IconDefinition = js.native
+  def faUserShield: IconDefinition = js.native
+  def faUserSlash: IconDefinition = js.native
+  def faUserTag: IconDefinition = js.native
+  def faUserTie: IconDefinition = js.native
   def faUserTimes: IconDefinition = js.native
   def faUsers: IconDefinition = js.native
+  def faUsersCog: IconDefinition = js.native
   def faUtensilSpoon: IconDefinition = js.native
   def faUtensils: IconDefinition = js.native
   def faVenus: IconDefinition = js.native
@@ -570,6 +656,8 @@ object freeSolid extends js.Object {
   def faVolumeDown: IconDefinition = js.native
   def faVolumeOff: IconDefinition = js.native
   def faVolumeUp: IconDefinition = js.native
+  def faWalking: IconDefinition = js.native
+  def faWallet: IconDefinition = js.native
   def faWarehouse: IconDefinition = js.native
   def faWeight: IconDefinition = js.native
   def faWheelchair: IconDefinition = js.native
@@ -589,6 +677,9 @@ object freeSolid extends js.Object {
 @JSImport("@fortawesome/fontawesome-free-regular", JSImport.Namespace)
 object freeRegular extends js.Object {
   // https://github.com/FortAwesome/Font-Awesome/blob/master/advanced-options/use-with-node-js/fontawesome-free-regular/index.d.ts
+  // using vim:
+  // :read !curl --silent https://raw.githubusercontent.com/FortAwesome/Font-Awesome/master/advanced-options/use-with-node-js/fontawesome-free-regular/index.d.ts | grep "export const fa" | sed -E "s/export const (.+): IconDefinition;/  def \1: IconDefinition = js.native/"
+
   def faAddressBook: IconDefinition = js.native
   def faAddressCard: IconDefinition = js.native
   def faArrowAltCircleDown: IconDefinition = js.native
@@ -715,6 +806,9 @@ object freeRegular extends js.Object {
 @JSImport("@fortawesome/fontawesome-free-brands", JSImport.Namespace)
 object freeBrands extends js.Object {
   // https://github.com/FortAwesome/Font-Awesome/blob/master/advanced-options/use-with-node-js/fontawesome-free-brands/index.d.ts
+  // using vim:
+  // :read !curl --silent https://raw.githubusercontent.com/FortAwesome/Font-Awesome/master/advanced-options/use-with-node-js/fontawesome-free-brands/index.d.ts | grep "export const fa" | sed -E "s/export const (.+): IconDefinition;/  def \1: IconDefinition = js.native/"
+
   def fa500px: IconDefinition = js.native
   def faAccessibleIcon: IconDefinition = js.native
   def faAccusoft: IconDefinition = js.native
