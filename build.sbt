@@ -301,10 +301,10 @@ lazy val webApp = project
 
     npmDependencies in Compile ++=
       // https://fontawesome.com/how-to-use/js-component-packages
-      "@fortawesome/fontawesome" -> "1.1.5" ::
-      "@fortawesome/fontawesome-free-solid" -> "5.0.10" ::
-      "@fortawesome/fontawesome-free-regular" -> "5.0.10" ::
-      "@fortawesome/fontawesome-free-brands" -> "5.0.10" ::
+      "@fortawesome/fontawesome" -> "1.1.8" ::
+      "@fortawesome/fontawesome-free-solid" -> "5.0.13" ::
+      "@fortawesome/fontawesome-free-regular" -> "5.0.13" ::
+      "@fortawesome/fontawesome-free-brands" -> "5.0.13" ::
       "marked" -> "0.3.12" ::
         Nil
     )
