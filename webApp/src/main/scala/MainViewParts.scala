@@ -90,10 +90,10 @@ object MainViewParts {
   def newGroupTitle(state: GlobalState) = {
     var today = new Date()
     // January is 0!
-    val title = s"Group: ${today.getMonth+1}-${today.getDate}"
+    val title = s"Group ${today.getMonth+1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
     val sameNamePosts = state.channels.now.filter(_.content.str.startsWith(title))
     if (sameNamePosts.isEmpty) title
-    else s"$title (${sameNamePosts.size})"
+    else s"$title ${('A'-1+sameNamePosts.size).toChar}"
   }
 
   def newGroupButton(state: GlobalState, label: String = "New Group")(implicit ctx:Ctx.Owner): VNode = {
