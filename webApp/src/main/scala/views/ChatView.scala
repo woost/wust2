@@ -10,7 +10,7 @@ import wust.graph._
 import wust.ids.{JoinDate, Label}
 import wust.sdk.PostColor._
 import wust.webApp._
-import wust.webApp.fontAwesome.{freeBrands, freeRegular, freeSolid}
+import fontAwesome.{freeBrands, freeRegular, freeSolid}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.PostContentParser
 import wust.webApp.views.Elements._

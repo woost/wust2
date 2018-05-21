@@ -12,7 +12,7 @@ import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode}
 import outwatch.{AsVDomModifier, Sink, StaticVNodeRender}
 import rx._
-import wust.webApp.fontAwesome.{AbstractTree, IconDefinition, fontawesome}
+import fontAwesome.{AbstractTree, IconDefinition, fontawesome}
 
 import scala.collection.breakOut
 import scala.concurrent.Future

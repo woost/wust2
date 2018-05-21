@@ -5,7 +5,7 @@ import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webApp.fontAwesome.freeSolid._
+import fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
 import wust.graph.PageMode
 import wust.webApp.views.View
