@@ -84,7 +84,6 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
           case PageMode.Orphans => graph.postIds.filter(id => graph.parents(id).isEmpty && id != user().channelPostId).toSet
           case PageMode.Default => Set.empty
         }
-        println("MODE SET" + modeSet)
         val descendants = parentIds.flatMap(graph.descendants) diff parentIds
         val selectedGraph = graph.filter(id => descendants.contains(id) || modeSet.contains(id))
         perspective().applyOnGraph(selectedGraph)
@@ -99,7 +98,6 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
           case PageMode.Orphans => graph.postIds.filter(id => graph.parents(id).isEmpty && id != user().channelPostId).toSet
           case PageMode.Default => Set.empty
         }
-        println("MODE SET" + modeSet)
         //TODO: this seems to crash when parentid does not exist
         val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
         val selectedGraph = graph.filter(id => descendants.contains(id) || modeSet.contains(id))
