@@ -206,7 +206,7 @@ class EventProcessor private(
   sendingChanges.foreach { c => println("[Events] Sending out changes done: " + c) }
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
-    .combineLatest[Long](sendingChanges)
+    .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
     .scan(List.empty[(GraphChanges, Long)]) { case (prevList, (nextLocal, sentIdx)) =>
       (prevList :+ nextLocal) collect { case t@(_, idx) if idx > sentIdx => t }
     }
