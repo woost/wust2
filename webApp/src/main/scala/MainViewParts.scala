@@ -8,7 +8,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{ChangesHistory, PostColor, SyncMode}
 import wust.util.RichBoolean
-import wust.webApp.fontAwesome.freeSolid._
+import fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views._
 import Elements._
