@@ -122,7 +122,7 @@ object Sidebar {
         fontSize := "14px",
         fontWeight.bold
       ),
-      syncStatus(state)(ctx)(fontSize := "9px"),
+      syncStatus(state)(ctx)(fontSize := "12px"),
     ),
   }
 

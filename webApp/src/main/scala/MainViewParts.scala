@@ -12,7 +12,10 @@ import fontAwesome.freeSolid._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views._
 import Elements._
+import fontAwesome._
 
+import scala.scalajs
+import scala.scalajs.js
 import scala.scalajs.js.Date
 
 object MainViewParts {
@@ -26,14 +29,46 @@ object MainViewParts {
   }
 
   def syncStatus(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    val syncingIcon = fontawesome.layer(push => {
+      push(fontawesome.icon(freeSolid.faCircle, Params(
+        styles = scalajs.js.Dictionary[String]( "color" -> "#4EBA4C" )
+      )))
+      push(fontawesome.icon(freeSolid.faSync, Params(
+        transform = new Transform{override val size = 10.0},
+        classes = scalajs.js.Array("fa-spin"),
+        styles = scalajs.js.Dictionary[String]( "color" -> "white" ),
+      )))
+    })
+
+    val syncedIcon = fontawesome.layer(push => {
+      push(fontawesome.icon(freeSolid.faCircle, Params(
+        styles = scalajs.js.Dictionary[String]( "color" -> "#4EBA4C" )
+      )))
+      push(fontawesome.icon(freeSolid.faCheck, Params(
+        transform = new Transform{override val size = 10.0},
+        styles = scalajs.js.Dictionary[String]( "color" -> "white" ),
+      )))
+    })
+
+
     val isOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
     div(
       isOnline.map { isOnline =>
         span(
-          if (isOnline) Seq(asVDomModifier("On"), color := "white", title := "The connection to the server is established.")
-          else Seq(asVDomModifier("Off"), color := "red", title := "The connection to the server has stopped. Will try to reconnect.")
+          if (isOnline) Seq(freeSolid.faCloud:VNode, color := "white", title := "The connection to the server is established.")
+          else Seq(freeSolid.faCircle:VNode, color := "tomato", title := "The connection to the server has stopped. Will try to reconnect."),
+          marginRight := "2px"
         )
       },
+      state.eventProcessor.changesInTransit.map { changes =>
+        span(
+          if (changes.isEmpty) Seq(
+            span(syncedIcon:VNode),
+            color := "#48B02C", title := "Everything is synchronized.")
+          else Seq(syncingIcon:VNode, title := "Some changes are only local, just wait until they are send online.")
+        )
+      },
+      DevOnly(span(
       " (",
       state.syncMode.map { mode =>
         span(
@@ -45,14 +80,8 @@ object MainViewParts {
           onClick.map(_ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live):SyncMode) --> state.syncMode
         )
       },
-      ")",
-      state.eventProcessor.changesInTransit.map { changes =>
-        span(
-          " ⬤ ", // middle dot
-          if (changes.isEmpty) Seq(color := "green", title := "Everything is synchronized.")
-          else Seq(color := "blue", title := "Some changes are only local, just wait until they are send online.")
-        )
-      }
+      ")"
+      ))
     )
   }
 

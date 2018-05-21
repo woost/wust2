@@ -1,13 +1,8 @@
 package wust.webApp
 
-import org.scalajs.dom.{window, _}
 import outwatch.dom._
 import rx._
-import wust.api.ApiEvent
-import wust.graph.GraphChanges
 import wust.webApp.outwatchHelpers._
-
-import scala.scalajs.js
 
 object Main {
 

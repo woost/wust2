@@ -1,15 +1,11 @@
 package wust.webApp
 
-import org.scalajs.dom.experimental.permissions.PermissionState
-import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import fontAwesome.freeSolid._
-import wust.webApp.outwatchHelpers._
 import wust.graph.PageMode
-import wust.webApp.views.View
-import Sidebar.{sidebar, topbar}
+import wust.webApp.Sidebar.{sidebar, topbar}
+import wust.webApp.outwatchHelpers._
 
 object MainView {
   import MainViewParts._
