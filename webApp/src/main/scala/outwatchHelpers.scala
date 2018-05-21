@@ -11,7 +11,7 @@ import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.document
 import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode}
-import outwatch.{AsVDomModifier, Sink, StaticVNodeRender}
+import outwatch.{AsVDomModifier, Sink}
 import rx._
 import fontAwesome._
 
@@ -48,9 +48,9 @@ package object outwatchHelpers {
     }
   }
 
-  implicit def rxAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[T]] = (value: Rx[T]) => value.toObservable
-  implicit def rxSeqAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => value.toObservable
-  implicit def rxOptionAsVDomModifier[T:StaticVNodeRender](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
+  implicit def rxAsVDomModifier[T:AsVDomModifier](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[T]] = (value: Rx[T]) => value.toObservable
+  implicit def rxSeqAsVDomModifier[T:AsVDomModifier](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => value.toObservable
+  implicit def rxOptionAsVDomModifier[T:AsVDomModifier](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
   implicit class RichEmitterBuilder[E,O,R](val eb:EmitterBuilder[E,O,R]) extends AnyVal {
     //TODO: scala.rx have a contravariant trait for writing-only
     def -->(rxVar: Var[_ >: O])(implicit ctx:Ctx.Owner): IO[R] = eb --> rxVar.toSink
