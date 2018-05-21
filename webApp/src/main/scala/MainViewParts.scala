@@ -56,7 +56,7 @@ object MainViewParts {
       isOnline.map { isOnline =>
         span(
           if (isOnline) Seq(freeSolid.faCloud:VNode, color := "white", title := "The connection to the server is established.")
-          else Seq(freeSolid.faCircle:VNode, color := "tomato", title := "The connection to the server has stopped. Will try to reconnect."),
+          else Seq(freeSolid.faBolt:VNode, color := "tomato", title := "The connection to the server has stopped. Will try to reconnect."),
           marginRight := "2px"
         )
       },
@@ -68,20 +68,20 @@ object MainViewParts {
           else Seq(syncingIcon:VNode, title := "Some changes are only local, just wait until they are send online.")
         )
       },
-      DevOnly(span(
-      " (",
-      state.syncMode.map { mode =>
-        span(
-          mode.toString,
-          cursor.pointer,
-          title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
-          if (mode == SyncMode.Live) Seq(color := "white")
-          else Seq(color := "grey"),
-          onClick.map(_ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live):SyncMode) --> state.syncMode
-        )
-      },
-      ")"
-      ))
+      DevOnly{ span(
+        " (",
+        state.syncMode.map { mode =>
+          span(
+            mode.toString,
+            cursor.pointer,
+            title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
+            if (mode == SyncMode.Live) Seq(color := "white")
+            else Seq(color := "grey"),
+            onClick.map(_ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live):SyncMode) --> state.syncMode
+          )
+        },
+        ")"
+      ) }
     )
   }
 
