@@ -32,7 +32,7 @@ class PostContentParsingSpec extends FreeSpec with MustMatchers {
     val (content, tags) = PostContentParser.taggedContent.parse(text + """#foo #"hans dieter"""").get.value
     val expected = PostContent.Markdown(text)
     content mustEqual expected
-    tags mustEqual Seq("foo", "bar")
+    tags mustEqual Seq("foo", "hans dieter")
   }
 
   "media with tags" in {
