@@ -38,7 +38,7 @@ object ChatView extends View {
   def chatHeader(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     div(
-      padding := "0px 10px",
+      padding := "5px 10px",
       pageParentPosts.map(_.map { parent =>
         div(
           display.flex,
