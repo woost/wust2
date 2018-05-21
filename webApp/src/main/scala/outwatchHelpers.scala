@@ -2,6 +2,7 @@ package wust.webApp
 
 import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
+import fontAwesome.fontAwesome.IconName
 import monix.execution.Ack.Continue
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.{Cancelable, Scheduler}
@@ -12,10 +13,11 @@ import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode}
 import outwatch.{AsVDomModifier, Sink, StaticVNodeRender}
 import rx._
-import fontAwesome.{AbstractTree, IconDefinition, fontawesome}
+import fontAwesome._
 
 import scala.collection.breakOut
 import scala.concurrent.Future
+import scala.scalajs.js.|
 // Outwatch TODOs:
 // when writing: sink <-- obs; obs(action)
 // action is always triggered first, even though it is registered after subscribe(<--)
@@ -123,14 +125,19 @@ package object outwatchHelpers {
     outwatch.dom.dsl.events.window.onKeyUp.collect { case e if e.keyCode == keyCode => false },
     )
 
-  implicit def renderFaIcon(icondef:IconDefinition):VNode = {
+  private def abstractTreeToVNode(tree:AbstractElement):VNode = {
     import outwatch.dom.dsl.{attr, tag}
-    def abstractTreeToVNode(tree:AbstractTree):VNode = {
-      tag(tree.tag)(
-        tree.attributes.map{case (name,value) => attr(name) := value}(breakOut):Seq[VDomModifier],
-        tree.children.fold(Seq.empty[VNode]){_.map(abstractTreeToVNode)}
-      )
-    }
-    abstractTreeToVNode(fontawesome.icon(icondef).`abstract`(0))
+    tag(tree.tag)(
+      tree.attributes.map{case (name,value) => attr(name) := value}(breakOut):Seq[VDomModifier],
+      tree.children.fold(Seq.empty[VNode]){_.map(abstractTreeToVNode)}
+    )
+  }
+
+  implicit def renderFontAwesomeIcon(icon:IconLookup):VNode = {
+    abstractTreeToVNode(fontawesome.icon(icon).`abstract`(0))
+  }
+
+  implicit def renderFontAwesomeObject(icon:FontawesomeObject):VNode = {
+    abstractTreeToVNode(icon.`abstract`(0))
   }
 }
