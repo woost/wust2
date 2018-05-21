@@ -26,6 +26,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "from string to viewconfig - row" in {
+    pending
     val str = "view=graph|chat&page=abc,def"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
@@ -36,6 +37,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "from string to viewconfig - column" in {
+    pending
     val str = "view=graph/chat&page=abc,def"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
@@ -46,6 +48,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "from string to viewconfig - auto" in {
+    pending
     val str = "view=graph,chat&page=abc,def"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
@@ -56,6 +59,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "from string to viewconfig - optional" in {
+    pending
     val str = "view=graph?chat&page=abc,def"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
