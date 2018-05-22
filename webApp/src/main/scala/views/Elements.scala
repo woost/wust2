@@ -38,7 +38,7 @@ object Rendered {
     case PostContent.Channels => span("Channels")
   }
 
-  def mdHtml(str: String) = span(prop("innerHTML") := marked(str))
+  def mdHtml(str: String) = span(prop("innerHTML") := marked(str))(cls := "postcontent")
   def mdString(str: String):String = marked(str)
 }
 
@@ -47,7 +47,7 @@ object Elements {
   // - textarea: enter emits keyCode for Enter
   // - input: Enter triggers submit
 
-  def viewConfigLink(viewConfig: ViewConfig) = a(href := "#" + ViewConfig.toUrlHash(viewConfig))
+  def viewConfigLink(viewConfig: ViewConfig): VNode = a(href := "#" + ViewConfig.toUrlHash(viewConfig))
 
   def scrollToBottom(elem: dom.Element):Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
