@@ -37,12 +37,12 @@ trait AuthView extends View {
           }
           div(
             h2("Create an account"),
-            input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
-            input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink),
-            button("Signup", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
-            hr(),
-            div("Already have an account?", textAlign := "center", width := "100%"),
-            button("Login with existing account", display.block, margin := "auto", onClick(false) --> isSignup)
+            div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
+            div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
+            button(cls := "ui fluid primary button", "Signup", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
+            div(cls := "ui divider"),
+            h3("Already have an account?", textAlign := "center"),
+            button(cls := "ui fluid button", "Login with existing account", display.block, margin := "auto", onClick(false) --> isSignup)
           )
         case false =>
           val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
@@ -53,12 +53,12 @@ trait AuthView extends View {
           }
           div(
             h2("Login with existing account"),
-            input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName),
-            input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink),
-            button("Login", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
-            hr(),
-            div("New to Woost?", textAlign := "center", width := "100%"),
-            button("Create an account", display.block, margin := "auto", onClick(true) --> isSignup)
+            div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
+            div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
+            button(cls := "ui fluid primary button", "Login", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
+            div(cls := "ui divider"),
+            h3("New to Woost?", textAlign := "center"),
+            button(cls := "ui fluid button", "Create an account", display.block, margin := "auto", onClick(true) --> isSignup)
           )
       }
     )

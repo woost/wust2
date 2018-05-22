@@ -83,8 +83,8 @@ object ChatView extends View {
 
   def joinControl(state:GlobalState, post:Post)(implicit  ctx: Ctx.Owner):VNode = {
     val text = post.joinDate match {
-      case JoinDate.Always => span(freeSolid.faDoorOpen:VNode)(title := "Users can join via URL (click to toggle)")
-      case JoinDate.Never => span(freeSolid.faDoorClosed:VNode)(title := "Private Group (click to toggle)")
+      case JoinDate.Always => span(freeSolid.faUserPlus:VNode)(title := "Users can join via URL (click to toggle)")
+      case JoinDate.Never => span(freeSolid.faUserSlash:VNode)(title := "Private Group (click to toggle)")
       case JoinDate.Until(time) => span(s"Users can join via URL until $time") //TODO: epochmilli format
     }
 

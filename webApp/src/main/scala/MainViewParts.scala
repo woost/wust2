@@ -84,7 +84,7 @@ object MainViewParts {
       viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white"))
   }
 
-  val logout = button("Logout", onClick --> sideEffect { Client.auth.logout(); () })
+  val logout = button(cls := "tiny ui button", "Logout", onClick --> sideEffect { Client.auth.logout(); () })
 
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
     state.user.flatMap {
@@ -102,8 +102,8 @@ object MainViewParts {
           if (view.isContent) Seq(
             display.flex,
             style("justify-content") := "space-evenly",
-            button(faUndo, padding := "5px 10px", marginRight := "2px", fontSize.small, title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
-            button(faRedo, padding := "5px 10px", fontSize.small, title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
+            button(cls := "ui button", faUndo, padding := "5px 10px", marginRight := "2px", fontSize.small, title := "Undo last change", onClick(ChangesHistory.Undo) --> historySink, disabled := !history.canUndo),
+            button(cls := "ui button", faRedo, padding := "5px 10px", fontSize.small, title := "Redo last undo change", onClick(ChangesHistory.Redo) --> historySink, disabled := !history.canRedo)
           ) else Seq.empty[VDomModifier]
         )
       }
@@ -122,6 +122,7 @@ object MainViewParts {
 
   def newGroupButton(state: GlobalState, label: String = "New Group")(implicit ctx:Ctx.Owner): VNode = {
     button(
+      cls := "ui button",
       label,
       onClick --> sideEffect{ _ =>
         val user = state.user.now
