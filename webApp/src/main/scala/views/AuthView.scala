@@ -35,7 +35,7 @@ trait AuthView extends View {
               case false => ()
             }
           }
-          div(
+          form(
             h2("Create an account"),
             div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
             div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
@@ -51,7 +51,7 @@ trait AuthView extends View {
               case false => ()
             }
           }
-          div(
+          form(
             h2("Login with existing account"),
             div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
             div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
