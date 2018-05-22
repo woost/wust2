@@ -1,21 +1,17 @@
 package wust.webApp
 
+import fontAwesome._
+import fontAwesome.freeSolid._
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
-import wust.ids._
-import wust.sdk.{ChangesHistory, PostColor, SyncMode}
-import wust.util.RichBoolean
-import fontAwesome.freeSolid._
+import wust.sdk.{ChangesHistory, SyncMode}
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Elements._
 import wust.webApp.views._
-import Elements._
-import fontAwesome._
 
-import scala.scalajs
-import scala.scalajs.js
 import scala.scalajs.js.Date
 
 object MainViewParts {
@@ -52,36 +48,32 @@ object MainViewParts {
 
 
     val isOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
+    val isSynced = state.eventProcessor.changesInTransit.map(_.isEmpty)
+
+    val syncStatusIcon = Observable.combineLatestMap2(isOnline, isSynced) {
+        case (true, true) => span(syncedIcon, title := "Everything is up to date")
+        case (true, false) => span(syncingIcon, title := "Syncing changes...")
+        case (false, _) => span(freeSolid.faBolt, color := "tomato", title := "Disconnected")
+    }
+
+    val syncModeSwitcher = DevOnly{ span(
+      " (",
+      state.syncMode.map { mode =>
+        span(
+          mode.toString,
+          cursor.pointer,
+          title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
+          if (mode == SyncMode.Live) Seq(color := "white")
+          else Seq(color := "grey"),
+          onClick.map(_ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live):SyncMode) --> state.syncMode
+        )
+      },
+      ")"
+    ) }
+
     div(
-      isOnline.map { isOnline =>
-        span(
-          if (isOnline) Seq(freeSolid.faCloud:VNode, color := "white", title := "The connection to the server is established.")
-          else Seq(freeSolid.faBolt:VNode, color := "tomato", title := "The connection to the server has stopped. Will try to reconnect."),
-          marginRight := "2px"
-        )
-      },
-      state.eventProcessor.changesInTransit.map { changes =>
-        span(
-          if (changes.isEmpty) Seq(
-            span(syncedIcon:VNode),
-            color := "#48B02C", title := "Everything is synchronized.")
-          else Seq(syncingIcon:VNode, title := "Some changes are only local, just wait until they are send online.")
-        )
-      },
-      DevOnly{ span(
-        " (",
-        state.syncMode.map { mode =>
-          span(
-            mode.toString,
-            cursor.pointer,
-            title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
-            if (mode == SyncMode.Live) Seq(color := "white")
-            else Seq(color := "grey"),
-            onClick.map(_ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live):SyncMode) --> state.syncMode
-          )
-        },
-        ")"
-      ) }
+      syncStatusIcon,
+      syncModeSwitcher
     )
   }
 

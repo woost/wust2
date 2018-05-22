@@ -2,7 +2,7 @@ package wust.webApp
 
 import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
-import fontAwesome.fontAwesome.IconName
+import fontAwesome._
 import monix.execution.Ack.Continue
 import monix.execution.ExecutionModel.SynchronousExecution
 import monix.execution.{Cancelable, Scheduler}
@@ -13,11 +13,9 @@ import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode}
 import outwatch.{AsVDomModifier, Sink}
 import rx._
-import fontAwesome._
 
 import scala.collection.breakOut
 import scala.concurrent.Future
-import scala.scalajs.js.|
 // Outwatch TODOs:
 // when writing: sink <-- obs; obs(action)
 // action is always triggered first, even though it is registered after subscribe(<--)
