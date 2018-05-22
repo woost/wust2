@@ -102,11 +102,7 @@
     /* border-radius : 3px; */ /* affects graph rendering performance */
 }
 
-.graphpost > p {
-    margin: 3px 0;
-}
-
-.chatpost > p {
+.postcontent > p {
     margin: 3px 0;
 }
 .splitpost::selection {

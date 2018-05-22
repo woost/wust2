@@ -141,17 +141,16 @@ object ChatView extends View {
     onClick.map{e => e.stopPropagation(); GraphChanges.delete(post)} --> ObserverSink(state.eventProcessor.changes)
   )
 
+  def postLink(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner) = state.viewConfig.map { cfg =>
+    viewConfigLink(cfg.copy(page = Page(post.id)))(freeSolid.faLink)
+  }
+
   def chatMessage(state:GlobalState, post: Post, graph:Graph, currentUser:User)(implicit ctx: Ctx.Owner): VNode = {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
 
-    val content = div(
-      showPostContent(post.content),
-      cls := "chatpost",
-      padding := "0px 3px",
-      margin := "2px 0px"
-    )
+    val content = showPostContent(post.content)(paddingRight := "10px")
 
     val tags = div( // post tags
       postTags.map{ tag => postTag(state, tag) },
@@ -165,11 +164,11 @@ object ChatView extends View {
           display.flex,
           alignItems.center,
           content,
+          postLink(state, post),
           deleteButton(state, post)
         ),
         tags,
 
-        onClick(Page(Seq(post.id))) --> state.page,
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),
         borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
@@ -177,7 +176,7 @@ object ChatView extends View {
         backgroundColor := postDefaultColor,
         display.block,
         maxWidth := "80%",
-        padding := "5px 10px",
+        padding := "0px 10px",
         margin := "5px 0px",
         borderStyle := "solid",
         cursor.pointer // TODO: What about cursor when selecting text?
