@@ -26,24 +26,22 @@ object MainViewParts {
 
   def syncStatus(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     val syncingIcon = fontawesome.layer(push => {
-      push(fontawesome.icon(freeSolid.faCircle, Params(
-        styles = scalajs.js.Dictionary[String]( "color" -> "#4EBA4C" )
-      )))
-      push(fontawesome.icon(freeSolid.faSync, Params(
-        transform = new Transform{override val size = 10.0},
-        classes = scalajs.js.Array("fa-spin"),
-        styles = scalajs.js.Dictionary[String]( "color" -> "white" ),
-      )))
+      push(fontawesome.icon(freeSolid.faCircle, new Params{
+        styles = scalajs.js.Dictionary[String]( "color" -> "#4EBA4C" )}))
+      push(fontawesome.icon(freeSolid.faSync, new Params{
+        transform = new Transform{size = 10.0}
+        classes = scalajs.js.Array("fa-spin")
+        styles = scalajs.js.Dictionary[String]( "color" -> "white" )
+      }))
     })
 
     val syncedIcon = fontawesome.layer(push => {
-      push(fontawesome.icon(freeSolid.faCircle, Params(
-        styles = scalajs.js.Dictionary[String]( "color" -> "#4EBA4C" )
-      )))
-      push(fontawesome.icon(freeSolid.faCheck, Params(
-        transform = new Transform{override val size = 10.0},
-        styles = scalajs.js.Dictionary[String]( "color" -> "white" ),
-      )))
+      push(fontawesome.icon(freeSolid.faCircle, new Params{
+        styles = scalajs.js.Dictionary[String]( "color" -> "#4EBA4C" )}))
+      push(fontawesome.icon(freeSolid.faCheck, new Params{
+        transform = new Transform{size = 10.0}
+        styles = scalajs.js.Dictionary[String]( "color" -> "white" )
+      }))
     })
 
 
