@@ -69,7 +69,7 @@ object Sidebar {
 
       sidebarOpen.map {
         case true =>
-          div(
+          VDomModifier(
             height := "100%",
 
             display.flex,
@@ -84,7 +84,7 @@ object Sidebar {
             notificationSettings(flexGrow := 0, flexShrink := 0)
           )
         case false =>
-          div(
+          VDomModifier(
             height := "100%",
 
             display.flex,
@@ -224,12 +224,7 @@ object Sidebar {
         if (e.ctrlKey) page.copy(mode = newMode) else Page(Seq.empty, mode = newMode)
     }
   } --> sideEffect { page =>
-    if (!state.view.now.isContent) state.view() = View.default
-    state.page() = page
-    //TODO: Why does Var.set not work?
-    // Var.set(
-    //   state.page -> page,
-    //   state.view -> view
-    // )
+    val contentView = if (state.view.now.isContent) state.view.now else View.default
+    state.viewConfig() = state.viewConfig.now.copy(page = page, view = contentView)
   }
 }
