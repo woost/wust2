@@ -3,6 +3,7 @@ package wust.webApp
 import outwatch.dom._
 import rx._
 import wust.webApp.outwatchHelpers._
+import scala.scalajs.LinkingInfo
 
 object Main {
 
@@ -13,7 +14,8 @@ object Main {
 
     Logging.setup()
 
-    ServiceWorker.register()
+    if(!LinkingInfo.developmentMode)
+      ServiceWorker.register()
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalState.create()
