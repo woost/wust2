@@ -4,6 +4,7 @@ import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
 import monocle.macros.GenLens
 import org.scalajs.dom.{Event, window}
+import outwatch.ObserverSink
 import outwatch.dom._
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
@@ -14,10 +15,6 @@ import wust.sdk._
 import wust.util.Selector
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
-import cats._
-import cats.data.NonEmptyList
-import io.circe.Decoder.state
-import outwatch.ObserverSink
 
 import scala.collection.breakOut
 

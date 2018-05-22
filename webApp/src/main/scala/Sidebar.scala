@@ -106,13 +106,13 @@ object Sidebar {
       faBars,
       padding := "7px",
       cursor.pointer,
+      // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick --> sideEffect{ev => sidebarOpen() = !sidebarOpen.now; ev.stopPropagation()})
   }
 
   def header(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     div(
       display.flex, alignItems.baseline,
-      // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       hamburger(state),
       div(
         state.user.map(user =>
