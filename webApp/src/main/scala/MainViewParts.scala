@@ -140,12 +140,6 @@ object MainViewParts {
       })
   }
 
-  def newGroupPage(state: GlobalState)(implicit owner:Ctx.Owner):VNode = {
-    div(
-      display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
-      newGroupButton(state)(owner)(padding := "20px", marginBottom := "10%")
-    )
-  }
 
 
   //def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {

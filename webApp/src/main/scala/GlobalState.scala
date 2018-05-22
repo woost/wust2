@@ -13,9 +13,10 @@ import wust.ids._
 import wust.sdk._
 import wust.util.Selector
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{PageStyle, View, ViewConfig}
+import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
 import cats._
 import cats.data.NonEmptyList
+import io.circe.Decoder.state
 import outwatch.ObserverSink
 
 import scala.collection.breakOut
@@ -49,12 +50,17 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     (graph.children(user().channelPostId).map(graph.postsById)(breakOut): List[Post]).sortBy(_.content.str)
   }
 
-  val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view))
-
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
     rawPage().copy(
       parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
     )
+  }
+
+  val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
+    if( !view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
+      view()
+    else
+      NewGroupView
   }
 
   val pageParentPosts: Rx[Seq[Post]] = Rx {
