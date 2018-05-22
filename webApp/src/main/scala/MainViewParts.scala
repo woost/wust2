@@ -78,7 +78,10 @@ object MainViewParts {
   }
 
   def login(state: GlobalState)(implicit ctx:Ctx.Owner) = state.viewConfig.map { viewConfig =>
-    span(viewConfigLink(viewConfig.overlayView(SignupView))("Signup", color := "white"), " or ", viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white"))
+    VDomModifier(
+      viewConfigLink(viewConfig.overlayView(SignupView))("Signup", color := "white"),
+      " or ",
+      viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white"))
   }
 
   val logout = button("Logout", onClick --> sideEffect { Client.auth.logout(); () })
@@ -87,7 +90,7 @@ object MainViewParts {
     state.user.flatMap {
       case user: User.Assumed => login(state)
       case user: User.Implicit => login(state)
-      case user: User.Real => Var(logout)
+      case user: User.Real => Rx(logout)
     }
   )
 
