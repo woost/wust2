@@ -1,3 +1,6 @@
+// shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
+import sbtcrossproject.{crossProject, CrossType}
+
 name := "wust"
 
 // docker versions do not allow '+'
@@ -167,7 +170,7 @@ lazy val root = project.in(file("."))
     watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in utilBackend).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
-lazy val util = crossProject
+lazy val util = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
   .settings(
@@ -190,7 +193,7 @@ lazy val utilBackend = project
       Nil
   )
 
-lazy val sdk = crossProject
+lazy val sdk = crossProject(JSPlatform, JVMPlatform)
   .dependsOn(api)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
@@ -207,7 +210,7 @@ lazy val sdk = crossProject
 lazy val sdkJS = sdk.js
 lazy val sdkJVM = sdk.jvm
 
-lazy val ids = crossProject.crossType(CrossType.Pure)
+lazy val ids = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
   .settings(
@@ -219,7 +222,7 @@ lazy val ids = crossProject.crossType(CrossType.Pure)
 lazy val idsJS = ids.js
 lazy val idsJVM = ids.jvm
 
-lazy val graph = crossProject.crossType(CrossType.Pure)
+lazy val graph = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
   .dependsOn(ids, util)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
@@ -230,7 +233,7 @@ lazy val graph = crossProject.crossType(CrossType.Pure)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
-lazy val api = crossProject.crossType(CrossType.Pure)
+lazy val api = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
   .dependsOn(graph)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)

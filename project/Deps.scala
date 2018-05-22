@@ -1,5 +1,6 @@
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
 import sbt._
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+
 
 object Deps {
   import Def.{setting => dep}
