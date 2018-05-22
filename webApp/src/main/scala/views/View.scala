@@ -28,6 +28,7 @@ object View {
       contentList.toList :::
       LoginView ::
       SignupView ::
+      NewGroupView ::
       // UserSettingsView ::
       // AvatarView ::
       Nil
