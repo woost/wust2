@@ -294,6 +294,7 @@ lazy val webApp = project
   .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
     libraryDependencies ++=
+      Deps.scalaJsDom.value ::
       Deps.scalarx.value ::
       Deps.outwatch.value ::
       Deps.monocle.value ::
