@@ -12,7 +12,7 @@ import scala.collection.mutable
 object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
-  def post(postId:PostId) = twoMirror(postId, 10)
+  def post(postId:PostId) = twoMirror(postId, 8)
   def user(postId:UserId) = verticalMirror(postId, 5)
   val PI2 = PI*2
 
@@ -68,7 +68,7 @@ object Avatar {
 
   @inline private def randomElement(array:Array[Double], rnd:scala.util.Random) = array(rnd.nextInt(array.length))
 
-  @inline private def addPixel(pixels:mutable.ArrayBuffer[VNode], x:Int, y:Int, color:String):Unit = {
+  private def addPixel(pixels:mutable.ArrayBuffer[VNode], x:Int, y:Int, color:String):Unit = {
     import outwatch.dom.dsl.svg
     pixels += svg.rect(
       dsl.svg.x := x.toString,
