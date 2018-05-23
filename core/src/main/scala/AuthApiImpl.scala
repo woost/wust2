@@ -75,26 +75,21 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   private def passwordDigest(password: String) = Hasher(password).bcrypt
 
-  private def authChangeEvents(auth: Authentication): Future[Seq[ApiEvent]] = {
+  private def authChangeEvents(auth: Authentication): Seq[ApiEvent] = {
     val authEvent = auth match {
       case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
       case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
     }
 
-    //TODO: If user is on a page, send the corresponding graph
-    val graph = Future.successful(Graph.empty)
-
-    graph.map {graph =>
-      authEvent :: ApiEvent.ReplaceGraph(graph) :: Nil
-    }
+    authEvent :: Nil
   }
 
   private def resultOnAssumedAuth(auth: Authentication.Assumed): Future[ApiData.Effect[Boolean]] = {
-    authChangeEvents(auth).map(Returns(true, _))
+    Future.successful(Returns(true, authChangeEvents(auth)))
   }
 
-  private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.flatMap {
-    case Some(auth) => authChangeEvents(auth).map(Returns(true, _))
-    case _ => Future.successful(Returns(false))
+  private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.map {
+    case Some(auth) => Returns(true, authChangeEvents(auth))
+    case _ => Returns(false)
   }
 }
