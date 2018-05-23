@@ -4,3 +4,4 @@ target/
 /*-backup.sql*
 /tokens.sh
 proguard-sbt.txt
+.metals/
