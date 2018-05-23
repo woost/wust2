@@ -70,7 +70,7 @@ object Notifications {
       permissions.query(permissionDescriptor).toFuture.onComplete {
         case Success(desc) =>
           subject.onNext(desc.state)
-          desc.asInstanceOf[PermissionStatusWithOnChange].onchange = { _ =>
+          desc.onchange = { _ =>
             subject.onNext(desc.state)
           }
         case Failure(t) =>
@@ -88,7 +88,10 @@ object Notifications {
     serverPublicKey.foreach {
       case Some(publicKey) =>
         val publicKeyBytes = new Uint8Array(Base64Codec.decode(publicKey).arrayBuffer())
-        val options = PushSubscriptionOptionsWithServerKey(userVisibleOnly = true, applicationServerKey = publicKeyBytes)
+        val options = new PushSubscriptionOptions {
+          userVisibleOnly = true
+          applicationServerKey = publicKeyBytes
+        }
         persistPushSubscription(_.subscribe(options))
       case None => scribe.warn("No public key of server available for web push subscriptions. Cannot subscribe to push notifications.")
     }
@@ -114,9 +117,8 @@ object Notifications {
 
   private def serviceWorkerNotify(serviceWorker: ServiceWorkerContainer, title: String, options: NotificationOptions)(implicit ec: ExecutionContext): Future[Boolean] = {
     serviceWorker.getRegistration().toFuture.flatMap {
-      case _registration if _registration != js.undefined =>
-        val registration = _registration.asInstanceOf[ServiceWorkerRegistrationWithNotifications]
-        registration.showNotification(title, options).toFuture.map { _ => true }.recover { case _ => false }
+      case registration if registration.isDefined =>
+        registration.get.showNotification(title, options).toFuture.map { _ => true }.recover { case _ => false }
       case _ => Future.successful(false)
     }.recover { case _ => false }
   }
