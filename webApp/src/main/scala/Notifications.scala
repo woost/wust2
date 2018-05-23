@@ -97,18 +97,23 @@ object Notifications {
     }
 
   private def persistPushSubscription(getSubscription: PushManager => js.Promise[PushSubscription])(implicit ec: ExecutionContext): Unit = serviceWorker match {
-    case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.foreach { reg =>
-      reg.foreach { reg =>
-        getSubscription(reg.pushManager).toFuture.onComplete {
-          case Success(sub) if sub != null =>
-            //TODO rename p256dh attribute of WebPushSub to publicKey
-            val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
-            scribe.info(s"WebPush subscription: $webpush")
-            Client.push.subscribeWebPush(webpush)
-          case err =>
-            scribe.warn(s"Failed to subscribe to push: $err")
-        }
+    case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.onComplete {
+      case Success(reg) => reg.toOption match {
+        case Some(reg) =>
+          getSubscription(reg.pushManager).toFuture.onComplete {
+            case Success(sub) if sub != null =>
+              //TODO rename p256dh attribute of WebPushSub to publicKey
+              val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
+              scribe.info(s"WebPush subscription: $webpush")
+              Client.push.subscribeWebPush(webpush)
+            case err =>
+              scribe.warn(s"Failed to subscribe to push: $err")
+          }
+        case None =>
+          scribe.warn(s"Got empty service worker registration")
       }
+      case err =>
+        scribe.warn(s"Failed to get service worker registration: $err")
     }
     case None =>
       scribe.info("Push notifications are not available in this browser")
