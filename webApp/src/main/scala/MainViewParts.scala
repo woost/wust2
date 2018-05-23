@@ -44,6 +44,15 @@ object MainViewParts {
       }))
     })
 
+    val offlineIcon = fontawesome.layer(push => {
+      push(fontawesome.icon(freeSolid.faCircle, new Params{
+        styles = scalajs.js.Dictionary[String]( "color" -> "tomato" )}))
+      push(fontawesome.icon(freeSolid.faBolt, new Params{
+        transform = new Transform{size = 10.0}
+        styles = scalajs.js.Dictionary[String]( "color" -> "white" )
+      }))
+    })
+
 
     val isOnline = Observable.merge(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false))
     val isSynced = state.eventProcessor.changesInTransit.map(_.isEmpty)
@@ -51,7 +60,7 @@ object MainViewParts {
     val syncStatusIcon = Observable.combineLatestMap2(isOnline, isSynced) {
         case (true, true) => span(syncedIcon, title := "Everything is up to date")
         case (true, false) => span(syncingIcon, title := "Syncing changes...")
-        case (false, _) => span(freeSolid.faBolt, color := "tomato", title := "Disconnected")
+        case (false, _) => span(offlineIcon, color := "tomato", title := "Disconnected")
     }
 
     val syncModeSwitcher = DevOnly{ span(
