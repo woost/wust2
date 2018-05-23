@@ -6,7 +6,7 @@ import wust.ids.PostId
 import wust.webApp.views.{TiledView, View, ViewConfig, ViewOperator}
 
 private object ViewConfigConstants {
-  val parentChildSeparator = ":"
+  val pageSeparator = ":"
   val idSeparator = ","
   val urlSeparator = "&"
   val viewKey = "view="
@@ -45,7 +45,7 @@ object ViewConfigParser {
       case PageMode.Default.name => PageMode.Default
       case PageMode.Orphans.name => PageMode.Orphans
     }
-  val page: P[Page] = P( pageMode ~/ "[" ~/ (postIdList ~ (parentChildSeparator ~ postIdList).?).? ~ "]" ~/ (urlSeparator | End) )
+  val page: P[Page] = P( pageMode ~/ (pageSeparator ~/ postIdList ~ (pageSeparator ~ postIdList).?).? ~/ (urlSeparator | End) )
     .map {
       case (mode, None) => Page(parentIds = Nil, mode = mode)
       case (mode, Some((parentIds, None))) => Page(parentIds = parentIds, mode = mode)
@@ -63,9 +63,9 @@ object ViewConfigWriter {
   def write(cfg: ViewConfig): String = {
     val viewString = viewKey + cfg.view.key
     val pageString = pageKey + (cfg.page match {
-      case Page(parentIds, childrenIds, mode) if parentIds.isEmpty && childrenIds.isEmpty => s"${mode.name}[]"
-      case Page(parentIds, childrenIds, mode) if childrenIds.isEmpty => s"${mode.name}[${parentIds.mkString(idSeparator)}]"
-      case Page(parentIds, childrenIds, mode) => s"${mode.name}[${parentIds.mkString(idSeparator)}$parentChildSeparator${childrenIds.mkString(idSeparator)}]"
+      case Page(parentIds, childrenIds, mode) if parentIds.isEmpty && childrenIds.isEmpty => s"${mode.name}"
+      case Page(parentIds, childrenIds, mode) if childrenIds.isEmpty => s"${mode.name}${pageSeparator}${parentIds.mkString(idSeparator)}"
+      case Page(parentIds, childrenIds, mode) => s"${mode.name}${pageSeparator}${parentIds.mkString(idSeparator)}${pageSeparator}${childrenIds.mkString(idSeparator)}"
     })
     val prevViewStringWithSep = cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.key)
     s"$viewString$urlSeparator$pageString$prevViewStringWithSep"
