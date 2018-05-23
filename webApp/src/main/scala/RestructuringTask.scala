@@ -902,7 +902,7 @@ object RestructuringTaskGenerator {
           mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
           mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
           mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
-          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108"))),  //5
+          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108")))   //5
         )
 
         _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)
