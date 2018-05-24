@@ -149,20 +149,15 @@ object GlobalState {
     auth.foreach(auth => Client.storage.auth() = Some(auth))
     auth.foreach(IndexedDbOps.storeAuth)
 
+    // on initial page load we add the currently viewed page as a channel
+    val changes = GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelPostId)
+    if (changes.nonEmpty) eventProcessor.changes.onNext(changes)
+
     //TODO: better build up state from server events?
     viewConfig.toObservable.combineLatest(state.user.toObservable).switchMap { case (viewConfig, user) =>
-      val connections = if (viewConfig.fromUrl) {
-        val connections: Set[Connection] = viewConfig.page.parentIds.map { channelId =>
-          Connection(channelId, Label.parent, user.channelPostId)}(breakOut))
-        }
-        Client.api.changeGraph(GraphChanges(addConnections = connections))
-        connections
-      } else Set.empty
-
-      Observable.fromFuture( Client.api.getGraph(viewConfig.page).map(_.addConnections(connections)) )
-    }.foreach { case graph =>
-      eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
-    }
+      val newGraph = Client.api.getGraph(viewConfig.page).map(ReplaceGraph(_))
+      Observable.fromFuture(newGraph)
+    }.subscribe(eventProcessor.unsafeManualEvents)
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
     page.foreach { _ => eventProcessor.history.action.onNext(ChangesHistory.Clear) }
