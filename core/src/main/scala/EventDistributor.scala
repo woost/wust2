@@ -112,8 +112,9 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
         }
 
         if (expiredSubscriptions.nonEmpty) {
-          db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete { res =>
-            scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+          db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete {
+            case Success(res) => scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+            case Failure(res) => scribe.info(s"Failed to delete expired subscriptions ($expiredSubscriptions), due to exception: $res")
           }
         }
       }
