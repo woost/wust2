@@ -1184,6 +1184,8 @@ object RestructuringTaskGenerator {
       height := "100%",
     )
   }
+  
+  def render(globalState: GlobalState): Observable[VNode] = render(globalState, predefTasks)
 
   def render(globalState: GlobalState, tasks: List[RestructuringTaskObject]): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
 
@@ -1197,10 +1199,6 @@ object RestructuringTaskGenerator {
     } else {
       renderButton(activateTasks = false)
     }
-  }
-  
-  def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map{ feedback =>
-    render(globalState, predefTasks)
   }
 
   // Currently, we choose a task at random and decide afterwards which heuristic is used

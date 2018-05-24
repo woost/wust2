@@ -43,11 +43,10 @@ object GitHubImporter {
     (urlData(0), urlData(1), issueNum)
   }
 
-  def getIssues(owner: String, repo: String, issueNumber: Option[Int] = None, user: User): Future[(Set[Post], Set[Connection])] = {
+  def getIssues(graphPosts: Iterable[Post], owner: String, repo: String, issueNumber: Option[Int] = None, user: User): Future[(Set[Post], Set[Connection])] = {
 
     val emptyResult = (Set.empty[Post], Set.empty[Connection])
 
-    // TODO: Deduplication
     def getSingleIssue(number: Int): Future[List[Issue]] =
       Github(gitAccessToken).issues.getIssue(owner, repo, number)
         .execFuture[HttpResponse[String]]()
@@ -116,12 +115,14 @@ object GitHubImporter {
         // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order
-        val issueTitle = Post(PostId("1" + augmentString("0")*issueIdZeros + issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+        val issueTitleId = PostId("1" + augmentString("0")*issueIdZeros + issue.number.toString)
+        val issueTitle = graphPosts.find(_.id == issueTitleId).getOrElse(Post(issueTitleId, s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at))
 
         val titleIssueTag = Connection(issueTitle.id, Label.parent, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
-          val issueDesc = Post(PostId(issue.id.toString), issue.body, tempUserId, issue.created_at, issue.updated_at)
+
+          val issueDesc = graphPosts.find(_.content == issue.body).getOrElse(Post(PostId(issue.id.toString), issue.body, tempUserId, issue.created_at, issue.updated_at))
           val conn = Connection(issueDesc.id, Label("describes"), issueTitle.id)
           val cont = Connection(issueDesc.id, Label.parent, issueTitle.id)
           val comm = Connection(issueDesc.id, Label.parent, _comment.id)
@@ -135,7 +136,7 @@ object GitHubImporter {
 
         // Comments
         val comments: List[(Post, Set[Connection])] = commentsList.map(comment => {
-          val cpost = Post(PostId(comment.id.toString), comment.body, tempUserId, comment.created_at, comment.updated_at)
+          val cpost = graphPosts.find(_.id == PostId(comment.id.toString)).getOrElse(Post(PostId(comment.id.toString), comment.body, tempUserId, comment.created_at, comment.updated_at))
           val cconn = Set(Connection(cpost.id, Label.parent, issueTitle.id), Connection(cpost.id, Label.parent, _comment.id))
           (cpost, cconn)
         })
@@ -164,7 +165,7 @@ object GitterImporter {
 
   private val gitterAccessToken = sys.env.getOrElse("WUST_GITTER_TOKEN", "")
 
-  def getRoomMessages(url: String, user: User): Future[(Set[Post], Set[Connection])] = {
+  def getRoomMessages(graphPosts: Iterable[Post], url: String, user: User): Future[(Set[Post], Set[Connection])] = {
     val _uri = url.stripLineEnd.stripMargin.trim.
       stripPrefix("https://").
       stripPrefix("http://").
@@ -177,7 +178,7 @@ object GitterImporter {
     // Ensure gitter post
     val _gitter = Post(Constants.gitterId, "wust-gitter", tempUserId)
 
-    val discussion = Post(PostId.fresh, _uri, tempUserId)
+    val discussion = graphPosts.find(_.content == _uri).getOrElse(Post(PostId.fresh, _uri, tempUserId))
     val discussionTag = Connection(discussion.id, Label.parent, _gitter.id)
     val postsAndConnection = for {
       roomId <- Future { client.getRoomIdByUri(_uri).id }
@@ -185,7 +186,7 @@ object GitterImporter {
     } yield {
       roomMessages.map { message =>
         //TODO what about this userid?
-        val post = Post(PostId.fresh, message.text, tempUserId)
+        val post = graphPosts.find(_.content == message.text).getOrElse(Post(PostId.fresh, message.text, tempUserId))
         val conn = Connection(post.id, Label.parent, discussion.id)
         (Set(post), Set(conn))
       }.toSet

@@ -148,11 +148,11 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
 
-  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (state, user) =>
 
     // TODO: Reuse graph changes instead
     val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
-    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
+    val postsOfUrl = GitHubImporter.getIssues(state.graph.posts, owner, repo, issueNumber, user)
     val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
       db.ctx.transaction { implicit ec =>
         for {
@@ -166,11 +166,11 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
   }
 
-  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
+  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (state, user) =>
 
     // TODO: Reuse graph changes instead
 //    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
-    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
+    val postsOfUrl = GitterImporter.getRoomMessages(state.graph.posts, url, user)
     val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
       db.ctx.transaction { implicit ec =>
         for {
