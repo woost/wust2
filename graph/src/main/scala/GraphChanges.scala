@@ -70,9 +70,9 @@ object GraphChanges {
 
   def updatePost(post:Post) = GraphChanges(updatePosts = Set(post))
 
-  def addChannels(postIds:Iterable[PostId], channelPostId:PostId) = GraphChanges(
+  def addToParent(postIds:Iterable[PostId], parentId:PostId) = GraphChanges(
     addConnections = postIds.map { channelId =>
-      Connection(channelId, Label.parent, channelPostId)
+      Connection(channelId, Label.parent, parentId)
     }(breakOut)
   )
 
