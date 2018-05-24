@@ -213,8 +213,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def apply(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
-      // This is a quill batch action:
-      //TODO: insert label
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
         .recoverValue(false)
