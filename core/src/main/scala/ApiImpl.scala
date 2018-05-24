@@ -7,6 +7,7 @@ import wust.backend.Dsl._
 import wust.db.Db
 import wust.graph._
 import wust.ids._
+import scala.collection.breakOut
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,7 +41,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
             if (success) {
               for {
                 true <- db.post.createPublic(addPosts)
-                true <- db.connection(addConnections)
+                _ <- db.connection(addConnections) // TODO: are redundant connections handled?
                 true <- db.post.update(updatePosts)
                 true <- db.post.delete(delPosts)
                 true <- db.connection.delete(delConnections)
@@ -99,13 +100,17 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //  }
 
   //TODO: get graph forces new db user...
+  ///TODO the caller aka frontend knows whether we need a membership or whether we want to add this as channel.
+  //therefore most calls to getgraph dont need membership+channel insert. this would improve performance.
   override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
     if (page.parentIds.isEmpty) state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }.map(Returns(_))
     else for {
       newMemberPostIds <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
       graph <- state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
-    } yield Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
+    } yield {
+      Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
+    }
   }
 
   override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
@@ -119,7 +124,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           true <- db.post.createPublic(posts)
           true <- db.connection(connections)
           changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
+        } yield NewGraphChanges.ForAll(changes) :: Nil
       }
     }
 
@@ -136,7 +141,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           true <- db.post.createPublic(posts)
           true <- db.connection(connections)
           changes = GraphChanges(addPosts = posts, addConnections = connections)
-        } yield ApiEvent.NewGraphChanges.ForAll(changes) :: Nil
+        } yield NewGraphChanges.ForAll(changes) :: Nil
       }
     }
 
