@@ -2,6 +2,8 @@ package wust.graph
 
 import wust.ids._
 
+import scala.collection.breakOut
+
 case class GraphChanges(
   addPosts:        Set[Post]        = Set.empty,
   addConnections:  Set[Connection]  = Set.empty,
@@ -19,6 +21,7 @@ case class GraphChanges(
       (delConnections -- other.addConnections).filter(c => !otherAddPosts(c.sourceId) && !otherAddPosts(c.targetId)) ++ other.delConnections
     )
   }
+
 
   def filter(postIds: Set[PostId]): GraphChanges = copy(
     addPosts = addPosts.filter(p => postIds(p.id)),
@@ -66,6 +69,12 @@ object GraphChanges {
   def addPostWithParent(post:Post, parentId:PostId) = GraphChanges(addPosts = Set(post), addConnections = Set(Connection(post.id, Label.parent, parentId)))
 
   def updatePost(post:Post) = GraphChanges(updatePosts = Set(post))
+
+  def addChannels(postIds:Iterable[PostId], channelPostId:PostId) = GraphChanges(
+    addConnections = postIds.map { channelId =>
+      Connection(channelId, Label.parent, channelPostId)
+    }(breakOut)
+  )
 
   def delete(post:Post) = GraphChanges(delPosts = Set(post.id))
   def delete(postId:PostId) = GraphChanges(delPosts = Set(postId))

@@ -7,6 +7,8 @@ import cats.data.NonEmptyList
 
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]
+  @PathName("changeGraphSingle")
+  def changeGraph(changes: GraphChanges): Result[Boolean] = changeGraph(changes :: Nil)
   @PathName("changeGraphOnBehalf")
   def changeGraph(changes: List[GraphChanges], onBehalf: Authentication.Token): Result[Boolean]
 

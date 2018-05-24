@@ -23,7 +23,9 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val syncMode: Var[SyncMode] = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
   val sidebarOpen: Var[Boolean] = Client.storage.sidebarOpen
   val syncDisabled = syncMode.map(_ != SyncMode.Live)
-  val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
+
+  val viewConfigSetFromUrl = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
+  val viewConfig: Var[ViewConfig] = viewConfigSetFromUrl.imap(identity)(identity)
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
@@ -148,9 +150,17 @@ object GlobalState {
     auth.foreach(IndexedDbOps.storeAuth)
 
     //TODO: better build up state from server events?
-    viewConfig.toObservable.switchMap { vc =>
-      Observable.fromFuture(Client.api.getGraph(vc.page))
-    }.foreach { graph =>
+    viewConfig.toObservable.combineLatest(state.user.toObservable).switchMap { case (viewConfig, user) =>
+      val connections = if (viewConfig.fromUrl) {
+        val connections: Set[Connection] = viewConfig.page.parentIds.map { channelId =>
+          Connection(channelId, Label.parent, user.channelPostId)}(breakOut))
+        }
+        Client.api.changeGraph(GraphChanges(addConnections = connections))
+        connections
+      } else Set.empty
+
+      Observable.fromFuture( Client.api.getGraph(viewConfig.page).map(_.addConnections(connections)) )
+    }.foreach { case graph =>
       eventProcessor.unsafeManualEvents.onNext(ReplaceGraph(graph))
     }
 
