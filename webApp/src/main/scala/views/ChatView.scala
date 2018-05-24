@@ -142,7 +142,10 @@ object ChatView extends View {
   )
 
   def postLink(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner) = state.viewConfig.map { cfg =>
-    viewConfigLink(cfg.copy(page = Page(post.id)))(freeSolid.faLink)
+    val newCfg = cfg.copy(page = Page(post.id))
+    val newCfgChannel = newCfg.copy(fromUrl = false)
+/*.filer(_.KeyCode != control)*/
+    viewConfigLink(newCfg)(freeSolid.faLink, onClick.preventDefault(newCfgChannel) --> state.viewConfig)
   }
 
   def chatMessage(state:GlobalState, post: Post, graph:Graph, currentUser:User)(implicit ctx: Ctx.Owner): VNode = {

@@ -55,7 +55,7 @@ object ViewConfigParser {
   // TODO: marke order of values flexible
   val viewConfig: P[ViewConfig] = P( viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).? )
     .map { case (view, page, prevView) =>
-      ViewConfig(view, page, prevView)
+      ViewConfig(view, page, prevView, fromUrl = true)
     }
 }
 
