@@ -29,7 +29,7 @@ object DbConversions {
     if (user.isImplicit) User.Implicit(user.id, user.name, user.revision, user.channelPostId)
     else User.Real(user.id, user.name, user.revision, user.channelPostId)
   }
-  implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.postId)
+  implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.postId, membership.level)
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription = Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
   implicit def forDb(post: Post): Data.Post = Data.Post(

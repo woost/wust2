@@ -124,7 +124,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def addMemberWithCurrentJoinLevel(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberWithCurrentJoinLevel(postId :: Nil, userId).map(_.nonEmpty)
-    def addMemberWithCurrentJoinLevel(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
+    def addMemberWithCurrentJoinLevel(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[Membership]] = {
       val now = LocalDateTime.now(ZoneOffset.UTC)
       val insertMembership = quote {
         val q = query[Post]
@@ -143,9 +143,15 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
 
       // val r = ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
-      ctx.run(insertMembership)
-        //TODO: fix query with returning
-        .map { _ => postIds }
+      ctx.transaction { implicit ec =>
+        ctx.run(insertMembership).flatMap { inserts =>
+          println("INSERTS " + inserts)
+          ctx.run(
+            //TODO: fix query with returning
+            query[Membership].filter(m => m.userId == lift(userId) && liftQuery(postIds).contains(m.userId))
+          )
+        }
+      }
     }
 
     def addMemberEvenIfLocked(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId, accessLevel).map(_.nonEmpty)

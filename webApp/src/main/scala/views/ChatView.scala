@@ -7,7 +7,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
-import wust.ids.{JoinDate, Label}
+import wust.ids.{JoinDate, Label, AccessLevel}
 import wust.sdk.PostColor._
 import wust.webApp._
 import fontAwesome.{freeBrands, freeRegular, freeSolid}
@@ -41,26 +41,33 @@ object ChatView extends View {
     import state._
     div(
       padding := "5px 10px",
-      pageParentPosts.map(_.map { parent =>
-        div(
-          display.flex,
-          alignItems.center,
-          Avatar.post(parent.id)(
-            width := "40px",
-            height := "40px",
-            marginRight := "10px"
-          ),
-          showPostContent(parent.content)(fontSize := "20px"),
+      Rx {
+        val graph = rawGraph()
+        val parentPosts = page().parentIds.flatMap(id => rawGraph().postsById.get(id))
 
-          state.user.map { user =>
-            if (user.channelPostId == parent.id) Seq.empty
-            else Seq(
-              channelControl(state, parent)(ctx)(marginLeft := "5px"),
-              joinControl(state, parent)(ctx)(marginLeft := "5px"),
-              deleteButton(state, parent)(marginLeft := "5px"))
-          }
-        )
-      })
+        parentPosts.map { parent =>
+          val membership = graph.membershipById.get(user().id -> parent.id)
+
+          div(
+            display.flex,
+            alignItems.center,
+            Avatar.post(parent.id)(
+              width := "40px",
+              height := "40px",
+              marginRight := "10px"
+            ),
+            showPostContent(parent.content)(fontSize := "20px"),
+
+            membership.collect {
+              case membership if membership.level != AccessLevel.ReadWrite => VDomModifier(
+                channelControl(state, parent)(ctx)(marginLeft := "5px"),
+                joinControl(state, parent)(ctx)(marginLeft := "5px"),
+                deleteButton(state, parent)(marginLeft := "5px")
+              )
+            }
+          )
+        }
+      }
     )
   }
 

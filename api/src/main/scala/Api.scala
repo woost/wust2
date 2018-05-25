@@ -79,9 +79,6 @@ object ApiEvent {
 
   case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
   case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
-  object NewMembership {
-    def apply(userId:UserId, postId:PostId):NewMembership = new NewMembership(Membership(userId, postId))
-  }
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges

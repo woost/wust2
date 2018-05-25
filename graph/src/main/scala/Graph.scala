@@ -9,7 +9,7 @@ import cuid.Cuid
 import collection.mutable
 import collection.breakOut
 
-case class Membership(userId: UserId, postId: PostId)
+case class Membership(userId: UserId, postId: PostId, level: AccessLevel)
 sealed trait User {
   def id: UserId
   def name: String
@@ -130,6 +130,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val predecessorsWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.targetId, _.sourceId)
   lazy val neighboursWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
 
+  lazy val membershipById: Map[(UserId, PostId), Membership] = memberships.by(m => (m.userId, m.postId))
   lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.targetId, _.sourceId)
   lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.sourceId, _.targetId)
   lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](containments, _.targetId, _.sourceId)

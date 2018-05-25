@@ -71,7 +71,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         for {
           Some(user) <- db.user.get(newMemberId)
           added <- db.post.addMemberEvenIfLocked(postId, newMemberId, accessLevel)
-        } yield Returns(added, if(added) Seq(NewMembership(newMemberId, postId), NewUser(user)) else Nil)
+        } yield Returns(added, if(added) Seq(NewMembership(Membership(newMemberId, postId, accessLevel)), NewUser(user)) else Nil)
       }
     }
   }
@@ -106,10 +106,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     def defaultGraph = Future.successful(Graph.empty)
     if (page.parentIds.isEmpty) getPage(user.id, page).map(Returns(_))
     else for {
-      newMemberPostIds <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
+      newMemberships <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
       graph <- getPage(user.id, page)
     } yield {
-      Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
+      Returns(graph, newMemberships.map(NewMembership(_)))
     }
   }
 
