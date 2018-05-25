@@ -151,7 +151,7 @@ object GlobalState {
 
     // on initial page load we add the currently viewed page as a channel
     val changes = GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelPostId)
-    if (changes.nonEmpty) eventProcessor.changes.onNext(changes)
+    eventProcessor.changes.onNext(changes)
 
     //TODO: better build up state from server events?
     viewConfig.toObservable.combineLatest(state.user.toObservable).switchMap { case (viewConfig, user) =>
