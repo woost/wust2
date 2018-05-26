@@ -5,10 +5,15 @@ import outwatch.dom._
 import rx._
 import wust.api.ApiEvent
 import wust.graph.GraphChanges
+import org.scalajs.dom.experimental
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
 import scala.util.{Failure, Success}
+
+object SafeDom {
+  val Notification = experimental.Notification.asInstanceOf[js.UndefOr[experimental.Notification.type]]
+}
 
 object Navigator {
   import org.scalajs.dom.experimental.permissions._

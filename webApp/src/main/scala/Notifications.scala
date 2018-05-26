@@ -5,7 +5,9 @@ import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom.experimental.permissions._
 import org.scalajs.dom.experimental.push._
 import org.scalajs.dom.experimental.serviceworkers._
-import org.scalajs.dom.experimental.{Notification, NotificationOptions}
+import org.scalajs.dom.experimental.NotificationOptions
+import org.scalajs.dom.experimental
+import SafeDom._
 import org.scalajs.dom.window
 import outwatch.dom.dsl.events
 import wust.api._
@@ -34,15 +36,16 @@ object Notifications {
     subscribeAndPersistWebPush()
     // request notifications permissions as fallback if push permissions did not work in the browser.
     // if it worked, the notification permission are already granted, and will not really request.
-    Notification.requestPermission { (state: String) =>
+    Notification.foreach(_.requestPermission { (state: String) =>
       scribe.info(s"Requested notification permission: $state")
-    }
+    })
   }
 
-  def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(implicit ec: ExecutionContext): Unit =
-    if (Notification.permission.asInstanceOf[PermissionState] != PermissionState.granted) {
+  def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(implicit ec: ExecutionContext): Unit = Notification.toOption match {
+    case None => scribe.info(s"Notifications are not supported in browser, cannot send notification: $title")
+    case Some(n) if n.permission.asInstanceOf[PermissionState] != PermissionState.granted =>
       scribe.info(s"Notifications are not granted, cannot send notification: $title")
-    } else {
+    case Some(n) =>
       val options = NotificationOptions(
         body = body.orUndefined,
         tag = tag.orUndefined,
@@ -65,20 +68,24 @@ object Notifications {
     }
 
   private def permissionStateObservableOf(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Observable[PermissionState] = {
-    val subject = BehaviorSubject[PermissionState](Notification.permission.asInstanceOf[PermissionState])
-    permissions.foreach { (permissions: Permissions) =>
-      permissions.query(permissionDescriptor).toFuture.onComplete {
-        case Success(desc) =>
-          subject.onNext(desc.state)
-          desc.onchange = { _ =>
-            subject.onNext(desc.state)
+    Notification.toOption match {
+      case Some(n) =>
+        val subject = BehaviorSubject[PermissionState](n.permission.asInstanceOf[PermissionState])
+        permissions.foreach { (permissions: Permissions) =>
+          permissions.query(permissionDescriptor).toFuture.onComplete {
+            case Success(desc) =>
+              subject.onNext(desc.state)
+              desc.onchange = { _ =>
+                subject.onNext(desc.state)
+              }
+            case Failure(t) =>
+              scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
+              subject.onError(t)
           }
-        case Failure(t) =>
-          scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
-          subject.onError(t)
-      }
+        }
+      subject
+      case None => Observable.empty
     }
-    subject
   }
 
   private lazy val serverPublicKey = Client.push.getPublicKey()
@@ -129,6 +136,6 @@ object Notifications {
   }
 
   private def browserNotify(title: String, options: NotificationOptions): Unit = {
-    val n = new Notification(title, options)
+    val n = new experimental.Notification(title, options)
   }
 }
