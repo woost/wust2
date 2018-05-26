@@ -104,10 +104,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //therefore most calls to getgraph dont need membership+channel insert. this would improve performance.
   override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
-    if (page.parentIds.isEmpty) state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }.map(Returns(_))
+    if (page.parentIds.isEmpty) getPage(user.id, page).map(Returns(_))
     else for {
       newMemberPostIds <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
-      graph <- state.auth.dbUserOpt.fold(defaultGraph) { user => getPage(user.id, page) }
+      graph <- getPage(user.id, page)
     } yield {
       Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
     }
@@ -148,12 +148,13 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
   }
 
-  override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action { state =>
-    getPage(state.auth.user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
+  override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
+    getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
 
   override def log(message: String): ApiFunction[Boolean] = Action { state =>
-    ApiLogger.client.info(s"[${state.auth.user}] $message")
+    val msgId = state.auth.fold("anonymous")(_.user.id)
+    ApiLogger.client.info(s"[$msgId] $message")
     Future.successful(true)
   }
 
