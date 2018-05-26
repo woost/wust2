@@ -1,7 +1,7 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.Graph
+import wust.graph.{Graph, User}
 import wust.backend.auth.JWT
 import sloth._
 import covenant.core.api._
@@ -19,7 +19,7 @@ object Dsl extends ApiDsl[ApiEvent, ApiError, State] {
 class ApiConfiguration(guardDsl: GuardDsl, stateInterpreter: StateInterpreter, val eventDistributor: EventDistributor[ApiEvent, State])(implicit ec: ExecutionContext) extends WsApiConfiguration[ApiEvent, ApiError, State] with HttpApiConfiguration[ApiEvent, ApiError, State] {
   override def initialState: State = State.initial
   override def isStateValid(state: State): Boolean = state.auth match {
-    case auth: Authentication.Verified => !JWT.isExpired(auth)
+    case Some(auth: Authentication.Verified) => !JWT.isExpired(auth)
     case _ => true
   }
 
@@ -33,13 +33,16 @@ class ApiConfiguration(guardDsl: GuardDsl, stateInterpreter: StateInterpreter, v
   override def adjustIncomingEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =
     stateInterpreter.triggeredEvents(state, events)
 
+  //TODO should be option?
   override def requestToState(request: HttpRequest): Future[State] = {
-    request.headers.find(_.is("authorization")).map { authHeader =>
-      guardDsl.validAuthFromToken(authHeader.value).flatMap {
-        case Some(auth) => Future.successful(State(auth))
-        case None => Future.failed(new Exception("Invalid Authorization Header"))
-      }
-    }.getOrElse(Future.failed(new Exception("Missing Authorization Header")))
+    request.headers.find(_.is("authorization")) match {
+      case Some(authHeader) =>
+        guardDsl.validAuthFromToken(authHeader.value).flatMap {
+          case auth @ Some(_) => Future.successful(State(auth))
+          case None => Future.failed(new Exception("Invalid Authorization Header"))
+        }
+      case None => Future.successful(State(auth = None))
+    }
   }
   override def publishEvents(events: List[ApiEvent]): Unit = eventDistributor.publish(events)
 }

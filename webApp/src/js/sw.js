@@ -62,6 +62,10 @@ function currentAuth() {
 function getPublicKey() {
     return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST', body: '{}' }); // TODO: use empty payload?
 }
+const logToBackend = s => fetch(baseUrl + '/Api/log', {
+    method: 'POST',
+    body: JSON.stringify({ message: s })
+});
 
 function sendSubscriptionToBackend(subscription) {
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
@@ -99,6 +103,7 @@ self.registration.pushManager.getSubscription().then(sendSubscriptionToBackend, 
 // to test push renewal, trigger event manually:
 // setTimeout(() => self.dispatchEvent(new ExtendableEvent("pushsubscriptionchange")), 3000);
 
+// https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
     log("ServiceWorker received push notification", e);
     if(Notification.permission != "granted") {
@@ -151,7 +156,9 @@ self.addEventListener('notificationclick', e => {
 });
 
 //TODO: integration test!
+// https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('pushsubscriptionchange', e => {
+    logToBackend("ServiceWorker received pushsubscriptionchange event: " + JSON.stringify(e));
     log("ServiceWorker received pushsubscriptionchange event", e);
     // resubscribe and send new subscription to backend
     e.waitUntil(

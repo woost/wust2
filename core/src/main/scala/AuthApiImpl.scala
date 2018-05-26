@@ -16,11 +16,11 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
-    val newUser = state.auth.user match {
-      case User.Implicit(prevUserId, _, _, _) =>
+    val newUser = state.auth.map(_.user) match {
+      case Some(User.Implicit(prevUserId, _, _, _)) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
-      case User.Assumed(userId, channelPostId) => db.user(userId, name, digest, channelPostId)
+      case Some(User.Assumed(userId, channelPostId)) => db.user(userId, name, digest, channelPostId)
       case _ => db.user(UserId.fresh, name, digest, PostId.fresh)
     }
 
@@ -32,7 +32,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     val digest = passwordDigest(password)
     val newUser = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
-        state.auth.dbUserOpt match {
+        state.auth.flatMap(_.dbUserOpt) match {
           case Some(User.Implicit(prevUserId, _, _, _)) =>
             //TODO propagate new groups into state?
             //TODO: propagate name change to the respective groups and the connected clients

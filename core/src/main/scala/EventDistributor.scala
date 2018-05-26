@@ -51,9 +51,9 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }(breakOut)
 
     db.notifications.notifiedUsers(involvedPostIds).onComplete {
-      
+
       case Success(notifiedUsers) =>
-        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { postIds => 
+        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { postIds =>
           events.map{
             case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(postIds.toSet))
             case other => other
@@ -63,7 +63,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
         subscribers.foreach { client =>
           if (origin.fold(true)(_ != client))
             client.notify(stateFut => stateFut.map{ state =>
-              eventsByUser.getOrElse(state.auth.user.id, List.empty[ApiEvent])
+              state.auth.flatMap(auth => eventsByUser.get(auth.user.id)) getOrElse List.empty[ApiEvent]
             })
         }
 

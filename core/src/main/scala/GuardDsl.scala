@@ -22,7 +22,8 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
   implicit class GuardedOps[F[+_] : ApiData.MonadError](factory: ApiFunction.Factory[F]) {
     private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
-      Some(state.auth.user)
+      state.auth
+        .map(_.user)
         .collect(userf andThen (f(state, _)))
         .getOrElse(Future.successful(ApiData.MonadError.raiseError(ApiError.Unauthorized)))
     }
@@ -33,10 +34,9 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     def requireDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Persisted](f) { case u: User.Persisted => u }
 
     def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = ApiFunction.redirect(requireDbUser(f)) { state =>
-      val auth = state.auth.user match {
-        case user: User.Assumed => createImplicitAuth(user.id, user.name)
-        case _ => Future.successful(None)
-      }
+      val auth = state.auth.collect {
+        case Authentication.Assumed(user) => createImplicitAuth(user.id, user.name)
+      } getOrElse Future.successful(None)
 
       auth.map(auth => auth.map(ApiEvent.LoggedIn(_)).toSeq)
     }
