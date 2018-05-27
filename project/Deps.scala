@@ -89,4 +89,27 @@ object Deps {
   // NLP
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
   //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
+
+
+  object npm {
+    val webpackDependencies =
+      "webpack-closure-compiler" -> "2.1.6" ::
+      "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
+      "html-webpack-plugin" -> "3.2.0" ::
+      "html-webpack-include-assets-plugin" -> "1.0.4" ::
+      "clean-webpack-plugin" -> "0.1.19" ::
+      "zopfli-webpack-plugin" -> "0.1.0" ::
+      "brotli-webpack-plugin" -> "0.5.0" ::
+      "node-sass" -> "4.7.2" ::
+      "sass-loader" -> "6.0.7" ::
+      "css-loader" -> "0.28.11" ::
+      "style-loader" -> "0.20.3" ::
+      "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
+      "webpack-merge" -> "4.1.2" ::
+      "copy-webpack-plugin" -> "4.5.1" ::
+      "workbox-webpack-plugin" -> "3.2.0" ::
+      Nil
+
+    val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
+  }
 }
