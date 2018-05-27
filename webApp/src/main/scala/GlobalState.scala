@@ -205,6 +205,7 @@ object GlobalState {
       // rawPage.debug("rawPage")
       page.debug("page")
       view.debug("view")
+      user.debug("auth")
       // viewConfig.debug("viewConfig")
       //      currentUser.debug("\ncurrentUser")
 
