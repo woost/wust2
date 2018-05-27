@@ -14,8 +14,8 @@ import wust.webApp.views.Rendered._
 import cats.effect.IO
 
 trait AuthView extends View {
-  //TODO no boolean but adt
-  def isInitiallySignup: Boolean
+  //TODO no boolean but adt, simply two diffrent views
+  protected def isInitiallySignup: Boolean
 
   //TODO: we need the last view to return to it on success?
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = for {
@@ -24,6 +24,7 @@ trait AuthView extends View {
     password <- Handler.create[String]
     nameAndPassword <- IO(userName.combineLatest(password))
     elem <- div (
+      padding := "10px",
       maxWidth := "400px", width := "400px",
       maxHeight := "400px", height := "400px",
       margin := "auto",
@@ -39,7 +40,7 @@ trait AuthView extends View {
             h2("Create an account"),
             div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
             div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
-            button(cls := "ui fluid primary button", "Signup", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
+            button(cls := "ui fluid primary button", "Signup", display.block, margin := "auto", marginTop := "5px", onClick(nameAndPassword) --> actionSink),
             div(cls := "ui divider"),
             h3("Already have an account?", textAlign := "center"),
             button(cls := "ui fluid button", "Login with existing account", display.block, margin := "auto", onClick(false) --> isSignup)
@@ -55,7 +56,7 @@ trait AuthView extends View {
             h2("Login with existing account"),
             div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
             div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
-            button(cls := "ui fluid primary button", "Login", display.block, margin := "auto", onClick(nameAndPassword) --> actionSink),
+            button(cls := "ui fluid primary button", "Login", display.block, margin := "auto", marginTop := "5px", onClick(nameAndPassword) --> actionSink),
             div(cls := "ui divider"),
             h3("New to Woost?", textAlign := "center"),
             button(cls := "ui fluid button", "Create an account", display.block, margin := "auto", onClick(true) --> isSignup)
