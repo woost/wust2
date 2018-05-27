@@ -6,6 +6,7 @@ import monocle.macros.GenLens
 import org.scalajs.dom.{Event, window}
 import outwatch.ObserverSink
 import outwatch.dom._
+import outwatch.dom.dsl._
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
 import wust.api._
@@ -119,7 +120,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     }
   }
 
-  val jsErrors: Handler[Seq[String]] = Handler.create(Seq.empty[String]).unsafeRunSync()
+  val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
@@ -145,6 +146,7 @@ object GlobalState {
     import state._
 
     //TODO: better in rx/obs operations
+    // store auth in localstore and indexed db
     auth.foreach(auth => Client.storage.auth() = Some(auth))
     auth.foreach(IndexedDbOps.storeAuth)
 
@@ -153,6 +155,7 @@ object GlobalState {
     eventProcessor.changes.onNext(changes)
 
     //TODO: better build up state from server events?
+    // when the viewconfig or user changes, we get a new graph for the current page
     viewConfig.toObservable.combineLatest(state.user.toObservable).switchMap { case (viewConfig, user) =>
       val newGraph = Client.api.getGraph(viewConfig.page).map(ReplaceGraph(_))
       Observable.fromFuture(newGraph)
@@ -177,6 +180,10 @@ object GlobalState {
     // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
     // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
+    // notify user about new graph change events (this is the in-app
+    // notification, opposed to push notifications coming from the
+    // servieworker. the serviceworker will not show push notifications if a
+    // client is currently running.
     Client.observable.event.foreach { events =>
       val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
       if (changes.addPosts.nonEmpty) {
@@ -186,15 +193,12 @@ object GlobalState {
       }
     }
 
+    // we send client errors from javascript to the backend
+    jsErrors.foreach { msg =>
+      Client.api.log(s"Javascript Error: $msg")
+    }
+
     DevOnly {
-      val errorMessage = Observable.create[String](Unbounded) { observer =>
-        window.onerror = { (msg: Event, source: String, line: Int, col: Int, _: Any) =>
-          //TODO: send and log production js errors in backend
-          observer.onNext(msg.toString)
-        }
-        Cancelable()
-      }
-      (jsErrors <-- errorMessage.scan(Vector.empty[String])((acc, msg) => acc :+ msg)).unsafeRunSync
 
       rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}")
       //      collapsedPostIds.debug("collapsedPostIds")
