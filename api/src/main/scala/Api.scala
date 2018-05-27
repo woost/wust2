@@ -43,6 +43,7 @@ trait AuthApi[Result[_]] {
   def issuePluginToken(): Result[Authentication.Verified]
 }
 
+//TODO: anyval those hierarchies!
 sealed trait Authentication {
   def user: User
   def dbUserOpt: Option[User.Persisted] = Some(user) collect { case u: User.Persisted => u }
