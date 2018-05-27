@@ -24,8 +24,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val sidebarOpen: Var[Boolean] = Client.storage.sidebarOpen
   val syncDisabled = syncMode.map(_ != SyncMode.Live)
 
-  val viewConfigSetFromUrl = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
-  val viewConfig: Var[ViewConfig] = viewConfigSetFromUrl.imap(identity)(identity)
+  val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
