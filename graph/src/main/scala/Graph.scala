@@ -17,35 +17,8 @@ sealed trait User {
 }
 object User {
   sealed trait Persisted extends User
-  case class Real(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted {
-    def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
-
-    override def equals(other: Any): Boolean = other match {
-      case that: Real =>
-        (that canEqual this) &&
-          id == that.id &&
-          revision == that.revision
-      case _ => false
-    }
-
-    override def hashCode(): Int = (id, revision).hashCode
-  }
-
-  case class Implicit(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted {
-    def canEqual(other: Any): Boolean = other.isInstanceOf[Real]
-
-    override def equals(other: Any): Boolean = other match {
-      case that: Real =>
-        (that canEqual this) &&
-          id == that.id &&
-          revision == that.revision
-      case _ => false
-    }
-
-    override def hashCode(): Int = (id, revision).hashCode
-
-  }
-
+  case class Real(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted
+  case class Implicit(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted
   case class Assumed(id: UserId, channelPostId: PostId) extends User {
     def name = s"anon-$id"
   }
