@@ -13,66 +13,72 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import cats.effect.IO
 
-trait AuthView extends View {
-  //TODO no boolean but adt, simply two diffrent views
-  protected def isInitiallySignup: Boolean
+import scala.concurrent.Future
 
-  //TODO: we need the last view to return to it on success?
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = for {
-    isSignup <- Handler.create[Boolean](isInitiallySignup)
-    userName <- Handler.create[String]
-    password <- Handler.create[String]
-    nameAndPassword <- IO(userName.combineLatest(password))
-    elem <- div (
-      padding := "10px",
-      maxWidth := "400px", width := "400px",
-      maxHeight := "400px", height := "400px",
-      margin := "auto",
-      isSignup.map {
-        case true =>
-          val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
-            case (userName, password) =>  Client.auth.register(userName, password).foreach {
-              case true => state.viewConfig() = state.viewConfig.now.noOverlayView
-              case false => ()
-            }
-          }
-          form(
-            h2("Create an account"),
-            div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
-            div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
-            button(cls := "ui fluid primary button", "Signup", display.block, margin := "auto", marginTop := "5px", onClick(nameAndPassword) --> actionSink),
-            div(cls := "ui divider"),
-            h3("Already have an account?", textAlign := "center"),
-            button(cls := "ui fluid button", "Login with existing account", display.block, margin := "auto", onClick(false) --> isSignup)
-          )
-        case false =>
-          val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
-            case (userName, password) =>  Client.auth.login(userName, password).foreach {
-              case true => state.viewConfig() = state.viewConfig.now.noOverlayView
-              case false => ()
-            }
-          }
-          form(
-            h2("Login with existing account"),
-            div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
-            div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
-            button(cls := "ui fluid primary button", "Login", display.block, margin := "auto", marginTop := "5px", onClick(nameAndPassword) --> actionSink),
-            div(cls := "ui divider"),
-            h3("New to Woost?", textAlign := "center"),
-            button(cls := "ui fluid button", "Create an account", display.block, margin := "auto", onClick(true) --> isSignup)
-          )
+object AuthView {
+  def apply(state: GlobalState)(
+    header: String,
+    submitText: String,
+    submitAction: (String, String) => Future[Boolean], //TODO Future[View] or something to show inner error?
+    alternativeHeader: String,
+    alternativeView: View,
+    alternativeText: String
+  )(implicit ctx: Ctx.Owner): VNode = {
+    val actionSink: Sink[(String,String)] = sideEffect[(String, String)] {
+      case (userName, password) =>  submitAction(userName, password).foreach {
+        case true => state.viewConfig() = state.viewConfig.now.noOverlayView
+        case false => () //TODO inform user!
       }
-    )
-  } yield elem
+    }
+
+    for {
+        userName <- Handler.create[String]
+        password <- Handler.create[String]
+        viewConfig = state.viewConfig.toObservable
+        nameAndPassword <- IO(userName.combineLatest(password))
+        elem <- div (
+          padding := "10px",
+          maxWidth := "400px", width := "400px",
+          maxHeight := "400px", height := "400px",
+          margin := "auto",
+          form(
+            h2(header),
+            div(cls := "ui fluid input", input(tpe := "text", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
+            div(cls := "ui fluid input", input(tpe := "password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
+            button(cls := "ui fluid primary button", submitText, display.block, margin := "auto", marginTop := "5px", onClick(nameAndPassword) --> actionSink),
+            div(cls := "ui divider"),
+            h3(alternativeHeader, textAlign := "center"),
+            state.viewConfig.map { cfg =>
+              viewConfigLink(cfg.copy(view = alternativeView))(cls := "ui fluid button", alternativeText, display.block, margin := "auto")
+            }
+          )
+        )} yield elem
+  }
 }
 
-object LoginView extends AuthView {
-  val isInitiallySignup: Boolean = false
+object LoginView extends View {
   val key = "login"
   val displayName = "Login"
+
+  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
+    AuthView(state)(
+      header = "Login with existing account",
+      submitText = "Login",
+      submitAction = Client.auth.login,
+      alternativeHeader = "New to Woost?",
+      alternativeView = SignupView,
+      alternativeText = "Create an account")
 }
-object SignupView extends AuthView {
-  val isInitiallySignup: Boolean = true
+object SignupView extends View {
   val key = "signup"
   val displayName = "Signup"
+
+  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
+    AuthView(state)(
+      header = "Create an account",
+      submitText = "Signup",
+      submitAction = Client.auth.register,
+      alternativeHeader = "Already have an account?",
+      alternativeView = LoginView,
+      alternativeText = "Login with existing account")
 }
