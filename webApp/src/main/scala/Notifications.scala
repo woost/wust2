@@ -50,7 +50,7 @@ object Notifications {
         body = body.orUndefined,
         tag = tag.orUndefined,
         renotify = tag.isDefined,
-        icon = "icon.ico"
+        icon = "favicon.ico"
       )
 
       serviceWorker match {

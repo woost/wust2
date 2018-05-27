@@ -30,7 +30,7 @@ const extraAssets = [ loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f)
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost-DEV',
     template: Path.join(dirs.assets, 'index.template.html'),
-    favicon: Path.join(dirs.assets, 'icon.ico'),
+    favicon: Path.join(dirs.assets, 'favicon.ico'),
     showErrors: true
 }));
 module.exports.plugins.push(new HtmlAssetsPlugin({ assets: extraAssets, append: true }))

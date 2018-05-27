@@ -3,29 +3,17 @@
   "short_name": "Woost",
   "start_url": "./",
   "display": "minimal-ui",
-  "theme_color": "#007bff",
+  "theme_color": "#784DB8",
   "background_color": "#fff",
-  "description": "communication and collaboration",
+  "description": "Collaborative Communication",
   "icons": [
     {
-        "src": "icon.ico",
-        "sizes": "64x64"
-    },
-    {
-        "src": "icon-144.png",
-        "sizes": "144x144"
-    },
-    {
-        "src": "icon-192.png",
-        "sizes": "192x192"
-    },
-    {
-        "src": "icon-512.png",
-        "sizes": "512x512"
+        "src": "favicon.ico",
+        "sizes": "32x32"
     },
     {
         "src": "icon.svg",
-        "sizes": "513x513"
+        "sizes": "33x33"
     }
   ],
   "related_applications": []

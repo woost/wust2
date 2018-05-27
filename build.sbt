@@ -110,7 +110,7 @@ lazy val webSettings = Seq(
     npmDevDependencies in Compile ++=
       "webpack-closure-compiler" -> "2.1.6" ::
       "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
-      "html-webpack-plugin" -> "3.1.0" ::
+      "html-webpack-plugin" -> "3.2.0" ::
       "html-webpack-include-assets-plugin" -> "1.0.4" ::
       "clean-webpack-plugin" -> "0.1.19" ::
       "zopfli-webpack-plugin" -> "0.1.0" ::
