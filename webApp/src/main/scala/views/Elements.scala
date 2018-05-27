@@ -8,7 +8,7 @@ import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.reactive.Observer
-import wust.graph.PostContent
+import wust.ids.PostContent
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.window
 import views.MediaViewer

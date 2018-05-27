@@ -86,8 +86,8 @@ sealed trait RestructuringTask {
   def transferChildrenAndParents(graph: Graph, source: PostId, target: PostId): Set[Connection] = {
     val sourceChildren = graph.getChildren(source)
     val sourceParents = graph.getParents(source)
-    val childrenConnections = sourceChildren.map(child => Connection(child, Label.parent, target))
-    val parentConnections = sourceParents.map(parent => Connection(target, Label.parent, parent))
+    val childrenConnections = sourceChildren.map(child => Connection(child, ConnectionContent.Parent, target))
+    val parentConnections = sourceParents.map(parent => Connection(target, ConnectionContent.Parent, parent))
 
     childrenConnections ++ parentConnections
   }
@@ -281,7 +281,7 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
     val connectionsToAdd = for {
       t <- posts.drop(1) if t.id != source.id
     } yield {
-        Connection(source.id, Label("related"), t.id)
+        Connection(source.id, ConnectionContent.Text("related"), t.id)
       }
     GraphChanges(addConnections = connectionsToAdd.toSet)
   }
@@ -343,7 +343,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
         s <- sourcePosts
         t <- targetPosts if s.id != t.id
       } yield {
-        Connection(s.id, Label(tag), t.id)
+        Connection(s.id, ConnectionContent.Text(tag), t.id)
       }
 
       val changes = GraphChanges(
@@ -411,7 +411,7 @@ case class ContainPosts(posts: Posts) extends YesNoTask
     val containmentsToAdd = for {
       s <- posts.drop(1) if s.id != target.id
     } yield {
-        Connection(s.id, Label.parent, target.id)
+        Connection(s.id, ConnectionContent.Parent, target.id)
     }
 
     GraphChanges(addConnections = containmentsToAdd.toSet)
@@ -677,7 +677,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     if(previewPosts.isEmpty) return GraphChanges.empty
 
     val keepRelatives = originalPosts.flatMap(originalPost => previewPosts.last.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
-    val newConnections = originalPosts.flatMap(originalPost => previewPosts.last.map(p => Connection(p.id, Label("splitFrom"), originalPost.id))).toSet
+    val newConnections = originalPosts.flatMap(originalPost => previewPosts.last.map(p => Connection(p.id, ConnectionContent.Text("splitFrom"), originalPost.id))).toSet
     val newPosts = originalPosts.flatMap(originalPost => previewPosts.last.filter(_.id != originalPost.id)).toSet
     GraphChanges(
       addPosts = newPosts,
@@ -773,13 +773,13 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
         case None =>
           val newTag = Post(PostId.fresh, PostContent.Markdown(tag), state.user.now.id)
           val newParent = state.page.now.parentIds
-          val postTag = post.map(p => Connection(p.id, Label.parent, newTag.id))
+          val postTag = post.map(p => Connection(p.id, ConnectionContent.Parent, newTag.id))
           GraphChanges(
             addPosts = Set(newTag),
-            addConnections = newParent.map(parent => Connection(newTag.id, Label.parent, parent)).toSet ++ postTag
+            addConnections = newParent.map(parent => Connection(newTag.id, ConnectionContent.Parent, parent)).toSet ++ postTag
           )
         case Some(t) =>
-          post.map(p => GraphChanges.connect(p.id, Label.parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
+          post.map(p => GraphChanges.connect(p.id, ConnectionContent.Parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
       }
 
       RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, tagPostWithParents))

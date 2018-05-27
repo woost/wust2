@@ -14,8 +14,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit class ContainmentBuilder(parentId: Int) {
     def cont(childId: Int) = Containment(parentId, childId);
   }
-  def Connection(sourceId: PostId, targetId: PostId) = new Connection(sourceId, Label("connector"), targetId)
-  def Containment(parentId: PostId, childId: PostId) = new Connection(childId, Label.parent, parentId)
+  def Connection(sourceId: PostId, targetId: PostId) = new Connection(sourceId, ConnectionContent.Text("connector"), targetId)
+  def Containment(parentId: PostId, childId: PostId) = new Connection(childId, ConnectionContent.Parent, parentId)
 
   "graph" - {
     "empty is empty" in {

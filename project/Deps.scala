@@ -35,6 +35,7 @@ object Deps {
     private val version = "0.9.3"
     val core = dep("io.circe" %%% "circe-core" % version)
     val generic = dep("io.circe" %%% "circe-generic" % version)
+    val genericExtras = dep("io.circe" %%% "circe-generic-extras" % version)
     val parser = dep("io.circe" %%% "circe-parser" % version)
     val shapes = dep("io.circe" %%% "circe-shapes" % version)
   }

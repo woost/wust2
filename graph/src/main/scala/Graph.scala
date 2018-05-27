@@ -24,28 +24,6 @@ object User {
   }
 }
 
-sealed trait PostContent {
-  def str: String
-}
-object PostContent {
-  //TODO with auto detection of type?: def fromString(content: String)
-
-  case class Markdown(content: String) extends PostContent {
-    def str = content
-  }
-  case class Text(content: String) extends PostContent {
-    def str = content
-  }
-  case class Link(url: String) extends PostContent {
-    //TODO: require url format?
-    def str = url
-  }
-  case object Channels extends PostContent {
-    def str = "Channels"
-  }
-}
-
-
 //TODO: rename Post -> Item?
 final case class Post(id: PostId, content: PostContent, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel)
 //TODO: get rid of timestamp created/modified and author. should be relations.
@@ -65,7 +43,7 @@ object Post {
   }
 }
 
-final case class Connection(sourceId: PostId, label:Label, targetId: PostId)
+final case class Connection(sourceId: PostId, content: ConnectionContent, targetId: PostId)
 
 object Graph {
   def empty = new Graph(Map.empty, Map.empty, Map.empty, Set.empty)
@@ -78,7 +56,7 @@ object Graph {
   ): Graph = {
     new Graph(
       posts.by(_.id),
-      connections.groupBy(_.label).map{case (label,conns) => label -> conns.toSet}, //TODO: abc
+      connections.groupBy(_.content.tpe).map{case (tpe,conns) => tpe -> conns.toSet}, //TODO: abc
       users.by(_.id),
       memberships.toSet
     )
@@ -87,7 +65,7 @@ object Graph {
 
 final case class Graph( //TODO: costom pickler over lists instead of maps to save traffic
   postsById:    Map[PostId, Post],
-  connectionsByLabel:  Map[Label, Set[Connection]],
+  connectionsByType:  Map[ConnectionContent.Type, Set[Connection]],
   usersById:    Map[UserId, User],
   memberships:  Set[Membership]
 ) {
@@ -96,13 +74,13 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val size: Int = postsById.keys.size
   lazy val length: Int = size
 
-  private val connectionsByLabelF: (Label) => Set[Connection] = connectionsByLabel.withDefaultValue(Set.empty)
+  private val connectionsByTypeF: (ConnectionContent.Type) => Set[Connection] = connectionsByType.withDefaultValue(Set.empty)
 
   lazy val chronologicalPostsAscending: IndexedSeq[Post] = posts.toIndexedSeq.sortBy(p => p.created : EpochMilli.Raw)
 
-  lazy val connections:Set[Connection] = connectionsByLabel.values.flatMap(identity)(breakOut)
-  lazy val connectionsWithoutParent: Set[Connection] = (connectionsByLabel - Label.parent).values.flatMap(identity)(breakOut)
-  lazy val containments: Set[Connection] = connectionsByLabelF(Label.parent)
+  lazy val connections:Set[Connection] = connectionsByType.values.flatMap(identity)(breakOut)
+  lazy val connectionsWithoutParent: Set[Connection] = (connectionsByType - ConnectionContent.Parent.tpe).values.flatMap(identity)(breakOut)
+  lazy val containments: Set[Connection] = connectionsByTypeF(ConnectionContent.Parent.tpe)
   lazy val posts: Iterable[Post] = postsById.values
   lazy val postIds: Iterable[PostId] = postsById.keys
   lazy val users: Iterable[User] = usersById.values
@@ -119,7 +97,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   override def toString: String =
     s"Graph(${posts.map(_.id.takeRight(4)).mkString(" ")}, " +
-    s"${connectionsByLabel.values.flatten.map(c => s"${c.sourceId.takeRight(4)}-[${c.label}]->${c.targetId.takeRight(4)}").mkString(", ")}, " +
+    s"${connectionsByType.values.flatten.map(c => s"${c.sourceId.takeRight(4)}-[${c.content}]->${c.targetId.takeRight(4)}").mkString(", ")}, " +
     s"users: ${userIds.map(_.takeRight(4))}, " +
     s"memberships: ${memberships.map(o => s"${o.userId.takeRight(4)} -> ${o.postId.takeRight(4)}").mkString(", ")})"
 
@@ -209,9 +187,9 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   def -(postId: PostId): Graph = removePosts(postId :: Nil)
   def -(connection: Connection): Graph = copy(
-    connectionsByLabel = connectionsByLabel.updated(
-      connection.label,
-      connectionsByLabelF(connection.label) - connection
+    connectionsByType = connectionsByType.updated(
+      connection.content.tpe,
+      connectionsByTypeF(connection.content.tpe) - connection
     )
   )
 
@@ -221,7 +199,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
     copy(
       postsById = newPostsById,
-      connectionsByLabel = connectionsByLabel.mapValues(_.filter(c => exists(c.sourceId) && exists(c.targetId))).filter(_._2.nonEmpty),
+      connectionsByType = connectionsByType.mapValues(_.filter(c => exists(c.sourceId) && exists(c.targetId))).filter(_._2.nonEmpty),
       memberships = memberships.filter { m => exists(m.postId) }
     )
   }
@@ -231,12 +209,12 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
     copy(
       postsById = postsById -- ps,
-      connectionsByLabel = connectionsByLabel.mapValues( _.filterNot( c => postIds(c.sourceId) || postIds(c.targetId)) ).filter(_._2.nonEmpty),
+      connectionsByType = connectionsByType.mapValues( _.filterNot( c => postIds(c.sourceId) || postIds(c.targetId)) ).filter(_._2.nonEmpty),
       memberships = memberships.filterNot { m => postIds(m.postId) }
     )
   }
 
-  def removeConnections(cs: Iterable[Connection]): Graph = copy(connectionsByLabel = connectionsByLabel.mapValues(_ -- cs).filter(_._2.nonEmpty))
+  def removeConnections(cs: Iterable[Connection]): Graph = copy(connectionsByType = connectionsByType.mapValues(_ -- cs).filter(_._2.nonEmpty))
   def removeMemberships(cs: Iterable[Membership]): Graph = copy(memberships = memberships -- cs)
   def addPosts(cs: Iterable[Post]): Graph = copy(postsById = postsById ++ cs.map(p => p.id -> p))
   def addConnections(cs: Iterable[Connection]): Graph = cs.foldLeft(this)((g,c) => g + c) // todo: more efficient
@@ -245,18 +223,18 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def applyChanges(c: GraphChanges): Graph = {
     copy(
       postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
-      connectionsByLabel =
-        connectionsByLabel.map { case (k, v) => k -> v.filterNot(c.delConnections) } ++
-          c.addConnections.groupBy(_.label).collect { case (k, v) => k -> (v ++ connectionsByLabelF(k)).filterNot(c.delConnections) },
+      connectionsByType =
+        connectionsByType.map { case (k, v) => k -> v.filterNot(c.delConnections) } ++
+          c.addConnections.groupBy(_.content.tpe).collect { case (k, v) => k -> (v ++ connectionsByTypeF(k)).filterNot(c.delConnections) },
       memberships = memberships.filterNot(m => c.delPosts.contains(m.postId))
     )
   }
 
   def +(post: Post): Graph = copy(postsById = postsById + (post.id -> post))
   def +(connection: Connection): Graph = copy(
-    connectionsByLabel = connectionsByLabel.updated(
-      connection.label,
-      connectionsByLabelF(connection.label) + connection
+    connectionsByType = connectionsByType.updated(
+      connection.content.tpe,
+      connectionsByTypeF(connection.content.tpe) + connection
     )
   )
 
@@ -265,19 +243,19 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   def +(other: Graph): Graph = copy (
     postsById ++ other.postsById,
-    connectionsByLabel ++ other.connectionsByLabel,
+    connectionsByType ++ other.connectionsByType,
     usersById ++ other.usersById,
     memberships ++ other.memberships
   )
 
   lazy val consistent: Graph = {
-    val filteredConnections = connectionsByLabel.mapValues(_.filter(c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId)).filter(_._2.nonEmpty)
+    val filteredConnections = connectionsByType.mapValues(_.filter(c => postsById.isDefinedAt(c.sourceId) && postsById.isDefinedAt(c.targetId) && c.sourceId != c.targetId)).filter(_._2.nonEmpty)
     val filteredMemberships = memberships.filter { m => usersById.isDefinedAt(m.userId) && postsById.isDefinedAt(m.postId) }
 
-    if (connectionsByLabel.values.flatten.size != filteredConnections.values.flatten.size ||
+    if (connectionsByType.values.flatten.size != filteredConnections.values.flatten.size ||
       memberships.size != filteredMemberships.size)
       copy(
-        connectionsByLabel = filteredConnections,
+        connectionsByType = filteredConnections,
         memberships = filteredMemberships
       )
     else

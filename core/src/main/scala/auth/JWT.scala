@@ -1,7 +1,7 @@
 package wust.backend.auth
 
 import pdi.jwt.{JwtCirce, JwtAlgorithm, JwtClaim}
-import wust.api._, serialize.Circe._
+import wust.api._, wust.api.serialize.Circe._
 import wust.backend.config.Config
 import wust.graph.User
 import wust.ids._

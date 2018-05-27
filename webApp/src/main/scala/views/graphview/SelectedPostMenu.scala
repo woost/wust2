@@ -68,13 +68,13 @@ object SelectedPostMenu {
             span("×", onClick --> sideEffect {
               val addedGrandParents: Set[Connection] = {
                 if (parents.size == 1)
-                  state.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxPost.now.id, Label.parent, _))
+                  state.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxPost.now.id, ConnectionContent.Parent, _))
                 else
                   Set.empty
               }
 
               state.eventProcessor.changes.onNext(GraphChanges(
-                delConnections = Set(Connection(rxPost.now.id, Label.parent, p.id)),
+                delConnections = Set(Connection(rxPost.now.id, ConnectionContent.Parent, p.id)),
                 addConnections = addedGrandParents
               ))
               ()
@@ -100,7 +100,7 @@ object SelectedPostMenu {
       val author = state.user.now
       val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
 
-      val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, Label.parent, rxPost.now.id)))
+      val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, ConnectionContent.Parent, rxPost.now.id)))
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
@@ -112,8 +112,8 @@ object SelectedPostMenu {
       val changes = GraphChanges(
         addPosts = Set(newPost),
         addConnections = Set(
-          Connection(rxPost.now.id, Label("related"), newPost.id)
-        ) ++ state.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, Label.parent, parentId))
+          Connection(rxPost.now.id, ConnectionContent.Text("related"), newPost.id)
+        ) ++ state.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, ConnectionContent.Parent, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }

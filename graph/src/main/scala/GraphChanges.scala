@@ -9,6 +9,7 @@ case class GraphChanges(
   addConnections:  Set[Connection]  = Set.empty,
   updatePosts:     Set[Post]        = Set.empty,
   delPosts:        Set[PostId]      = Set.empty,
+  // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
   delConnections:  Set[Connection]  = Set.empty
 ) {
   def merge(other: GraphChanges): GraphChanges = {
@@ -66,34 +67,34 @@ object GraphChanges {
 
   def addPost(content: PostContent, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
   def addPost(post:Post) = GraphChanges(addPosts = Set(post))
-  def addPostWithParent(post:Post, parentId:PostId) = GraphChanges(addPosts = Set(post), addConnections = Set(Connection(post.id, Label.parent, parentId)))
+  def addPostWithParent(post:Post, parentId:PostId) = GraphChanges(addPosts = Set(post), addConnections = Set(Connection(post.id, ConnectionContent.Parent, parentId)))
 
   def updatePost(post:Post) = GraphChanges(updatePosts = Set(post))
 
   def addToParent(postIds:Iterable[PostId], parentId:PostId) = GraphChanges(
     addConnections = postIds.map { channelId =>
-      Connection(channelId, Label.parent, parentId)
+      Connection(channelId, ConnectionContent.Parent, parentId)
     }(breakOut)
   )
 
   def delete(post:Post) = GraphChanges(delPosts = Set(post.id))
   def delete(postId:PostId) = GraphChanges(delPosts = Set(postId))
 
-  def connect(source:PostId, label:Label, target:PostId) = GraphChanges(addConnections = Set(Connection(source, label, target)))
-  def disconnect(source:PostId, label:Label, target:PostId) = GraphChanges(delConnections = Set(Connection(source, label, target)))
+  def connect(source:PostId, content:ConnectionContent, target:PostId) = GraphChanges(addConnections = Set(Connection(source, content, target)))
+  def disconnect(source:PostId, content: ConnectionContent, target:PostId) = GraphChanges(delConnections = Set(Connection(source, content, target)))
 
   def moveInto(graph:Graph, subject:PostId, target:PostId) = {
     // TODO: only keep deepest parent in transitive chain
-    val newContainments = Set(Connection(subject, Label.parent, target))
+    val newContainments = Set(Connection(subject, ConnectionContent.Parent, target))
     val removeContainments:Set[Connection] = if (graph.ancestors(target).toSet contains subject) { // creating cycle
       Set.empty // remove nothing, because in cycle
     } else { // no cycle
-      (graph.parents(subject) map (Connection(subject, Label.parent, _))) - newContainments.head
+      (graph.parents(subject) map (Connection(subject, ConnectionContent.Parent, _))) - newContainments.head
     }
     GraphChanges(addConnections = newContainments, delConnections = removeContainments)
   }
 
   def tagWith(graph:Graph, subject:PostId, tag:PostId) = {
-    GraphChanges.connect(subject, Label.parent, tag)
+    GraphChanges.connect(subject, ConnectionContent.Parent, tag)
   }
 }

@@ -7,9 +7,8 @@ import akka.http.scaladsl.marshalling.{Marshaller, ToResponseMarshaller}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import wust.api._
-import serialize.Boopickle._
-import serialize.Circe._
-import wust.ids._
+import wust.api.serialize.Boopickle._
+import wust.api.serialize.Circe._
 import wust.backend.Dsl._
 import wust.backend.auth._
 import wust.backend.config.Config
@@ -26,7 +25,7 @@ import boopickle.Default._
 import chameleon.ext.circe._
 import io.circe._
 import io.circe.syntax._
-import io.circe.generic.auto._
+import io.circe.generic.extras.auto._
 import wust.util.RichFuture
 import cats.implicits._
 import monix.execution.Scheduler

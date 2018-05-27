@@ -16,7 +16,7 @@ import wust.sdk.PostColor._
 import wust.webApp.GlobalState
 import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
-import wust.ids.{Label, PostId}
+import wust.ids.{ConnectionContent, PostId}
 import wust.webApp.outwatchHelpers._
 import wust.util.time.time
 import wust.webApp.views.Rendered._
@@ -59,8 +59,9 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
   val postCreationMenus:Var[List[Vec2]] = Var(Nil)
   val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
 
-  private var labelVisualization: PartialFunction[Label,VisualizationType] = {
-    case label if label == Label.parent => Containment
+  //TODO why partial?
+  private var labelVisualization: PartialFunction[ConnectionContent.Type,VisualizationType] = {
+    case ConnectionContent.Parent.tpe => Containment
     case label => Edge
   }
   private var postSelection: Selection[Post] = _

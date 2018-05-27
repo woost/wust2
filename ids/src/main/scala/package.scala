@@ -18,18 +18,6 @@ package object ids {
   }
   type UserId = UserId.Type
 
-  object Label extends TaggedType[String] {
-    val parent = Label("parent")
-    object meta {
-      val author = Label("meta:author")
-    }
-    val isMeta: Label => Boolean = {
-      case label if label.startsWith("meta:") => true
-      case _ => false
-    }
-  }
-  type Label = Label.Type
-
   object EpochMilli extends TaggedType[Long] {
     def now:EpochMilli = EpochMilli(System.currentTimeMillis())
     def from(time:String) = EpochMilli(Instant.parse(time).toEpochMilli)

@@ -29,7 +29,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     val changesAreAllowed = {
       val addPosts = changes.flatMap(_.addPosts)
       val conns = changes.flatMap(c => c.addConnections ++ c.delConnections)
-      addPosts.forall(_.author == user.id) && conns.forall(c => !Label.isMeta(c.label))
+      //TODO check conns
+      addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
     }
 
     if (changesAreAllowed) {

@@ -4,7 +4,7 @@ import com.raquo.domtypes.generic.codecs.BooleanAsAttrPresenceCodec
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.BasicAttrBuilder
-import wust.graph.PostContent
+import wust.ids.PostContent
 
 import scala.util.matching.Regex
 

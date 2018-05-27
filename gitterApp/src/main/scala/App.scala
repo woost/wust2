@@ -44,7 +44,7 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
   def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
     println(s"new message: ${msg.content}")
     val post = Post(PostId.fresh, PostContent.Markdown(msg.content), author)
-    val connection = Connection(post.id, Label.parent, Constants.gitterId)
+    val connection = Connection(post.id, ConnectionContent.Parent, Constants.gitterId)
 
     val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
     client.api.changeGraph(changes).map { success =>

@@ -16,11 +16,11 @@
 
 //   implicit class RichConnection(con: Connection) {
 //     def toLocal = {
-//       if (con.label != Label.parent) throw new Exception("Connection is not containment!")
+//       if (con.label != Label.Parent) throw new Exception("Connection is not containment!")
 //       LocalConnection(con.sourceId, con.label, con.targetId)
 //     }
 //   }
-//   def Containment(ts: (Int, Int)): Connection = new Connection(ts._2.toString, Label.parent, ts._1.toString)
+//   def Containment(ts: (Int, Int)): Connection = new Connection(ts._2.toString, Label.Parent, ts._1.toString)
 //   def Connection(ts: (Int, Int)): Connection = new Connection(ts._1.toString, "a-test-label", ts._2.toString)
 
 //   "collapse" - {
@@ -446,7 +446,7 @@
 //           List(containment1, containment2, containment3) ::: List(connection)
 //         )
 //         collapse(Set(1), graph) mustEqual dg(graph - containment1, collapsedContainments = Set(containment1.toLocal))
-//         collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalConnection(11, Label.parent, 2)))
+//         collapse(Set(2), graph) mustEqual dg(graph - PostId(3), collapsedContainments = Set(LocalConnection(11, Label.Parent, 2)))
 //         collapse(Set(3), graph) mustEqual dg(graph - containment3, collapsedContainments = Set(containment3.toLocal))
 //         collapse(Set(1, 2), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 2))
 //         collapse(Set(1, 2, 3), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 2))
@@ -462,7 +462,7 @@
 //           posts = List(1, 2, 3, 4, 11, 20),
 //           List(containment1, containment2, containment3, containment4) ::: List(connection)
 //         )
-//         collapse(Set(1, 2), graph) mustEqual dg(graph - containment1- containment2, collapsedContainments = Set(containment1.toLocal, containment2.toLocal, LocalConnection(11, Label.parent, 2)))
+//         collapse(Set(1, 2), graph) mustEqual dg(graph - containment1- containment2, collapsedContainments = Set(containment1.toLocal, containment2.toLocal, LocalConnection(11, Label.Parent, 2)))
 //         collapse(Set(1, 2, 3), graph) mustEqual dg((graph removePosts PostIds(11)) - containment2, Set(20 -> 1, 20 -> 3), collapsedContainments = Set(containment2.toLocal))
 //         collapse(Set(1, 3), graph) mustEqual dg(graph removePosts PostIds(11), Set(20 -> 1, 20 -> 3))
 //         collapse(Set(1, 2, 4), graph) mustEqual dg(graph removePosts PostIds(3, 11), Set(20 -> 1, 20 -> 4, 20 -> 2))

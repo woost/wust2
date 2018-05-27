@@ -56,7 +56,7 @@ object Collapse {
       graph.incidentConnections(post).flatMap { c =>
         //TODO: assert(c.targetId is PostId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId)) yield {
-          LocalConnection(sourceId = altSource, Label("redirected"), targetId = altTarget)
+          LocalConnection(sourceId = altSource, ConnectionContent.Text("redirected"), targetId = altTarget)
         }
       }
     }(breakOut): Set[LocalConnection])
@@ -72,7 +72,7 @@ object Collapse {
         hiddenPosts(child) ||
           (!(graph.children(parent) contains child) && graph.involvedInContainmentCycle(child))
       }
-      visibleChildren.map(LocalConnection(_, Label.parent, parent))
+      visibleChildren.map(LocalConnection(_, ConnectionContent.Parent, parent))
     }
   }
 

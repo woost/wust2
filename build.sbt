@@ -26,6 +26,7 @@ lazy val commonSettings = Seq(
 
   libraryDependencies ++=
     Deps.scribe.value ::
+    Deps.sourcecode.value ::
     Deps.scalatest.value % Test ::
     Deps.mockito.value % Test ::
     Nil,
@@ -34,6 +35,7 @@ lazy val commonSettings = Seq(
     Deps.circe.core.value,
     Deps.circe.parser.value,
     Deps.circe.generic.value,
+    Deps.circe.genericExtras.value,
     Deps.cats.core.value,
     Deps.akka.httpCore.value
   ),
@@ -161,7 +163,6 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
   .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
-      Deps.sourcecode.value ::
       Deps.cats.core.value ::
       Nil
   )
@@ -187,7 +188,6 @@ lazy val sdk = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.covenant.ws.value ::
       Deps.covenant.http.value ::
-      Deps.boopickle.value ::
       Deps.monix.value ::
       Deps.colorado.value ::
       Nil
@@ -196,6 +196,7 @@ lazy val sdk = crossProject(JSPlatform, JVMPlatform)
 lazy val sdkJS = sdk.js
 lazy val sdkJVM = sdk.jvm
 
+//TODO: rename to atoms/basetypes
 lazy val ids = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
@@ -203,6 +204,9 @@ lazy val ids = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
     libraryDependencies ++=
       Deps.cuid.value ::
       Deps.taggedTypes.value ::
+      Deps.circe.core.value % Optional ::
+      Deps.circe.genericExtras.value % Optional ::
+      Deps.boopickle.value % Optional ::
       Nil
   )
 lazy val idsJS = ids.js
@@ -228,8 +232,8 @@ lazy val api = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure)
       Deps.covenant.core.value ::
       Deps.boopickle.value ::
       Deps.circe.core.value ::
-      Deps.circe.generic.value ::
       Deps.circe.parser.value ::
+      Deps.circe.genericExtras.value ::
       Nil
   )
 lazy val apiJS = api.js
@@ -242,6 +246,9 @@ lazy val database = project
   .settings(Defaults.itSettings)
   .settings(
     libraryDependencies ++=
+      Deps.circe.core.value ::
+      Deps.circe.parser.value ::
+      Deps.circe.genericExtras.value ::
       Deps.quill.value ::
       Deps.scalatest.value % IntegrationTest ::
       Nil

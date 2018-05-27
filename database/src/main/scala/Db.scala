@@ -4,8 +4,9 @@ import java.time.{LocalDateTime, ZoneOffset}
 
 import com.typesafe.config.Config
 import io.getquill._
-import io.getquill.ast.NumericOperator.<
-import wust.ids._
+import io.circe.parser._, io.circe.syntax._
+import io.treev.tag.TaggedType
+import wust.ids._, wust.ids.serialize.Circe._
 import wust.util._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -20,42 +21,68 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   import Data._
   import ctx._
 
-  implicit val encodeUserId = MappedEncoding[UserId, UuidType](identity)
-  implicit val decodeUserId = MappedEncoding[UuidType, UserId](UserId(_))
-  implicit val encodePostId = MappedEncoding[PostId, UuidType](identity)
-  implicit val decodePostId = MappedEncoding[UuidType, PostId](PostId(_))
-  implicit val encodeLabel = MappedEncoding[Label, String](identity)
-  implicit val decodeLabel = MappedEncoding[String, Label](Label(_))
+  protected object Converters {
+    private def encodingTaggedType[T: Encoder, Type <: TaggedType[T]#Type]: MappedEncoding[Type, T] = MappedEncoding[Type, T](identity)
+    private def decodingTaggedType[T: Decoder, Type <: TaggedType[T]#Type]: MappedEncoding[T, Type] = MappedEncoding[T, Type](_.asInstanceOf[Type])
 
-  implicit val encodeAccessLevel = MappedEncoding[AccessLevel, String] {
-    case AccessLevel.Read => "read"
-    case AccessLevel.ReadWrite => "readwrite"
+    // cannot resolve automatically for any T, so need specialized implicit defs
+    implicit def encodingStringTaggedType[Type <: TaggedType[String]#Type]: MappedEncoding[Type, String] = encodingTaggedType[String, Type]
+    implicit def encodingLongTaggedType[Type <: TaggedType[Long]#Type]: MappedEncoding[Type, Long] = encodingTaggedType[Long, Type]
+    implicit def encodingIntTaggedType[Type <: TaggedType[Int]#Type]: MappedEncoding[Type, Int] = encodingTaggedType[Int, Type]
+    implicit def decodingStringTaggedType[Type <: TaggedType[String]#Type]: MappedEncoding[String, Type] = decodingTaggedType[String, Type]
+    implicit def decodingLongTaggedType[Type <: TaggedType[Long]#Type]: MappedEncoding[Long, Type] = decodingTaggedType[Long, Type]
+    implicit def decodingIntTaggedType[Type <: TaggedType[Int]#Type]: MappedEncoding[Int, Type] = decodingTaggedType[Int, Type]
+
+    private def encodeJson[T : io.circe.Encoder](json: T): String = json.asJson.noSpaces
+    private def decodeJson[T : io.circe.Decoder](json: String): T = decode[T](json) match {
+      case Right(v) => v
+      case Left(e) => throw new Exception(s"Failed to decode json: '$json': $e")
+    }
+    implicit val encodingConnectionContent: MappedEncoding[ConnectionContent, String] = MappedEncoding[ConnectionContent, String](encodeJson[ConnectionContent])
+    implicit val decodingConnectionContent: MappedEncoding[String, ConnectionContent] = MappedEncoding[String, ConnectionContent](decodeJson[ConnectionContent])
+    implicit val encodingPostContent: MappedEncoding[PostContent, String] = MappedEncoding[PostContent, String](encodeJson[PostContent])
+    implicit val decodingPostContent: MappedEncoding[String, PostContent] = MappedEncoding[String, PostContent](decodeJson[PostContent])
+
+    implicit val encodingAccessLevel: MappedEncoding[AccessLevel, String] = MappedEncoding[AccessLevel, String] {
+      case AccessLevel.Read => "read"
+      case AccessLevel.ReadWrite => "readwrite"
+    }
+    implicit val decodingAccessLevel: MappedEncoding[String, AccessLevel] = MappedEncoding[String, AccessLevel]{
+      case "read" => AccessLevel.Read
+      case "readwrite" => AccessLevel.ReadWrite
+    }
+
+    implicit class LocalDateTimeQuillOps(ldt: LocalDateTime) {
+      def > = ctx.quote((date: LocalDateTime) => infix"$ldt > $date".as[Boolean])
+      def >= = ctx.quote((date: LocalDateTime) => infix"$ldt >= $date".as[Boolean])
+      def < = ctx.quote((date: LocalDateTime) => infix"$ldt < $date".as[Boolean])
+      def <= = ctx.quote((date: LocalDateTime) => infix"$ldt <= $date".as[Boolean])
+    }
+
+
+    implicit class JsonPostContentQuillOps(json: PostContent) {
+      def ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
+      def jsonType = ctx.quote(infix"$json->>'type'".as[PostContent.Type])
+    }
+    implicit class JsonConnectionContentQuillOps(json: ConnectionContent) {
+      def ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
+      def jsonType = ctx.quote(infix"$json->>'type'".as[ConnectionContent.Type])
+    }
+
+    implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
+    // Set timestamps in backend
+  //   implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
+
+    implicit class IngoreDuplicateKey[T](q: Insert[T]) {
+      def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
+    }
   }
-  implicit val decodeAccessLevel = MappedEncoding[String, AccessLevel]{
-    case "read" => AccessLevel.Read
-    case "readwrite" => AccessLevel.ReadWrite
-  }
+  import Converters._
 
-  protected implicit class LocalDateTimeQuillOps(ldt: LocalDateTime) {
-    def > = ctx.quote((date: LocalDateTime) => infix"$ldt > $date".as[Boolean])
-    def >= = ctx.quote((date: LocalDateTime) => infix"$ldt >= $date".as[Boolean])
-    def < = ctx.quote((date: LocalDateTime) => infix"$ldt < $date".as[Boolean])
-    def <= = ctx.quote((date: LocalDateTime) => infix"$ldt <= $date".as[Boolean])
-  }
-
-
-  implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
-  // Set timestamps in backend
-//   implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
-
-  //TODO: get rid of raw post?
-  case class RawPost(id: PostId, content: String, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
+  //TODO: get rid of raw post? bring isDeleted to frontend as timestamp to maybe hide long-deleted posts by default but show feshly deleted ones.
+  case class RawPost(id: PostId, content: PostContent, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
   object RawPost {
     def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.joinDate, post.joinLevel)
-  }
-
-  implicit class IngoreDuplicateKey[T](q: Insert[T]) {
-    def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
   }
 
   //TODO should actually rollback transactions when batch action had partial error
@@ -209,7 +236,11 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object connection {
-    private val insert = quote { (connection: Connection) => query[Connection].insert(connection).ignoreDuplicates }
+    private val insert = quote { (c: Connection) =>
+      val q = query[Connection].insert(c)
+      // if there is unique conflict, we update the content which might contain new values
+      infix"$q ON CONFLICT(sourceid,(content->>'type'),targetid) DO UPDATE SET content = EXCLUDED.content".as[Insert[Connection]]
+    }
 
     def apply(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
     def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
@@ -220,7 +251,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
     def delete(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.label == connection.label && c.targetId == connection.targetId).delete))
+      ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.content.jsonType == connection.content.tpe && c.targetId == connection.targetId).delete))
         .map(_.forall(_ <= 1))
     }
   }
@@ -234,7 +265,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def allTopLevelPostsQuery = quote {
       query[Post]
         .leftJoin(query[Connection])
-        .on((p, c) => c.label == lift(Label.parent) && c.sourceId == p.id)
+        .on((p, c) => c.content.jsonType == ConnectionContent.Parent.tpe && c.sourceId == p.id)
         .filter{ case (_, c) => c.isEmpty }
         .map{ case (p, _) => p }
     }
@@ -250,19 +281,21 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       ctx.run{
         for {
           m <- query[Membership].filter(m => m.userId == lift(userId) && liftQuery(postIds.toList).contains(m.postId))
-          child <- query[Connection].filter(c => c.targetId == m.postId && c.label == lift(Label.parent)).map(_.sourceId).distinct // get all direct children
+          child <- query[Connection].filter(c => c.targetId == m.postId && c.content.jsonType == lift(ConnectionContent.Parent.tpe)).map(_.sourceId).distinct // get all direct children
         } yield child
       }
     }
 
     def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { allPostsQuery(userId) }
 
+
     def apply(id: UserId, name: String, digest: Array[Byte], channelPostId: PostId)(implicit ec: ExecutionContext): Future[Option[User]] = {
       val user = User(id, name, isImplicit = false, 0, channelPostId)
+      val channelsPostContent: PostContent = PostContent.Channels
       //TODO: author for channelsPost should not be '1'. Author should not even be part of user.
       val q = quote {
         infix"""
-        with insp as (insert into post (id,content,author) values (${lift(channelPostId)}, '{"Channels":{}}', 1)),
+        with insp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelsPostContent)}, 1, 'read')),
              insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)})),
              insm as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
                       insert into password(id, digest) select id, ${lift(digest)}
@@ -277,10 +310,11 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def createImplicitUser(id: UserId, name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
       val channelPostId = PostId.fresh
+      val channelsPostContent: PostContent = PostContent.Channels
       val user = User(id, name, isImplicit = true, 0, channelPostId)
       val q = quote {
         infix"""
-        with insp as (insert into post (id,content,author) values (${lift(channelPostId)}, '{"Channels":{}}', 1)),
+        with insp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelsPostContent)}, 1, 'read')),
              insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}))
                      insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read')
       """.as[Insert[User]]

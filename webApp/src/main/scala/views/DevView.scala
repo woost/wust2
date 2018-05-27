@@ -117,7 +117,7 @@ object DevView {
         },
         Rx {
           val posts = state.displayGraphWithoutParents().graph.postIds.toArray
-          def randomConnection = Connection(posts(rInt(posts.length)), Label(rWord), posts(rInt(posts.length)))
+          def randomConnection = Connection(posts(rInt(posts.length)), ConnectionContent.Text(rWord), posts(rInt(posts.length)))
 
           def connect(_count:Int):Unit = {
             if(posts.length > 1) {
@@ -140,7 +140,7 @@ object DevView {
         },
         Rx {
           val posts = state.displayGraphWithoutParents().graph.postIds.toArray
-          def randomConnection = Connection(posts(rInt(posts.length)), Label.parent, posts(rInt(posts.length)))
+          def randomConnection = Connection(posts(rInt(posts.length)), ConnectionContent.Parent, posts(rInt(posts.length)))
 
           def contain(count:Int):Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(addConnections = Array.fill(count)(randomConnection).toSet))

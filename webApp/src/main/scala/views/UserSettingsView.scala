@@ -5,7 +5,7 @@ import outwatch.dom.dsl._
 import outwatch.{ObserverSink, Sink}
 import rx._
 import wust.graph._
-import wust.ids.{PostId, UserId}
+import wust.ids._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views._

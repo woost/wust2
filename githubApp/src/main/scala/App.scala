@@ -165,7 +165,7 @@ object AppServer {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
-    import io.circe.generic.auto._
+    import io.circe.generic.extras.auto._
     import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]
@@ -362,7 +362,7 @@ object WustReceiver {
       case c: CreateComment =>
         mCallBuffer += c
         github.createComment(c).foreach { res =>
-          val tag = Connection(c.postId, Label.parent, Constants.commentTagId)
+          val tag = Connection(c.postId, ConnectionContent.Parent, Constants.commentTagId)
           println(s"Sending add comment tag: $tag")
           valid(client.api.changeGraph(List(GraphChanges(addConnections = Set(tag)))), "Could not redirect comment to add tag")
           res match {
@@ -410,8 +410,11 @@ object WustReceiver {
     }
 
     def issuePostOfDesc(graph: Graph, pid: PostId): Option[Post] = {
-      graph.connectionsByLabel(Label("describes"))
-        .find(c => c.targetId == pid)
+      graph.connections
+        .find(c => c.content match {
+          case ConnectionContent.Text("describes") => c.targetId == pid
+          case _ => false
+        })
         .map(c => graph.postsById(c.sourceId))
     }
 

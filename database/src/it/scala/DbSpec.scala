@@ -33,7 +33,7 @@
  //  }
 
  //  def Connection(sourceId: PostId, targetId: PostId) = new Connection(sourceId, "my-fucking-test-label", targetId)
- //  def Containment(sourceId: PostId, targetId: PostId) = new Connection(sourceId, Label.parent, targetId)
+ //  def Containment(sourceId: PostId, targetId: PostId) = new Connection(sourceId, Label.Parent, targetId)
 
  //  //TODO: still throw exceptions on for example database connection errors
  //  "user" - {

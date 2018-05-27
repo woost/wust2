@@ -7,7 +7,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
-import wust.ids.{JoinDate, Label}
+import wust.ids._
 import wust.sdk.PostColor._
 import wust.webApp._
 import fontAwesome.{freeBrands, freeRegular, freeSolid}
@@ -74,8 +74,8 @@ object ChatView extends View {
     cursor.pointer,
     onClick --> sideEffect {_ =>
       val changes = state.rawGraph.now.children(state.user.now.channelPostId).contains(post.id) match {
-        case true => GraphChanges.disconnect(post.id, Label.parent, state.user.now.channelPostId)
-        case false => GraphChanges.connect(post.id, Label.parent, state.user.now.channelPostId)
+        case true => GraphChanges.disconnect(post.id, ConnectionContent.Parent, state.user.now.channelPostId)
+        case false => GraphChanges.connect(post.id, ConnectionContent.Parent, state.user.now.channelPostId)
       }
       state.eventProcessor.changes.onNext(changes)
     }

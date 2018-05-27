@@ -7,6 +7,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
+import wust.ids.PostContent
 import wust.sdk.{ChangesHistory, SyncMode}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._

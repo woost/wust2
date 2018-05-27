@@ -1,7 +1,7 @@
 package wust.webApp.parsers
 
 import org.scalatest.{FreeSpec, MustMatchers}
-import wust.graph.PostContent
+import wust.ids.PostContent
 
 class PostContentParsingSpec extends FreeSpec with MustMatchers {
   "empty String" in {

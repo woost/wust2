@@ -13,8 +13,8 @@ object Data {
   val DEFAULT = 0L
 
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int, channelPostId: PostId)
-  case class Post(id: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel: AccessLevel)
-  case class Connection(sourceId: PostId, label: Label, targetId: PostId)
+  case class Post(id: PostId, content: PostContent, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel: AccessLevel)
+  case class Connection(sourceId: PostId, content: ConnectionContent, targetId: PostId)
 
   case class Password(id: UserId, digest: Array[Byte])
   case class Membership(userId: UserId, postId: PostId, level:AccessLevel)
@@ -27,7 +27,7 @@ object Data {
   object Post {
     def apply(
       id:      PostId,
-      content: String,
+      content: PostContent,
       author:  UserId
     ) = {
       val currTime = LocalDateTime.now()
@@ -44,7 +44,9 @@ object Data {
   }
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children)
-  case class GraphRow(postId: PostId, content: String, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, targetIds: List[PostId], labels: List[Label])
+  case class GraphRow(postId: PostId, content: PostContent, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, targetIds: List[PostId], connectionContents: List[ConnectionContent]) {
+    require(targetIds.size == connectionContents.size, "targetIds and connectionContents need to have same arity")
+  }
   case class Graph(posts: Seq[Post], connections:Seq[Connection])
   object Graph {
     def from(rowsList:List[GraphRow]):Graph = {
@@ -55,17 +57,17 @@ object Data {
       var j = 0
       while( i < rows.length ) {
         val row = rows(i)
-        val labels = row.labels
         val targetIds = row.targetIds
         val post = Post(row.postId, row.content, row.author, row.created, row.modified, row.joinDate, row.joinLevel)
 
         posts += post
 
         j = 0
-        while(j < row.labels.length) {
-          val label = labels(j)
+        while(j < row.targetIds.length) {
+          val connectionContent = row.connectionContents(j)
           val targetId = targetIds(j)
-          connections += Connection(sourceId = post.id, label, targetId)
+
+          connections += Connection(post.id, connectionContent, targetId)
           j += 1
         }
 

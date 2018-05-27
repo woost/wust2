@@ -129,9 +129,9 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
       Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
     }
 
-    def toParentConnections(page: Page, postId: PostId): Seq[Connection] = page.parentIds.map(Connection(postId, Label.parent, _))(breakOut)
+    def toParentConnections(page: Page, postId: PostId): Seq[Connection] = page.parentIds.map(Connection(postId, ConnectionContent.Parent, _))(breakOut)
 
-    val containedPosts = addConnections.collect { case Connection(source, Label.parent, _) => source }
+    val containedPosts = addConnections.collect { case Connection(source, ConnectionContent.Parent, _) => source }
     val toContain = addPosts
       .filterNot(p => containedPosts(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))

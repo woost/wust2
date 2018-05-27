@@ -1,8 +1,7 @@
 package wust.sdk
 
-import wust.api._, serialize.Boopickle._
+import wust.api._, wust.api.serialize.Boopickle._
 import covenant.ws._
-import mycelium.client._
 import chameleon.ext.boopickle._
 import boopickle.Default._
 

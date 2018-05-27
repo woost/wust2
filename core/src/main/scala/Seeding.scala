@@ -1,6 +1,6 @@
 package wust.backend
 
-import wust.graph.{Connection, Post, PostContent, User}
+import wust.graph._
 import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -106,8 +106,8 @@ object GitHubImporter {
         val _github = Post(Constants.githubId, PostContent.Text("wust-github"), tempUserId)
         val _issue = Post(Constants.issueTagId, PostContent.Text("wust-github-issue"), tempUserId)
         val _comment = Post(Constants.commentTagId, PostContent.Text("wust-github-comment"), tempUserId)
-        val _github_issue = Connection(_issue.id, Label.parent, _github.id)
-        val _github_comment = Connection(_comment.id, Label.parent, _github.id)
+        val _github_issue = Connection(_issue.id, ConnectionContent.Parent, _github.id)
+        val _github_comment = Connection(_comment.id, ConnectionContent.Parent, _github.id)
 
         // TODO: delete transitive containments of comments in issue
 
@@ -118,13 +118,13 @@ object GitHubImporter {
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order
         val issueTitle = Post(PostId("1" + augmentString("0")*issueIdZeros + issue.number.toString), PostContent.Text(s"#${issue.number} ${issue.title}"), tempUserId, issue.created_at, issue.updated_at)
 
-        val titleIssueTag = Connection(issueTitle.id, Label.parent, _issue.id)
+        val titleIssueTag = Connection(issueTitle.id, ConnectionContent.Parent, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
           val issueDesc = Post(PostId(issue.id.toString), PostContent.Markdown(issue.body), tempUserId, issue.created_at, issue.updated_at)
-          val conn = Connection(issueDesc.id, Label("describes"), issueTitle.id)
-          val cont = Connection(issueDesc.id, Label.parent, issueTitle.id)
-          val comm = Connection(issueDesc.id, Label.parent, _comment.id)
+          val conn = Connection(issueDesc.id, ConnectionContent.Text("describes"), issueTitle.id)
+          val cont = Connection(issueDesc.id, ConnectionContent.Parent, issueTitle.id)
+          val comm = Connection(issueDesc.id, ConnectionContent.Parent, _comment.id)
           (Set(issueDesc), Set(conn, cont, comm))
         } else {
           (Set.empty[Post], Set.empty[Connection])
@@ -136,7 +136,7 @@ object GitHubImporter {
         // Comments
         val comments: List[(Post, Set[Connection])] = commentsList.map(comment => {
           val cpost = Post(PostId(comment.id.toString), PostContent.Markdown(comment.body), tempUserId, comment.created_at, comment.updated_at)
-          val cconn = Set(Connection(cpost.id, Label.parent, issueTitle.id), Connection(cpost.id, Label.parent, _comment.id))
+          val cconn = Set(Connection(cpost.id, ConnectionContent.Parent, issueTitle.id), Connection(cpost.id, ConnectionContent.Parent, _comment.id))
           (cpost, cconn)
         })
 
@@ -178,7 +178,7 @@ object GitterImporter {
     val _gitter = Post(Constants.gitterId, PostContent.Text("wust-gitter"), tempUserId)
 
     val discussion = Post(PostId.fresh, PostContent.Text(_uri), tempUserId)
-    val discussionTag = Connection(discussion.id, Label.parent, _gitter.id)
+    val discussionTag = Connection(discussion.id, ConnectionContent.Parent, _gitter.id)
     val postsAndConnection = for {
       roomId <- Future { client.getRoomIdByUri(_uri).id }
       roomMessages <- Future { client.getRoomMessages(roomId).asScala.toList }
@@ -186,7 +186,7 @@ object GitterImporter {
       roomMessages.map { message =>
         //TODO what about this userid?
         val post = Post(PostId.fresh, PostContent.Markdown(message.text), tempUserId)
-        val conn = Connection(post.id, Label.parent, discussion.id)
+        val conn = Connection(post.id, ConnectionContent.Parent, discussion.id)
         (Set(post), Set(conn))
       }.toSet
     }

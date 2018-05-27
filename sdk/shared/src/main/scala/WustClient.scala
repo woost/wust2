@@ -1,25 +1,16 @@
 package wust.sdk
 
-import wust.api._, serialize.Boopickle._
-import wust.ids._
-import wust.util.time.StopWatch
-
-import monix.execution.Cancelable
-import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
+import wust.api._, wust.api.serialize.Boopickle._
 import boopickle.Default._
 import covenant.ws._
 import sloth._
 import mycelium.client._
 import chameleon.ext.boopickle._
 import cats.implicits._
-import shapeless._
 
 import java.nio.ByteBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Success,Failure}
 
 class WustClient(client: Client[ByteBuffer, Future, ClientException]) {
   val api = client.wire[Api[Future]]

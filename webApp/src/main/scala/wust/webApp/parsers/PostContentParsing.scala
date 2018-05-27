@@ -1,7 +1,7 @@
 package wust.webApp.parsers
 
 import wust.graph._
-import wust.ids.{Label, PostId, UserId}
+import wust.ids._
 
 object PostContentParser {
   import fastparse.all._
@@ -29,7 +29,7 @@ object PostContentParser {
         val newTagPosts = tagPostsEither.collect { case Left(p) => p }
         val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
         val updatedPost = post.copy(content = content)
-        GraphChanges.from(addConnections = tagPosts.map(Connection(updatedPost.id, Label.parent, _)), updatePosts = Set(updatedPost), addPosts = newTagPosts)
+        GraphChanges.from(addConnections = tagPosts.map(Connection(updatedPost.id, ConnectionContent.Parent, _)), updatePosts = Set(updatedPost), addPosts = newTagPosts)
       }
 
   def newPost(contextPosts: Seq[Post], author: UserId): P[GraphChanges] = taggedContent
@@ -38,7 +38,7 @@ object PostContentParser {
       val newTagPosts = tagPostsEither.collect { case Left(p) => p }
       val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
       val newPost = Post(content, author)
-      GraphChanges.from(addConnections = tagPosts.map(Connection(newPost.id, Label.parent, _)), addPosts = newPost +: newTagPosts)
+      GraphChanges.from(addConnections = tagPosts.map(Connection(newPost.id, ConnectionContent.Parent, _)), addPosts = newPost +: newTagPosts)
     }
 
   //TODO integrate help text

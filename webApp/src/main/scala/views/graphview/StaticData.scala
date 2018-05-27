@@ -7,7 +7,7 @@ import views.graphview.VisualizationType.{Containment, Edge, Tag}
 import wust.sdk.PostColor._
 import ForceSimulationConstants._
 import wust.graph.{Post, _}
-import wust.ids.{Label, PostId}
+import wust.ids._
 import wust.util.time.time
 import Math._
 
@@ -114,7 +114,7 @@ class GraphTopology(
 object StaticData {
   import ForceSimulation.log
 
-  def apply(graphTopology: GraphTopology, selection: Selection[Post], transform: Transform, labelVisualization:PartialFunction[Label, VisualizationType]): StaticData = {
+  def apply(graphTopology: GraphTopology, selection: Selection[Post], transform: Transform, labelVisualization:PartialFunction[ConnectionContent.Type, VisualizationType]): StaticData = {
     time(log(s"calculateStaticData[${selection.size()}]")) {
       import graphTopology.{graph, posts}
 
@@ -266,7 +266,7 @@ object StaticData {
                                      tags:Array[Connection]
                                    )
 
-  private def partitionConnections(connections:Iterable[Connection], labelVisualization:PartialFunction[Label, VisualizationType]):PartitionedConnections = {
+  private def partitionConnections(connections:Iterable[Connection], labelVisualization:PartialFunction[ConnectionContent.Type, VisualizationType]):PartitionedConnections = {
     val edgeBuilder = ArrayBuffer.empty[Connection]
     val containmentBuilder = ArrayBuffer.empty[Connection]
     val tagBuilder = ArrayBuffer.empty[Connection]
@@ -274,7 +274,7 @@ object StaticData {
     def separator = labelVisualization.lift
 
     connections.foreach { connection =>
-      separator(connection.label).foreach{
+      separator(connection.content.tpe).foreach{
         case Edge => edgeBuilder += connection
         case Containment => containmentBuilder += connection
         case Tag => tagBuilder += connection
