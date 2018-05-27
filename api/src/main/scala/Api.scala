@@ -23,6 +23,7 @@ trait Api[Result[_]] {
   def importGitterUrl(url: String): Result[Boolean]
   def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 
+  //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
 }
 
