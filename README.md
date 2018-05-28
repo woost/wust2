@@ -107,3 +107,8 @@ The compose stack `docker/compose-prod.yml` is an example how to run wust in doc
 ```
 $ docker-compose --file <project>/compose-prod.yml up
 ```
+
+# Tools for image compression
+* `optipng -o7 strip all icon-512.png`
+* [`svgomg`](https://jakearchibald.github.io/svgomg)
+* http://www.favicomatic.com
