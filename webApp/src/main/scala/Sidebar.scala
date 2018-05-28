@@ -4,6 +4,8 @@ import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
+import org.scalajs.dom
+import scala.scalajs.js
 import rx._
 import fontAwesome.freeSolid._
 import fontAwesome.freeRegular
@@ -19,9 +21,7 @@ object Sidebar {
   import MainViewParts._
 
   def buttonStyle = Seq(
-    width := "100%",
-    padding := "5px 3px",
-    margin := "0px"
+    cls := "tiny compact ui inverted grey button"
   )
 
   val notificationSettings: VNode = {
@@ -47,7 +47,6 @@ object Sidebar {
   }
 
   def topbar(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
-    paddingLeft := "5px",
     paddingRight := "5px",
     height := "35px",
     backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
@@ -55,11 +54,12 @@ object Sidebar {
     display.flex,
     flexDirection.row,
     justifyContent.spaceBetween,
-    alignItems.baseline,
+    alignItems.center,
 
-    header(state),
-    undoRedo(state)(ctx)(marginLeft := "20px", marginRight.auto),
+    header(state)(ctx)(marginRight := "10px"),
     beforeInstallPrompt()(ctx)(marginRight := "10px"),
+    undoRedo(state)(ctx)(marginRight.auto),
+    notificationSettings()(marginRight := "10px"),
     authentication(state)
   )
 
@@ -103,9 +103,7 @@ object Sidebar {
             alignContent.stretch,
 
             channels(state)(ctx)(overflowY.auto),
-            newGroupButton(state)(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
-            br(),
-            notificationSettings(flexGrow := 0, flexShrink := 0)
+            newGroupButton(state)(ctx)(buttonStyle, marginRight := "0", marginTop := "5px", alignSelf.center, flexGrow := 0, flexShrink := 0),
           )
         case false =>
           VDomModifier(
@@ -118,7 +116,7 @@ object Sidebar {
             alignContent.stretch,
 
             channelIcons(state, 40)(ctx)(overflowY.auto),
-            newGroupButton(state, "+")(ctx)(buttonStyle)(flexGrow := 0, flexShrink := 0),
+            newGroupButton(state, "+")(ctx)(buttonStyle, marginRight := "0", marginTop := "3px", paddingLeft := "12px", paddingRight := "12px", alignSelf.center, flexGrow := 0, flexShrink := 0),
           )
       }
     )
@@ -127,8 +125,11 @@ object Sidebar {
   def hamburger(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     import state.sidebarOpen
     div(
+      padding := "10px",
+      fontSize := "20px",
+      width := "40px",
+      textAlign.center,
       faBars,
-      padding := "7px",
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick --> sideEffect{ev => sidebarOpen() = !sidebarOpen.now; ev.stopPropagation()})
@@ -136,7 +137,7 @@ object Sidebar {
 
   def header(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     div(
-      display.flex, alignItems.baseline,
+      display.flex, alignItems.center,
       hamburger(state),
       div(
         state.user.map(user =>
@@ -167,6 +168,7 @@ object Sidebar {
         state.channels().map { p =>
           val selected = state.page().parentIds.contains(p.id)
           channelDiv(selected, state.pageStyle())(
+            paddingRight := "5px",
             //TODO: inner state.page obs again
             channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
             p.content.str,

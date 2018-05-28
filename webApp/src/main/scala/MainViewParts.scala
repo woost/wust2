@@ -91,7 +91,7 @@ object MainViewParts {
       viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white"))
   }
 
-  val logout = button(cls := "tiny ui button", "Logout", onClick --> sideEffect { Client.auth.logout(); () })
+  val logout = button(cls := "tiny compact ui inverted grey button", "Logout", onClick --> sideEffect { Client.auth.logout(); () })
 
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
     state.user.flatMap {
