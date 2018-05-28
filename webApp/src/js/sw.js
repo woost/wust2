@@ -1,17 +1,17 @@
-// workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
+workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
 
-// cache google fonts
-// workbox.routing.registerRoute(
-//   new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
-//   workbox.strategies.cacheFirst({
-//     cacheName: 'googleapis',
-//     plugins: [
-//       new workbox.expiration.Plugin({
-//         maxEntries: 30,
-//       }),
-//     ],
-//   }),
-// );
+cache google fonts
+workbox.routing.registerRoute(
+  new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
+  workbox.strategies.cacheFirst({
+    cacheName: 'googleapis',
+    plugins: [
+      new workbox.expiration.Plugin({
+        maxEntries: 30,
+      }),
+    ],
+  }),
+);
 
 /////////////////////////////////////////
 
