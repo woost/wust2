@@ -68,7 +68,12 @@ const logToBackend = s => fetch(baseUrl + '/Api/log', {
 });
 
 function sendSubscriptionToBackend(subscription) {
+    logToBackend("sendSubscriptionToBackend: " + subscription);
+    log("sendSubscriptionToBackend: " + subscription);
+
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
+        logToBackend("sendSubscriptionToBackend failed.");
+        log("sendSubscriptionToBackend failed.");
         return Promise.empty;
     }
 
@@ -99,9 +104,6 @@ function sendSubscriptionToBackend(subscription) {
 log("ServiceWorker starting!");
 const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
 self.registration.pushManager.getSubscription().then(sendSubscriptionToBackend, t => warn("Failed to get subscription", t));
-
-// to test push renewal, trigger event manually:
-// setTimeout(() => self.dispatchEvent(new ExtendableEvent("pushsubscriptionchange")), 3000);
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
@@ -163,15 +165,23 @@ self.addEventListener('pushsubscriptionchange', e => {
     // resubscribe and send new subscription to backend
     e.waitUntil(
         getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
+            logToBackend("publicKey: " + publicKey);
+            log("publicKey: " + publicKey);
             if (publicKey) {
                 return self.registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
                 }).flatMap(sendSubscriptionToBackend);
             } else {
+                logToBackend("no public key...");
+                log("no public key...");
                 return Promise.empty;
             }
         }
         ))
     );
 });
+
+// to test push renewal, trigger event manually:
+setTimeout(() => self.dispatchEvent(new ExtendableEvent("pushsubscriptionchange")), 3000);
+
