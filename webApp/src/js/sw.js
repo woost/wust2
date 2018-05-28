@@ -183,5 +183,5 @@ self.addEventListener('pushsubscriptionchange', e => {
 });
 
 // to test push renewal, trigger event manually:
-setTimeout(() => self.dispatchEvent(new ExtendableEvent("pushsubscriptionchange")), 3000);
+// setTimeout(() => self.dispatchEvent(new ExtendableEvent("pushsubscriptionchange")), 3000);
 
