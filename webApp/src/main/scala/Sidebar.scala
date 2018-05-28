@@ -59,8 +59,27 @@ object Sidebar {
 
     header(state),
     undoRedo(state)(ctx)(marginLeft := "20px", marginRight.auto),
+    beforeInstallPrompt()(ctx)(marginRight := "10px"),
     authentication(state)
   )
+
+  def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
+    val prompt:Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) { observer:Var[Option[dom.Event]] =>
+      dom.window.addEventListener("beforeinstallprompt", { e:dom.Event =>
+        e.preventDefault(); // Prevents immediate prompt display
+        dom.console.log("BEFOREINSTALLPROMPT: ", e)
+        observer() = Some(e)
+      });
+    }
+
+    div(
+      Rx {
+        prompt().map { e =>
+          button(cls := "tiny ui primary button", "install", onClick --> sideEffect{e.asInstanceOf[js.Dynamic].prompt(); ()})
+        }
+      }
+    )
+  }
 
   def sidebar(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     import state.sidebarOpen
