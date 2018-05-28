@@ -103,7 +103,6 @@ function sendSubscriptionToBackend(subscription) {
 // startup
 log("ServiceWorker starting!");
 const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
-self.registration.pushManager.getSubscription().then(sendSubscriptionToBackend, t => warn("Failed to get subscription", t));
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
