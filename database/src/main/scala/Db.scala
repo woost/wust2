@@ -61,12 +61,12 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
 
     implicit class JsonPostContentQuillOps(json: PostContent) {
-      def ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
-      def jsonType = ctx.quote(infix"$json->>'type'".as[PostContent.Type])
+      val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
+      val jsonType = ctx.quote(infix"$json->>'type'".as[PostContent.Type])
     }
     implicit class JsonConnectionContentQuillOps(json: ConnectionContent) {
-      def ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
-      def jsonType = ctx.quote(infix"$json->>'type'".as[ConnectionContent.Type])
+      val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
+      val jsonType = ctx.quote(infix"$json->>'type'".as[ConnectionContent.Type])
     }
 
     implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
@@ -251,8 +251,10 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
     def delete(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(connections.toList).foreach(connection => query[Connection].filter(c => c.sourceId == connection.sourceId && c.content.jsonType == connection.content.tpe && c.targetId == connection.targetId).delete))
-        .map(_.forall(_ <= 1))
+      val data = connections.map(c => (c.sourceId, c.content.tpe, c.targetId))
+      ctx.run(liftQuery(data.toList).foreach { case (sourceId, tpe, targetId) =>
+        query[Connection].filter(c => c.sourceId == sourceId && c.content.jsonType == tpe && c.targetId == targetId).delete
+      }).map(_.forall(_ <= 1))
     }
   }
 
