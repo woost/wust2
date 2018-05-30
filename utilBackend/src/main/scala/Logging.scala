@@ -13,10 +13,9 @@ object Logging {
   val detailFormatter = formatter"$date $shortLevel [$shortThreadName] $fileBaseName - $message$newLine"
 
   def setup(): Unit = {
-    Logger.update(Logger.rootName) {
-      _.clearHandlers()
-        .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
-        .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily())
-    }
+    Logger.root
+      .clearHandlers()
+      .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
+      .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily())
   }
 }

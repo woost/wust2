@@ -14,7 +14,7 @@ object Deps {
   // core libraries
   val cats = new {
     val core = dep("org.typelevel" %%% "cats-core" % "1.1.0")
-    val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC2") //TODO: only update when fixed: https://github.com/milessabin/kittens/issues/82
+    val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC3")
   }
   val akka = new {
     private val version = "2.5.12"
@@ -50,7 +50,7 @@ object Deps {
   val outwatch = dep("io.github.cornerman" % "outwatch" % "c4f0094")
 
   // utility
-  val scribe = dep("com.outr" %%% "scribe" % "2.3.5-SNAPSHOT")
+  val scribe = dep("com.outr" %%% "scribe" % "2.4.0")
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.1")
   val monocle = dep("com.github.julien-truffaut" %%  "monocle-macro" % "1.5.1-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
@@ -62,7 +62,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "5ee6a22"
+    private val version = "271d249"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)

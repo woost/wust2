@@ -180,9 +180,8 @@ object ApiLogger {
   val client: Logger = {
     val s = "client-log"
     val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-    Logger.update(s)(
-      _.clearHandlers()
-        .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily(prefix = s))
-    )
+    Logger(s)
+      .clearHandlers()
+      .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily(prefix = s))
   }
 }

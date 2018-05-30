@@ -9,8 +9,8 @@ object Logging {
   val logFormatter: Formatter = formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
 
   def setup(): Unit = {
-    Logger.update(Logger.rootName) { l =>
-      l.clearHandlers().withHandler(formatter = logFormatter, minimumLevel = Some(Level.Debug), writer = ConsoleWriter)
-    }
+    Logger.root
+      .clearHandlers()
+      .withHandler(formatter = logFormatter, minimumLevel = Some(Level.Debug), writer = ConsoleWriter)
   }
 }
