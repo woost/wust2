@@ -262,14 +262,6 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       query[Membership].filter(m => m.userId == lift(userId))
     }
 
-    def allTopLevelPostsQuery = quote {
-      query[Post]
-        .leftJoin(query[Connection])
-        .on((p, c) => c.content.jsonType == ConnectionContent.Parent.tpe && c.sourceId == p.id)
-        .filter{ case (_, c) => c.isEmpty }
-        .map{ case (p, _) => p }
-    }
-
     def allPostsQuery(userId: UserId) = quote {
       for {
         m <- allMembershipsQuery(userId)
