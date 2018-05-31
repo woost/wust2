@@ -283,15 +283,19 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { allPostsQuery(userId) }
 
 
-    def apply(id: UserId, name: String, digest: Array[Byte], channelPostId: PostId)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val user = User(id, name, isImplicit = false, 0, channelPostId)
-      val channelsPostContent: PostContent = PostContent.Channels
+    def apply(id: UserId, name: String, digest: Array[Byte], channelPostId: PostId, userPostId: PostId)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      val user = User(id, name, isImplicit = false, 0, channelPostId, userPostId)
+      val channelPostContent: PostContent = PostContent.Channels
+      val userPostContent: PostContent = PostContent.Markdown("")
+
       //TODO: author for channelsPost should not be '1'. Author should not even be part of user.
       val q = quote {
         infix"""
-        with insp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelsPostContent)}, 1, 'read')),
-             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)})),
-             insm as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
+        with inscp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelPostContent)}, 1, 'read')),
+             insup as (insert into post (id,content,author,joinlevel) values (${lift(userPostId)}, ${lift(userPostContent)}, 1, 'read')),
+             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}, ${lift(user.userPostId)})),
+             ins_m_cp as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
+             ins_m_up as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.userPostId)}, 'readwrite'))
                       insert into password(id, digest) select id, ${lift(digest)}
       """.as[Insert[User]]
         //TODO: update post and set author to userid
@@ -303,14 +307,18 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def createImplicitUser(id: UserId, name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      val userPostId = PostId.fresh
+      val userPostContent: PostContent = PostContent.Markdown("")
       val channelPostId = PostId.fresh
-      val channelsPostContent: PostContent = PostContent.Channels
-      val user = User(id, name, isImplicit = true, 0, channelPostId)
+      val channelPostContent: PostContent = PostContent.Channels
+      val user = User(id, name, isImplicit = true, 0, channelPostId = channelPostId, userPostId = userPostId)
       val q = quote {
         infix"""
-        with insp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelsPostContent)}, 1, 'read')),
-             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}))
-                     insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read')
+        with inscp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelPostContent)}, 1, 'read')),
+             insup as (insert into post (id,content,author,joinlevel) values (${lift(userPostId)}, ${lift(userPostContent)}, 1, 'read')),
+             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}, ${lift(user.userPostId)})),
+             ins_m_cp as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
+                     insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.userPostId)}, 'readwrite')
       """.as[Insert[User]]
         //TODO: update post and set author to userid
       }

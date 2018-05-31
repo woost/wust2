@@ -53,7 +53,7 @@ object Constants {
   val wustOwner = "woost"
   val wustRepo = "bug"
 
-  val wustUser = User.Assumed(UserId("wust"), PostId.fresh) // TODO get rid of this static user assumption
+  val wustUser = User.Assumed(UserId("wust"), PostId.fresh, PostId.fresh) // TODO get rid of this static user assumption
 
 }
 

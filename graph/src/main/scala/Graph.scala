@@ -14,12 +14,13 @@ sealed trait User {
   def id: UserId
   def name: String
   def channelPostId:PostId
+  def userPostId:PostId
 }
 object User {
   sealed trait Persisted extends User
-  case class Real(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted
-  case class Implicit(id: UserId, name: String, revision: Int, channelPostId: PostId) extends Persisted
-  case class Assumed(id: UserId, channelPostId: PostId) extends User {
+  case class Real(id: UserId, name: String, revision: Int, channelPostId: PostId, userPostId: PostId) extends Persisted
+  case class Implicit(id: UserId, name: String, revision: Int, channelPostId: PostId, userPostId: PostId) extends Persisted
+  case class Assumed(id: UserId, channelPostId: PostId, userPostId: PostId) extends User {
     def name = s"anon-$id"
   }
 }
