@@ -16,7 +16,6 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
 
   //TODO: inline styles from viewgrid* css classes. better support in scala-dom-types for viewgrid?
   //TODO: outwach: Observable[Seq[VDomModifier]] should work, otherwise cannot share code proberly...muliple div.
-  //TOOD: outwatch: make constructor for CompositeModifier public, otherwise need implicit
   override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val appliedViews = views.map { view =>
       Eval.later(view.apply(state)(ctx)(height := "100%", width := "100%"))

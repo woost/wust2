@@ -45,16 +45,17 @@ import scala.collection.concurrent.TrieMap
 
 object Constants {
   //TODO
-  val githubId = PostId("wust-github")
-  val issueTagId = PostId("wust-github-issue")
-  val commentTagId = PostId("wust-github-comment")
+  val githubId = NodeId("wust-github")
+  val issueTagId = NodeId("wust-github-issue")
+  val commentTagId = NodeId("wust-github-comment")
 
-  val label = ConnectionContent.Text("describes")
+  val label = EdgeData.Label("describes")
 
   val wustOwner = "woost"
   val wustRepo = "bug"
 
-  val wustUser = User.Assumed(UserId("wust"), PostId.fresh, PostId.fresh) // TODO get rid of this static user assumption
+//  val wustUser = Post.User(UserId.fresh, PostData.User("wust", true, 0, ChannelNodeId.fresh), PostMeta.User) // TODO get rid of this static user assumption
+  val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
 
 }
 
@@ -142,29 +143,32 @@ object AppServer {
 
   implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
 
-  private def createOrIgnore(issue: Issue): PostId = ???
-  private def createOrIgnore(comment: Comment): PostId = ???
+  private def createOrIgnore(issue: Issue): NodeId = ???
+  private def createOrIgnore(comment: Comment): NodeId = ???
 
-  private def getPostMapping(issue: Issue): PostId = ???
-  private def getPostMapping(comment: Comment): PostId = ???
+  private def getPostMapping(issue: Issue): NodeId = ???
+  private def getPostMapping(comment: Comment): NodeId = ???
 
   private def createIssue(issue: Issue) = {
 
-    val issuePost = Post(PostId.fresh, PostContent.Text(issue.body), Constants.wustUser.id, issue.created_at, issue.updated_at)
-    val issueDesc = Post(PostId.fresh, PostContent.Text(issue.title), Constants.wustUser.id, issue.created_at, issue.updated_at)
+//    val issuePost = Post(NodeId.fresh, PostData.PlainText(issue.body), Constants.wustUser.id, issue.created_at, issue.updated_at)
+//    val issueDesc = Post(NodeId.fresh, PostData.PlainText(issue.title), Constants.wustUser.id, issue.created_at, issue.updated_at)
+    // TODO: author + date
+    val issuePost: Node = Node.Content(NodeData.PlainText(issue.body))
+    val issueDesc: Node = Node.Content(NodeData.PlainText(issue.title))
     val issuePosts = Set( issuePost, issueDesc )
 
     val edges = Set(
-      Connection(issuePost.id, ConnectionContent.Parent, Constants.issueTagId),
-      Connection(issuePost.id, ConnectionContent.Parent, Constants.githubId)
+      Edge.Parent(issuePost.id, Constants.issueTagId): Edge,
+      Edge.Parent(issuePost.id, Constants.githubId): Edge
     )
 
-    GraphChanges(addPosts = issuePosts, addConnections = edges)
+    GraphChanges(addNodes = issuePosts, addEdges = edges)
   }
 
   private def editIssue(/*graph: Graph,*/ issue: Issue) = {
-//    val postId = getPostMapping(issue)
-//    val post = graph.postsById(postId)
+//    val nodeId = getPostMapping(issue)
+//    val post = graph.postsById(nodeId)
 //    post.copy(
 //      content = issue.title,
 //      modified = Post.parseTime(issue.updated_at)
@@ -285,12 +289,12 @@ object AppServer {
 
 sealed trait GithubCall
 
-case class CreateIssue(owner: String, repo: String, title: String, content: String, postId: PostId) extends GithubCall
-case class EditIssue(owner: String, repo: String, externalNumber: Int, status: String, title: String, content: String, postId: PostId) extends GithubCall
-case class DeleteIssue(owner: String, repo: String, externalNumber: Int, title: String, content: String, postId: PostId) extends GithubCall
-case class CreateComment(owner: String, repo: String, externalIssueNumber: Int, content: String, postId: PostId) extends GithubCall
-case class EditComment(owner: String, repo: String, externalId: Int, content: String, postId: PostId) extends GithubCall
-case class DeleteComment(owner: String, repo: String, externalId: Int, postId: PostId) extends GithubCall
+case class CreateIssue(owner: String, repo: String, title: String, content: String, nodeId: NodeId) extends GithubCall
+case class EditIssue(owner: String, repo: String, externalNumber: Int, status: String, title: String, content: String, nodeId: NodeId) extends GithubCall
+case class DeleteIssue(owner: String, repo: String, externalNumber: Int, title: String, content: String, nodeId: NodeId) extends GithubCall
+case class CreateComment(owner: String, repo: String, externalIssueNumber: Int, content: String, nodeId: NodeId) extends GithubCall
+case class EditComment(owner: String, repo: String, externalId: Int, content: String, nodeId: NodeId) extends GithubCall
+case class DeleteComment(owner: String, repo: String, externalId: Int, nodeId: NodeId) extends GithubCall
 
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
@@ -336,7 +340,9 @@ object WustReceiver {
       highPriorityClient.auth.login(config.user, config.password)
     }
 
-    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, PostContent.Text("wust-github"), Constants.wustUser.id)))
+//    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, PostData.Text("wust-github"), Constants.wustUser.id)))
+    // TODO: author
+    val changes = GraphChanges(addNodes = Set(Node.Content(Constants.githubId, NodeData.PlainText("wust-github")): Node))
     client.api.changeGraph(List(changes))
 
     println("Running WustReceiver")
@@ -379,9 +385,9 @@ object WustReceiver {
       case c: CreateComment =>
         mCallBuffer += c
         github.createComment(c).foreach { res =>
-          val tag = Connection(c.postId, ConnectionContent.Parent, Constants.commentTagId)
+          val tag = Edge.Parent(c.nodeId, Constants.commentTagId)
           println(s"Sending add comment tag: $tag")
-          valid(client.api.changeGraph(List(GraphChanges(addConnections = Set(tag)))), "Could not redirect comment to add tag")
+          valid(client.api.changeGraph(List(GraphChanges(addEdges = Set(tag)))), "Could not redirect comment to add tag")
           res match {
             case Right(comment) => EventCoordinator.addFutureCompletion(c, comment)
             case Left(e) => scribe.error(s"CreateComment failed: $e")
@@ -409,33 +415,33 @@ object WustReceiver {
   private def createCalls(github: GithubClient, graphTransition: GraphTransition): Seq[GithubCall] = {
 
 
-    def getAncestors(prevGraph: Graph, graph: Graph, graphChanges: GraphChanges): Map[PostId, Iterable[PostId]] = {
+    def getAncestors(prevGraph: Graph, graph: Graph, graphChanges: GraphChanges): Map[NodeId, Iterable[NodeId]] = {
 
-      val addAncestors = graphChanges.addPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, p) => {
+      val addAncestors = graphChanges.addNodes.foldLeft(Map.empty[NodeId, Iterable[NodeId]])((m, p) => {
         m + (p.id -> graph.ancestors(p.id))
       })
 
-      val updateAncestors = graphChanges.updatePosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, p) => {
+      val updateAncestors = graphChanges.updateNodes.foldLeft(Map.empty[NodeId, Iterable[NodeId]])((m, p) => {
         m + (p.id -> graph.ancestors(p.id))
       })
 
-      val delAncestors = graphChanges.delPosts.foldLeft(Map.empty[PostId, Iterable[PostId]])((m, pid) => {
+      val delAncestors = graphChanges.delNodes.foldLeft(Map.empty[NodeId, Iterable[NodeId]])((m, pid) => {
         m + (pid -> prevGraph.ancestors(pid))
       })
 
       addAncestors ++ updateAncestors ++ delAncestors
     }
 
-    def issuePostOfDesc(graph: Graph, pid: PostId): Option[Post] = {
+    def issuePostOfDesc(graph: Graph, pid: NodeId): Option[Node] = {
       graph.connections
-        .find(c => c.content match {
-          case ConnectionContent.Text("describes") => c.targetId == pid
+        .find(c => c.data match {
+          case EdgeData.Label("describes") => c.targetId == pid
           case _ => false
         })
         .map(c => graph.postsById(c.sourceId))
     }
 
-    // TODO: PostId <=> ExternalId mapping
+    // TODO: NodeId <=> ExternalId mapping
     graphTransition.changes.flatMap{ gc: GraphChanges =>
 
       val currGraph = graphTransition.resGraph
@@ -443,15 +449,15 @@ object WustReceiver {
       val ancestors = getAncestors(prevGraph, currGraph, gc)
 
       val githubChanges = gc.copy(
-        addPosts = gc.addPosts.filter(p => ancestors(p.id).exists(_ == Constants.githubId)),
-        delPosts = gc.delPosts.filter(pid => ancestors(pid).exists(_ == Constants.githubId)),
-        updatePosts = gc.updatePosts.filter(p => ancestors(p.id).exists(_ == Constants.githubId))
+        addNodes = gc.addNodes.filter(p => ancestors(p.id).exists(_ == Constants.githubId)),
+        delNodes = gc.delNodes.filter(pid => ancestors(pid).exists(_ == Constants.githubId)),
+        updateNodes = gc.updateNodes.filter(p => ancestors(p.id).exists(_ == Constants.githubId))
       )
 
       // Delete
-      val githubDeletePosts = githubChanges.delPosts
-      val issuesToDelete: Set[PostId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
-      val commentsToDelete: Set[PostId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId))
+      val githubDeletePosts = githubChanges.delNodes
+      val issuesToDelete: Set[NodeId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
+      val commentsToDelete: Set[NodeId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId))
 
       val deleteIssuesCall = issuesToDelete
         .flatMap { pid =>
@@ -459,9 +465,9 @@ object WustReceiver {
           externalId.map(eid => DeleteIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
-            title = prevGraph.postsById(pid).content.str,
-            content = issuePostOfDesc(prevGraph, pid).map(_.content.str).getOrElse(""),
-            postId = pid))
+            title = prevGraph.postsById(pid).data.str,
+            content = issuePostOfDesc(prevGraph, pid).map(_.data.str).getOrElse(""),
+            nodeId = pid))
         }
 
       val deleteCommentsCall = commentsToDelete
@@ -470,26 +476,26 @@ object WustReceiver {
           externalId.map(eid => DeleteComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalId = eid,
-            postId = pid))
+            nodeId = pid))
         }
 
 
       // Update
-      val githubUpdatePosts = githubChanges.updatePosts
-      val issuesToUpdate: Set[Post] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToUpdate: Set[Post] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
+      val githubUpdatePosts = githubChanges.updateNodes
+      val issuesToUpdate: Set[Node] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
+      val commentsToUpdate: Set[Node] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
 
       val editIssuesCall = issuesToUpdate
         .flatMap { p =>
           val externalId = Try(p.id.toString.toInt).toOption
-          val desc = issuePostOfDesc(currGraph, p.id).map(_.content.str)
+          val desc = issuePostOfDesc(currGraph, p.id).map(_.data.str)
           (externalId, desc).mapN((eid, d) => EditIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
             status = "open",
-            title = p.content.str,
+            title = p.data.str,
             content = d,
-            postId = p.id))
+            nodeId = p.id))
         }
 
       val editCommentsCall = commentsToUpdate
@@ -498,17 +504,17 @@ object WustReceiver {
           externalId.map(eid => EditComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalId = eid,
-            content = p.content.str,
-            postId = p.id))
+            content = p.data.str,
+            nodeId = p.id))
         }
 
 
       // Add
-      val githubAddPosts = githubChanges.addPosts
-      val issuesToAdd: Set[Post] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToAdd: Set[Post] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
+      val githubAddPosts = githubChanges.addNodes
+      val issuesToAdd: Set[Node] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
+      val commentsToAdd: Set[Node] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
 
-      val redirectCommentsToAdd: Set[Post] = githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
+      val redirectCommentsToAdd: Set[Node] = githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
         !currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
           currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)
       })
@@ -516,9 +522,9 @@ object WustReceiver {
       val createIssuesCall = issuesToAdd
         .map(p => CreateIssue(owner = Constants.wustOwner,
           repo = Constants.wustRepo,
-          title = p.content.str,
-          content = issuePostOfDesc(currGraph, p.id).map(_.content.str).getOrElse(""),
-          postId = p.id
+          title = p.data.str,
+          content = issuePostOfDesc(currGraph, p.id).map(_.data.str).getOrElse(""),
+          nodeId = p.id
         ))
 
       val createCommentsCall = commentsToAdd
@@ -530,8 +536,8 @@ object WustReceiver {
           issueNumber.map(in => CreateComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalIssueNumber = in, //Get issue id here
-            content = p.content.str,
-            postId = p.id))
+            content = p.data.str,
+            nodeId = p.id))
         }
 
       val redirectCreateCommentsCall = redirectCommentsToAdd
@@ -543,8 +549,8 @@ object WustReceiver {
           issueNumber.map( in => CreateComment(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalIssueNumber = in,
-            content = p.content.str,
-            postId = p.id))
+            content = p.data.str,
+            nodeId = p.id))
         }
 
       val combinedCalls = (createIssuesCall ++ createCommentsCall ++ redirectCreateCommentsCall ++ editIssuesCall ++ editCommentsCall ++ deleteIssuesCall ++ deleteCommentsCall).toSeq
@@ -619,10 +625,10 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
       case Left(e) => Left(Error(s"Could not edit comment: ${e.getMessage}"))
     }
 
-  def deleteComment(c: DeleteComment): Future[Either[Error, (PostId, Int)]] = client.issues.deleteComment(c.owner, c.repo, c.externalId)
+  def deleteComment(c: DeleteComment): Future[Either[Error, (NodeId, Int)]] = client.issues.deleteComment(c.owner, c.repo, c.externalId)
     .execFuture[HttpResponse[String]]()
     .map {
-      case Right(GHResult(result, _, _)) => Right((c.postId, c.externalId))
+      case Right(GHResult(result, _, _)) => Right((c.nodeId, c.externalId))
       case Left(e) => Left(Error(s"Could not delete comment: ${e.getMessage}"))
     }
 
@@ -653,7 +659,7 @@ case object EventCoordinator {
 
   def addFutureCompletion(githubCall: GithubCall, issue: Issue): Boolean = ???
   def addFutureCompletion(githubCall: GithubCall, comment: Comment): Boolean = ???
-  def addFutureCompletion(githubCall: GithubCall, mapping: (PostId, Int)): Boolean = ???
+  def addFutureCompletion(githubCall: GithubCall, mapping: (NodeId, Int)): Boolean = ???
 
   def addCompletion(githubCall: GithubCall, issue: Issue): Boolean = ???
 

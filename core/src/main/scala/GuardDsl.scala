@@ -14,28 +14,28 @@ import scala.util.control.NonFatal
 
 class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
-  private def createImplicitAuth(userId: UserId, userName: String): Future[Option[Authentication.Verified]] = {
+  private def createImplicitAuth(user:AuthUser.Assumed): Future[Option[Authentication.Verified]] = {
     db.user
-      .createImplicitUser(userId, userName)
+      .createImplicitUser(user.id, user.name, user.channelNodeId)
       .map(_.map(user => jwt.generateAuthentication(user)))
   }
 
   implicit class GuardedOps[F[+_] : ApiData.MonadError](factory: ApiFunction.Factory[F]) {
-    private def requireUserT[T, U <: User](f: (State, U) => Future[F[T]])(userf: PartialFunction[User, U]): ApiFunction[T] = factory { state =>
+    private def requireUserT[T, U <: AuthUser](f: (State, U) => Future[F[T]])(userf: PartialFunction[AuthUser, U]): ApiFunction[T] = factory { state =>
       state.auth
         .map(_.user)
         .collect(userf andThen (f(state, _)))
         .getOrElse(Future.successful(ApiData.MonadError.raiseError(ApiError.Unauthorized)))
     }
 
-    def requireImplicitUser[T](f: (State, User.Implicit) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Implicit](f) { case u: User.Implicit => u }
-    def requireAssumedUser[T](f: (State, User.Assumed) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Assumed](f) { case u: User.Assumed => u }
-    def requireRealUser[T](f: (State, User.Real) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Real](f) { case u: User.Real => u }
-    def requireDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = requireUserT[T, User.Persisted](f) { case u: User.Persisted => u }
+    def requireImplicitUser[T](f: (State, AuthUser.Implicit) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Implicit](f) { case u: AuthUser.Implicit => u }
+    def requireAssumedUser[T](f: (State, AuthUser.Assumed) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Assumed](f) { case u: AuthUser.Assumed => u }
+    def requireRealUser[T](f: (State, AuthUser.Real) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Real](f) { case u: AuthUser.Real => u }
+    def requireDbUser[T](f: (State, AuthUser.Persisted) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Persisted](f) { case u: AuthUser.Persisted => u }
 
-    def assureDbUser[T](f: (State, User.Persisted) => Future[F[T]]): ApiFunction[T] = ApiFunction.redirect(requireDbUser(f)) { state =>
+    def assureDbUser[T](f: (State, AuthUser.Persisted) => Future[F[T]]): ApiFunction[T] = ApiFunction.redirect(requireDbUser(f)) { state =>
       val auth = state.auth.collect {
-        case Authentication.Assumed(user) => createImplicitAuth(user.id, user.name)
+        case Authentication.Assumed(user) => createImplicitAuth(user)
       } getOrElse Future.successful(None)
 
       auth.map(auth => auth.map(ApiEvent.LoggedIn(_)).toSeq)
@@ -54,9 +54,9 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     newAuth.flatMap(_.fold[Future[F[T]]](Future.successful(ApiData.MonadError.raiseError(ApiError.Forbidden)))(code))
   }
 
-  def isPostMember[T, F[_] : ApiData.MonadError](postId: PostId, userId: UserId, accessLevel: AccessLevel)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
+  def isPostMember[T, F[_] : ApiData.MonadError](nodeId: NodeId, userId: UserId, accessLevel: AccessLevel)(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
-      true <- db.user.isMember(postId, userId, accessLevel)
+      true <- db.user.isMember(nodeId, userId, accessLevel)
       result <- code
     } yield result).recover { case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden) }
   }

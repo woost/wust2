@@ -5,50 +5,54 @@ import wust.ids._
 import scala.collection.breakOut
 
 case class GraphChanges(
-  addPosts:        Set[Post]        = Set.empty,
-  addConnections:  Set[Connection]  = Set.empty,
-  updatePosts:     Set[Post]        = Set.empty,
-  delPosts:        Set[PostId]      = Set.empty,
-  // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
-  delConnections:  Set[Connection]  = Set.empty
+                         addNodes:        Set[Node]        = Set.empty,
+                         addEdges:  Set[Edge]  = Set.empty,
+                         updateNodes:     Set[Node]        = Set.empty,
+                         delNodes:        Set[NodeId]      = Set.empty,
+                         // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
+                         delEdges:  Set[Edge]  = Set.empty
 ) {
+  def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges =
+    copy(addEdges = addEdges ++ (addNodes ++ updateNodes).map(node => Edge.Author(userId, EdgeData.Author(timestamp), node.id)))
+
   def merge(other: GraphChanges): GraphChanges = {
-    val otherAddPosts = other.addPosts.map(_.id)
-    GraphChanges(
-      addPosts.filterNot(p => other.delPosts(p.id)) ++ other.addPosts,
-      addConnections -- other.delConnections ++ other.addConnections,
-      updatePosts.filterNot(p => other.delPosts(p.id)) ++ other.updatePosts,
-      delPosts -- otherAddPosts ++ other.delPosts,
-      (delConnections -- other.addConnections).filter(c => !otherAddPosts(c.sourceId) && !otherAddPosts(c.targetId)) ++ other.delConnections
+    val otherAddPosts = other.addNodes.map(_.id)
+    GraphChanges.from(
+      addNodes.filterNot(p => other.delNodes(p.id)) ++ other.addNodes,
+      addEdges -- other.delEdges ++ other.addEdges,
+      updateNodes.filterNot(p => other.delNodes(p.id)) ++ other.updateNodes,
+      delNodes -- otherAddPosts ++ other.delNodes,
+      (delEdges -- other.addEdges).filter(c => !otherAddPosts(c.sourceId) && !otherAddPosts(c.targetId)) ++ other.delEdges
     )
   }
 
 
-  def filter(postIds: Set[PostId]): GraphChanges = copy(
-    addPosts = addPosts.filter(p => postIds(p.id)),
-    updatePosts = updatePosts.filter(p => postIds(p.id)),
-    delPosts = delPosts.filter(postIds)
+  def filter(nodeIds: Set[NodeId]): GraphChanges = copy(
+    addNodes = addNodes.filter(p => nodeIds(p.id)),
+    updateNodes = updateNodes.filter(p => nodeIds(p.id)),
+    delNodes = delNodes.filter(nodeIds)
   ).consistent
 
-  def revert(deletedPostsById: collection.Map[PostId,Post]) = GraphChanges(
-    delPosts.flatMap(deletedPostsById.get _).map(_.copy(deleted = DeletedDate.NotDeleted.timestamp)), //TODO: backend just undeletes on id clash when inserting into table. any changes we do here are just for our local state
-    delConnections,
+  def revert(deletedPostsById: collection.Map[NodeId,Node.Content]) = GraphChanges(
+    //TODO: backend just undeletes on id clash when inserting into table. any changes we do here are just for our local state. here we also ignor undeletion on non Post.Content
+    delNodes.flatMap(deletedPostsById.get _).map(post => post.copy(meta = post.meta.copy(deleted = DeletedDate.NotDeleted))),
+    delEdges,
     Set.empty, //TODO edit history
-    addPosts.map(_.id),
-    addConnections -- delConnections
+    addNodes.map(_.id),
+    addEdges -- delEdges
   )
 
   lazy val consistent = GraphChanges(
-    addPosts.filterNot(p => delPosts(p.id)),
-    (addConnections -- delConnections).filter(c => c.sourceId != c.targetId),
-    updatePosts.filterNot(p => delPosts(p.id)),
-    delPosts,
-    delConnections
+    addNodes.filterNot(p => delNodes(p.id)),
+    (addEdges -- delEdges).filter(c => c.sourceId != c.targetId),
+    updateNodes.filterNot(p => delNodes(p.id)),
+    delNodes,
+    delEdges
   )
 
-  def involvedPostIds: Set[PostId] = addPosts.map(_.id) ++ updatePosts.map(_.id) ++ delPosts
+  def involvedNodeIds: Set[NodeId] = addNodes.map(_.id) ++ updateNodes.map(_.id) ++ delNodes
 
-  private val allProps = addPosts :: addConnections :: updatePosts :: delPosts :: delConnections :: Nil
+  private val allProps = addNodes :: addEdges :: updateNodes :: delNodes :: delEdges :: Nil
 
   lazy val isEmpty = allProps.forall(s => s.isEmpty)
   def nonEmpty = !isEmpty
@@ -58,43 +62,45 @@ object GraphChanges {
   def empty = GraphChanges()
 
   def from(
-    addPosts:        Iterable[Post]        = Set.empty,
-    addConnections:  Iterable[Connection]  = Set.empty,
-    updatePosts:     Iterable[Post]        = Set.empty,
-    delPosts:        Iterable[PostId]      = Set.empty,
-    delConnections:  Iterable[Connection]  = Set.empty
+            addPosts:        Iterable[Node]        = Set.empty,
+            addConnections:  Iterable[Edge]  = Set.empty,
+            updatePosts:     Iterable[Node]        = Set.empty,
+            delPosts:        Iterable[NodeId]      = Set.empty,
+            delConnections:  Iterable[Edge]  = Set.empty
   ) = GraphChanges(addPosts.toSet, addConnections.toSet, updatePosts.toSet, delPosts.toSet, delConnections.toSet)
 
-  def addPost(content: PostContent, author:UserId) = GraphChanges(addPosts = Set(Post(content, author)))
-  def addPost(post:Post) = GraphChanges(addPosts = Set(post))
-  def addPostWithParent(post:Post, parentId:PostId) = GraphChanges(addPosts = Set(post), addConnections = Set(Connection(post.id, ConnectionContent.Parent, parentId)))
+  def addNode(content: NodeData.Content) = GraphChanges(addNodes = Set(Node.Content(content)))
+  def addNode(post:Node) = GraphChanges(addNodes = Set(post))
+  def addNodeWithParent(post:Node, parentId:NodeId) = GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Parent(post.id, parentId)))
 
-  def updatePost(post:Post) = GraphChanges(updatePosts = Set(post))
+  def updatePost(post:Node) = GraphChanges(updateNodes = Set(post))
 
-  def addToParent(postIds:Iterable[PostId], parentId:PostId) = GraphChanges(
-    addConnections = postIds.map { channelId =>
-      Connection(channelId, ConnectionContent.Parent, parentId)
+  def addToParent(nodeIds:Iterable[NodeId], parentId:NodeId) = GraphChanges(
+    addEdges = nodeIds.map { channelId =>
+      Edge.Parent(channelId, parentId)
     }(breakOut)
   )
 
-  def delete(post:Post) = GraphChanges(delPosts = Set(post.id))
-  def delete(postId:PostId) = GraphChanges(delPosts = Set(postId))
+  def delete(post:Node) = GraphChanges(delNodes = Set(post.id))
+  def delete(nodeId:NodeId) = GraphChanges(delNodes = Set(nodeId))
 
-  def connect(source:PostId, content:ConnectionContent, target:PostId) = GraphChanges(addConnections = Set(Connection(source, content, target)))
-  def disconnect(source:PostId, content: ConnectionContent, target:PostId) = GraphChanges(delConnections = Set(Connection(source, content, target)))
+  def connect(source:NodeId, content:EdgeData.Label, target:NodeId) = GraphChanges(addEdges = Set(Edge.Label(source, content, target)))
+  def disconnect(source:NodeId, content: EdgeData.Label, target:NodeId) = GraphChanges(delEdges = Set(Edge.Label(source, content, target)))
+  def connectParent(source:NodeId, target:NodeId) = GraphChanges(addEdges = Set(Edge.Parent(source, target)))
+  def disconnectParent(source:NodeId, target:NodeId) = GraphChanges(delEdges = Set(Edge.Parent(source, target)))
 
-  def moveInto(graph:Graph, subject:PostId, target:PostId) = {
+  def moveInto(graph:Graph, subject:NodeId, target:NodeId) = {
     // TODO: only keep deepest parent in transitive chain
-    val newContainments = Set(Connection(subject, ConnectionContent.Parent, target))
-    val removeContainments:Set[Connection] = if (graph.ancestors(target).toSet contains subject) { // creating cycle
+    val newContainments = Set[Edge](Edge.Parent(subject, target))
+    val removeContainments:Set[Edge] = if (graph.ancestors(target).toSet contains subject) { // creating cycle
       Set.empty // remove nothing, because in cycle
     } else { // no cycle
-      (graph.parents(subject) map (Connection(subject, ConnectionContent.Parent, _))) - newContainments.head
+      (graph.parents(subject) map (Edge.Parent(subject, _) : Edge)) - newContainments.head
     }
-    GraphChanges(addConnections = newContainments, delConnections = removeContainments)
+    GraphChanges(addEdges = newContainments, delEdges = removeContainments)
   }
 
-  def tagWith(graph:Graph, subject:PostId, tag:PostId) = {
-    GraphChanges.connect(subject, ConnectionContent.Parent, tag)
+  def tagWith(graph:Graph, subject:NodeId, tag:NodeId) = {
+    GraphChanges.connectParent(subject, tag)
   }
 }

@@ -37,16 +37,16 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   //TODO: rename to auth and user. globalstate implies it is the current value....
   val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
 
-  val user: Rx[User] = auth.map(_.user)
+  val user: Rx[AuthUser] = auth.map(_.user)
 
-  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[PostContent] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addPost(msg, user.id))
+  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg)) // TODO: with auther connection
   }
 
   val rawGraph: Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
-  val channels: Rx[List[Post]] = Rx {
+  val channels: Rx[List[Node]] = Rx {
     val graph = rawGraph()
-    (graph.children(user().channelPostId).map(graph.postsById)(breakOut): List[Post]).sortBy(_.content.str)
+    (graph.children(user().channelNodeId).map(graph.postsById)(breakOut): List[Node]).sortBy(_.data.str)
   }
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
@@ -62,7 +62,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
       NewGroupView
   }
 
-  val pageParentPosts: Rx[Seq[Post]] = Rx {
+  val pageParentPosts: Rx[Seq[Node]] = Rx {
     page().parentIds.flatMap(id => rawGraph().postsById.get(id))
   }
 
@@ -73,10 +73,10 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   // be aware that this is a potential memory leak.
   // it contains all ids that have ever been collapsed in this session.
   // this is a wanted feature, because manually collapsing posts is preserved with navigation
-  val collapsedPostIds: Var[Set[PostId]] = Var(Set.empty)
+  val collapsedNodeIds: Var[Set[NodeId]] = Var(Set.empty)
 
   val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
-    perspective().union(Perspective(collapsed = Selector.Predicate(collapsedPostIds())))
+    perspective().union(Perspective(collapsed = Selector.Predicate(collapsedNodeIds())))
   }
 
   //TODO: when updating, both displayGraphs are recalculated
@@ -85,12 +85,12 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     val graph = rawGraph()
     page() match {
       case Page(parentIds, _, mode) =>
-        val modeSet: Set[PostId] = mode match {
-          case PageMode.Orphans => graph.postIds.filter(id => graph.parents(id).isEmpty && id != user().channelPostId).toSet
+        val modeSet: Set[NodeId] = mode match {
+          case PageMode.Orphans => graph.nodeIds.filter(id => graph.parents(id).isEmpty && id != user().channelNodeId).toSet
           case PageMode.Default => Set.empty
         }
-        val descendants = parentIds.flatMap(graph.descendants) diff parentIds
-        val selectedGraph = graph.filter(id => descendants.contains(id) || modeSet.contains(id))
+        val reject = parentIds + user().channelNodeId
+        val selectedGraph = graph.filterNot(id => reject.contains(id) || modeSet.contains(id))
         perspective().applyOnGraph(selectedGraph)
     }
   }
@@ -99,13 +99,12 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     val graph = rawGraph()
     page() match {
       case Page(parentIds, _, mode) =>
-        val modeSet: Set[PostId] = mode match {
-          case PageMode.Orphans => graph.postIds.filter(id => graph.parents(id).isEmpty && id != user().channelPostId).toSet
+        val modeSet: Set[NodeId] = mode match {
+          case PageMode.Orphans => graph.nodeIds.filter(id => graph.parents(id).isEmpty && id != user().channelNodeId).toSet
           case PageMode.Default => Set.empty
         }
         //TODO: this seems to crash when parentid does not exist
-        val descendants = parentIds.flatMap(graph.descendants) ++ parentIds
-        val selectedGraph = graph.filter(id => descendants.contains(id) || modeSet.contains(id))
+        val selectedGraph = graph.filter(id => id != user().channelNodeId || modeSet.contains(id))
         perspective().applyOnGraph(selectedGraph)
     }
   }
@@ -129,18 +128,18 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 
-    val toDelete = delPosts.flatMap { postId =>
-      Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(postId))
+    val toDelete = delNodes.flatMap { nodeId =>
+      Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(nodeId))
     }
 
-    def toParentConnections(page: Page, postId: PostId): Seq[Connection] = page.parentIds.map(Connection(postId, ConnectionContent.Parent, _))(breakOut)
+    def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] = page.parentIds.map(Edge.Parent(nodeId,  _))(breakOut)
 
-    val containedPosts = addConnections.collect { case Connection(source, ConnectionContent.Parent, _) => source }
-    val toContain = addPosts
+    val containedPosts = addEdges.collect { case Edge.Parent(source,  _) => source }
+    val toContain = addNodes
       .filterNot(p => containedPosts(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))
 
-    changes.consistent merge GraphChanges(delPosts = toDelete, addConnections = toContain)
+    changes.consistent merge GraphChanges(delNodes = toDelete, addEdges = toContain)
   }
 }
 
@@ -155,7 +154,7 @@ object GlobalState {
     auth.foreach(IndexedDbOps.storeAuth)
 
     // on initial page load we add the currently viewed page as a channel
-    val changes = GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelPostId)
+    val changes = GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId)
     eventProcessor.changes.onNext(changes)
 
     //TODO: better build up state from server events?
@@ -190,9 +189,9 @@ object GlobalState {
     // client is currently running.
     Client.observable.event.foreach { events =>
       val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
-      if (changes.addPosts.nonEmpty) {
-        val msg = if (changes.addPosts.size == 1) "New Post" else s"New Post (${changes.addPosts.size})"
-        val body = changes.addPosts.map(_.content).mkString(", ")
+      if (changes.addNodes.nonEmpty) {
+        val msg = if (changes.addNodes.size == 1) "New Post" else s"New Post (${changes.addNodes.size})"
+        val body = changes.addNodes.map(_.data).mkString(", ")
         Notifications.notify(msg, body = Some(body), tag = Some("new-post"))
       }
     }
@@ -204,11 +203,11 @@ object GlobalState {
 
     DevOnly {
 
-      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toSummaryString}")
-      //      collapsedPostIds.debug("collapsedPostIds")
+      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toString}")
+      //      collapsedNodeIds.debug("collapsedNodeIds")
       perspective.debug("perspective")
-      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toSummaryString}" }
-      //      focusedPostId.debug("focusedPostId")
+      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
+      //      focusedNodeId.debug("focusedNodeId")
       //      selectedGroupId.debug("selectedGroupId")
       // rawPage.debug("rawPage")
       page.debug("page")

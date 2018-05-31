@@ -8,7 +8,7 @@ import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import monix.reactive.Observer
-import wust.ids.PostContent
+import wust.ids.NodeData
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.window
 import views.MediaViewer
@@ -19,23 +19,25 @@ object Placeholders {
 }
 
 object Rendered {
-  val htmlPostContent: PostContent => String = {
-    case PostContent.Markdown(content) => mdString(content)
-    case PostContent.Text(content)  =>
+  val htmlPostData: NodeData => String = {
+    case NodeData.Markdown(content) => mdString(content)
+    case NodeData.PlainText(content)  =>
       // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
       val text = window.document.createTextNode(content)
       val wrap = window.document.createElement("div")
       wrap.appendChild(text)
       wrap.innerHTML
-    case PostContent.Link(url) => s"<a href=$url>" //TODO
-    case PostContent.Channels => "Channels"
+    case NodeData.Link(url) => s"<a href=$url>" //TODO
+    case NodeData.Channels => "Channels"
+    case user: NodeData.User => s"User: ${user.name}"
   }
 
-  val showPostContent: PostContent => VNode = {
-    case PostContent.Markdown(content) => mdHtml(content)
-    case PostContent.Text(content)  => span(content)
-    case c: PostContent.Link => MediaViewer.embed(c)
-    case PostContent.Channels => span("Channels")
+  val showPostData: NodeData => VNode = {
+    case NodeData.Markdown(content) => mdHtml(content)
+    case NodeData.PlainText(content)  => span(content)
+    case c: NodeData.Link => MediaViewer.embed(c)
+    case NodeData.Channels => span("Channels")
+    case user: NodeData.User => span(s"User: ${user.name}")
   }
 
   def mdHtml(str: String) = span(prop("innerHTML") := marked(str))(cls := "postcontent")

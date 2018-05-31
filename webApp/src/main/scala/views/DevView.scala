@@ -89,8 +89,8 @@ object DevView {
 //        },
         Rx {
          def addRandomPost(count: Int):Unit = {
-            val newPosts = List.fill(count)(Post(PostId.fresh, content = PostContent.Text(rSentence), state.user.now.id)).toSet
-            val changes = GraphChanges(addPosts = newPosts)
+            val newPosts = List.fill(count)(Node.Content(NodeId.fresh, data = NodeData.PlainText(rSentence)))
+            val changes = GraphChanges.from(addPosts = newPosts)
             state.eventProcessor.enriched.changes.onNext(changes)
           }
 
@@ -102,10 +102,10 @@ object DevView {
           )
         },
         Rx {
-          val posts = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.postIds.toSeq)
+          val posts = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.nodeIds.toSeq)
 
-          def deletePost(ids: Seq[PostId]):Unit = {
-            state.eventProcessor.changes.onNext(GraphChanges(delPosts = ids.toSet))
+          def deletePost(ids: Seq[NodeId]):Unit = {
+            state.eventProcessor.changes.onNext(GraphChanges(delNodes = ids.toSet))
           }
 
           div(
@@ -116,18 +116,18 @@ object DevView {
           )
         },
         Rx {
-          val posts = state.displayGraphWithoutParents().graph.postIds.toArray
-          def randomConnection = Connection(posts(rInt(posts.length)), ConnectionContent.Text(rWord), posts(rInt(posts.length)))
+          val posts = state.displayGraphWithoutParents().graph.nodeIds.toArray
+          def randomConnection = Edge.Label(posts(rInt(posts.length)), EdgeData.Label(rWord), posts(rInt(posts.length)))
 
           def connect(_count:Int):Unit = {
             if(posts.length > 1) {
               val count = _count min ((posts.length * posts.length - 1) / 2)
-              val selected = mutable.HashSet.empty[Connection]
+              val selected = mutable.HashSet.empty[Edge]
               while (selected.size < count) {
                 selected += randomConnection
               }
 
-              state.eventProcessor.changes.onNext(GraphChanges(addConnections = selected.toSet))
+              state.eventProcessor.changes.onNext(GraphChanges(addEdges = selected.toSet))
             }
           }
 
@@ -139,11 +139,11 @@ object DevView {
           )
         },
         Rx {
-          val posts = state.displayGraphWithoutParents().graph.postIds.toArray
-          def randomConnection = Connection(posts(rInt(posts.length)), ConnectionContent.Parent, posts(rInt(posts.length)))
+          val posts = state.displayGraphWithoutParents().graph.nodeIds.toArray
+          def randomConnection = Edge.Parent(posts(rInt(posts.length)), posts(rInt(posts.length)))
 
           def contain(count:Int):Unit = {
-            state.eventProcessor.changes.onNext(GraphChanges(addConnections = Array.fill(count)(randomConnection).toSet))
+            state.eventProcessor.changes.onNext(GraphChanges(addEdges = Array.fill(count)(randomConnection).toSet))
           }
 
           div(
@@ -157,7 +157,7 @@ object DevView {
           val connections = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
 
           def disconnect(count:Int):Unit = {
-            state.eventProcessor.changes.onNext(GraphChanges(delConnections = connections.take(count).toSet))
+            state.eventProcessor.changes.onNext(GraphChanges(delEdges = connections.take(count).toSet))
           }
 
           div(
@@ -175,7 +175,7 @@ object DevView {
         //            import scalajs.js.timers._
         //            def graph = state.rawGraph.now
         //
-        //            def randomPostId: Option[PostId] = if (graph.postsById.size > 0) Option((graph.postIds.toIndexedSeq) (rInt(graph.postsById.size))) else None
+        //            def randomNodeId: Option[NodeId] = if (graph.postsById.size > 0) Option((graph.nodeIds.toIndexedSeq) (rInt(graph.postsById.size))) else None
         //
         //            def randomConnection: Option[Connection] = if (graph.connections.size > 0) Option((graph.connections.toIndexedSeq) (rInt(graph.connections.size))) else None
         //
@@ -185,11 +185,11 @@ object DevView {
         //            val events: Array[() => Option[GraphChanges]] = {
         //              val distribution: List[(Int, () => Option[GraphChanges])] = (
         //                (4, () => Option(GraphChanges(addPosts = Set(Post.newId(rStr(1 + rInt(20))))))) ::
-        //                  (3, () => randomPostId.map(p => GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20))))))) ::
-        //                  (2, () => randomPostId.map(p => GraphChanges(delPosts = Set(p)))) ::
-        //                  (3, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addConnections = Set(Connection(p1, p2)))) ::
+        //                  (3, () => randomNodeId.map(p => GraphChanges(updatePosts = Set(Post(p, rStr(1 + rInt(20))))))) ::
+        //                  (2, () => randomNodeId.map(p => GraphChanges(delPosts = Set(p)))) ::
+        //                  (3, () => for (p1 <- randomNodeId; p2 <- randomNodeId) yield GraphChanges(addConnections = Set(Connection(p1, p2)))) ::
         //                  (2, () => randomConnection.map(c => GraphChanges(delConnections = Set(c)))) ::
-        //                  (3, () => for (p1 <- randomPostId; p2 <- randomPostId) yield GraphChanges(addContainments = Set(Containment(p1, p2)))) ::
+        //                  (3, () => for (p1 <- randomNodeId; p2 <- randomNodeId) yield GraphChanges(addContainments = Set(Containment(p1, p2)))) ::
         //                  (2, () => randomContainment.map(c => GraphChanges(delContainments = Set(c)))) ::
         //                  Nil
         //                )

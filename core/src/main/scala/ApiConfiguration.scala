@@ -1,7 +1,6 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.{Graph, User}
 import wust.backend.auth.JWT
 import sloth._
 import covenant.core.api._

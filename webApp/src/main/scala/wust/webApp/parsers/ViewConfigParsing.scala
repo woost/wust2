@@ -2,7 +2,7 @@ package wust.webApp.parsers
 
 import cats.data.NonEmptyList
 import wust.graph.{Page,PageMode}
-import wust.ids.PostId
+import wust.ids.NodeId
 import wust.webApp.views.{TiledView, View, ViewConfig, ViewOperator}
 
 private object ViewConfigConstants {
@@ -39,13 +39,13 @@ object ViewConfigParser {
 
   val view: P[View] = P( (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto) | viewWithOps(ViewOperator.Optional)) )
 
-  val postIdList: Parser[Seq[PostId]] = P( word.!.rep(min = 1, sep = idSeparator) ).map(_.map(PostId.apply))
+  val nodeIdList: Parser[Seq[NodeId]] = P( word.!.rep(min = 1, sep = idSeparator) ).map(_.map(NodeId(_)))
   val pageMode: Parser[PageMode] = P ( (PageMode.Default.name | PageMode.Orphans.name).! )
     .map {
       case PageMode.Default.name => PageMode.Default
       case PageMode.Orphans.name => PageMode.Orphans
     }
-  val page: P[Page] = P( pageMode ~/ (pageSeparator ~/ postIdList ~ (pageSeparator ~ postIdList).?).? ~/ (urlSeparator | End) )
+  val page: P[Page] = P( pageMode ~/ (pageSeparator ~/ nodeIdList ~ (pageSeparator ~ nodeIdList).?).? ~/ (urlSeparator | End) )
     .map {
       case (mode, None) => Page(parentIds = Nil, mode = mode)
       case (mode, Some((parentIds, None))) => Page(parentIds = parentIds, mode = mode)

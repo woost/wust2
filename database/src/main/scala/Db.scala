@@ -1,12 +1,14 @@
 package wust.db
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.util.Date
 
 import com.typesafe.config.Config
 import io.getquill._
-import io.circe.parser._, io.circe.syntax._
-import io.treev.tag.TaggedType
-import wust.ids._, wust.ids.serialize.Circe._
+import io.circe.parser._
+import io.circe.syntax._
+import supertagged._
+import wust.ids._
+import wust.ids.serialize.Circe._
 import wust.util._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,186 +19,135 @@ object Db {
   }
 }
 
-class Db(val ctx: PostgresAsyncContext[LowerCase]) {
+// all database operations
+class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx) {
   import Data._
   import ctx._
 
-  protected object Converters {
-    private def encodingTaggedType[T: Encoder, Type <: TaggedType[T]#Type]: MappedEncoding[Type, T] = MappedEncoding[Type, T](identity)
-    private def decodingTaggedType[T: Decoder, Type <: TaggedType[T]#Type]: MappedEncoding[T, Type] = MappedEncoding[T, Type](_.asInstanceOf[Type])
-
-    // cannot resolve automatically for any T, so need specialized implicit defs
-    implicit def encodingStringTaggedType[Type <: TaggedType[String]#Type]: MappedEncoding[Type, String] = encodingTaggedType[String, Type]
-    implicit def encodingLongTaggedType[Type <: TaggedType[Long]#Type]: MappedEncoding[Type, Long] = encodingTaggedType[Long, Type]
-    implicit def encodingIntTaggedType[Type <: TaggedType[Int]#Type]: MappedEncoding[Type, Int] = encodingTaggedType[Int, Type]
-    implicit def decodingStringTaggedType[Type <: TaggedType[String]#Type]: MappedEncoding[String, Type] = decodingTaggedType[String, Type]
-    implicit def decodingLongTaggedType[Type <: TaggedType[Long]#Type]: MappedEncoding[Long, Type] = decodingTaggedType[Long, Type]
-    implicit def decodingIntTaggedType[Type <: TaggedType[Int]#Type]: MappedEncoding[Int, Type] = decodingTaggedType[Int, Type]
-
-    private def encodeJson[T : io.circe.Encoder](json: T): String = json.asJson.noSpaces
-    private def decodeJson[T : io.circe.Decoder](json: String): T = decode[T](json) match {
-      case Right(v) => v
-      case Left(e) => throw new Exception(s"Failed to decode json: '$json': $e")
-    }
-    implicit val encodingConnectionContent: MappedEncoding[ConnectionContent, String] = MappedEncoding[ConnectionContent, String](encodeJson[ConnectionContent])
-    implicit val decodingConnectionContent: MappedEncoding[String, ConnectionContent] = MappedEncoding[String, ConnectionContent](decodeJson[ConnectionContent])
-    implicit val encodingPostContent: MappedEncoding[PostContent, String] = MappedEncoding[PostContent, String](encodeJson[PostContent])
-    implicit val decodingPostContent: MappedEncoding[String, PostContent] = MappedEncoding[String, PostContent](decodeJson[PostContent])
-
-    implicit val encodingAccessLevel: MappedEncoding[AccessLevel, String] = MappedEncoding[AccessLevel, String] {
-      case AccessLevel.Read => "read"
-      case AccessLevel.ReadWrite => "readwrite"
-    }
-    implicit val decodingAccessLevel: MappedEncoding[String, AccessLevel] = MappedEncoding[String, AccessLevel]{
-      case "read" => AccessLevel.Read
-      case "readwrite" => AccessLevel.ReadWrite
-    }
-
-    implicit class LocalDateTimeQuillOps(ldt: LocalDateTime) {
-      def > = ctx.quote((date: LocalDateTime) => infix"$ldt > $date".as[Boolean])
-      def >= = ctx.quote((date: LocalDateTime) => infix"$ldt >= $date".as[Boolean])
-      def < = ctx.quote((date: LocalDateTime) => infix"$ldt < $date".as[Boolean])
-      def <= = ctx.quote((date: LocalDateTime) => infix"$ldt <= $date".as[Boolean])
-    }
-
-
-    implicit class JsonPostContentQuillOps(json: PostContent) {
-      val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
-      val jsonType = ctx.quote(infix"$json->>'type'".as[PostContent.Type])
-    }
-    implicit class JsonConnectionContentQuillOps(json: ConnectionContent) {
-      val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
-      val jsonType = ctx.quote(infix"$json->>'type'".as[ConnectionContent.Type])
-    }
-
-    implicit val userSchemaMeta = schemaMeta[User]("\"user\"") // user is a reserved word, needs to be quoted
-    // Set timestamps in backend
-  //   implicit val postInsertMeta = insertMeta[RawPost](_.created, _.modified)
-
-    implicit class IngoreDuplicateKey[T](q: Insert[T]) {
-      def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
-    }
-  }
-  import Converters._
+  // schema meta: we can define how a type corresponds to a db table
+  implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.
 
   //TODO should actually rollback transactions when batch action had partial error
-  object post {
-    // post ids are unique, so the methods can assume that at max 1 row was touched in each operation
+  object node {
+    // node ids are unique, so the methods can assume that at max 1 row was touched in each operation
 
     //TODO need to check rights before we can do this
-    private val insert = quote { (post: Post) =>
-      val q = query[Post].insert(post)
+    private val insert = quote { post: Node =>
+      val q = query[Node].insert(post)
       // when adding a new post, we undelete it in case it was already there
       //TODO this approach hides conflicts on post ids!!
       //TODO what about title
       //TODO can undelete posts that i do not own
-      infix"$q ON CONFLICT(id) DO UPDATE SET deleted = ${lift(Data.epochMilliToLocalDateTime(DeletedDate.NotDeleted.timestamp))}".as[Insert[Post]]
+      infix"$q ON CONFLICT(id) DO UPDATE SET deleted = ${lift(DeletedDate.NotDeleted.timestamp)}".as[Insert[Node]]
     }
 
-    def createPublic(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = createPublic(Set(post))
-    def createPublic(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
+    def create(post: Node)(implicit ec: ExecutionContext): Future[Boolean] = create(Set(post))
+    def create(posts: Set[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(posts.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
     }
 
-    def get(postId: PostId)(implicit ec: ExecutionContext): Future[Option[Post]] = {
-      ctx.run(query[Post].filter(_.id == lift(postId)).take(1))
+    def get(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
+      ctx.run(query[Node].filter(_.id == lift(nodeId)).take(1))
         .map(_.headOption)
     }
 
-    def get(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[Post]] = {
+    def get(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
       //TODO
-      //ctx.run(query[Post].filter(p => liftQuery(postIds) contains p.id))
+      //ctx.run(query[Post].filter(p => liftQuery(nodeIds) contains p.id))
       val q = quote {
         infix"""
-        select post.* from unnest(${lift(postIds.toList)} :: varchar(36)[]) inputPostId join post on post.id = inputPostId
-      """.as[Query[Post]]
+        select node.* from unnest(${lift(nodeIds.toList)} :: varchar(36)[]) inputNodeId join node on node.id = inputNodeId
+      """.as[Query[Node]]
       }
 
       ctx.run(q)
     }
 
-    def update(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))
-    def update(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(post => query[Post].filter(_.id == post.id).update(_.content -> post.content)))
+    def update(post: Node)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))
+    def update(posts: Set[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(posts.toList).foreach(post => query[Node].filter(_.id == post.id).update(_.data -> post.data)))
         .map(_.forall(_ == 1))
     }
 
-    def delete(postId: PostId, when: LocalDateTime)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId), when)
-    def delete(postIds: Set[PostId], when: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
-)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(postIds.toList).foreach(postId => query[Post].filter(_.id == postId).update(_.deleted -> lift(when))))
+    //TODO delete should be part of update?
+    def delete(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(nodeId))
+    def delete(nodeId: NodeId, when: DeletedDate)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(nodeId), when)
+    def delete(nodeIds: Set[NodeId], when: DeletedDate = DeletedDate.Deleted(EpochMilli.now))(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(nodeIds.toList).foreach(nodeId => query[Node].filter(_.id == nodeId).update(_.deleted -> lift(when))))
         .map(_.forall(_ == 1))
     }
 
-    def undelete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = undelete(Set(postId))
-    def undelete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(postIds.toList).foreach(postId => query[Post].filter(_.id == postId).update(_.deleted -> lift(Data.epochMilliToLocalDateTime(DeletedDate.NotDeleted.timestamp)))))
-        .map(_.forall(_ == 1))
-    }
-
-    def getMembers(postId: PostId)(implicit ec: ExecutionContext): Future[List[User]] = {
+    def getMembers(nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[User]] = {
       ctx.run {
         for {
-          membership <- query[Membership].filter(_.postId == lift(postId))
-          user <- query[User].filter(_.id == membership.userId)
-        } yield user
+          membershipConnection <- query[MemberEdge].filter(c => c.targetId == lift(nodeId) && c.data.jsonType == lift(EdgeData.Member.tpe))
+          userPost <- query[User].filter(_.id == membershipConnection.sourceId)
+        } yield userPost
       }
     }
 
-    def addMemberWithCurrentJoinLevel(postId: PostId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = addMemberWithCurrentJoinLevel(postId :: Nil, userId).map(_.nonEmpty)
-    def addMemberWithCurrentJoinLevel(postIds: List[PostId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
-      val now = LocalDateTime.now(ZoneOffset.UTC)
+    def addMemberWithCurrentJoinLevel(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Option[AccessLevel]] = addMemberWithCurrentJoinLevel(nodeId :: Nil, userId).map(_.headOption.map{ case (nodeId, level) => level })
+    def addMemberWithCurrentJoinLevel(nodeIds: List[NodeId], userId: UserId)(implicit ec: ExecutionContext): Future[Seq[(NodeId, AccessLevel)]] = {
+      val now = EpochMilli.now
       val insertMembership = quote {
-        val q = query[Post]
-          .filter(p => liftQuery(postIds).contains(p.id) && lift(now) < p.joinDate)
-          .map(p => Membership(lift(userId), p.id, p.joinLevel))
+        // val membershipConnectionsToBeCreated = for {
+        //   user <- query[Post].filter(_.id == lift(userId))
+        //   post = query[Post].filter(p => liftQuery(nodeIds).contains(p.id) && lift(now) < p.joinDate)
+        //   connection <- post.map(p => Connection(user.id, ConnectionData.Member(p.joinLevel), p.id))
+        // } yield connection
+        //
+        //
+        val membershipConnectionsToBeCreated = infix"""SELECT x22.id, jsonb_build_object('type', 'Member', 'level', p.joinlevel), p.id FROM node as x22, node p WHERE x22.id = ${lift(userId)} AND p.id = ANY(${lift(nodeIds)}) AND ${lift(now)} < p.joindate"""
+        // don't lower permission level
+
         infix"""
-          insert into membership(userid, postid, level)
-          $q ON CONFLICT(postid, userid) DO UPDATE set level =
-            CASE EXCLUDED.level WHEN 'read' THEN membership.level
-                                WHEN 'readwrite' THEN 'readwrite'
+          insert into edge(sourceid, data, targetid)
+          $membershipConnectionsToBeCreated
+          ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE set data =
+            CASE EXCLUDED.data->>'level'  WHEN 'read' THEN edge.data
+                                          WHEN 'readwrite' THEN EXCLUDED.data
             END
-        """.as[Insert[Membership]]
+        """.as[Insert[Edge]]
         //TODO: https://github.com/getquill/quill/issues/1093
             // returning postid
-        // """.as[ActionReturning[Membership, PostId]]
+        // """.as[ActionReturning[Membership, NodeId]]
       }
 
-      // val r = ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
+      // val r = ctx.run(liftQuery(nodeIds).foreach(insertMembership(_)))
       ctx.run(insertMembership)
         //TODO: fix query with returning
-        .map { _ => postIds }
+          .map { _ => nodeIds.map(p => (p,AccessLevel.Read)) } //TODO: this is fake data
     }
 
-    def addMemberEvenIfLocked(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId, accessLevel).map(_.nonEmpty)
-    def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
-      val insertMembership = quote { postId: PostId =>
-        val q = query[Membership].insert(Membership(lift(userId), postId, lift(accessLevel)))
+    def addMemberEvenIfLocked(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(nodeId :: Nil, userId, accessLevel).map(_.nonEmpty)
+    def addMemberEvenIfLocked(nodeIds: List[NodeId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[NodeId]] = {
+      val insertMembership = quote { nodeId: NodeId =>
         infix"""
-          $q ON CONFLICT(postid, userid) DO UPDATE set level =
-            CASE EXCLUDED.level WHEN 'read' THEN membership.level
-                                WHEN 'readwrite' THEN 'readwrite'
+          insert into edge(sourceid, data, targetid) values
+          (${lift(userId)}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${nodeId})
+          ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE set data =
+            CASE EXCLUDED.data->>'level' WHEN 'read' THEN edge.data
+                                        WHEN 'readwrite' THEN EXCLUDED.data
             END
-        """.as[Insert[Membership]].returning(_.postId)
+        """.as[Insert[Edge]].returning(_.targetId)
       }
-      ctx.run(liftQuery(postIds).foreach(insertMembership(_)))
+      ctx.run(liftQuery(nodeIds).foreach(insertMembership(_)))
     }
-    def setJoinDate(postId: PostId, joinDate: JoinDate)(implicit ec: ExecutionContext):Future[Boolean] = {
-      val joinDateLocalDateTime = Data.epochMilliToLocalDateTime(joinDate.timestamp)
-      ctx.run(query[Post].filter(_.id == lift(postId)).update(_.joinDate -> lift(joinDateLocalDateTime))).map(_ == 1)
+    def setJoinDate(nodeId: NodeId, joinDate: JoinDate)(implicit ec: ExecutionContext):Future[Boolean] = {
+      ctx.run(query[Node].filter(_.id == lift(nodeId)).update(_.joinDate -> lift(joinDate))).map(_ == 1)
     }
   }
 
   object notifications {
-    private case class NotifiedUsersData(userId: UserId, postIds: List[PostId])
-    private def notifiedUsersFunction(postIds: List[PostId]) = quote {
-      infix"select * from notified_users(${lift(postIds)})".as[Query[NotifiedUsersData]]
+    private case class NotifiedUsersData(userId: UserId, nodeIds: List[NodeId])
+    private def notifiedUsersFunction(nodeIds: List[NodeId]) = quote {
+      infix"select * from notified_users(${lift(nodeIds)})".as[Query[NotifiedUsersData]]
     }
 
-    def notifiedUsers(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Map[UserId, List[PostId]]] = {
+    def notifiedUsers(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[Map[UserId, List[NodeId]]] = {
       ctx.run {
-        notifiedUsersFunction(postIds.toList).map(d => d.userId -> d.postIds)
+        notifiedUsersFunction(nodeIds.toList).map(d => d.userId -> d.nodeIds)
       }.map(_.toMap)
     }
 
@@ -219,117 +170,106 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       }
     }
     //
-    // def getSubscriptions(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
+    // def getSubscriptions(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
     //   ctx.run{
     //     for {
-    //       // m <- query[Membership].filter(m => liftQuery(postIds.toList).contains(m.postId))
+    //       // m <- query[Membership].filter(m => liftQuery(nodeIds.toList).contains(m.nodeId))
     //       s <- query[WebPushSubscription]//.filter(_.userId == m.userId)
     //     } yield s
     //   }
     // }
   }
 
-  object connection {
-    private val insert = quote { c: Connection =>
-      val q = query[Connection].insert(c)
-      // if there is unique conflict, we update the content which might contain new values
-      infix"$q ON CONFLICT(sourceid,(content->>'type'),targetid) DO UPDATE SET content = EXCLUDED.content".as[Insert[Connection]]
+  object edge {
+    private val insert = quote { c: Edge =>
+      val q = query[Edge].insert(c)
+      // if there is unique conflict, we update the data which might contain new values
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE SET data = EXCLUDED.data".as[Insert[Edge]]
     }
 
-    def apply(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
-    def apply(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
+    def apply(connection: Edge)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
+    def apply(connections: Set[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(connections.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
 
-    def delete(connection: Connection)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
-    def delete(connections: Set[Connection])(implicit ec: ExecutionContext): Future[Boolean] = {
-      val data = connections.map(c => (c.sourceId, c.content.tpe, c.targetId))
+    def delete(connection: Edge)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
+    def delete(connections: Set[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
+      val data = connections.map(c => (c.sourceId, c.data.tpe, c.targetId))
       ctx.run(liftQuery(data.toList).foreach { case (sourceId, tpe, targetId) =>
-        query[Connection].filter(c => c.sourceId == sourceId && c.content.jsonType == tpe && c.targetId == targetId).delete
+        query[Edge].filter(c => c.sourceId == sourceId && c.data.jsonType == tpe && c.targetId == targetId).delete
       }).map(_.forall(_ <= 1))
     }
   }
 
   object user {
 
-    def allMembershipsQuery(userId: UserId) = quote {
-      query[Membership].filter(m => m.userId == lift(userId))
+    def allMembershipConnections(userId: UserId): Quoted[Query[Edge]] = quote {
+      for {
+        user <- query[Node].filter(_.id == lift(userId))
+        membershipConnection <- query[Edge].filter(c => c.sourceId == user.id && c.data.jsonType == lift(EdgeData.Member.tpe))
+      } yield membershipConnection
     }
 
-    def allPostsQuery(userId: UserId) = quote {
+    def allPostsQuery(userId: UserId): Quoted[Query[Node]] = quote {
       for {
-        m <- allMembershipsQuery(userId)
-        p <- query[Post].join(p => p.id == m.postId)
+        c <- allMembershipConnections(userId)
+        p <- query[Node].join(p => p.id == c.targetId)
       } yield p
     }
 
-    def visiblePosts(userId: UserId, postIds: Iterable[PostId])(implicit ec: ExecutionContext): Future[List[PostId]] = {
-      ctx.run{
-        for {
-          m <- query[Membership].filter(m => m.userId == lift(userId) && liftQuery(postIds.toList).contains(m.postId))
-          child <- query[Connection].filter(c => c.targetId == m.postId && c.content.jsonType == lift(ConnectionContent.Parent.tpe)).map(_.sourceId).distinct // get all direct children
-        } yield child
-      }
-    }
+    def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Node]] = ctx.run { allPostsQuery(userId) }
 
-    def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Post]] = ctx.run { allPostsQuery(userId) }
+    // TODO share code with createimplicit?
+    def apply(userId: UserId, name: String, digest: Array[Byte], channelNodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      val channelPost = Node(channelNodeId, NodeData.Channels, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val userData = NodeData.User(name = name, isImplicit = false, revision = 0, channelNodeId = channelPost.id)
+      val userPost = User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val levelPostData: EdgeData = EdgeData.Member(AccessLevel.Read)
 
-
-    def apply(id: UserId, name: String, digest: Array[Byte], channelPostId: PostId, userPostId: PostId)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val user = User(id, name, isImplicit = false, 0, channelPostId, userPostId)
-      val channelPostContent: PostContent = PostContent.Channels
-      val userPostContent: PostContent = PostContent.Markdown("")
-
-      //TODO: author for channelsPost should not be '1'. Author should not even be part of user.
       val q = quote {
         infix"""
-        with inscp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelPostContent)}, 1, 'read')),
-             insup as (insert into post (id,content,author,joinlevel) values (${lift(userPostId)}, ${lift(userPostContent)}, 1, 'read')),
-             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}, ${lift(user.userPostId)})),
-             ins_m_cp as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
-             ins_m_up as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.userPostId)}, 'readwrite'))
+        with insert_channelpost as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelPost.id)}, ${lift(channelPost.data)}, ${lift(channelPost.deleted)}, ${lift(channelPost.joinDate)}, ${lift(channelPost.joinLevel)})),
+             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(userPost.id)}, ${lift(userPost.data)}, ${lift(userPost.deleted)}, ${lift(userPost.joinDate)}, ${lift(userPost.joinLevel)})),
+             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(channelNodeId)}))
+             ins_m_up as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(userId)}))
                       insert into password(id, digest) select id, ${lift(digest)}
-      """.as[Insert[User]]
-        //TODO: update post and set author to userid
+      """.as[Insert[Node]]
       }
 
       ctx.run(q)
-        .collect { case 1 => Option(user) }
+        .collect { case 1 => Option(userPost) }
         .recoverValue(None)
     }
 
-    def createImplicitUser(id: UserId, name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val userPostId = PostId.fresh
-      val userPostContent: PostContent = PostContent.Markdown("")
-      val channelPostId = PostId.fresh
-      val channelPostContent: PostContent = PostContent.Channels
-      val user = User(id, name, isImplicit = true, 0, channelPostId = channelPostId, userPostId = userPostId)
+    def createImplicitUser(userId: UserId, name: String, channelNodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      val channelPost = Node(channelNodeId, NodeData.Channels, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val userData = NodeData.User(name = name, isImplicit = true, revision = 0, channelNodeId = channelPost.id)
+      val userPost = User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val levelPostData: EdgeData = EdgeData.Member(AccessLevel.Read)
+
       val q = quote {
         infix"""
-        with inscp as (insert into post (id,content,author,joinlevel) values (${lift(channelPostId)}, ${lift(channelPostContent)}, 1, 'read')),
-             insup as (insert into post (id,content,author,joinlevel) values (${lift(userPostId)}, ${lift(userPostContent)}, 1, 'read')),
-             insu as (insert into "user" values(${lift(user.id)}, ${lift(user.name)}, ${lift(user.revision)}, ${lift(user.isImplicit)}, ${lift(user.channelPostId)}, ${lift(user.userPostId)})),
-             ins_m_cp as (insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.channelPostId)}, 'read'))
-                     insert into membership (userid, postid, level) values(${lift(user.id)}, ${lift(user.userPostId)}, 'readwrite')
-      """.as[Insert[User]]
-        //TODO: update post and set author to userid
+        with insert_channelpost as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelPost.id)}, ${lift(channelPost.data)}, ${lift(channelPost.deleted)}, ${lift(channelPost.joinDate)}, ${lift(channelPost.joinLevel)})),
+             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(userPost.id)}, ${lift(userPost.data)}, ${lift(userPost.deleted)}, ${lift(userPost.joinDate)}, ${lift(userPost.joinLevel)})),
+             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(channelNodeId)}))
+                      insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(userId)})
+     """.as[Insert[Node]]
       }
       ctx.run(q)
-        .collect { case 1 => Option(user) }
+        .collect { case 1 => Option(userPost) }
         .recoverValue(None)
     }
 
     //TODO one query
     def activateImplicitUser(id: UserId, name: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.transaction { implicit ec =>
-        ctx.run(query[User].filter(u => u.id == lift(id) && u.isImplicit))
+          ctx.run(query[User].filter(u => u.id == lift(id) && u.data->>"isImplicit" == "true")) //TODO: type safe
           .flatMap(_.headOption.map { user =>
+            val userData = user.data
             val updatedUser = user.copy(
-              name = name,
-              isImplicit = false,
-              revision = user.revision + 1
+              data = userData.copy(name = name, isImplicit = false, revision = userData.revision + 1)
             )
             for {
               _ <- ctx.run(query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
@@ -357,7 +297,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
       if (implicitId == userId) Future.successful(false)
       else ctx.transaction { implicit ec =>
         get(implicitId).flatMap { user =>
-          val isAllowed = user.fold(false)(_.isImplicit)
+          val isAllowed: Boolean = user.fold(false)(_.data.asInstanceOf[NodeData.User].isImplicit)
           if (isAllowed) {
             val q = quote {
               infix"""select mergeFirstUserIntoSecond(${lift(implicitId)}, ${lift(userId)})""".as[Delete[User]]
@@ -369,14 +309,14 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
 
     def get(id: UserId)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      ctx.run(query[User].filter(_.id == lift(id)).take(1))
+      ctx.run(query[User].filter(p => p.id == lift(id) && p.data.jsonType == lift(NodeData.User.tpe) ).take(1))
         .map(_.headOption)
     }
 
     def getUserAndDigest(name: String)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
       ctx.run {
         query[User]
-          .filter(_.name == lift(name))
+          .filter(_.data->>"name" == lift(name))
           .join(query[Password])
           .on((u, p) => u.id == p.id)
           .map { case (u, p) => (u, p.digest) }
@@ -387,48 +327,52 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     def byName(name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.run {
         query[User]
-          .filter(u => u.name == lift(name) && u.isImplicit == false)
+          .filter(u => u.data->>"name" == lift(name) && u.data->>"isImplicit" == "false")
           .take(1)
       }.map(_.headOption)
     }
 
-    def checkIfEqualUserExists(user: User)(implicit ec: ExecutionContext): Future[Boolean] = {
-      import user._
+    def checkIfEqualUserExists(user: SimpleUser)(implicit ec: ExecutionContext): Future[Boolean] = {
+      import user.data._
       ctx.run {
         query[User]
-          .filter(u => u.id == lift(id) && u.revision == lift(revision) && u.isImplicit == lift(isImplicit) && u.name == lift(name))
+          .filter(u => u.id == lift(user.id) && u.data->>"revision" == lift(revision.toString) && u.data->>"isImplicit" == lift(isImplicit.toString) && u.data->>"name" == lift(name))
           .take(1)
       }.map(_.nonEmpty)
     }
 
-    def isMember(postId: PostId, userId: UserId, minAccessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = {
-      val allowedLevels = minAccessLevel match {
-        case AccessLevel.Read => AccessLevel.Read :: AccessLevel.ReadWrite :: Nil
-        case AccessLevel.ReadWrite => AccessLevel.ReadWrite :: Nil
+    def isMember(nodeId: NodeId, userId: UserId, minAccessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = {
+      //TODO: move these mappings into AccessLevel
+      val allowedLevels: List[String] = minAccessLevel match {
+        case AccessLevel.Read => AccessLevel.Read.str :: AccessLevel.ReadWrite.str :: Nil
+        case AccessLevel.ReadWrite => AccessLevel.ReadWrite.str :: Nil
       }
-      def find(allowedLevels: List[AccessLevel]) = quote {
-        query[Membership].filter(m => m.postId == lift(postId) && m.userId == lift(userId) && lift(allowedLevels).contains(m.level)).nonEmpty
+      def find(allowedLevels: List[String]) = quote {
+        (for {
+          user <- query[Node].filter(_.id == lift(userId))
+          connectionExists <- query[Edge].filter(c => c.targetId == lift(nodeId) && c.sourceId == user.id && c.data.jsonType == lift(EdgeData.Member.tpe) && lift(allowedLevels).contains(c.data->>"level"))
+        } yield connectionExists).nonEmpty
       }
       ctx.run(find(allowedLevels))
     }
   }
 
   object graph {
-    private def graphPage(parents: Seq[PostId], children: Seq[PostId], requestingUserId: UserId) = quote {
+    private def graphPage(parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) = quote {
       infix"select * from graph_page(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})".as[Query[GraphRow]]
     }
-    private def graphPageWithOrphans(parents: Seq[PostId], children: Seq[PostId], requestingUserId: UserId) = quote {
+    private def graphPageWithOrphans(parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) = quote {
       infix"select * from graph_page_with_orphans(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})".as[Query[GraphRow]]
     }
 
-    def getPage(parentIds: Seq[PostId], childIds: Seq[PostId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+    def getPage(parentIds: Seq[NodeId], childIds: Seq[NodeId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
         graphPage(parentIds, childIds, requestingUserId)
       }.map(Graph.from)
     }
 
-    def getPageWithOrphans(parentIds: Seq[PostId], childIds: Seq[PostId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+    def getPageWithOrphans(parentIds: Seq[NodeId], childIds: Seq[NodeId], requestingUserId:UserId)(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
         graphPageWithOrphans(parentIds, childIds, requestingUserId)

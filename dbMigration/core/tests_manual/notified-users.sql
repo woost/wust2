@@ -34,7 +34,7 @@ COPY rawconnection (sourceid, targetid, label) FROM stdin;
 -- Data for Name: rawpost; Type: TABLE DATA; Schema: public; Owner: wust
 --
 
-COPY rawpost (id, content, isdeleted, author, created, modified) FROM stdin;
+COPY rawpost (id, data, isdeleted, author, created, modified) FROM stdin;
 1	1	f	1	2018-03-22 14:24:08.168274	2018-03-22 14:24:08.168274
 2	2	f	1	2018-03-22 14:24:24.675758	2018-03-22 14:24:24.675758
 3	3	f	1	2018-03-22 14:24:32.083777	2018-03-22 14:24:32.083777

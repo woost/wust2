@@ -16,6 +16,7 @@ in
       # Dev tools
       #jetbrains.idea-community
       pgadmin
+      pgcli
       # redis-dump
       visualvm
       travis

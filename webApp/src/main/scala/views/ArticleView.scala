@@ -26,12 +26,12 @@ object ArticleView extends View {
         cls := "article",
         dgo.map {
           dg =>
-            val sortedPosts = HierarchicalTopologicalSort(dg.graph.postIds, successors = dg.graph.successorsWithoutParent, children = dg.graph.children)
+            val sortedPosts = HierarchicalTopologicalSort(dg.graph.nodeIds, successors = dg.graph.successorsWithoutParent, children = dg.graph.children)
 
-            sortedPosts.map { postId =>
-              val post = dg.graph.postsById(postId)
-              val depth = dg.graph.parentDepth(postId)
-              val tag = if (dg.graph.children(postId).isEmpty) p()
+            sortedPosts.map { nodeId =>
+              val post = dg.graph.postsById(nodeId)
+              val depth = dg.graph.parentDepth(nodeId)
+              val tag = if (dg.graph.children(nodeId).isEmpty) p()
                 else if (depth == 0) h1()
                 else if (depth == 1) h2()
                 else if (depth == 2) h3()
@@ -46,7 +46,7 @@ object ArticleView extends View {
                   cls := "focuslink",
                   onClick(Page(Seq(post.id))) --> graphSelection
                 ),
-                showPostContent(post.content)
+                showPostData(post.data)
               )
             }
         }

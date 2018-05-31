@@ -2,8 +2,8 @@ package wust.webApp.views
 
 import cats.data.NonEmptyList
 import colorado.{Color, HCL, LAB, RGB}
-import wust.graph.{Page, Post}
-import wust.sdk.PostColor._
+import wust.graph.{Page, Node}
+import wust.sdk.NodeColor._
 
 import scala.collection.breakOut
 

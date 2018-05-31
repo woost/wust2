@@ -1,69 +1,73 @@
 package wust.backend
 
-import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
-
-import wust.db.Data.{epochMilliToLocalDateTime, localDateTimeToEpochMilli}
-import wust.api.WebPushSubscription
-import wust.ids._
+import wust.api.{AuthUser, WebPushSubscription}
 import wust.db.Data
 import wust.graph._
-import wust.ids.EpochMilli
-
-import wust.ids.serialize.Circe._
-import io.circe._, io.circe.syntax._, io.circe.generic.extras.semiauto._, io.circe.parser._
+import wust.ids._
 
 object DbConversions {
+  private def postMeta(post:Data.Node) = new NodeMeta(
+      deleted = post.deleted,
+      joinDate = post.joinDate,
+      joinLevel = post.joinLevel
+    )
+  private def postMeta(post:Data.User) = new NodeMeta(
+    deleted = post.deleted,
+    joinDate = post.joinDate,
+    joinLevel = post.joinLevel
+  )
 
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription = WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
-  implicit def forClient(post: Data.Post):Post = new Post(
-    id = post.id,
-    content = post.content, //TODO: what about failure? move to db.scala like connection?
-    deleted = localDateTimeToEpochMilli(post.deleted),
-    author = post.author,
-    created = localDateTimeToEpochMilli(post.created),
-    modified = localDateTimeToEpochMilli(post.modified),
-    joinDate = JoinDate.from(localDateTimeToEpochMilli(post.joinDate)),
-    joinLevel = post.joinLevel
-  )
-  implicit def forClient(c: Data.Connection): Connection = Connection(
-    c.sourceId,
-    c.content,
-    c.targetId)
-  implicit def forClient(user: Data.User): User.Persisted = {
-    if (user.isImplicit) User.Implicit(user.id, user.name, user.revision, channelPostId = user.channelPostId, userPostId = user.userPostId)
-    else User.Real(user.id, user.name, user.revision, channelPostId = user.channelPostId, userPostId = user.userPostId)
+  implicit def forClient(post: Data.Node):Node = {
+    post.data match {
+      case data:NodeData.Content => new Node.Content(post.id, data, postMeta(post))
+      case data:NodeData.User => new Node.User(UserId(post.id), data, postMeta(post))
+    }
   }
-  implicit def forClient(membership: Data.Membership): Membership = Membership(membership.userId, membership.postId)
+  implicit def forClient(post: Data.User):Node.User = new Node.User(post.id, post.data, postMeta(post))
+  implicit def forClientAuth(post: Data.User):AuthUser.Persisted = post.data.isImplicit match {
+    case false => new AuthUser.Real(post.id, post.data.name, post.data.revision, post.data.channelNodeId)
+    case true => new AuthUser.Implicit(post.id, post.data.name, post.data.revision, post.data.channelNodeId)
+  }
+  implicit def forDbAuth(user: AuthUser.Persisted):Data.SimpleUser = user match {
+    case AuthUser.Real(id, name, revision, channelNodeId) => new Data.SimpleUser(id, new NodeData.User(name, isImplicit = false, revision, channelNodeId))
+    case AuthUser.Implicit(id, name, revision, channelNodeId) => new Data.SimpleUser(id, new NodeData.User(name, isImplicit = true, revision, channelNodeId))
+  }
+
+  implicit def forClient(c: Data.MemberEdge): Edge = Edge.Member(c.sourceId, c.data, c.targetId)
+
+  implicit def forClient(c: Data.Edge): Edge = c.data match {
+    case data:EdgeData.Author => new Edge.Author(UserId(c.sourceId), data, c.targetId)
+    case data:EdgeData.Member => new Edge.Member(UserId(c.sourceId), data, c.targetId)
+    case EdgeData.Parent => new Edge.Parent(c.sourceId, c.targetId)
+    case data:EdgeData.Label =>  new Edge.Label(c.sourceId, data, c.targetId)
+  }
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription = Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
-  implicit def forDb(post: Post): Data.Post = Data.Post(
-    id = post.id,
-    content = post.content,
-    deleted = epochMilliToLocalDateTime(post.deleted),
-    author = post.author,
-    created = epochMilliToLocalDateTime(post.created),
-    modified = epochMilliToLocalDateTime(post.modified),
-    joinDate = epochMilliToLocalDateTime(post.joinDate.timestamp),
-    joinLevel = post.joinLevel
-  )
-  implicit def forDb(user: User.Persisted): Data.User = user match {
-    case User.Real(id, name, revision, channelPostId, userPostId) => Data.User(id = id, name = name, isImplicit = false, revision = revision, channelPostId = channelPostId, userPostId = userPostId)
-    case User.Implicit(id, name, revision, channelPostId, userPostId) => Data.User(id = id, name = name, isImplicit = true, revision = revision, channelPostId = channelPostId, userPostId = userPostId)
+  implicit def forDb(post: Node): Data.Node = {
+    import post._
+    new Data.Node(
+      id = id,
+      data = data,
+      deleted = meta.deleted,
+      joinDate = meta.joinDate,
+      joinLevel = meta.joinLevel
+    )
   }
-  implicit def forDb(c: Connection): Data.Connection = Data.Connection(
+
+  implicit def forDb(c: Edge.Member): Data.MemberEdge = Data.MemberEdge(c.sourceId, c.data, c.targetId)
+
+  implicit def forDb(c: Edge): Data.Edge = Data.Edge(
     sourceId = c.sourceId,
-    content = c.content,
+    data = c.data,
     targetId = c.targetId)
-  implicit def forDbPosts(posts: Set[Post]): Set[Data.Post] = posts.map(forDb)
-  implicit def forDbUsers(users: Set[User.Persisted]): Set[Data.User] = users.map(forDb)
-  implicit def forDbConnections(cs: Set[Connection]): Set[Data.Connection] = cs.map(forDb)
+  implicit def forDbPosts(posts: Set[Node]): Set[Data.Node] = posts.map(forDb)
+  implicit def forDbConnections(cs: Set[Edge]): Set[Data.Edge] = cs.map(forDb)
 
   def forClient(dbGraph: Data.Graph):Graph = {
     Graph(
       posts = dbGraph.posts.map(forClient),
-      connections = dbGraph.connections.map(forClient),
-      users = Nil,
-      memberships = Nil
+      connections = dbGraph.connections.map(forClient)
     )
   }
 

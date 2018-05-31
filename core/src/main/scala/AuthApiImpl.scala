@@ -2,7 +2,7 @@ package wust.backend
 
 import com.roundeights.hasher.Hasher
 import wust.api._
-import wust.graph.{Graph, Post, User}
+import wust.graph.{Graph, Node}
 import wust.ids._
 import wust.backend.Dsl._
 import wust.backend.DbConversions._
@@ -17,15 +17,16 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
     val digest = passwordDigest(password)
     val newUser = state.auth.map(_.user) match {
-      case Some(User.Implicit(prevUserId, _, _, _, _)) =>
+      case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
-      case Some(User.Assumed(userId, channelPostId, userPostId)) => db.user(userId, name, digest, channelPostId, userPostId)
-      case _ => db.user(UserId.fresh, name, digest, PostId.fresh, PostId.fresh)
+      case Some(AuthUser.Assumed(userId, channelNodeId)) => db.user(userId, name, digest, channelNodeId)
+        //TODO:
+      case _ => db.user(UserId.fresh, name, digest, NodeId.fresh)
     }
 
-    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-    resultOnVerifiedAuth(newAuth)
+   val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
+   resultOnVerifiedAuth(newAuth)
   }
 
   def login(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
@@ -33,7 +34,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     val newUser = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.flatMap(_.dbUserOpt) match {
-          case Some(User.Implicit(prevUserId, _, _, _, _)) =>
+          case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
             //TODO propagate new groups into state?
             //TODO: propagate name change to the respective groups and the connected clients
             db.user
@@ -45,8 +46,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       case _ => Future.successful(None)
     }
 
-    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-    resultOnVerifiedAuth(newAuth)
+   val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
+   resultOnVerifiedAuth(newAuth)
   }
 
   def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
@@ -58,7 +59,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     validAuthFromToken(token)
   }
 
-  def assumeLogin(user: User.Assumed): ApiFunction[Boolean] = Effect { state =>
+  def assumeLogin(user: AuthUser.Assumed): ApiFunction[Boolean] = Effect { state =>
     val newAuth = Authentication.Assumed(user)
     resultOnAssumedAuth(newAuth)
   }

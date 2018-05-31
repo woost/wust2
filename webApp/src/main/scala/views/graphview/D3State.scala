@@ -254,7 +254,7 @@ object ForceUtil {
 //  var indices: js.Array[Int] = js.Array()
 //  var quadtree: Quadtree[Int] = d3.quadtree()
 //
-//  val postIdToIndex = mutable.HashMap.empty[PostId, Int]
+//  val nodeIdToIndex = mutable.HashMap.empty[NodeId, Int]
 //  var maxRadius = 0.0
 //
 //  var connections: js.Array[Int] = js.Array()
@@ -275,8 +275,8 @@ object ForceUtil {
 //  override def initialize(nodes: js.Array[SimPost]): Unit = {
 //    /*time(s"initialize: ${nodes.size} nodes")*/ {
 //      this.nodes = nodes
-//      postIdToIndex.clear()
-//      postIdToIndex ++= nodes.map(_.id).zipWithIndex
+//      nodeIdToIndex.clear()
+//      nodeIdToIndex ++= nodes.map(_.id).zipWithIndex
 //
 //      if (nodes.size != n) {
 //        n = nodes.size
@@ -296,8 +296,8 @@ object ForceUtil {
 //      this.connections = new js.Array(m * 2)
 //      var i = 0
 //      while (i < m) {
-//        this.connections(i * 2) = postIdToIndex(connections(i).source.id)
-//        this.connections(i * 2 + 1) = postIdToIndex(connections(i).target.id)
+//        this.connections(i * 2) = nodeIdToIndex(connections(i).source.id)
+//        this.connections(i * 2 + 1) = nodeIdToIndex(connections(i).target.id)
 //        i += 1
 //      }
 //    }
@@ -323,8 +323,8 @@ object ForceUtil {
 //      }
 //      i = 0
 //      while (i < m) {
-//        val parentIndex = postIdToIndex(containments(i).parent.id)
-//        val childIndex = postIdToIndex(containments(i).child.id)
+//        val parentIndex = nodeIdToIndex(containments(i).parent.id)
+//        val childIndex = nodeIdToIndex(containments(i).child.id)
 //        this.containments(i * 2) = parentIndex
 //        this.containments(i * 2 + 1) = childIndex
 //        this.postParentCount(childIndex) += 1
@@ -345,9 +345,9 @@ object ForceUtil {
 //          js.Tuple2(ai, bi)
 //      }.toJSArray
 //
-//      containmentClusterParentIndex = clusters.map(c => postIdToIndex(c.parent.id))
-//      containmentClusterChildrenIndices = clusters.map(_.children.map(p => postIdToIndex(p.id))(breakOut): js.Array[Int])
-//      containmentClusterPostIndices = clusters.map(_.posts.map(p => postIdToIndex(p.id))(breakOut): js.Array[Int])
+//      containmentClusterParentIndex = clusters.map(c => nodeIdToIndex(c.parent.id))
+//      containmentClusterChildrenIndices = clusters.map(_.children.map(p => nodeIdToIndex(p.id))(breakOut): js.Array[Int])
+//      containmentClusterPostIndices = clusters.map(_.posts.map(p => nodeIdToIndex(p.id))(breakOut): js.Array[Int])
 //
 //      updatedNodeSizes()
 //    }

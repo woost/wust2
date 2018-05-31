@@ -3,7 +3,6 @@ package wust.backend.auth
 import pdi.jwt.{JwtCirce, JwtAlgorithm, JwtClaim}
 import wust.api._, wust.api.serialize.Circe._
 import wust.backend.config.Config
-import wust.graph.User
 import wust.ids._
 import scala.util.{Success, Failure}
 import java.time.Instant
@@ -16,7 +15,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
   private val issuer = "wust"
   private val audience = "wust"
 
-  private def generateClaim(user: User.Persisted, expires: Long) = {
+  private def generateClaim(user: AuthUser.Persisted, expires: Long) = {
     JwtClaim(content = user.asJson.toString)
       .by(issuer)
       .to(audience)
@@ -25,7 +24,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
       .expiresAt(expires)
   }
 
-  def generateAuthentication(user: User.Persisted): Authentication.Verified = {
+  def generateAuthentication(user: AuthUser.Persisted): Authentication.Verified = {
     val expires = Instant.now.getEpochSecond + tokenLifetime.toSeconds
     val claim = generateClaim(user, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
@@ -36,7 +35,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
     JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) => for {
         expires <- claim.expiration
-        user <- parser.decode[User.Persisted](claim.content).right.toOption
+        user <- parser.decode[AuthUser.Persisted](claim.content).right.toOption
       } yield Authentication.Verified(user, expires, token)
       case _ => None
     }

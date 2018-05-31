@@ -2,31 +2,41 @@ package wust.ids.serialize
 
 import wust.ids._
 import io.circe._, io.circe.generic.extras.semiauto._, io.circe.generic.extras.Configuration
-import io.treev.tag._
+import supertagged._
 
 trait Circe {
   // makes circe decode sealed hierarchies with { "_tpe": typename, ..props }
   implicit val genericConfiguration: Configuration = Configuration.default.withDiscriminator("type")
 
-  private def encodeTaggedType[T: Encoder, Type <: TaggedType[T]#Type]: Encoder[Type] = Encoder[T].contramap[Type](identity)
-  private def decodeTaggedType[T: Decoder, Type <: TaggedType[T]#Type]: Decoder[Type] = Decoder[T].map(_.asInstanceOf[Type])
+  implicit def liftEncoderTagged[T, U](implicit f: Encoder[T]): Encoder[T @@ U] = f.asInstanceOf[Encoder[T @@ U]]
+  implicit def liftDecoderTagged[T, U](implicit f: Decoder[T]): Decoder[T @@ U] = f.asInstanceOf[Decoder[T @@ U]]
+  implicit def liftEncoderOverTagged[R, T <: TaggedType[R], U](implicit f: Encoder[T#Type]): Encoder[T#Type @@ U] = f.asInstanceOf[Encoder[T#Type @@ U]]
+  implicit def liftDecoderOverTagged[R, T <: TaggedType[R], U](implicit f: Decoder[T#Type]): Decoder[T#Type @@ U] = f.asInstanceOf[Decoder[T#Type @@ U]]
 
-  // cannot resolve automatically for any T, so need specialized implicit defs
-  implicit def encodeStringTaggedType[Type <: TaggedType[String]#Type]: Encoder[Type] = encodeTaggedType[String, Type]
-  implicit def encodeLongTaggedType[Type <: TaggedType[Long]#Type]: Encoder[Type] = encodeTaggedType[Long, Type]
-  implicit def encodeIntTaggedType[Type <: TaggedType[Int]#Type]: Encoder[Type] = encodeTaggedType[Int, Type]
-  implicit def decodeStringTaggedType[Type <: TaggedType[String]#Type]: Decoder[Type] = decodeTaggedType[String, Type]
-  implicit def decodeLongTaggedType[Type <: TaggedType[Long]#Type]: Decoder[Type] = decodeTaggedType[Long, Type]
-  implicit def decodeIntTaggedType[Type <: TaggedType[Int]#Type]: Decoder[Type] = decodeTaggedType[Int, Type]
-
-  implicit val AccessLevelDecoder: Decoder[AccessLevel] = deriveDecoder[AccessLevel]
-  implicit val AccessLevelEncoder: Encoder[AccessLevel] = deriveEncoder[AccessLevel]
+  implicit val DeletedDateDecoder: Decoder[DeletedDate] = deriveDecoder[DeletedDate]
+  implicit val DeletedDateEncoder: Encoder[DeletedDate] = deriveEncoder[DeletedDate]
   implicit val JoinDateDecoder: Decoder[JoinDate] = deriveDecoder[JoinDate]
   implicit val JoinDateEncoder: Encoder[JoinDate] = deriveEncoder[JoinDate]
 
-  implicit val postContentDecoder: Decoder[PostContent] = deriveDecoder[PostContent]
-  implicit val postContentEncoder: Encoder[PostContent] = deriveEncoder[PostContent]
-  implicit val connectionContentDecoder: Decoder[ConnectionContent] = deriveDecoder[ConnectionContent]
-  implicit val connectionContentEncoder: Encoder[ConnectionContent] = deriveEncoder[ConnectionContent]
+  // decode accesslevel as string instead of
+  implicit val AccessLevelDecoder: Decoder[AccessLevel] = Decoder.decodeString.emap(s => AccessLevel.from.lift(s).toRight(s"Is not an access level: $s"))
+  implicit val AccessLevelEncoder: Encoder[AccessLevel] = level => Json.fromString(level.str)
+
+  implicit val postContentDecoder2: Decoder[NodeData.Content] = deriveDecoder[NodeData.Content]
+  implicit val postContentEncoder2: Encoder[NodeData.Content] = deriveEncoder[NodeData.Content]
+  implicit val postContentDecoder3: Decoder[NodeData.User] = deriveDecoder[NodeData.User]
+  implicit val postContentEncoder3: Encoder[NodeData.User] = deriveEncoder[NodeData.User]
+  implicit val postContentDecoder: Decoder[NodeData] = deriveDecoder[NodeData]
+  implicit val postContentEncoder: Encoder[NodeData] = deriveEncoder[NodeData]
+  implicit val connectionContentDecoder1: Decoder[EdgeData.Label] = deriveDecoder[EdgeData.Label]
+  implicit val connectionContentEncoder1: Encoder[EdgeData.Label] = deriveEncoder[EdgeData.Label]
+  implicit val connectionContentDecoder2: Decoder[EdgeData.Parent.type] = deriveDecoder[EdgeData.Parent.type]
+  implicit val connectionContentEncoder2: Encoder[EdgeData.Parent.type] = deriveEncoder[EdgeData.Parent.type]
+  implicit val connectionContentDecoder3: Decoder[EdgeData.Member] = deriveDecoder[EdgeData.Member]
+  implicit val connectionContentEncoder3: Encoder[EdgeData.Member] = deriveEncoder[EdgeData.Member]
+  implicit val connectionContentDecoder4: Decoder[EdgeData.Author] = deriveDecoder[EdgeData.Author]
+  implicit val connectionContentEncoder4: Encoder[EdgeData.Author] = deriveEncoder[EdgeData.Author]
+  implicit val connectionContentDecoder: Decoder[EdgeData] = deriveDecoder[EdgeData]
+  implicit val connectionContentEncoder: Encoder[EdgeData] = deriveEncoder[EdgeData]
 }
 object Circe extends Circe

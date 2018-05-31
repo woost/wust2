@@ -21,7 +21,7 @@ import scala.collection.breakOut
 import scala.concurrent.{Future, Promise}
 
 object Restructure {
-  type Posts = List[Post]
+  type Posts = List[Node.Content]
   type Probability = Double
   type StrategyResult = Future[List[RestructuringTask]]
   case class HeuristicParameters(probability: Probability, heuristic: PostHeuristicType = PostHeuristic.Random.heuristic, measureBoundary: Option[Double] = None, numMaxPosts: Option[Int] = None)
@@ -83,17 +83,17 @@ sealed trait RestructuringTask {
 
   def getGraphFromState(state: GlobalState): Graph = state.displayGraphWithParents.now.graph
 
-  def transferChildrenAndParents(graph: Graph, source: PostId, target: PostId): Set[Connection] = {
+  def transferChildrenAndParents(graph: Graph, source: NodeId, target: NodeId): Set[Edge] = {
     val sourceChildren = graph.getChildren(source)
     val sourceParents = graph.getParents(source)
-    val childrenConnections = sourceChildren.map(child => Connection(child, ConnectionContent.Parent, target))
-    val parentConnections = sourceParents.map(parent => Connection(target, ConnectionContent.Parent, parent))
+    val childrenConnections = sourceChildren.map(child => Edge.Parent(child, target))
+    val parentConnections = sourceParents.map(parent => Edge.Parent(target, parent))
 
     childrenConnections ++ parentConnections
   }
 
-  def stylePost(post: Post): VNode = p(
-      showPostContent(post.content),
+  def stylePost(post: Node.Content): VNode = p(
+      showPostData(post.data),
       display := "inline-block",
       color.black,
       maxWidth := "80ch",
@@ -166,7 +166,7 @@ sealed trait RestructuringTask {
 sealed trait YesNoTask extends RestructuringTask
 {
   def constructComponent(state: GlobalState,
-                         postChoice: List[Post],
+                         postChoice: List[Node.Content],
                          graphChangesYes: GraphChanges): VNode = {
     div(
       postChoice.map(stylePost)(breakOut): List[VNode],
@@ -204,7 +204,7 @@ sealed trait YesNoTask extends RestructuringTask
 sealed trait AddTagTask extends RestructuringTask
 {
 
-  def constructComponent(sourcePosts: List[Post], targetPosts: List[Post], sink: Sink[String]): VNode = {
+  def constructComponent(sourcePosts: Posts, targetPosts: Posts, sink: Sink[String]): VNode = {
 
     def textAreaWithEnterAndLog(actionSink: Sink[String]) = {
       val userInput = Handler.create[String].unsafeRunSync()
@@ -234,8 +234,8 @@ sealed trait AddTagTask extends RestructuringTask
       )
     )
   }
-  def constructComponent(sourcePosts: List[Post], sink: Sink[String]): VNode = {
-    constructComponent(sourcePosts, List.empty[Post], sink)
+  def constructComponent(sourcePosts: Posts, sink: Sink[String]): VNode = {
+    constructComponent(sourcePosts, List.empty[Node.Content], sink)
   }
 }
 
@@ -249,7 +249,7 @@ object ConnectPosts extends RestructuringTaskObject {
     HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+//    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -281,9 +281,9 @@ case class ConnectPosts(posts: Posts) extends YesNoTask
     val connectionsToAdd = for {
       t <- posts.drop(1) if t.id != source.id
     } yield {
-        Connection(source.id, ConnectionContent.Text("related"), t.id)
+        Edge.Label(source.id, EdgeData.Label("related"), t.id)
       }
-    GraphChanges(addConnections = connectionsToAdd.toSet)
+    GraphChanges(addEdges = connectionsToAdd.toSet)
   }
 
   def component(state: GlobalState): VNode = {
@@ -303,7 +303,7 @@ object ConnectPostsWithTag extends RestructuringTaskObject {
     HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+//    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -335,19 +335,19 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask
     """.stripMargin
 
 
-  def tagConnection(sourcePosts: List[Post],
-    targetPosts: List[Post],
+  def tagConnection(sourcePosts: Posts,
+    targetPosts: Posts,
     state: GlobalState): Sink[String] = {
     ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
       val tagConnections = for {
         s <- sourcePosts
         t <- targetPosts if s.id != t.id
       } yield {
-        Connection(s.id, ConnectionContent.Text(tag), t.id)
+        Edge.Label(s.id, EdgeData.Label(tag), t.id)
       }
 
       val changes = GraphChanges(
-        addConnections = tagConnections.toSet
+        addEdges = tagConnections.toSet
       )
 
       RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, changes))
@@ -373,7 +373,7 @@ object ContainPosts extends RestructuringTaskObject {
     HeuristicParameters(1,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(3,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
-    HeuristicParameters(2,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+//    HeuristicParameters(2,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -411,10 +411,10 @@ case class ContainPosts(posts: Posts) extends YesNoTask
     val containmentsToAdd = for {
       s <- posts.drop(1) if s.id != target.id
     } yield {
-        Connection(s.id, ConnectionContent.Parent, target.id)
+        Edge.Parent(s.id, target.id)
     }
 
-    GraphChanges(addConnections = containmentsToAdd.toSet)
+    GraphChanges(addEdges = containmentsToAdd.toSet)
   }
 
   def component(state: GlobalState): VNode = {
@@ -434,7 +434,7 @@ object MergePosts extends RestructuringTaskObject {
     HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+//    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -471,13 +471,13 @@ case class MergePosts(posts: Posts) extends YesNoTask
     }
 
     GraphChanges(
-      addConnections = postsToUpdate.flatMap(_._2).toSet,
-      updatePosts = postsToUpdate.map(_._1).toSet,
-      delPosts = postsToDelete.map(_.id).toSet)
+      addEdges = postsToUpdate.flatMap(_._2).toSet,
+      updateNodes = postsToUpdate.map(_._1).toSet,
+      delNodes = postsToDelete.map(_.id).toSet)
   }
 
-  def mergePosts(mergeTarget: Post, source: Post): Post = {
-    mergeTarget.copy(content = PostContent.Markdown(mergeTarget.content.str + "\n" + source.content.str)) //TODO: proper merge for PostContent?
+  def mergePosts(mergeTarget: Node.Content, source: Node.Content): Node.Content = {
+    mergeTarget.copy(data = NodeData.Markdown(mergeTarget.data.str + "\n" + source.data.str)) //TODO: proper merge for PostData?
   }
 
   def component(state: GlobalState): VNode = {
@@ -497,7 +497,7 @@ object UnifyPosts extends RestructuringTaskObject {
     HeuristicParameters(2,  PostHeuristic.DiceSorensen(2).heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(2,  PostHeuristic.Random.heuristic,           None,                   defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,       None,                   defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
+//    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,        None,                   defaultNumMaxPosts)
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -538,13 +538,13 @@ case class UnifyPosts(posts: Posts) extends YesNoTask // Currently same as Merge
     }
 
     GraphChanges(
-      addConnections = postsToUpdate.flatMap(_._2).toSet,
-      updatePosts = postsToUpdate.map(_._1).toSet,
-      delPosts = postsToDelete.map(_.id).toSet)
+      addEdges = postsToUpdate.flatMap(_._2).toSet,
+      updateNodes = postsToUpdate.map(_._1).toSet,
+      delNodes = postsToDelete.map(_.id).toSet)
   }
 
-  def unifyPosts(unifyTarget: Post, post: Post): Post = {
-    unifyTarget.copy(content = PostContent.Markdown(unifyTarget.content.str + "\n" + post.content.str)) //TODO: proper merge for PsotContent
+  def unifyPosts(unifyTarget: Node.Content, post: Node.Content): Node.Content = {
+    unifyTarget.copy(data = NodeData.Markdown(unifyTarget.data.str + "\n" + post.data.str)) //TODO: proper merge for PsotContent
   }
 
   def component(state: GlobalState): VNode = {
@@ -592,7 +592,7 @@ case class DeletePosts(posts: Posts) extends YesNoTask
   def component(state: GlobalState): VNode = {
     constructComponent(state,
       posts,
-      GraphChanges(delPosts = posts.map(_.id).toSet)
+      GraphChanges(delNodes = posts.map(_.id).toSet)
     )
   }
 }
@@ -602,10 +602,10 @@ object SplitPosts extends RestructuringTaskObject {
   private val defaultNumMaxPosts = Some(1)
 
   private val possibleHeuristics: List[HeuristicParameters] = List(
-    HeuristicParameters(2,  PostHeuristic.MaxPostSize.heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+//    HeuristicParameters(2,  PostHeuristic.MaxPostSize.heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.Random.heuristic,       defaultMeasureBoundary, defaultNumMaxPosts),
     HeuristicParameters(1,  PostHeuristic.NodeDegree.heuristic,   defaultMeasureBoundary, defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,    defaultMeasureBoundary, defaultNumMaxPosts),
+//    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,    defaultMeasureBoundary, defaultNumMaxPosts),
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -646,12 +646,13 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
       |Wenn Sie mit dem Unterteilen des Posts fertig sind, können Sie dies mit dem "Confirm" Button bestätigen.
     """.stripMargin
 
-  def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Post] = {
+  def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Node.Content] = {
     if(!condition) return None
-    Some(Post(PostId.fresh, PostContent.Markdown(str.trim), state.user.now.id))
+    // TODO: author = state.user.now.id
+    Some(Node.Content(NodeId.fresh, NodeData.Markdown(str.trim)))
   }
 
-  def splittedPostPreview(event: MouseEvent, originalPost: Post, state: GlobalState): List[Post] = {
+  def splittedPostPreview(event: MouseEvent, originalPost: Node.Content, state: GlobalState): Posts = {
     val selection = window.getSelection()
     if(selection.rangeCount > 1)// what about multiple Selections?
       return List(originalPost)
@@ -672,30 +673,30 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
     List(before, middle, after).flatten
   }
 
-  def generateGraphChanges(originalPosts: List[Post], previewPosts: List[List[Post]], graph: Graph): GraphChanges = {
+  def generateGraphChanges(originalPosts: Posts, previewPosts: List[Posts], graph: Graph): GraphChanges = {
 
     if(previewPosts.isEmpty) return GraphChanges.empty
 
     val keepRelatives = originalPosts.flatMap(originalPost => previewPosts.last.flatMap(p => transferChildrenAndParents(graph, originalPost.id, p.id))).toSet
-    val newConnections = originalPosts.flatMap(originalPost => previewPosts.last.map(p => Connection(p.id, ConnectionContent.Text("splitFrom"), originalPost.id))).toSet
-    val newPosts = originalPosts.flatMap(originalPost => previewPosts.last.filter(_.id != originalPost.id)).toSet
+    val newConnections = originalPosts.flatMap(originalPost => previewPosts.last.map(p => Edge.Label(p.id, EdgeData.Label("splitFrom"), originalPost.id))).toSet
+    val newPosts: Set[Node] = originalPosts.flatMap(originalPost => previewPosts.last.filter(_.id != originalPost.id)).toSet
     GraphChanges(
-      addPosts = newPosts,
-      addConnections = newConnections ++ keepRelatives,
-      delPosts = originalPosts.map(_.id).toSet,
+      addNodes = newPosts,
+      addEdges = newConnections ++ keepRelatives,
+      delNodes = originalPosts.map(_.id).toSet,
     )
   }
 
   def component(state: GlobalState): VNode = {
     val splitPost = posts.take(1)
-    val postPreview = Handler.create[List[List[Post]]](List(splitPost)).unsafeRunSync()
+    val postPreview = Handler.create[List[Posts]](List(splitPost)).unsafeRunSync()
 
     div(
       div(
         postPreview.map {posts =>
           posts.last.map {post =>
             div(
-              showPostContent(post.content),
+              showPostData(post.data),
               color.black,
               maxWidth := "60%",
               backgroundColor := "#eee",
@@ -732,7 +733,7 @@ object AddTagToPosts extends RestructuringTaskObject {
 
   private val possibleHeuristics: List[HeuristicParameters] = List(
     HeuristicParameters(1,  PostHeuristic.Random.heuristic,     defaultMeasureBoundary, defaultNumMaxPosts),
-    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
+//    HeuristicParameters(1,  PostHeuristic.GaussTime.heuristic,  defaultMeasureBoundary, defaultNumMaxPosts),
   )
 
   private val heuristicParam = ChoosePostHeuristic.choose(possibleHeuristics)
@@ -765,21 +766,23 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
       |Sie können den Tag bestätigen indem Sie Enter drücken.
     """.stripMargin
 
-  def addTagToPost(post: List[Post], state: GlobalState): Sink[String] = {
+  def addTagToPost(post: Posts, state: GlobalState): Sink[String] = {
 
     ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
       val graph = getGraphFromState(state)
-      val tagPostWithParents: GraphChanges = graph.posts.find(_.content == tag) match {
+      val tagPostWithParents: GraphChanges = graph.posts.find(_.data == tag) match {
         case None =>
-          val newTag = Post(PostId.fresh, PostContent.Markdown(tag), state.user.now.id)
+          //TODO: author = state.user.now.id
+          val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag))
           val newParent = state.page.now.parentIds
-          val postTag = post.map(p => Connection(p.id, ConnectionContent.Parent, newTag.id))
+          val postTag = post.map(p => Edge.Parent(p.id, newTag.id))
           GraphChanges(
-            addPosts = Set(newTag),
-            addConnections = newParent.map(parent => Connection(newTag.id, ConnectionContent.Parent, parent)).toSet ++ postTag
+            addNodes = Set(newTag),
+            addEdges = newParent.map(parent => Edge.Parent(newTag.id, parent)).toSet ++ postTag
           )
         case Some(t) =>
-          post.map(p => GraphChanges.connect(p.id, ConnectionContent.Parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
+//          post.map(p => GraphChanges.connect(p.id, ConnectionData.Parent, t.id)).reduceLeft((gc1, gc2) => gc2.merge(gc1))
+          post.map(p => GraphChanges(addEdges = Set(Edge.Parent(p.id, t.id)))).reduceLeft((gc1, gc2) => gc2.merge(gc1))
       }
 
       RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(TaskFeedback(true, true, tagPostWithParents))
@@ -877,32 +880,32 @@ object RestructuringTaskGenerator {
         initGraph = globalState.displayGraphWithParents.now.graph
         initState = Some(globalState)
 
-        def mapPid(pids: List[PostId]): PostHeuristicType = {
-          val posts: List[Post] = pids.map(pid => initGraph.postsById(pid))
+        def mapPid(pids: List[NodeId]): PostHeuristicType = {
+          val posts: Posts = pids.map(pid => initGraph.postsById(pid)).collect{case p: Node.Content => p}
           val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
           h
         }
 
-        def mapTask(t: RestructuringTaskObject, l: List[PostId]) = t.applyWithStrategy(initGraph, mapPid(l))
+        def mapTask(t: RestructuringTaskObject, l: List[NodeId]) = t.applyWithStrategy(initGraph, mapPid(l))
         val tmpStudyTaskList = List(
-          mapTask(DeletePosts,          List(PostId("107"))),                 //11
-          mapTask(SplitPosts,           List(PostId("108"))),                 //18
-          mapTask(ContainPosts,         List(PostId("126"), PostId("127"))),  //7
-          mapTask(MergePosts,           List(PostId("119"), PostId("132"))),  //13
-          mapTask(ContainPosts,         List(PostId("132"), PostId("119"))),  //9
-          mapTask(SplitPosts,           List(PostId("103"))),                 //16
-          mapTask(DeletePosts,          List(PostId("109"))),                 //12
-          mapTask(ConnectPostsWithTag,  List(PostId("116"), PostId("101"))),  //6
-          mapTask(MergePosts,           List(PostId("111"), PostId("112"))),  //14
-          mapTask(AddTagToPosts,        List(PostId("126"))),                 //3
-          mapTask(SplitPosts,           List(PostId("101"))),                 //17
-          mapTask(ContainPosts,         List(PostId("120"), PostId("117"))),  //8
-          mapTask(MergePosts,           List(PostId("113"), PostId("122"))),  //15
-          mapTask(DeletePosts,          List(PostId("106"))),                 //10
-          mapTask(ConnectPostsWithTag,  List(PostId("114"), PostId("113"))),  //4
-          mapTask(AddTagToPosts,        List(PostId("121"))),                 //2
-          mapTask(AddTagToPosts,        List(PostId("120"))),                 //1
-          mapTask(ConnectPostsWithTag,  List(PostId("109"), PostId("108")))   //5
+          mapTask(DeletePosts,          List(NodeId("107"))),                 //11
+          mapTask(SplitPosts,           List(NodeId("108"))),                 //18
+          mapTask(ContainPosts,         List(NodeId("126"), NodeId("127"))),  //7
+          mapTask(MergePosts,           List(NodeId("119"), NodeId("132"))),  //13
+          mapTask(ContainPosts,         List(NodeId("132"), NodeId("119"))),  //9
+          mapTask(SplitPosts,           List(NodeId("103"))),                 //16
+          mapTask(DeletePosts,          List(NodeId("109"))),                 //12
+          mapTask(ConnectPostsWithTag,  List(NodeId("116"), NodeId("101"))),  //6
+          mapTask(MergePosts,           List(NodeId("111"), NodeId("112"))),  //14
+          mapTask(AddTagToPosts,        List(NodeId("126"))),                 //3
+          mapTask(SplitPosts,           List(NodeId("101"))),                 //17
+          mapTask(ContainPosts,         List(NodeId("120"), NodeId("117"))),  //8
+          mapTask(MergePosts,           List(NodeId("113"), NodeId("122"))),  //15
+          mapTask(DeletePosts,          List(NodeId("106"))),                 //10
+          mapTask(ConnectPostsWithTag,  List(NodeId("114"), NodeId("113"))),  //4
+          mapTask(AddTagToPosts,        List(NodeId("121"))),                 //2
+          mapTask(AddTagToPosts,        List(NodeId("120"))),                 //1
+          mapTask(ConnectPostsWithTag,  List(NodeId("109"), NodeId("108")))   //5
         )
 
         _studyTaskList = Future.sequence(tmpStudyTaskList).map(_.flatten)

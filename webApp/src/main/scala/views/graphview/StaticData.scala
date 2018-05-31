@@ -4,9 +4,9 @@ import d3v4._
 import org.scalajs.dom.html
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge, Tag}
-import wust.sdk.PostColor._
+import wust.sdk.NodeColor._
 import ForceSimulationConstants._
-import wust.graph.{Post, _}
+import wust.graph.{Node, _}
 import wust.ids._
 import wust.util.time.time
 import Math._
@@ -23,7 +23,7 @@ class StaticData(
                   val edgeCount: Int,
                   val containmentCount: Int,
 
-                  var posts: Array[Post],
+                  var posts: Array[Node],
                   val indices: Array[Int],
                   val width: Array[Double],
                   val height: Array[Double],
@@ -35,7 +35,7 @@ class StaticData(
                   val containmentRadius: Array[Double], // TODO: still needed?
                   val nodeParentCount: Array[Int],
                   val bgColor: Array[String],
-//                  val border: Array[String],
+                  //                  val border: Array[String],
                   val nodeReservedArea:Array[Double], //TODO: rename to reservedArea
                   var reservedArea: Double, //TODO: rename to totalReservedArea
 
@@ -102,19 +102,19 @@ class AdjacencyMatrix(nodeCount: Int) {
 }
 
 
-class EulerSet(val parent: PostId, val children: Array[PostId], val depth: Int) {
-  val allNodes: Array[PostId] = children :+ parent
+class EulerSet(val parent: NodeId, val children: Array[NodeId], val depth: Int) {
+  val allNodes: Array[NodeId] = children :+ parent
 }
 
 class GraphTopology(
                      val graph: Graph,
-                     val posts: Array[Post]
+                     val posts: Array[Node]
                    )
 
 object StaticData {
   import ForceSimulation.log
 
-  def apply(graphTopology: GraphTopology, selection: Selection[Post], transform: Transform, labelVisualization:PartialFunction[ConnectionContent.Type, VisualizationType]): StaticData = {
+  def apply(graphTopology: GraphTopology, selection: Selection[Node], transform: Transform, labelVisualization:PartialFunction[EdgeData.Type, VisualizationType]): StaticData = {
     time(log(s"calculateStaticData[${selection.size()}]")) {
       import graphTopology.{graph, posts}
 
@@ -133,7 +133,7 @@ object StaticData {
 
       var maxRadius = 0.0
       var reservedArea = 0.0
-      selection.each[html.Element] { (node: html.Element, post: Post, i: Int) =>
+      selection.each[html.Element] { (node: html.Element, post: Node, i: Int) =>
         staticData.bgColor(i) = computeColor(graph, post.id).toCSS
 //        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
         // we set the style here, because the border can affect the size of the element
@@ -163,19 +163,19 @@ object StaticData {
       staticData.maxRadius = maxRadius
       staticData.reservedArea = reservedArea
 
-      val postIdToIndex = createPostIdToIndexMap(posts)
+      val nodeIdToIndex = createNodeIdToIndexMap(posts)
 
       var i = 0
       while (i < edgeCount) {
-        staticData.source(i) = postIdToIndex(edges(i).sourceId)
-        staticData.target(i) = postIdToIndex(edges(i).targetId)
+        staticData.source(i) = nodeIdToIndex(edges(i).sourceId)
+        staticData.target(i) = nodeIdToIndex(edges(i).targetId)
         i += 1
       }
 
       i = 0
       while(i < containmentCount) {
-        val child = postIdToIndex(containments(i).sourceId)
-        val parent = postIdToIndex(containments(i).targetId)
+        val child = nodeIdToIndex(containments(i).sourceId)
+        val parent = nodeIdToIndex(containments(i).targetId)
         staticData.containmentChild(i) = child
         staticData.containmentParent(i) = parent
         staticData.containmentTest.set(child, parent)
@@ -201,15 +201,15 @@ object StaticData {
       //TODO: collapsed euler sets
   // val rxCollapsedContainmentCluster = Rx {
   //   val graph = rxDisplayGraph().graph
-  //   val postIdToSimPost = rxPostIdToSimPost()
+  //   val nodeIdToSimPost = rxNodeIdToSimPost()
 
-  //   val children: Map[PostId, Seq[PostId]] = rxDisplayGraph().collapsedContainments.groupBy(_.targetId).mapValues(_.map(_.sourceId)(breakOut))
-  //   val parents: Iterable[PostId] = children.keys
+  //   val children: Map[NodeId, Seq[NodeId]] = rxDisplayGraph().collapsedContainments.groupBy(_.targetId).mapValues(_.map(_.sourceId)(breakOut))
+  //   val parents: Iterable[NodeId] = children.keys
 
   //   parents.map { p =>
   //     new ContainmentCluster(
-  //       parent = postIdToSimPost(p),
-  //       children = children(p).map(p => postIdToSimPost(p))(breakOut),
+  //       parent = nodeIdToSimPost(p),
+  //       children = children(p).map(p => nodeIdToSimPost(p))(breakOut),
   //       depth = graph.childDepth(p)
   //     )
   //   }.toJSArray
@@ -227,14 +227,14 @@ object StaticData {
       staticData.eulerSetColor = new Array[String](eulerSetCount)
       staticData.eulerSetDepth = new Array[Int](eulerSetCount)
       while(i < eulerSetCount) {
-        staticData.eulerSetChildren(i) = eulerSets(i).children.map(postIdToIndex)
-        staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes.map(postIdToIndex)
-        staticData.eulerSetParent(i) = postIdToIndex(eulerSets(i).parent)
+        staticData.eulerSetChildren(i) = eulerSets(i).children.map(nodeIdToIndex)
+        staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes.map(nodeIdToIndex)
+        staticData.eulerSetParent(i) = nodeIdToIndex(eulerSets(i).parent)
         staticData.eulerSetDepth(i) = eulerSets(i).depth
 
         val aribtraryFactor = 1.3
         staticData.eulerSetArea(i) = eulerSets(i).allNodes.map{ pid =>
-          val pi = postIdToIndex(pid)
+          val pi = nodeIdToIndex(pid)
           staticData.nodeReservedArea(pi)
         }.sum * aribtraryFactor
         staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i)/PI) // a = pi*r^2 solved by r = sqrt(a/pi)
@@ -249,10 +249,10 @@ object StaticData {
     }
   }
 
-  def createPostIdToIndexMap(posts: Array[Post]): collection.Map[PostId, Int] = {
+  def createNodeIdToIndexMap(posts: Array[Node]): collection.Map[NodeId, Int] = {
     var i = 0
     val n = posts.length
-    val map = new mutable.HashMap[PostId, Int]()
+    val map = new mutable.HashMap[NodeId, Int]()
     while (i < n) {
       map(posts(i).id) = i
       i += 1
@@ -261,20 +261,20 @@ object StaticData {
   }
 
   private case class PartitionedConnections(
-                                     edges:Array[Connection],
-                                     containments:Array[Connection],
-                                     tags:Array[Connection]
+                                             edges:Array[Edge],
+                                             containments:Array[Edge],
+                                             tags:Array[Edge]
                                    )
 
-  private def partitionConnections(connections:Iterable[Connection], labelVisualization:PartialFunction[ConnectionContent.Type, VisualizationType]):PartitionedConnections = {
-    val edgeBuilder = ArrayBuffer.empty[Connection]
-    val containmentBuilder = ArrayBuffer.empty[Connection]
-    val tagBuilder = ArrayBuffer.empty[Connection]
+  private def partitionConnections(connections:Iterable[Edge], labelVisualization:PartialFunction[EdgeData.Type, VisualizationType]):PartitionedConnections = {
+    val edgeBuilder = ArrayBuffer.empty[Edge]
+    val containmentBuilder = ArrayBuffer.empty[Edge]
+    val tagBuilder = ArrayBuffer.empty[Edge]
 
     def separator = labelVisualization.lift
 
     connections.foreach { connection =>
-      separator(connection.content.tpe).foreach{
+      separator(connection.data.tpe).foreach{
         case Edge => edgeBuilder += connection
         case Containment => containmentBuilder += connection
         case Tag => tagBuilder += connection

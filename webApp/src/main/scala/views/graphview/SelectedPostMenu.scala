@@ -11,7 +11,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
-import wust.sdk.PostColor._
+import wust.sdk.NodeColor._
 import wust.webApp.views.{Placeholders, View}
 import wust.webApp.views.Rendered._
 import wust.webApp.{DevOnly, DevPrintln, GlobalState}
@@ -28,16 +28,21 @@ import collection.breakOut
 
 
 object SelectedPostMenu {
-  def apply(pos:Vec2, postId: PostId, state: GlobalState, selectedPostId:Var[Option[(Vec2, PostId)]], transformRx:Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
+  def apply(pos:Vec2, nodeId: NodeId, state: GlobalState, selectedNodeId:Var[Option[(Vec2, NodeId)]], transformRx:Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
 
-    val rxPost: Rx[Post] = Rx {
+    val rxPost: Rx[Node.Content] = Rx {
       val graph = state.rawGraph()
-      graph.postsById.getOrElse(postId, Post.apply(PostContent.Text(""), UserId(""))) //TODO: getOrElse necessary? Handle post removal.
+      //TODO: getOrElse necessary? Handle post removal.
+      //TODO: we are filtering out non-content posts, what about editing them?
+      graph.postsById
+        .get(nodeId)
+        .collect { case p: Node.Content => p }
+        .getOrElse(Node.Content(NodeData.PlainText("")))
     }
 
-    val rxParents: Rx[Seq[Post]] = Rx {
+    val rxParents: Rx[Seq[Node]] = Rx {
       val graph = state.displayGraphWithParents().graph
-      val directParentIds = graph.parents.getOrElse(postId, Set.empty)
+      val directParentIds = graph.parents.getOrElse(nodeId, Set.empty)
       directParentIds.flatMap(graph.postsById.get)(breakOut)
     }
 
@@ -60,22 +65,22 @@ object SelectedPostMenu {
           span(
             p.id,
             br(),
-            p.content.str,
+            p.data.str,
             fontWeight.bold,
             backgroundColor := baseColor(p.id).toString,
             margin := "2px", padding := "1px 0px 1px 5px",
             borderRadius := "2px",
             span("×", onClick --> sideEffect {
-              val addedGrandParents: Set[Connection] = {
+              val addedGrandParents: Set[Edge] = {
                 if (parents.size == 1)
-                  state.displayGraphWithParents.now.graph.parents(p.id).map(Connection(rxPost.now.id, ConnectionContent.Parent, _))
+                  state.displayGraphWithParents.now.graph.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
                 else
                   Set.empty
               }
 
               state.eventProcessor.changes.onNext(GraphChanges(
-                delConnections = Set(Connection(rxPost.now.id, ConnectionContent.Parent, p.id)),
-                addConnections = addedGrandParents
+                delEdges = Set(Edge.Parent(rxPost.now.id, p.id)),
+                addEdges = addedGrandParents
               ))
               ()
             }, cursor.pointer, padding := "0px 5px")
@@ -89,7 +94,7 @@ object SelectedPostMenu {
 
     val updatePostHandler = Handler.create[String].unsafeRunSync()
     updatePostHandler.foreach { newContent =>
-      val changes = GraphChanges(updatePosts = Set(rxPost.now.copy(content = PostContent.Markdown(newContent))))
+      val changes = GraphChanges(updateNodes = Set(rxPost.now.copy(data = NodeData.Markdown(newContent))))
       state.eventProcessor.enriched.changes.onNext(changes)
 
       editMode.unsafeOnNext(false)
@@ -97,23 +102,21 @@ object SelectedPostMenu {
 
     val insertPostHandler = Handler.create[String].unsafeRunSync()
     insertPostHandler.foreach { content =>
-      val author = state.user.now
-      val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
+      val newPost = Node.Content(NodeData.Markdown(content))
 
-      val changes = GraphChanges(addPosts = Set(newPost), addConnections = Set(Connection(newPost.id, ConnectionContent.Parent, rxPost.now.id)))
+      val changes = GraphChanges(addNodes = Set(newPost), addEdges = Set(Edge.Parent(newPost.id, rxPost.now.id)))
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
     val connectPostHandler = Handler.create[String].unsafeRunSync()
     connectPostHandler.foreach { content =>
-      val author = state.user.now
-      val newPost = Post(PostId.fresh, PostContent.Markdown(content), author.id)
+      val newPost = Node.Content(NodeId.fresh, NodeData.Markdown(content))
 
       val changes = GraphChanges(
-        addPosts = Set(newPost),
-        addConnections = Set(
-          Connection(rxPost.now.id, ConnectionContent.Text("related"), newPost.id)
-        ) ++ state.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Connection(newPost.id, ConnectionContent.Parent, parentId))
+        addNodes = Set(newPost),
+        addEdges = Set(
+          Edge.Label(rxPost.now.id, EdgeData.Label("related"), newPost.id)
+        ) ++ state.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Edge.Parent(newPost.id, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
@@ -123,11 +126,11 @@ object SelectedPostMenu {
         if (activated) {
           textArea(
             valueWithEnter --> updatePostHandler,
-            rxPost.now.content.str,
+            rxPost.now.data.str,
             onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
         } else {
           div(
-            rxPost.map(_.content.str),
+            rxPost.map(_.data.str),
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
             wordWrap := "break-word",
@@ -146,7 +149,7 @@ object SelectedPostMenu {
       width := "300px",
       transform <-- transformStyle,
       div(
-        rxPost.map(p => actionMenu(p, state, selectedPostId)(zIndex := -10)), // z-index to overlap shadow
+        rxPost.map(p => actionMenu(p, state, selectedNodeId)(zIndex := -10)), // z-index to overlap shadow
         cls := "shadow",
         editableTitle,
         padding := "3px 5px",
@@ -175,7 +178,7 @@ object SelectedPostMenu {
     )
   }
 
-  def actionMenu(post: Post, graphState: GlobalState, selectedPostId:Var[Option[(Vec2,PostId)]]) = {
+  def actionMenu(post: Node, graphState: GlobalState, selectedNodeId:Var[Option[(Vec2,NodeId)]]) = {
     div(
       cls := "shadow",
       position.absolute, top := "-55px", left := "0px",
@@ -199,8 +202,8 @@ object SelectedPostMenu {
           onClick --> sideEffect { event =>
             event.stopPropagation()
 
-            println(s"\nMenu ${action.name}: [${post.id}]${post.content}")
-            selectedPostId() = None
+            println(s"\nMenu ${action.name}: [${post.id}]${post.data}")
+            selectedNodeId() = None
             action.action(post, graphState)
             ()
           },
@@ -214,22 +217,22 @@ object SelectedPostMenu {
     )
   }
 
-  case class MenuAction(name: String, action: (Post, GlobalState) => Unit, showIf: (Post, GlobalState) => Boolean = (_, _) => true)
+  case class MenuAction(name: String, action: (Node, GlobalState) => Unit, showIf: (Node, GlobalState) => Boolean = (_, _) => true)
 
   val menuActions: List[MenuAction] = List(
-    MenuAction("Focus", { (p: Post, state: GlobalState) => state.page() = Page(Seq(p.id)) }),
+    MenuAction("Focus", { (p: Node, state: GlobalState) => state.page() = Page(Seq(p.id)) }),
 //    MenuAction(
 //      "Collapse",
-//      action = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.update(_ + p.id),
-//      showIf = (p: Post, gs: GraphState) => !gs.rxCollapsedPostIds.now(p.id) && gs.state.rawGraph.now.hasChildren(p.id)
+//      action = (p: Post, gs: GraphState) => gs.rxCollapsedNodeIds.update(_ + p.id),
+//      showIf = (p: Post, gs: GraphState) => !gs.rxCollapsedNodeIds.now(p.id) && gs.state.rawGraph.now.hasChildren(p.id)
 //    ),
 //    MenuAction(
 //      "Expand",
-//      action = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.update(_ - p.id),
-//      showIf = (p: Post, gs: GraphState) => gs.rxCollapsedPostIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
+//      action = (p: Post, gs: GraphState) => gs.rxCollapsedNodeIds.update(_ - p.id),
+//      showIf = (p: Post, gs: GraphState) => gs.rxCollapsedNodeIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
 //    ),
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
-    MenuAction("Delete", { (p: Post, state: GlobalState) => state.eventProcessor.enriched.changes.onNext(GraphChanges(delPosts = Set(p.id))) }),
+    MenuAction("Delete", { (p: Node, state: GlobalState) => state.eventProcessor.enriched.changes.onNext(GraphChanges(delNodes = Set(p.id))) }),
     // MenuAction(
     //   "Autopos",
     //   { (p: Post) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },

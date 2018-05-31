@@ -30,7 +30,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "wust")))
 //         view(state).render
-//         state.focusedPostId() = Option("heinz")
+//         state.focusedNodeId() = Option("heinz")
 //     }
 //   }
 
@@ -39,9 +39,9 @@
 //       case (_, view) =>
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "wust")))
-//         state.focusedPostId() = Option("heinz")
+//         state.focusedNodeId() = Option("heinz")
 //         view(state).render
-//         state.focusedPostId() = None
+//         state.focusedNodeId() = None
 //     }
 //   }
 
@@ -71,7 +71,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustsein")))
 //         view(state).render
-//         state.rawGraph.updatef(_ - PostId("heinz"))
+//         state.rawGraph.updatef(_ - NodeId("heinz"))
 //     }
 //   }
 
@@ -81,7 +81,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), List(Connection("heinz", "kalla")))
 //         view(state).render
-//         state.rawGraph.updatef(_ - PostId("heinz"))
+//         state.rawGraph.updatef(_ - NodeId("heinz"))
 //     }
 //   }
 
@@ -91,7 +91,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), List(Connection("heinz", "kalla")))
 //         view(state).render
-//         state.rawGraph.updatef(_ - PostId("kalla"))
+//         state.rawGraph.updatef(_ - NodeId("kalla"))
 //     }
 //   }
 
@@ -101,7 +101,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment("heinz", "kalla")))
 //         view(state).render
-//         state.rawGraph.updatef(_ - PostId("heinz"))
+//         state.rawGraph.updatef(_ - NodeId("heinz"))
 //     }
 //   }
 
@@ -109,9 +109,9 @@
 //     forAll(views) {
 //       case (_, view) =>
 //         val state = new GlobalState
-//         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment(PostId("heinz"), PostId("kalla"))))
+//         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment(NodeId("heinz"), NodeId("kalla"))))
 //         view(state).render
-//         state.rawGraph.updatef(_ - PostId("kalla"))
+//         state.rawGraph.updatef(_ - NodeId("kalla"))
 //     }
 //   }
 
@@ -120,9 +120,9 @@
 //       case (_, view) =>
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
-//         state.focusedPostId() = Option("heinz")
+//         state.focusedNodeId() = Option("heinz")
 //         view(state).render
-//         state.rawGraph.updatef(_ - PostId("heinz"))
+//         state.rawGraph.updatef(_ - NodeId("heinz"))
 //     }
 //   }
 
@@ -131,7 +131,7 @@
 //       case (_, view) =>
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos")))
-//         state.focusedPostId() = Option("heinz")
+//         state.focusedNodeId() = Option("heinz")
 //         view(state).render
 //         state.rawGraph.updatef(_ + Post("heinz", "wurst"))
 //     }
@@ -143,7 +143,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")))
 //         view(state).render
-//         state.rawGraph.updatef(_ + Connection(PostId("heinz"), PostId("kalla")))
+//         state.rawGraph.updatef(_ + Connection(NodeId("heinz"), NodeId("kalla")))
 //     }
 //   }
 
@@ -151,7 +151,7 @@
 //     forAll(views) {
 //       case (_, view) =>
 //         val state = new GlobalState
-//         val conn = Connection(PostId("heinz"), PostId("kalla"))
+//         val conn = Connection(NodeId("heinz"), NodeId("kalla"))
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), List(conn))
 //         view(state).render
 //         state.rawGraph.updatef(_ - conn)
@@ -162,7 +162,7 @@
 //     forAll(views) {
 //       case (_, view) =>
 //         val state = new GlobalState
-//         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment(PostId("heinz"), PostId("kalla"))))
+//         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")), containments = List(Containment(NodeId("heinz"), NodeId("kalla"))))
 //         view(state).render
 //         state.rawGraph.updatef(_ - Containment("heinz", "kalla"))
 //     }
@@ -174,7 +174,7 @@
 //         val state = new GlobalState
 //         state.rawGraph() = Graph(List(Post("heinz", "bewustlos"), Post("kalla", "unbewust")))
 //         view(state).render
-//         state.rawGraph.updatef(_ + Containment(PostId("heinz"), PostId("kalla")))
+//         state.rawGraph.updatef(_ + Containment(NodeId("heinz"), NodeId("kalla")))
 //     }
 //   }
 // }

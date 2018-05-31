@@ -6,12 +6,12 @@ import boopickle.Default._
 
 object Boopickle extends wust.ids.serialize.Boopickle {
 
-  implicit val connectionPickler: Pickler[Connection] = generatePickler[Connection]
-  implicit val postPickler: Pickler[Post] = generatePickler[Post]
-  implicit val userAssumedPickler: Pickler[User.Assumed] = generatePickler[User.Assumed]
-  implicit val userPersistedPickler: Pickler[User.Persisted] = generatePickler[User.Persisted]
-  implicit val userPickler: Pickler[User] = generatePickler[User]
-  implicit val membershipPickler: Pickler[Membership] = generatePickler[Membership]
+  implicit val postMetaPickler: Pickler[NodeMeta] = generatePickler[NodeMeta]
+  implicit val connectionPickler: Pickler[Edge] = generatePickler[Edge]
+  implicit val postPickler: Pickler[Node] = generatePickler[Node]
+  implicit val userAssumedPickler: Pickler[AuthUser.Assumed] = generatePickler[AuthUser.Assumed]
+  implicit val userPersistedPickler: Pickler[AuthUser.Persisted] = generatePickler[AuthUser.Persisted]
+  implicit val userPickler: Pickler[AuthUser] = generatePickler[AuthUser]
   implicit val graphPickler: Pickler[Graph] = generatePickler[Graph]
   implicit val graphChangesPickler: Pickler[GraphChanges] = generatePickler[GraphChanges]
 

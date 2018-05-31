@@ -5,15 +5,15 @@ import java.lang.Math._
 import colorado.HCL
 import outwatch.dom.{VNode, _}
 import wust.ids._
-import wust.sdk.PostColor.genericBaseHue
+import wust.sdk.NodeColor.genericBaseHue
 
 import scala.collection.mutable
 
 object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
-  def post(postId:PostId) = twoMirror(postId, 8)
-  def user(postId:UserId) = verticalMirror(postId, 5)
+  def post(nodeId:NodeId) = twoMirror(nodeId, 8)
+  def user(nodeId:UserId) = verticalMirror(nodeId, 5)
   val PI2 = PI*2
 
   private def accentColorSelection(hue1:Double, rnd: scala.util.Random):Array[Double] = {

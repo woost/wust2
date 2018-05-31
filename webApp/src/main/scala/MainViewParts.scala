@@ -7,8 +7,9 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api.AuthUser
 import wust.graph._
-import wust.ids.PostContent
+import wust.ids.NodeData
 import wust.sdk.{ChangesHistory, SyncMode}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
@@ -97,9 +98,9 @@ object MainViewParts {
 
   def authentication(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = div(
     state.user.flatMap {
-      case user: User.Assumed => login(state)
-      case user: User.Implicit => login(state)
-      case user: User.Real => Rx(logout)
+      case user: AuthUser.Assumed => login(state)
+      case user: AuthUser.Implicit => login(state)
+      case user: AuthUser.Real => Rx(logout)
     }
   )
 
@@ -124,7 +125,7 @@ object MainViewParts {
     var today = new Date()
     // January is 0!
     val title = s"Group ${today.getMonth+1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
-    val sameNamePosts = state.channels.now.filter(_.content.str.startsWith(title))
+    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
     if (sameNamePosts.isEmpty) title
     else s"$title ${('A'-1+sameNamePosts.size).toChar}"
   }
@@ -136,9 +137,9 @@ object MainViewParts {
       onClick --> sideEffect{ ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
-        val post = Post(PostContent.Text(newGroupTitle(state)), user.id)
+        val post = Node.Content(NodeData.PlainText(newGroupTitle(state))) //TODO: add author
         for {
-          _ <- state.eventProcessor.changes.onNext(GraphChanges.addPostWithParent(post, user.channelPostId))
+          _ <- state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(post, user.channelNodeId))
         } {
           if (!state.view.now.isContent) state.view() = View.default
           state.page() = Page(post.id)
@@ -151,8 +152,8 @@ object MainViewParts {
   //def feedbackForm(state: GlobalState)(implicit ctx: Ctx.Owner) = {
   //  val lockToGroup = state.viewConfig.now.lockToGroup
 
-  //  //TODO: Don't hardcode feedback postId
-  //  val feedbackPostId = PostId("82")
+  //  //TODO: Don't hardcode feedback nodeId
+  //  val feedbackNodeId = NodeId("82")
 
   //  val show = Var(false)
   //  val activeDisplay = display := show.map(if (_) "block" else "none")
@@ -162,7 +163,7 @@ object MainViewParts {
   //    val text = field.value
   //    //TODO better handling of missing(?) feedbacknode
   //    val newPost = Post.newId(text)
-  //    state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackPostId, newPost.id)))
+  //    state.persistence.addChanges(addPosts = Set(newPost), addContainments = Set(Containment(feedbackNodeId, newPost.id)))
   //    field.value = ""
   //    Analytics.sendEvent("feedback", "submit", "")
   //    false
@@ -182,7 +183,7 @@ object MainViewParts {
 
   //  val feedbackForm = form(
   //    feedbackField, br(),
-  //    if (!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackPostId)) }) else span(),
+  //    if (!lockToGroup) button("show all feedback", tpe := "button", float.right, onclick := { () => state.graphSelection() = GraphSelection.Union(Set(feedbackNodeId)) }) else span(),
   //    input (tpe := "submit", value := "submit"),
   //    onsubmit := { () =>
   //      submitInsert(feedbackField)

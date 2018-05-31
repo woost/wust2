@@ -32,8 +32,8 @@
  //    def mustEqualDigest(pw: String) = arr mustEqual passwordToDigest(pw)
  //  }
 
- //  def Connection(sourceId: PostId, targetId: PostId) = new Connection(sourceId, "my-fucking-test-label", targetId)
- //  def Containment(sourceId: PostId, targetId: PostId) = new Connection(sourceId, Label.Parent, targetId)
+ //  def Connection(sourceId: NodeId, targetId: NodeId) = new Connection(sourceId, "my-fucking-test-label", targetId)
+ //  def Containment(sourceId: NodeId, targetId: NodeId) = new Connection(sourceId, Label.Parent, targetId)
 
  //  //TODO: still throw exceptions on for example database connection errors
  //  "user" - {

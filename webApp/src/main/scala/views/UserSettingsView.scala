@@ -17,12 +17,12 @@ object UserSettingsView extends View {
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
     val graph = displayGraphWithoutParents.map(_.graph)
-    val newPostSink = state.newPostSink.toVar(PostContent.Text(""))
+    val newPostSink = state.newPostSink.toVar(NodeData.PlainText(""))
 
     div(
        height := "100%",
       div(
-        user.map(listSettings),
+        user.map(u => listSettings(u)),
 
 
         margin := "0 auto",
@@ -38,7 +38,7 @@ object UserSettingsView extends View {
     )
   }
 
-  def listSettings(user: User): VNode = {
+  def listSettings(user: UserInfo): VNode = {
     val linkGithub = Handler.create[String].unsafeRunSync()
 
     // TODO: Api calls

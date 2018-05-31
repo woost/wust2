@@ -37,7 +37,7 @@ lazy val commonSettings = Seq(
     Deps.cats.core.value,
     Deps.akka.httpCore.value
   ),
-
+  
   // do not run tests in assembly command
   test in assembly := {},
 

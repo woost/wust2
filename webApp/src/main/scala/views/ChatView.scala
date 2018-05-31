@@ -8,11 +8,11 @@ import outwatch.dom.dsl._
 import rx._
 import wust.graph._
 import wust.ids._
-import wust.sdk.PostColor._
+import wust.sdk.NodeColor._
 import wust.webApp._
 import fontAwesome.{freeBrands, freeRegular, freeSolid}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.PostContentParser
+import wust.webApp.parsers.PostDataParser
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import wust.util._
@@ -51,10 +51,10 @@ object ChatView extends View {
             height := "40px",
             marginRight := "10px"
           ),
-          showPostContent(parent.content)(fontSize := "20px"),
+          showPostData(parent.data)(fontSize := "20px"),
 
           state.user.map { user =>
-            if (user.channelPostId == parent.id) Seq.empty
+            if (user.channelNodeId == parent.id) Seq.empty
             else Seq(
               channelControl(state, parent)(ctx)(marginLeft := "5px"),
               joinControl(state, parent)(ctx)(marginLeft := "5px"),
@@ -65,25 +65,25 @@ object ChatView extends View {
     )
   }
 
-  def channelControl(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner): VNode = div(
+  def channelControl(state: GlobalState, post: Node)(implicit ctx: Ctx.Owner): VNode = div(
     Rx {
-      (state.rawGraph().children(state.user().channelPostId).contains(post.id) match {
+      (state.rawGraph().children(state.user().channelNodeId).contains(post.id) match {
         case true => freeSolid.faBookmark
         case false => freeRegular.faBookmark
       }):VNode //TODO: implicit for Rx[IconDefinition] ?
     },
     cursor.pointer,
     onClick --> sideEffect {_ =>
-      val changes = state.rawGraph.now.children(state.user.now.channelPostId).contains(post.id) match {
-        case true => GraphChanges.disconnect(post.id, ConnectionContent.Parent, state.user.now.channelPostId)
-        case false => GraphChanges.connect(post.id, ConnectionContent.Parent, state.user.now.channelPostId)
+      val changes = state.rawGraph.now.children(state.user.now.channelNodeId).contains(post.id) match {
+        case true => GraphChanges.disconnectParent(post.id, state.user.now.channelNodeId)
+        case false => GraphChanges.connectParent(post.id, state.user.now.channelNodeId)
       }
       state.eventProcessor.changes.onNext(changes)
     }
   )
 
-  def joinControl(state:GlobalState, post:Post)(implicit  ctx: Ctx.Owner):VNode = {
-    val text = post.joinDate match {
+  def joinControl(state:GlobalState, post:Node)(implicit ctx: Ctx.Owner):VNode = {
+    val text = post.meta.joinDate match {
       case JoinDate.Always => span(freeSolid.faUserPlus:VNode)(title := "Users can join via URL (click to toggle)")
       case JoinDate.Never => span(freeSolid.faUserSlash:VNode)(title := "Private Group (click to toggle)")
       case JoinDate.Until(time) => span(s"Users can join via URL until $time") //TODO: epochmilli format
@@ -93,7 +93,7 @@ object ChatView extends View {
       text,
       cursor.pointer,
       onClick --> sideEffect{ _ =>
-        val newJoinDate = post.joinDate match {
+        val newJoinDate = post.meta.joinDate match {
           case JoinDate.Always => JoinDate.Never
           case JoinDate.Never => JoinDate.Always
           case _ => JoinDate.Never
@@ -122,9 +122,9 @@ object ChatView extends View {
 
   def emptyMessage: VNode = h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  def postTag(state:GlobalState, post:Post):VNode = {
+  def postTag(state:GlobalState, post:Node):VNode = {
     span(
-      post.content.str, //TODO trim! fit for tag usage...
+      post.data.str, //TODO trim! fit for tag usage...
       onClick --> sideEffect{e => state.page() = Page(Seq(post.id)); e.stopPropagation()},
       backgroundColor := computeTagColor(post.id),
       fontSize.small,
@@ -135,25 +135,25 @@ object ChatView extends View {
     )
   }
 
-  def deleteButton(state: GlobalState, post: Post) = div(
+  def deleteButton(state: GlobalState, post: Node) = div(
     freeRegular.faTrashAlt,
     padding := "5px",
     cursor.pointer,
     onClick.map{e => e.stopPropagation(); GraphChanges.delete(post)} --> ObserverSink(state.eventProcessor.changes)
   )
 
-  def postLink(state: GlobalState, post: Post)(implicit ctx: Ctx.Owner) = state.viewConfig.map { cfg =>
+  def postLink(state: GlobalState, post: Node)(implicit ctx: Ctx.Owner) = state.viewConfig.map { cfg =>
     val newCfg = cfg.copy(page = Page(post.id))
     viewConfigLink(newCfg)(freeSolid.faLink)
   }
 
-  def chatMessage(state:GlobalState, post: Post, graph:Graph, currentUser:User)(implicit ctx: Ctx.Owner): VNode = {
-    val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
+  def chatMessage(state:GlobalState, post: Node, graph:Graph, currentUser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
+    val postTags: Seq[Node] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
-    val isMine = currentUser.id == post.author
-    val isDeleted = post.deleted < EpochMilli.now
+    val isMine = false //currentUser.id == post.author TODO Authorship
+    val isDeleted = post.meta.deleted.timestamp < EpochMilli.now
 
-    val content = if (graph.children(post).isEmpty) showPostContent(post.content)(paddingRight := "10px") else postTag(state, post)
+    val content = if (graph.children(post).isEmpty) showPostData(post.data)(paddingRight := "10px") else postTag(state, post)
 
     val tags = div( // post tags
       postTags.map{ tag => postTag(state, tag) },
@@ -200,11 +200,11 @@ object ChatView extends View {
       valueWithEnter --> sideEffect { str =>
         val graph = state.displayGraphWithParents.now
         val user = state.user.now
-        val changes = PostContentParser.newPost(graph.graph.posts.toSeq, user.id).parse(str) match {
+        val changes = PostDataParser.newPost(graph.graph.posts.toSeq, user.id).parse(str) match {
           case Parsed.Success(changes, _) => changes
           case failure: Parsed.Failure[_,_] =>
             scribe.warn(s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown.")
-            GraphChanges.addPost(Post(PostContent.Markdown(str), user.id))
+            GraphChanges.addNode(NodeData.Markdown(str))
         }
 
         state.eventProcessor.enriched.changes.onNext(changes)

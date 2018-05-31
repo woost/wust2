@@ -37,14 +37,14 @@ import wust.ids._
 
 //     "be consistent with focused" in {
 //       val state = new GlobalState
-//       state.focusedPostId() = Option("grenom")
-//       state.focusedPostId.now mustEqual None
+//       state.focusedNodeId() = Option("grenom")
+//       state.focusedNodeId.now mustEqual None
 
 //       state.rawGraph() = Graph(posts = List(Post("grenom", "title")))
-//       state.focusedPostId.now mustEqual Option(PostId("grenom"))
+//       state.focusedNodeId.now mustEqual Option(NodeId("grenom"))
 
 //       state.rawGraph() = Graph.empty
-//       state.focusedPostId.now mustEqual None
+//       state.focusedNodeId.now mustEqual None
 //     }
 
 //     "have view" in {
@@ -64,11 +64,11 @@ import wust.ids._
 //   "view" - {
 //     "be consistent with collapsed" in {
 //       val state = new GlobalState
-//       state.collapsedPostIds() = Set("grenom")
-//       state.currentView.now.collapsed(PostId("grenom")) mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set("grenom")))).collapsed(PostId("grenom"))
+//       state.collapsedNodeIds() = Set("grenom")
+//       state.currentView.now.collapsed(NodeId("grenom")) mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set("grenom")))).collapsed(NodeId("grenom"))
 
-//       state.collapsedPostIds() = Set.empty
-//       state.currentView.now.collapsed.apply(PostId("grenom")) mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set.empty))).collapsed(PostId("grenom"))
+//       state.collapsedNodeIds() = Set.empty
+//       state.currentView.now.collapsed.apply(NodeId("grenom")) mustEqual Perspective().union(Perspective(collapsed = Selector.IdSet(Set.empty))).collapsed(NodeId("grenom"))
 //     }
 //   }
 // }

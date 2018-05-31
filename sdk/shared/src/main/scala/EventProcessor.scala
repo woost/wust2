@@ -40,7 +40,7 @@ case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], 
   def canUndo = undos.nonEmpty
   def canRedo = redos.nonEmpty
   def undo(graph: Graph) = undos match {
-    case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(graph.postsById)) //TODO
+    case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
     case Nil => copy(current = GraphChanges.empty)
   }
   def redo = redos match {
@@ -117,6 +117,7 @@ class EventProcessor private(
   val currentAuth: Observable[Authentication] = authEventStream.collect {
     case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
   }
+  val currentUser: Observable[AuthUser] = currentAuth.map(_.user)
 
   // changes that are only applied to the graph but are never sent
   val nonSendingChanges = PublishSubject[GraphChanges] // TODO: merge with manualUnsafeEvents?
@@ -149,7 +150,7 @@ class EventProcessor private(
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraph)(enrich)
     val allChanges = Observable.merge(enrichedChanges, changes)
-    val rawLocalChanges = allChanges.collect { case changes if changes.nonEmpty => changes.consistent }
+    val rawLocalChanges = allChanges.withLatestFrom(currentUser)((a,b) => (a,b)).collect { case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id) }
 
     allChanges.foreach { c => println("[Events] Got all local changes: " + c) }
 

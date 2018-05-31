@@ -2,7 +2,7 @@ package wust.api
 
 import sloth.PathName
 import wust.graph._
-import wust.ids._
+import wust.ids.{EdgeData, _}
 import cats.data.NonEmptyList
 
 trait Api[Result[_]] {
@@ -12,16 +12,14 @@ trait Api[Result[_]] {
   @PathName("changeGraphOnBehalf")
   def changeGraph(changes: List[GraphChanges], onBehalf: Authentication.Token): Result[Boolean]
 
-  def getPost(id: PostId): Result[Option[Post]]
   def getGraph(selection: Page): Result[Graph]
-  def getUser(userId: UserId): Result[Option[User]]
-  def addMember(postId: PostId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
-  def setJoinDate(postId: PostId, joinDate: JoinDate): Result[Boolean]
-//  def addMemberByName(postId: PostId, userName: String): Result[Boolean]
+  def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
+  def setJoinDate(nodeId: NodeId, joinDate: JoinDate): Result[Boolean]
+//  def addMemberByName(nodeId: NodeId, userName: String): Result[Boolean]
 
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]
-  def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
+  def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[NodeId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 
   //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
@@ -35,7 +33,7 @@ trait PushApi[Result[_]] {
 
 @PathName("Auth")
 trait AuthApi[Result[_]] {
-  def assumeLogin(user: User.Assumed): Result[Boolean]
+  def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
   def register(name: String, password: String): Result[Boolean]
   def login(name: String, password: String): Result[Boolean]
   def loginToken(token: Authentication.Token): Result[Boolean]
@@ -44,19 +42,36 @@ trait AuthApi[Result[_]] {
   def issuePluginToken(): Result[Authentication.Verified]
 }
 
+
 //TODO: anyval those hierarchies!
+sealed trait AuthUser {
+  def id: UserId
+  def name: String
+  def channelNodeId:NodeId
+}
+object AuthUser {
+  sealed trait Persisted extends AuthUser
+  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted
+  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted
+  case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
+    def name = s"anon-${id.takeRight(4)}"
+  }
+
+  implicit def AsUserInfo(user: AuthUser): UserInfo = UserInfo(user.id, user.name, user.channelNodeId)
+}
+
 sealed trait Authentication {
-  def user: User
-  def dbUserOpt: Option[User.Persisted] = Some(user) collect { case u: User.Persisted => u }
+  def user: AuthUser
+  def dbUserOpt: Option[AuthUser.Persisted] = Some(user) collect { case u: AuthUser.Persisted => u }
 }
 object Authentication {
   type Token = String
 
-  case class Assumed(user: User.Assumed) extends Authentication
+  case class Assumed(user: AuthUser.Assumed) extends Authentication
   object Assumed {
-    def fresh = Assumed(User.Assumed(UserId.fresh, PostId.fresh, PostId.fresh))
+    def fresh = Assumed(AuthUser.Assumed(UserId.fresh, NodeId.fresh))
   }
-  case class Verified(user: User.Persisted, expires: Long, token: Token) extends Authentication {
+  case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication {
     override def toString = s"Authentication.Verified($user)"
   }
 }
@@ -76,12 +91,6 @@ object ApiEvent {
   sealed trait Private extends Any with ApiEvent
   sealed trait GraphContent extends Any with ApiEvent
   sealed trait AuthContent extends Any with ApiEvent
-
-  case class NewUser(user: User) extends AnyVal with GraphContent with Public with Private
-  case class NewMembership(membership: Membership) extends AnyVal with GraphContent with Public with Private
-  object NewMembership {
-    def apply(userId:UserId, postId:PostId):NewMembership = new NewMembership(Membership(userId, postId))
-  }
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
@@ -128,8 +137,8 @@ object ApiEvent {
 case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
 
 object Heuristic {
-  case class PostResult(measure: Option[Double], posts: List[Post])
-  case class IdResult(measure: Option[Double], postIds: List[PostId])
+  case class PostResult(measure: Option[Double], posts: List[Node.Content])
+  case class IdResult(measure: Option[Double], nodeIds: List[NodeId])
 
   type Result = PostResult
   type ApiResult = IdResult

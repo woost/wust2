@@ -35,9 +35,9 @@ object GitHubImporter {
     (urlData(0), urlData(1), issueNum)
   }
 
-  def getIssues(redis: RedisClient, owner: String, repo: String, issueNumber: Option[Int] = None, gitAccessToken: Option[String]): Future[(Set[Post], Set[Connection])] = {
+  def getIssues(redis: RedisClient, owner: String, repo: String, issueNumber: Option[Int] = None, gitAccessToken: Option[String]): Future[(Set[Node], Set[Edge])] = {
 
-    val emptyResult = (Set.empty[Post], Set.empty[Connection])
+    val emptyResult = (Set.empty[Node], Set.empty[Edge])
 
     // TODO: Deduplication
     def getSingleIssue(number: Int): Future[List[Issue]] =
@@ -87,7 +87,7 @@ object GitHubImporter {
       * Get tokens for implicit users from backend
       *
       */
-    val postAndConnection: Future[Set[(Set[Post], Set[Connection])]] = {
+    val postAndConnection: Future[Set[(Set[Node], Set[Edge])]] = {
       issueWithComments.map(_.map( issueData => {
         val issue = issueData._1
         val commentsList = issueData._2
@@ -99,54 +99,63 @@ object GitHubImporter {
         // Get wust user from github id or create new user
         val githubUserOfIssue = issue.user
         val wustUserOfIssue = githubUserOfIssue match {
-          case None => UserId("unknown")
+          case None => "unknown".asInstanceOf[UserId]
           case Some(githubUser: GHUser) => PersistAdapter.getWustUser(githubUser.id).getOrElse(UserId.fresh)
         }
 
       //TODO what about this userid?
-      val userId = UserId(issue.user match {
+      val userId = (issue.user match {
         case None => ???
         case Some(githubUser: GHUser) => githubUser.id.toString
-      }) //TODO: create this user
+      }).asInstanceOf[UserId] //TODO: create this user
       // val tempUserId = user.id
       val tempUserId = wustUserOfIssue
 
 
         // Ensure posts
-        val _github = Post(Constants.githubId, PostContent.Text("wust-github"), tempUserId)
-        val _issue = Post(Constants.issueTagId, PostContent.Text("wust-github-issue"), tempUserId)
-        val _comment = Post(Constants.commentTagId, PostContent.Text("wust-github-comment"), tempUserId)
-        val _github_issue = Connection(_issue.id, ConnectionContent.Parent, _github.id)
-        val _github_comment = Connection(_comment.id, ConnectionContent.Parent, _github.id)
+//        val _github = Post(Constants.githubId, PostData.Text("wust-github"), tempUserId)
+//        val _issue = Post(Constants.issueTagId, PostData.Text("wust-github-issue"), tempUserId)
+//        val _comment = Post(Constants.commentTagId, PostData.Text("wust-github-comment"), tempUserId)
+//        val _github_issue = Connection(_issue.id, ConnectionData.Parent, _github.id)
+//        val _github_comment = Connection(_comment.id, ConnectionData.Parent, _github.id)
+        val _github = Node.Content(Constants.githubId, NodeData.PlainText("wust-github"))
+        val _issue = Node.Content(Constants.issueTagId, NodeData.PlainText("wust-github-issue"))
+        val _comment = Node.Content(Constants.commentTagId, NodeData.PlainText("wust-github-comment"))
+        val _github_issue = Edge.Parent(_issue.id, _github.id)
+        val _github_comment = Edge.Parent(_comment.id, _github.id)
 
         // TODO: delete transitive containments of comments in issue
 
         // Issue posts and connections
         implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
-        // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
-        // val issueTitle = Post(PostId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+        // val issueTitle = Post(NodeId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
+        // val issueTitle = Post(NodeId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order
-        val issueTitle = Post(PostId("1" + augmentString("0")*issueIdZeros + issue.number.toString), PostContent.Text(s"#${issue.number} ${issue.title}"), tempUserId, issue.created_at, issue.updated_at)
 
-        val titleIssueTag = Connection(issueTitle.id, ConnectionContent.Parent, _issue.id)
+//        val issueTitle = Post(NodeId("1" + augmentString("0")*issueIdZeros + issue.number.toString), PostData.PlainText(s"#${issue.number} ${issue.title}"), tempUserId, issue.created_at, issue.updated_at)
+        val issueTitle = Node.Content(NodeId("1" + augmentString("0")*issueIdZeros + issue.number.toString), NodeData.PlainText(s"#${issue.number} ${issue.title}"))
+
+        val titleIssueTag = Edge.Parent(issueTitle.id, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
-          val issueDesc = Post(PostId(issue.id.toString), PostContent.Markdown(issue.body), tempUserId, issue.created_at, issue.updated_at)
-          val conn = Connection(issueDesc.id, ConnectionContent.Text("describes"), issueTitle.id)
-          val cont = Connection(issueDesc.id, ConnectionContent.Parent, issueTitle.id)
-          val comm = Connection(issueDesc.id, ConnectionContent.Parent, _comment.id)
+//          val issueDesc = Post(NodeId(issue.id.toString), PostData.Markdown(issue.body), tempUserId, issue.created_at, issue.updated_at)
+          val issueDesc = Node.Content(NodeId(issue.id.toString), NodeData.Markdown(issue.body))
+          val conn = Edge.Label(issueDesc.id, EdgeData.Label("describes"), issueTitle.id)
+          val cont = Edge.Parent(issueDesc.id, issueTitle.id)
+          val comm = Edge.Parent(issueDesc.id, _comment.id)
           (Set(issueDesc), Set(conn, cont, comm))
         } else {
-          (Set.empty[Post], Set.empty[Connection])
+          (Set.empty[Node], Set.empty[Edge])
         }
 
-        val issuePosts = Set[Post](_github, _issue, _comment, issueTitle) ++ desc._1
-        val issueConn = Set[Connection](_github_issue, _github_comment, titleIssueTag) ++ desc._2
+        val issuePosts = Set[Node](_github, _issue, _comment, issueTitle) ++ desc._1
+        val issueConn = Set[Edge](_github_issue, _github_comment, titleIssueTag) ++ desc._2
 
         // Comments
-        val comments: List[(Post, Set[Connection])] = commentsList.map(comment => {
-          val cpost = Post(PostId(comment.id.toString), PostContent.Markdown(comment.body), tempUserId, comment.created_at, comment.updated_at)
-          val cconn = Set(Connection(cpost.id, ConnectionContent.Parent, issueTitle.id), Connection(cpost.id, ConnectionContent.Parent, _comment.id))
+        val comments: List[(Node.Content, Set[Edge.Parent])] = commentsList.map(comment => {
+//          val cpost = Post(NodeId(comment.id.toString), PostData.Markdown(comment.body), tempUserId, comment.created_at, comment.updated_at)
+          val cpost = Node.Content(NodeId(comment.id.toString), NodeData.Markdown(comment.body))
+          val cconn = Set(Edge.Parent(cpost.id, issueTitle.id), Edge.Parent(cpost.id, _comment.id))
           (cpost, cconn)
         })
 

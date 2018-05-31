@@ -7,14 +7,10 @@ object PageMode {
   case object Default extends PageMode
   case object Orphans extends PageMode
 }
-case class Page(parentIds: Seq[PostId], childrenIds: Seq[PostId] = Nil, mode: PageMode = PageMode.Default)
+case class Page(parentIds: Seq[NodeId], childrenIds: Seq[NodeId] = Nil, mode: PageMode = PageMode.Default)
 
 object Page {
   val empty = Page(Seq.empty)
-  def ofUser(user: User) = Page(Seq(user.channelPostId))
-  def apply(parentId:PostId):Page = Page(Seq(parentId))
+  def ofUser(user: UserInfo) = Page(Seq(user.channelNodeId))
+  def apply(parentId:NodeId):Page = Page(Seq(parentId))
 }
-
-
-
-

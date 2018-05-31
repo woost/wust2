@@ -28,10 +28,10 @@
 //   }
 
 //   def sortedPostItems(graph:Observable[Graph], graphSelection:Sink[Page]): Observable[Seq[VNode]] = graph.map { graph =>
-//     val sortedPosts = HierarchicalTopologicalSort(graph.postIds, successors = graph.successorsWithoutParent, children = graph.children)
+//     val sortedPosts = HierarchicalTopologicalSort(graph.nodeIds, successors = graph.successorsWithoutParent, children = graph.children)
 
-//     sortedPosts.map { postId =>
-//       val post = graph.postsById(postId)
+//     sortedPosts.map { nodeId =>
+//       val post = graph.postsById(nodeId)
 //       postItem(post, graphSelection)
 //     }
 //   }

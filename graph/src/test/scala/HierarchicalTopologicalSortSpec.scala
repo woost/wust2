@@ -4,12 +4,12 @@ import org.scalatest._
 
 class HierarchicalTopologicalSortSpec extends FreeSpec with MustMatchers {
   // implicit def intToUuidType(id: Int): UuidType = id.toString
-  // implicit def intToPostId(id: Int): PostId = PostId(id.toString)
+  // implicit def intToNodeId(id: Int): NodeId = NodeId(id.toString)
   // implicit def intToPost(id: Int): Post = Post(id.toString, "title")
   // implicit def intTupleToConnection(ts: (Int, Int)): Connection = Connection(ts)
   // implicit def intTupleToContainment(ts: (Int, Int)): Containment = Containment(ts)
-  // implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(id => PostId(id.toString)))
-  // def PostIds(ids: Int*): Set[PostId] = ids.map(id => PostId(id.toString))(breakOut)
+  // implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(id => NodeId(id.toString)))
+  // def NodeIds(ids: Int*): Set[NodeId] = ids.map(id => NodeId(id.toString))(breakOut)
   // implicit class RichContainment(con: Containment) {
   //   def toLocal = LocalContainment(con.parentId, con.childId)
   // }

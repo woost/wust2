@@ -45,17 +45,17 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
-    val involvedPostIds: Set[PostId] = events.flatMap {
-      case ApiEvent.NewGraphChanges(changes) => changes.involvedPostIds
-      case _ => Set.empty[PostId]
+    val involvedNodeIds: Set[NodeId] = events.flatMap {
+      case ApiEvent.NewGraphChanges(changes) => changes.involvedNodeIds
+      case _ => Set.empty[NodeId]
     }(breakOut)
 
-    db.notifications.notifiedUsers(involvedPostIds).onComplete {
+    db.notifications.notifiedUsers(involvedNodeIds).onComplete {
 
       case Success(notifiedUsers) =>
-        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { postIds =>
+        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { nodeIds =>
           events.map{
-            case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(postIds.toSet))
+            case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(nodeIds.toSet))
             case other => other
           }
         }
@@ -80,8 +80,8 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 
     if (notifiedUsers.nonEmpty) {
       val notifiedUsersGraphChanges = notifiedUsers
-        .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) if changes.addPosts.nonEmpty =>
-          changes.addPosts.map(_.content.str.trim).mkString(" | ") }.mkString(" | "))
+        .mapValues(_.collect { case ApiEvent.NewGraphChanges(changes) if changes.addNodes.nonEmpty =>
+          changes.addNodes.map(_.data.str.trim).mkString(" | ") }.mkString(" | "))
         .filter(_._2.nonEmpty)
 
       db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach { subscriptions =>

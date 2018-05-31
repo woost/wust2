@@ -103,7 +103,7 @@ class MainActivity extends Activity with Contexts[Activity] {
         val content = value.get.getText.toString.trim
         Ui{ 
           if(content.nonEmpty) {
-            val post = Post(PostId(cuid), value.get.getText.toString, assumedLogin)
+            val post = Post(NodeId(cuid), value.get.getText.toString, assumedLogin)
             value.get.getText.clear()
             eventProcessor.applyChanges(GraphChanges.addPost(post)).foreach { _ =>
               (chatHistorySlot <~ Tweak[RecyclerView](_.smoothScrollToPosition(rawGraphNow.posts.size - 1))).run

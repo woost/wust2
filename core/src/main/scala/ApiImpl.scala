@@ -24,13 +24,37 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   //TODO assure timestamps of posts are correct
   //TODO: only accept one GraphChanges object: we need an api for multiple.
-  private def changeGraph(changes: List[GraphChanges], user: User.Persisted): Future[ApiData.Effect[Boolean]] = {
+  private def changeGraph(changes: List[GraphChanges], user: AuthUser.Persisted): Future[ApiData.Effect[Boolean]] = {
     //TODO more permissions!
-    val changesAreAllowed = {
-      val addPosts = changes.flatMap(_.addPosts)
-      val conns = changes.flatMap(c => c.addConnections ++ c.delConnections)
+    val changesAreAllowed = changes.forall { changes =>
       //TODO check conns
-      addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
+      // addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
+      ApiLogger.client.info("WARNING: Allowing everything")
+
+      val touchedNodes = changes.addNodes ++ changes.updateNodes
+
+      // Author checks: I am the only author
+      // TODO: memberships can only be added / deleted if the user hat the rights to do so
+      //TODO: consistent timestamps (not in future...)
+      def validAddEdges = changes.addEdges.forall {
+        case Edge.Author(authorId, _, nodeId) =>
+          authorId == user.id && touchedNodes.map(_.id).contains(nodeId)
+        case _: Edge.Member => false
+        case _ => true
+      }
+
+      // assure all nodes have an author edge
+      def validNodes = {
+        val allPostsWithAuthor = changes.addEdges.collect {
+          case Edge.Author(_, _, postId) => postId
+        }
+        touchedNodes.forall {
+          case Node.Content(id, _, _) => allPostsWithAuthor.contains(id)
+          case _ => false
+        }
+      }
+
+      validAddEdges && validNodes
     }
 
     if (changesAreAllowed) {
@@ -41,12 +65,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           previousSuccess.flatMap { success =>
             if (success) {
               for {
-                true <- db.post.createPublic(addPosts)
-                _ <- db.connection(addConnections) // TODO: are redundant connections handled?
-                true <- db.post.update(updatePosts)
-                true <- db.post.delete(delPosts)
-                true <- db.connection.delete(delConnections)
-                _ <- db.post.addMemberEvenIfLocked(addPosts.map(_.id).toList, user.id, AccessLevel.ReadWrite) //TODO: check
+                true <- db.node.create(addNodes)
+                _ <- db.edge(addEdges) // TODO: are redundant connections handled?
+                true <- db.node.update(updateNodes)
+                true <- db.node.delete(delNodes)
+                true <- db.edge.delete(delEdges)
+                _ <- db.node.addMemberEvenIfLocked(addNodes.map(_.id).toList, user.id, AccessLevel.ReadWrite) //TODO: check
               } yield true
             } else Future.successful(false)
           }
@@ -62,26 +86,23 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
 
-  override def getPost(id: PostId): ApiFunction[Option[Post]] = Action(db.post.get(id).map(_.map(forClient))) //TODO: check if public or user has access
-  override def getUser(id: UserId): ApiFunction[Option[User]] = Action(db.user.get(id).map(_.map(forClient)))
-
   //TODO: error handling
-  override def addMember(postId: PostId, newMemberId: UserId, accessLevel: AccessLevel): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMember(nodeId: NodeId, newMemberId: UserId, accessLevel: AccessLevel): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isPostMember(postId, user.id, AccessLevel.ReadWrite) {
+      isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
         for {
           Some(user) <- db.user.get(newMemberId)
-          added <- db.post.addMemberEvenIfLocked(postId, newMemberId, accessLevel)
-        } yield Returns(added, if(added) Seq(NewMembership(newMemberId, postId), NewUser(user)) else Nil)
+          added <- db.node.addMemberEvenIfLocked(nodeId, newMemberId, accessLevel)
+        } yield Returns(added, if(added) Seq(NewGraphChanges(GraphChanges(addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)), addNodes = Set(user)))) else Nil)
       }
     }
   }
-  override def setJoinDate(postId: PostId, joinDate: JoinDate): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def setJoinDate(nodeId: NodeId, joinDate: JoinDate): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isPostMember(postId, user.id, AccessLevel.ReadWrite) {
+      isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
         for {
-          updatedJoinDate <- db.post.setJoinDate(postId, joinDate)
-          Some(updatedPost) <- db.post.get(postId)
+          updatedJoinDate <- db.node.setJoinDate(nodeId, joinDate)
+          Some(updatedPost) <- db.node.get(nodeId)
         } yield {
           Returns(updatedJoinDate, Seq(NewGraphChanges.ForAll(GraphChanges.updatePost(updatedPost))))
         }
@@ -89,12 +110,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
   }
 
-//  override def addMemberByName(postId: PostId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+//  override def addMemberByName(nodeId: NodeId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
 //    db.ctx.transaction { implicit ec =>
-//      isPostMember(postId, user.id) {
+//      isPostMember(nodeId, user.id) {
 //        for {
 //          Some(user) <- db.user.byName(userName)
-//          Some((_, dbMembership)) <- db.post.addMember(postId, user.id)
+//          Some((_, dbMembership)) <- db.post.addMember(nodeId, user.id)
 //        } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
 //      }
 //    }
@@ -103,15 +124,21 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   //TODO: get graph forces new db user...
   ///TODO the caller aka frontend knows whether we need a membership or whether we want to add this as channel.
   //therefore most calls to getgraph dont need membership+channel insert. this would improve performance.
+  //TODO: tell other members about the new member
   override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
     if (page.parentIds.isEmpty) getPage(user.id, page).map(Returns(_))
     else for {
-      newMemberPostIds <- db.post.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
+      newMemberNodeIds <- db.node.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
       graph <- getPage(user.id, page)
-    } yield {
-      Returns(graph, newMemberPostIds.map(NewMembership(user.id, _)))
-    }
+      } yield {
+        Returns(graph, {
+          val membershipConnections:Set[Edge] = newMemberNodeIds.map{
+            case (nodeId, level) => Edge.Member(user.id, EdgeData.Member(level), nodeId)
+          }(breakOut)
+          Seq(NewGraphChanges(GraphChanges(addEdges = membershipConnections)))
+        })
+      }
   }
 
 
@@ -138,7 +165,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
 //  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
     // TODO: Reuse graph changes instead
-//    val postsOfUrl = Set(Post(PostId(scala.util.Random.nextInt.toString), url, user.id))
+//    val postsOfUrl = Set(Post(NodeId(scala.util.Random.nextInt.toString), url, user.id))
 //    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
 //    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
 //      db.ctx.transaction { implicit ec =>
@@ -154,7 +181,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //    Future.successful(true)
 //  }
 
-  override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[PostId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
+  override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[NodeId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
     getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
 

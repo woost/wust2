@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 object Constants {
   //TODO
-  val gitterId = PostId("wust-gitter")
+  val gitterId = NodeId("wust-gitter")
 }
 
 //class GitterApiImpl(client: WustClient, server: ServerConfig, github: GitterConfig, redis: RedisClient)(implicit ec: ExecutionContext) extends PluginApi {
@@ -57,17 +57,18 @@ case class ExchangeMessage(content: String)
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
 
-  def push(msg: ExchangeMessage, author: UserId): Result[Post]
+  def push(msg: ExchangeMessage, author: UserId): Result[Node]
 }
 
 class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
+  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Node]] = {
     println(s"new message: ${msg.content}")
-    val post = Post(PostId.fresh, PostContent.Markdown(msg.content), author)
-    val connection = Connection(post.id, ConnectionContent.Parent, Constants.gitterId)
+    // TODO: author
+    val post = Node.Content(NodeData.Markdown(msg.content))
+    val connection = Edge.Parent(post.id, Constants.gitterId)
 
-    val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
+    val changes = List(GraphChanges(addNodes = Set(post), addEdges = Set(connection)))
     client.api.changeGraph(changes).map { success =>
       if (success) Right(post)
       else Left("Failed to create post")
@@ -78,7 +79,7 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
 object WustReceiver {
   type Result[T] = Either[String, T]
 
-  val wustUser = UserId("wust-gitter")
+  val wustUser: UserId = "wust-gitter".asInstanceOf[UserId]
 
   def run(config: WustConfig, gitter: GitterClient)(implicit system: ActorSystem): Future[Result[WustReceiver]] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -94,8 +95,8 @@ object WustReceiver {
     graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
       println(s"Got events in Gitter: $events")
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
-      val posts = changes.flatMap(_.addPosts)
-      posts.map(p => ExchangeMessage(p.content.str)).foreach { msg =>
+      val posts = changes.flatMap(_.addNodes)
+      posts.map(p => ExchangeMessage(p.data.str)).foreach { msg =>
         gitter.send(msg)
       }
 
@@ -106,7 +107,8 @@ object WustReceiver {
     val res = for { // Assume thas user exists
 //      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
       _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
-      changes = GraphChanges(addPosts = Set(Post(Constants.gitterId, PostContent.Text("wust-gitter"), wustUser)))
+      // TODO: author: wustUser
+      changes = GraphChanges(addNodes = Set(Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter"))))
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
       graph <- valid(client.api.getGraph(Page.empty))
     } yield new WustReceiver(client)

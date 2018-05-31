@@ -4,19 +4,19 @@ import d3v4._
 import org.scalajs.dom.ext.KeyCode
 import io.circe.Decoder.state
 import org.scalajs.dom
-import org.scalajs.dom.html.Element
+import org.scalajs.dom.CanvasRenderingContext2D
+import org.scalajs.dom.html
 import org.scalajs.dom.raw.{MutationObserver, MutationRecord}
-import org.scalajs.dom.{Selection => _, _}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
-import wust.sdk.PostColor._
+import wust.sdk.NodeColor._
 import wust.webApp.GlobalState
 import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
-import wust.ids.{ConnectionContent, PostId}
+import wust.ids.{EdgeData, NodeId}
 import wust.webApp.outwatchHelpers._
 import wust.util.time.time
 import wust.webApp.views.Rendered._
@@ -51,27 +51,27 @@ object ForceSimulationConstants {
   val nodeSpacing = 20
 }
 
-class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (PostId, PostId) => Unit, onDropWithCtrl: (PostId, PostId) => Unit)(implicit ctx: Ctx.Owner) {
+class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (NodeId, NodeId) => Unit, onDropWithCtrl: (NodeId, NodeId) => Unit)(implicit ctx: Ctx.Owner) {
   //TODO: sometimes dragging parent into child crashes simulation
   import ForceSimulation._
   import ForceSimulationConstants._
 
   val postCreationMenus:Var[List[Vec2]] = Var(Nil)
-  val selectedPostId:Var[Option[(Vec2, PostId)]] = Var(None)
+  val selectedNodeId:Var[Option[(Vec2, NodeId)]] = Var(None)
 
   //TODO why partial?
-  private var labelVisualization: PartialFunction[ConnectionContent.Type,VisualizationType] = {
-    case ConnectionContent.Parent.tpe => Containment
+  private var labelVisualization: PartialFunction[EdgeData.Type,VisualizationType] = {
+    case EdgeData.Parent.tpe => Containment
     case label => Edge
   }
-  private var postSelection: Selection[Post] = _
+  private var postSelection: Selection[Node] = _
   private var simData: SimulationData = _
   private var staticData: StaticData = _
   private var planeDimension = PlaneDimension()
   private var canvasContext:CanvasRenderingContext2D = _
   var transform:Transform = d3.zoomIdentity
   var running = false
-  //  val positionRequests = mutable.HashMap.empty[PostId, (Double, Double)]
+  //  val positionRequests = mutable.HashMap.empty[NodeId, (Double, Double)]
 
   private val backgroundElement = Promise[dom.html.Element]
   private val postContainerElement = Promise[dom.html.Element]
@@ -152,17 +152,17 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
         resized()
         startAnimated()
       } else {
-        if (postCreationMenus.now.isEmpty && selectedPostId.now.isEmpty) {
+        if (postCreationMenus.now.isEmpty && selectedNodeId.now.isEmpty) {
           val pos = transform.invert(d3.mouse(background.node))
           postCreationMenus() = List(Vec2(pos(0), pos(1)))
         } else {
           // TODO:
           // Var.set(
           //   Var.Assignment(postCreationMenus, Nil),
-          //   Var.Assignment(selectedPostId, None)
+          //   Var.Assignment(selectedNodeId, None)
           // )
           postCreationMenus() = Nil
-          selectedPostId() = None
+          selectedNodeId() = None
         }
       }
     })
@@ -174,14 +174,14 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
       startAnimated()
     }
 
-    def dragSubject(d:Post, i:Int):Coordinates = {
+    def dragSubject(d:Node, i:Int):Coordinates = {
       new Coordinates(
         x = simData.x(i) * transform.k,
         y = simData.y(i) * transform.k
       )
     }
 
-    def dragStart(n:html.Element, d: Post, dragging:Int):Unit = {
+    def dragStart(n:html.Element, d: Node, dragging:Int):Unit = {
       running = false
       ForceSimulationForces.initQuadtree(simData, staticData)
       simData.quadtree.remove(dragging)
@@ -200,7 +200,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
       } else None
     }
 
-    def dragging(n:html.Element, d: Post, dragging:Int):Unit = {
+    def dragging(n:html.Element, d: Node, dragging:Int):Unit = {
       running = false
       val x = d3.event.x / transform.k
       val y = d3.event.y / transform.k
@@ -238,7 +238,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
       if(debugDrawEnabled) calculateAndDrawCurrentVelocities()
     }
 
-    def dropped(n:html.Element, d:Post, dragging:Int):Unit = {
+    def dropped(n:html.Element, d:Node, dragging:Int):Unit = {
       hit(dragging, minimumDragHighlightRadius).foreach{ target =>
         if(isCtrlPressed)
           onDropWithCtrl(staticData.posts(dragging).id, staticData.posts(target).id)
@@ -248,7 +248,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
       //TODO: if nothing was changed, jump back to drag start with animation
     }
 
-    def onClick(post:Post, i:Int): Unit = {
+    def onClick(post:Node, i:Int): Unit = {
 
       println(s"clicked post[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
@@ -259,7 +259,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
       //     //   VarTuple(graphState.state.postCreatorMenus, Nil)
       //   // )
       val pos = Vec2(simData.x(i), simData.y(i))
-      selectedPostId() = Some((pos, post.id))
+      selectedNodeId() = Some((pos, post.id))
       postCreationMenus() = Nil
     }
 
@@ -311,12 +311,12 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Pos
       stop()
 
       // We want to let d3 do the re-ordering while keeping the old coordinates
-      postSelection = postContainer.selectAll[Post]("div")
+      postSelection = postContainer.selectAll[Node]("div")
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
       updateDomPosts(posts.toJSArray, postSelection, onClick) // d3 data join
-      postSelection = postContainer.selectAll[Post]("div") // update outdated postSelection
+      postSelection = postContainer.selectAll[Node]("div") // update outdated postSelection
       registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
       simData = createSimDataFromDomBackup(postSelection)
@@ -415,10 +415,10 @@ object ForceSimulation {
   import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
-  def calcPostWidth(post: Post) = {
+  def calcPostWidth(post: Node) = {
     import outwatch.dom.dsl._
     val arbitraryFactor = 2.4
-    val contentWidth = post.content.str.length // TODO: wrong with markdown rendering
+    val contentWidth = post.data.str.length // TODO: wrong with markdown rendering
     val calcWidth = if(contentWidth > 10){
       val sqrtWidth = (math.sqrt(contentWidth) * arbitraryFactor) min 60
       Some(width:= s"${sqrtWidth}ch")
@@ -427,12 +427,12 @@ object ForceSimulation {
   }
 
   def updateDomPosts(
-                      posts: js.Array[Post],
-                      postSelection: Selection[Post],
-                      onClick: (Post,Int) => Unit
+                      posts: js.Array[Node],
+                      postSelection: Selection[Node],
+                      onClick: (Node,Int) => Unit
                     ): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
-    val post = postSelection.data(posts, (p:Post) => p.id)
+    val post = postSelection.data(posts, (p:Node) => p.id)
     time(log(s"removing old posts from dom[${post.exit().size()}]")) {
       post.exit()
         .remove()
@@ -440,20 +440,20 @@ object ForceSimulation {
 
     time(log(s"updating staying posts[${post.size()}]")) {
       post
-        .html((post:Post) => htmlPostContent(post.content))
-        .style("width", (post: Post) => calcPostWidth(post).getOrElse(js.undefined))
+        .html((post:Node) => htmlPostData(post.data))
+        .style("width", (post: Node) => calcPostWidth(post).getOrElse(js.undefined))
         .on("click", onClick) //TODO: does d3 provide a wrong index?
     }
 
     time(log(s"adding new posts to dom[${post.enter().size()}]")) {
       post.enter()
-        .append ( (post: Post) => {
+        .append ( (post: Node) => {
           import outwatch.dom.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
           val postWidth = calcPostWidth(post)
           div(
             postWidth,
-            showPostContent(post.content),
+            showPostData(post.data),
             cls := "graphpost",
             // pointerEvents.auto, // re-enable mouse events
             cursor.default
@@ -464,14 +464,14 @@ object ForceSimulation {
   }
 
   def registerDragHandlers(
-                            postSelection: Selection[Post],
-                            dragSubject: (Post, Index) => Coordinates,
-                            dragStart: (Element, Post, Index) => Unit,
-                            dragged: (Element, Post, Index) => Unit,
-                            dropped: (Element, Post, Index) => Unit
+                            postSelection: Selection[Node],
+                            dragSubject: (Node, Index) => Coordinates,
+                            dragStart: (html.Element, Node, Index) => Unit,
+                            dragged: (html.Element, Node, Index) => Unit,
+                            dropped: (html.Element, Node, Index) => Unit
                           ): Unit = {
     postSelection.call(
-      d3.drag[Post]()
+      d3.drag[Node]()
         .clickDistance(10) // interpret short drags as clicks
         .subject(dragSubject) // important for drag offset
         .on("start", dragStart)
@@ -481,9 +481,9 @@ object ForceSimulation {
   }
 
 
-  def backupSimDataToDom(simData: SimulationData, postSelection: Selection[Post]): Unit = {
+  def backupSimDataToDom(simData: SimulationData, postSelection: Selection[Node]): Unit = {
     time(log(s">> backupData[${if(simData != null) simData.n.toString else "None"}]")) {
-      postSelection.each[html.Element] { (node: html.Element, _: Post, i: Int) =>
+      postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
         val coordinates = new Coordinates
         node.asInstanceOf[js.Dynamic].__databackup__ = coordinates // yay javascript!
         coordinates.x = simData.x(i)
@@ -494,11 +494,11 @@ object ForceSimulation {
     }
   }
 
-  def createSimDataFromDomBackup(postSelection: Selection[Post]): SimulationData = {
+  def createSimDataFromDomBackup(postSelection: Selection[Node]): SimulationData = {
     time(log(s"<< createSimDataFromBackup[${postSelection.size()}]")) {
       val n = postSelection.size()
       val simData = new SimulationData(n)
-      postSelection.each[html.Element] { (node: html.Element, _: Post, i: Int) =>
+      postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
         if(node.asInstanceOf[js.Dynamic].__databackup__.asInstanceOf[js.UndefOr[Coordinates]] != js.undefined) {
           val coordinates = node.asInstanceOf[js.Dynamic].__databackup__.asInstanceOf[Coordinates]
           simData.x(i) = coordinates.x
@@ -553,9 +553,9 @@ object ForceSimulation {
     // pushOutOfWrongEulerSet(simData,staticData)
   }
 
-  def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Post]): Unit = {
+  def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Node]): Unit = {
     postSelection
-      .style("transform", { (_: Post, i: Int) =>
+      .style("transform", { (_: Node, i: Int) =>
         val x = simData.x(i) + staticData.centerOffsetX(i)
         val y = simData.y(i) + staticData.centerOffsetY(i)
         s"translate(${x}px,${y}px)"

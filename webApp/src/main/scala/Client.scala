@@ -8,7 +8,6 @@ import chameleon.ext.boopickle._
 import wust.api._
 import wust.ids._
 import wust.sdk._
-import wust.graph.User
 import wust.util.RichFuture
 import outwatch.Handler
 import wust.webApp.outwatchHelpers._

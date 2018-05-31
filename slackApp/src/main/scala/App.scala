@@ -19,7 +19,7 @@ import monix.reactive.Observable
 
 object Constants {
   //TODO
-  val slackId = PostId("wust-slack")
+  val slackId = NodeId("wust-slack")
 }
 
 case class ExchangeMessage(content: String)
@@ -27,17 +27,18 @@ case class ExchangeMessage(content: String)
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
 
-  def push(msg: ExchangeMessage, author: UserId): Result[Post]
+  def push(msg: ExchangeMessage, author: UserId): Result[Node]
 }
 
 class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Post]] = {
+  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Node]] = {
     println(s"new message: msg")
-    val post = Post(PostContent.Text(msg.content), author)
-    val connection = Connection(post.id, ConnectionContent.Parent, Constants.slackId)
+    // TODO: author
+    val post = Node.Content(NodeData.PlainText(msg.content))
+    val connection = Edge.Parent(post.id, Constants.slackId)
 
-    val changes = List(GraphChanges(addPosts = Set(post), addConnections = Set(connection)))
+    val changes = List(GraphChanges(addNodes = Set(post), addEdges = Set(connection)))
     client.api.changeGraph(changes).map { success =>
       if (success) Right(post)
       else Left("Failed to create post")
@@ -48,7 +49,7 @@ class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends Me
 object WustReceiver {
   type Result[T] = Either[String, T]
 
-  val wustUser = UserId("wust-slack")
+  val wustUser = ("wust-slack").asInstanceOf[UserId]
 
   def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -64,8 +65,8 @@ object WustReceiver {
     graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
       println(s"Got events in Slack: $events")
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
-      val posts = changes.flatMap(_.addPosts)
-      posts.map(p => ExchangeMessage(p.content.str)).foreach { msg =>
+      val posts = changes.flatMap(_.addNodes)
+      posts.map(p => ExchangeMessage(p.data.str)).foreach { msg =>
         slack.send(msg).foreach { success =>
           println(s"Send message success: $success")
         }
@@ -77,7 +78,8 @@ object WustReceiver {
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password)
       if loggedIn
-      changed <- client.api.changeGraph(List(GraphChanges(addPosts = Set(Post(Constants.slackId, PostContent.Text("wust-slack"), wustUser)))))
+      // TODO: author
+      changed <- client.api.changeGraph(List(GraphChanges(addNodes = Set(Node.Content(Constants.slackId, NodeData.PlainText("wust-slack"))))))
       if changed
       graph <- client.api.getGraph(Page.empty)
     } yield Right(new WustReceiver(client))

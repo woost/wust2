@@ -15,7 +15,7 @@ import wust.ids._
 import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
-import wust.sdk.{ChangesHistory, PostColor, SyncMode}
+import wust.sdk.{ChangesHistory, NodeColor, SyncMode}
 
 object Sidebar {
   import MainViewParts._
@@ -171,7 +171,7 @@ object Sidebar {
             paddingRight := "5px",
             //TODO: inner state.page obs again
             channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
-            p.content.str,
+            p.data.str,
             onChannelClick(ChannelAction.Post(p.id))(state),
             title := p.id
           )
@@ -211,25 +211,25 @@ object Sidebar {
     )
   }
 
-  def channelIcon(state: GlobalState, post:Post, selected:Rx[Boolean], size:Int)(implicit ctx:Ctx.Owner): VNode = {
+  def channelIcon(state: GlobalState, post:Node, selected:Rx[Boolean], size:Int)(implicit ctx:Ctx.Owner): VNode = {
     div(
       margin := "0",
       width := s"${size}px",
       height := s"${size}px",
-      title := post.content.str,
+      title := post.data.str,
       cursor.pointer,
-      backgroundColor := PageStyle.Color.baseBg.copy(h = PostColor.genericBaseHue(post.id)).toHex, //TODO: make different post color tones better accessible
+      backgroundColor := PageStyle.Color.baseBg.copy(h = NodeColor.genericBaseHue(post.id)).toHex, //TODO: make different post color tones better accessible
       //TODO: https://github.com/OutWatch/outwatch/issues/187
       opacity <-- selected.map(if(_) 1.0 else 0.75),
       padding <-- selected.map(if(_) "2px" else "4px"),
-      border <-- selected.map(if(_) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = PostColor.genericBaseHue(post.id)).toHex}" else "none"),
+      border <-- selected.map(if(_) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = NodeColor.genericBaseHue(post.id)).toHex}" else "none"),
       Avatar.post(post.id)
     )
   }
 
   sealed trait ChannelAction extends Any
   object ChannelAction {
-    case class Post(id: PostId) extends AnyVal with ChannelAction
+    case class Post(id: NodeId) extends AnyVal with ChannelAction
     case class Page(mode: PageMode) extends AnyVal with ChannelAction
   }
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) = onClick.map { e =>

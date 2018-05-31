@@ -20,13 +20,13 @@
 //   val jwt = new JWT("secret", 1 hours)
 
 //   "getPost" in mockDb { db =>
-//     val postId = "goink"
-//     db.post.get(postId) returnsFuture Option(Data.Post(postId, "banga", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11)))
-//     onApi(State.initial, jwt, db)(_.getPost(postId)).map {
+//     val nodeId = "goink"
+//     db.post.get(nodeId) returnsFuture Option(Data.Post(nodeId, "banga", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11)))
+//     onApi(State.initial, jwt, db)(_.getPost(nodeId)).map {
 //       case (state, events, result) =>
 //         state mustEqual State.initial
 //         events must contain theSameElementsAs List()
-//         result mustEqual Option(Post(postId, "banga", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11)))
+//         result mustEqual Option(Post(nodeId, "banga", 0, LocalDateTime.of(2018,11,11,11,11), LocalDateTime.of(2018,11,11,11,11)))
 //     }
 //   }
 

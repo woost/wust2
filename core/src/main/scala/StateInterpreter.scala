@@ -31,10 +31,10 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   //  import membership._
 
   //  def currentUserInvolved = state.auth.user.id == userId
-  //  def ownGroupInvolved = state.graph.postsById.isDefinedAt(postId)
+  //  def ownGroupInvolved = state.graph.postsById.isDefinedAt(nodeId)
   //  if (currentUserInvolved) {
   //    // query all other members of groupId
-  //    val postFut = db.post.get(postId)
+  //    val postFut = db.post.get(nodeId)
   //    for {
   //      post <- postFut
   //    } yield for {

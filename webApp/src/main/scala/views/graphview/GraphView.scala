@@ -53,19 +53,19 @@ object GraphView {
           PostCreationMenu(state, menu, Var(forceSimulation.transform))
         }),
 
-        forceSimulation.selectedPostId.map(_.map { case (pos, id) =>
-          SelectedPostMenu(pos, id, state, forceSimulation.selectedPostId, Var(forceSimulation.transform))
+        forceSimulation.selectedNodeId.map(_.map { case (pos, id) =>
+          SelectedPostMenu(pos, id, state, forceSimulation.selectedNodeId, Var(forceSimulation.transform))
         })
       )
     )
   }
 
-  def onDrop(state: GlobalState)(dragging:PostId, target:PostId): Unit = {
+  def onDrop(state: GlobalState)(dragging:NodeId, target:NodeId): Unit = {
     val graph = state.displayGraphWithoutParents.now.graph
     state.eventProcessor.changes.onNext(GraphChanges.moveInto(graph, dragging, target))
   }
 
-  def onDropWithCtrl(state: GlobalState)(dragging:PostId, target:PostId): Unit = {
+  def onDropWithCtrl(state: GlobalState)(dragging:NodeId, target:NodeId): Unit = {
     val graph = state.displayGraphWithoutParents.now.graph
     state.eventProcessor.changes.onNext(GraphChanges.tagWith(graph, dragging, target))
   }

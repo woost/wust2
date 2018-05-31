@@ -7,69 +7,78 @@ import wust.ids._
 import scala.collection.mutable
 
 object Data {
-  def epochMilliToLocalDateTime(t:EpochMilli):LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(t),ZoneOffset.UTC)
-  def localDateTimeToEpochMilli(t:LocalDateTime):EpochMilli = EpochMilli(t.toInstant(ZoneOffset.UTC).toEpochMilli)
-
   val DEFAULT = 0L
 
-  //TODO: tagged types for PostId -> ChannelPostId, UserPostId
-  case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int, channelPostId: PostId, userPostId: PostId)
-  case class Post(id: PostId, content: PostContent, deleted: LocalDateTime, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
-  case class Connection(sourceId: PostId, content: ConnectionContent, targetId: PostId)
+  case class Node(
+                   id: NodeId,
+                   data: NodeData,
+                   deleted: DeletedDate,
+                   joinDate: JoinDate,
+                   joinLevel:AccessLevel)
+
+  case class User(
+                   id: UserId,
+                   data: NodeData.User,
+                   deleted: DeletedDate,
+                   joinDate: JoinDate,
+                   joinLevel:AccessLevel)
+
+  case class SimpleUser(
+                   id: UserId,
+                   data: NodeData.User)
+
+  case class Edge(
+                   sourceId: NodeId,
+                   data: EdgeData,
+                   targetId: NodeId)
+
+  case class MemberEdge(
+                   sourceId: UserId,
+                   data: EdgeData.Member,
+                   targetId: NodeId)
 
   case class Password(id: UserId, digest: Array[Byte])
-  case class Membership(userId: UserId, postId: PostId, level:AccessLevel)
+  case class WebPushSubscription(id: Long, userId: UserId, endpointUrl: String, p256dh: String, auth: String) //TODO: better names. What is pd256dh?
 
-  case class WebPushSubscription(id: Long, userId: UserId, endpointUrl: String, p256dh: String, auth: String)
   object WebPushSubscription {
-    def apply(userId: UserId, endpointUrl: String, p256dh: String, auth: String): WebPushSubscription = WebPushSubscription(DEFAULT, userId, endpointUrl, p256dh, auth)
-  }
-
-  object Post {
-    def apply(
-      id:      PostId,
-      content: PostContent,
-      author:  UserId
-    ) = {
-      val currTime = LocalDateTime.now()
-      new Post(
-        id = id,
-        content = content,
-        deleted = epochMilliToLocalDateTime(DeletedDate.NotDeleted.timestamp),
-        author = author,
-        created = currTime,
-        modified = currTime,
-        joinDate = epochMilliToLocalDateTime(JoinDate.Never.timestamp),
-        joinLevel = AccessLevel.ReadWrite
-      )
+    def apply(userId: UserId, endpointUrl: String, p256dh: String, auth: String): WebPushSubscription = {
+      WebPushSubscription(DEFAULT, userId, endpointUrl, p256dh, auth)
     }
   }
 
-  // adjacency list which comes out of postgres stored procedure graph_page(parents, children)
-  case class GraphRow(postId: PostId, content: PostContent, deleted: LocalDateTime, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, targetIds: List[PostId], connectionContents: List[ConnectionContent]) {
-    require(targetIds.size == connectionContents.size, "targetIds and connectionContents need to have same arity")
+  // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
+  case class GraphRow(
+                       nodeId: NodeId,
+                       data: NodeData,
+                       deleted: DeletedDate,
+                       joinDate: JoinDate,
+                       joinLevel:AccessLevel,
+                       targetIds: List[NodeId],
+                       edgeData: List[EdgeData]
+  ) {
+    require(targetIds.size == edgeData.size, "targetIds and connectionData need to have same arity")
   }
-  case class Graph(posts: Seq[Post], connections:Seq[Connection])
+  case class Graph(posts: Seq[Node], connections:Seq[Edge])
   object Graph {
     def from(rowsList:List[GraphRow]):Graph = {
       val rows = rowsList.toArray
-      val posts = mutable.ArrayBuffer.empty[Post]
-      val connections = mutable.ArrayBuffer.empty[Connection]
+      val posts = mutable.ArrayBuffer.empty[Node]
+      val connections = mutable.ArrayBuffer.empty[Edge]
       var i = 0
       var j = 0
       while( i < rows.length ) {
         val row = rows(i)
         val targetIds = row.targetIds
-        val post = Post(row.postId, row.content, row.deleted, row.author, row.created, row.modified, row.joinDate, row.joinLevel)
+        val post = Node(row.nodeId, row.data, row.deleted, row.joinDate, row.joinLevel)
 
         posts += post
 
         j = 0
         while(j < row.targetIds.length) {
-          val connectionContent = row.connectionContents(j)
+          val connectionData = row.edgeData(j)
           val targetId = targetIds(j)
 
-          connections += Connection(post.id, connectionContent, targetId)
+          connections += Edge(post.id, connectionData, targetId)
           j += 1
         }
 

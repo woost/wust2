@@ -10,7 +10,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
-import wust.sdk.PostColor._
+import wust.sdk.NodeColor._
 import wust.webApp.views.View
 import wust.webApp.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
@@ -26,7 +26,7 @@ import wust.webApp.views.Placeholders
 
 object PostCreationMenu {
   def apply(state: GlobalState, pos: Vec2, transformRx: Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
-//    import graphState.rxPostIdToSimPost
+//    import graphState.rxNodeIdToSimPost
 
     val transformStyle = transformRx.map { t =>
       val xOffset = -300 / 2
@@ -40,11 +40,11 @@ object PostCreationMenu {
     var ySimPostOffset: Double = 50
     inputHandler.foreach{ content =>
       val author = state.user.now
-      val changes = GraphChanges.addPost(PostContent.Markdown(content), author.id)
+      val changes = GraphChanges.addNode(NodeData.Markdown(content))
       state.eventProcessor.enriched.changes.onNext(changes)
 
       // TODO: move created post below menu (not working yet)
-//      val simPostOpt = rxPostIdToSimPost.now.get(newPost.id)
+//      val simPostOpt = rxNodeIdToSimPost.now.get(newPost.id)
 //      simPostOpt.foreach { simPost =>
 //        simPost.fx = m.pos.x
 //        simPost.fy = m.pos.y + ySimPostOffset / transformRx.now.k + simPost.size.height / 2

@@ -23,8 +23,8 @@ trait DbMocks extends SpecsLikeMockito {
   def mockedDb = {
     val db = mock[Db]
     db.user returns mock[db.user.type]
-    db.post returns mock[db.post.type]
-    db.connection returns mock[db.connection.type]
+    db.node returns mock[db.node.type]
+    db.edge returns mock[db.edge.type]
     db.graph returns mock[db.graph.type]
     db
   }

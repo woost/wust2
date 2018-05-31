@@ -75,10 +75,10 @@ digraph woost {
     viewConfig -> selectedGroupId [dir="both"]
     rawGraph -> selectedGroupId
 
-    collapsedPostIds [style=filled,fillcolor="#AAFFAA"]
+    collapsedNodeIds [style=filled,fillcolor="#AAFFAA"]
 
     currentView [style=filled,fillcolor="#AAFFAA"]
-    collapsedPostIds -> currentView
+    collapsedNodeIds -> currentView
 
     displayGraphWithoutParents
     viewConfig -> displayGraphWithoutParents
@@ -96,6 +96,6 @@ digraph woost {
 
     displayGraphWithoutParents -> chronologicalPostsAscending
 
-    focusedPostId [style=filled,fillcolor="#AAFFAA"]
-    displayGraphWithoutParents -> focusedPostId
+    focusedNodeId [style=filled,fillcolor="#AAFFAA"]
+    displayGraphWithoutParents -> focusedNodeId
 }

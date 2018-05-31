@@ -5,7 +5,7 @@ import colorado._
 import wust.graph.Graph
 import wust.ids._
 
-object PostColor {
+object NodeColor {
   implicit def ColorToString(c:Color) = c.toHex
 
   val postDefaultColor = RGB("#f8f8f8")
@@ -16,10 +16,10 @@ object PostColor {
   }
 
 
-  @inline def baseHue(id: PostId):Double = genericBaseHue(id)
-  def baseColor(id: PostId) = HCL(baseHue(id), 50, 75)
-  def baseColorDark(id: PostId) = HCL(baseHue(id), 65, 60)
-  def baseColorMixedWithDefault(id: PostId) = mixColors(HCL(baseHue(id), 50, 75), postDefaultColor)
+  @inline def baseHue(id: NodeId):Double = genericBaseHue(id)
+  def baseColor(id: NodeId) = HCL(baseHue(id), 50, 75)
+  def baseColorDark(id: NodeId) = HCL(baseHue(id), 65, 60)
+  def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), postDefaultColor)
 
   def mixColors(a: Color, b: Color): LAB = {
     val aLab = a.lab
@@ -38,21 +38,21 @@ object PostColor {
     LAB(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
   }
 
-  def mixedDirectParentColors(graph: Graph, postId: PostId):Option[Color] = NonEmptyList.fromList(graph.parents(postId).map(baseColor).toList).map(mixColors)
+  def mixedDirectParentColors(graph: Graph, nodeId: NodeId):Option[Color] = NonEmptyList.fromList(graph.parents(nodeId).map(baseColor).toList).map(mixColors)
 
-  def computeColor(graph: Graph, postId: PostId): Color = {
-    if (graph.hasChildren(postId)) {
-      baseColor(postId)
+  def computeColor(graph: Graph, nodeId: NodeId): Color = {
+    if (graph.hasChildren(nodeId)) {
+      baseColor(nodeId)
     } else {
-      if (graph.hasParents(postId)) {
-        mixedDirectParentColors(graph, postId).fold(RGB("#FFFFFF").lab)(mixed => mixColors(mixed, postDefaultColor))
+      if (graph.hasParents(nodeId)) {
+        mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(mixed => mixColors(mixed, postDefaultColor))
       }
       else
         postDefaultColor
     }
   }
 
-  def computeTagColor(postId: PostId): Color = {
-    baseColorDark(postId)
+  def computeTagColor(nodeId: NodeId): Color = {
+    baseColorDark(nodeId)
   }
 }

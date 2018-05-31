@@ -3,7 +3,7 @@ package wust.webApp.parsers
 import cats.data.NonEmptyList
 import org.scalatest._
 import wust.graph.Page
-import wust.ids.PostId
+import wust.ids.NodeId
 import wust.webApp.views._
 import wust.webApp.views.graphview.GraphView
 
@@ -31,7 +31,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
       new TiledView(ViewOperator.Row, NonEmptyList[View](new GraphView, ChatView :: Nil)),
-      Page(Seq(PostId("abc"), PostId("def"))), None)
+      Page(Seq(NodeId("abc"), NodeId("def"))), None)
     cfg.page mustEqual expected.page
     cfg.view.key mustEqual expected.view.key
   }
@@ -42,7 +42,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
       new TiledView(ViewOperator.Column, NonEmptyList[View](new GraphView, ChatView :: Nil)),
-      Page(Seq(PostId("abc"), PostId("def"))), None)
+      Page(Seq(NodeId("abc"), NodeId("def"))), None)
     cfg.page mustEqual expected.page
     cfg.view.key mustEqual expected.view.key
   }
@@ -53,7 +53,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
       new TiledView(ViewOperator.Auto, NonEmptyList[View](new GraphView, ChatView :: Nil)),
-      Page(Seq(PostId("abc"), PostId("def"))), None)
+      Page(Seq(NodeId("abc"), NodeId("def"))), None)
     cfg.page mustEqual expected.page
     cfg.view.key mustEqual expected.view.key
   }
@@ -64,7 +64,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = ViewConfig.apply(
       new TiledView(ViewOperator.Optional, NonEmptyList[View](new GraphView, ChatView :: Nil)),
-      Page(Seq(PostId("abc"), PostId("def"))), None)
+      Page(Seq(NodeId("abc"), NodeId("def"))), None)
     cfg.page mustEqual expected.page
     cfg.view.key mustEqual expected.view.key
   }
@@ -98,21 +98,21 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "single page" in {
-    val orig = ViewConfig.apply(View.default, Page(Seq(PostId("a"), PostId("b")), Seq(PostId("x"), PostId("y"))), None)
+    val orig = ViewConfig.apply(View.default, Page(Seq(NodeId("a"), NodeId("b")), Seq(NodeId("x"), NodeId("y"))), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.key mustEqual orig.view.key
   }
 
   "view and page" in {
-    val orig = ViewConfig.apply(ChatView, Page(PostId("dietrich")), None)
+    val orig = ViewConfig.apply(ChatView, Page(NodeId("dietrich")), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.key mustEqual orig.view.key
   }
 
   "view and page and prev" in {
-    val orig = ViewConfig.apply(SignupView, Page(PostId("dietrich")), Some(ChatView))
+    val orig = ViewConfig.apply(SignupView, Page(NodeId("dietrich")), Some(ChatView))
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.key mustEqual orig.view.key

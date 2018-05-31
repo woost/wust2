@@ -34,7 +34,7 @@
 
 //    val columnsRx: Rx[Seq[(Post, Seq[Post])]] = Rx {
 //      val graph = state.displayGraphWithoutParents().graph
-//      val columns = graph.postIds.filter(!graph.hasParents(_)).map(graph.postsById(_))(breakOut)
+//      val columns = graph.nodeIds.filter(!graph.hasParents(_)).map(graph.postsById(_))(breakOut)
 //      columns.map{ column =>
 //        val items = graph.descendants(column.id).map(graph.postsById(_))(breakOut)
 //        (column, items)
@@ -89,8 +89,8 @@
 //                ondrop := {(e:DragEvent) => 
 //                  val data = e.dataTransfer.getData("text").split(" ")
 //                  println(data)
-//                  val sourceColumnId = PostId(data(0))
-//                  val itemId = PostId(data(1))
+//                  val sourceColumnId = NodeId(data(0))
+//                  val itemId = NodeId(data(1))
 //                  if(sourceColumnId != column.id) {
 //                    println(sourceColumnId + " -> " + itemId + " -> " + column.id)
 //                    persistence.addChanges(
