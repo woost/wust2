@@ -109,6 +109,10 @@ function self() {
         PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
         # postgres_command psql -h localhost -U $POSTGRES_USER ${@:2}
         ;;
+    pgcli)
+        export $env_postgres_secret $env_postgres_local
+        PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
+        ;;
     pgdump)
         postgres_command pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
