@@ -16,9 +16,10 @@ object DbConversions {
 
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription = WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
   implicit def forClient(post: Data.Post):Post = new Post(
-    post.id,
-    post.content, //TODO: what about failure? move to db.scala like connection?
-    post.author,
+    id = post.id,
+    content = post.content, //TODO: what about failure? move to db.scala like connection?
+    deleted = localDateTimeToEpochMilli(post.deleted),
+    author = post.author,
     created = localDateTimeToEpochMilli(post.created),
     modified = localDateTimeToEpochMilli(post.modified),
     joinDate = JoinDate.from(localDateTimeToEpochMilli(post.joinDate)),
@@ -36,17 +37,18 @@ object DbConversions {
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription = Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
   implicit def forDb(post: Post): Data.Post = Data.Post(
-    post.id,
-    post.content,
-    post.author,
+    id = post.id,
+    content = post.content,
+    deleted = epochMilliToLocalDateTime(post.deleted),
+    author = post.author,
     created = epochMilliToLocalDateTime(post.created),
     modified = epochMilliToLocalDateTime(post.modified),
     joinDate = epochMilliToLocalDateTime(post.joinDate.timestamp),
     joinLevel = post.joinLevel
   )
   implicit def forDb(user: User.Persisted): Data.User = user match {
-    case User.Real(id, name, revision, channelPostId, userPostId) => Data.User(id, name, isImplicit = false, revision = revision, channelPostId = channelPostId, userPostId = userPostId)
-    case User.Implicit(id, name, revision, channelPostId, userPostId) => Data.User(id, name, isImplicit = true, revision = revision, channelPostId = channelPostId, userPostId = userPostId)
+    case User.Real(id, name, revision, channelPostId, userPostId) => Data.User(id = id, name = name, isImplicit = false, revision = revision, channelPostId = channelPostId, userPostId = userPostId)
+    case User.Implicit(id, name, revision, channelPostId, userPostId) => Data.User(id = id, name = name, isImplicit = true, revision = revision, channelPostId = channelPostId, userPostId = userPostId)
   }
   implicit def forDb(c: Connection): Data.Connection = Data.Connection(
     sourceId = c.sourceId,

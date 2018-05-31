@@ -15,6 +15,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.PostContentParser
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
+import wust.util._
 
 object ChatView extends View {
   override val key = "chat"
@@ -150,6 +151,7 @@ object ChatView extends View {
     val postTags: Seq[Post] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
 
     val isMine = currentUser.id == post.author
+    val isDeleted = post.deleted < EpochMilli.now
 
     val content = showPostContent(post.content)(paddingRight := "10px")
 
@@ -165,10 +167,12 @@ object ChatView extends View {
           display.flex,
           alignItems.center,
           content,
-          postLink(state, post),
-          deleteButton(state, post)
+          isDeleted.ifFalseOption(postLink(state, post)),
+          isDeleted.ifFalseOption(deleteButton(state, post))
         ),
         tags,
+
+        isDeleted.ifTrueOption(opacity := 0.5),
 
         borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
         float := (if (isMine) "right" else "left"),

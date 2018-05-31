@@ -12,8 +12,9 @@ object Data {
 
   val DEFAULT = 0L
 
+  //TODO: tagged types for PostId -> ChannelPostId, UserPostId
   case class User(id: UserId, name: String, isImplicit: Boolean, revision: Int, channelPostId: PostId, userPostId: PostId)
-  case class Post(id: PostId, content: PostContent, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel: AccessLevel)
+  case class Post(id: PostId, content: PostContent, deleted: LocalDateTime, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
   case class Connection(sourceId: PostId, content: ConnectionContent, targetId: PostId)
 
   case class Password(id: UserId, digest: Array[Byte])
@@ -34,6 +35,7 @@ object Data {
       new Post(
         id = id,
         content = content,
+        deleted = epochMilliToLocalDateTime(DeletedDate.NotDeleted.timestamp),
         author = author,
         created = currTime,
         modified = currTime,
@@ -44,7 +46,7 @@ object Data {
   }
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children)
-  case class GraphRow(postId: PostId, content: PostContent, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, targetIds: List[PostId], connectionContents: List[ConnectionContent]) {
+  case class GraphRow(postId: PostId, content: PostContent, deleted: LocalDateTime, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel, targetIds: List[PostId], connectionContents: List[ConnectionContent]) {
     require(targetIds.size == connectionContents.size, "targetIds and connectionContents need to have same arity")
   }
   case class Graph(posts: Seq[Post], connections:Seq[Connection])
@@ -58,7 +60,7 @@ object Data {
       while( i < rows.length ) {
         val row = rows(i)
         val targetIds = row.targetIds
-        val post = Post(row.postId, row.content, row.author, row.created, row.modified, row.joinDate, row.joinLevel)
+        val post = Post(row.postId, row.content, row.deleted, row.author, row.created, row.modified, row.joinDate, row.joinLevel)
 
         posts += post
 

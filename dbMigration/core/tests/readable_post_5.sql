@@ -5,17 +5,18 @@ create temporary table visited (id varchar(36) NOT NULL) on commit drop;
 create unique index on visited (id);
 
 INSERT INTO post (id, content, author, created, modified) VALUES ('bla', '{}'::jsonb, 1, NOW(), NOW());
-COPY "user" (id, name, channelpostid) FROM stdin;
-U1	U1	bla
+INSERT INTO post (id, content, author, created, modified) VALUES ('upid', '{}'::jsonb, 1, NOW(), NOW());
+COPY "user" (id, name, channelpostid, userpostid) FROM stdin;
+U1	U1	bla	upid
 \.
 
-COPY rawpost (id, content, isdeleted, author) FROM stdin;
-1	{}	f	U1
-2	{}	f	U1
+COPY post (id, content, deleted, author) FROM stdin;
+1	{}	'294276-01-01 00:00:00.000'	U1
+2	{}	'294276-01-01 00:00:00.000'	U1
 \.
 
-COPY rawconnection (sourceid, targetid, label) FROM stdin;
-2	1	2
+COPY connection (sourceid, targetid, content) FROM stdin;
+2	1	{"type": "Parent" }
 \.
 
 COPY membership (userid, postid) FROM stdin;

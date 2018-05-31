@@ -26,21 +26,22 @@ object User {
 }
 
 //TODO: rename Post -> Item?
-final case class Post(id: PostId, content: PostContent, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel)
+//TODO: Tagged Types for EpochMilli -> Deleted, Modified, JoinDate, ...
+final case class Post(id: PostId, content: PostContent, deleted: EpochMilli, author: UserId, created: EpochMilli, modified: EpochMilli, joinDate: JoinDate, joinLevel: AccessLevel)
 //TODO: get rid of timestamp created/modified and author. should be relations.
 object Post {
   def apply(id: PostId, content: PostContent, author: UserId, created: EpochMilli, modified: EpochMilli): Post = {
-    new Post(id, content, author, created, modified, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(id, content, DeletedDate.NotDeleted.timestamp, author, created, modified, JoinDate.Never, AccessLevel.ReadWrite)
   }
   def apply(id: PostId, content: PostContent, author: UserId, time: EpochMilli = EpochMilli.now): Post = {
-    new Post(id, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(id, content, DeletedDate.NotDeleted.timestamp, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
   }
   def apply(content: PostContent, author: UserId, time: EpochMilli): Post = {
-    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(PostId.fresh, content, DeletedDate.NotDeleted.timestamp, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
   }
   def apply(content: PostContent, author: UserId): Post = {
     val time = EpochMilli.now
-    new Post(PostId.fresh, content, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
+    new Post(PostId.fresh, content, DeletedDate.NotDeleted.timestamp, author, time, time, JoinDate.Never, AccessLevel.ReadWrite)
   }
 }
 
@@ -75,7 +76,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val size: Int = postsById.keys.size
   lazy val length: Int = size
 
-  private val connectionsByTypeF: (ConnectionContent.Type) => Set[Connection] = connectionsByType.withDefaultValue(Set.empty)
+  private val connectionsByTypeF: ConnectionContent.Type => Set[Connection] = connectionsByType.withDefaultValue(Set.empty)
 
   lazy val chronologicalPostsAscending: IndexedSeq[Post] = posts.toIndexedSeq.sortBy(p => p.created : EpochMilli.Raw)
 
@@ -150,9 +151,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   def fullDegree(postId: PostId): Int = connectionDegree(postId) + containmentDegree(postId)
 
   def involvedInContainmentCycle(id: PostId): Boolean = {
-    children.get(id)
-      .map(_.exists(child => depthFirstSearch(child, children).exists(_ == id)))
-      .getOrElse(false)
+    children.get(id).exists(_.exists(child => depthFirstSearch(child, children).exists(_ == id)))
   }
   // TODO: maybe fast involved-in-cycle-algorithm?
   // breadth-first-search starting at successors and another one starting at predecessors in different direction.
@@ -161,7 +160,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   // lazy val involvedInContainmentCycle:Set[PostId] = all posts involved in a cycle
 
   def descendants(postId: PostId) = _descendants(postId)
-  private val _descendants: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
+  private val _descendants: PostId => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
     postsById.isDefinedAt(postId) match {
       case true =>
         val cs = depthFirstSearch(postId, children)
@@ -172,7 +171,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   //TODO: rename to transitiveParentIds:Iterable[PostId]
   // Also provide ancestors:Iterable[Post]?
   def ancestors(postId: PostId) = _ancestors(postId)
-  private val _ancestors: (PostId) => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
+  private val _ancestors: PostId => Iterable[PostId] = Memo.mutableHashMapMemo { postId =>
     if (postsById.keySet.contains(postId)) {
       val p = depthFirstSearch(postId, parents)
       if (p.startInvolvedInCycle) p else p.drop(1)

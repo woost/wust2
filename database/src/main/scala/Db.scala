@@ -79,30 +79,23 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
   import Converters._
 
-  //TODO: get rid of raw post? bring isDeleted to frontend as timestamp to maybe hide long-deleted posts by default but show feshly deleted ones.
-  case class RawPost(id: PostId, content: PostContent, isDeleted: Boolean, author: UserId, created: LocalDateTime, modified: LocalDateTime, joinDate: LocalDateTime, joinLevel:AccessLevel)
-  object RawPost {
-    def apply(post: Post, isDeleted: Boolean): RawPost = RawPost(post.id, post.content, isDeleted, post.author, post.created, post.modified, post.joinDate, post.joinLevel)
-  }
-
   //TODO should actually rollback transactions when batch action had partial error
   object post {
     // post ids are unique, so the methods can assume that at max 1 row was touched in each operation
 
     //TODO need to check rights before we can do this
-    private val insert = quote { (post: RawPost) =>
-      val q = query[RawPost].insert(post)
+    private val insert = quote { (post: Post) =>
+      val q = query[Post].insert(post)
       // when adding a new post, we undelete it in case it was already there
       //TODO this approach hides conflicts on post ids!!
       //TODO what about title
       //TODO can undelete posts that i do not own
-      infix"$q ON CONFLICT(id) DO UPDATE SET isdeleted = false".as[Insert[RawPost]]
+      infix"$q ON CONFLICT(id) DO UPDATE SET deleted = ${lift(Data.epochMilliToLocalDateTime(DeletedDate.NotDeleted.timestamp))}".as[Insert[Post]]
     }
 
     def createPublic(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = createPublic(Set(post))
     def createPublic(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      val rawPosts = posts.map(RawPost(_, false))
-      ctx.run(liftQuery(rawPosts.toList).foreach(insert(_)))
+      ctx.run(liftQuery(posts.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
     }
 
@@ -125,19 +118,20 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def update(post: Post)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))
     def update(posts: Set[Post])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(post => query[RawPost].filter(_.id == post.id).update(_.content -> post.content)))
+      ctx.run(liftQuery(posts.toList).foreach(post => query[Post].filter(_.id == post.id).update(_.content -> post.content)))
         .map(_.forall(_ == 1))
     }
 
-    def delete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
-    def delete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(postIds.toList).foreach(postId => query[RawPost].filter(_.id == postId).update(_.isDeleted -> lift(true))))
+    def delete(postId: PostId, when: LocalDateTime)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId), when)
+    def delete(postIds: Set[PostId], when: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
+)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(postIds.toList).foreach(postId => query[Post].filter(_.id == postId).update(_.deleted -> lift(when))))
         .map(_.forall(_ == 1))
     }
 
-    def undelete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(postId))
+    def undelete(postId: PostId)(implicit ec: ExecutionContext): Future[Boolean] = undelete(Set(postId))
     def undelete(postIds: Set[PostId])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(postIds.toList).foreach(postId => query[RawPost].filter(_.id == postId).update(_.isDeleted -> lift(false))))
+      ctx.run(liftQuery(postIds.toList).foreach(postId => query[Post].filter(_.id == postId).update(_.deleted -> lift(Data.epochMilliToLocalDateTime(DeletedDate.NotDeleted.timestamp)))))
         .map(_.forall(_ == 1))
     }
 
@@ -177,7 +171,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
 
     def addMemberEvenIfLocked(postId: PostId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMemberEvenIfLocked(postId :: Nil, userId, accessLevel).map(_.nonEmpty)
     def addMemberEvenIfLocked(postIds: List[PostId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[PostId]] = {
-      val insertMembership = quote { (postId: PostId) =>
+      val insertMembership = quote { postId: PostId =>
         val q = query[Membership].insert(Membership(lift(userId), postId, lift(accessLevel)))
         infix"""
           $q ON CONFLICT(postid, userid) DO UPDATE set level =
@@ -190,7 +184,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
     }
     def setJoinDate(postId: PostId, joinDate: JoinDate)(implicit ec: ExecutionContext):Future[Boolean] = {
       val joinDateLocalDateTime = Data.epochMilliToLocalDateTime(joinDate.timestamp)
-      ctx.run(query[RawPost].filter(_.id == lift(postId)).update(_.joinDate -> lift(joinDateLocalDateTime))).map(_ == 1)
+      ctx.run(query[Post].filter(_.id == lift(postId)).update(_.joinDate -> lift(joinDateLocalDateTime))).map(_ == 1)
     }
   }
 
@@ -236,7 +230,7 @@ class Db(val ctx: PostgresAsyncContext[LowerCase]) {
   }
 
   object connection {
-    private val insert = quote { (c: Connection) =>
+    private val insert = quote { c: Connection =>
       val q = query[Connection].insert(c)
       // if there is unique conflict, we update the content which might contain new values
       infix"$q ON CONFLICT(sourceid,(content->>'type'),targetid) DO UPDATE SET content = EXCLUDED.content".as[Insert[Connection]]

@@ -1,7 +1,5 @@
 package wust.ids
 
-import wust.ids
-
 sealed trait JoinDate {
   def timestamp: EpochMilli
 }
@@ -23,9 +21,14 @@ object JoinDate {
   }
 }
 
+
 sealed trait AccessLevel
 object AccessLevel {
   case object Read extends AccessLevel
   case object ReadWrite extends AccessLevel
 }
+
+
+
+
 
