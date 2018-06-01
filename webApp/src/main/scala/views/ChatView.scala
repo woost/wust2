@@ -153,7 +153,7 @@ object ChatView extends View {
     val isMine = currentUser.id == post.author
     val isDeleted = post.deleted < EpochMilli.now
 
-    val content = showPostContent(post.content)(paddingRight := "10px")
+    val content = if (graph.children(post).isEmpty) showPostContent(post.content)(paddingRight := "10px") else postTag(state, post)
 
     val tags = div( // post tags
       postTags.map{ tag => postTag(state, tag) },

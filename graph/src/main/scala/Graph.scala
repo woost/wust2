@@ -110,6 +110,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
   lazy val predecessorsWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](connectionsWithoutParent, _.targetId, _.sourceId)
   lazy val neighboursWithoutParent: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](connectionsWithoutParent, _.targetId, _.sourceId)
 
+  def children(post:Post):Set[PostId] = children(post.id)
   lazy val children: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.targetId, _.sourceId)
   lazy val parents: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ directedAdjacencyList[PostId, Connection, PostId](containments, _.sourceId, _.targetId)
   lazy val containmentNeighbours: Map[PostId, Set[PostId]] = postDefaultNeighbourhood ++ adjacencyList[PostId, Connection](containments, _.targetId, _.sourceId)
