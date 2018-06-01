@@ -122,6 +122,10 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
 
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
+  val screenSize: Observable[ScreenSize] = events.window.onResize
+    .map(_ => ScreenSize.calculate())
+    .startWith(Seq(ScreenSize.calculate()))
+
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
     import changes.consistent._
 

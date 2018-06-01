@@ -6,7 +6,6 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
 import rx._
-import org.scalajs.dom
 
 class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends View {
   override val key = views.map(_.key).toList.mkString(operator.separator.toString)
@@ -35,15 +34,10 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
         appliedViews.map(_.value))
       case ViewOperator.Optional => div(
         cls := "viewgridAuto",
-        events.window.onResize
-          .map(_ => ()).startWith(Seq(()))
-          .map { _ =>
-            //TODO: min-width corresponds media query in style.css
-            if (dom.window.matchMedia("only screen and (min-width : 992px)").matches)
-              appliedViews.map(_.value)
-            else
-              appliedViews.head.value :: Nil
-          }
+        state.screenSize.map {
+          case ScreenSize.Desktop => appliedViews.map(_.value)
+          case ScreenSize.Mobile => appliedViews.head.value :: Nil
+        }
       )
     }
   }
