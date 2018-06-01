@@ -165,7 +165,7 @@ object AppServer {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import system.dispatcher
 
-    import io.circe.generic.extras.auto._
+    import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
     import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]

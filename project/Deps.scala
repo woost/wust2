@@ -21,7 +21,7 @@ object Deps {
     private val httpVersion = "10.1.1"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
-    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.20.1")
+    val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.21.0")
     val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.2.2")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
