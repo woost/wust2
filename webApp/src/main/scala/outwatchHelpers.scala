@@ -4,7 +4,8 @@ import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
 import monix.execution.Ack.Continue
-import monix.execution.{ExecutionModel, Cancelable, Scheduler}
+import monix.execution.ExecutionModel.SynchronousExecution
+import monix.execution.{Cancelable, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.document
@@ -24,8 +25,8 @@ import scala.concurrent.Future
 
 //TODO nicer name
 package object outwatchHelpers {
-  //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through?
-  implicit val monixScheduler: Scheduler = Scheduler(executionModel = ExecutionModel.Default)
+  //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
+  implicit val monixScheduler: Scheduler = Scheduler.trampoline(executionModel = SynchronousExecution)
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](rx:Rx[T])(implicit ctx: Ctx.Owner) {
