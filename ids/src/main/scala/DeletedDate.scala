@@ -1,11 +1,11 @@
 package wust.ids
 
-sealed trait DeletedDate {
+sealed trait DeletedDate extends Any {
   def timestamp: EpochMilli
 }
 
 object DeletedDate {
-  case class Deleted(timestamp: EpochMilli) extends DeletedDate
+  case class Deleted(timestamp: EpochMilli) extends AnyVal with DeletedDate
   case object NotDeleted extends DeletedDate {
     def timestamp:EpochMilli = EpochMilli(9224286393600000L) // new JodaDateTime(294276, 1, 1, 0, 0, 0, 0, JodaDateTimeZone.UTC).getMillis
   }

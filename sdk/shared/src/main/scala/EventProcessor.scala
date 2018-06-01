@@ -39,8 +39,8 @@ object SyncMode {
 case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], current: GraphChanges) {
   def canUndo = undos.nonEmpty
   def canRedo = redos.nonEmpty
-  def undo = undos match {
-    case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
+  def undo(graph: Graph) = undos match {
+    case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(graph.postsById)) //TODO
     case Nil => copy(current = GraphChanges.empty)
   }
   def redo = redos match {
@@ -49,9 +49,9 @@ case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], 
   }
   def push(changes: GraphChanges) = copy(undos = changes :: undos, redos = Nil, current = changes)
 
-  val apply: ChangesHistory.Action => ChangesHistory = {
+  def apply(graph: Graph): ChangesHistory.Action => ChangesHistory = {
     case ChangesHistory.NewChanges(changes) => push(changes)
-    case ChangesHistory.Undo => undo
+    case ChangesHistory.Undo => undo(graph)
     case ChangesHistory.Redo => redo
     case ChangesHistory.Clear => ChangesHistory.empty
   }
@@ -153,9 +153,11 @@ class EventProcessor private(
 
     allChanges.foreach { c => println("[Events] Got all local changes: " + c) }
 
-    val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action).scan(ChangesHistory.empty) {
-      case (history, action) => history apply action
-    }
+    val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
+      .withLatestFrom(rawGraph)((action, graph) => (action, graph))
+      .scan(ChangesHistory.empty) {
+        case (history, (action, rawGraph)) => history(rawGraph)(action)
+      }
     val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
 
     localChanges.foreach { c => println("[Events] Got local changes after history: " + c) }

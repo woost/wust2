@@ -31,7 +31,7 @@ case class GraphChanges(
   ).consistent
 
   def revert(deletedPostsById: collection.Map[PostId,Post]) = GraphChanges(
-    delPosts.flatMap(deletedPostsById.get _),
+    delPosts.flatMap(deletedPostsById.get _).map(_.copy(deleted = DeletedDate.NotDeleted.timestamp)), //TODO: backend just undeletes on id clash when inserting into table. any changes we do here are just for our local state
     delConnections,
     Set.empty, //TODO edit history
     addPosts.map(_.id),

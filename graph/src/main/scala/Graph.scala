@@ -222,7 +222,7 @@ final case class Graph( //TODO: costom pickler over lists instead of maps to sav
 
   def applyChanges(c: GraphChanges): Graph = {
     copy(
-      postsById = postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id) -- c.delPosts,
+      postsById = (postsById ++ c.addPosts.by(_.id) ++ c.updatePosts.by(_.id)).mapValues(p => if(c.delPosts(p.id)) p.copy(deleted = EpochMilli.now) else p),
       connectionsByType =
         connectionsByType.map { case (k, v) => k -> v.filterNot(c.delConnections) } ++
           c.addConnections.groupBy(_.content.tpe).collect { case (k, v) => k -> (v ++ connectionsByTypeF(k)).filterNot(c.delConnections) },
