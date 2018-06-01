@@ -160,8 +160,8 @@ object GlobalState {
 
     //TODO: better build up state from server events?
     // when the viewconfig or user changes, we get a new graph for the current page
-    viewConfig.toObservable.combineLatest(state.user.toObservable).switchMap { case (viewConfig, user) =>
-      val newGraph = Client.api.getGraph(viewConfig.page).map(ReplaceGraph(_))
+    page.toObservable.combineLatest(user.toObservable).switchMap { case (page, user) =>
+      val newGraph = Client.api.getGraph(page).map(ReplaceGraph(_))
       Observable.fromFuture(newGraph)
     }.subscribe(eventProcessor.unsafeManualEvents)
 
