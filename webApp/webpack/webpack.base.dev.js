@@ -28,7 +28,7 @@ const extraAssets = [ loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f)
 // html template generate index.html
 ////////////////////////////////////////
 module.exports.plugins.push(new HtmlPlugin({
-    title: 'Woost-DEV',
+    title: 'dev',
     template: Path.join(dirs.assets, 'index.template.html'),
     favicon: Path.join(dirs.assets, 'favicon.ico'),
     showErrors: true
