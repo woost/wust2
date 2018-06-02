@@ -213,8 +213,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
-      graph.children(1) mustEqual Set[PostId](11, 12)
-      graph.children(12) mustEqual Set.empty
+      graph.children(1:PostId) mustEqual Set[PostId](11, 12)
+      graph.children(12:PostId) mustEqual Set.empty
     }
 
     "parents of post" in {
