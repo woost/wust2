@@ -80,27 +80,30 @@ lazy val commonSettings = Seq(
 )
 
 lazy val commonWebSettings = Seq(
-    useYarn := true, // makes scalajs-bundler use yarn instead of npm
+  useYarn := true, // makes scalajs-bundler use yarn instead of npm
 
-    scalacOptions += "-P:scalajs:sjsDefinedByDefault",
+  scalacOptions += "-P:scalajs:sjsDefinedByDefault",
 
-    // To enable source map support,
-    // The whole project root folder is served via webpack devserver.
-    scalacOptions += {
+  scalacOptions ++= {
+    if(isDevRun.?.value.getOrElse(false)) {
+      // To enable dev source map support,
+      // The whole project root folder is served via webpack devserver.
       val local = s"${(baseDirectory in ThisBuild).value.toURI}"
       val remote = s"/"
-      s"-P:scalajs:mapSourceURI:$local->$remote"
-    },
+      Some(s"-P:scalajs:mapSourceURI:$local->$remote")
+    } else {
+      // enable production source-map support and link to correct commit hash on github:
+      git.gitHeadCommit.value.map { headCommit =>
+        val local = (baseDirectory in ThisBuild).value.toURI
+        val remote = s"https://raw.githubusercontent.com/woost/wust2/${headCommit}/"
+        s"-P:scalajs:mapSourceURI:$local->$remote"
+      }
+    }
+  }
+)
 
-    // enable production source-map support and link to correct commit hash on github:
-    /* scalacOptions in webpack in fullOptJS ++= git.gitHeadCommit.value.map { headCommit => */
-    /*   val local = (baseDirectory in ThisBuild).value.toURI */
-    /*   val remote = s"https://raw.githubusercontent.com/woost/wust2/${headCommit}/" */
-    /*   s"-P:scalajs:mapSourceURI:$local->$remote" */
-    /* } */
-  )
 
-
+lazy val isDevRun = TaskKey[Boolean]("isDevRun", "is full opt") //TODO derive from scalaJSStage value
 lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
 lazy val webSettings = Seq(
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
@@ -148,7 +151,7 @@ lazy val root = project.in(file("."))
     publish := {},
     publishLocal := {},
 
-    addCommandAlias("dev", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
+    addCommandAlias("dev", "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; webApp/fastOptJS::stopWebpackDevServer; core/reStop"),
     addCommandAlias("devwebwatch_", "~; core/reStop; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart"),
 
     addCommandAlias("devf", "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"),
