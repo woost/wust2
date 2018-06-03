@@ -8,7 +8,6 @@ const dirs = {}
 dirs.project = Path.resolve(__dirname, '../../../..');
 dirs.root = Path.resolve(dirs.project, '..');
 dirs.assets = Path.join(dirs.project, 'assets');
-dirs.projectRoot = Path.join(dirs.project, 'project-root'); // project-root has symlinks to projects in root folder
 
 // initialize module exports
 const webpack = require(Path.join(__dirname, 'scalajs.webpack.config'));

@@ -84,14 +84,22 @@ lazy val commonSettings = Seq(
 lazy val commonWebSettings = Seq(
     useYarn := true, // makes scalajs-bundler use yarn instead of npm
 
-    // To enable source map support, all sub-project folders are symlinked to webpack/project-root.
-    // This folder is served via webpack devserver.
+    scalacOptions += "-P:scalajs:sjsDefinedByDefault",
+
+    // To enable source map support,
+    // The whole project root folder is served via webpack devserver.
     scalacOptions += {
       val local = s"${(baseDirectory in ThisBuild).value.toURI}"
       val remote = s"/"
       s"-P:scalajs:mapSourceURI:$local->$remote"
     },
-    scalacOptions += "-P:scalajs:sjsDefinedByDefault"
+
+    // enable production source-map support and link to correct commit hash on github:
+    /* scalacOptions in webpack in fullOptJS ++= git.gitHeadCommit.value.map { headCommit => */
+    /*   val local = (baseDirectory in ThisBuild).value.toURI */
+    /*   val remote = s"https://raw.githubusercontent.com/woost/wust2/${headCommit}/" */
+    /*   s"-P:scalajs:mapSourceURI:$local->$remote" */
+    /* } */
   )
 
 
@@ -101,10 +109,9 @@ lazy val webSettings = Seq(
     scalaJSUseMainModuleInitializer := true,
 
     //TODO: scalaJSStage in Test := FullOptStage,
-    //TODO: scalaJSOptimizerOptions in fastOptJS ~= { _.withDisableOptimizer(true) }, // disable optimizations for better debugging experience
 
-    emitSourceMaps in fastOptJS := false, //TODO: scalaJSLinkerConfig instead of emitSOurceMaps, scalajsOptimizer,...
-    emitSourceMaps in fullOptJS := false,
+    scalaJSLinkerConfig in fastOptJS ~= { _.withOptimizer(false) }, // disable optimizations for better debugging experience
+    /* scalaJSLinkerConfig in fullOptJS ~= { _.withSourceMap(true) }, */
 
     npmDependencies in Compile ++=
       // Deps.npm.defaultPassiveEvents ::
@@ -128,7 +135,11 @@ lazy val webSettings = Seq(
     copyFastOptJS := {
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "dev"
-      val files = Seq(name.value.toLowerCase + "-fastopt-loader.js", name.value.toLowerCase + "-fastopt.js") map { p => (inDir / p, outDir / p) }
+      val files = Seq(
+        name.value.toLowerCase + "-fastopt-loader.js",
+        name.value.toLowerCase + "-fastopt.js",
+        name.value.toLowerCase + "-fastopt.js.map"
+      ) map { p => (inDir / p, outDir / p) }
       IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
     }
 )

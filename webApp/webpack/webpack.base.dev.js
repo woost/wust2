@@ -43,8 +43,8 @@ module.exports.devServer = {
     port: process.env.WUST_PORT,
     contentBase: [
         module.exports.output.path,
-        dirs.assets
-        //dirs.projectRoot, // serve project files for source-map access
+        dirs.assets,
+        dirs.root // serve complete project for providing source-maps, needs to be ignored for watching
     ],
     watchContentBase: true,
     open: false, // open page in browser
