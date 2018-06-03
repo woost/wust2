@@ -8,7 +8,7 @@ dockerfile in docker := {
     val assetFolder = webpackFolder / "dist"
 
     new Dockerfile {
-        from("nginx:1.13.9-alpine")
+        from(Deps.docker.nginx)
         copy(baseDirectory(_ / "nginx" / "default.conf").value, "/etc/nginx/conf.d/default.conf")
         copy(assetFolder, "/public")
     }

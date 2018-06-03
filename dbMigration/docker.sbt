@@ -4,7 +4,7 @@ def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
   dockerfile in docker := {
     val postgresHost = "postgres"
     new Dockerfile {
-      from("dhoer/flyway:4.2.0-alpine")
+      from(Deps.docker.flyway)
       run("adduser", "user", "-D", "-u", "1000")
       run("chown", "-R", "user:user", "/flyway")
       user("user")

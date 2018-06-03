@@ -5,7 +5,7 @@ dockerfile in docker := {
   val artifactPath = s"/app/${artifact.name}"
 
   new Dockerfile {
-    from("openjdk:8-jre-alpine")
+    from(Deps.docker.openjdk8)
     run("adduser", "user", "-D", "-u", "1000")
     user("user")
     copy(artifact, artifactPath)

@@ -8,7 +8,7 @@ dockerfile in docker := {
   val logsFolder = s"$appFolder/logs"
 
   new Dockerfile {
-    from("openjdk:8-jre-alpine")
+    from(Deps.docker.openjdk8)
     runRaw("apk update && apk add curl")
     run("adduser", "user", "-D", "-u", "1000")
     run("mkdir", "-p", appFolder)
