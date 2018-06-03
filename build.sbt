@@ -7,8 +7,6 @@ name := "wust"
 version in ThisBuild ~= (_.replace('+', '-'))
 dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnand/sbt-dynver/issues/52
 
-lazy val isCI = sys.env.get("CI").isDefined // set by travis, TODO: https://github.com/sbt/sbt/pull/3672
-
 import Def.{setting => dep}
 
 lazy val commonSettings = Seq(
