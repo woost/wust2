@@ -117,6 +117,6 @@ object Deps {
   object docker {
     val nginx = "nginx:1.13.12-alpine"
     val openjdk8 = "openjdk:8-jre-alpine"
-    val flyway = "boxfux/flyway:5.1.1-alpine"
+    val flyway = "boxfuse/flyway:5.1.1-alpine"
   }
 }
