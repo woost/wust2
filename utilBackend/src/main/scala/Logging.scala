@@ -9,13 +9,14 @@ object Logging {
   val shortThreadName = threadName.map(_.replaceFirst("server-akka.actor.default-dispatcher-", ""))
   val shortLevel = level.map(_.trim)
   val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)
-  val simpleFormatter = formatter"$fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
+  val simpleFormatter = formatter"$timeStamp $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
   val detailFormatter = formatter"$date $shortLevel [$shortThreadName] $fileBaseName - $message$newLine"
 
   def setup(): Unit = {
     Logger.root
       .clearHandlers()
       .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
-      .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily())
+      .withHandler(formatter = detailFormatter, minimumLevel = Some(Level.Info), writer = FileWriter.date())
+      .replace()
   }
 }

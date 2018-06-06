@@ -183,10 +183,12 @@ object ApiLogger {
   import scribe.writer._
 
   val client: Logger = {
-    val s = "client-log"
+    val loggerName = "client-log"
     val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-    Logger(s)
+    val writer = FileWriter.flat(prefix = loggerName, maxLogs = Some(3), maxBytes = Some(100 * 1024 * 1024))
+    Logger(loggerName)
       .clearHandlers()
-      .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = FileWriter.daily(prefix = s))
+      .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = writer)
+      .replace()
   }
 }

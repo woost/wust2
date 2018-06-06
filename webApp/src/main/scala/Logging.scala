@@ -12,5 +12,6 @@ object Logging {
     Logger.root
       .clearHandlers()
       .withHandler(formatter = logFormatter, minimumLevel = Some(Level.Debug), writer = ConsoleWriter)
+      .replace()
   }
 }
