@@ -107,6 +107,7 @@ object Deps {
       "clean-webpack-plugin" -> "0.1.19" ::
       "zopfli-webpack-plugin" -> "0.1.0" ::
       "brotli-webpack-plugin" -> "0.5.0" ::
+      "source-map-loader" -> "0.2.3" ::
       "node-sass" -> "4.7.2" ::
       "sass-loader" -> "6.0.7" ::
       "css-loader" -> "0.28.11" ::

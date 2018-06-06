@@ -45,17 +45,20 @@ module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 ////////////////////////////////////////
 // closure compiler
 ////////////////////////////////////////
-module.exports.plugins.push(new ClosureCompilerPlugin({
-  compiler: {
-    language_in: 'ECMASCRIPT6',
-    language_out: 'ECMASCRIPT5',
-    compilation_level: 'SIMPLE', //TODO: ADVANCED
-    process_common_js_modules: true,
-    jscomp_off: 'checkVars',
-    warning_level: 'QUIET'
-  },
-  concurrency: 3,
-}));
+module.exports.optimization = {
+    minimize: false // disable default uglifyJs
+};
+// module.exports.plugins.push(new ClosureCompilerPlugin({
+//   compiler: {
+//     language_in: 'ECMASCRIPT6',
+//     language_out: 'ECMASCRIPT5',
+//     compilation_level: 'SIMPLE', //TODO: ADVANCED
+//     process_common_js_modules: true,
+//     jscomp_off: 'checkVars',
+//     warning_level: 'QUIET'
+//   },
+//   concurrency: 3,
+// }));
 
 ////////////////////////////////////////
 // html template generate index.html
@@ -95,6 +98,13 @@ module.exports.module.rules.push({
     use: extractSass.extract({
         use: [{ loader: "css-loader" }],
     })
+});
+
+module.exports.devtool = "source-map"; // activate sourcemaps in production
+module.exports.module.rules.push({
+    test: /\.js$/,
+    use: ["source-map-loader"],
+    enforce: "pre"
 });
 
 ////////////////////////////////////////
