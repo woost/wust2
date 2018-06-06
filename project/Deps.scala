@@ -92,7 +92,13 @@ object Deps {
   //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
 
 
+  val webpackVersion = "4.11.1"
+  val webpackDevServerVersion = "3.1.4"
+
   object npm {
+    val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
+    val marked = "marked" -> "0.3.12"
+
     val webpackDependencies =
       "webpack-closure-compiler" -> "2.1.6" ::
       "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
@@ -110,8 +116,6 @@ object Deps {
       "copy-webpack-plugin" -> "4.5.1" ::
       "workbox-webpack-plugin" -> "3.2.0" ::
       Nil
-
-    val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
   }
 
   object docker {

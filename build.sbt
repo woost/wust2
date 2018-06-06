@@ -114,15 +114,10 @@ lazy val webSettings = Seq(
     scalaJSLinkerConfig in fastOptJS ~= { _.withOptimizer(false) }, // disable optimizations for better debugging experience
     /* scalaJSLinkerConfig in fullOptJS ~= { _.withSourceMap(true) }, */
 
-    npmDependencies in Compile ++=
-      // Deps.npm.defaultPassiveEvents ::
-      Nil,
-    npmDevDependencies in Compile ++=
-      Deps.npm.webpackDependencies :::
-      Nil,
+    npmDevDependencies in Compile ++= Deps.npm.webpackDependencies,
 
-    version in webpack := "4.8.1",
-    version in startWebpackDevServer := "3.1.4",
+    version in webpack := Deps.webpackVersion,
+    version in startWebpackDevServer := Deps.webpackDevServerVersion,
 
     webpackResources := (baseDirectory.value / "webpack" ** "*.*"),
     webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack" / "webpack.config.prod.js"),
@@ -308,7 +303,8 @@ lazy val webApp = project
       Nil,
 
     npmDependencies in Compile ++=
-      "marked" -> "0.3.12" ::
+      // Deps.npm.defaultPassiveEvents ::
+      Deps.npm.marked ::
         Nil
     )
 
