@@ -4,3 +4,8 @@ target/
 
 /.idea
 /.git
+
+/.metals
+/.metaserver
+/.ensime
+/.ensime_cache
