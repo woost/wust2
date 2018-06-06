@@ -54,6 +54,8 @@ TERM=xterm-256color ssh -tC -L 12345:localhost:${DEVPORT} -L ${DEVPORT}:localhos
         zsh -i;                                 \
     \\\"\""
 
-ssh ${REMOTEHOST} "rm -rf $REMOTETMP" # clean up
+
+echo "cleaning up..."
+ssh ${REMOTEHOST} "rm -rf $REMOTETMP"
 
 kill ${LSYNCDPID} # stop file sync
