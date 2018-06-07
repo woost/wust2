@@ -103,16 +103,19 @@ lazy val commonWebSettings = Seq(
 )
 
 
+val withSourceMaps:Boolean = sys.env.get("SOURCEMAPS").fold(false)(_ == "true")
 lazy val isDevRun = TaskKey[Boolean]("isDevRun", "is full opt") //TODO derive from scalaJSStage value
 lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
 lazy val webSettings = Seq(
     requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
     scalaJSUseMainModuleInitializer := true,
 
-    //TODO: scalaJSStage in Test := FullOptStage,
+    //TODO ?: scalaJSStage in Test := FullOptStage,
 
-    scalaJSLinkerConfig in fastOptJS ~= { _.withOptimizer(false) }, // disable optimizations for better debugging experience
-    /* scalaJSLinkerConfig in fullOptJS ~= { _.withSourceMap(true) }, */
+    scalaJSLinkerConfig in (Compile, fastOptJS) ~= { _.withSourceMap(withSourceMaps).withOptimizer(!withSourceMaps) }, // disable optimizations for better debugging experience
+    scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(withSourceMaps) },
+
+
 
     npmDevDependencies in Compile ++= Deps.npm.webpackDependencies,
 

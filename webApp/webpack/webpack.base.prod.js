@@ -57,7 +57,7 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
     // process_common_js_modules: true,
     // jscomp_off: 'checkVars',
     warning_level: 'DEFAULT',
-	create_source_map: true
+	create_source_map: (process.env.SOURCEMAPS == 'true')
   },
   concurrency: 3,
 }));
@@ -102,12 +102,15 @@ module.exports.module.rules.push({
     })
 });
 
-module.exports.devtool = "source-map"; // activate sourcemaps in production
-module.exports.module.rules.push({
-    test: /\.js$/,
-    use: ["source-map-loader"],
-    enforce: "pre"
-});
+if(process.env.SOURCEMAPS == 'true') {
+    module.exports.devtool = "source-map"; // activate sourcemaps in production
+
+    module.exports.module.rules.push({
+        test: /\.js$/,
+        use: ["source-map-loader"],
+        enforce: "pre"
+    });
+}
 
 ////////////////////////////////////////
 // sub resource integrity adds a hash to each loaded resource in the html
