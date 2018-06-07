@@ -118,7 +118,7 @@ module.exports.plugins.push(new SriPlugin({
 ////////////////////////////////////////
 // compression
 ////////////////////////////////////////
-var compressFiles = /\.(js|js\.map|css|html|svg)$/;
+var compressFiles = /\.(js|map|css|html|svg)$/;
 module.exports.plugins.push(new ZopfliPlugin({
   asset: "[path].gz[query]",
   algorithm: "zopfli",
