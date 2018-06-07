@@ -14,7 +14,7 @@ object Main {
 
     Logging.setup()
 
-    // if(!LinkingInfo.developmentMode)
+    if(!LinkingInfo.developmentMode)
       ServiceWorker.register()
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
