@@ -64,7 +64,7 @@ module.exports.devServer = {
         setupProxy({ subdomain: "github", port: process.env.WUST_GITHUB_PORT, pathRewrite: true }),
         setupProxy({ path: "apps/web", port: process.env.WUST_WEB_PORT, pathRewrite: true })
     ],
-    compress: (process.env.WUST_DEVSERVER_COMPRESS == 'true')
+    compress: (process.env.DEV_SERVER_COMPRESS == 'true')
 };
 // module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
 
