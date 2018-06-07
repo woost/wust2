@@ -45,20 +45,22 @@ module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 ////////////////////////////////////////
 // closure compiler
 ////////////////////////////////////////
+// https://github.com/google/closure-compiler-js#webpack
 module.exports.optimization = {
     minimize: false // disable default uglifyJs
 };
-// module.exports.plugins.push(new ClosureCompilerPlugin({
-//   compiler: {
-//     language_in: 'ECMASCRIPT6',
-//     language_out: 'ECMASCRIPT5',
-//     compilation_level: 'SIMPLE', //TODO: ADVANCED
-//     process_common_js_modules: true,
-//     jscomp_off: 'checkVars',
-//     warning_level: 'QUIET'
-//   },
-//   concurrency: 3,
-// }));
+module.exports.plugins.push(new ClosureCompilerPlugin({
+  compiler: {
+    language_in: 'ECMASCRIPT6',
+    language_out: 'ECMASCRIPT5',
+    compilation_level: 'SIMPLE', //TODO: ADVANCED
+    // process_common_js_modules: true,
+    // jscomp_off: 'checkVars',
+    warning_level: 'DEFAULT',
+	create_source_map: true
+  },
+  concurrency: 3,
+}));
 
 ////////////////////////////////////////
 // html template generate index.html

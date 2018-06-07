@@ -100,7 +100,7 @@ object Deps {
     val marked = "marked" -> "0.3.12"
 
     val webpackDependencies =
-      "webpack-closure-compiler" -> "2.1.6" ::
+      "webpack-closure-compiler" -> "2.1.6" :: // TODO: use https://github.com/google/closure-compiler-js#webpack instead (after https://github.com/google/closure-compiler-js/issues/24 is fixed)
       "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
       "html-webpack-plugin" -> "3.2.0" ::
       "html-webpack-include-assets-plugin" -> "1.0.4" ::
