@@ -3,7 +3,7 @@ package wust.webApp.parsers
 import wust.graph._
 import wust.ids._
 
-object PostDataParser {
+object NodeDataParser {
   import fastparse.all._
   import ParserElements._
 
@@ -31,9 +31,9 @@ object PostDataParser {
         GraphChanges.from(addConnections = tagPosts.map(Edge.Parent(updatedPost.id, _)), updatePosts = Set(updatedPost), addPosts = newTagPosts)
       }
 
-  def newPost(contextPosts: Seq[Node], author: UserId): P[GraphChanges] = taggedContent
+  def newNode(contextNodes: Seq[Node], author: UserId): P[GraphChanges] = taggedContent
     .map { case (data, tags) =>
-      val tagPostsEither = tags.map(tag => contextPosts.find(_.data.str == tag).toRight(Node.Content(NodeData.PlainText(tag))))
+      val tagPostsEither = tags.map(tag => contextNodes.find(_.data.str == tag).toRight(Node.Content(NodeData.PlainText(tag))))
       val newTagPosts = tagPostsEither.collect { case Left(p) => p }
       val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
       val newPost = Node.Content(data)

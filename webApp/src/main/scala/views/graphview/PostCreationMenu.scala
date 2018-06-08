@@ -66,7 +66,7 @@ object PostCreationMenu {
       div(
         textArea(
           valueWithEnter --> inputHandler,
-          Placeholders.newPost,
+          Placeholders.newNode,
           onInsert.asHtml --> sideEffect(_.focus()),
           style("resize") := "none", //TODO: outwatch resize?
           margin := "0px"

@@ -46,7 +46,7 @@ object ArticleView extends View {
                   cls := "focuslink",
                   onClick(Page(Seq(post.id))) --> graphSelection
                 ),
-                showPostData(post.data)
+                renderNodeData(post.data)
               )
             }
         }

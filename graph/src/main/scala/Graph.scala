@@ -98,7 +98,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       containments: collection.Set[Edge.Parent],
       children: collection.Map[NodeId, collection.Set[NodeId]],
       parents: collection.Map[NodeId, collection.Set[NodeId]],
-      authors: collection.Map[NodeId, List[Edge.Author]],
+      authorshipsByNodeId: collection.Map[NodeId, List[Edge.Author]],
       allUserIds: collection.Set[UserId], //TODO: List?
       allAuthorIds: collection.Set[UserId], //TODO: List?
       channelNodeIds: collection.Set[NodeId], //TODO: List?
@@ -120,7 +120,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       val children = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
       val parents = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
 
-      val authors = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
+      val authorshipsByNodeId = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
       val allAuthorIds = mutable.HashSet[UserId]()
       val allUserIds = mutable.HashSet[UserId]()
 
@@ -130,7 +130,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       // loop over edges once
       edges.foreach {
         case e@Edge.Author(authorId, _, nodeId) =>
-          authors(nodeId) ::= e
+          authorshipsByNodeId(nodeId) ::= e
           allAuthorIds += authorId
         case e@Edge.Parent(childId, parentId) =>
           children(parentId) += childId
@@ -165,10 +165,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
       val nodeCreated = mutable.HashMap[NodeId, EpochMilli]().withDefaultValue(EpochMilli.min)
       val nodeModified = mutable.HashMap[NodeId, EpochMilli]().withDefaultValue(EpochMilli.min)
-      authors.foreach {
+      authorshipsByNodeId.foreach {
         case (nodeId, authorEdges) =>
           val sortedAuthorEdges = authorEdges.sortBy(_.data.timestamp)
-          authors(nodeId) = sortedAuthorEdges
+          authorshipsByNodeId(nodeId) = sortedAuthorEdges
           nodeCreated(nodeId) = sortedAuthorEdges.headOption.fold(EpochMilli.min)(_.data.timestamp)
           nodeModified(nodeId) = sortedAuthorEdges.lastOption.fold(EpochMilli.min)(_.data.timestamp) //TODO: lastOption O(n)
       }
@@ -180,7 +180,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
         containments,
         children,
         parents,
-        authors,
+        authorshipsByNodeId,
         allAuthorIds,
         allUserIds,
         channelNodeIds,
@@ -197,7 +197,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def children(node:Node):collection.Set[NodeId] = children(node.id)
   def parents(node:Node):collection.Set[NodeId] = parents(node.id)
 
-  def authors(node: Node): List[Edge.Author] = authors(node.id)
+  val authorIds: NodeId => List[UserId] = Memo.mutableHashMapMemo{ nodeId => authorshipsByNodeId(nodeId).map(_.userId) }
+  def authorIds(node: Node): List[UserId] = authorIds(node.id)
+  val authors: NodeId => List[Node.User] = Memo.mutableHashMapMemo{ nodeId => authorshipsByNodeId(nodeId).map(a => nodesById(a.userId).asInstanceOf[Node.User]) }
+  def authors(node: Node): List[Node.User] = authors(node.id)
   def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
   def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
 

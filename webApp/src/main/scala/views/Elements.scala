@@ -14,7 +14,7 @@ import org.scalajs.dom.window
 import views.MediaViewer
 
 object Placeholders {
-  val newPost = placeholder := "Create new post. Press Enter to submit."
+  val newNode = placeholder := "Create new post. Press Enter to submit."
   val newTag = placeholder := "Create new tag. Press Enter to submit."
 }
 
@@ -32,7 +32,7 @@ object Rendered {
     case user: NodeData.User => s"User: ${user.name}"
   }
 
-  val showPostData: NodeData => VNode = {
+  val renderNodeData: NodeData => VNode = {
     case NodeData.Markdown(content) => mdHtml(content)
     case NodeData.PlainText(content)  => span(content)
     case c: NodeData.Link => MediaViewer.embed(c)

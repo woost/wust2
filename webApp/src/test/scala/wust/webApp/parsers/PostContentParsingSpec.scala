@@ -5,7 +5,7 @@ import wust.ids.NodeData
 
 class NodeDataParsingSpec extends FreeSpec with MustMatchers {
   "empty String" in {
-    val (content, tags) = PostDataParser.taggedContent.parse("").get.value
+    val (content, tags) = NodeDataParser.taggedContent.parse("").get.value
     val expected = NodeData.Markdown("")
     content mustEqual expected
     tags mustEqual Seq.empty
@@ -13,7 +13,7 @@ class NodeDataParsingSpec extends FreeSpec with MustMatchers {
 
   "media" in {
     val url = "http://haio.pai"
-    val (content, tags) = PostDataParser.taggedContent.parse(url).get.value
+    val (content, tags) = NodeDataParser.taggedContent.parse(url).get.value
     val expected = NodeData.Link(url)
     content mustEqual expected
     tags mustEqual Seq.empty
@@ -21,7 +21,7 @@ class NodeDataParsingSpec extends FreeSpec with MustMatchers {
 
   "content with tags" in {
     val text = "so ist das nunmal"
-    val (content, tags) = PostDataParser.taggedContent.parse(text + "#foo #bar").get.value
+    val (content, tags) = NodeDataParser.taggedContent.parse(text + "#foo #bar").get.value
     val expected = NodeData.Markdown(text)
     content mustEqual expected
     tags mustEqual Seq("foo", "bar")
@@ -29,7 +29,7 @@ class NodeDataParsingSpec extends FreeSpec with MustMatchers {
 
   "content with space-tags" in {
     val text = "so ist das nunmal"
-    val (content, tags) = PostDataParser.taggedContent.parse(text + """#foo #"hans dieter"""").get.value
+    val (content, tags) = NodeDataParser.taggedContent.parse(text + """#foo #"hans dieter"""").get.value
     val expected = NodeData.Markdown(text)
     content mustEqual expected
     tags mustEqual Seq("foo", "hans dieter")
@@ -37,7 +37,7 @@ class NodeDataParsingSpec extends FreeSpec with MustMatchers {
 
   "media with tags" in {
     val url = "http://haio.pai"
-    val (content, tags) = PostDataParser.taggedContent.parse(s"$url #foo").get.value
+    val (content, tags) = NodeDataParser.taggedContent.parse(s"$url #foo").get.value
     val expected = NodeData.Link(url)
     content mustEqual expected
     tags mustEqual Seq("foo")

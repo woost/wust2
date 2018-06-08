@@ -93,7 +93,7 @@ sealed trait RestructuringTask {
   }
 
   def stylePost(post: Node.Content): VNode = p(
-      showPostData(post.data),
+      renderNodeData(post.data),
       display := "inline-block",
       color.black,
       maxWidth := "80ch",
@@ -696,7 +696,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask
         postPreview.map {posts =>
           posts.last.map {post =>
             div(
-              showPostData(post.data),
+              renderNodeData(post.data),
               color.black,
               maxWidth := "60%",
               backgroundColor := "#eee",

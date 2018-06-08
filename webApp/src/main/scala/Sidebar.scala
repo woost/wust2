@@ -223,7 +223,7 @@ object Sidebar {
       opacity <-- selected.map(if(_) 1.0 else 0.75),
       padding <-- selected.map(if(_) "2px" else "4px"),
       border <-- selected.map(if(_) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = NodeColor.genericBaseHue(post.id)).toHex}" else "none"),
-      Avatar.post(post.id)
+      Avatar.node(post.id)
     )
   }
 

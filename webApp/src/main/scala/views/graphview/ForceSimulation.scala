@@ -453,7 +453,7 @@ object ForceSimulation {
           val postWidth = calcPostWidth(post)
           div(
             postWidth,
-            showPostData(post.data),
+            renderNodeData(post.data),
             cls := "graphpost",
             // pointerEvents.auto, // re-enable mouse events
             cursor.default

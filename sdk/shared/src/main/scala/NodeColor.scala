@@ -8,7 +8,7 @@ import wust.ids._
 object NodeColor {
   implicit def ColorToString(c:Color) = c.toHex
 
-  val postDefaultColor = RGB("#f8f8f8")
+  val nodeDefaultColor = RGB("#f8f8f8")
 
   def genericBaseHue(seed:Any):Double = {
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
@@ -19,7 +19,7 @@ object NodeColor {
   @inline def baseHue(id: NodeId):Double = genericBaseHue(id)
   def baseColor(id: NodeId) = HCL(baseHue(id), 50, 75)
   def baseColorDark(id: NodeId) = HCL(baseHue(id), 65, 60)
-  def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), postDefaultColor)
+  def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), nodeDefaultColor)
 
   def mixColors(a: Color, b: Color): LAB = {
     val aLab = a.lab
@@ -45,10 +45,10 @@ object NodeColor {
       baseColor(nodeId)
     } else {
       if (graph.hasParents(nodeId)) {
-        mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(mixed => mixColors(mixed, postDefaultColor))
+        mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(mixed => mixColors(mixed, nodeDefaultColor))
       }
       else
-        postDefaultColor
+        nodeDefaultColor
     }
   }
 
