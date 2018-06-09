@@ -221,8 +221,9 @@ function self() {
     migrate
 
     psql [options]
+    pgcli [options]
     pgdump
-    pgrestore file
+    pgrestore [file]
     pgclean
 
     test
