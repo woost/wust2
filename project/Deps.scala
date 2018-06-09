@@ -7,18 +7,18 @@ object Deps {
 
   // testing
   val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.5")
-  val specs2 = dep("org.specs2" %% "specs2-core" % "4.0.3")
-  val mockito = dep("org.mockito" % "mockito-core" % "2.15.0")
+  val specs2 = dep("org.specs2" %% "specs2-core" % "4.2.0")
+  val mockito = dep("org.mockito" % "mockito-core" % "2.18.3")
   val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.3.1")
 
   // core libraries
   val cats = new {
     val core = dep("org.typelevel" %%% "cats-core" % "1.1.0")
-    val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0-RC3")
+    val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0")
   }
   val akka = new {
-    private val version = "2.5.12"
-    private val httpVersion = "10.1.1"
+    private val version = "2.5.13"
+    private val httpVersion = "10.1.2"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.21.0")
@@ -74,16 +74,16 @@ object Deps {
   val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.16.0")
 
   // database
-  val quill = dep("io.getquill" %% "quill-async-postgres" % "2.4.2")
+  val quill = dep("io.getquill" %% "quill-async-postgres" % "2.5.4")
 
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
   val github4s = dep("io.github.GRBurst.github4s" %% "github4s" % "1d9681d") // master + comments + single issue
-  val graphQl = dep("org.sangria-graphql" %% "sangria" % "1.3.3")
-  val redis = dep("net.debasishg" %% "redisclient" % "3.5")
+  val graphQl = dep("org.sangria-graphql" %% "sangria" % "1.4.1")
+  val redis = dep("net.debasishg" %% "redisclient" % "3.7")
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
-  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.2")
+  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.3")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.1")
   val webPush = dep("nl.martijndwars" % "web-push" % "3.1.0")
 

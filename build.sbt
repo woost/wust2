@@ -20,7 +20,7 @@ lazy val commonSettings = Seq(
     ("jitpack" at "https://jitpack.io") ::
     Nil,
 
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6"),
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7"),
 
   libraryDependencies ++=
     Deps.scribe.value ::
