@@ -3,6 +3,7 @@ package wust.webApp
 import fontAwesome._
 import fontAwesome.freeSolid._
 import outwatch.ObserverSink
+import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -132,7 +133,8 @@ object MainViewParts {
     button(
       cls := "ui button",
       label,
-      onClick --> sideEffect{ _ =>
+      onClick --> sideEffect{ ev =>
+        ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
         val post = Post(PostContent.Text(newGroupTitle(state)), user.id)
         for {
