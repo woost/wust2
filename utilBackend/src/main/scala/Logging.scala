@@ -9,8 +9,8 @@ object Logging {
   val shortThreadName = threadName.map(_.replaceFirst("server-akka.actor.default-dispatcher-", ""))
   val shortLevel = level.map(_.trim)
   val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)
-  val simpleFormatter = formatter"$timeStamp $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
-  val detailFormatter = formatter"$date $shortLevel [$shortThreadName] $fileBaseName - $message$newLine"
+  val simpleFormatter = formatter"$time $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
+  val detailFormatter = formatter"$time $shortLevel [$shortThreadName] $fileBaseName - $message$newLine"
 
   def setup(): Unit = {
     Logger.root
