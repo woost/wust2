@@ -134,11 +134,12 @@ lazy val webSettings = Seq(
     copyFastOptJS := {
       val inDir = (crossTarget in (Compile, fastOptJS)).value
       val outDir = (crossTarget in (Compile, fastOptJS)).value / "dev"
-      val files = Seq(
+      val outputFiles = Seq(
         name.value.toLowerCase + "-fastopt-loader.js",
-        name.value.toLowerCase + "-fastopt.js",
-        name.value.toLowerCase + "-fastopt.js.map"
-      ) map { p => (inDir / p, outDir / p) }
+        name.value.toLowerCase + "-fastopt.js"
+      )
+      val sourceMapFiles = if(withSourceMaps) Seq(name.value.toLowerCase + "-fastopt.js.map") else Seq.empty
+      val files = (outputFiles ++ sourceMapFiles) map { p => (inDir / p, outDir / p) }
       IO.copy(files, overwrite = true, preserveLastModified = true, preserveExecutable = true)
     }
 )
