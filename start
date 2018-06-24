@@ -70,40 +70,6 @@ fi
 
 function self() {
     case "$1" in
-    migrateStudy) # TODO: Julius: remove
-        # Cleanup
-        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
-        echo -e "- ENV: \e[1m\e[32m$env\e[0m"
-        export $env
-        docker_compose core dev up -d
-        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-
-        # Migrate
-        sbt dbMigration/docker
-        docker_compose core dev run db-migration
-        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < taskStudyData/kalte-dusche-ordered_f1.sql
-
-        docker stop devcore_core_1
-        ;;
-    taskStudy) # TODO: Julius: remove
-        # Cleanup
-        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
-        echo -e "- ENV: \e[1m\e[32m$env\e[0m"
-        export $env
-        docker_compose core dev up -d
-        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-
-        # Migrate
-        sbt dbMigration/docker
-        docker_compose core dev run db-migration
-        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < taskStudyData/kalte-dusche.sql
-
-        # Start
-        echo "DO NOT FORGET TO PERSIST LOGS"
-        docker_compose core dev up -d db-migration
-        (firefox --new-window "http://localhost:12345/#chat") &
-        sbt_with_args devf
-        ;;
     psql)
         export $env_postgres_secret $env_postgres_local
         PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
@@ -213,8 +179,6 @@ function self() {
         cat <<EOF
     unknown option '$1', expected one of:
 
-    taskStudy
-
     sbt
     apps
     env
@@ -225,6 +189,8 @@ function self() {
     pgdump
     pgrestore [file]
     pgclean
+
+    prodlocal
 
     test
     test.postgres
