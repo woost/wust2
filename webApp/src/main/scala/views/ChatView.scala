@@ -23,8 +23,6 @@ object ChatView extends View {
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
 
-    state.displayGraphWithoutParents.foreach(dg => scribe.info(s"ChatView Graph: ${dg.graph}"))
-
     div(
       display.flex,
       flexDirection.column,
@@ -106,13 +104,13 @@ object ChatView extends View {
 
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
-    val graph = displayGraphWithoutParents.map(_.graph)
+    val graph = state.rawGraph
 
     div(
       padding := "20px",
 
       Rx{
-        val posts = graph().chronologicalPostsAscending
+        val posts = graph().withoutChannels.onlyAuthors.chronologicalPostsAscending
         if (posts.isEmpty) Seq(emptyMessage)
         else posts.map(chatMessage(state, _, graph(), user()))
       },

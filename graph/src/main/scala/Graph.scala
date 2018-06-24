@@ -97,12 +97,22 @@ final case class Graph( //TODO: store lists instead of maps for smaller encoding
   def authors(node: Node): Set[UserId] = authors(node.id)
   private lazy val postDefaultAuthors: Map[NodeId, Set[UserId]] = postDefaultNeighbourhood.asInstanceOf[Map[NodeId, Set[UserId]]]
   lazy val authors: Map[NodeId, Set[UserId]] = postDefaultAuthors ++ directedAdjacencyList[NodeId, Edge.Author, UserId](authorships, _.nodeId, _.userId)
+  lazy val allAuthorIds:Set[UserId] = authors.values.flatten.toSet
+  lazy val allUserIds:Set[UserId] = postsById.values.collect{case Node.User(id, _, _) => id}.toSet
   lazy val authorEdges: Map[NodeId, Set[Edge.Author]] = connectionDefaultNeighbourhood.asInstanceOf[Map[NodeId, Set[Edge.Author]]] ++ directedIncidenceList[NodeId, Edge.Author](authorships, _.nodeId)
 
   def nodeAge(node: Node): EpochMilli = nodeAge(node.id)
   lazy val nodeAge: Map[NodeId, EpochMilli] = authorEdges.mapValues(n => if(n.nonEmpty) n.maxBy(_.data.timestamp).data.timestamp else EpochMilli.min)
 
-  def chronologicalPostsAscending: IndexedSeq[Node] = posts.toIndexedSeq.sortBy(n => nodeAge(n))
+  lazy val channelNode:Option[Node] = postsById.values.collectFirst{case channel@Node.Content(_, NodeData.Channels, _) => channel}
+  lazy val channelNodeId:Option[NodeId] = channelNode.map(_.id)
+  lazy val channelIds:collection.Set[NodeId] = channelNode.fold(Set.empty[NodeId])(n => children(n.id))
+  println("chano" + channelNodeId)
+
+  lazy val withoutChannels:Graph = this.filterNot(channelIds ++ channelNodeId)
+  lazy val onlyAuthors:Graph = this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
+
+  lazy val chronologicalPostsAscending: IndexedSeq[Node] = posts.toIndexedSeq.sortBy(n => nodeAge(n))
 
   lazy val connections:Set[Edge] = connectionsByType.values.flatMap(identity)(breakOut)
   lazy val connectionsWithoutParent: Set[Edge] = (connectionsByType - EdgeData.Parent.tpe).values.flatMap(identity)(breakOut)
