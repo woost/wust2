@@ -1,6 +1,7 @@
 package wust.webApp
 
 import java.lang.Math._
+import wust.util.Memo
 
 import colorado.HCL
 import outwatch.dom.{VNode, _}
@@ -12,8 +13,9 @@ import scala.collection.mutable
 object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
-  def post(nodeId:NodeId) = twoMirror(nodeId, 8)
-  def user(nodeId:UserId) = verticalMirror(nodeId, 5)
+  val post = Memo.mutableHashMapMemo {nodeId:NodeId => twoMirror(nodeId, 8)}
+  val user = Memo.mutableHashMapMemo {userId:UserId => verticalMirror(userId, 5)}
+
   val PI2 = PI*2
 
   private def accentColorSelection(hue1:Double, rnd: scala.util.Random):Array[Double] = {
