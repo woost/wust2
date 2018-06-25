@@ -232,7 +232,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         infix"""
         with insert_channelnode as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelNode.id)}, ${lift(channelNode.data)}, ${lift(channelNode.deleted)}, ${lift(channelNode.joinDate)}, ${lift(channelNode.joinLevel)})),
              insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.deleted)}, ${lift(user.joinDate)}, ${lift(user.joinLevel)})),
-             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(channelNodeId)}))
+             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(channelNodeId)})),
              ins_m_up as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)}))
                       insert into password(id, digest) select id, ${lift(digest)}
       """.as[Insert[Node]]
