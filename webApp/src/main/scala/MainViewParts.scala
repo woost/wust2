@@ -11,6 +11,7 @@ import wust.api.AuthUser
 import wust.graph._
 import wust.ids._
 import wust.sdk.{ChangesHistory, SyncMode}
+import wust.sdk.NodeColor._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views._
@@ -20,11 +21,28 @@ import scala.scalajs.js.Date
 
 object MainViewParts {
 
-  def upButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+  def postTag(state:GlobalState, node: Node)(implicit ctx:Ctx.Owner):VNode = {
     span(
-      state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
-          button("↑", width := "2.5em", onClick(upTarget) --> state.page.toHandler)
-      ))
+      node.data.str, //TODO trim! fit for tag usage...
+      onClick --> sideEffect{e => state.page() = Page(Seq(node.id)); e.stopPropagation()},
+      backgroundColor := computeTagColor(node.id),
+      fontSize.small,
+      color := "#fefefe",
+      borderRadius := "2px",
+      padding := "0px 3px",
+      marginRight := "3px"
+    )
+  }
+
+  def upButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    div(
+      state.nodeAncestorsHierarchie.map(_.map {case (level, nodeSeq) =>
+        span(
+          nodeSeq.map(n => postTag(state, n)): Seq[VNode],
+          span(" / "),
+        )
+      }.toSeq.reverse),
+      float.left
     )
   }
 

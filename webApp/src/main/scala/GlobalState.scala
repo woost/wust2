@@ -58,6 +58,14 @@ class GlobalState private(
     page().parentIds.flatMap(id => graph().nodesById.get(id))
   }
 
+  //
+  val pageAncestorsIds: Rx[Seq[NodeId]] = Rx {
+    page().parentIds.flatMap(node => graph().ancestors(node).toSeq)
+  }
+
+  val nodeAncestorsHierarchie: Rx[Map[Int, Seq[Node]]] =
+    pageAncestorsIds.map(_.map(node => (graph().parentDepth(node), graph().nodesById(node))).groupBy(_._1).mapValues(_.map(_._2)))
+
   val pageStyle = Rx {
     PageStyle(view(), page())
   }
@@ -81,6 +89,9 @@ class GlobalState private(
         Some(Page(newParentIds))
     }
   }
+
+//  val upButtonTargets: Rx[Seq[Seq[Page]]]  = Rx {
+//  }
 
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
