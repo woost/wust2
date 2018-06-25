@@ -2,6 +2,7 @@ package wust.webApp
 
 import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
+import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
 import org.scalajs.dom.{Event, window}
 import outwatch.ObserverSink
@@ -19,27 +20,18 @@ import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
 
 import scala.collection.breakOut
 
-class GlobalState private (implicit ctx: Ctx.Owner) {
+class GlobalState private(
+   val eventProcessor: EventProcessor,
+   val syncMode: Var[SyncMode],
+   val sidebarOpen: Var[Boolean],
+   val viewConfig: Var[ViewConfig]
+ )(implicit ctx: Ctx.Owner) {
 
-  val syncMode: Var[SyncMode] = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
-  val sidebarOpen: Var[Boolean] = Client.storage.sidebarOpen
-  val syncDisabled = syncMode.map(_ != SyncMode.Live)
-
-  val viewConfig: Var[ViewConfig] = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
-
-  val eventProcessor = EventProcessor(
-    Client.observable.event,
-    syncDisabled.toObservable,
-    (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
-    Client.api.changeGraph _
-  )
-
-  //TODO: rename to auth and user. globalstate implies it is the current value....
   val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
-
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg)) // TODO: with auther connection
+  val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] =>
+    o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg))
   }
 
   val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
@@ -96,44 +88,44 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     .map(_ => ScreenSize.calculate())
     .startWith(Seq(ScreenSize.calculate()))
 
-  private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
-    import changes.consistent._
-
-    val toDelete = delNodes.flatMap { nodeId =>
-      Collapse.getHiddenNodes(graph removeNodes viewConfig.page.parentIds, Set(nodeId))
-    }
-
-    def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] = page.parentIds.map(Edge.Parent(nodeId,  _))(breakOut)
-
-    val containedNodes = addEdges.collect { case Edge.Parent(source,  _) => source }
-    val toContain = addNodes
-      .filterNot(p => containedNodes(p.id))
-      .flatMap(p => toParentConnections(viewConfig.page, p.id))
-
-    changes.consistent merge GraphChanges(delNodes = toDelete, addEdges = toContain)
-  }
 }
 
 object GlobalState {
   def create()(implicit ctx: Ctx.Owner): GlobalState = {
-    val state = new GlobalState
+    val syncMode = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
+    val sidebarOpen = Client.storage.sidebarOpen
+    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
+
+    val additionalManualEvents = PublishSubject[ApiEvent]()
+    val eventProcessor = EventProcessor(
+      Observable.merge(additionalManualEvents.map(Seq(_)), Client.observable.event),
+      syncMode.map(_ != SyncMode.Live).toObservable,
+      (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
+      Client.api.changeGraph _,
+      Client.currentAuth.user
+    )
+
+    val state = new GlobalState(eventProcessor, syncMode, sidebarOpen, viewConfig)
+
     import state._
 
     //TODO: better in rx/obs operations
     // store auth in localstore and indexed db
-    auth.foreach(auth => Client.storage.auth() = Some(auth))
-    auth.foreach(IndexedDbOps.storeAuth)
+    auth.foreach { auth =>
+      Client.storage.auth() = Some(auth)
+      IndexedDbOps.storeAuth(auth)
+    }
 
     // on initial page load we add the currently viewed page as a channel
-    val changes = GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId)
-    eventProcessor.changes.onNext(changes)
+    eventProcessor.changes.onNext(
+      GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId))
 
     //TODO: better build up state from server events?
     // when the viewconfig or user changes, we get a new graph for the current page
     page.toObservable.combineLatest(user.toObservable).switchMap { case (page, user) =>
       val newGraph = Client.api.getGraph(page).map(ReplaceGraph(_))
       Observable.fromFuture(newGraph)
-    }.subscribe(eventProcessor.unsafeManualEvents)
+    }.subscribe(additionalManualEvents)
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
     page.foreach { _ => eventProcessor.history.action.onNext(ChangesHistory.Clear) }
@@ -190,5 +182,22 @@ object GlobalState {
     }
 
     state
+  }
+
+  private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
+    import changes.consistent._
+
+    val toDelete = delNodes.flatMap { nodeId =>
+      Collapse.getHiddenNodes(graph removeNodes viewConfig.page.parentIds, Set(nodeId))
+    }
+
+    def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] = page.parentIds.map(Edge.Parent(nodeId,  _))(breakOut)
+
+    val containedNodes = addEdges.collect { case Edge.Parent(source,  _) => source }
+    val toContain = addNodes
+      .filterNot(p => containedNodes(p.id))
+      .flatMap(p => toParentConnections(viewConfig.page, p.id))
+
+    changes.consistent merge GraphChanges(delNodes = toDelete, addEdges = toContain)
   }
 }

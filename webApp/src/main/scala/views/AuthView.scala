@@ -13,9 +13,10 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import cats.effect.IO
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 
 import scala.concurrent.Future
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 // an html view for the authentication. That is login and signup.
 object AuthView {

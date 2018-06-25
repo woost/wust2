@@ -73,8 +73,9 @@ object EventProcessor {
   def apply(
              rawEventStream: Observable[Seq[ApiEvent]],
              syncDisabled: Observable[Boolean],
-             enrich: (GraphChanges, Graph) => GraphChanges,
-             sendChange: List[GraphChanges] => Future[Boolean]
+             enrichChanges: (GraphChanges, Graph) => GraphChanges,
+             sendChange: List[GraphChanges] => Future[Boolean],
+             initialUser: AuthUser
            )(implicit scheduler: Scheduler): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
       // when sync is disabled, holding back incoming graph events
@@ -100,7 +101,7 @@ object EventProcessor {
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
 
-    new EventProcessor(graphEvents, authEvents, syncDisabled, enrich, sendChange)
+    new EventProcessor(graphEvents, authEvents, syncDisabled, enrichChanges, sendChange, initialUser)
   }
 }
 
@@ -108,8 +109,9 @@ class EventProcessor private(
                               eventStream: Observable[Seq[ApiEvent.GraphContent]],
                               authEventStream: Observable[Seq[ApiEvent.AuthContent]],
                               syncDisabled: Observable[Boolean],
-                              enrich: (GraphChanges, Graph) => GraphChanges,
-                              sendChange: List[GraphChanges] => Future[Boolean]
+                              enrichChanges: (GraphChanges, Graph) => GraphChanges,
+                              sendChange: List[GraphChanges] => Future[Boolean],
+                              initialUser: AuthUser
                             )(implicit scheduler: Scheduler) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
@@ -131,8 +133,6 @@ class EventProcessor private(
     val action = PublishSubject[ChangesHistory.UserAction]
   }
 
-  val unsafeManualEvents = PublishSubject[ApiEvent.GraphContent] // TODO: this is a hack
-
   // public reader
   val (changesHistory: Observable[ChangesHistory], localChanges: Observable[GraphChanges], graph: Observable[Graph]) = {
 
@@ -144,18 +144,19 @@ class EventProcessor private(
     //          graph,viewconfig
 
     val rawGraph = PublishSubject[Graph]()
+    val rawGraphWithInit = rawGraph.startWith(Seq(Graph.empty))
 
     changes.foreach { c => println("[Events] Got local changes: " + c) }
     enriched.changes.foreach { c => println("[Events] Got enriched local changes: " + c) }
 
-    val enrichedChanges = enriched.changes.withLatestFrom(rawGraph)(enrich)
+    val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes)
-    val rawLocalChanges = allChanges.withLatestFrom(currentUser)((a,b) => (a,b)).collect { case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id) }
+    val rawLocalChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a,b) => (a,b)).collect { case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id) }
 
-    allChanges.foreach { c => println("[Events] Got all local changes: " + c) }
+    rawLocalChanges.foreach { c => println("[Events] Got all local changes: " + c) }
 
     val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
-      .withLatestFrom(rawGraph)((action, graph) => (action, graph))
+      .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
       .scan(ChangesHistory.empty) {
         case (history, (action, rawGraph)) => history(rawGraph)(action)
       }
@@ -165,7 +166,7 @@ class EventProcessor private(
 
     val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
     val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents, unsafeManualEvents.map(Seq(_)))
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(EventUpdate.applyEventOnGraph) }
 

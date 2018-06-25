@@ -28,6 +28,7 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
         .getOrElse(Future.successful(ApiData.MonadError.raiseError(ApiError.Unauthorized)))
     }
 
+    def requireUser[T](f: (State, AuthUser) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser](f) { case u => u }
     def requireImplicitUser[T](f: (State, AuthUser.Implicit) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Implicit](f) { case u: AuthUser.Implicit => u }
     def requireAssumedUser[T](f: (State, AuthUser.Assumed) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Assumed](f) { case u: AuthUser.Assumed => u }
     def requireRealUser[T](f: (State, AuthUser.Real) => Future[F[T]]): ApiFunction[T] = requireUserT[T, AuthUser.Real](f) { case u: AuthUser.Real => u }

@@ -121,24 +121,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //    }
 //  }
 
-  //TODO: get graph forces new db user...
-  ///TODO the caller aka frontend knows whether we need a membership or whether we want to add this as channel.
-  //therefore most calls to getgraph dont need membership+channel insert. this would improve performance.
-  //TODO: tell other members about the new member
-  override def getGraph(page: Page): ApiFunction[Graph] = Effect.assureDbUser { (state, user) =>
+  override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
     def defaultGraph = Future.successful(Graph.empty)
     if (page.parentIds.isEmpty) getPage(user.id, page).map(Returns(_))
-    else for {
-      newMemberNodeIds <- db.node.addMemberWithCurrentJoinLevel(page.parentIds.toList, user.id)
-      graph <- getPage(user.id, page)
-      } yield {
-        Returns(graph, {
-          val membershipConnections:Set[Edge] = newMemberNodeIds.map{
-            case (nodeId, level) => Edge.Member(user.id, EdgeData.Member(level), nodeId)
-          }(breakOut)
-          Seq(NewGraphChanges(GraphChanges(addEdges = membershipConnections)))
-        })
-      }
+    else getPage(user.id, page).map(Returns(_))
   }
 
 
