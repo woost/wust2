@@ -44,7 +44,7 @@ case class GraphChanges(
 
   lazy val consistent = GraphChanges(
     addNodes.filterNot(p => delNodes(p.id)),
-    (addEdges -- delEdges).filter(c => c.sourceId != c.targetId),
+    (addEdges -- delEdges),
     updateNodes.filterNot(p => delNodes(p.id)),
     delNodes,
     delEdges
