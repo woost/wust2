@@ -8,6 +8,7 @@ const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
 const cssFiles = commons.woost.cssFiles;
+const htmlTemplateFile = commons.woost.htmlTemplateFile;
 module.exports = commons.webpack;
 
 module.exports.mode = 'development';
@@ -29,7 +30,7 @@ const extraAssets = [ loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f)
 ////////////////////////////////////////
 module.exports.plugins.push(new HtmlPlugin({
     title: 'dev',
-    template: Path.join(dirs.assets, 'index.template.html'),
+    template: htmlTemplateFile,
     favicon: Path.join(dirs.assets, 'favicon.ico'),
     showErrors: true
 }));

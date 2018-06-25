@@ -13,6 +13,7 @@ const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
 const cssFiles = commons.woost.cssFiles;
+const htmlTemplateFile = commons.woost.htmlTemplateFile;
 module.exports = commons.webpack;
 
 // set up output path
@@ -23,14 +24,12 @@ module.exports.output.path = Path.join(__dirname, "dist");
 //TODO entry and handle with loader (hash)
 function copyAssets(context) {
     return new CopyPlugin([
-        { from: "**/*.ico", to: module.exports.output.path },
-        { from: "**/*.svg", to: module.exports.output.path },
-        { from: "**/*.png", to: module.exports.output.path },
-        { from: "**/*.json", to: module.exports.output.path }
+        { from: "**/*", to: module.exports.output.path }
     ], { context: context });
 }
 module.exports.plugins.push(copyAssets(dirs.assets));
 
+// file name pattern for outputs with hash
 const filenamePattern = '[name].[chunkhash]';
 module.exports.output.filename = filenamePattern + '.js';
 // module.exports.output.publicPath = "/assets/"
@@ -68,7 +67,7 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 //TODO does not trigger when only changing html template file
 module.exports.plugins.push(new HtmlPlugin({
     title: 'Woost',
-    template: Path.join(dirs.assets, 'index.template.html'),
+    template: htmlTemplateFile,
     favicon: Path.join(dirs.assets, 'favicon.ico'),
     minify: {
         // https://github.com/kangax/html-minifier#options-quick-reference
