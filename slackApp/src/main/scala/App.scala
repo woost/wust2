@@ -77,7 +77,7 @@ object WustReceiver {
 
     val res = for {
       loggedIn <- client.auth.login(config.user, config.password)
-      if loggedIn
+      if loggedIn == AuthResult.Success
       // TODO: author
       changed <- client.api.changeGraph(List(GraphChanges(addNodes = Set(Node.Content(Constants.slackId, NodeData.PlainText("wust-slack"))))))
       if changed

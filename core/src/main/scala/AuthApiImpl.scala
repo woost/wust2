@@ -14,22 +14,22 @@ import scala.concurrent.{ExecutionContext, Future}
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
 
-  def register(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
+  //TODO: some password checks
+  def register(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     val newUser = state.auth.map(_.user) match {
       case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
       case Some(AuthUser.Assumed(userId, channelNodeId)) => db.user(userId, name, digest, channelNodeId)
-        //TODO:
       case _ => db.user(UserId.fresh, name, digest, NodeId.fresh)
     }
 
-   val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-   resultOnVerifiedAuth(newAuth)
+   val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
+   resultOnVerifiedAuth(newAuth, AuthResult.Success)
   }
 
-  def login(name: String, password: String): ApiFunction[Boolean] = Effect { state =>
+  def login(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     val newUser = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -39,15 +39,19 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
             //TODO: propagate name change to the respective groups and the connected clients
             db.user
               .mergeImplicitUser(prevUserId, user.id)
-              .map(if (_) Some(user) else None)
-          case _ => Future.successful(Some(user))
+              .flatMap {
+                case true => Future.successful(Right(user))
+                case false => Future.failed(new Exception(s"Failed to merge implicit user ($prevUserId) into real user (${user.id})"))
+              }
+          case _ => Future.successful(Right(user))
         }
 
-      case _ => Future.successful(None)
+      case Some(_) => Future.successful(Left(AuthResult.BadPassword))
+      case None => Future.successful(Left(AuthResult.BadUser))
     }
 
    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-   resultOnVerifiedAuth(newAuth)
+   resultOnVerifiedAuth(newAuth, AuthResult.Success)
   }
 
   def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
@@ -87,6 +91,11 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   private def resultOnAssumedAuth(auth: Authentication.Assumed): Future[ApiData.Effect[Boolean]] = {
     Future.successful(Returns(true, authChangeEvents(auth)))
+  }
+
+  private def resultOnVerifiedAuth[T](auth: Future[Either[T, Authentication.Verified]], positiveValue: T): Future[ApiData.Effect[T]] = auth.map {
+    case Right(auth) => Returns(positiveValue, authChangeEvents(auth))
+    case Left(err) => Returns(err)
   }
 
   private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.map {

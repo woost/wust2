@@ -34,12 +34,19 @@ trait PushApi[Result[_]] {
 @PathName("Auth")
 trait AuthApi[Result[_]] {
   def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
-  def register(name: String, password: String): Result[Boolean]
-  def login(name: String, password: String): Result[Boolean]
+  def register(name: String, password: String): Result[AuthResult]
+  def login(name: String, password: String): Result[AuthResult]
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
   def issuePluginToken(): Result[Authentication.Verified]
+}
+
+sealed trait AuthResult
+object AuthResult {
+  case object BadUser extends AuthResult
+  case object BadPassword extends AuthResult
+  case object Success extends AuthResult
 }
 
 
