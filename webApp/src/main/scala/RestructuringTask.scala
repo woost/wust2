@@ -81,7 +81,7 @@ sealed trait RestructuringTask {
 
   def component(state: GlobalState): VNode
 
-  def getGraphFromState(state: GlobalState): Graph = state.displayGraphWithParents.now.graph
+  def getGraphFromState(state: GlobalState): Graph = state.graph.now
 
   def transferChildrenAndParents(graph: Graph, source: NodeId, target: NodeId): collection.Set[Edge] = {
     val sourceChildren = graph.getChildren(source)
@@ -848,7 +848,7 @@ object RestructuringTaskGenerator {
   // applicable task after choosing a post (based on a discussion metric)
   private def composeTask(globalState: GlobalState): Future[List[RestructuringTask]] = {
 
-    val graph = globalState.displayGraphWithoutParents.now.graph
+    val graph = globalState.graph.now
     val task = ChooseTaskHeuristic.random(tasks)
     task.applyStrategically(graph)
 
@@ -877,7 +877,7 @@ object RestructuringTaskGenerator {
     if(feedback.displayNext) {
       if(!initLoad) {
         initLoad = true
-        initGraph = globalState.displayGraphWithParents.now.graph
+        initGraph = globalState.graph.now
         initState = Some(globalState)
 
         def mapPid(pids: List[NodeId]): PostHeuristicType = {

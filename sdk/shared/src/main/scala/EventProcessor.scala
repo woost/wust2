@@ -134,7 +134,7 @@ class EventProcessor private(
   val unsafeManualEvents = PublishSubject[ApiEvent.GraphContent] // TODO: this is a hack
 
   // public reader
-  val (changesHistory: Observable[ChangesHistory], localChanges: Observable[GraphChanges], rawGraph: Observable[Graph]) = {
+  val (changesHistory: Observable[ChangesHistory], localChanges: Observable[GraphChanges], graph: Observable[Graph]) = {
 
     // events  withLatestFrom
     // --------O----------------> localchanges
@@ -179,7 +179,7 @@ class EventProcessor private(
     //TODO should by sync
     this.changes.onNext(changes)
     val appliedToGraph = Promise[Graph]
-    val obs = rawGraph.take(1)
+    val obs = graph.take(1)
     obs.foreach(appliedToGraph.success)
     obs.doOnError(appliedToGraph.failure) // das compiled
     appliedToGraph.future

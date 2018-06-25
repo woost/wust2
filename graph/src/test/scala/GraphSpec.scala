@@ -20,12 +20,12 @@ class GraphSpec extends FreeSpec with MustMatchers {
   "graph" - {
     "empty is empty" in {
       Graph.empty.nodesById mustBe empty
-      Graph.empty.connectionsWithoutParent mustBe empty
+      Graph.empty.labeledEdges mustBe empty
 
       Graph.empty.nodes mustBe empty
 
       Graph().nodesById mustBe empty
-      Graph().connectionsWithoutParent mustBe empty
+      Graph().labeledEdges mustBe empty
 
       Graph().nodes mustBe empty
     }
@@ -84,7 +84,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val posts: List[Node] = List(1, 2, 3)
       val newPost: Node = 99
       val graph = Graph(posts, List[Edge](1 -> 2, 2 -> 3) ++ List(1 cont 2, 2 cont 3))
-      (graph + newPost) mustEqual Graph(posts :+ newPost, graph.connectionsWithoutParent ++ graph.containments)
+      (graph + newPost) mustEqual Graph(posts :+ newPost, graph.labeledEdges ++ graph.containments)
     }
 
     "add connection" in {
@@ -98,7 +98,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val containments: List[Edge] = List(1 -> 2, 2 -> 3)
       val newContainment = Containment(3, 1)
       val graph = Graph(List(1, 2, 3), List[Edge](1 -> 2, 2 -> 3) ++ containments)
-      (graph + newContainment) mustEqual Graph(graph.nodes, graph.connectionsWithoutParent ++ (containments :+ newContainment))
+      (graph + newContainment) mustEqual Graph(graph.nodes, graph.labeledEdges ++ (containments :+ newContainment))
     }
 
     "filter" in {
@@ -155,7 +155,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val connections: List[Edge] = List(Connection(1, 2), Connection(2, 3))
       val containments: List[Edge] = List(Containment(1, 2), Containment(2, 3))
       val graph = Graph(List(1, 2, 3), connections ++ containments)
-      (graph - Containment(2, 3)) mustEqual Graph(graph.nodes, graph.connectionsWithoutParent ++ List(Containment(1, 2)))
+      (graph - Containment(2, 3)) mustEqual Graph(graph.nodes, graph.labeledEdges ++ List(Containment(1, 2)))
     }
 
     "remove non-existing containment" in {
@@ -205,6 +205,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
       graph.children(1:NodeId) mustEqual Set[NodeId](11, 12)
       graph.children(12:NodeId) mustEqual Set.empty
+      graph.children(1:Node) mustEqual Set[NodeId](11, 12)
+      graph.children(12:Node) mustEqual Set.empty
     }
 
     "parents of post" in {
@@ -213,8 +215,10 @@ class GraphSpec extends FreeSpec with MustMatchers {
         edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
-      graph.parents(1) mustEqual Set.empty
-      graph.parents(12) mustEqual Set[NodeId](1, 13)
+      graph.parents(1:NodeId) mustEqual Set.empty
+      graph.parents(12:NodeId) mustEqual Set[NodeId](1, 13)
+      graph.parents(1:Node) mustEqual Set.empty
+      graph.parents(12:Node) mustEqual Set[NodeId](1, 13)
     }
 
     "containment neighbours of post" in {

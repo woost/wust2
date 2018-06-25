@@ -19,7 +19,7 @@ class GraphView(disableSimulation: Boolean = false) extends View {
   override val key = "graph"
   override val displayName = "Mindmap"
 
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = GraphView(state, state.displayGraphWithoutParents.map(_.graph))
+  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = GraphView(state, state.graphContent)
 }
 
 object GraphView {
@@ -61,12 +61,12 @@ object GraphView {
   }
 
   def onDrop(state: GlobalState)(dragging:NodeId, target:NodeId): Unit = {
-    val graph = state.displayGraphWithoutParents.now.graph
+    val graph = state.graph.now
     state.eventProcessor.changes.onNext(GraphChanges.moveInto(graph, dragging, target))
   }
 
   def onDropWithCtrl(state: GlobalState)(dragging:NodeId, target:NodeId): Unit = {
-    val graph = state.displayGraphWithoutParents.now.graph
+    val graph = state.graph.now
     state.eventProcessor.changes.onNext(GraphChanges.tagWith(graph, dragging, target))
   }
 }

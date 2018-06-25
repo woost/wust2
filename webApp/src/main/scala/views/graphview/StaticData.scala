@@ -118,7 +118,7 @@ object StaticData {
     time(log(s"calculateStaticData[${selection.size()}]")) {
       import graphTopology.{graph, posts}
 
-      val PartitionedConnections(edges,containments,tags) = partitionConnections(graph.connections, labelVisualization)
+      val PartitionedConnections(edges,containments,tags) = partitionConnections(graph.edges, labelVisualization)
 //      println("edges: " + edges.mkString(", "))
 //      println("containments: " + containments.mkString(", "))
 

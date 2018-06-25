@@ -102,7 +102,7 @@ object DevView {
           )
         },
         Rx {
-          val posts = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.nodeIds.toSeq)
+          val posts = scala.util.Random.shuffle(state.graph().nodeIds.toSeq)
 
           def deletePost(ids: Seq[NodeId]):Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(delNodes = ids.toSet))
@@ -116,7 +116,7 @@ object DevView {
           )
         },
         Rx {
-          val posts = state.displayGraphWithoutParents().graph.nodeIds.toArray
+          val posts = state.graph().nodeIds.toArray
           def randomConnection = Edge.Label(posts(rInt(posts.length)), EdgeData.Label(rWord), posts(rInt(posts.length)))
 
           def connect(_count:Int):Unit = {
@@ -139,7 +139,7 @@ object DevView {
           )
         },
         Rx {
-          val posts = state.displayGraphWithoutParents().graph.nodeIds.toArray
+          val posts = state.graph().nodeIds.toArray
           def randomConnection = Edge.Parent(posts(rInt(posts.length)), posts(rInt(posts.length)))
 
           def contain(count:Int):Unit = {
@@ -154,7 +154,7 @@ object DevView {
           )
         },
         Rx {
-          val connections = scala.util.Random.shuffle(state.displayGraphWithoutParents().graph.connectionsWithoutParent.toSeq)
+          val connections = scala.util.Random.shuffle(state.graph().labeledEdges.toSeq)
 
           def disconnect(count:Int):Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(delEdges = connections.take(count).toSet))

@@ -42,11 +42,11 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg)) // TODO: with auther connection
   }
 
-  val rawGraph: Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
+  val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
+  val graphContent: Rx[Graph] = graph.map(_.content.consistent)
 
   val channels: Rx[List[Node]] = Rx {
-    val graph = rawGraph()
-    (graph.children(user().channelNodeId).map(graph.nodesById)(breakOut): List[Node]).sortBy(_.data.str)
+    (graph().children(user().channelNodeId).map(graph().nodesById)(breakOut): List[Node]).sortBy(_.data.str)
   }
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
@@ -63,7 +63,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   }
 
   val pageParentNodes: Rx[Seq[Node]] = Rx {
-    page().parentIds.flatMap(id => rawGraph().nodesById.get(id))
+    page().parentIds.flatMap(id => graph().nodesById.get(id))
   }
 
   val pageStyle = Rx {
@@ -75,38 +75,9 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   // this is a wanted feature, because manually collapsing nodes is preserved with navigation
   val collapsedNodeIds: Var[Set[NodeId]] = Var(Set.empty)
 
+  // specifies which nodes are collapsed
   val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
     perspective().union(Perspective(collapsed = Selector.Predicate(collapsedNodeIds())))
-  }
-
-  //TODO: when updating, both displayGraphs are recalculated
-  // if possible only recalculate when needed for visualization
-  val displayGraphWithoutParents: Rx[DisplayGraph] = Rx {
-    val graph = rawGraph()
-    page() match {
-      case Page(parentIds, _, mode) =>
-        val modeSet: Set[NodeId] = mode match {
-          case PageMode.Orphans => graph.nodeIds.filter(id => graph.parents(id).isEmpty && id != user().channelNodeId).toSet
-          case PageMode.Default => Set.empty
-        }
-        val reject = parentIds + user().channelNodeId
-        val selectedGraph = graph.filterNot(id => reject.contains(id) || modeSet.contains(id))
-        perspective().applyOnGraph(selectedGraph)
-    }
-  }
-
-  val displayGraphWithParents: Rx[DisplayGraph] = Rx {
-    val graph = rawGraph()
-    page() match {
-      case Page(parentIds, _, mode) =>
-        val modeSet: Set[NodeId] = mode match {
-          case PageMode.Orphans => graph.nodeIds.filter(id => graph.parents(id).isEmpty && id != user().channelNodeId).toSet
-          case PageMode.Default => Set.empty
-        }
-        //TODO: this seems to crash when parentid does not exist
-        val selectedGraph = graph.filter(id => id != user().channelNodeId || modeSet.contains(id))
-        perspective().applyOnGraph(selectedGraph)
-    }
   }
 
   val upButtonTargetPage: Rx[Option[Page]] = Rx {
@@ -114,7 +85,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     page() match {
       case Page(parentIds, _, _) if parentIds.isEmpty => None
       case Page(parentIds, _, _) =>
-        val newParentIds = parentIds.flatMap(rawGraph().parents)
+        val newParentIds = parentIds.flatMap(graph().parents)
         Some(Page(newParentIds))
     }
   }

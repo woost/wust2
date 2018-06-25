@@ -433,7 +433,7 @@ object WustReceiver {
     }
 
     def issuePostOfDesc(graph: Graph, pid: NodeId): Option[Node] = {
-      graph.connections
+      graph.edges
         .find(c => c.data match {
           case EdgeData.Label("describes") => c.targetId == pid
           case _ => false

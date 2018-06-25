@@ -75,76 +75,152 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
-  lazy val nodeIds: scala.collection.Set[NodeId] = {
-    val ids = mutable.HashSet[NodeId]()
-    ids.sizeHint(nodes.size)
-    nodes.foreach { ids += _.id }
-    ids
-  }
-  require(nodeIds.size == nodes.size)
 
-  lazy val nodesById: collection.Map[NodeId, Node] = nodes.by(_.id)
-  lazy val connectionsByType: Map[EdgeData.Type, Set[Edge]] = edges.groupBy(_.data.tpe).map{case (tpe,conns) => tpe -> conns}
-  lazy val isEmpty: Boolean = nodes.isEmpty
-  lazy val nonEmpty: Boolean = !isEmpty
-  lazy val size: Int = nodes.size
-  lazy val length: Int = size
-
-  private lazy val connectionsByTypeF: EdgeData.Type => Set[Edge] = connectionsByType.withDefaultValue(Set.empty)
-
-  def authors(node: Node): collection.Seq[UserId] = authors(node.id)
-  private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] = defaultNeighbourhood(nodeIds, Set.empty[NodeId])
-  private lazy val nodeDefaultAuthors: collection.Map[NodeId, collection.Set[UserId]] = defaultNeighbourhood(nodeIds, Set.empty[UserId])
-  lazy val authorsWithTimestamp: collection.Map[NodeId, Seq[(UserId, Edge.Author)]] = (nodeDefaultAuthors.mapValues(_ => Set.empty[(UserId, Edge.Author)]) ++ directedAdjacencyList[NodeId, Edge.Author, (UserId,Edge.Author)](authorships, _.nodeId, e => (e.userId, e))).mapValues(_.toSeq.sortBy(_._2.data.timestamp))
-  lazy val authors: collection.Map[NodeId, Seq[UserId]] = authorsWithTimestamp.mapValues(_.map(_._1))
-  lazy val allAuthorIds:collection.Set[UserId] = authors.values.flatten.toSet
-  lazy val allUserIds:collection.Set[UserId] = nodesById.values.collect{case Node.User(id, _, _) => id}.toSet
-  lazy val authorEdges: collection.Map[NodeId, Seq[Edge.Author]] = authorsWithTimestamp.mapValues(_.map(_._2))
-
-  def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
-  def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
-  lazy val nodeCreated: collection.Map[NodeId, EpochMilli] = authorEdges.mapValues(n => n.headOption.fold(EpochMilli.min)(_.data.timestamp))
-  lazy val nodeModified: collection.Map[NodeId, EpochMilli] = authorEdges.mapValues(n => n.lastOption.fold(EpochMilli.min)(_.data.timestamp))
-
-  lazy val channelNode:Option[Node] = nodesById.values.collectFirst{case channel@Node.Content(_, NodeData.Channels, _) => channel}
-  lazy val channelNodeId:Option[NodeId] = channelNode.map(_.id)
-  lazy val channelIds:collection.Set[NodeId] = channelNode.fold(collection.Set.empty[NodeId])(n => children(n.id))
-  println("chano" + channelNodeId)
-
-  lazy val withoutChannels:Graph = this.filterNot(channelIds ++ channelNodeId)
-  lazy val onlyAuthors:Graph = this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
-
-  lazy val chronologicalNodesAscending: IndexedSeq[Node] = nodes.toIndexedSeq.sortBy(n => nodeCreated(n))
-
-  lazy val connections:Set[Edge] = connectionsByType.values.flatMap(identity)(breakOut)
-  lazy val connectionsWithoutParent: Set[Edge] = (connectionsByType - EdgeData.Parent.tpe).values.flatMap(identity)(breakOut)
-  lazy val containments: Set[Edge] = connectionsByTypeF(EdgeData.Parent.tpe)
-  lazy val authorships: Set[Edge.Author] = connectionsByTypeF(EdgeData.Author.tpe).collect{case a: Edge.Author => a}
-  lazy val contentNodes: Iterable[Node.Content] = nodes.collect{case p: Node.Content => p}
-  lazy val nodeIdsTopologicalSortedByChildren:Iterable[NodeId] = nodeIds.topologicalSortBy(children)
-  lazy val nodeIdsTopologicalSortedByParents:Iterable[NodeId] = nodeIds.topologicalSortBy(parents)
-  lazy val allParentIds: Set[NodeId] = containments.map(_.targetId)
-  lazy val allSourceIds: Set[NodeId] = containments.map(_.sourceId)
-  lazy val allParents: Set[Node] = allParentIds.map(nodesById)
-  lazy val toplevelNodeIds: Set[NodeId] = nodeIds.toSet -- allSourceIds
-  lazy val allParentIdsTopologicallySortedByChildren:Iterable[NodeId] = allParentIds.topologicalSortBy(children)
+  def isEmpty: Boolean = nodes.isEmpty
+  def nonEmpty: Boolean = !isEmpty
+  def size: Int = nodes.size
+  def length: Int = size
 
   override def toString: String = {
     def nodeStr(node:Node) = s"${node.data.tpe}(${node.data.str}:${node.id.takeRight(4)})"
     s"Graph(${nodes.map(nodeStr).mkString(" ")}, " +
-    s"${connectionsByType.values.flatten.map(c => s"${c.sourceId.takeRight(4)}-${c.data}->${c.targetId.takeRight(4)}").mkString(", ")})"
+      s"${connectionsByType.values.flatten.map(c => s"${c.sourceId.takeRight(4)}-${c.data}->${c.targetId.takeRight(4)}").mkString(", ")})"
   }
 
-  def toSummaryString = s"Graph(nodes: ${nodes.size}, containments; ${containments.size}, connections: ${connectionsWithoutParent.size})"
+  def toSummaryString = {
+    s"Graph(nodes: ${nodes.size}, ${edges.size})"
+  }
 
-  lazy val successorsWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](connectionsWithoutParent, _.sourceId, _.targetId)
-  lazy val predecessorsWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](connectionsWithoutParent, _.targetId, _.sourceId)
-  lazy val neighboursWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[NodeId, Edge](connectionsWithoutParent, _.targetId, _.sourceId)
+  lazy val (
+      nodeIds: scala.collection.Set[NodeId],
+      nodesById: collection.Map[NodeId, Node],
+      labeledEdges: collection.Set[Edge.Label],
+      containments: collection.Set[Edge.Parent],
+      children: collection.Map[NodeId, collection.Set[NodeId]],
+      parents: collection.Map[NodeId, collection.Set[NodeId]],
+      authors: collection.Map[NodeId, List[Edge.Author]],
+      allUserIds: collection.Set[UserId], //TODO: List?
+      allAuthorIds: collection.Set[UserId], //TODO: List?
+      channelNodeIds: collection.Set[NodeId], //TODO: List?
+      channelIds: collection.Set[NodeId], //TODO: List?
+      nodeCreated: collection.Map[NodeId, EpochMilli],
+      nodeModified: collection.Map[NodeId, EpochMilli]
+    ) = {
+      // mutable sets/maps are ~5x faster than immutable ones
+      // http://www.lihaoyi.com/post/BenchmarkingScalaCollections.html
+      val nodeIds = mutable.HashSet[NodeId]()
+      nodeIds.sizeHint(nodes.size)
+
+      val nodesById = mutable.HashMap[NodeId, Node]()
+      nodesById.sizeHint(nodes.size)
+
+      val labeledEdges = mutable.HashSet[Edge.Label]()
+      val containments = mutable.HashSet[Edge.Parent]()
+
+      val children = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+      val parents = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+
+      val authors = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
+      val allAuthorIds = mutable.HashSet[UserId]()
+      val allUserIds = mutable.HashSet[UserId]()
+
+      val channelNodeIds = mutable.HashSet[NodeId]()
+      val channelIds = mutable.HashSet[NodeId]()
+
+      // loop over edges once
+      edges.foreach {
+        case e@Edge.Author(authorId, _, nodeId) =>
+          authors(nodeId) ::= e
+          allAuthorIds += authorId
+        case e@Edge.Parent(childId, parentId) =>
+          children(parentId) += childId
+          parents(childId) += parentId
+          containments += e
+        case e: Edge.Label =>
+          labeledEdges += e
+        case _ =>
+      }
+
+      // loop over nodes once
+      nodes.foreach { node =>
+        val nodeId = node.id
+        nodeIds += nodeId
+        nodesById(nodeId) = node
+
+        node match {
+          case Node.User(id, _, _) =>
+            allUserIds += id
+          case Node.Content(id, data, _) =>
+            data match {
+              case NodeData.Channels =>
+                channelNodeIds += id
+                channelIds ++= children(id)
+              case _ =>
+            }
+          case _ =>
+        }
+      }
+
+      require(nodeIds.size == nodes.size, "nodes are not distinct by id")
+
+      val nodeCreated = mutable.HashMap[NodeId, EpochMilli]().withDefaultValue(EpochMilli.min)
+      val nodeModified = mutable.HashMap[NodeId, EpochMilli]().withDefaultValue(EpochMilli.min)
+      authors.foreach {
+        case (nodeId, authorEdges) =>
+          val sortedAuthorEdges = authorEdges.sortBy(_.data.timestamp)
+          authors(nodeId) = sortedAuthorEdges
+          nodeCreated(nodeId) = sortedAuthorEdges.headOption.fold(EpochMilli.min)(_.data.timestamp)
+          nodeModified(nodeId) = sortedAuthorEdges.lastOption.fold(EpochMilli.min)(_.data.timestamp) //TODO: lastOption O(n)
+      }
+
+      (
+        nodeIds,
+        nodesById,
+        labeledEdges,
+        containments,
+        children,
+        parents,
+        authors,
+        allAuthorIds,
+        allUserIds,
+        channelNodeIds,
+        channelIds,
+        nodeCreated,
+        nodeModified
+      )
+  }
+
+
+  private lazy val connectionsByType: Map[EdgeData.Type, Set[Edge]] = edges.groupBy(_.data.tpe).map{case (tpe,conns) => tpe -> conns}
+  private lazy val connectionsByTypeF: EdgeData.Type => Set[Edge] = connectionsByType.withDefaultValue(Set.empty)
 
   def children(node:Node):collection.Set[NodeId] = children(node.id)
-  lazy val children: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](containments, _.targetId, _.sourceId)
-  lazy val parents: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](containments, _.sourceId, _.targetId)
-  lazy val containmentNeighbours: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[NodeId, Edge](containments, _.targetId, _.sourceId)
+  def parents(node:Node):collection.Set[NodeId] = parents(node.id)
+
+  def authors(node: Node): List[Edge.Author] = authors(node.id)
+  def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
+  def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
+
+
+  lazy val withoutChannels:Graph = this.filterNot(channelIds ++ channelNodeIds)
+  lazy val onlyAuthors:Graph = this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
+  lazy val content:Graph = this.filterNot(channelIds ++ channelNodeIds ++ (allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
+
+  lazy val chronologicalNodesAscending: IndexedSeq[Node] = nodes.toIndexedSeq.sortBy(n => nodeCreated(n))
+
+  lazy val contentNodes: Iterable[Node.Content] = nodes.collect{case p: Node.Content => p}
+  lazy val nodeIdsTopologicalSortedByChildren:Iterable[NodeId] = nodeIds.topologicalSortBy(children)
+  lazy val nodeIdsTopologicalSortedByParents:Iterable[NodeId] = nodeIds.topologicalSortBy(parents)
+  lazy val allParentIds: collection.Set[NodeId] = containments.map(_.targetId)
+  lazy val allSourceIds: collection.Set[NodeId] = containments.map(_.sourceId)
+  lazy val toplevelNodeIds: Set[NodeId] = nodeIds.toSet -- allSourceIds
+  lazy val allParentIdsTopologicallySortedByChildren:Iterable[NodeId] = allParentIds.topologicalSortBy(children)
+
+  private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] = defaultNeighbourhood(nodeIds, Set.empty[NodeId])
+  lazy val successorsWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](labeledEdges, _.sourceId, _.targetId)
+  lazy val predecessorsWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](labeledEdges, _.targetId, _.sourceId)
+  lazy val neighboursWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[NodeId, Edge](labeledEdges, _.targetId, _.sourceId)
+
 
   def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = getParents(child).contains(possibleParent)
   def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean = ancestors(descendent).exists(_ == possibleAncestor)
@@ -159,10 +235,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   private lazy val connectionDefaultNeighbourhood: collection.Map[NodeId, collection.Set[Edge]] = defaultNeighbourhood(nodeIds, Set.empty[Edge])
   lazy val incomingConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[NodeId, Edge](connectionsWithoutParent, _.targetId)
+    directedIncidenceList[NodeId, Edge](labeledEdges, _.targetId)
   lazy val outgoingConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[NodeId, Edge](connectionsWithoutParent, _.sourceId)
-  lazy val incidentConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[NodeId, Edge](connectionsWithoutParent, _.sourceId, _.targetId)
+    directedIncidenceList[NodeId, Edge](labeledEdges, _.sourceId)
+  lazy val incidentConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[NodeId, Edge](labeledEdges, _.sourceId, _.targetId)
 
   lazy val incidentParentContainments: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[NodeId, Edge](containments, _.sourceId)
   lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[NodeId, Edge](containments, _.targetId)
@@ -170,7 +246,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   private lazy val nodeDefaultDegree = defaultNeighbourhood(nodeIds,0)
   lazy val connectionDegree: collection.Map[NodeId, Int] = nodeDefaultDegree ++
-    degreeSequence[NodeId, Edge](connectionsWithoutParent, _.targetId, _.sourceId)
+    degreeSequence[NodeId, Edge](labeledEdges, _.targetId, _.sourceId)
   lazy val containmentDegree: collection.Map[NodeId, Int] = nodeDefaultDegree ++
     degreeSequence[NodeId, Edge](containments, _.targetId, _.sourceId)
 
@@ -206,6 +282,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
   }
 
+  lazy val containmentNeighbours: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[NodeId, Edge](containments, _.targetId, _.sourceId)
   // Get connected components by only considering containment edges
   lazy val connectedContainmentComponents: List[Set[NodeId]] = {
     connectedComponents(nodeIds, containmentNeighbours)

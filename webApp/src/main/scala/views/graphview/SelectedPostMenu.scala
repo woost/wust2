@@ -31,7 +31,7 @@ object SelectedPostMenu {
   def apply(pos:Vec2, nodeId: NodeId, state: GlobalState, selectedNodeId:Var[Option[(Vec2, NodeId)]], transformRx:Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
 
     val rxPost: Rx[Node.Content] = Rx {
-      val graph = state.rawGraph()
+      val graph = state.graph()
       //TODO: getOrElse necessary? Handle post removal.
       //TODO: we are filtering out non-content posts, what about editing them?
       graph.nodesById
@@ -41,7 +41,7 @@ object SelectedPostMenu {
     }
 
     val rxParents: Rx[Seq[Node]] = Rx {
-      val graph = state.displayGraphWithParents().graph
+      val graph = state.graphContent()
       val directParentIds = graph.parents.getOrElse(nodeId, Set.empty)
       directParentIds.flatMap(graph.nodesById.get)(breakOut)
     }
@@ -73,7 +73,7 @@ object SelectedPostMenu {
             span("×", onClick --> sideEffect {
               val addedGrandParents: collection.Set[Edge] = {
                 if (parents.size == 1)
-                  state.displayGraphWithParents.now.graph.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
+                  state.graphContent.now.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
                 else
                   Set.empty
               }
@@ -116,7 +116,7 @@ object SelectedPostMenu {
         addNodes = Set(newPost),
         addEdges = Set(
           Edge.Label(rxPost.now.id, EdgeData.Label("related"), newPost.id)
-        ) ++ state.displayGraphWithoutParents.now.graph.parents(rxPost.now.id).map(parentId => Edge.Parent(newPost.id, parentId))
+        ) ++ state.graphContent.now.parents(rxPost.now.id).map(parentId => Edge.Parent(newPost.id, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }

@@ -16,22 +16,22 @@ object ArticleView extends View {
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
 
-    component(displayGraphWithParents, page, pageStyle)
+    component(graph, page, pageStyle)
   }
 
-  def component(dgo:Rx[DisplayGraph], graphSelection:Var[Page], pageStyle: Rx[PageStyle])(implicit owner: Ctx.Owner): VNode = {
+  def component(graph:Rx[Graph], graphSelection:Var[Page], pageStyle: Rx[PageStyle])(implicit owner: Ctx.Owner): VNode = {
     div(
       backgroundColor <-- pageStyle.map(_.bgColor.toHex),
       div(
         cls := "article",
-        dgo.map {
-          dg =>
-            val sortedPosts = HierarchicalTopologicalSort(dg.graph.nodeIds, successors = dg.graph.successorsWithoutParent, children = dg.graph.children)
+        graph.map {
+          graph =>
+            val sortedPosts = HierarchicalTopologicalSort(graph.nodeIds, successors = graph.successorsWithoutParent, children = graph.children)
 
             sortedPosts.map { nodeId =>
-              val post = dg.graph.nodesById(nodeId)
-              val depth = dg.graph.parentDepth(nodeId)
-              val tag = if (dg.graph.children(nodeId).isEmpty) p()
+              val post = graph.nodesById(nodeId)
+              val depth = graph.parentDepth(nodeId)
+              val tag = if (graph.children(nodeId).isEmpty) p()
                 else if (depth == 0) h1()
                 else if (depth == 1) h2()
                 else if (depth == 2) h3()

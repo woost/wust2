@@ -1,5 +1,6 @@
 package wust.graph
 
+import wust.graph.CollapsedGraph.LocalConnection
 import wust.ids._
 import wust.util.Selector
 import wust.util.algorithm._
@@ -7,7 +8,7 @@ import wust.util.algorithm._
 import scala.collection.breakOut
 
 object Collapse {
-  def apply(collapsing: Selector[NodeId])(displayGraph: DisplayGraph): DisplayGraph = {
+  def apply(collapsing: Selector[NodeId])(displayGraph: CollapsedGraph): CollapsedGraph = {
     import displayGraph.graph
 
     val collapsingPosts: collection.Set[NodeId] = graph.nodeIds.filter(collapsing)

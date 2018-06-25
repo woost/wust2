@@ -65,14 +65,14 @@ object ChatView extends View {
 
   def channelControl(state: GlobalState, post: Node)(implicit ctx: Ctx.Owner): VNode = div(
     Rx {
-      (state.rawGraph().children(state.user().channelNodeId).contains(post.id) match {
+      (state.graph().children(state.user().channelNodeId).contains(post.id) match {
         case true => freeSolid.faBookmark
         case false => freeRegular.faBookmark
       }):VNode //TODO: implicit for Rx[IconDefinition] ?
     },
     cursor.pointer,
     onClick --> sideEffect {_ =>
-      val changes = state.rawGraph.now.children(state.user.now.channelNodeId).contains(post.id) match {
+      val changes = state.graph.now.children(state.user.now.channelNodeId).contains(post.id) match {
         case true => GraphChanges.disconnectParent(post.id, state.user.now.channelNodeId)
         case false => GraphChanges.connectParent(post.id, state.user.now.channelNodeId)
       }
@@ -104,13 +104,13 @@ object ChatView extends View {
 
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
-    val graph = state.rawGraph
+    val graph = state.graph
 
     div(
       padding := "20px",
 
       Rx{
-        val posts = graph().withoutChannels.onlyAuthors.chronologicalNodesAscending
+        val posts = graphContent().chronologicalNodesAscending
         if (posts.isEmpty) Seq(emptyMessage)
         else posts.map(chatMessage(state, _, graph(), user()))
       },
@@ -191,14 +191,14 @@ object ChatView extends View {
 
   def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val graphIsEmpty = Rx {
-      state.displayGraphWithParents().graph.isEmpty && state.page().mode == PageMode.Default
+      state.graphContent().isEmpty && state.page().mode == PageMode.Default
     }
 
     textArea(
       valueWithEnter --> sideEffect { str =>
-        val graph = state.displayGraphWithParents.now
+        val graph = state.graphContent.now
         val user = state.user.now
-        val changes = PostDataParser.newPost(graph.graph.nodes.toSeq, user.id).parse(str) match {
+        val changes = PostDataParser.newPost(contextPosts = graph.nodes.toSeq, author = user.id).parse(str) match {
           case Parsed.Success(changes, _) => changes
           case failure: Parsed.Failure[_,_] =>
             scribe.warn(s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown.")
