@@ -66,7 +66,7 @@ sealed trait RestructuringTaskObject {
     val futureTask: Future[List[RestructuringTask]] =  for {
       strategyPosts <- futurePosts
       finalPosts <- if(strategyPosts.nonEmpty) Future.successful(strategyPosts) else fallbackHeuristic(graph, numMaxPosts)
-    } yield finalPosts.map(res => apply(res.posts))
+    } yield finalPosts.map(res => apply(res.nodes))
 
     futureTask
   }
@@ -83,7 +83,7 @@ sealed trait RestructuringTask {
 
   def getGraphFromState(state: GlobalState): Graph = state.displayGraphWithParents.now.graph
 
-  def transferChildrenAndParents(graph: Graph, source: NodeId, target: NodeId): Set[Edge] = {
+  def transferChildrenAndParents(graph: Graph, source: NodeId, target: NodeId): collection.Set[Edge] = {
     val sourceChildren = graph.getChildren(source)
     val sourceParents = graph.getParents(source)
     val childrenConnections = sourceChildren.map(child => Edge.Parent(child, target))
@@ -770,7 +770,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask
 
     ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
       val graph = getGraphFromState(state)
-      val tagPostWithParents: GraphChanges = graph.posts.find(_.data == tag) match {
+      val tagPostWithParents: GraphChanges = graph.nodes.find(_.data == tag) match {
         case None =>
           //TODO: author = state.user.now.id
           val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag))
@@ -881,7 +881,7 @@ object RestructuringTaskGenerator {
         initState = Some(globalState)
 
         def mapPid(pids: List[NodeId]): PostHeuristicType = {
-          val posts: Posts = pids.map(pid => initGraph.postsById(pid)).collect{case p: Node.Content => p}
+          val posts: Posts = pids.map(pid => initGraph.nodesById(pid)).collect{case p: Node.Content => p}
           val h: PostHeuristicType = PostHeuristic.Deterministic(posts).heuristic
           h
         }

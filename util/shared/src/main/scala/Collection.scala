@@ -1,16 +1,23 @@
 package wust.util
 
-import scala.collection.{IterableLike, breakOut}
+import scala.collection.{IterableLike, breakOut, mutable}
 
 package object collection {
   implicit class RichCollection[T, Repr[T]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
-    def by[X](lens: T => X): Map[X, T] = col.map(x => lens(x) -> x)(breakOut)
-    def distinctBy[X](lens: T => X) = col.filterNot {
-      var set = Set[X]()
-      (elem: T) => {
+    def by[X](lens: T => X): scala.collection.Map[X, T] = {
+      val map = mutable.HashMap[X,T]()
+      map.sizeHint(col.size)
+      col.foreach { x =>
+        map(lens(x)) = x
+      }
+      map
+    }
+    def distinctBy[X](lens: T => X): Repr[T] = col.filterNot {
+      val seen = mutable.HashSet[X]()
+      elem: T => {
         val id = lens(elem)
-        val b = set(id)
-        set += id
+        val b = seen(id)
+        seen += id
         b
       }
     }

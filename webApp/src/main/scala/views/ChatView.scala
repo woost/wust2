@@ -40,7 +40,7 @@ object ChatView extends View {
     import state._
     div(
       padding := "5px 10px",
-      pageParentPosts.map(_.map { parent =>
+      pageParentNodes.map(_.map { parent =>
         div(
           display.flex,
           alignItems.center,
@@ -110,7 +110,7 @@ object ChatView extends View {
       padding := "20px",
 
       Rx{
-        val posts = graph().withoutChannels.onlyAuthors.chronologicalPostsAscending
+        val posts = graph().withoutChannels.onlyAuthors.chronologicalNodesAscending
         if (posts.isEmpty) Seq(emptyMessage)
         else posts.map(chatMessage(state, _, graph(), user()))
       },
@@ -146,7 +146,7 @@ object ChatView extends View {
   }
 
   def chatMessage(state:GlobalState, post: Node, graph:Graph, currentUser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
-    val postTags: Seq[Node] = graph.ancestors(post.id).map(graph.postsById(_)).toSeq
+    val postTags: Seq[Node] = graph.ancestors(post.id).map(graph.nodesById(_)).toSeq
 
     val isMine = false //currentUser.id == post.author TODO Authorship
     val isDeleted = post.meta.deleted.timestamp < EpochMilli.now
@@ -198,7 +198,7 @@ object ChatView extends View {
       valueWithEnter --> sideEffect { str =>
         val graph = state.displayGraphWithParents.now
         val user = state.user.now
-        val changes = PostDataParser.newPost(graph.graph.posts.toSeq, user.id).parse(str) match {
+        val changes = PostDataParser.newPost(graph.graph.nodes.toSeq, user.id).parse(str) match {
           case Parsed.Success(changes, _) => changes
           case failure: Parsed.Failure[_,_] =>
             scribe.warn(s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown.")

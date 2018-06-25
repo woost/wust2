@@ -2,73 +2,76 @@ package wust.util
 
 object algorithm {
   import scala.collection.{IterableLike, breakOut, mutable}
-  import scala.math.Ordering
+  import math.Ordering
 
-  def directedAdjacencyList[V1, E, V2](edges: Iterable[E], inf: E => V1, outf: E => V2): Map[V1, Set[V2]] = { // TODO: Multimap
-    edges
-      .foldLeft(Map.empty[V1, Set[V2]].withDefaultValue(Set.empty[V2])) {
-        (acc, e) =>
-          val in = inf(e)
-          val out = outf(e)
-          val existing = acc(in)
-          acc + (in -> (existing + out))
-      }
+  def defaultNeighbourhood[V, T](vertices: Iterable[V], default: T): scala.collection.Map[V,T] = {
+    val map = mutable.HashMap[V,T]().withDefaultValue(default)
+    map.sizeHint(vertices.size)
+    vertices.foreach { v =>
+      map(v) = default
+    }
+    map
   }
 
-  def adjacencyList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): Map[V, Set[V]] = { // TODO: Multimap
-    edges
-      .foldLeft(Map.empty[V, Set[V]].withDefaultValue(Set.empty[V])) {
-        (acc, e) =>
-          val in = inf(e)
-          val out = outf(e)
-          val existingOut = acc(in)
-          val existingIn = acc(out)
-          acc + (in -> (existingOut + out)) + (out -> (existingIn + in))
-      }
+  def directedAdjacencyList[V1, E, V2](edges: Iterable[E], inf: E => V1, outf: E => V2): scala.collection.Map[V1, scala.collection.Set[V2]] = { // TODO: Multimap
+    val map = mutable.HashMap[V1, scala.collection.Set[V2]]().withDefaultValue(mutable.HashSet.empty[V2])
+    edges.foreach {e =>
+      val in = inf(e)
+      val out = outf(e)
+      map(in) += out
+    }
+    map
   }
 
-  def degreeSequence[V, E](edges: Iterable[E], inf: E => V, outf: E => V): Map[V, Int] = {
-    edges
-      .foldLeft(Map.empty[V, Int].withDefaultValue(0)) {
-        (acc, e) =>
-          val in = inf(e)
-          val out = outf(e)
-          val existingOut = acc(in)
-          val existingIn = acc(out)
-          acc + (in -> (existingOut + 1)) + (out -> (existingIn + 1))
-      }
+  def adjacencyList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): scala.collection.Map[V, scala.collection.Set[V]] = { // TODO: Multimap
+    val map = mutable.HashMap[V, scala.collection.Set[V]]().withDefaultValue(mutable.HashSet.empty[V])
+    edges.foreach {e =>
+      val in = inf(e)
+      val out = outf(e)
+      map(in) += out
+      map(out) += in
+    }
+    map
   }
 
-  def directedDegreeSequence[V, E](edges: Iterable[E], inf: E => V): Map[V, Int] = {
-    edges
-      .foldLeft(Map.empty[V, Int].withDefaultValue(0)) {
-        (acc, e) =>
-          val in = inf(e)
-          val existingOut = acc(in)
-          acc + (in -> (existingOut + 1))
-      }
+  def degreeSequence[V, E](edges: Iterable[E], inf: E => V, outf: E => V): scala.collection.Map[V, Int] = {
+    val map = mutable.HashMap[V, Int]().withDefaultValue(0)
+    edges.foreach {e =>
+      val in = inf(e)
+      val out = outf(e)
+      map(in) += 1
+      map(out) += 1
+    }
+    map
   }
 
-  def directedIncidenceList[V, E](edges: Iterable[E], inf: E => V): Map[V, Set[E]] = { // TODO: Multimap
-    edges
-      .foldLeft(Map.empty[V, Set[E]].withDefaultValue(Set.empty[E])) {
-        (acc, e) =>
-          val in = inf(e)
-          val existing = acc(in)
-          acc + (in -> (existing + e))
-      }
+  def directedDegreeSequence[V, E](edges: Iterable[E], inf: E => V): scala.collection.Map[V, Int] = {
+    val map = mutable.HashMap[V, Int]().withDefaultValue(0)
+    edges.foreach {e =>
+      val in = inf(e)
+      map(in) += 1
+    }
+    map
   }
 
-  def incidenceList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): Map[V, Set[E]] = { // TODO: Multimap
-    edges
-      .foldLeft(Map.empty[V, Set[E]].withDefaultValue(Set.empty[E])) {
-        (acc, e) =>
-          val in = inf(e)
-          val out = outf(e)
-          val existingOut = acc(in)
-          val existingIn = acc(out)
-          acc + (in -> (existingOut + e)) + (out -> (existingIn + e))
-      }
+  def directedIncidenceList[V, E](edges: Iterable[E], inf: E => V): scala.collection.Map[V, scala.collection.Set[E]] = { // TODO: Multimap
+    val map = mutable.HashMap[V, scala.collection.Set[E]]().withDefaultValue(mutable.HashSet.empty[E])
+    edges.foreach {e =>
+      val in = inf(e)
+      map(in) += e
+    }
+    map
+  }
+
+  def incidenceList[V, E](edges: Iterable[E], inf: E => V, outf: E => V): scala.collection.Map[V, scala.collection.Set[E]] = { // TODO: Multimap
+    val map = mutable.HashMap[V, scala.collection.Set[E]]().withDefaultValue(mutable.HashSet.empty[E])
+    edges.foreach {e =>
+      val in = inf(e)
+      val out = outf(e)
+      map(in) += e
+      map(out) += e
+    }
+    map
   }
 
   //TODO: depthfirstsearch producing a sequence

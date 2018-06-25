@@ -42,7 +42,7 @@ case object PostHeuristic {
   }
 
   private[this] def wrapStringMetric(metric: StringMetric[Double], graph: Graph, nodeIds: List[NodeId], num: Option[Int]): List[ApiResult] = {
-    val posts = nodeIds.map(graph.postsById).collect{case p: Node.Content => p}
+    val posts = nodeIds.map(graph.nodesById).collect{case p: Node.Content => p}
     def f(p: List[Node.Content]): List[Result] = (for {
         l <- p.combinations(2).toList
         } yield {
@@ -51,7 +51,7 @@ case object PostHeuristic {
 
     val result = wrapHeuristic(f, posts, num)
 
-    result.map(r => Heuristic.IdResult(r.measure, r.posts.map(_.id)))
+    result.map(r => Heuristic.IdResult(r.measure, r.nodes.map(_.id)))
   }
 
    def diceSorensen(graph: Graph, posts: List[NodeId], num: Option[Int], nGramValue: Int = 3): List[ApiResult] = {

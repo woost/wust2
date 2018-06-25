@@ -33,7 +33,7 @@ object PostHeuristic {
 
   sealed trait FrontendHeuristic extends PostHeuristic {
     def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = {
-      Future.successful(List(frontendHeuristic(graph.contentPosts.toList, num)).map(l => Heuristic.PostResult(None, l)))
+      Future.successful(List(frontendHeuristic(graph.contentNodes.toList, num)).map(l => Heuristic.PostResult(None, l)))
     }
     def frontendHeuristic(posts: List[Node.Content], num: Option[Int]): List[Node.Content]
 
@@ -152,20 +152,20 @@ object PostHeuristic {
 
   case object NodeDegree extends GraphHeuristic {
     def graphHeuristic(graph: Graph, num: Option[Int] = Some(2)): List[Node.Content] = {
-      def _nodeDegree(graph: Graph) = graph.connectionDegree.toList.sortBy(_._2).map(p => graph.postsById(p._1)).collect{case p: Node.Content => p}
+      def _nodeDegree(graph: Graph) = graph.connectionDegree.toList.sortBy(_._2).map(p => graph.nodesById(p._1)).collect{case p: Node.Content => p}
 
       wrapGraphHeuristic(_nodeDegree, graph, num)
     }
   }
 
   sealed trait BackendHeuristic extends PostHeuristic {
-    def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = backendHeuristic(graph.contentPosts.toSet, num)
+    def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = backendHeuristic(graph.contentNodes.toSet, num)
     protected def backendHeuristic(posts: Set[Node.Content], num: Option[Int] = Some(2)): PostHeuristicResult
 
     protected def wrappedBackendHeuristic(heuristic: NlpHeuristic)(posts: Set[Node.Content], num: Option[Int] = Some(2)): PostHeuristicResult = {
       def _backendHeuristic(posts: List[Node.Content]): Future[List[Heuristic.PostResult]] = {
         val postMap: Map[NodeId, Node.Content] = posts.map(p => p.id -> p).toMap
-        val nodeIds = Client.api.chooseTaskPosts(heuristic, posts.map(_.id), num)
+        val nodeIds = Client.api.chooseTaskNodes(heuristic, posts.map(_.id), num)
         nodeIds.map(_.map(r => Heuristic.PostResult(r.measure, r.nodeIds.map(postMap))))
       }
 
@@ -176,7 +176,7 @@ object PostHeuristic {
 
       num match {
         case Some(n) => choice.map(_.map(r => Heuristic.PostResult(r.measure, {
-          if (n > 0) r.posts.take(n) else r.posts.reverse.take(math.abs(n))
+          if (n > 0) r.nodes.take(n) else r.nodes.reverse.take(math.abs(n))
         })))
         case None => choice
       }

@@ -5,12 +5,12 @@ import wust.ids._
 import scala.collection.breakOut
 
 case class GraphChanges(
-                         addNodes:        Set[Node]        = Set.empty,
-                         addEdges:  Set[Edge]  = Set.empty,
-                         updateNodes:     Set[Node]        = Set.empty,
-                         delNodes:        Set[NodeId]      = Set.empty,
+                         addNodes:        collection.Set[Node]        = Set.empty,
+                         addEdges:  collection.Set[Edge]  = Set.empty,
+                         updateNodes:     collection.Set[Node]        = Set.empty,
+                         delNodes:        collection.Set[NodeId]      = Set.empty,
                          // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
-                         delEdges:  Set[Edge]  = Set.empty
+                         delEdges:  collection.Set[Edge]  = Set.empty
 ) {
   def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges =
     copy(addEdges = addEdges ++ (addNodes ++ updateNodes).map(node => Edge.Author(userId, EdgeData.Author(timestamp), node.id)))
@@ -50,7 +50,7 @@ case class GraphChanges(
     delEdges
   )
 
-  def involvedNodeIds: Set[NodeId] = addNodes.map(_.id) ++ updateNodes.map(_.id) ++ delNodes
+  def involvedNodeIds: collection.Set[NodeId] = addNodes.map(_.id) ++ updateNodes.map(_.id) ++ delNodes
 
   private val allProps = addNodes :: addEdges :: updateNodes :: delNodes :: delEdges :: Nil
 
@@ -92,7 +92,7 @@ object GraphChanges {
   def moveInto(graph:Graph, subject:NodeId, target:NodeId) = {
     // TODO: only keep deepest parent in transitive chain
     val newContainments = Set[Edge](Edge.Parent(subject, target))
-    val removeContainments:Set[Edge] = if (graph.ancestors(target).toSet contains subject) { // creating cycle
+    val removeContainments:collection.Set[Edge] = if (graph.ancestors(target).toSet contains subject) { // creating cycle
       Set.empty // remove nothing, because in cycle
     } else { // no cycle
       (graph.parents(subject) map (Edge.Parent(subject, _) : Edge)) - newContainments.head

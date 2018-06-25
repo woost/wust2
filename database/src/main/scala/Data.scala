@@ -58,7 +58,7 @@ object Data {
   ) {
     require(targetIds.size == edgeData.size, "targetIds and connectionData need to have same arity")
   }
-  case class Graph(posts: Seq[Node], connections:Seq[Edge])
+  case class Graph(nodes: Seq[Node], edges:Seq[Edge])
   object Graph {
     def from(rowsList:List[GraphRow]):Graph = {
       val rows = rowsList.toArray

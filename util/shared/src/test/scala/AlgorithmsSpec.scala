@@ -11,6 +11,18 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       2 -> 3,
       1 -> 3
     )
+    "default neighbourhood" - {
+      "empty" in {
+        val neighbourhood = defaultNeighbourhood[Int,Int](Nil, 0)
+        neighbourhood mustEqual scala.collection.Map.empty[Int,Int]
+        neighbourhood(7) mustEqual 0
+      }
+      "not empty" in {
+        val neighbourhood = defaultNeighbourhood[Int,Int](List(2,3), 0)
+        neighbourhood mustEqual scala.collection.Map[Int,Int](2 -> 0, 3 -> 0)
+        neighbourhood(7) mustEqual 0
+      }
+    }
     "directed adjacency list" - {
       "empty" in {
         directedAdjacencyList[Int, Int, Int](Nil, identity, identity) mustEqual

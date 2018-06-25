@@ -19,7 +19,7 @@ trait Api[Result[_]] {
 
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]
-  def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[NodeId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
+  def chooseTaskNodes(heuristic: NlpHeuristic, nodes: List[NodeId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
 
   //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
@@ -108,7 +108,7 @@ object ApiEvent {
   }
 
   case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {
-    override def toString = s"ReplaceGraph(#posts: ${graph.posts.size})"
+    override def toString = s"ReplaceGraph(#nodes: ${graph.nodes.size})"
   }
 
   case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
@@ -137,7 +137,7 @@ object ApiEvent {
 case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
 
 object Heuristic {
-  case class PostResult(measure: Option[Double], posts: List[Node.Content])
+  case class PostResult(measure: Option[Double], nodes: List[Node.Content])
   case class IdResult(measure: Option[Double], nodeIds: List[NodeId])
 
   type Result = PostResult

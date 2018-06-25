@@ -181,7 +181,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //    Future.successful(true)
 //  }
 
-  override def chooseTaskPosts(heuristic: NlpHeuristic, posts: List[NodeId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
+  override def chooseTaskNodes(heuristic: NlpHeuristic, posts: List[NodeId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
     getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
 

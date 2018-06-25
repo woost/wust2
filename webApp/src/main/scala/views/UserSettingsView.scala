@@ -17,7 +17,7 @@ object UserSettingsView extends View {
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
     val graph = displayGraphWithoutParents.map(_.graph)
-    val newPostSink = state.newPostSink.toVar(NodeData.PlainText(""))
+    val newPostSink = state.newNodeSink.toVar(NodeData.PlainText(""))
 
     div(
        height := "100%",

@@ -34,7 +34,7 @@ object SelectedPostMenu {
       val graph = state.rawGraph()
       //TODO: getOrElse necessary? Handle post removal.
       //TODO: we are filtering out non-content posts, what about editing them?
-      graph.postsById
+      graph.nodesById
         .get(nodeId)
         .collect { case p: Node.Content => p }
         .getOrElse(Node.Content(NodeData.PlainText("")))
@@ -43,7 +43,7 @@ object SelectedPostMenu {
     val rxParents: Rx[Seq[Node]] = Rx {
       val graph = state.displayGraphWithParents().graph
       val directParentIds = graph.parents.getOrElse(nodeId, Set.empty)
-      directParentIds.flatMap(graph.postsById.get)(breakOut)
+      directParentIds.flatMap(graph.nodesById.get)(breakOut)
     }
 
     val transformStyle = Rx {
@@ -71,7 +71,7 @@ object SelectedPostMenu {
             margin := "2px", padding := "1px 0px 1px 5px",
             borderRadius := "2px",
             span("×", onClick --> sideEffect {
-              val addedGrandParents: Set[Edge] = {
+              val addedGrandParents: collection.Set[Edge] = {
                 if (parents.size == 1)
                   state.displayGraphWithParents.now.graph.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
                 else

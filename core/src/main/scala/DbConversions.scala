@@ -6,28 +6,28 @@ import wust.graph._
 import wust.ids._
 
 object DbConversions {
-  private def postMeta(post:Data.Node) = new NodeMeta(
-      deleted = post.deleted,
-      joinDate = post.joinDate,
-      joinLevel = post.joinLevel
+  private def nodeMeta(node:Data.Node) = new NodeMeta(
+      deleted = node.deleted,
+      joinDate = node.joinDate,
+      joinLevel = node.joinLevel
     )
-  private def postMeta(post:Data.User) = new NodeMeta(
-    deleted = post.deleted,
-    joinDate = post.joinDate,
-    joinLevel = post.joinLevel
+  private def nodeMeta(node:Data.User) = new NodeMeta(
+    deleted = node.deleted,
+    joinDate = node.joinDate,
+    joinLevel = node.joinLevel
   )
 
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription = WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
-  implicit def forClient(post: Data.Node):Node = {
-    post.data match {
-      case data:NodeData.Content => new Node.Content(post.id, data, postMeta(post))
-      case data:NodeData.User => new Node.User(UserId(post.id), data, postMeta(post))
+  implicit def forClient(node: Data.Node):Node = {
+    node.data match {
+      case data:NodeData.Content => new Node.Content(node.id, data, nodeMeta(node))
+      case data:NodeData.User => new Node.User(UserId(node.id), data, nodeMeta(node))
     }
   }
-  implicit def forClient(post: Data.User):Node.User = new Node.User(post.id, post.data, postMeta(post))
-  implicit def forClientAuth(post: Data.User):AuthUser.Persisted = post.data.isImplicit match {
-    case false => new AuthUser.Real(post.id, post.data.name, post.data.revision, post.data.channelNodeId)
-    case true => new AuthUser.Implicit(post.id, post.data.name, post.data.revision, post.data.channelNodeId)
+  implicit def forClient(node: Data.User):Node.User = new Node.User(node.id, node.data, nodeMeta(node))
+  implicit def forClientAuth(node: Data.User):AuthUser.Persisted = node.data.isImplicit match {
+    case false => new AuthUser.Real(node.id, node.data.name, node.data.revision, node.data.channelNodeId)
+    case true => new AuthUser.Implicit(node.id, node.data.name, node.data.revision, node.data.channelNodeId)
   }
   implicit def forDbAuth(user: AuthUser.Persisted):Data.SimpleUser = user match {
     case AuthUser.Real(id, name, revision, channelNodeId) => new Data.SimpleUser(id, new NodeData.User(name, isImplicit = false, revision, channelNodeId))
@@ -44,8 +44,8 @@ object DbConversions {
   }
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription = Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
-  implicit def forDb(post: Node): Data.Node = {
-    import post._
+  implicit def forDb(node: Node): Data.Node = {
+    import node._
     new Data.Node(
       id = id,
       data = data,
@@ -61,13 +61,13 @@ object DbConversions {
     sourceId = c.sourceId,
     data = c.data,
     targetId = c.targetId)
-  implicit def forDbPosts(posts: Set[Node]): Set[Data.Node] = posts.map(forDb)
-  implicit def forDbConnections(cs: Set[Edge]): Set[Data.Edge] = cs.map(forDb)
+  implicit def forDbNodes(nodes: collection.Set[Node]): collection.Set[Data.Node] = nodes.map(forDb)
+  implicit def forDbEdges(es: collection.Set[Edge]): collection.Set[Data.Edge] = es.map(forDb)
 
   def forClient(dbGraph: Data.Graph):Graph = {
     Graph(
-      posts = dbGraph.posts.map(forClient),
-      connections = dbGraph.connections.map(forClient)
+      nodes = dbGraph.nodes.map(forClient),
+      edges = dbGraph.edges.map(forClient)
     )
   }
 

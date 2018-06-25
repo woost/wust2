@@ -6,6 +6,9 @@ sealed trait DeletedDate {
 
 object DeletedDate {
   case class Deleted(timestamp: EpochMilli) extends DeletedDate
+  object Deleted {
+    def now = new Deleted(EpochMilli.now)
+  }
   case object NotDeleted extends DeletedDate {
     def timestamp:EpochMilli = EpochMilli.max
   }

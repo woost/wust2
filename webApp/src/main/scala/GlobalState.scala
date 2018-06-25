@@ -39,14 +39,14 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
 
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val newPostSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg)) // TODO: with auther connection
+  val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] => o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg)) // TODO: with auther connection
   }
 
   val rawGraph: Rx[Graph] = eventProcessor.rawGraph.toRx(seed = Graph.empty)
 
   val channels: Rx[List[Node]] = Rx {
     val graph = rawGraph()
-    (graph.children(user().channelNodeId).map(graph.postsById)(breakOut): List[Node]).sortBy(_.data.str)
+    (graph.children(user().channelNodeId).map(graph.nodesById)(breakOut): List[Node]).sortBy(_.data.str)
   }
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
@@ -62,8 +62,8 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
       NewGroupView
   }
 
-  val pageParentPosts: Rx[Seq[Node]] = Rx {
-    page().parentIds.flatMap(id => rawGraph().postsById.get(id))
+  val pageParentNodes: Rx[Seq[Node]] = Rx {
+    page().parentIds.flatMap(id => rawGraph().nodesById.get(id))
   }
 
   val pageStyle = Rx {
@@ -72,7 +72,7 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
 
   // be aware that this is a potential memory leak.
   // it contains all ids that have ever been collapsed in this session.
-  // this is a wanted feature, because manually collapsing posts is preserved with navigation
+  // this is a wanted feature, because manually collapsing nodes is preserved with navigation
   val collapsedNodeIds: Var[Set[NodeId]] = Var(Set.empty)
 
   val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
@@ -129,14 +129,14 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
     import changes.consistent._
 
     val toDelete = delNodes.flatMap { nodeId =>
-      Collapse.getHiddenPosts(graph removePosts viewConfig.page.parentIds, Set(nodeId))
+      Collapse.getHiddenNodes(graph removeNodes viewConfig.page.parentIds, Set(nodeId))
     }
 
     def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] = page.parentIds.map(Edge.Parent(nodeId,  _))(breakOut)
 
-    val containedPosts = addEdges.collect { case Edge.Parent(source,  _) => source }
+    val containedNodes = addEdges.collect { case Edge.Parent(source,  _) => source }
     val toContain = addNodes
-      .filterNot(p => containedPosts(p.id))
+      .filterNot(p => containedNodes(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))
 
     changes.consistent merge GraphChanges(delNodes = toDelete, addEdges = toContain)
@@ -190,9 +190,9 @@ object GlobalState {
     Client.observable.event.foreach { events =>
       val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
       if (changes.addNodes.nonEmpty) {
-        val msg = if (changes.addNodes.size == 1) "New Post" else s"New Post (${changes.addNodes.size})"
+        val msg = if (changes.addNodes.size == 1) "New Node" else s"New Node (${changes.addNodes.size})"
         val body = changes.addNodes.map(_.data).mkString(", ")
-        Notifications.notify(msg, body = Some(body), tag = Some("new-post"))
+        Notifications.notify(msg, body = Some(body), tag = Some("new-node"))
       }
     }
 
@@ -203,10 +203,10 @@ object GlobalState {
 
     DevOnly {
 
-      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toString}")
+//      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toString}")
       //      collapsedNodeIds.debug("collapsedNodeIds")
-      perspective.debug("perspective")
-      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
+//      perspective.debug("perspective")
+//      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
       //      focusedNodeId.debug("focusedNodeId")
       //      selectedGroupId.debug("selectedGroupId")
       // rawPage.debug("rawPage")

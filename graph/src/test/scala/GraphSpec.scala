@@ -19,21 +19,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
   "graph" - {
     "empty is empty" in {
-      Graph.empty.postsById mustBe empty
+      Graph.empty.nodesById mustBe empty
       Graph.empty.connectionsWithoutParent mustBe empty
 
-      Graph.empty.posts mustBe empty
+      Graph.empty.nodes mustBe empty
 
-      Graph().postsById mustBe empty
+      Graph().nodesById mustBe empty
       Graph().connectionsWithoutParent mustBe empty
 
-      Graph().posts mustBe empty
+      Graph().nodes mustBe empty
     }
 
     "directed cycle" in {
       val graph = Graph(
-        posts = List(1, 11, 12),
-        connections = List(Containment(1, 11), Containment(11, 12), Containment(12, 1))
+        nodes = List(1, 11, 12),
+        edges = List(Containment(1, 11), Containment(11, 12), Containment(12, 1))
       )
 
       graph.involvedInContainmentCycle(1) mustEqual true
@@ -70,16 +70,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.consistent mustEqual Graph(List(1, 2, 3), connections ++ containments :+ newConnection)
     }
 
-    "consistent on graph with self-loops" in {
-      val connections: List[Edge] = List(1 -> 2, 2 -> 3, 4 -> 4)
-      val containments: List[Edge] = List(1 cont 2, 2 cont 3, 5 cont 5)
-      val graph = Graph(
-        List(1, 2, 3, 4, 5),
-        connections ++ containments
-      )
-      graph.consistent mustEqual Graph(List(1, 2, 3, 4, 5), List[Edge](1 -> 2, 2 -> 3) ++ List[Edge](1 cont 2, 2 cont 3))
-    }
-
     "consistent on inconsistent graph (reverse)" in {
       val connections: List[Edge] = List(1 -> 2, 2 -> 3)
       val containments: List[Edge] = List(1 cont 2, 2 cont 3)
@@ -101,14 +91,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val connections: List[Edge] = List(1 -> 2, 2 -> 3)
       val newConnection = Connection(3, 1)
       val graph = Graph(List(1, 2, 3), connections ++ List[Edge](1 -> 2, 2 -> 3))
-      (graph + newConnection) mustEqual Graph(graph.posts, connections ++ graph.containments :+ newConnection)
+      (graph + newConnection) mustEqual Graph(graph.nodes, connections ++ graph.containments :+ newConnection)
     }
 
     "add containment" in {
       val containments: List[Edge] = List(1 -> 2, 2 -> 3)
       val newContainment = Containment(3, 1)
       val graph = Graph(List(1, 2, 3), List[Edge](1 -> 2, 2 -> 3) ++ containments)
-      (graph + newContainment) mustEqual Graph(graph.posts, graph.connectionsWithoutParent ++ (containments :+ newContainment))
+      (graph + newContainment) mustEqual Graph(graph.nodes, graph.connectionsWithoutParent ++ (containments :+ newContainment))
     }
 
     "filter" in {
@@ -137,21 +127,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val connections: List[Edge] = List(Connection(1, 2), Connection(2, 3))
       val containments: List[Edge] = List(Containment(1, 2), Containment(2, 3))
       val graph = Graph(List(1, 2, 3), connections ++ containments)
-      (graph removePosts Seq[NodeId](1)) mustEqual Graph(List(2, 3), List(Connection(2, 3)) ++ List(Containment(2, 3)))
+      (graph removeNodes Seq[NodeId](1)) mustEqual Graph(List(2, 3), List(Connection(2, 3)) ++ List(Containment(2, 3)))
     }
 
     "remove multiple posts" in {
       val connections: List[Edge] = List(Connection(1, 2), Connection(2, 3))
       val containments: List[Edge] = List(Containment(1, 2), Containment(2, 3))
       val graph = Graph(List(1, 2, 3, 4), connections ++ containments)
-      (graph removePosts Seq[NodeId](1, 4)) mustEqual Graph(List(2, 3), List(Connection(2, 3)) ++  List(Containment(2, 3)))
+      (graph removeNodes Seq[NodeId](1, 4)) mustEqual Graph(List(2, 3), List(Connection(2, 3)) ++  List(Containment(2, 3)))
     }
 
     "remove connection" in {
       val connections: List[Edge] = List(Connection(1, 2), Connection(2, 3))
       val containments: List[Edge] = List(Containment(1, 2), Containment(2, 3))
       val graph = Graph(List(1, 2, 3), connections ++ containments)
-      (graph - Connection(2, 3)) mustEqual Graph(graph.posts, List(Connection(1, 2)) ++ graph.containments)
+      (graph - Connection(2, 3)) mustEqual Graph(graph.nodes, List(Connection(1, 2)) ++ graph.containments)
     }
 
     "remove non-existing connection" in {
@@ -165,7 +155,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val connections: List[Edge] = List(Connection(1, 2), Connection(2, 3))
       val containments: List[Edge] = List(Containment(1, 2), Containment(2, 3))
       val graph = Graph(List(1, 2, 3), connections ++ containments)
-      (graph - Containment(2, 3)) mustEqual Graph(graph.posts, graph.connectionsWithoutParent ++ List(Containment(1, 2)))
+      (graph - Containment(2, 3)) mustEqual Graph(graph.nodes, graph.connectionsWithoutParent ++ List(Containment(1, 2)))
     }
 
     "remove non-existing containment" in {
@@ -177,20 +167,20 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "successors of post" in {
       val graph = Graph(
-        posts = List(1, 11, 12, 13, 14),
-        connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
+        nodes = List(1, 11, 12, 13, 14),
+        edges = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
-      graph.postsById(12)
-      graph.postsById(12)
+      graph.nodesById(12)
+      graph.nodesById(12)
       graph.successorsWithoutParent(12) mustEqual Set[NodeId](1, 13)
       graph.successorsWithoutParent(13) mustEqual Set.empty
     }
 
     "predecessors of post" in {
       val graph = Graph(
-        posts = List(1, 11, 12, 13, 14),
-        connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
+        nodes = List(1, 11, 12, 13, 14),
+        edges = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
       graph.predecessorsWithoutParent(12) mustEqual Set[NodeId](11)
@@ -199,8 +189,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "neighbours of post" in {
       val graph = Graph(
-        posts = List(1, 11, 12, 13, 14),
-        connections = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
+        nodes = List(1, 11, 12, 13, 14),
+        edges = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
       )
 
       graph.neighboursWithoutParent(12) mustEqual Set[NodeId](1, 11, 13)
@@ -209,8 +199,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "children of post" in {
       val graph = Graph(
-        posts = List(1, 11, 12, 13, 14),
-        connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
+        nodes = List(1, 11, 12, 13, 14),
+        edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
       graph.children(1:NodeId) mustEqual Set[NodeId](11, 12)
@@ -219,8 +209,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "parents of post" in {
       val graph = Graph(
-        posts = List(1, 11, 12, 13, 14),
-        connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
+        nodes = List(1, 11, 12, 13, 14),
+        edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
       graph.parents(1) mustEqual Set.empty
@@ -229,8 +219,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "containment neighbours of post" in {
       val graph = Graph(
-        posts = List(1, 11, 12, 13, 14),
-        connections = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
+        nodes = List(1, 11, 12, 13, 14),
+        edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
       graph.containmentNeighbours(1) mustEqual Set[NodeId](11, 12)

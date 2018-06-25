@@ -32,18 +32,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     // node ids are unique, so the methods can assume that at max 1 row was touched in each operation
 
     //TODO need to check rights before we can do this
-    private val insert = quote { post: Node =>
-      val q = query[Node].insert(post)
-      // when adding a new post, we undelete it in case it was already there
-      //TODO this approach hides conflicts on post ids!!
+    private val insert = quote { node: Node =>
+      val q = query[Node].insert(node)
+      // when adding a new node, we undelete it in case it was already there
+      //TODO this approach hides conflicts on node ids!!
       //TODO what about title
-      //TODO can undelete posts that i do not own
+      //TODO can undelete nodes that i do not own
       infix"$q ON CONFLICT(id) DO UPDATE SET deleted = ${lift(DeletedDate.NotDeleted.timestamp)}".as[Insert[Node]]
     }
 
-    def create(post: Node)(implicit ec: ExecutionContext): Future[Boolean] = create(Set(post))
-    def create(posts: Set[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(insert(_)))
+    def create(node: Node)(implicit ec: ExecutionContext): Future[Boolean] = create(List(node))
+    def create(nodes: Iterable[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(nodes).foreach(insert(_)))
         .map(_.forall(_ <= 1))
     }
 
@@ -54,7 +54,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
 
     def get(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
       //TODO
-      //ctx.run(query[Post].filter(p => liftQuery(nodeIds) contains p.id))
+      //ctx.run(query[Node].filter(p => liftQuery(nodeIds) contains p.id))
       val q = quote {
         infix"""
         select node.* from unnest(${lift(nodeIds.toList)} :: varchar(36)[]) inputNodeId join node on node.id = inputNodeId
@@ -64,16 +64,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       ctx.run(q)
     }
 
-    def update(post: Node)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(post))
-    def update(posts: Set[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(posts.toList).foreach(post => query[Node].filter(_.id == post.id).update(_.data -> post.data)))
+    def update(node: Node)(implicit ec: ExecutionContext): Future[Boolean] = update(Set(node))
+    def update(nodes: Iterable[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(nodes.toList).foreach(node => query[Node].filter(_.id == node.id).update(_.data -> node.data)))
         .map(_.forall(_ == 1))
     }
 
     //TODO delete should be part of update?
     def delete(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(nodeId))
     def delete(nodeId: NodeId, when: DeletedDate)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(nodeId), when)
-    def delete(nodeIds: Set[NodeId], when: DeletedDate = DeletedDate.Deleted(EpochMilli.now))(implicit ec: ExecutionContext): Future[Boolean] = {
+    def delete(nodeIds: Iterable[NodeId], when: DeletedDate = DeletedDate.Deleted(EpochMilli.now))(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx.run(liftQuery(nodeIds.toList).foreach(nodeId => query[Node].filter(_.id == nodeId).update(_.deleted -> lift(when))))
         .map(_.forall(_ == 1))
     }
@@ -82,8 +82,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       ctx.run {
         for {
           membershipConnection <- query[MemberEdge].filter(c => c.targetId == lift(nodeId) && c.data.jsonType == lift(EdgeData.Member.tpe))
-          userPost <- query[User].filter(_.id == membershipConnection.sourceId)
-        } yield userPost
+          userNode <- query[User].filter(_.id == membershipConnection.sourceId)
+        } yield userNode
       }
     }
 
@@ -92,9 +92,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       val now = EpochMilli.now
       val insertMembership = quote {
         // val membershipConnectionsToBeCreated = for {
-        //   user <- query[Post].filter(_.id == lift(userId))
-        //   post = query[Post].filter(p => liftQuery(nodeIds).contains(p.id) && lift(now) < p.joinDate)
-        //   connection <- post.map(p => Connection(user.id, ConnectionData.Member(p.joinLevel), p.id))
+        //   user <- query[Node].filter(_.id == lift(userId))
+        //   node = query[Node].filter(p => liftQuery(nodeIds).contains(p.id) && lift(now) < p.joinDate)
+        //   connection <- node.map(p => Connection(user.id, ConnectionData.Member(p.joinLevel), p.id))
         // } yield connection
         //
         //
@@ -110,7 +110,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
             END
         """.as[Insert[Edge]]
         //TODO: https://github.com/getquill/quill/issues/1093
-            // returning postid
+            // returning nodeid
         // """.as[ActionReturning[Membership, NodeId]]
       }
 
@@ -187,16 +187,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE SET data = EXCLUDED.data".as[Insert[Edge]]
     }
 
-    def apply(connection: Edge)(implicit ec: ExecutionContext): Future[Boolean] = apply(Set(connection))
-    def apply(connections: Set[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(liftQuery(connections.toList).foreach(insert(_)))
+    def apply(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = apply(List(edge))
+    def apply(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(liftQuery(edges.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
         .recoverValue(false)
     }
 
-    def delete(connection: Edge)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(connection))
-    def delete(connections: Set[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
-      val data = connections.map(c => (c.sourceId, c.data.tpe, c.targetId))
+    def delete(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(edge))
+    def delete(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
+      val data = edges.map(c => (c.sourceId, c.data.tpe, c.targetId))
       ctx.run(liftQuery(data.toList).foreach { case (sourceId, tpe, targetId) =>
         query[Edge].filter(c => c.sourceId == sourceId && c.data.jsonType == tpe && c.targetId == targetId).delete
       }).map(_.forall(_ <= 1))
@@ -212,53 +212,53 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       } yield membershipConnection
     }
 
-    def allPostsQuery(userId: UserId): Quoted[Query[Node]] = quote {
+    def allNodesQuery(userId: UserId): Quoted[Query[Node]] = quote {
       for {
         c <- allMembershipConnections(userId)
         p <- query[Node].join(p => p.id == c.targetId)
       } yield p
     }
 
-    def getAllPosts(userId: UserId)(implicit ec: ExecutionContext): Future[List[Node]] = ctx.run { allPostsQuery(userId) }
+    def getAllNodes(userId: UserId)(implicit ec: ExecutionContext): Future[List[Node]] = ctx.run { allNodesQuery(userId) }
 
     // TODO share code with createimplicit?
     def apply(userId: UserId, name: String, digest: Array[Byte], channelNodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val channelPost = Node(channelNodeId, NodeData.Channels, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      val userData = NodeData.User(name = name, isImplicit = false, revision = 0, channelNodeId = channelPost.id)
-      val userPost = User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      val levelPostData: EdgeData = EdgeData.Member(AccessLevel.Read)
+      val channelNode = Node(channelNodeId, NodeData.Channels, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val userData = NodeData.User(name = name, isImplicit = false, revision = 0, channelNodeId = channelNode.id)
+      val user = User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val membership: EdgeData = EdgeData.Member(AccessLevel.Read)
 
       val q = quote {
         infix"""
-        with insert_channelpost as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelPost.id)}, ${lift(channelPost.data)}, ${lift(channelPost.deleted)}, ${lift(channelPost.joinDate)}, ${lift(channelPost.joinLevel)})),
-             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(userPost.id)}, ${lift(userPost.data)}, ${lift(userPost.deleted)}, ${lift(userPost.joinDate)}, ${lift(userPost.joinLevel)})),
-             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(channelNodeId)}))
-             ins_m_up as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(userId)}))
+        with insert_channelnode as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelNode.id)}, ${lift(channelNode.data)}, ${lift(channelNode.deleted)}, ${lift(channelNode.joinDate)}, ${lift(channelNode.joinLevel)})),
+             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.deleted)}, ${lift(user.joinDate)}, ${lift(user.joinLevel)})),
+             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(channelNodeId)}))
+             ins_m_up as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)}))
                       insert into password(id, digest) select id, ${lift(digest)}
       """.as[Insert[Node]]
       }
 
       ctx.run(q)
-        .collect { case 1 => Option(userPost) }
+        .collect { case 1 => Option(user) }
         .recoverValue(None)
     }
 
     def createImplicitUser(userId: UserId, name: String, channelNodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      val channelPost = Node(channelNodeId, NodeData.Channels, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      val userData = NodeData.User(name = name, isImplicit = true, revision = 0, channelNodeId = channelPost.id)
-      val userPost = User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      val levelPostData: EdgeData = EdgeData.Member(AccessLevel.Read)
+      val channelNode = Node(channelNodeId, NodeData.Channels, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val userData = NodeData.User(name = name, isImplicit = true, revision = 0, channelNodeId = channelNode.id)
+      val user = User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+      val membership: EdgeData = EdgeData.Member(AccessLevel.Read)
 
       val q = quote {
         infix"""
-        with insert_channelpost as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelPost.id)}, ${lift(channelPost.data)}, ${lift(channelPost.deleted)}, ${lift(channelPost.joinDate)}, ${lift(channelPost.joinLevel)})),
-             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(userPost.id)}, ${lift(userPost.data)}, ${lift(userPost.deleted)}, ${lift(userPost.joinDate)}, ${lift(userPost.joinLevel)})),
-             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(channelNodeId)}))
-                      insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(levelPostData)}, ${lift(userId)})
+        with insert_channelnode as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(channelNode.id)}, ${lift(channelNode.data)}, ${lift(channelNode.deleted)}, ${lift(channelNode.joinDate)}, ${lift(channelNode.joinLevel)})),
+             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.deleted)}, ${lift(user.joinDate)}, ${lift(user.joinLevel)})),
+             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(channelNodeId)}))
+                      insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
      """.as[Insert[Node]]
       }
       ctx.run(q)
-        .collect { case 1 => Option(userPost) }
+        .collect { case 1 => Option(user) }
         .recoverValue(None)
     }
 

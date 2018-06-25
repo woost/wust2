@@ -438,7 +438,7 @@ object WustReceiver {
           case EdgeData.Label("describes") => c.targetId == pid
           case _ => false
         })
-        .map(c => graph.postsById(c.sourceId))
+        .map(c => graph.nodesById(c.sourceId))
     }
 
     // TODO: NodeId <=> ExternalId mapping
@@ -456,8 +456,8 @@ object WustReceiver {
 
       // Delete
       val githubDeletePosts = githubChanges.delNodes
-      val issuesToDelete: Set[NodeId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
-      val commentsToDelete: Set[NodeId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId))
+      val issuesToDelete: collection.Set[NodeId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
+      val commentsToDelete: collection.Set[NodeId] = githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId))
 
       val deleteIssuesCall = issuesToDelete
         .flatMap { pid =>
@@ -465,7 +465,7 @@ object WustReceiver {
           externalId.map(eid => DeleteIssue(owner = Constants.wustOwner,
             repo = Constants.wustRepo,
             externalNumber = eid,
-            title = prevGraph.postsById(pid).data.str,
+            title = prevGraph.nodesById(pid).data.str,
             content = issuePostOfDesc(prevGraph, pid).map(_.data.str).getOrElse(""),
             nodeId = pid))
         }
@@ -482,8 +482,8 @@ object WustReceiver {
 
       // Update
       val githubUpdatePosts = githubChanges.updateNodes
-      val issuesToUpdate: Set[Node] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToUpdate: Set[Node] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
+      val issuesToUpdate: collection.Set[Node] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
+      val commentsToUpdate: collection.Set[Node] = githubUpdatePosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
 
       val editIssuesCall = issuesToUpdate
         .flatMap { p =>
@@ -511,10 +511,10 @@ object WustReceiver {
 
       // Add
       val githubAddPosts = githubChanges.addNodes
-      val issuesToAdd: Set[Node] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
-      val commentsToAdd: Set[Node] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
+      val issuesToAdd: collection.Set[Node] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.issueTagId))
+      val commentsToAdd: collection.Set[Node] = githubAddPosts.filter(post => currGraph.inChildParentRelation(post.id, Constants.commentTagId))
 
-      val redirectCommentsToAdd: Set[Node] = githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
+      val redirectCommentsToAdd: collection.Set[Node] = githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
         !currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
           currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)
       })

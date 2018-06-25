@@ -29,7 +29,7 @@ object ArticleView extends View {
             val sortedPosts = HierarchicalTopologicalSort(dg.graph.nodeIds, successors = dg.graph.successorsWithoutParent, children = dg.graph.children)
 
             sortedPosts.map { nodeId =>
-              val post = dg.graph.postsById(nodeId)
+              val post = dg.graph.nodesById(nodeId)
               val depth = dg.graph.parentDepth(nodeId)
               val tag = if (dg.graph.children(nodeId).isEmpty) p()
                 else if (depth == 0) h1()
