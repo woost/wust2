@@ -3,7 +3,8 @@ package wust.webApp
 import outwatch.dom._
 import rx._
 import wust.webApp.outwatchHelpers._
-import scala.scalajs.LinkingInfo
+
+import scala.scalajs.{LinkingInfo, js}
 
 object Main {
 

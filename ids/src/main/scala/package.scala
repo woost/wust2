@@ -19,7 +19,7 @@ package object ids {
   type UserId = UserId.Type
 
   object EpochMilli extends TaggedType[Long] {
-    def now:EpochMilli = EpochMilli(System.currentTimeMillis())
+    def now:EpochMilli = EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
     def from(time:String) = EpochMilli(Instant.parse(time).toEpochMilli)
     implicit class RichEpochMilli(val t:EpochMilli) extends AnyVal {
       @inline def <(that:EpochMilli) = t < that

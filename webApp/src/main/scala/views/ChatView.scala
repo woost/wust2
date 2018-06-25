@@ -17,6 +17,9 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import wust.util._
 
+import scala.scalajs.js
+import scala.util.Success
+
 object ChatView extends View {
   override val key = "chat"
   override val displayName = "Chat"
@@ -82,9 +85,25 @@ object ChatView extends View {
 
   def joinControl(state:GlobalState, post:Node)(implicit ctx: Ctx.Owner):VNode = {
     val text = post.meta.joinDate match {
-      case JoinDate.Always => span(freeSolid.faUserPlus:VNode)(title := "Users can join via URL (click to toggle)")
-      case JoinDate.Never => span(freeSolid.faUserSlash:VNode)(title := "Private Group (click to toggle)")
-      case JoinDate.Until(time) => span(s"Users can join via URL until $time") //TODO: epochmilli format
+      case JoinDate.Always =>
+        div(
+          cls := "ui label",title := "Users can join via URL (click to toggle)",
+          (freeSolid.faUserPlus:VNode)(cls := "icon"),
+          span("Forever")
+        )
+      case JoinDate.Never =>
+        span(freeSolid.faLock:VNode, title := "Private Group (click to toggle)")
+        div(
+          cls := "ui label", title := "Nobody can join (click to toggle)",
+          (freeSolid.faLock:VNode)(cls := "icon"),
+          span("Private")
+        )
+      case JoinDate.Until(time) =>
+        div(
+          cls := "ui label", title := "Users can join via URL (click to toggle)",
+          (freeSolid.faUserPlus:VNode)(cls := "icon"),
+          span(dateFns.formatDistance(new js.Date(time), new js.Date(js.Date.now()))) // js.Date.now() is UTC
+        )
     }
 
     div(

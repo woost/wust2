@@ -98,6 +98,7 @@ object Deps {
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
     val marked = "marked" -> "0.3.12"
+    val dateFns = "date-fns" -> "v2.0.0-alpha.10"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "2.1.6" :: // TODO: use https://github.com/google/closure-compiler-js#webpack instead (after https://github.com/google/closure-compiler-js/issues/24 is fixed)

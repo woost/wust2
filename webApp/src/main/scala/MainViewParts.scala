@@ -9,12 +9,13 @@ import outwatch.dom.dsl._
 import rx._
 import wust.api.AuthUser
 import wust.graph._
-import wust.ids.NodeData
+import wust.ids._
 import wust.sdk.{ChangesHistory, SyncMode}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views._
 
+import scala.scalajs.js
 import scala.scalajs.js.Date
 
 object MainViewParts {
@@ -137,7 +138,8 @@ object MainViewParts {
       onClick --> sideEffect{ ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
-        val post = Node.Content(NodeData.PlainText(newGroupTitle(state))) //TODO: add author
+        val nowInAWeek = dateFns.addWeeks(new js.Date(js.Date.now()), 1)
+        val post = new Node.Content(NodeId.fresh, NodeData.PlainText(newGroupTitle(state)), NodeMeta(DeletedDate.NotDeleted, JoinDate.Until(EpochMilli(nowInAWeek.getTime().toLong)), joinLevel = AccessLevel.ReadWrite))
         for {
           _ <- state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(post, user.channelNodeId))
         } {

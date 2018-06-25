@@ -309,7 +309,8 @@ lazy val webApp = project
     npmDependencies in Compile ++=
       // Deps.npm.defaultPassiveEvents ::
       Deps.npm.marked ::
-        Nil
+      Deps.npm.dateFns ::
+      Nil
     )
 
 
