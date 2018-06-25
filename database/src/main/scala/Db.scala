@@ -25,7 +25,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
   import ctx._
 
   // schema meta: we can define how a type corresponds to a db table
-  implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.
+  private implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.
+  // enforce check of json-type for extra safety. additional this makes sure that partial indices on user.data are used.
+  private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
 
   //TODO should actually rollback transactions when batch action had partial error
   object node {
@@ -82,7 +84,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       ctx.run {
         for {
           membershipConnection <- query[MemberEdge].filter(c => c.targetId == lift(nodeId) && c.data.jsonType == lift(EdgeData.Member.tpe))
-          userNode <- query[User].filter(_.id == membershipConnection.sourceId)
+          userNode <- queryUser.filter(_.id == membershipConnection.sourceId)
         } yield userNode
       }
     }
@@ -265,14 +267,14 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     //TODO one query
     def activateImplicitUser(id: UserId, name: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.transaction { implicit ec =>
-          ctx.run(query[User].filter(u => u.id == lift(id) && u.data->>"isImplicit" == "true")) //TODO: type safe
+          ctx.run(queryUser.filter(u => u.id == lift(id) && u.data->>"isImplicit" == "true")) //TODO: type safe
           .flatMap(_.headOption.map { user =>
             val userData = user.data
             val updatedUser = user.copy(
               data = userData.copy(name = name, isImplicit = false, revision = userData.revision + 1)
             )
             for {
-              _ <- ctx.run(query[User].filter(_.id == lift(id)).update(lift(updatedUser)))
+              _ <- ctx.run(queryUser.filter(_.id == lift(id)).update(lift(updatedUser)))
               _ <- ctx.run(query[Password].insert(lift(Password(id, passwordDigest))))
             } yield Option(updatedUser)
           }.getOrElse(Future.successful(None)))
@@ -309,13 +311,13 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     }
 
     def get(id: UserId)(implicit ec: ExecutionContext): Future[Option[User]] = {
-      ctx.run(query[User].filter(p => p.id == lift(id) && p.data.jsonType == lift(NodeData.User.tpe) ).take(1))
+      ctx.run(queryUser.filter(p => p.id == lift(id) && p.data.jsonType == lift(NodeData.User.tpe) ).take(1))
         .map(_.headOption)
     }
 
     def getUserAndDigest(name: String)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
       ctx.run {
-        query[User]
+        queryUser
           .filter(_.data->>"name" == lift(name))
           .join(query[Password])
           .on((u, p) => u.id == p.id)
@@ -326,7 +328,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
 
     def byName(name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.run {
-        query[User]
+        queryUser
           .filter(u => u.data->>"name" == lift(name) && u.data->>"isImplicit" == "false")
           .take(1)
       }.map(_.headOption)
@@ -335,7 +337,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     def checkIfEqualUserExists(user: SimpleUser)(implicit ec: ExecutionContext): Future[Boolean] = {
       import user.data._
       ctx.run {
-        query[User]
+        queryUser
           .filter(u => u.id == lift(user.id) && u.data->>"revision" == lift(revision.toString) && u.data->>"isImplicit" == lift(isImplicit.toString) && u.data->>"name" == lift(name))
           .take(1)
       }.map(_.nonEmpty)
