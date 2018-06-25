@@ -106,7 +106,10 @@ object WustReceiver {
 
     val res = for { // Assume thas user exists
 //      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
-      _ <- valid(client.auth.login(config.user, config.password), "Cannot login")
+      _ <- valid(client.auth.login(config.user, config.password).map{
+        case AuthResult.Success => true
+        case _ => false
+      }, "Cannot login")
       // TODO: author: wustUser
       changes = GraphChanges(addNodes = Set(Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter"))))
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
