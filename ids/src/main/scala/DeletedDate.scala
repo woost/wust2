@@ -2,6 +2,7 @@ package wust.ids
 
 sealed trait DeletedDate {
   def timestamp: EpochMilli
+  def isNowDeleted = EpochMilli.now > timestamp
 }
 
 object DeletedDate {

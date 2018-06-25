@@ -202,6 +202,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
 
 
+  lazy val channels:collection.Set[Node] = channelIds.map(nodesById).filterNot(_.meta.deleted.isNowDeleted)
   lazy val withoutChannels:Graph = this.filterNot(channelIds ++ channelNodeIds)
   lazy val onlyAuthors:Graph = this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
   lazy val content:Graph = this.filterNot(channelIds ++ channelNodeIds ++ (allUserIds -- allAuthorIds).map(id => UserId.raw(id)))

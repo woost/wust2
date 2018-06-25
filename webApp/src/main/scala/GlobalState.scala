@@ -45,8 +45,8 @@ class GlobalState private (implicit ctx: Ctx.Owner) {
   val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
   val graphContent: Rx[Graph] = graph.map(_.content.consistent)
 
-  val channels: Rx[List[Node]] = Rx {
-    (graph().children(user().channelNodeId).map(graph().nodesById)(breakOut): List[Node]).sortBy(_.data.str)
+  val channels: Rx[Seq[Node]] = Rx {
+    graph().channels.toSeq.sortBy(_.data.str)
   }
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
