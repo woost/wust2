@@ -2,6 +2,12 @@
 set -e
 set -o pipefail
 
+if [ "$name" != "Woost" ]; then 
+  echo -e "\e[31m##################################################\e[0m"
+  echo -e "\e[31m######### YOU HAVE NOT STARTED NIX-SHELL #########\e[0m"
+  echo -e "\e[31m##################################################\e[0m"
+fi;
+
 script_dir="$(dirname $0)"
 
 function docker_compose() {
