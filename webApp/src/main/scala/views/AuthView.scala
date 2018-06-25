@@ -45,8 +45,8 @@ object AuthView {
       margin := "auto",
       form(
         h2(header),
-        div(cls := "ui fluid input", input(tpe := "text", attr("autocomplete") := "username", placeholder := "Username", value := "", display.block, margin := "auto", onInput.value --> userName)),
-        div(cls := "ui fluid input", input(tpe := "password", attr("autocomplete") := "current-password", placeholder := "Password", value := "", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
+        div(cls := "ui fluid input", input(tpe := "text", attr("autocomplete") := "username", placeholder := "Username", display.block, margin := "auto", onInput.value --> userName)),
+        div(cls := "ui fluid input", input(tpe := "password", attr("autocomplete") := "current-password", placeholder := "Password", display.block, margin := "auto", onInput.value --> password, onEnter(nameAndPassword) --> actionSink)),
         button(cls := "ui fluid primary button", submitText, display.block, margin := "auto", marginTop := "5px", onClick(nameAndPassword) --> actionSink),
         errorMessageHandler.map { errorMessage =>
           div(
