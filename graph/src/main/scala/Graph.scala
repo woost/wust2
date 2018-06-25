@@ -4,9 +4,6 @@ import wust.ids._
 import wust.util.Memo
 import wust.util.algorithm._
 import wust.util.collection._
-import cuid.Cuid
-import wust.graph.Edge.Author
-import wust.ids.EdgeData.{Member, Type}
 
 import collection.mutable
 import collection.breakOut
@@ -95,17 +92,19 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   private lazy val connectionsByTypeF: EdgeData.Type => Set[Edge] = connectionsByType.withDefaultValue(Set.empty)
 
-  def authors(node: Node): collection.Set[UserId] = authors(node.id)
+  def authors(node: Node): collection.Seq[UserId] = authors(node.id)
   private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] = defaultNeighbourhood(nodeIds, Set.empty[NodeId])
   private lazy val nodeDefaultAuthors: collection.Map[NodeId, collection.Set[UserId]] = defaultNeighbourhood(nodeIds, Set.empty[UserId])
-  lazy val authors: collection.Map[NodeId, collection.Set[UserId]] = nodeDefaultAuthors ++ directedAdjacencyList[NodeId, Edge.Author, UserId](authorships, _.nodeId, _.userId)
+  lazy val authorsWithTimestamp: collection.Map[NodeId, Seq[(UserId, Edge.Author)]] = (nodeDefaultAuthors.mapValues(_ => Set.empty[(UserId, Edge.Author)]) ++ directedAdjacencyList[NodeId, Edge.Author, (UserId,Edge.Author)](authorships, _.nodeId, e => (e.userId, e))).mapValues(_.toSeq.sortBy(_._2.data.timestamp))
+  lazy val authors: collection.Map[NodeId, Seq[UserId]] = authorsWithTimestamp.mapValues(_.map(_._1))
   lazy val allAuthorIds:collection.Set[UserId] = authors.values.flatten.toSet
   lazy val allUserIds:collection.Set[UserId] = nodesById.values.collect{case Node.User(id, _, _) => id}.toSet
-  private lazy val connectionDefaultAuthorNeighbourhood: collection.Map[NodeId, collection.Set[Edge.Author]] = defaultNeighbourhood(nodeIds, Set.empty[Edge.Author])
-  lazy val authorEdges: collection.Map[NodeId, collection.Set[Edge.Author]] = connectionDefaultAuthorNeighbourhood ++ directedIncidenceList[NodeId, Edge.Author](authorships, _.nodeId)
+  lazy val authorEdges: collection.Map[NodeId, Seq[Edge.Author]] = authorsWithTimestamp.mapValues(_.map(_._2))
 
-  def nodeAge(node: Node): EpochMilli = nodeAge(node.id)
-  lazy val nodeAge: collection.Map[NodeId, EpochMilli] = authorEdges.mapValues(n => if(n.nonEmpty) n.maxBy(_.data.timestamp).data.timestamp else EpochMilli.min)
+  def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
+  def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
+  lazy val nodeCreated: collection.Map[NodeId, EpochMilli] = authorEdges.mapValues(n => n.headOption.fold(EpochMilli.min)(_.data.timestamp))
+  lazy val nodeModified: collection.Map[NodeId, EpochMilli] = authorEdges.mapValues(n => n.lastOption.fold(EpochMilli.min)(_.data.timestamp))
 
   lazy val channelNode:Option[Node] = nodesById.values.collectFirst{case channel@Node.Content(_, NodeData.Channels, _) => channel}
   lazy val channelNodeId:Option[NodeId] = channelNode.map(_.id)
@@ -115,7 +114,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   lazy val withoutChannels:Graph = this.filterNot(channelIds ++ channelNodeId)
   lazy val onlyAuthors:Graph = this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
 
-  lazy val chronologicalNodesAscending: IndexedSeq[Node] = nodes.toIndexedSeq.sortBy(n => nodeAge(n))
+  lazy val chronologicalNodesAscending: IndexedSeq[Node] = nodes.toIndexedSeq.sortBy(n => nodeCreated(n))
 
   lazy val connections:Set[Edge] = connectionsByType.values.flatMap(identity)(breakOut)
   lazy val connectionsWithoutParent: Set[Edge] = (connectionsByType - EdgeData.Parent.tpe).values.flatMap(identity)(breakOut)
