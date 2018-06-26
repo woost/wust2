@@ -37,7 +37,7 @@ object Data {
                    data: EdgeData.Member,
                    targetId: NodeId)
 
-  case class Password(id: UserId, digest: Array[Byte])
+  case class Password(userId: UserId, digest: Array[Byte])
   case class WebPushSubscription(id: Long, userId: UserId, endpointUrl: String, p256dh: String, auth: String) //TODO: better names. What is pd256dh?
 
   object WebPushSubscription {

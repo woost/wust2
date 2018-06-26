@@ -320,7 +320,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         queryUser
           .filter(_.data->>"name" == lift(name))
           .join(query[Password])
-          .on((u, p) => u.id == p.id)
+          .on((u, p) => u.id == p.userId)
           .map { case (u, p) => (u, p.digest) }
           .take(1)
       }.map(_.headOption)
