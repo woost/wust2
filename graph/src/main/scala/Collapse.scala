@@ -54,7 +54,7 @@ object Collapse {
 
   def getRedirectedConnections(graph: Graph, alternativePosts: collection.Map[NodeId, Set[NodeId]]): Set[LocalConnection] = {
     (alternativePosts.keys.flatMap { post =>
-      graph.incidentConnections(post).flatMap { c =>
+      graph.incidentEdges(post).flatMap { c =>
         //TODO: assert(c.targetId is NodeId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId)) yield {
           LocalConnection(sourceId = altSource, EdgeData.Label("redirected"), targetId = altTarget)

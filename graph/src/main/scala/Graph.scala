@@ -235,11 +235,11 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def getParentsOpt(nodeId: NodeId): Option[collection.Set[NodeId]] = if(hasParents(nodeId)) Some(parents(nodeId)) else None
 
   private lazy val connectionDefaultNeighbourhood: collection.Map[NodeId, collection.Set[Edge]] = defaultNeighbourhood(nodeIds, Set.empty[Edge])
-  lazy val incomingConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[NodeId, Edge](labeledEdges, _.targetId)
-  lazy val outgoingConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[NodeId, Edge](labeledEdges, _.sourceId)
-  lazy val incidentConnections: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[NodeId, Edge](labeledEdges, _.sourceId, _.targetId)
+  lazy val incomingEdges: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
+    directedIncidenceList[NodeId, Edge](edges, _.targetId)
+  lazy val outgoingEdges: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
+    directedIncidenceList[NodeId, Edge](edges, _.sourceId)
+  lazy val incidentEdges: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[NodeId, Edge](edges, _.sourceId, _.targetId)
 
   lazy val incidentParentContainments: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[NodeId, Edge](containments, _.sourceId)
   lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[NodeId, Edge](containments, _.targetId)
