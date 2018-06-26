@@ -7,6 +7,7 @@ const Path = require('path');
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
+const cssFolder = commons.woost.cssFolder;
 const cssFiles = commons.woost.cssFiles;
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 module.exports = commons.webpack;
@@ -45,6 +46,7 @@ module.exports.devServer = {
     contentBase: [
         module.exports.output.path,
         dirs.assets,
+        cssFolder,
         dirs.root // serve complete project for providing source-maps, needs to be ignored for watching
     ],
     watchContentBase: true,
