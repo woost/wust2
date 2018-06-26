@@ -86,11 +86,15 @@ function self() {
         PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
         ;;
     pgdump)
-        postgres_command pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
+        postgres_command pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
     pgrestore)
         postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+        ;;
+    pgrestorefromprod)
+        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        ssh -C woost.space docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
         ;;
     pgclean)
         postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
@@ -195,6 +199,7 @@ function self() {
     pgcli [options]
     pgdump
     pgrestore [file]
+    pgrestorefromprod
     pgclean
 
     prodlocal
