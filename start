@@ -89,6 +89,7 @@ function self() {
         postgres_command pg_dump --clean -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
     pgrestore)
+        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgclean)
