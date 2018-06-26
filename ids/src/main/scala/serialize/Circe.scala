@@ -8,6 +8,9 @@ trait Circe {
   // makes circe decode sealed hierarchies with { "_tpe": typename, ..props }
   implicit val genericConfiguration: Configuration = Configuration.default.withDiscriminator("type")
 
+  implicit val CuidDecoder: Decoder[Cuid] = deriveDecoder[Cuid]
+  implicit val CuidEncoder: Encoder[Cuid] = deriveEncoder[Cuid]
+
   implicit def liftEncoderTagged[T, U](implicit f: Encoder[T]): Encoder[T @@ U] = f.asInstanceOf[Encoder[T @@ U]]
   implicit def liftDecoderTagged[T, U](implicit f: Decoder[T]): Decoder[T @@ U] = f.asInstanceOf[Decoder[T @@ U]]
   implicit def liftEncoderOverTagged[R, T <: TaggedType[R], U](implicit f: Encoder[T#Type]): Encoder[T#Type @@ U] = f.asInstanceOf[Encoder[T#Type @@ U]]

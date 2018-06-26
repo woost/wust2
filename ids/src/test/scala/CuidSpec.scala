@@ -15,8 +15,8 @@ class CuidSpec extends FreeSpec with MustMatchers {
 
   "cuid" in {
     val original = cuid.Cuid()
-    val bag = Cuid.fromCuid(original)
-    val converted = bag.toCuid
+    val bag = Cuid.fromCuidString(original)
+    val converted = bag.toCuidString
 
     converted mustEqual original
   }

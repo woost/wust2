@@ -19,7 +19,7 @@ import monix.reactive.Observable
 
 object Constants {
   //TODO
-  val slackId = NodeId("wust-slack")
+  val slackId: NodeId = ???
 }
 
 case class ExchangeMessage(content: String)

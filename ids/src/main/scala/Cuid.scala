@@ -9,7 +9,7 @@ case class Cuid(left: Long, right: Long) {
     UUID.fromString(uuidString)
   }
 
-  def toCuid: String = {
+  def toCuidString: String = {
     val base = 36
     val leftCuid = java.lang.Long.toUnsignedString(left, base)
     val rightCuid = java.lang.Long.toUnsignedString(right, base)
@@ -48,7 +48,7 @@ object Cuid {
     Cuid(leftLong, rightLong)
   }
 
-  def fromCuid(cuid: String): Cuid = {
+  def fromCuidString(cuid: String): Cuid = {
     require(cuid.startsWith("c"), "Cuid string needs to start with letter c")
     require(cuid.length == 25, "Cuid string needs to have length of 25")
 

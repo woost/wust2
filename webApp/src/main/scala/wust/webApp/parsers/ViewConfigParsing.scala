@@ -2,7 +2,7 @@ package wust.webApp.parsers
 
 import cats.data.NonEmptyList
 import wust.graph.{Page,PageMode}
-import wust.ids.NodeId
+import wust.ids.{NodeId, Cuid}
 import wust.webApp.views.{TiledView, View, ViewConfig, ViewOperator}
 
 private object ViewConfigConstants {
@@ -39,7 +39,7 @@ object ViewConfigParser {
 
   val view: P[View] = P( (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(ViewOperator.Auto) | viewWithOps(ViewOperator.Optional)) )
 
-  val nodeIdList: Parser[Seq[NodeId]] = P( word.!.rep(min = 1, sep = idSeparator) ).map(_.map(NodeId(_)))
+  val nodeIdList: Parser[Seq[NodeId]] = P( word.!.rep(min = 1, sep = idSeparator) ).map(_.map(cuid => NodeId(Cuid.fromCuidString(cuid))))
   val pageMode: Parser[PageMode] = P ( (PageMode.Default.name | PageMode.Orphans.name).! )
     .map {
       case PageMode.Default.name => PageMode.Default
@@ -64,8 +64,8 @@ object ViewConfigWriter {
     val viewString = viewKey + cfg.view.key
     val pageString = pageKey + (cfg.page match {
       case Page(parentIds, childrenIds, mode) if parentIds.isEmpty && childrenIds.isEmpty => s"${mode.name}"
-      case Page(parentIds, childrenIds, mode) if childrenIds.isEmpty => s"${mode.name}${pageSeparator}${parentIds.mkString(idSeparator)}"
-      case Page(parentIds, childrenIds, mode) => s"${mode.name}${pageSeparator}${parentIds.mkString(idSeparator)}${pageSeparator}${childrenIds.mkString(idSeparator)}"
+      case Page(parentIds, childrenIds, mode) if childrenIds.isEmpty => s"${mode.name}${pageSeparator}${parentIds.map(_.toCuidString).mkString(idSeparator)}"
+      case Page(parentIds, childrenIds, mode) => s"${mode.name}${pageSeparator}${parentIds.map(_.toCuidString).mkString(idSeparator)}${pageSeparator}${childrenIds.map(_.toCuidString).mkString(idSeparator)}"
     })
     val prevViewStringWithSep = cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.key)
     s"$viewString$urlSeparator$pageString$prevViewStringWithSep"

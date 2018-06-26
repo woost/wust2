@@ -133,13 +133,15 @@ object GitHubImporter {
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order
 
 //        val issueTitle = Post(NodeId("1" + augmentString("0")*issueIdZeros + issue.number.toString), PostData.PlainText(s"#${issue.number} ${issue.title}"), tempUserId, issue.created_at, issue.updated_at)
-        val issueTitle = Node.Content(NodeId("1" + augmentString("0")*issueIdZeros + issue.number.toString), NodeData.PlainText(s"#${issue.number} ${issue.title}"))
+        val issueId:NodeId = ??? //NodeId("1" + augmentString("0")*issueIdZeros + issue.number.toString)
+        val issueTitle = Node.Content(issueId, NodeData.PlainText(s"#${issue.number} ${issue.title}"))
 
         val titleIssueTag = Edge.Parent(issueTitle.id, _issue.id)
 
         val desc = if(issue.body.nonEmpty) {
 //          val issueDesc = Post(NodeId(issue.id.toString), PostData.Markdown(issue.body), tempUserId, issue.created_at, issue.updated_at)
-          val issueDesc = Node.Content(NodeId(issue.id.toString), NodeData.Markdown(issue.body))
+          val issueId: NodeId = ??? //NodeId(issue.id.toString)
+          val issueDesc = Node.Content(issueId, NodeData.Markdown(issue.body))
           val conn = Edge.Label(issueDesc.id, EdgeData.Label("describes"), issueTitle.id)
           val cont = Edge.Parent(issueDesc.id, issueTitle.id)
           val comm = Edge.Parent(issueDesc.id, _comment.id)
@@ -154,7 +156,8 @@ object GitHubImporter {
         // Comments
         val comments: List[(Node.Content, Set[Edge.Parent])] = commentsList.map(comment => {
 //          val cpost = Post(NodeId(comment.id.toString), PostData.Markdown(comment.body), tempUserId, comment.created_at, comment.updated_at)
-          val cpost = Node.Content(NodeId(comment.id.toString), NodeData.Markdown(comment.body))
+          val commentId: NodeId = ??? //NodeId(commend.id.toString)
+          val cpost = Node.Content(commentId, NodeData.Markdown(comment.body))
           val cconn = Set(Edge.Parent(cpost.id, issueTitle.id), Edge.Parent(cpost.id, _comment.id))
           (cpost, cconn)
         })

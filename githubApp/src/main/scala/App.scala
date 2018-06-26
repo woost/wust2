@@ -45,9 +45,9 @@ import scala.collection.concurrent.TrieMap
 
 object Constants {
   //TODO
-  val githubId = NodeId("wust-github")
-  val issueTagId = NodeId("wust-github-issue")
-  val commentTagId = NodeId("wust-github-comment")
+  val githubId: NodeId = ??? //NodeId("wust-github")
+  val issueTagId: NodeId = ??? //NodeId("wust-github-issue")
+  val commentTagId: NodeId = ??? //NodeId("wust-github-comment")
 
   val label = EdgeData.Label("describes")
 

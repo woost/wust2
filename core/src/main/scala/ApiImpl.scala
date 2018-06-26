@@ -172,7 +172,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   override def log(message: String): ApiFunction[Boolean] = Action { state =>
-    val msgId = state.auth.fold("anonymous")(_.user.id)
+    val msgId = state.auth.fold("anonymous")(_.user.id.toCuidString)
     ApiLogger.client.info(s"[$msgId] $message")
     Future.successful(true)
   }
