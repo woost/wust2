@@ -82,9 +82,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def length: Int = size
 
   override def toString: String = {
-    def nodeStr(node:Node) = s"${node.data.tpe}(${node.data.str}:${node.id.takeRight(4)})"
+    def nodeStr(node:Node) = s"${node.data.tpe}(${node.data.str}:${node.id.toCuidString.takeRight(4)})"
     s"Graph(${nodes.map(nodeStr).mkString(" ")}, " +
-      s"${connectionsByType.values.flatten.map(c => s"${c.sourceId.takeRight(4)}-${c.data}->${c.targetId.takeRight(4)}").mkString(", ")})"
+      s"${connectionsByType.values.flatten.map(c => s"${c.sourceId.toCuidString.takeRight(4)}-${c.data}->${c.targetId.toCuidString.takeRight(4)}").mkString(", ")})"
   }
 
   def toSummaryString = {

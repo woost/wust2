@@ -63,7 +63,7 @@ object SelectedPostMenu {
         marginBottom := "5px",
         parents.map { p =>
           span(
-            p.id,
+            p.id.toCuidString,
             br(),
             p.data.str,
             fontWeight.bold,

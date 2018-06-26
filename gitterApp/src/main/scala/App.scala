@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 object Constants {
   //TODO
-  val gitterId = NodeId("wust-gitter")
+  val gitterId:NodeId = ???
 }
 
 //class GitterApiImpl(client: WustClient, server: ServerConfig, github: GitterConfig, redis: RedisClient)(implicit ec: ExecutionContext) extends PluginApi {

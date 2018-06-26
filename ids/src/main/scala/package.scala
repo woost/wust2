@@ -7,8 +7,8 @@ import supertagged._
 package object ids {
   type UuidType = String
 
-  object NodeId extends TaggedType[UuidType] {
-    def fresh: NodeId = apply(cuid.Cuid())
+  object NodeId extends TaggedType[Cuid] {
+    def fresh: NodeId = apply(Cuid.fromCuidString(cuid.Cuid()))
   }
   type NodeId = NodeId.Type
 

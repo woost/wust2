@@ -61,7 +61,7 @@ object AuthUser {
   case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted
   case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted
   case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
-    def name = s"anon-${id.takeRight(4)}"
+    def name = s"anon-${id.toCuidString.takeRight(4)}"
   }
 
   implicit def AsUserInfo(user: AuthUser): UserInfo = UserInfo(user.id, user.name, user.channelNodeId)

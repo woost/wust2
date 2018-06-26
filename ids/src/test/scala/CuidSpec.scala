@@ -4,10 +4,10 @@ import org.scalatest._
 
 import java.util.UUID
 
-class CuidBagSpec extends FreeSpec with MustMatchers {
+class CuidSpec extends FreeSpec with MustMatchers {
   "uuid" in {
     val original = UUID.randomUUID
-    val bag = CuidBag.fromUuid(original)
+    val bag = Cuid.fromUuid(original)
     val converted = bag.toUuid
 
     converted mustEqual original
@@ -15,8 +15,8 @@ class CuidBagSpec extends FreeSpec with MustMatchers {
 
   "cuid" in {
     val original = cuid.Cuid()
-    val bag = CuidBag.fromCuid(original)
-    val converted = bag.toCuid
+    val bag = Cuid.fromCuidString(original)
+    val converted = bag.toCuidString
 
     converted mustEqual original
   }

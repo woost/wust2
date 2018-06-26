@@ -34,8 +34,6 @@ object Circe extends wust.ids.serialize.Circe {
   implicit val GraphChangesDecoder: Decoder[GraphChanges] = deriveDecoder[GraphChanges]
   implicit val GraphChangesEncoder: Encoder[GraphChanges] = deriveEncoder[GraphChanges]
 
-  implicit val nodeIdKeyDecoder: KeyDecoder[NodeId] = KeyDecoder[String].map(NodeId(_))
-  implicit val nodeIdKeyEncoder: KeyEncoder[NodeId] = KeyEncoder[String].contramap[NodeId](identity)
   implicit val connectionContentTypeKeyDecoder: KeyDecoder[EdgeData.Type] = KeyDecoder[String].map(EdgeData.Type(_))
   implicit val connectionContentTypeKeyEncoder: KeyEncoder[EdgeData.Type] = KeyEncoder[String].contramap[EdgeData.Type](identity)
 

@@ -173,7 +173,7 @@ object Sidebar {
             channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(marginRight := "5px"),
             p.data.str,
             onChannelClick(ChannelAction.Post(p.id))(state),
-            title := p.id
+            title := p.id.toCuidString
           )
         }
       },

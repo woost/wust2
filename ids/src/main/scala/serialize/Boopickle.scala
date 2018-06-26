@@ -6,6 +6,8 @@ import supertagged._
 
 trait Boopickle {
 
+  implicit val CuidPickler: Pickler[Cuid] = generatePickler[Cuid]
+
   implicit def liftPicklerTagged[T, U](implicit f: Pickler[T]): Pickler[T @@ U] = f.asInstanceOf[Pickler[T @@ U]]
   implicit def liftPicklerOverTagged[R, T <: TaggedType[R], U](implicit f: Pickler[T#Type]): Pickler[T#Type @@ U] = f.asInstanceOf[Pickler[T#Type @@ U]]
 

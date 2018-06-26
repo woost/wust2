@@ -9,7 +9,7 @@ import wust.ids._
 import wust.ids.serialize.Circe._
 import wust.util._
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 // Converters between scala classes and database entities
 // Quill needs an implicit encoder/decoder for each occuring type.
@@ -24,10 +24,15 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
     case Left(e) => throw new Exception(s"Failed to decode json: '$json': $e")
   }
 
-  implicit val encodingNodeId: MappedEncoding[NodeId, String] = MappedEncoding[NodeId, String](identity)
-  implicit val decodingNodeId: MappedEncoding[String, NodeId] = MappedEncoding[String, NodeId](NodeId(_))
-  implicit val encodingUserId: MappedEncoding[UserId, String] = MappedEncoding[UserId, String](identity)
-  implicit val decodingUserId: MappedEncoding[String, UserId] = MappedEncoding[String, UserId](id => UserId(NodeId(id)))
+  implicit val encodingNodeId: MappedEncoding[NodeId, UUID] = MappedEncoding[NodeId, UUID](_.toUuid)
+  implicit val decodingNodeId: MappedEncoding[UUID, NodeId] = MappedEncoding[UUID, NodeId](uuid => NodeId(Cuid.fromUuid(uuid)))
+  implicit val encodingUserId: MappedEncoding[UserId, UUID] = MappedEncoding[UserId, UUID](_.toUuid)
+  implicit val decodingUserId: MappedEncoding[UUID, UserId] = MappedEncoding[UUID, UserId](uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
+
+  //TODO: quill PR: add these seq[UUID] encoder/decoder
+  //TODO: quill PR: rename arrayRawEncoder To ...Decoder
+  implicit def arrayUUIDDecoder[Col <: Seq[UUID]](implicit bf: CBF[UUID, Col]): Decoder[Col] = arrayRawEncoder[UUID, Col]
+  implicit def arrayUUIDEncoder[Col <: Seq[UUID]]: Encoder[Col] = arrayRawEncoder[UUID, Col]
 
   implicit val encodingEdgeDataType: MappedEncoding[EdgeData.Type, String] = MappedEncoding[EdgeData.Type, String](identity)
   implicit val decodingEdgeDataType: MappedEncoding[String, EdgeData.Type] = MappedEncoding[String, EdgeData.Type](EdgeData.Type(_))
