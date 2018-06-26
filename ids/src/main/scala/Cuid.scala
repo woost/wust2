@@ -2,7 +2,7 @@ package wust.ids
 
 import java.util.UUID
 
-case class CuidBag(left: Long, right: Long) {
+case class Cuid(left: Long, right: Long) {
   def toUuid: UUID = {
     val hexString = f"${left}%016x${right}%016x"
     val uuidString = uuidStringWithHyphens(hexString)
@@ -33,8 +33,8 @@ case class CuidBag(left: Long, right: Long) {
   }
 
 }
-object CuidBag {
-  def fromUuid(uuid: UUID): CuidBag = {
+object Cuid {
+  def fromUuid(uuid: UUID): Cuid = {
     val uuidString = uuid.toString.filterNot(_ == '-')
     require(uuidString.length == 32, "UUID string needs to have length of 32")
 
@@ -45,10 +45,10 @@ object CuidBag {
     println("RIGHT " + rightUuid)
     val leftLong = java.lang.Long.parseUnsignedLong(leftUuid, base)
     val rightLong = java.lang.Long.parseUnsignedLong(rightUuid, base)
-    CuidBag(leftLong, rightLong)
+    Cuid(leftLong, rightLong)
   }
 
-  def fromCuid(cuid: String): CuidBag = {
+  def fromCuid(cuid: String): Cuid = {
     require(cuid.startsWith("c"), "Cuid string needs to start with letter c")
     require(cuid.length == 25, "Cuid string needs to have length of 25")
 
@@ -57,6 +57,6 @@ object CuidBag {
     val rightCuid = cuid.substring(13, 25)
     val leftLong = java.lang.Long.parseLong(leftCuid, base)
     val rightLong = java.lang.Long.parseLong(rightCuid, base)
-    CuidBag(leftLong, rightLong)
+    Cuid(leftLong, rightLong)
   }
 }
