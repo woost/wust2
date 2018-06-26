@@ -24,14 +24,17 @@ if (!fs.existsSync(dummyOutputFile)) {
 }
 
 // gather resources
-const cssFiles = glob.sync(Path.join(dirs.project, 'src/css/*.css'));
-const htmlTemplateFile = Path.join(dirs.project, 'src/html/index.template.html');
+const cssFolder = Path.join(dirs.project, 'src/css');
+const htmlFolder = Path.join(dirs.project, 'src/html');
+const cssFiles = glob.sync(Path.join(cssFolder, '*.css'));
+const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
 
 // export
 module.exports.webpack = webpack;
 module.exports.woost = {
     appName: appName,
     dirs: dirs,
+    cssFolder: cssFolder,
     cssFiles: cssFiles,
     htmlTemplateFile: htmlTemplateFile
 };
