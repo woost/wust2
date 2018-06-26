@@ -2,14 +2,13 @@ package wust
 
 import java.time.Instant
 
-import cuid.Cuid
 import supertagged._
 
 package object ids {
   type UuidType = String
 
   object NodeId extends TaggedType[UuidType] {
-    def fresh: NodeId = apply(Cuid())
+    def fresh: NodeId = apply(cuid.Cuid())
   }
   type NodeId = NodeId.Type
 
