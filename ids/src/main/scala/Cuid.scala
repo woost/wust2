@@ -2,6 +2,7 @@ package wust.ids
 
 import java.util.UUID
 
+//TODO we should have an assert for maximum supported size of this cuid. meaning only 63 bit per long are occupied?
 case class Cuid(left: Long, right: Long) {
   def toUuid: UUID = new UUID(left, right)
 
