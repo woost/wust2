@@ -165,7 +165,7 @@ object ChatView extends View {
   }
 
   def chatMessage(state:GlobalState, post: Node, graph:Graph, currentUser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
-    val postTags: Seq[Node] = graph.ancestors(post.id).map(graph.nodesById(_)).toSeq
+    val postTags: Seq[Node] = (graph.ancestors(post.id) diff graph.channelNodeIds.toSeq diff state.page.now.parentIds).map(graph.nodesById(_))
 
     val isMine = false //currentUser.id == post.author TODO Authorship
     val isDeleted = post.meta.deleted.timestamp < EpochMilli.now
