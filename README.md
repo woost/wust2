@@ -63,7 +63,7 @@ start [ sbt, migrate, psql <options>, pgdump, pgrestore <file>, pgclean, prod, p
 
 Test migration in transaction, then rollback.
 ```sql
-begin transaction;
+begin;
 
 alter table ...;
 drop table ...;
@@ -71,12 +71,17 @@ drop table ...;
 \d+ yourtable;
 \dt public.*;
 
-rollback transaction;
+rollback;
 ```
 
 Run sql from vim:
 ```vimscript
-:w !docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432<cr>
+:w !docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432
+```
+
+## Developing database tests
+```bash
+find dbMigration/core/{sql,tests} | entr ./start test.postgres
 ```
 
 # Docker images

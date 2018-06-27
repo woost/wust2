@@ -20,16 +20,27 @@ create function touuid(id varchar(2)) returns uuid as $$
     select (id || '000000-0000-0000-0000-000000000000')::uuid
 $$ language sql IMMUTABLE;
 
+CREATE FUNCTION insert_membership(userid uuid, nodeid uuid, level accesslevel default 'readwrite') RETURNS void AS $$
+    INSERT INTO edge (sourceid, data, targetid) VALUES (userid, jsonb_build_object('type', 'Member', 'level', level), nodeid);
+$$ language sql;
+
+CREATE FUNCTION insert_parentship(childid uuid, parentid uuid) RETURNS void AS $$
+    INSERT INTO edge (sourceid, data, targetid) VALUES (childid, jsonb_build_object('type', 'Parent'), parentid);
+$$ language sql;
+
+
+select insert_node(touuid('B1'));
+select insert_node(touuid('B2'));
+
+select insert_parentship(touuid('B2'), touuid('B1'));
 
 
 select insert_user('A1');
-select insert_node(touuid('B1'));
 
--- no membership exists, therefore not allowed to see anything
-SELECT cmp_ok(readable_nodes(touuid('A1'), array[touuid('B1')]), '=', array[]::uuid[]);
+select insert_membership(touuid('A1'), touuid('B1'));
 
-
-
+-- can read child because of membership on parent
+SELECT cmp_ok(readable_nodes(touuid('A1'), array[touuid('B1'), touuid('B2')]), '=', array[touuid('B2'), touuid('B1')]::uuid[]);
 
 SELECT * FROM finish();
 ROLLBACK;
