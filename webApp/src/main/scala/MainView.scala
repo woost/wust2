@@ -4,7 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webApp.Sidebar.{sidebar, topbar}
-import wust.webApp.MainViewParts.upButton
+import wust.webApp.MainViewParts.breadcrumb
 import wust.webApp.outwatchHelpers._
 
 object MainView {
@@ -25,7 +25,8 @@ object MainView {
         div(
           display.flex,
           flexDirection.column,
-          upButton(state)(ctx)(fontSize := "12px"),
+          width := "100%",
+          breadcrumb(state)(ctx)(fontSize := "12px"),
           state.view.map(_.apply(state)(ctx)(height := "100%", width := "100%", flexGrow := 1))
         )
       )

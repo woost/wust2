@@ -35,6 +35,14 @@ object MainViewParts {
   }
 
   def upButton(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
+    span(
+      state.upButtonTargetPage.map(_.toSeq.map(upTarget =>
+        button("↑", width := "2.5em", onClick(upTarget) --> state.page.toHandler)
+      ))
+    )
+  }
+
+  def breadcrumb(state: GlobalState)(implicit ctx:Ctx.Owner): VNode = {
     div(
       state.nodeAncestorsHierarchie.map(_.map {case (level, nodeSeq) =>
         span(
@@ -42,7 +50,7 @@ object MainViewParts {
           span(" / "),
         )
       }.toSeq.reverse),
-      float.left
+      display.flex
     )
   }
 
