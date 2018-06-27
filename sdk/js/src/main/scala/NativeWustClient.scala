@@ -62,12 +62,15 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
       result match {
         case Success(response) =>
           response match {
-            case graph:Graph => // graph is always grouped
+            case graph:Graph => // graph is always grouped and logged as table
               val rows = (graph.outgoingEdges.map{case (nodeId, edges) =>
                 val node = graph.nodesById(nodeId)
                 val es = edges.map( edge =>
-                  s"${edge.data.tpe} ${edge.targetId.toCuidString.takeRight(4)}")(breakOut):List[String]
-                (node.data.str :: node.data.tpe :: node.id.toCuidString.takeRight(4) :: es).toJSArray
+                  s"${edge.data.tpe.take(1)} ${edge.targetId.toCuidString.takeRight(3)} ${graph.nodesById(edge.targetId).data.str}")(breakOut):List[String]
+                val id = node.id.toCuidString.takeRight(3)
+                val tpe = node.data.tpe.take(1)
+                val content = node.data.str
+                (s"$tpe $id" :: content :: es).toJSArray
               }(breakOut):List[js.Array[String]]).sortBy(_(0)).toJSArray
 
               logInGroup{
