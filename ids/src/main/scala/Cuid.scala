@@ -11,6 +11,8 @@ case class Cuid(left: Long, right: Long) {
     val rightCuid = java.lang.Long.toUnsignedString(right, base)
     "c" + leftCuid + rightCuid
   }
+
+  override def toString = toCuidString
 }
 object Cuid {
   def fromUuid(uuid: UUID): Cuid = Cuid(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
