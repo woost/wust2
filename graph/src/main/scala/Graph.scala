@@ -272,12 +272,13 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
   }
   //TODO: rename to transitiveParentIds:Iterable[NodeId]
-  // Also provide ancestors:Iterable[Node]?
   def ancestors(nodeId: NodeId) = _ancestors(nodeId)
-  private val _ancestors: NodeId => Iterable[NodeId] = Memo.mutableHashMapMemo { nodeId =>
+  private val _ancestors: NodeId => Seq[NodeId] = Memo.mutableHashMapMemo { nodeId =>
     if (nodesById.keySet.contains(nodeId)) {
       val p = depthFirstSearch(nodeId, parents)
-      if (p.startInvolvedInCycle) p else p.drop(1)
+      // ancestors in a DAG are usually without the start-element --> DFS.drop(1)
+      // if the start element is involved in a cycle, we keep it, since it is an ancestor of itself
+      if (p.startInvolvedInCycle) p.toSeq else p.drop(1).toSeq
     } else {
       Seq.empty
     }
