@@ -31,9 +31,17 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
     val boxBgColor = HCL(baseHue, 50, 63).toHex
     val boxStyle = s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold"
     val color = HCL(baseHue, 20, 93).toHex
-    console.log(s"%c ➚ ${path.mkString(".")} %c ${arguments.productIterator.toList.mkString(",")}",
+
+    // log request
+    console.log(
+      s"%c ➚ ${path.mkString(".")} %c ${arguments.productIterator.toList.mkString(", ")}",
       boxStyle ,
-      s"background: $color")
+      s"background: $color"
+    )
+
+
+
+    // log result
     result.onComplete { result =>
       val time = watch.readMillis
       val timeColor = time match {
@@ -42,31 +50,47 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
         case _ => "#F20500"
       }
       val timeStyle = s"color: $timeColor; background: #EEE; border-radius: 3px; padding: 2px 6px; font-weight: bold"
+
+
+
+      def logInGroup (code: => Unit):Unit = {
+        console.asInstanceOf[js.Dynamic].groupCollapsed(s"%c ➘ ${path.mkString(".")} %c${watch.readHuman}", boxStyle, timeStyle)
+        code
+        console.asInstanceOf[js.Dynamic].groupEnd()
+      }
+
       result match {
         case Success(response) =>
           response match {
-            case _ if response.toString.length < 80 =>
-              console.log(s"%c ➘ ${path.mkString(".")} %c ${response} %c${watch.readHuman}", boxStyle, s"background: $color", timeStyle)
-            case _ =>
-              console.asInstanceOf[js.Dynamic].groupCollapsed(s"%c ➘ ${path.mkString(".")} %c${watch.readHuman}", boxStyle, timeStyle)
-              response match {
-                case graph:Graph =>
-                  val rows = (graph.outgoingEdges.map{case (nodeId, edges) =>
-                    val node = graph.nodesById(nodeId)
-                    val es = edges.map{ case edge =>
-                      s"${edge.data.tpe} ${edge.targetId.takeRight(4)}"
-                    }(breakOut):List[String]
-                    (node.data.str :: node.data.tpe :: node.id.takeRight(4) :: es).toJSArray
-                  }(breakOut):List[js.Array[String]]).sortBy(_(0)).toJSArray
+            case graph:Graph => // graph is always grouped
+              val rows = (graph.outgoingEdges.map{case (nodeId, edges) =>
+                val node = graph.nodesById(nodeId)
+                val es = edges.map( edge =>
+                  s"${edge.data.tpe} ${edge.targetId.takeRight(4)}")(breakOut):List[String]
+                (node.data.str :: node.data.tpe :: node.id.takeRight(4) :: es).toJSArray
+              }(breakOut):List[js.Array[String]]).sortBy(_(0)).toJSArray
 
-                  console.asInstanceOf[js.Dynamic].table(rows)
-                case _ =>
-                  console.log(s"%c ${response}", s"background: $color")
+              logInGroup{
+                console.asInstanceOf[js.Dynamic].table(rows)
               }
-              console.asInstanceOf[js.Dynamic].groupEnd()
+            case _ if response.toString.length < 80 => // short data is displayed without grouping
+              console.log(
+                s"%c ➘ ${path.mkString(".")} %c $response %c${watch.readHuman}",
+                boxStyle,
+                s"background: $color",
+                timeStyle
+              )
+            case _ => // everything else is grouped
+              logInGroup{
+                console.log(s"%c $response", s"background: $color")
+              }
           }
-        case Failure(error) =>
-          console.log(s"%c ➘ ${path.mkString(".")} %c ${error.getMessage} %c${watch.readHuman}", boxStyle + "; border: 3px solid #C83D3A", s"background: #FFF0F0; color: #FF0B0B", timeStyle)
+        case Failure(throwable) =>
+          console.log(
+            s"%c ➘ ${path.mkString(".")} %c error: ${throwable.getMessage} %c${watch.readHuman}",
+            boxStyle + "; border: 3px solid #C83D3A", s"background: #FFF0F0; color: #FF0B0B",
+            timeStyle
+          )
       }
     }
   }
