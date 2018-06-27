@@ -7,8 +7,11 @@ case class Cuid(left: Long, right: Long) {
 
   def toCuidString: String = {
     val base = 36
-    val leftCuid = java.lang.Long.toUnsignedString(left, base)
-    val rightCuid = java.lang.Long.toUnsignedString(right, base)
+    // if a cuid was generated from a uuid, we might have 128 bits.
+    // But a cuid can only fit 125 bit. We do not do this in production, but in tests.
+    // Therefore, we are trimming the resulting string to 12 characters
+    val leftCuid = java.lang.Long.toUnsignedString(left, base).take(12).reverse.padTo(12, '0').reverse
+    val rightCuid = java.lang.Long.toUnsignedString(right, base).take(12).reverse.padTo(12, '0').reverse
     "c" + leftCuid + rightCuid
   }
 
