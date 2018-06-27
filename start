@@ -7,8 +7,18 @@ if [ "$name" != "Woost" -a "$1" != "nsbt" ]; then
 fi;
 
 script_dir="$(dirname $0)"
+sql_checksum_file="$script_dir/.sql_checksum"
+sql_checksum_dir="$script_dir/dbMigration/core/sql"
 
 function docker_compose() {
+    new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | md5sum)"
+    old_checksum="$(cat $sql_checksum_file 2> /dev/null || true)"
+    if [ "$old_checksum" != "$new_checksum" ]; then
+        echo "$new_checksum" > $sql_checksum_file
+        echo "New db migration available, building db-migration image"
+        sbt dbMigration/docker
+    fi
+
     project="$1"
     stage="$2"
     add_args=""

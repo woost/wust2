@@ -6,3 +6,4 @@ target/
 proguard-sbt.txt
 .metals/
 .metaserver/
+/.sql_checksum
