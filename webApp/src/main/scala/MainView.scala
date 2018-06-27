@@ -18,12 +18,14 @@ object MainView {
       topbar(state)(ctx)(width := "100%", flexGrow := 0, flexShrink := 0),
       div(
         display.flex,
+        minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
         height := "100%",
         width := "100%",
         sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
         backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
         div(
           display.flex,
+          minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
           flexDirection.column,
           width := "100%",
           breadcrumb(state)(ctx)(fontSize := "12px"),

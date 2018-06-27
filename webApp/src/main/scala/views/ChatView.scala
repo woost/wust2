@@ -63,6 +63,7 @@ object ChatView extends View {
       justifyContent.flexStart,
       alignItems.stretch,
       alignContent.stretch,
+      minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
 
       chatHeader(state)(ctx)(flexGrow := 0, flexShrink := 0),
       chatHistory(state)(ctx)(height := "100%", overflow.auto),
