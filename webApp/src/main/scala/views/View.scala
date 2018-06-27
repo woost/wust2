@@ -35,7 +35,7 @@ object View {
 
 
   val viewMap: Map[String,View] = list.map(v => v.key -> v)(breakOut)
-  def default = new TiledView(ViewOperator.Optional, contentList)
+  def default = ChatView // new TiledView(ViewOperator.Optional, contentList)
 }
 
 sealed trait ViewOperator {
