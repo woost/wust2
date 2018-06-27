@@ -3,13 +3,18 @@ package wust.ids.serialize
 import wust.ids._
 import io.circe._, io.circe.generic.extras.semiauto._, io.circe.generic.extras.Configuration
 import supertagged._
+import java.util.UUID
+import scala.util.Try
 
 trait Circe {
   // makes circe decode sealed hierarchies with { "_tpe": typename, ..props }
   implicit val genericConfiguration: Configuration = Configuration.default.withDiscriminator("type")
 
-  implicit val CuidDecoder: Decoder[Cuid] = deriveDecoder[Cuid]
-  implicit val CuidEncoder: Encoder[Cuid] = deriveEncoder[Cuid]
+  //TODO: we actually want different encoders for api and db json. in the db we
+  //cuid as uuid strings but in the json api, we want to have a more
+  //space-efficent base than 16 (as of uuid) or encode as two numbers.
+  implicit val CuidDecoder: Decoder[Cuid] = Decoder.decodeString.emap(s => Try(Cuid.fromUuid(UUID.fromString(s))).toEither.left.map(_.getMessage))
+  implicit val CuidEncoder: Encoder[Cuid] = cuid => Json.fromString(cuid.toUuid.toString)
 
   implicit def liftEncoderTagged[T, U](implicit f: Encoder[T]): Encoder[T @@ U] = f.asInstanceOf[Encoder[T @@ U]]
   implicit def liftDecoderTagged[T, U](implicit f: Decoder[T]): Decoder[T @@ U] = f.asInstanceOf[Decoder[T @@ U]]
