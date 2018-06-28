@@ -114,10 +114,11 @@ if(process.env.SOURCEMAPS == 'true') {
 ////////////////////////////////////////
 // sub resource integrity adds a hash to each loaded resource in the html
 ////////////////////////////////////////
-module.exports.output.crossOriginLoading = 'anonymous';
-module.exports.plugins.push(new SriPlugin({
-    hashFuncNames: ['sha256']
-}));
+// disabled because it can fail when we update non-fingerprinted assets
+// module.exports.output.crossOriginLoading = 'anonymous';
+// module.exports.plugins.push(new SriPlugin({
+//     hashFuncNames: ['sha256']
+// }));
 
 ////////////////////////////////////////
 // compression
