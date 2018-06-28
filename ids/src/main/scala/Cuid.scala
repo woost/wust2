@@ -2,17 +2,18 @@ package wust.ids
 
 import java.util.UUID
 
-//TODO we should have an assert for maximum supported size of this cuid. meaning only 63 bit per long are occupied?
 case class Cuid(left: Long, right: Long) {
+  // the maximum number of each long for being convertable to a cuid (base 36 with 12 digits): java.lang.Long.parseLong("z" * 12, 36)
+  private val maxLong = 4738381338321616895L
+  require(left >= 0 && left <= maxLong, s"left part of Cuid needs to be positive and less than $maxLong, value is: $left")
+  require(right >= 0 && right <= maxLong, s"right part of Cuid needs to be positive and less than $maxLong, value is: $right")
+
   def toUuid: UUID = new UUID(left, right)
 
   def toCuidString: String = {
     val base = 36
-    // if a cuid was generated from a uuid, we might have 128 bits.
-    // But a cuid can only fit 125 bit. We do not do this in production, but in tests.
-    // Therefore, we are trimming the resulting string to 12 characters
-    val leftCuid = java.lang.Long.toUnsignedString(left, base).take(12).reverse.padTo(12, '0').reverse
-    val rightCuid = java.lang.Long.toUnsignedString(right, base).take(12).reverse.padTo(12, '0').reverse
+    val leftCuid = java.lang.Long.toString(left, base).reverse.padTo(12, '0').reverse
+    val rightCuid = java.lang.Long.toString(right, base).reverse.padTo(12, '0').reverse
     "c" + leftCuid + rightCuid
   }
 
@@ -28,8 +29,8 @@ object Cuid {
     val base = 36
     val leftCuid = cuid.substring(1, 13)
     val rightCuid = cuid.substring(13, 25)
-    val leftLong = java.lang.Long.parseUnsignedLong(leftCuid, base)
-    val rightLong = java.lang.Long.parseUnsignedLong(rightCuid, base)
+    val leftLong = java.lang.Long.parseLong(leftCuid, base)
+    val rightLong = java.lang.Long.parseLong(rightCuid, base)
     Cuid(leftLong, rightLong)
   }
 }
