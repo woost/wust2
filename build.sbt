@@ -310,6 +310,7 @@ lazy val webApp = project
       // Deps.npm.defaultPassiveEvents ::
       Deps.npm.marked ::
       Deps.npm.dateFns ::
+      Deps.npm.draggable ::
       Nil
     )
 
