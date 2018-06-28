@@ -12,6 +12,9 @@ export SOURCEMAPS=true # for building production js assets with sourcemap
 sbt \
  -Dquill.macro.log=false \
  compile \
+ scalafmtCheck \
+ scalafmtSbtCheck \
+ it:scalafmtCheck \
  coverage \
  testJVM \
  coverageReport \

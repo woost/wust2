@@ -1,5 +1,6 @@
 // shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
 import sbtcrossproject.{crossProject, CrossType}
+import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 
 name := "wust"
 
@@ -255,6 +256,7 @@ lazy val database = project
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
+  .settings(inConfig(IntegrationTest)(ScalafmtPlugin.scalafmtConfigSettings))
   .settings(
     libraryDependencies ++=
       Deps.circe.core.value ::
@@ -271,6 +273,7 @@ lazy val core = project
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
+  .settings(inConfig(IntegrationTest)(ScalafmtPlugin.scalafmtConfigSettings))
   .settings(
     libraryDependencies ++=
       Deps.covenant.ws.value ::
@@ -398,6 +401,7 @@ lazy val systemTest = project
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(commonSettings)
+  .settings(inConfig(IntegrationTest)(ScalafmtPlugin.scalafmtConfigSettings))
   .settings(
     libraryDependencies ++=
       Deps.akka.http.value % IntegrationTest ::

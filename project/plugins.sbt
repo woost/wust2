@@ -7,6 +7,7 @@ addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.13.0")
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
 // addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.0.0")
 // addSbtPlugin("org.wartremover" % "sbt-wartremover-contrib" % "1.0.0")
+addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC3")
 
 // deployment
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
