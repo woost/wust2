@@ -25,13 +25,18 @@ class Draggable(containers: js.Array[html.Element]|NodeList|html.Element, option
 }
 
 @js.native
+@JSImport("@shopify/draggable", "Droppable")
+class Droppable(containers: js.Array[html.Element]|NodeList|html.Element, options: js.UndefOr[Options] = js.undefined) extends Draggable(containers, options)
+
+@js.native
 @JSImport("@shopify/draggable", "Sortable")
 class Sortable(containers: js.Array[html.Element]|NodeList|html.Element, options: js.UndefOr[Options] = js.undefined) extends Draggable(containers, options)
 
 // https://github.com/Shopify/draggable/tree/master/src/Draggable#options
 trait Options extends js.Object {
-  var draggable: js.UndefOr[String] = js.undefined 
-  var handle: js.UndefOr[String] = js.undefined 
+  var draggable: js.UndefOr[String] = js.undefined
+  var dropzone: js.UndefOr[String] = js.undefined
+  var handle: js.UndefOr[String] = js.undefined
   var delay: js.UndefOr[Double] = js.undefined 
   // var plugins: js.UndefOr[js.Array[Plugin]] = js.undefined
   // var sensors: js.UndefOr[js.Array[Sensor]] = js.undefined
