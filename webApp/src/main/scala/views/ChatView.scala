@@ -244,7 +244,7 @@ object ChatView extends View {
   }
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
-  def optAvatarDiv(isOwn : Boolean, user : Option[UserId], size: AvatarSize) = {
+  def avatarDiv(isOwn : Boolean, user : Option[UserId], size: AvatarSize) = {
     if (showAvatar == ShowOpts.Always
           || (showAvatar == ShowOpts.OtherOnly && !isOwn)
           || (showAvatar == ShowOpts.OwnOnly && isOwn)) {
@@ -254,7 +254,6 @@ object ChatView extends View {
           border := s"1px solid $avatarBorderColor",
           margin := "5px",
           width := size.value,
-          if (isOwn) float.right else float.left
         ))
       )
       } else div()
@@ -265,8 +264,12 @@ object ChatView extends View {
     if (showDate == ShowOpts.Always
           || (showDate == ShowOpts.OtherOnly && !isOwn)
           || (showDate == ShowOpts.OwnOnly && isOwn))
-      span((new java.text.SimpleDateFormat(chatMessageDateFormat)).format(new java.util.Date(graph.nodeCreated(node))),
-           marginLeft := "4px")
+      span(
+        (new java.text.SimpleDateFormat(chatMessageDateFormat)).format(new java.util.Date(graph.nodeCreated(node))),
+        marginLeft := "8px",
+        fontSize.smaller,
+        color.gray
+      )
     else
       span()
   }
@@ -276,7 +279,7 @@ object ChatView extends View {
     if (showAuthor == ShowOpts.Always
           || (showAuthor == ShowOpts.OtherOnly && !isOwn)
           || (showAuthor == ShowOpts.OwnOnly && isOwn))
-      graph.authors(node).headOption.fold(span())(author => span(author.name))
+      graph.authors(node).headOption.fold(span())(author => span(author.name, fontWeight.bold))
     else span()
   }
 
@@ -291,14 +294,13 @@ object ChatView extends View {
   }
 
 
-  def styles(isMine : Boolean, color : String) = Seq[VDomModifier](
-    cls := "msg",
+  def styles(color : String) = Seq[VDomModifier](
+    cls := "sortable dragable dropable dropzone",
     clear.both,
     borderColor := color,
     backgroundColor := nodeDefaultColor,
-    borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
-    if (isMine) float.right else float.left,
-    borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
+    borderRadius := "0px 7px 7px", //7px 0px 7px 7px
+    borderWidth := "1px 1px 1px 7px", //"1px 7px 1px 1px"
     display.block,
     maxWidth := "80%",
     padding := "0px 10px",
@@ -310,17 +312,64 @@ object ChatView extends View {
   def chatMessageGroup(state:GlobalState, nodes: Seq[Node], graph: Graph, currentUser: UserId)
                       (implicit ctx: Ctx.Owner): VNode = {
     val isMine = graph.authors(nodes.last).contains(currentUser)
+    div( // node wrapper
+      avatarDiv(isMine, graph.authorIds(nodes.head).headOption, avatarSize),
     div(
       chatMessageHeader(isMine, nodes.head, graph, avatarSize),
-      nodes.map(chatMessageBody(isMine, state, graph, _)),
+        nodes.map(chatMessageBody(state, graph, _)),
       tagsDiv(state, graph, nodes.last),
-      styles(isMine, computeColor(graph, nodes.last.id)),
+        styles(computeColor(graph, nodes.last.id)),
+      ),
+      display.flex,
+      flexDirection.row,
+      justifyContent.flexStart,
+      alignSelf.flexStart,
+      alignItems.flexStart,
+      alignContent.flexStart
     )
   }
 
+  /// @return vnode with a single message inside it (i.e. not grouped)
+  def chatMessageSingle(state:GlobalState, node: Node, graph:Graph, currentUser:UserId)
+                       (implicit ctx: Ctx.Owner): VNode = {
+
+    val isMine = graph.authors(node).contains(currentUser)
+    val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
+
+    div( // node wrapper
+      avatarDiv(isMine, graph.authorIds(node).headOption, avatarSize),
+      div(
+        chatMessageHeader(isMine, node, graph, avatarSize),
+        chatMessageBody(state, graph, node),
+        tagsDiv(state, graph, node),
+        styles(computeColor(graph, node.id)),
+
+        isDeleted.ifTrueOption(opacity := 0.5)
+      ),
+      display.flex,
+      flexDirection.row,
+      justifyContent.flexStart,
+      alignSelf.flexStart,
+      alignItems.flexStart,
+      alignContent.flexStart
+    )
+  }
+
+  /// @return a vnode containing a chat header with optional name, date and avatar
+  def chatMessageHeader(isMine : Boolean, node : Node, graph: Graph, avatarSize : AvatarSize) = {
+    Seq[VDomModifier](
+      optAuthorDiv(isMine, node, graph),
+      optDateDiv(isMine, node, graph),
+      margin := "0px -5px",
+      color := chatHeaderTextColor,
+      fontSize := chatHeaderTextSize,
+    )
+  }
+
+
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageBody(isMine : Boolean, state:GlobalState, graph : Graph, node: Node)(implicit ctx: Ctx.Owner) = {
+  def chatMessageBody(state:GlobalState, graph : Graph, node: Node)(implicit ctx: Ctx.Owner) = {
     val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
     val content = if (graph.children(node).isEmpty)
                     renderNodeData(node.data)(paddingRight := "10px")
@@ -344,39 +393,6 @@ object ChatView extends View {
       nodeTags.map{ tag => nodeTag(state, tag) },
       margin := "2px",
       padding := "4px"
-    )
-  }
-
-  /// @return a vnode containing a chat header with optional name, date and avatar
-  def chatMessageHeader(isMine : Boolean, node : Node, graph: Graph, avatarSize : AvatarSize) = {
-    Seq[VDomModifier](
-      optAuthorDiv(isMine, node, graph),
-      optDateDiv(isMine, node, graph),
-      optAvatarDiv(isMine, graph.authorIds(node).headOption, avatarSize),
-      margin := "0px -5px",
-      color := chatHeaderTextColor,
-      fontSize := chatHeaderTextSize,
-    )
-  }
-
-  /// @return vnode with a single message inside it (i.e. not grouped)
-  def chatMessageSingle(state:GlobalState, node: Node, graph:Graph, currentUser:UserId)
-                       (implicit ctx: Ctx.Owner): VNode = {
-
-    val isMine = graph.authors(node).contains(currentUser)
-    val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
-
-    div( // wrapper for floats
-      div( // node wrapper
-        chatMessageHeader(isMine, node, graph, avatarSize),
-        chatMessageBody(isMine, state, graph, node),
-        tagsDiv(state, graph, node),
-
-        isDeleted.ifTrueOption(opacity := 0.5),
-
-        styles(isMine, computeColor(graph, node.id)),
-     ),
-      width := "100%",
     )
   }
 
