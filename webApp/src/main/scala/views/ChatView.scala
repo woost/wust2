@@ -11,6 +11,9 @@ import wust.ids._
 import wust.sdk.NodeColor._
 import wust.webApp._
 import fontAwesome.{freeBrands, freeRegular, freeSolid}
+import org.scalajs.dom
+import dom.{Event, console}
+import shopify.draggable.Sortable
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Elements._
@@ -64,7 +67,6 @@ object ChatView extends View {
       alignItems.stretch,
       alignContent.stretch,
       minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
-
       chatHeader(state)(ctx)(flexGrow := 0, flexShrink := 0),
       chatHistory(state)(ctx)(height := "100%", overflow.auto),
       inputField(state)(ctx)(flexGrow := 0, flexShrink := 0)
@@ -195,6 +197,10 @@ object ChatView extends View {
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     val graph = state.graph
+    val draggable = Handler.create[Sortable].unsafeRunSync()
+    draggable.foreach { d =>
+      console.log(d)
+    }
 
     div(
       padding := "20px",
@@ -205,7 +211,8 @@ object ChatView extends View {
         else
           groupNodes(graph(), nodes, state, user().id).map(chatMessage(state, _, graph(), user().id))
       },
-      onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) }
+      onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) },
+      onInsert.asHtml.map{elem => new Sortable(elem, new shopify.draggable.Options{ draggable = ".msg"})} --> draggable
     )
   }
 
@@ -285,10 +292,12 @@ object ChatView extends View {
 
 
   def styles(isMine : Boolean, color : String) = Seq[VDomModifier](
+    cls := "msg",
+    clear.both,
     borderColor := color,
     backgroundColor := nodeDefaultColor,
     borderRadius := (if (isMine) "7px 0px 7px 7px" else "0px 7px 7px"),
-    float := (if (isMine) "right" else "left"),
+    if (isMine) float.right else float.left,
     borderWidth := (if (isMine) "1px 7px 1px 1px" else "1px 1px 1px 7px"),
     display.block,
     maxWidth := "80%",
@@ -305,10 +314,7 @@ object ChatView extends View {
       chatMessageHeader(isMine, nodes.head, graph, avatarSize),
       nodes.map(chatMessageBody(isMine, state, graph, _)),
       tagsDiv(state, graph, nodes.last),
-      borderLeft := "2px solid red",
-      float := (if (isMine) "right" else "left"),
       styles(isMine, computeColor(graph, nodes.last.id)),
-      clear.both
     )
   }
 
@@ -371,7 +377,6 @@ object ChatView extends View {
         styles(isMine, computeColor(graph, node.id)),
      ),
       width := "100%",
-      clear.both
     )
   }
 
