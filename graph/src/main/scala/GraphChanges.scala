@@ -86,8 +86,8 @@ object GraphChanges {
 
   def connect(source:NodeId, content:EdgeData.Label, target:NodeId) = GraphChanges(addEdges = Set(Edge.Label(source, content, target)))
   def disconnect(source:NodeId, content: EdgeData.Label, target:NodeId) = GraphChanges(delEdges = Set(Edge.Label(source, content, target)))
-  def connectParent(source:NodeId, target:NodeId) = GraphChanges(addEdges = Set(Edge.Parent(source, target)))
-  def disconnectParent(source:NodeId, target:NodeId) = GraphChanges(delEdges = Set(Edge.Parent(source, target)))
+  def connectParent(child:NodeId, parent:NodeId) = GraphChanges(addEdges = Set(Edge.Parent(child, parent)))
+  def disconnectParent(child:NodeId, parent:NodeId) = GraphChanges(delEdges = Set(Edge.Parent(child, parent)))
 
   def moveInto(graph:Graph, subject:NodeId, target:NodeId) = {
     // TODO: only keep deepest parent in transitive chain
