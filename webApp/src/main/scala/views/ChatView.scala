@@ -13,7 +13,7 @@ import wust.webApp._
 import fontAwesome.{freeBrands, freeRegular, freeSolid}
 import org.scalajs.dom
 import dom.{Event, console}
-import shopify.draggable.Sortable
+import shopify.draggable._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Elements._
@@ -205,22 +205,42 @@ object ChatView extends View {
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     val graph = state.graph
-    val draggable = Handler.create[Sortable].unsafeRunSync()
-    draggable.foreach { d =>
-      console.log(d)
+    var lastDragOverId: Option[NodeId] = None
+
+    val dragable = Handler.create[Draggable].unsafeRunSync()
+    dragable.foreach { d =>
+      d.on[DragOverEvent]("drag:over", e => {
+        val parentId: NodeId = NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("data-nodeid").value))
+        lastDragOverId = Some(parentId)
+        console.log(s"dragOver: over = ", e.over, ", parentId = ", parentId.toString)
+      })
+
+      d.on[DragOutEvent]("drag:out", e => {
+        console.log(s"dragOut: over = ", e.over)
+        lastDragOverId = None
+      })
+
+      d.on[DragEvent]("drag:stop", e => lastDragOverId.foreach{ parentId =>
+        val childId: NodeId = NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("data-nodeid").value))
+        val changes = GraphChanges.connectParent(childId, parentId)
+        state.eventProcessor.enriched.changes.onNext(changes)
+        lastDragOverId = None
+        console.log(s"Added GraphChange after drag: $changes")
+      })
     }
 
     div(
       padding := "20px",
+      cls := "dropzone",
 
-      Rx{
+      Rx {
         val nodes = graphContent().chronologicalNodesAscending.collect{ case n:Node.Content => n}
         if (nodes.isEmpty) Seq(emptyMessage)
         else
           groupNodes(graph(), nodes, state, user().id).map(chatMessage(state, _, graph(), user().id))
       },
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) },
-      onInsert.asHtml.map{elem => new Sortable(elem, new shopify.draggable.Options{ draggable = ".msg"})} --> draggable
+        onInsert.asHtml.map{elem => new Draggable(elem, new Options{ draggable = ".dragable" })} --> dragable
     )
   }
 
@@ -295,8 +315,9 @@ object ChatView extends View {
   }
 
 
-  private def styles(color : String) = Seq[VDomModifier](
+  private def styles(color : String, nodeId: NodeId) = Seq[VDomModifier](
     cls := "sortable dragable dropable dropzone",
+    data.nodeid := nodeId.toCuidString,
     borderColor := color,
     backgroundColor := nodeDefaultColor,
     borderRadius := "0px 7px 7px", //7px 0px 7px 7px
@@ -310,11 +331,10 @@ object ChatView extends View {
   )
 
   private def chatMessageRenderer(state:GlobalState, nodes: Seq[Node], graph: Graph, currentUser: UserId)
-                       (implicit ctx: Ctx.Owner): VNode = {
+                 (implicit ctx: Ctx.Owner): VNode = {
 
-//    val currNode = nodes.last
     val currNode = nodes.last
-    val headNode = nodes.last
+    val headNode = nodes.head
     val isMine = graph.authors(currNode).contains(currentUser)
     val isDeleted = currNode.meta.deleted.timestamp < EpochMilli.now //TODO: Handle group msgs when all msg are deleted
 
@@ -324,7 +344,7 @@ object ChatView extends View {
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageBody(state, graph, _)),
         tagsDiv(state, graph, currNode),
-        styles(computeColor(graph, currNode.id)),
+        styles(computeColor(graph, currNode.id), currNode.id),
         isDeleted.ifTrueOption(opacity := 0.5)
       ),
       display.flex,
