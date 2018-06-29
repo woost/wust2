@@ -17,11 +17,30 @@ import org.scalajs.dom.html
 class Draggable(containers: js.Array[html.Element]|NodeList|html.Element, options: js.UndefOr[Options] = js.undefined) extends js.Object {
   def destroy():Unit = js.native
   def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
-  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
+  def on[E <: DragEvent](eventName: String, listener: js.Function1[E, Unit]): Draggable = js.native
+//  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def off(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
   def off(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def getDraggableElements(): js.Array[html.Element] = js.native
   def getDraggableElementsForContainer(container: html.Element): js.Array[html.Element] = js.native
+}
+
+@js.native
+trait AbstractEvent extends js.Object
+
+@js.native
+class DragEvent extends AbstractEvent {
+  def source: html.Element = js.native
+}
+
+@js.native
+class DragOverEvent extends DragEvent {
+  def over: html.Element = js.native
+}
+
+@js.native
+class DragOutEvent extends DragEvent {
+  def over: html.Element = js.native
 }
 
 @js.native
