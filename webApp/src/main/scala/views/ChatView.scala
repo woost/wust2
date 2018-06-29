@@ -40,6 +40,11 @@ object ShowOpts
   case object OwnOnly extends ShowOpts
   case object Always extends ShowOpts
 }
+
+sealed trait ChatKind
+case class ChatSingle(node: Node) extends ChatKind
+case class ChatGroup(nodes: Seq[Node]) extends ChatKind
+
 object ChatView extends View {
   override val key = "chat"
   override val displayName = "Chat"
@@ -58,7 +63,7 @@ object ChatView extends View {
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
 
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     div(
       display.flex,
@@ -73,7 +78,7 @@ object ChatView extends View {
     )
   }
 
-  def chatHeader(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  private def chatHeader(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     div(
       padding := "5px 10px",
@@ -100,7 +105,7 @@ object ChatView extends View {
     )
   }
 
-  def channelControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = div(
+  private def channelControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = div(
     Rx {
       (state.graph().children(state.user().channelNodeId).contains(node.id) match {
         case true => freeSolid.faBookmark
@@ -117,7 +122,7 @@ object ChatView extends View {
     }
   )
 
-  def joinControl(state:GlobalState, node:Node)(implicit ctx: Ctx.Owner):VNode = {
+  private def joinControl(state:GlobalState, node:Node)(implicit ctx: Ctx.Owner):VNode = {
     val text = node.meta.joinDate match {
       case JoinDate.Always =>
         div(
@@ -155,18 +160,21 @@ object ChatView extends View {
     )
   }
 
+  private def deleteButton(state: GlobalState, node: Node) = div(
+    freeRegular.faTrashAlt,
+    padding := "5px",
+    cursor.pointer,
+    onClick.map{e => e.stopPropagation(); GraphChanges.delete(node)} --> ObserverSink(state.eventProcessor.changes)
+  )
 
-  sealed trait ChatKind
-  case class ChatSingle(node : Node) extends ChatKind
-  case class ChatGroup(nodes : Seq[Node]) extends ChatKind
 
   //TODO: memoize?
-  def getNodeTags(graph : Graph, node : Node, page:Page) : Seq[Node] = {
+  private def getNodeTags(graph : Graph, node : Node, page:Page) : Seq[Node] = {
     (graph.ancestors(node.id) diff graph.channelNodeIds.toSeq diff page.parentIds).map(graph.nodesById(_))
   }
 
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
-  def groupNodes(graph: Graph, nodes : Seq[Node], state:GlobalState, currentUserId : UserId) = {
+  private def groupNodes(graph: Graph, nodes : Seq[Node], state:GlobalState, currentUserId : UserId) = {
     def shouldGroup(nodes : Node*) = {
       grouping && // grouping enabled
       (nodes.map(getNodeTags(graph,_,state.page.now)).distinct.size == 1 // tags must match
@@ -216,9 +224,9 @@ object ChatView extends View {
     )
   }
 
-  def emptyMessage: VNode = h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
+  private def emptyMessage: VNode = h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  def nodeTag(state:GlobalState, node:Node):VNode = {
+  private def nodeTag(state:GlobalState, node:Node):VNode = {
     span(
       node.data.str, //TODO trim! fit for tag usage...
       onClick --> sideEffect{e => state.page() = Page(Seq(node.id)); e.stopPropagation()},
@@ -231,20 +239,13 @@ object ChatView extends View {
     )
   }
 
-  def deleteButton(state: GlobalState, node: Node) = div(
-    freeRegular.faTrashAlt,
-    padding := "5px",
-    cursor.pointer,
-    onClick.map{e => e.stopPropagation(); GraphChanges.delete(node)} --> ObserverSink(state.eventProcessor.changes)
-  )
-
-  def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) = state.viewConfig.map { cfg =>
+  private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) = state.viewConfig.map { cfg =>
     val newCfg = cfg.copy(page = Page(node.id))
     viewConfigLink(newCfg)(freeSolid.faLink)
   }
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
-  def avatarDiv(isOwn : Boolean, user : Option[UserId], size: AvatarSize) = {
+  private def avatarDiv(isOwn : Boolean, user : Option[UserId], size: AvatarSize) = {
     if (showAvatar == ShowOpts.Always
           || (showAvatar == ShowOpts.OtherOnly && !isOwn)
           || (showAvatar == ShowOpts.OwnOnly && isOwn)) {
@@ -260,7 +261,7 @@ object ChatView extends View {
   }
 
   /// @return a date vnode or empty based on showDate setting
-  def optDateDiv(isOwn : Boolean, node : Node, graph: Graph) = {
+  private def optDateDiv(isOwn : Boolean, node : Node, graph: Graph) = {
     if (showDate == ShowOpts.Always
           || (showDate == ShowOpts.OtherOnly && !isOwn)
           || (showDate == ShowOpts.OwnOnly && isOwn))
@@ -275,7 +276,7 @@ object ChatView extends View {
   }
 
   /// @return an author vnode or empty based on showAuthor setting
-  def optAuthorDiv(isOwn : Boolean, node : Node, graph: Graph) = {
+  private def optAuthorDiv(isOwn : Boolean, node : Node, graph: Graph) = {
     if (showAuthor == ShowOpts.Always
           || (showAuthor == ShowOpts.OtherOnly && !isOwn)
           || (showAuthor == ShowOpts.OwnOnly && isOwn))
@@ -283,67 +284,47 @@ object ChatView extends View {
     else span()
   }
 
-  def chatMessage(state:GlobalState, chat: ChatKind, graph: Graph, currentUser: UserId)
+  private def chatMessage(state:GlobalState, chat: ChatKind, graph: Graph, currentUser: UserId)
                  (implicit ctx: Ctx.Owner): VNode = {
     chat match {
       case ChatSingle(node) =>
-        chatMessageSingle(state, node, graph, currentUser)
+        chatMessageRenderer(state, Seq(node), graph, currentUser)
       case ChatGroup(node) =>
-        chatMessageGroup(state, node, graph, currentUser)
+        chatMessageRenderer(state, node, graph, currentUser)
     }
   }
 
 
-  def styles(color : String) = Seq[VDomModifier](
+  private def styles(color : String) = Seq[VDomModifier](
     cls := "sortable dragable dropable dropzone",
-    clear.both,
     borderColor := color,
     backgroundColor := nodeDefaultColor,
     borderRadius := "0px 7px 7px", //7px 0px 7px 7px
     borderWidth := "1px 1px 1px 7px", //"1px 7px 1px 1px"
-    display.block,
     maxWidth := "80%",
     padding := "0px 10px",
     margin := "5px 0px",
     borderStyle := "solid",
+    display.block,
     cursor.pointer // TODO: What about cursor when selecting text?
   )
 
-  def chatMessageGroup(state:GlobalState, nodes: Seq[Node], graph: Graph, currentUser: UserId)
-                      (implicit ctx: Ctx.Owner): VNode = {
-    val isMine = graph.authors(nodes.last).contains(currentUser)
-    div( // node wrapper
-      avatarDiv(isMine, graph.authorIds(nodes.head).headOption, avatarSize),
-    div(
-      chatMessageHeader(isMine, nodes.head, graph, avatarSize),
-        nodes.map(chatMessageBody(state, graph, _)),
-      tagsDiv(state, graph, nodes.last),
-        styles(computeColor(graph, nodes.last.id)),
-      ),
-      display.flex,
-      flexDirection.row,
-      justifyContent.flexStart,
-      alignSelf.flexStart,
-      alignItems.flexStart,
-      alignContent.flexStart
-    )
-  }
-
-  /// @return vnode with a single message inside it (i.e. not grouped)
-  def chatMessageSingle(state:GlobalState, node: Node, graph:Graph, currentUser:UserId)
+  private def chatMessageRenderer(state:GlobalState, nodes: Seq[Node], graph: Graph, currentUser: UserId)
                        (implicit ctx: Ctx.Owner): VNode = {
 
-    val isMine = graph.authors(node).contains(currentUser)
-    val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
+//    val currNode = nodes.last
+    val currNode = nodes.last
+    val headNode = nodes.last
+    val isMine = graph.authors(currNode).contains(currentUser)
+    val isDeleted = currNode.meta.deleted.timestamp < EpochMilli.now //TODO: Handle group msgs when all msg are deleted
 
     div( // node wrapper
-      avatarDiv(isMine, graph.authorIds(node).headOption, avatarSize),
+      avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
       div(
-        chatMessageHeader(isMine, node, graph, avatarSize),
-        chatMessageBody(state, graph, node),
-        tagsDiv(state, graph, node),
-        styles(computeColor(graph, node.id)),
-
+        chatMessageHeader(isMine, headNode, graph, avatarSize),
+        nodes.map(chatMessageBody(state, graph, _)),
+        tagsDiv(state, graph, currNode),
+        styles(computeColor(graph, currNode.id)),
         isDeleted.ifTrueOption(opacity := 0.5)
       ),
       display.flex,
@@ -353,10 +334,11 @@ object ChatView extends View {
       alignItems.flexStart,
       alignContent.flexStart
     )
+
   }
 
   /// @return a vnode containing a chat header with optional name, date and avatar
-  def chatMessageHeader(isMine : Boolean, node : Node, graph: Graph, avatarSize : AvatarSize) = {
+  private def chatMessageHeader(isMine : Boolean, node : Node, graph: Graph, avatarSize : AvatarSize) = {
     Seq[VDomModifier](
       optAuthorDiv(isMine, node, graph),
       optDateDiv(isMine, node, graph),
@@ -369,7 +351,7 @@ object ChatView extends View {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageBody(state:GlobalState, graph : Graph, node: Node)(implicit ctx: Ctx.Owner) = {
+  private def chatMessageBody(state:GlobalState, graph : Graph, node: Node)(implicit ctx: Ctx.Owner) = {
     val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
     val content = if (graph.children(node).isEmpty)
                     renderNodeData(node.data)(paddingRight := "10px")
@@ -382,11 +364,10 @@ object ChatView extends View {
       content,
       isDeleted.ifFalseOption(nodeLink(state, node)),
       isDeleted.ifFalseOption(deleteButton(state, node)),
-    ),
-
+    )
   }
 
-  def tagsDiv(state: GlobalState, graph : Graph, node : Node)(implicit ctx: Ctx.Owner) = {
+  private def tagsDiv(state: GlobalState, graph : Graph, node : Node)(implicit ctx: Ctx.Owner) = {
     val nodeTags: Seq[Node] = getNodeTags(graph,node,state.page.now)
 
     div( // node tags
@@ -396,7 +377,7 @@ object ChatView extends View {
     )
   }
 
-  def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  private def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val graphIsEmpty = Rx {
       state.graphContent().isEmpty && state.page().mode == PageMode.Default
     }
