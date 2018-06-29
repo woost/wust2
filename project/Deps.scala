@@ -117,7 +117,7 @@ object Deps {
       "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
       "webpack-merge" -> "4.1.2" ::
       "copy-webpack-plugin" -> "4.5.1" ::
-      "workbox-webpack-plugin" -> "3.2.0" ::
+      "workbox-webpack-plugin" -> "3.3.1" ::
       Nil
   }
 
