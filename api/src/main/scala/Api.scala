@@ -57,9 +57,15 @@ sealed trait AuthUser {
   def channelNodeId:NodeId
 }
 object AuthUser {
-  sealed trait Persisted extends AuthUser
-  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted
-  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted
+  sealed trait Persisted extends AuthUser {
+    def toNode: Node.User
+  }
+  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted {
+    def toNode = Node.User(id, NodeData.User(name, isImplicit = false, revision, channelNodeId), NodeMeta.User)
+  }
+  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted {
+    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
+  }
   case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
     def name = s"anon-${id.toCuidString.takeRight(4)}"
   }

@@ -79,7 +79,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
       result.map { success =>
         if (success) {
-          val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
+          // TODO: always add the user to graphchange events, in case other users have never seen this user.
+          val additionalChanges = GraphChanges(addNodes = Set(user.toNode))
+          val compactChanges = changes.foldLeft(additionalChanges)(_ merge _)
           Returns(true, Seq(NewGraphChanges(compactChanges)))
         } else Returns(false)
       }

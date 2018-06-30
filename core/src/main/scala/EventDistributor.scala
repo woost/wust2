@@ -1,6 +1,7 @@
 package wust.backend
 
 import wust.api._
+import wust.graph.Node
 import wust.db.Db
 import wust.ids._
 import covenant.ws.api.EventDistributor
@@ -45,17 +46,22 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   override def publish(events: List[ApiEvent], origin: Option[NotifiableClient[ApiEvent, State]]): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
-    val involvedNodeIds: Set[NodeId] = events.flatMap {
-      case ApiEvent.NewGraphChanges(changes) => changes.involvedNodeIds
-      case _ => Set.empty[NodeId]
-    }(breakOut)
+    val (checkedNodeIdsList, uncheckedNodeIdsList) = events.map {
+      case ApiEvent.NewGraphChanges(changes) =>
+        val userIds: Set[UserId] = changes.addNodes.collect { case c: Node.User => c.id }(breakOut) //FIXME we cannot not check permission on users nodes as they currentl have no permissions, we just allow them for now.
+        (changes.involvedNodeIds.toSet -- userIds, userIds)
+      case _ => (Set.empty[NodeId], Set.empty[UserId])
+    }.unzip
+    val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
+    val uncheckedNodeIds: Set[UserId] = uncheckedNodeIdsList.toSet.flatten
 
-    db.notifications.notifiedUsers(involvedNodeIds).onComplete {
+    db.notifications.notifiedUsers(checkedNodeIds).onComplete {
 
       case Success(notifiedUsers) =>
-        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { nodeIds =>
-          events.map{
-            case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(nodeIds.toSet))
+        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues { permittedNodeIds =>
+          val allowedNodeIds: Set[NodeId] = uncheckedNodeIds ++ permittedNodeIds
+          events.map {
+            case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
             case other => other
           }
         }
