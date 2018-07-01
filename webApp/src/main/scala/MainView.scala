@@ -14,11 +14,14 @@ object MainView {
       height := "100%",
       width := "100%",
       display.flex,
+      minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
+      minWidth := "0", // fixes full page scrolling when messages are too long
       flexDirection.column,
       topbar(state)(ctx)(width := "100%", flexGrow := 0, flexShrink := 0),
       div(
         display.flex,
         minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
+        minWidth := "0", // fixes full page scrolling when messages are too long
         height := "100%",
         width := "100%",
         sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
