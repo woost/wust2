@@ -379,6 +379,7 @@ object ChatView extends View {
     div(
       display.flex,
       alignItems.center,
+      overflowX.auto, // show scrollbar for very long messages
       // FIXME: If the content has long lines, the layout gets broken on devices that can not fit the entire
       // message. Potential fix: add max-width: XXpx & text-overflow: ellipsis. max-width: XX% does not work.
       content,

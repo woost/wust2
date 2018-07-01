@@ -26,6 +26,7 @@ object MainView {
         div(
           display.flex,
           minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
+          minWidth := "0", // fixes full page scrolling when messages are too long
           flexDirection.column,
           width := "100%",
           breadcrumb(state)(ctx)(fontSize := "12px"),
