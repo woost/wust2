@@ -6,17 +6,15 @@ import wust.graph.Graph
 import wust.ids._
 
 object NodeColor {
-  implicit def ColorToString(c:Color) = c.toHex
+  implicit def ColorToString(c: Color) = c.toHex
 
   val nodeDefaultColor = RGB("#f8f8f8")
 
-  def genericBaseHue(seed:Any):Double = {
+  def genericBaseHue(seed: Any): Double = {
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
-    rnd.nextDouble()*Math.PI*2
+    rnd.nextDouble() * Math.PI * 2
   }
-
-
-  @inline def baseHue(id: NodeId):Double = genericBaseHue(id)
+  @inline def baseHue(id: NodeId): Double = genericBaseHue(id)
   def baseColor(id: NodeId) = HCL(baseHue(id), 50, 75)
   def baseColorDark(id: NodeId) = HCL(baseHue(id), 65, 60)
   def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), nodeDefaultColor)
@@ -30,7 +28,7 @@ object NodeColor {
   }
 
   def mixColors(colors: NonEmptyList[Color]): LAB = {
-    val colorSum = colors.foldLeft(LAB(0,0,0))((c1, c2Color) => {
+    val colorSum = colors.foldLeft(LAB(0, 0, 0))((c1, c2Color) => {
       val c2 = c2Color.lab
       LAB(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b)
     })
@@ -38,16 +36,18 @@ object NodeColor {
     LAB(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
   }
 
-  def mixedDirectParentColors(graph: Graph, nodeId: NodeId):Option[Color] = NonEmptyList.fromList(graph.parents(nodeId).map(baseColor).toList).map(mixColors)
+  def mixedDirectParentColors(graph: Graph, nodeId: NodeId): Option[Color] =
+    NonEmptyList.fromList(graph.parents(nodeId).map(baseColor).toList).map(mixColors)
 
   def computeColor(graph: Graph, nodeId: NodeId): Color = {
     if (graph.hasChildren(nodeId)) {
       baseColor(nodeId)
     } else {
       if (graph.hasParents(nodeId)) {
-        mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(mixed => mixColors(mixed, nodeDefaultColor))
-      }
-      else
+        mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(
+          mixed => mixColors(mixed, nodeDefaultColor)
+        )
+      } else
         nodeDefaultColor
     }
   }

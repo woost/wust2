@@ -7,10 +7,10 @@ import scala.util.Try
 object ParserElements {
   import fastparse.all._
 
-  val word: P[String] = P( ElemsWhileIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9'), min = 1).! )
+  val word: P[String] = P(ElemsWhileIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9'), min = 1).!)
 
   val whitespaceChar = CharPred(_.isWhitespace)
 
   //TODO better?
-  val url = P( (("http://" | "https://") ~ CharPred(s => !s.isWhitespace).rep(min = 1)).! )
+  val url = P((("http://" | "https://") ~ CharPred(s => !s.isWhitespace).rep(min = 1)).!)
 }

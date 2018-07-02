@@ -15,7 +15,8 @@ class ErrorView(msg: String) extends View {
   override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "50px",
     b("Oops, an error occurred!"),
-    br(), br(),
+    br(),
+    br(),
     msg
   )
 }

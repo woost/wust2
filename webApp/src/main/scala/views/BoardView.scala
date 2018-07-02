@@ -74,10 +74,10 @@
 //                    margin := "5px",
 //                    draggable := "true",
 //                    cursor.move,
-//                    ondragstart := { (e:DragEvent) => 
+//                    ondragstart := { (e:DragEvent) =>
 //                      //TODO: encoding both ids as a string feels very wrong. Could we at least use an js.array or json?
 //                      e.dataTransfer.setData("text/plain", s"${Tag.unwrap(column.id)} ${Tag.unwrap(item.id)}")
-                      
+
 //                    }
 //                  )
 //                },
@@ -86,7 +86,7 @@
 //                  e.dataTransfer.dropEffect = "move"
 //                },
 
-//                ondrop := {(e:DragEvent) => 
+//                ondrop := {(e:DragEvent) =>
 //                  val data = e.dataTransfer.getData("text").split(" ")
 //                  println(data)
 //                  val sourceColumnId = NodeId(data(0))
@@ -118,7 +118,7 @@
 //                    margin := "5px",
 //                    marginTop := "15px",
 //                    insertForm
-//                  )      
+//                  )
 //                }
 //              ).render
 //          },
@@ -144,7 +144,7 @@
 //                    margin := "10px",
 //                    marginTop := "15px",
 //                    insertForm
-//                  )      
+//                  )
 //                }
 //    ).render
 //  }

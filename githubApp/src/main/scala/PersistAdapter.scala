@@ -23,10 +23,15 @@ object PersistAdapter {
     client.hget[String](s"${DBConstants.wustPrefix}$wustUserId", DBConstants.wustToken)
   }
   def addGithubUser(wustUserId: UserId, githubUserId: Int): Option[Long] = {
-    client.hset1(s"${DBConstants.wustPrefix}$wustUserId", DBConstants.githubUserId, s"${DBConstants.githubPrefix}$githubUserId")
+    client.hset1(
+      s"${DBConstants.wustPrefix}$wustUserId",
+      DBConstants.githubUserId,
+      s"${DBConstants.githubPrefix}$githubUserId"
+    )
   }
   def getGithubUser(wustUserId: UserId): Option[String] = {
-    val rawUser = client.hget[String](s"${DBConstants.wustPrefix}$wustUserId", DBConstants.githubUserId)
+    val rawUser =
+      client.hget[String](s"${DBConstants.wustPrefix}$wustUserId", DBConstants.githubUserId)
     rawUser.map(_.drop(DBConstants.githubPrefix.length))
   }
 
@@ -38,10 +43,15 @@ object PersistAdapter {
     client.hget[String](s"${DBConstants.githubPrefix}$githubUserId", DBConstants.githubToken)
   }
   def addWustUser(githubUserId: Int, wustUserId: UserId): Option[Long] = {
-    client.hset1(s"${DBConstants.githubPrefix}$githubUserId", DBConstants.wustUserId, s"${DBConstants.wustPrefix}$wustUserId")
+    client.hset1(
+      s"${DBConstants.githubPrefix}$githubUserId",
+      DBConstants.wustUserId,
+      s"${DBConstants.wustPrefix}$wustUserId"
+    )
   }
   def getWustUser(githubUserId: Int): Option[UserId] = {
-    val rawUser = client.hget[String](s"${DBConstants.githubPrefix}$githubUserId", DBConstants.wustUserId)
+    val rawUser =
+      client.hget[String](s"${DBConstants.githubPrefix}$githubUserId", DBConstants.wustUserId)
 //    rawUser.map(userStr => UserId(userStr.drop(DBConstants.wustPrefix.length)))
     rawUser.map(userStr => (userStr.drop(DBConstants.wustPrefix.length)).asInstanceOf[UserId])
   }

@@ -12,49 +12,59 @@ import scala.concurrent.Future
 import wust.ids.EpochMilli._
 
 case object ChooseTaskHeuristic {
-    type HeuristicType = List[RestructuringTaskObject] => RestructuringTaskObject
+  type HeuristicType = List[RestructuringTaskObject] => RestructuringTaskObject
 
-    def random(tasks: List[RestructuringTaskObject]): RestructuringTaskObject = {
-      tasks(scala.util.Random.nextInt(tasks.size))
-    }
+  def random(tasks: List[RestructuringTaskObject]): RestructuringTaskObject = {
+    tasks(scala.util.Random.nextInt(tasks.size))
+  }
 
   def defaultHeuristic: HeuristicType = random
 }
 
-sealed trait PostHeuristic
-{
-  def heuristic(graph: Graph, num:Option[Int]): PostHeuristicResult
+sealed trait PostHeuristic {
+  def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult
 }
 
 object PostHeuristic {
   type PostHeuristicResult = Future[List[Heuristic.Result]]
   type PostHeuristicType = (Graph, Option[Int]) => PostHeuristicResult
 
-
   sealed trait FrontendHeuristic extends PostHeuristic {
     def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = {
-      Future.successful(List(frontendHeuristic(graph.contentNodes.toList, num)).map(l => Heuristic.PostResult(None, l)))
+      Future.successful(
+        List(frontendHeuristic(graph.contentNodes.toList, num))
+          .map(l => Heuristic.PostResult(None, l))
+      )
     }
     def frontendHeuristic(posts: List[Node.Content], num: Option[Int]): List[Node.Content]
 
-    protected def wrapHeuristic(f: List[Node.Content] => List[Node.Content], posts: List[Node.Content], num: Option[Int]): List[Node.Content] = {
+    protected def wrapHeuristic(
+        f: List[Node.Content] => List[Node.Content],
+        posts: List[Node.Content],
+        num: Option[Int]
+    ): List[Node.Content] = {
       assert(math.abs(num.getOrElse(0)) <= posts.size, "Cannot pick more elements than there are")
       if (posts.isEmpty) return List.empty[Node.Content]
 
       val choice = f(posts)
       num match {
         case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(math.abs(n))
-        case None => choice
+        case None    => choice
       }
     }
 
-    protected def wrapMultiHeuristic(f: List[Node.Content] => List[List[Node.Content]], posts: Set[Node.Content], num: Option[Int]): List[List[Node.Content]] = {
+    protected def wrapMultiHeuristic(
+        f: List[Node.Content] => List[List[Node.Content]],
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): List[List[Node.Content]] = {
       assert(math.abs(num.getOrElse(0)) <= posts.size, "Cannot pick more elements than there are")
       if (posts.isEmpty) return List.empty[List[Node.Content]]
 
       val choice = f(posts.toList)
       num match {
-        case Some(n) => if (n > 0) choice.map(_.take(n)) else choice.map(_.reverse.take(math.abs(n)))
+        case Some(n) =>
+          if (n > 0) choice.map(_.take(n)) else choice.map(_.reverse.take(math.abs(n)))
         case None => choice
       }
     }
@@ -64,13 +74,19 @@ object PostHeuristic {
     def apply(deterministicPosts: List[Node.Content]) = new Deterministic(deterministicPosts)
   }
   case class Deterministic(deterministicPosts: List[Node.Content]) extends FrontendHeuristic {
-    def frontendHeuristic(posts: List[Node.Content], num: Option[Int] = Some(deterministicPosts.length)): List[Node.Content] = {
+    def frontendHeuristic(
+        posts: List[Node.Content],
+        num: Option[Int] = Some(deterministicPosts.length)
+    ): List[Node.Content] = {
       deterministicPosts
     }
   }
 
   case object Random extends FrontendHeuristic {
-    def frontendHeuristic(posts: List[Node.Content], num: Option[Int] = Some(2)): List[Node.Content] = {
+    def frontendHeuristic(
+        posts: List[Node.Content],
+        num: Option[Int] = Some(2)
+    ): List[Node.Content] = {
       def _random(p: List[Node.Content]) = scala.util.Random.shuffle(p)
 
       wrapHeuristic(_random, posts, num)
@@ -138,31 +154,44 @@ object PostHeuristic {
     }
     protected def graphHeuristic(graph: Graph, num: Option[Int]): List[Node.Content]
 
-    protected def wrapGraphHeuristic(f: Graph => List[Node.Content], graph: Graph, num: Option[Int]): List[Node.Content] = {
+    protected def wrapGraphHeuristic(
+        f: Graph => List[Node.Content],
+        graph: Graph,
+        num: Option[Int]
+    ): List[Node.Content] = {
       assert(math.abs(num.getOrElse(0)) <= graph.length, "Cannot pick more elements than there are")
       if (graph.isEmpty) return List.empty[Node.Content]
 
       val choice = f(graph)
       num match {
         case Some(n) => if (n > 0) choice.take(n) else choice.reverse.take(math.abs(n))
-        case None => choice
+        case None    => choice
       }
     }
   }
 
   case object NodeDegree extends GraphHeuristic {
     def graphHeuristic(graph: Graph, num: Option[Int] = Some(2)): List[Node.Content] = {
-      def _nodeDegree(graph: Graph) = graph.connectionDegree.toList.sortBy(_._2).map(p => graph.nodesById(p._1)).collect{case p: Node.Content => p}
+      def _nodeDegree(graph: Graph) =
+        graph.connectionDegree.toList.sortBy(_._2).map(p => graph.nodesById(p._1)).collect {
+          case p: Node.Content => p
+        }
 
       wrapGraphHeuristic(_nodeDegree, graph, num)
     }
   }
 
   sealed trait BackendHeuristic extends PostHeuristic {
-    def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = backendHeuristic(graph.contentNodes.toSet, num)
-    protected def backendHeuristic(posts: Set[Node.Content], num: Option[Int] = Some(2)): PostHeuristicResult
+    def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult =
+      backendHeuristic(graph.contentNodes.toSet, num)
+    protected def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int] = Some(2)
+    ): PostHeuristicResult
 
-    protected def wrappedBackendHeuristic(heuristic: NlpHeuristic)(posts: Set[Node.Content], num: Option[Int] = Some(2)): PostHeuristicResult = {
+    protected def wrappedBackendHeuristic(
+        heuristic: NlpHeuristic
+    )(posts: Set[Node.Content], num: Option[Int] = Some(2)): PostHeuristicResult = {
       def _backendHeuristic(posts: List[Node.Content]): Future[List[Heuristic.PostResult]] = {
         val postMap: Map[NodeId, Node.Content] = posts.map(p => p.id -> p).toMap
         val nodeIds = Client.api.chooseTaskNodes(heuristic, posts.map(_.id), num)
@@ -175,9 +204,15 @@ object PostHeuristic {
       val choice = _backendHeuristic(posts.toList)
 
       num match {
-        case Some(n) => choice.map(_.map(r => Heuristic.PostResult(r.measure, {
-          if (n > 0) r.nodes.take(n) else r.nodes.reverse.take(math.abs(n))
-        })))
+        case Some(n) =>
+          choice.map(
+            _.map(
+              r =>
+                Heuristic.PostResult(r.measure, {
+                  if (n > 0) r.nodes.take(n) else r.nodes.reverse.take(math.abs(n))
+                })
+            )
+          )
         case None => choice
       }
     }
@@ -187,55 +222,98 @@ object PostHeuristic {
     def apply(nGramValue: Int) = new DiceSorensen(nGramValue)
   }
   case class DiceSorensen(nGram: Int) extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.DiceSorensen(nGram))(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.DiceSorensen(nGram))(posts, num)
   }
 
   case object Hamming extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Hamming)(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Hamming)(posts, num)
   }
 
   case object Jaccard {
     def apply(nGramValue: Int) = new Jaccard(nGramValue)
   }
   case class Jaccard(nGram: Int) extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Jaccard(nGram))(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.Jaccard(nGram))(posts, num)
   }
 
   case object Jaro extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Jaro)(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Jaro)(posts, num)
   }
 
   case object JaroWinkler extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.JaroWinkler)(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.JaroWinkler)(posts, num)
   }
 
   case object Levenshtein extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Levenshtein)(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.Levenshtein)(posts, num)
   }
 
   case object NGram {
     def apply(nGramValue: Int) = new NGram(nGramValue)
   }
   case class NGram(nGram: Int) extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.NGram(nGram))(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.NGram(nGram))(posts, num)
   }
 
   case object Overlap {
     def apply(nGramValue: Int) = new Overlap(nGramValue)
   }
   case class Overlap(nGram: Int) extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.Overlap(nGram))(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.Overlap(nGram))(posts, num)
   }
 
   case object RatcliffObershelp extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.RatcliffObershelp)(posts, num)
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.RatcliffObershelp)(posts, num)
   }
 
   case object WeightedLevenshtein {
-    def apply(delWeight: Int, insWeight: Int, subWeight: Int) = new WeightedLevenshtein(delWeight, insWeight, subWeight)
+    def apply(delWeight: Int, insWeight: Int, subWeight: Int) =
+      new WeightedLevenshtein(delWeight, insWeight, subWeight)
   }
-  case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int) extends BackendHeuristic {
-    def backendHeuristic(posts: Set[Node.Content], num: Option[Int]): Future[List[Heuristic.Result]] = wrappedBackendHeuristic(NlpHeuristic.WeightedLevenshtein(delWeight, insWeight, subWeight))(posts, num)
+  case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int)
+      extends BackendHeuristic {
+    def backendHeuristic(
+        posts: Set[Node.Content],
+        num: Option[Int]
+    ): Future[List[Heuristic.Result]] =
+      wrappedBackendHeuristic(NlpHeuristic.WeightedLevenshtein(delWeight, insWeight, subWeight))(
+        posts,
+        num
+      )
   }
 
 }
@@ -243,10 +321,14 @@ object PostHeuristic {
 object ChoosePostHeuristic {
   // Normalize weights between 0.0 and 1.0. Get random value between 0.0 and 1.0.
   // Take corresponding heuristic ordered between 0.0 and 1.0
-  def choose(heuristics: List[HeuristicParameters]): HeuristicParameters =  {
+  def choose(heuristics: List[HeuristicParameters]): HeuristicParameters = {
     val totalWeight = heuristics.foldLeft(0.0)(_ + _.probability)
-    val normalizedHeuristics = heuristics.map(h => h.copy(probability = h.probability / totalWeight))
-        .scan(HeuristicParameters(0.0))((h1, h2) => h2.copy(probability = h1.probability + h2.probability)).drop(1)
+    val normalizedHeuristics = heuristics
+      .map(h => h.copy(probability = h.probability / totalWeight))
+      .scan(HeuristicParameters(0.0))(
+        (h1, h2) => h2.copy(probability = h1.probability + h2.probability)
+      )
+      .drop(1)
     val r = scala.util.Random.nextDouble
     DevPrintln(s"heuristics: $heuristics")
     DevPrintln(s"normalized heuristics: $normalizedHeuristics")

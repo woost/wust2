@@ -18,30 +18,38 @@ object IndexedDbOps {
     val auth = "auth"
   }
 
-  private lazy val db = OptionT(indexedDb.fold(Future.successful(Option.empty[IDBDatabase])) { indexedDb =>
-    val openreq = indexedDb.open("woost", 1)
-    openreq.onupgradeneeded = { e =>
-      val db = openreq.result.asInstanceOf[IDBDatabase]
-      db.createObjectStore(stores.auth)
-    }
-    requestFuture[IDBDatabase](openreq)
+  private lazy val db = OptionT(indexedDb.fold(Future.successful(Option.empty[IDBDatabase])) {
+    indexedDb =>
+      val openreq = indexedDb.open("woost", 1)
+      openreq.onupgradeneeded = { e =>
+        val db = openreq.result.asInstanceOf[IDBDatabase]
+        db.createObjectStore(stores.auth)
+      }
+      requestFuture[IDBDatabase](openreq)
   })
 
   def storeAuth(auth: Authentication)(implicit ec: ExecutionContext): Future[Boolean] = auth match {
-    case Authentication.Verified(_, _, token) => onStore(stores.auth) { store =>
-      store.put(token, 0)
-    }
-    case _ => onStore(stores.auth) { store =>
-      store.delete(0)
-    }
+    case Authentication.Verified(_, _, token) =>
+      onStore(stores.auth) { store =>
+        store.put(token, 0)
+      }
+    case _ =>
+      onStore(stores.auth) { store =>
+        store.delete(0)
+      }
   }
 
-  private def onStore(storeName: String)(f: IDBObjectStore => IDBRequest)(implicit ec: ExecutionContext): Future[Boolean] =
+  private def onStore(
+      storeName: String
+  )(f: IDBObjectStore => IDBRequest)(implicit ec: ExecutionContext): Future[Boolean] =
     db.flatMapF { db =>
-      val transaction = db.transaction(Array(storeName).toJSArray, "readwrite")
-      val store = transaction.objectStore(storeName)
-      requestFuture(f(store))
-    }.value.map((opt: Option[Any]) => opt.isDefined).recover { case _ => false }
+        val transaction = db.transaction(Array(storeName).toJSArray, "readwrite")
+        val store = transaction.objectStore(storeName)
+        requestFuture(f(store))
+      }
+      .value
+      .map((opt: Option[Any]) => opt.isDefined)
+      .recover { case _ => false }
 
   private def requestFuture[T](request: IDBRequest): Future[Option[T]] = {
     val promise = Promise[Option[T]]()

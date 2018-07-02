@@ -9,8 +9,8 @@ trait Selector[T] extends (T => Boolean) {
 
 //TODO: use dogs for ISet/Set
 object Selector {
-  def All[T] = new Selector[T] { override def apply(elem:T) = true }
-  def None[T] = new Selector[T] { override def apply(elem:T) = false }
+  def All[T] = new Selector[T] { override def apply(elem: T) = true }
+  def None[T] = new Selector[T] { override def apply(elem: T) = false }
   case class Predicate[T](set: T => Boolean) extends Selector[T] {
     override def apply(elem: T) = set(elem)
   }

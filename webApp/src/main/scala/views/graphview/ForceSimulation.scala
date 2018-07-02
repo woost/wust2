@@ -25,17 +25,14 @@ import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-
-
 case class PlaneDimension(
-                           xOffset: Double = 50,
-                           yOffset: Double = 50,
-                           simWidth: Double = 300,
-                           simHeight: Double = 300,
-                           width:Double = 300,
-                           height:Double = 300
-                         )
-
+    xOffset: Double = 50,
+    yOffset: Double = 50,
+    simWidth: Double = 300,
+    simHeight: Double = 300,
+    width: Double = 300,
+    height: Double = 300
+)
 
 sealed trait VisualizationType
 object VisualizationType {
@@ -51,25 +48,30 @@ object ForceSimulationConstants {
   val nodeSpacing = 20
 }
 
-class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (NodeId, NodeId) => Unit, onDropWithCtrl: (NodeId, NodeId) => Unit)(implicit ctx: Ctx.Owner) {
+class ForceSimulation(
+    val state: GlobalState,
+    val graph: Rx[Graph],
+    onDrop: (NodeId, NodeId) => Unit,
+    onDropWithCtrl: (NodeId, NodeId) => Unit
+)(implicit ctx: Ctx.Owner) {
   //TODO: sometimes dragging parent into child crashes simulation
   import ForceSimulation._
   import ForceSimulationConstants._
 
-  val postCreationMenus:Var[List[Vec2]] = Var(Nil)
-  val selectedNodeId:Var[Option[(Vec2, NodeId)]] = Var(None)
+  val postCreationMenus: Var[List[Vec2]] = Var(Nil)
+  val selectedNodeId: Var[Option[(Vec2, NodeId)]] = Var(None)
 
   //TODO why partial?
-  private var labelVisualization: PartialFunction[EdgeData.Type,VisualizationType] = {
+  private var labelVisualization: PartialFunction[EdgeData.Type, VisualizationType] = {
     case EdgeData.Parent.tpe => Containment
-    case label => Edge
+    case label               => Edge
   }
   private var postSelection: Selection[Node] = _
   private var simData: SimulationData = _
   private var staticData: StaticData = _
   private var planeDimension = PlaneDimension()
-  private var canvasContext:CanvasRenderingContext2D = _
-  var transform:Transform = d3.zoomIdentity
+  private var canvasContext: CanvasRenderingContext2D = _
+  var transform: Transform = d3.zoomIdentity
   var running = false
   //  val positionRequests = mutable.HashMap.empty[NodeId, (Double, Double)]
 
@@ -80,13 +82,14 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
   var isCtrlPressed = false
   keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
 
-
   val component: VNode = {
     import outwatch.dom.dsl._
     import outwatch.dom.dsl.styles.extra._
 
     div(
-      onInsert.asHtml --> sideEffect { e => backgroundElement.success(e) },
+      onInsert.asHtml --> sideEffect { e =>
+        backgroundElement.success(e)
+      },
       position := "relative",
       width := "100%",
       height := "100%",
@@ -94,11 +97,15 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
       // Mouse events from all children pass through to backgroundElement (e.g. zoom).
       canvas(
         position := "absolute",
-        onInsert.map(_.asInstanceOf[dom.html.Canvas]) --> sideEffect { (e) => canvasLayerElement.success(e) },
+        onInsert.map(_.asInstanceOf[dom.html.Canvas]) --> sideEffect { (e) =>
+          canvasLayerElement.success(e)
+        },
         // pointerEvents := "none" // background handles mouse events
       ),
       div(
-        onInsert.asHtml --> sideEffect { e => postContainerElement.success(e); () },
+        onInsert.asHtml --> sideEffect { e =>
+          postContainerElement.success(e); ()
+        },
         width := "100%",
         height := "100%",
         position := "absolute",
@@ -123,50 +130,55 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
       //val rawGraph = state.rawGraph().consistent
       println(log("\n") + log(s"---- graph update[${graph().nodes.size}] ----"))
       time(log("graph to wrapper arrays")) {
-        new GraphTopology( graph(), posts = graph().nodes.toArray )
+        new GraphTopology(graph(), posts = graph().nodes.toArray)
       }
     }
 
-
     def zoomed(): Unit = {
       transform = d3.event.transform
-     // println(log(s"zoomed: ${transform.k}"))
+      // println(log(s"zoomed: ${transform.k}"))
       canvasContext.setTransform(transform.k, 0, 0, transform.k, transform.x, transform.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
-      postContainer.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
+      postContainer.style(
+        "transform",
+        s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
+      )
       drawCanvas(simData, staticData, canvasContext, planeDimension)
-      if(debugDrawEnabled) calculateAndDrawCurrentVelocities()
+      if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
     }
 
     // Drag & Zoom example: https://bl.ocks.org/mbostock/3127661b6f13f9316be745e77fdfb084
-    val zoom = d3.zoom()
+    val zoom = d3
+      .zoom()
       .scaleExtent(js.Array(0.01, 10))
       .on("zoom", () => zoomed())
       .clickDistance(10) // interpret short drags as clicks
 
-    background.call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
-      .on("click", { () =>
-      println("clicked background")
+    background
+      .call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
+      .on(
+        "click", { () =>
+          println("clicked background")
 
-      if(transform.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
-        // fixes visualization
-        resized()
-        startAnimated()
-      } else {
-        if (postCreationMenus.now.isEmpty && selectedNodeId.now.isEmpty) {
-          val pos = transform.invert(d3.mouse(background.node))
-          postCreationMenus() = List(Vec2(pos(0), pos(1)))
-        } else {
-          // TODO:
-          // Var.set(
-          //   Var.Assignment(postCreationMenus, Nil),
-          //   Var.Assignment(selectedNodeId, None)
-          // )
-          postCreationMenus() = Nil
-          selectedNodeId() = None
+          if (transform.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
+            // fixes visualization
+            resized()
+            startAnimated()
+          } else {
+            if (postCreationMenus.now.isEmpty && selectedNodeId.now.isEmpty) {
+              val pos = transform.invert(d3.mouse(background.node))
+              postCreationMenus() = List(Vec2(pos(0), pos(1)))
+            } else {
+              // TODO:
+              // Var.set(
+              //   Var.Assignment(postCreationMenus, Nil),
+              //   Var.Assignment(selectedNodeId, None)
+              // )
+              postCreationMenus() = Nil
+              selectedNodeId() = None
+            }
+          }
         }
-      }
-    })
-
+      )
 
     events.window.onResize.foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
@@ -174,53 +186,52 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
       startAnimated()
     }
 
-    def dragSubject(d:Node, i:Int):Coordinates = {
+    def dragSubject(d: Node, i: Int): Coordinates = {
       new Coordinates(
         x = simData.x(i) * transform.k,
         y = simData.y(i) * transform.k
       )
     }
 
-    def dragStart(n:html.Element, d: Node, dragging:Int):Unit = {
+    def dragStart(n: html.Element, d: Node, dragging: Int): Unit = {
       running = false
       ForceSimulationForces.initQuadtree(simData, staticData)
       simData.quadtree.remove(dragging)
     }
 
-    def hit(dragging:Int, minRadius:Double):Option[Int] = {
-      if(simData.n <= 1) return None
+    def hit(dragging: Int, minRadius: Double): Option[Int] = {
+      if (simData.n <= 1) return None
 
       val x = d3.event.x / transform.k
       val y = d3.event.y / transform.k
 
-      val target = simData.quadtree.find(x,y) // ,staticData.maxRadius
+      val target = simData.quadtree.find(x, y) // ,staticData.maxRadius
       def distance = Vec2.length(x - simData.x(target), y - simData.y(target))
-      if(target != dragging && (distance <= minRadius || distance <= staticData.radius(target))) {
+      if (target != dragging && (distance <= minRadius || distance <= staticData.radius(target))) {
         Some(target)
       } else None
     }
 
-    def dragging(n:html.Element, d: Node, dragging:Int):Unit = {
+    def dragging(n: html.Element, d: Node, dragging: Int): Unit = {
       running = false
       val x = d3.event.x / transform.k
       val y = d3.event.y / transform.k
 
-      d3.select(n).style("transform", {
-        val xOff = x + staticData.centerOffsetX(dragging)
-        val yOff = y + staticData.centerOffsetY(dragging)
-        s"translate(${xOff}px,${yOff}px)"
-      })
-
+      d3.select(n)
+        .style("transform", {
+          val xOff = x + staticData.centerOffsetX(dragging)
+          val yOff = y + staticData.centerOffsetY(dragging)
+          s"translate(${xOff}px,${yOff}px)"
+        })
 
       simData.x(dragging) = x
       simData.y(dragging) = y
 
-
       ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
       ForceSimulationForces.eulerSetGeometricCenter(simData, staticData)
-      drawCanvas(simData,staticData,canvasContext,planeDimension)
+      drawCanvas(simData, staticData, canvasContext, planeDimension)
 
-      hit(dragging, minimumDragHighlightRadius).foreach{ target =>
+      hit(dragging, minimumDragHighlightRadius).foreach { target =>
         canvasContext.lineWidth = 1
 
         val bgColor = d3.lab(baseColor(staticData.posts(target).id).toHex) //TODO: use d3.rgb or make colorado handle opacity
@@ -228,19 +239,25 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
         bgColor.opacity = 0.8
         canvasContext.fillStyle = bgColor
         canvasContext.beginPath()
-        canvasContext.arc(simData.x(target), simData.y(target), radius, startAngle = 0, endAngle = 2*Math.PI)
+        canvasContext.arc(
+          simData.x(target),
+          simData.y(target),
+          radius,
+          startAngle = 0,
+          endAngle = 2 * Math.PI
+        )
         canvasContext.fill()
         canvasContext.closePath()
       }
 
       ForceSimulationForces.clearVelocities(simData)
       simData.alpha = 1.0
-      if(debugDrawEnabled) calculateAndDrawCurrentVelocities()
+      if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
     }
 
-    def dropped(n:html.Element, d:Node, dragging:Int):Unit = {
-      hit(dragging, minimumDragHighlightRadius).foreach{ target =>
-        if(isCtrlPressed)
+    def dropped(n: html.Element, d: Node, dragging: Int): Unit = {
+      hit(dragging, minimumDragHighlightRadius).foreach { target =>
+        if (isCtrlPressed)
           onDropWithCtrl(staticData.posts(dragging).id, staticData.posts(target).id)
         else
           onDrop(staticData.posts(dragging).id, staticData.posts(target).id)
@@ -248,7 +265,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
       //TODO: if nothing was changed, jump back to drag start with animation
     }
 
-    def onClick(post:Node, i:Int): Unit = {
+    def onClick(post: Node, i: Int): Unit = {
 
       println(s"clicked post[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
@@ -263,16 +280,18 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
       postCreationMenus() = Nil
     }
 
-
-    def resized():Unit = {
+    def resized(): Unit = {
       val rect = backgroundElement.getBoundingClientRect()
       import rect.{height, width}
       val resizedFromZero = (planeDimension.width == 0 || planeDimension.height == 0) && width > 0 && height > 0
-      if(resizedFromZero) { // happens when graphview was rendered in a hidden element
+      if (resizedFromZero) { // happens when graphview was rendered in a hidden element
         // since postContainer had size zero, all posts also had size zero,
         // so we have to resize postContainer and then reinitialize the post sizes in static data
         transform = d3.zoomIdentity
-        postContainer.style("transform", s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})")
+        postContainer.style(
+          "transform",
+          s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
+        )
         staticData = StaticData(graphTopology.now, postSelection, transform, labelVisualization)
       }
 
@@ -295,9 +314,12 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
         .attr("height", height)
 
       // this triggers zoomed()
-      background.call(zoom.transform _, d3.zoomIdentity
-        .translate(width / 2, height / 2)
-        .scale(scale))
+      background.call(
+        zoom.transform _,
+        d3.zoomIdentity
+          .translate(width / 2, height / 2)
+          .scale(scale)
+      )
     }
 
     //  val t = d3.transition().duration(750) TODO
@@ -307,7 +329,11 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
       // The set of posts has changed,
       // we have to update the indices of the simulation data arrays
 
-      println(log(s"updating simulation[${Option(simData).fold("_")(_.n.toString)} -> ${posts.length}]..."))
+      println(
+        log(
+          s"updating simulation[${Option(simData).fold("_")(_.n.toString)} -> ${posts.length}]..."
+        )
+      )
       stop()
 
       // We want to let d3 do the re-ordering while keeping the old coordinates
@@ -345,7 +371,6 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
   def startAnimated(alpha: Double = 1, alphaMin: Double = 0.7): Unit = {
     println(log("started"))
 
-
     val ticks = 100 // Default = 300
     val forceFactor = 0.4
     simData.alpha = alpha
@@ -382,7 +407,7 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
   private def simStep(): Boolean = {
     if (!running) return false
     if (!simulationStep(simData, staticData, planeDimension)) {
-       // nothing happened, alpha surpassed threshold
+      // nothing happened, alpha surpassed threshold
       stop()
       return false
     }
@@ -391,21 +416,20 @@ class ForceSimulation(val state: GlobalState, val graph: Rx[Graph], onDrop: (Nod
 
   def calculateAndDrawCurrentVelocities(): Unit = {
     val futureSimData = simData.clone()
-    calculateVelocities(futureSimData,staticData,planeDimension)
-    drawVelocities(simData, futureSimData,staticData,canvasContext,planeDimension)
+    calculateVelocities(futureSimData, staticData, planeDimension)
+    drawVelocities(simData, futureSimData, staticData, canvasContext, planeDimension)
   }
 
-
-  def step(alpha:Double = 1.0): Unit = {
+  def step(alpha: Double = 1.0): Unit = {
     simData.alpha = alpha
     simulationStep(simData, staticData, planeDimension)
     draw()
-    if(debugDrawEnabled) calculateAndDrawCurrentVelocities()
+    if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
   }
 
   def draw(): Unit = {
-    ForceSimulationForces.calculateEulerSetPolygons(simData,staticData) // TODO: separate display polygon from collision polygon?
-    applyPostPositions(simData,staticData,postSelection)
+    ForceSimulationForces.calculateEulerSetPolygons(simData, staticData) // TODO: separate display polygon from collision polygon?
+    applyPostPositions(simData, staticData, postSelection)
     drawCanvas(simData, staticData, canvasContext, planeDimension)
   }
 }
@@ -419,35 +443,37 @@ object ForceSimulation {
     import outwatch.dom.dsl._
     val arbitraryFactor = 2.4
     val contentWidth = post.data.str.length // TODO: wrong with markdown rendering
-    val calcWidth = if(contentWidth > 10){
+    val calcWidth = if (contentWidth > 10) {
       val sqrtWidth = (math.sqrt(contentWidth) * arbitraryFactor) min 60
-      Some(width:= s"${sqrtWidth}ch")
+      Some(width := s"${sqrtWidth}ch")
     } else None
     calcWidth
   }
 
   def updateDomPosts(
-                      posts: js.Array[Node],
-                      postSelection: Selection[Node],
-                      onClick: (Node,Int) => Unit
-                    ): Unit = {
+      posts: js.Array[Node],
+      postSelection: Selection[Node],
+      onClick: (Node, Int) => Unit
+  ): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
-    val post = postSelection.data(posts, (p:Node) => p.id)
+    val post = postSelection.data(posts, (p: Node) => p.id)
     time(log(s"removing old posts from dom[${post.exit().size()}]")) {
-      post.exit()
+      post
+        .exit()
         .remove()
     }
 
     time(log(s"updating staying posts[${post.size()}]")) {
       post
-        .html((post:Node) => htmlPostData(post.data))
+        .html((post: Node) => htmlPostData(post.data))
         .style("width", (post: Node) => calcPostWidth(post).getOrElse(js.undefined))
         .on("click", onClick) //TODO: does d3 provide a wrong index?
     }
 
     time(log(s"adding new posts to dom[${post.enter().size()}]")) {
-      post.enter()
-        .append ( (post: Node) => {
+      post
+        .enter()
+        .append((post: Node) => {
           import outwatch.dom.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
           val postWidth = calcPostWidth(post)
@@ -464,12 +490,12 @@ object ForceSimulation {
   }
 
   def registerDragHandlers(
-                            postSelection: Selection[Node],
-                            dragSubject: (Node, Index) => Coordinates,
-                            dragStart: (html.Element, Node, Index) => Unit,
-                            dragged: (html.Element, Node, Index) => Unit,
-                            dropped: (html.Element, Node, Index) => Unit
-                          ): Unit = {
+      postSelection: Selection[Node],
+      dragSubject: (Node, Index) => Coordinates,
+      dragStart: (html.Element, Node, Index) => Unit,
+      dragged: (html.Element, Node, Index) => Unit,
+      dropped: (html.Element, Node, Index) => Unit
+  ): Unit = {
     postSelection.call(
       d3.drag[Node]()
         .clickDistance(10) // interpret short drags as clicks
@@ -480,9 +506,8 @@ object ForceSimulation {
     )
   }
 
-
   def backupSimDataToDom(simData: SimulationData, postSelection: Selection[Node]): Unit = {
-    time(log(s">> backupData[${if(simData != null) simData.n.toString else "None"}]")) {
+    time(log(s">> backupData[${if (simData != null) simData.n.toString else "None"}]")) {
       postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
         val coordinates = new Coordinates
         node.asInstanceOf[js.Dynamic].__databackup__ = coordinates // yay javascript!
@@ -499,7 +524,10 @@ object ForceSimulation {
       val n = postSelection.size()
       val simData = new SimulationData(n)
       postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
-        if(node.asInstanceOf[js.Dynamic].__databackup__.asInstanceOf[js.UndefOr[Coordinates]] != js.undefined) {
+        if (node
+              .asInstanceOf[js.Dynamic]
+              .__databackup__
+              .asInstanceOf[js.UndefOr[Coordinates]] != js.undefined) {
           val coordinates = node.asInstanceOf[js.Dynamic].__databackup__.asInstanceOf[Coordinates]
           simData.x(i) = coordinates.x
           simData.y(i) = coordinates.y
@@ -511,7 +539,6 @@ object ForceSimulation {
     }
   }
 
-
   def alphaStep(simData: SimulationData): Boolean = {
     import simData._
     if (alpha < alphaMin) return false
@@ -520,7 +547,11 @@ object ForceSimulation {
     true
   }
 
-  def simulationStep(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension): Boolean = {
+  def simulationStep(
+      simData: SimulationData,
+      staticData: StaticData,
+      planeDimension: PlaneDimension
+  ): Boolean = {
     import ForceSimulationForces._
 
     /*time("simulation step")*/
@@ -537,13 +568,17 @@ object ForceSimulation {
     true
   }
 
-  def calculateVelocities(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension): Unit = {
+  def calculateVelocities(
+      simData: SimulationData,
+      staticData: StaticData,
+      planeDimension: PlaneDimension
+  ): Unit = {
     import ForceSimulationForces._
 
     //    dom.console.log(staticData.asInstanceOf[js.Any])
     initQuadtree(simData, staticData)
     eulerSetGeometricCenter(simData, staticData)
-    calculateEulerSetPolygons(simData,staticData)
+    calculateEulerSetPolygons(simData, staticData)
 
     rectBound(simData, staticData, planeDimension, strength = 0.1)
     keepDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
@@ -553,7 +588,11 @@ object ForceSimulation {
     // pushOutOfWrongEulerSet(simData,staticData)
   }
 
-  def applyPostPositions(simData: SimulationData, staticData: StaticData, postSelection: Selection[Node]): Unit = {
+  def applyPostPositions(
+      simData: SimulationData,
+      staticData: StaticData,
+      postSelection: Selection[Node]
+  ): Unit = {
     postSelection
       .style("transform", { (_: Node, i: Int) =>
         val x = simData.x(i) + staticData.centerOffsetX(i)
@@ -562,16 +601,22 @@ object ForceSimulation {
       })
   }
 
-  def drawCanvas(simData: SimulationData, staticData: StaticData, canvasContext: CanvasRenderingContext2D, planeDimension: PlaneDimension): Unit = {
+  def drawCanvas(
+      simData: SimulationData,
+      staticData: StaticData,
+      canvasContext: CanvasRenderingContext2D,
+      planeDimension: PlaneDimension
+  ): Unit = {
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
     val eulerSetCount = simData.eulerSetPolygons.length
     val nodeCount = simData.n
-    val fullCircle = 2*Math.PI
+    val fullCircle = 2 * Math.PI
 
     // clear entire canvas
     canvasContext.save()
-    canvasContext.setTransform(1, 0, 0, 1, 0, 0) // identity (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
+    canvasContext.setTransform(1, 0, 0, 1, 0,
+      0) // identity (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
     canvasContext.clearRect(0, 0, planeDimension.width, planeDimension.height)
     canvasContext.restore()
 
@@ -586,30 +631,32 @@ object ForceSimulation {
     //      i += 1
     //    }
 
-
     //     for every containment cluster
     var i = 0
     //    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < eulerSetCount) {
       val polygon = simData.eulerSetPolygons(i)
       assert(polygon.length % 2 == 0)
-      val midpoints:Array[Vec2] = polygon.toSeq.sliding(2,2).map{case Seq(a,b) => (Vec2(a._1, a._2) + Vec2(b._1, b._2)) * 0.5}.toArray
+      val midpoints: Array[Vec2] = polygon.toSeq
+        .sliding(2, 2)
+        .map { case Seq(a, b) => (Vec2(a._1, a._2) + Vec2(b._1, b._2)) * 0.5 }
+        .toArray
       var j = 0
       val n = midpoints.length
-      val start = midpoints((j+n-1)%n)
+      val start = midpoints((j + n - 1) % n)
       canvasContext.fillStyle = staticData.eulerSetColor(i)
       canvasContext.beginPath()
       canvasContext.moveTo(start.x, start.y)
-      while(j < n) {
-        val start = midpoints((j+n-1)%n)
-        val startNode = polygon(((j-1+n)%n)*2)._3
+      while (j < n) {
+        val start = midpoints((j + n - 1) % n)
+        val startNode = polygon(((j - 1 + n) % n) * 2)._3
         val end = midpoints(j)
-        val endNode = polygon((j)*2)._3
+        val endNode = polygon((j) * 2)._3
 
-        val p1 = polygon((((j-1+n) % n)*2+1) % polygon.length)
-        val p2 = polygon(((j)*2) % polygon.length)
-        val cp1 = start + (Vec2(p1._1, p1._2)-start).normalized*staticData.radius(startNode)*2
-        val cp2 = end + (Vec2(p2._1, p2._2) - end).normalized*staticData.radius(endNode)*2
+        val p1 = polygon((((j - 1 + n) % n) * 2 + 1) % polygon.length)
+        val p2 = polygon(((j) * 2) % polygon.length)
+        val cp1 = start + (Vec2(p1._1, p1._2) - start).normalized * staticData.radius(startNode) * 2
+        val cp2 = end + (Vec2(p2._1, p2._2) - end).normalized * staticData.radius(endNode) * 2
         //        canvasContext.lineTo(midpoints(j).x, midpoints(j).y)
         canvasContext.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y)
 
@@ -668,23 +715,28 @@ object ForceSimulation {
     canvasContext.stroke()
     canvasContext.closePath()
 
-
-    if(debugDrawEnabled) debugDraw(simData,staticData,canvasContext,planeDimension)
+    if (debugDrawEnabled) debugDraw(simData, staticData, canvasContext, planeDimension)
   }
 
-  def drawVelocities(simData: SimulationData, futureSimData: SimulationData, staticData: StaticData, canvasContext: CanvasRenderingContext2D, planeDimension: PlaneDimension):Unit = {
-    val fullCircle = 2*Math.PI
+  def drawVelocities(
+      simData: SimulationData,
+      futureSimData: SimulationData,
+      staticData: StaticData,
+      canvasContext: CanvasRenderingContext2D,
+      planeDimension: PlaneDimension
+  ): Unit = {
+    val fullCircle = 2 * Math.PI
 
     val nodeCount = futureSimData.n
 
     var i = 0
 
-    while(i < nodeCount) {
+    while (i < nodeCount) {
       val remainingVel = Vec2(simData.vx(i), simData.vy(i))
       val currentVel = Vec2(futureSimData.vx(i), futureSimData.vy(i))
       val newVel = currentVel - remainingVel
       val resultVel = currentVel * futureSimData.velocityDecay
-      if(resultVel.length > 0) {
+      if (resultVel.length > 0) {
         val center = Vec2(futureSimData.x(i), futureSimData.y(i))
         val onRing = center + resultVel.normalized * staticData.radius(i)
         val currentVelFromRing = onRing + currentVel
@@ -726,12 +778,17 @@ object ForceSimulation {
         canvasContext.stroke()
         canvasContext.closePath()
 
-
         // next radius
         canvasContext.lineWidth = 1
         canvasContext.strokeStyle = "rgba(96,182,242,1.0)"
         canvasContext.beginPath()
-        canvasContext.arc(nextCenter.x, nextCenter.y, staticData.radius(i), startAngle = 0, endAngle = fullCircle)
+        canvasContext.arc(
+          nextCenter.x,
+          nextCenter.y,
+          staticData.radius(i),
+          startAngle = 0,
+          endAngle = fullCircle
+        )
         canvasContext.stroke()
         canvasContext.closePath()
 
@@ -739,7 +796,13 @@ object ForceSimulation {
         canvasContext.lineWidth = 1
         canvasContext.strokeStyle = "rgba(96,182,242,1.0)"
         canvasContext.beginPath()
-        canvasContext.arc(nextCenter.x, nextCenter.y, staticData.collisionRadius(i), startAngle = 0, endAngle = fullCircle)
+        canvasContext.arc(
+          nextCenter.x,
+          nextCenter.y,
+          staticData.collisionRadius(i),
+          startAngle = 0,
+          endAngle = fullCircle
+        )
         canvasContext.stroke()
         canvasContext.closePath()
       }
@@ -748,9 +811,13 @@ object ForceSimulation {
     }
   }
 
-
-  def debugDraw(simData: SimulationData, staticData: StaticData, canvasContext: CanvasRenderingContext2D, planeDimension: PlaneDimension): Unit = {
-    val fullCircle = 2*Math.PI
+  def debugDraw(
+      simData: SimulationData,
+      staticData: StaticData,
+      canvasContext: CanvasRenderingContext2D,
+      planeDimension: PlaneDimension
+  ): Unit = {
+    val fullCircle = 2 * Math.PI
 
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
@@ -761,7 +828,7 @@ object ForceSimulation {
     // for every post
     var i = 0
     canvasContext.lineWidth = 1
-    while(i < nodeCount) {
+    while (i < nodeCount) {
       val x = simData.x(i)
       val y = simData.y(i)
 
@@ -781,7 +848,6 @@ object ForceSimulation {
 
       i += 1
     }
-
 
     // for every containment
     //    i = 0
@@ -808,14 +874,20 @@ object ForceSimulation {
       canvasContext.strokeStyle = "rgba(255,255,255,0.5)"
       canvasContext.lineWidth = 5
       canvasContext.beginPath()
-      polyLine(simData.eulerSetPolygons(i).asInstanceOf[js.Array[js.Tuple2[Double,Double]]])
+      polyLine(simData.eulerSetPolygons(i).asInstanceOf[js.Array[js.Tuple2[Double, Double]]])
       canvasContext.stroke()
 
       // eulerSet geometricCenter
       canvasContext.strokeStyle = "#000"
       canvasContext.lineWidth = 3
       canvasContext.beginPath()
-      canvasContext.arc(simData.eulerSetGeometricCenterX(i), simData.eulerSetGeometricCenterY(i), 10, startAngle = 0, endAngle = fullCircle)
+      canvasContext.arc(
+        simData.eulerSetGeometricCenterX(i),
+        simData.eulerSetGeometricCenterY(i),
+        10,
+        startAngle = 0,
+        endAngle = fullCircle
+      )
       canvasContext.stroke()
       canvasContext.closePath()
 
@@ -823,7 +895,13 @@ object ForceSimulation {
       canvasContext.strokeStyle = staticData.eulerSetColor(i)
       canvasContext.lineWidth = 3
       canvasContext.beginPath()
-      canvasContext.arc(simData.eulerSetGeometricCenterX(i), simData.eulerSetGeometricCenterY(i), staticData.eulerSetRadius(i), startAngle = 0, endAngle = fullCircle)
+      canvasContext.arc(
+        simData.eulerSetGeometricCenterX(i),
+        simData.eulerSetGeometricCenterY(i),
+        staticData.eulerSetRadius(i),
+        startAngle = 0,
+        endAngle = fullCircle
+      )
       canvasContext.stroke()
       canvasContext.closePath()
 
@@ -843,5 +921,3 @@ object ForceSimulation {
 
   }
 }
-
-

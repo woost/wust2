@@ -12,7 +12,8 @@ object DbIntegrationTestSpec {
   private val dbConfig = config.getConfig("testDb")
 
   val controlCtx = new PostgresAsyncContext(LowerCase, configWithDb("postgres"))
-  def configWithDb(database: String) = dbConfig.withValue("database", ConfigValueFactory.fromAnyRef(database))
+  def configWithDb(database: String) =
+    dbConfig.withValue("database", ConfigValueFactory.fromAnyRef(database))
 }
 
 trait DbIntegrationTestSpec extends fixture.AsyncFreeSpec with BeforeAndAfterAll {
@@ -33,8 +34,7 @@ trait DbIntegrationTestSpec extends fixture.AsyncFreeSpec with BeforeAndAfterAll
         try {
           testDb.ctx.close()
           controlCtx.executeAction(s"""DROP DATABASE "$tmpDbName"""")
-        }
-        catch { case e: Throwable => println(e) }
+        } catch { case e: Throwable => println(e) }
       }
     })
   }

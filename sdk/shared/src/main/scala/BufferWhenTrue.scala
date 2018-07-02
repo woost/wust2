@@ -9,11 +9,14 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 object BufferWhenTrue {
+
   /**
     * Buffers for as long as `selector` emits `true`, otherwise for as long as
     * `selector` emits `false` it directly streams any incoming events.
     */
-  def apply[A](source: Observable[A], selector: Observable[Boolean])(implicit scheduler: Scheduler): Observable[Seq[A]] =
+  def apply[A](source: Observable[A], selector: Observable[Boolean])(
+      implicit scheduler: Scheduler
+  ): Observable[Seq[A]] =
     Observable.unsafeCreate { out =>
       val conn = CompositeCancelable()
       val subscriber = new SourceSubscriber[A](out, conn)
@@ -23,8 +26,7 @@ object BufferWhenTrue {
       conn
     }
 
-  final class SelectorSubscriber(out: SourceSubscriber[_])
-    extends Subscriber[Boolean] {
+  final class SelectorSubscriber(out: SourceSubscriber[_]) extends Subscriber[Boolean] {
 
     override val scheduler = out.scheduler
     def onError(ex: Throwable): Unit =
@@ -35,9 +37,9 @@ object BufferWhenTrue {
       out.changeBufferState(elem)
   }
 
-  final class SourceSubscriber[A](out: Subscriber[Seq[A]], conn: CompositeCancelable)
-    (implicit val scheduler: Scheduler)
-    extends Subscriber[A] {
+  final class SourceSubscriber[A](out: Subscriber[Seq[A]], conn: CompositeCancelable)(
+      implicit val scheduler: Scheduler
+  ) extends Subscriber[A] {
 
     @volatile var shouldBuffer = false
     private[this] var buffer = ArrayBuffer.empty[A]
@@ -46,7 +48,8 @@ object BufferWhenTrue {
 
     def changeBufferState(value: Boolean): Future[Ack] =
       synchronized {
-        if (isDone) Stop else {
+        if (isDone) Stop
+        else {
           shouldBuffer = value
           if (!value && buffer.nonEmpty) {
             val seq = buffer
@@ -54,7 +57,7 @@ object BufferWhenTrue {
             // Back-pressuring, because call is concurrent
             lastAck = lastAck.syncFlatMap {
               case Continue => out.onNext(seq)
-              case Stop => Stop
+              case Stop     => Stop
             }
             lastAck
           } else {
@@ -65,7 +68,8 @@ object BufferWhenTrue {
 
     def onNext(elem: A): Future[Ack] =
       synchronized {
-        if (isDone) Stop else {
+        if (isDone) Stop
+        else {
           lastAck = lastAck.syncFlatMap {
             case Stop => Stop
             case Continue =>

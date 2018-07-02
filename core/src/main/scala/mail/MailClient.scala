@@ -14,10 +14,15 @@ trait MailClient {
 
 class JavaMailClient(config: SmtpConfig) extends MailClient {
   private val authenticator = new Authenticator {
-    override protected def getPasswordAuthentication = new PasswordAuthentication(config.username, config.password)
+    override protected def getPasswordAuthentication =
+      new PasswordAuthentication(config.username, config.password)
   }
 
-  private def createMessage(from: String, recipient: MailRecipient, mail: MailMessage): Try[Message] = Try {
+  private def createMessage(
+      from: String,
+      recipient: MailRecipient,
+      mail: MailMessage
+  ): Try[Message] = Try {
     import mail._
 
     val properties = new Properties()

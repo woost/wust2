@@ -15,16 +15,24 @@ import scala.concurrent.duration.{span => _}
 
 object DevView {
 
-  def button = outwatch.dom.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
+  def button =
+    outwatch.dom.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
 
   def devPeek(state: GlobalState, additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)
     val activeDisplay = display <-- show.map(if (_) "block" else "none")
     val inactiveDisplay = display <-- show.map(if (_) "none" else "block")
 
-    val baseDiv = div(position.fixed, top := "100px", right := "0", boxSizing.borderBox,
-      padding := "5px", backgroundColor <-- state.pageStyle.map(_.bgColor.toHex), border  <-- state.pageStyle.map(c => s"1px solid ${c.accentLineColor.toHex}"), cls := "shadow")
-
+    val baseDiv = div(
+      position.fixed,
+      top := "100px",
+      right := "0",
+      boxSizing.borderBox,
+      padding := "5px",
+      backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
+      border <-- state.pageStyle.map(c => s"1px solid ${c.accentLineColor.toHex}"),
+      cls := "shadow"
+    )
 
     div(
       baseDiv(
@@ -45,7 +53,6 @@ object DevView {
       )
     )
   }
-
 
   import scala.util.Random.{nextInt => rInt}
   def rWord = scala.util.Random.alphanumeric.take(3 + rInt(6)).mkString
@@ -73,7 +80,8 @@ object DevView {
   def apply(state: GlobalState, additions: Seq[VDomModifier])(implicit ctx: Ctx.Owner) = {
     span(
       div(
-        display.flex, flexDirection.column,
+        display.flex,
+        flexDirection.column,
 //        Rx {
 //          val users = List("a", "b", "c", "d", "e", "f", "g")
 //          div(
@@ -88,8 +96,9 @@ object DevView {
 //          ).render
 //        },
         Rx {
-         def addRandomPost(count: Int):Unit = {
-            val newPosts = List.fill(count)(Node.Content(NodeId.fresh, data = NodeData.PlainText(rSentence)))
+          def addRandomPost(count: Int): Unit = {
+            val newPosts =
+              List.fill(count)(Node.Content(NodeId.fresh, data = NodeData.PlainText(rSentence)))
             val changes = GraphChanges.from(addPosts = newPosts)
             state.eventProcessor.enriched.changes.onNext(changes)
           }
@@ -104,7 +113,7 @@ object DevView {
         Rx {
           val posts = scala.util.Random.shuffle(state.graph().nodeIds.toSeq)
 
-          def deletePost(ids: Seq[NodeId]):Unit = {
+          def deletePost(ids: Seq[NodeId]): Unit = {
             state.eventProcessor.changes.onNext(GraphChanges(delNodes = ids.toSet))
           }
 
@@ -117,10 +126,11 @@ object DevView {
         },
         Rx {
           val posts = state.graph().nodeIds.toArray
-          def randomConnection = Edge.Label(posts(rInt(posts.length)), EdgeData.Label(rWord), posts(rInt(posts.length)))
+          def randomConnection =
+            Edge.Label(posts(rInt(posts.length)), EdgeData.Label(rWord), posts(rInt(posts.length)))
 
-          def connect(_count:Int):Unit = {
-            if(posts.length > 1) {
+          def connect(_count: Int): Unit = {
+            if (posts.length > 1) {
               val count = _count min ((posts.length * posts.length - 1) / 2)
               val selected = mutable.HashSet.empty[Edge]
               while (selected.size < count) {
@@ -134,37 +144,39 @@ object DevView {
           div(
             "connect: ",
             button("1", onClick --> sideEffect { connect(1) }),
-            button("10", onClick --> sideEffect {connect(10)}),
-            button("100", onClick --> sideEffect {connect(100)})
+            button("10", onClick --> sideEffect { connect(10) }),
+            button("100", onClick --> sideEffect { connect(100) })
           )
         },
         Rx {
           val posts = state.graph().nodeIds.toArray
           def randomConnection = Edge.Parent(posts(rInt(posts.length)), posts(rInt(posts.length)))
 
-          def contain(count:Int):Unit = {
-            state.eventProcessor.changes.onNext(GraphChanges(addEdges = Array.fill(count)(randomConnection).toSet))
+          def contain(count: Int): Unit = {
+            state.eventProcessor.changes
+              .onNext(GraphChanges(addEdges = Array.fill(count)(randomConnection).toSet))
           }
 
           div(
             "contain: ",
             button("1", onClick --> sideEffect { contain(1) }),
-            button("10", onClick --> sideEffect {contain(10)}),
-            button("100", onClick --> sideEffect {contain(100)})
+            button("10", onClick --> sideEffect { contain(10) }),
+            button("100", onClick --> sideEffect { contain(100) })
           )
         },
         Rx {
           val connections = scala.util.Random.shuffle(state.graph().labeledEdges.toSeq)
 
-          def disconnect(count:Int):Unit = {
-            state.eventProcessor.changes.onNext(GraphChanges(delEdges = connections.take(count).toSet))
+          def disconnect(count: Int): Unit = {
+            state.eventProcessor.changes
+              .onNext(GraphChanges(delEdges = connections.take(count).toSet))
           }
 
           div(
             "disconnect: ",
             button("1", onClick --> sideEffect { disconnect(1) }),
-            button("10", onClick --> sideEffect {disconnect(10)}),
-            button("100", onClick --> sideEffect {disconnect(100)})
+            button("10", onClick --> sideEffect { disconnect(10) }),
+            button("100", onClick --> sideEffect { disconnect(100) })
           )
         },
         additions
@@ -254,7 +266,6 @@ object DevView {
 //          case None => span()
 //        }).render
 //      }
-
     )
   }
 }

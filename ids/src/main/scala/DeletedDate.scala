@@ -11,12 +11,11 @@ object DeletedDate {
     def now = new Deleted(EpochMilli.now)
   }
   case object NotDeleted extends DeletedDate {
-    def timestamp:EpochMilli = EpochMilli.max
+    def timestamp: EpochMilli = EpochMilli.max
   }
 
-  val from: EpochMilli => DeletedDate =  {
+  val from: EpochMilli => DeletedDate = {
     case timestamp if timestamp >= DeletedDate.NotDeleted.timestamp => DeletedDate.NotDeleted
-    case timeStamp => DeletedDate.Deleted(timeStamp)
+    case timeStamp                                                  => DeletedDate.Deleted(timeStamp)
   }
 }
-

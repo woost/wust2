@@ -14,7 +14,6 @@ object NodeData {
     val tpe = Type(name.value)
   }
 
-
   sealed trait Content extends NodeData
 
   case class Markdown(content: String) extends Named with Content {
@@ -38,7 +37,9 @@ object NodeData {
   }
 
   object User extends Named
-  case class User(name: String, isImplicit: Boolean, revision: Int, channelNodeId: NodeId) extends Named with NodeData {
+  case class User(name: String, isImplicit: Boolean, revision: Int, channelNodeId: NodeId)
+      extends Named
+      with NodeData {
     def str = name
   }
 

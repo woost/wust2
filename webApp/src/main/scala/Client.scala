@@ -26,7 +26,7 @@ object Client {
     val protocol = if (location.protocol == "https:") "wss:" else "ws:"
     val hostname = location.hostname
 
-    if(LinkingInfo.developmentMode)
+    if (LinkingInfo.developmentMode)
       s"$protocol//${hostname}:${location.port}/ws" // allows to access the devserver without subdomain
     else
       s"$protocol//core.${hostname}:${location.port}/ws"
@@ -68,7 +68,7 @@ object Client {
   def currentAuth = storage.auth.now getOrElse initialAssumedAuth
   private var initialAssumedAuth = Authentication.Assumed.fresh
   private def loginStorageAuth(auth: Authentication): Future[Boolean] = auth match {
-    case auth: Authentication.Assumed => factory.highPriority.auth.assumeLogin(auth.user)
+    case auth: Authentication.Assumed  => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
 }

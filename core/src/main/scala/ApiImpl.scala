@@ -15,16 +15,23 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   import ApiEvent._
   import dsl._
 
-  override def changeGraph(changes: List[GraphChanges], onBehalf: Authentication.Token): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
+  override def changeGraph(
+      changes: List[GraphChanges],
+      onBehalf: Authentication.Token
+  ): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
     onBehalfOfUser(onBehalf)(auth => changeGraph(changes, auth.user))
   }
-  override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    changeGraph(changes, user)
-  }
+  override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] =
+    Effect.assureDbUser { (_, user) =>
+      changeGraph(changes, user)
+    }
 
   //TODO assure timestamps of posts are correct
   //TODO: only accept one GraphChanges object: we need an api for multiple.
-  private def changeGraph(changes: List[GraphChanges], user: AuthUser.Persisted): Future[ApiData.Effect[Boolean]] = {
+  private def changeGraph(
+      changes: List[GraphChanges],
+      user: AuthUser.Persisted
+  ): Future[ApiData.Effect[Boolean]] = {
     //TODO more permissions!
     val changesAreAllowed = changes.forall { changes =>
       //TODO check conns
@@ -40,7 +47,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         case Edge.Author(authorId, _, nodeId) =>
           authorId == user.id && touchedNodes.map(_.id).contains(nodeId)
         case _: Edge.Member => false
-        case _ => true
+        case _              => true
       }
 
       // assure all nodes have an author edge
@@ -50,7 +57,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         }
         touchedNodes.forall {
           case Node.Content(id, _, _) => allPostsWithAuthor.contains(id)
-          case _ => false
+          case _                      => false
         }
       }
 
@@ -59,7 +66,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
     if (changesAreAllowed) {
       val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-        changes.foldLeft(Future.successful(true)){ (previousSuccess, changes) =>
+        changes.foldLeft(Future.successful(true)) { (previousSuccess, changes) =>
           import changes.consistent._
 
           previousSuccess.flatMap { success =>
@@ -70,7 +77,11 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
                 true <- db.node.update(updateNodes)
                 true <- db.node.delete(delNodes)
                 true <- db.edge.delete(delEdges)
-                _ <- db.node.addMemberEvenIfLocked(addNodes.map(_.id).toList, user.id, AccessLevel.ReadWrite) //TODO: check
+                _ <- db.node.addMemberEvenIfLocked(
+                  addNodes.map(_.id).toList,
+                  user.id,
+                  AccessLevel.ReadWrite
+                ) //TODO: check
               } yield true
             } else Future.successful(false)
           }
@@ -89,28 +100,49 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   }
 
   //TODO: error handling
-  override def addMember(nodeId: NodeId, newMemberId: UserId, accessLevel: AccessLevel): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+  override def addMember(
+      nodeId: NodeId,
+      newMemberId: UserId,
+      accessLevel: AccessLevel
+  ): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
         for {
           Some(user) <- db.user.get(newMemberId)
           added <- db.node.addMemberEvenIfLocked(nodeId, newMemberId, accessLevel)
-        } yield Returns(added, if(added) Seq(NewGraphChanges(GraphChanges(addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)), addNodes = Set(user)))) else Nil)
+        } yield
+          Returns(
+            added,
+            if (added)
+              Seq(
+                NewGraphChanges(
+                  GraphChanges(
+                    addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)),
+                    addNodes = Set(user)
+                  )
+                )
+              )
+            else Nil
+          )
       }
     }
   }
-  override def setJoinDate(nodeId: NodeId, joinDate: JoinDate): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
-        for {
-          updatedJoinDate <- db.node.setJoinDate(nodeId, joinDate)
-          Some(updatedPost) <- db.node.get(nodeId)
-        } yield {
-          Returns(updatedJoinDate, Seq(NewGraphChanges.ForAll(GraphChanges.updatePost(updatedPost))))
+  override def setJoinDate(nodeId: NodeId, joinDate: JoinDate): ApiFunction[Boolean] =
+    Effect.assureDbUser { (_, user) =>
+      db.ctx.transaction { implicit ec =>
+        isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
+          for {
+            updatedJoinDate <- db.node.setJoinDate(nodeId, joinDate)
+            Some(updatedPost) <- db.node.get(nodeId)
+          } yield {
+            Returns(
+              updatedJoinDate,
+              Seq(NewGraphChanges.ForAll(GraphChanges.updatePost(updatedPost)))
+            )
+          }
         }
       }
     }
-  }
 
 //  override def addMemberByName(nodeId: NodeId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
 //    db.ctx.transaction { implicit ec =>
@@ -129,10 +161,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     else getPage(user.id, page).map(Returns(_))
   }
 
-
 //  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
 
-    // TODO: Reuse graph changes instead
+  // TODO: Reuse graph changes instead
 //    val (owner, repo, issueNumber) = GitHubImporter.urlExtractor(url)
 //    val postsOfUrl = GitHubImporter.getIssues(owner, repo, issueNumber, user)
 //    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
@@ -147,12 +178,11 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
 //    Future.successful(Returns(true, asyncEvents = Observable.fromFuture(importEvents)))
 
-
 //    Future.successful(true)
 //  }
 
 //  override def importGitterUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
-    // TODO: Reuse graph changes instead
+  // TODO: Reuse graph changes instead
 //    val postsOfUrl = Set(Post(NodeId(scala.util.Random.nextInt.toString), url, user.id))
 //    val postsOfUrl = GitterImporter.getRoomMessages(url, user)
 //    val importEvents = postsOfUrl.flatMap { case (posts, connections) =>
@@ -169,7 +199,11 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //    Future.successful(true)
 //  }
 
-  override def chooseTaskNodes(heuristic: NlpHeuristic, posts: List[NodeId], num: Option[Int]): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
+  override def chooseTaskNodes(
+      heuristic: NlpHeuristic,
+      posts: List[NodeId],
+      num: Option[Int]
+  ): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
     getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
 
@@ -186,9 +220,13 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
     // TODO: also include the direct parents of the parentIds to be able no navigate upwards
     (page.mode match {
-      case PageMode.Default => db.graph.getPage(page.parentIds.toList, page.childrenIds.toList, userId)
-      case PageMode.Orphans => db.graph.getPageWithOrphans(page.parentIds.toList, page.childrenIds.toList, userId)
-    }).map { dbGraph => forClient(dbGraph) }
+      case PageMode.Default =>
+        db.graph.getPage(page.parentIds.toList, page.childrenIds.toList, userId)
+      case PageMode.Orphans =>
+        db.graph.getPageWithOrphans(page.parentIds.toList, page.childrenIds.toList, userId)
+    }).map { dbGraph =>
+      forClient(dbGraph)
+    }
   }
 }
 
@@ -200,7 +238,8 @@ object ApiLogger {
   val client: Logger = {
     val loggerName = "client-log"
     val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-    val writer = FileWriter.flat(prefix = loggerName, maxLogs = Some(3), maxBytes = Some(100 * 1024 * 1024))
+    val writer =
+      FileWriter.flat(prefix = loggerName, maxLogs = Some(3), maxBytes = Some(100 * 1024 * 1024))
     Logger(loggerName)
       .clearHandlers()
       .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = writer)

@@ -9,18 +9,24 @@ case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[
 case class MailMessage(subject: String, content: String)
 
 trait MailService {
-  def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean]
+  def sendMail(recipient: MailRecipient, message: MailMessage)(
+      implicit ec: ExecutionContext
+  ): Future[Boolean]
 }
 
 object LoggingMailService extends MailService {
-  override def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean] = {
+  override def sendMail(recipient: MailRecipient, message: MailMessage)(
+      implicit ec: ExecutionContext
+  ): Future[Boolean] = {
     scribe.info(s"logging mail:\n\tto: $recipient\n\tmail: $message")
     Future.successful(true)
   }
 }
 
 class SendingMailService(fromAddress: String, client: MailClient) extends MailService {
-  override def sendMail(recipient: MailRecipient, message: MailMessage)(implicit ec: ExecutionContext): Future[Boolean] = Future {
+  override def sendMail(recipient: MailRecipient, message: MailMessage)(
+      implicit ec: ExecutionContext
+  ): Future[Boolean] = Future {
     scribe.info(s"sending mail:\n\tto: $recipient\n\tmail: $message")
 
     client.sendMessage(fromAddress, recipient, message) match {

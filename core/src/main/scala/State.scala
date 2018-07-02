@@ -10,9 +10,13 @@ object State {
   def initial = State(auth = None)
 
   def applyEvents(state: State, events: Seq[ApiEvent]): State = {
-    events.foldLeft(state)((state, event) => event match {
-      case ev: ApiEvent.GraphContent => state
-      case ev: ApiEvent.AuthContent => state.copy(auth = Some(EventUpdate.createAuthFromEvent(ev)))
-    })
+    events.foldLeft(state)(
+      (state, event) =>
+        event match {
+          case ev: ApiEvent.GraphContent => state
+          case ev: ApiEvent.AuthContent =>
+            state.copy(auth = Some(EventUpdate.createAuthFromEvent(ev)))
+        }
+    )
   }
 }

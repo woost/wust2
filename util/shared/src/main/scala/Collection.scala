@@ -5,7 +5,7 @@ import scala.collection.{IterableLike, breakOut, mutable}
 package object collection {
   implicit class RichCollection[T, Repr[T]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
     def by[X](lens: T => X): scala.collection.Map[X, T] = {
-      val map = mutable.HashMap[X,T]()
+      val map = mutable.HashMap[X, T]()
       map.sizeHint(col.size)
       col.foreach { x =>
         map(lens(x)) = x
@@ -36,7 +36,7 @@ package object collection {
   implicit class RichOption[A](val o: Option[A]) extends AnyVal {
     def setOrToggle(a: A) = o match {
       case Some(`a`) => None
-      case _ => Option(a)
+      case _         => Option(a)
     }
   }
 }

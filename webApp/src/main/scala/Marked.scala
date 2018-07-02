@@ -8,10 +8,12 @@ import scala.scalajs.js.annotation._
 object marked extends js.Object {
   def apply(src: String): String = js.native
   def apply(src: String, callback: js.Function): String = js.native
-  def apply(src: String, options: MarkedOptions = ???, callback: js.Function = ???): String = js.native
+  def apply(src: String, options: MarkedOptions = ???, callback: js.Function = ???): String =
+    js.native
   def lexer(src: String, options: MarkedOptions = ???): js.Array[js.Any] = js.native
   def parse(src: String, callback: js.Function): String = js.native
-  def parse(src: String, options: MarkedOptions = ???, callback: js.Function = ???): String = js.native
+  def parse(src: String, options: MarkedOptions = ???, callback: js.Function = ???): String =
+    js.native
   def parser(src: js.Array[js.Any], options: MarkedOptions = ???): String = js.native
   def setOptions(options: MarkedOptions): Unit = js.native
 }
@@ -33,30 +35,32 @@ trait MarkedOptions extends js.Object {
 
 object MarkedOptions {
   def apply(
-             renderer: js.UndefOr[js.Object] = js.undefined,
-             gfm: js.UndefOr[Boolean] = js.undefined,
-             tables: js.UndefOr[Boolean] = js.undefined,
-             breaks: js.UndefOr[Boolean] = js.undefined,
-             pedantic: js.UndefOr[Boolean] = js.undefined,
-             sanitize: js.UndefOr[Boolean] = js.undefined,
-             smartLists: js.UndefOr[Boolean] = js.undefined,
-             silent: js.UndefOr[Boolean] = js.undefined,
-             highlight: js.UndefOr[js.Function3[String, String,String,js.Function]] = js.undefined,
-             langPrefix: js.UndefOr[String] = js.undefined,
-             smartypants: js.UndefOr[Boolean] = js.undefined
-             ): MarkedOptions = {
-    js.Dynamic.literal(
-      renderer = renderer,
-      gfm = gfm,
-      tables = tables,
-      breaks = breaks,
-      pedantic = pedantic,
-      sanitize = sanitize,
-      smartLists = smartLists,
-      silent = silent,
-      highlight = highlight,
-      langPrefix = langPrefix,
-      smartypants = smartypants
-    ).asInstanceOf[MarkedOptions]
+      renderer: js.UndefOr[js.Object] = js.undefined,
+      gfm: js.UndefOr[Boolean] = js.undefined,
+      tables: js.UndefOr[Boolean] = js.undefined,
+      breaks: js.UndefOr[Boolean] = js.undefined,
+      pedantic: js.UndefOr[Boolean] = js.undefined,
+      sanitize: js.UndefOr[Boolean] = js.undefined,
+      smartLists: js.UndefOr[Boolean] = js.undefined,
+      silent: js.UndefOr[Boolean] = js.undefined,
+      highlight: js.UndefOr[js.Function3[String, String, String, js.Function]] = js.undefined,
+      langPrefix: js.UndefOr[String] = js.undefined,
+      smartypants: js.UndefOr[Boolean] = js.undefined
+  ): MarkedOptions = {
+    js.Dynamic
+      .literal(
+        renderer = renderer,
+        gfm = gfm,
+        tables = tables,
+        breaks = breaks,
+        pedantic = pedantic,
+        sanitize = sanitize,
+        smartLists = smartLists,
+        silent = silent,
+        highlight = highlight,
+        langPrefix = langPrefix,
+        smartypants = smartypants
+      )
+      .asInstanceOf[MarkedOptions]
   }
 }

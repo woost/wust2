@@ -51,7 +51,10 @@ object WustReceiver {
 
   val wustUser = ("wust-slack").asInstanceOf[UserId]
 
-  def run(config: WustConfig, slack: SlackClient)(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
+  def run(
+      config: WustConfig,
+      slack: SlackClient
+  )(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
@@ -79,18 +82,24 @@ object WustReceiver {
       loggedIn <- client.auth.login(config.user, config.password)
       if loggedIn == AuthResult.Success
       // TODO: author
-      changed <- client.api.changeGraph(List(GraphChanges(addNodes = Set(Node.Content(Constants.slackId, NodeData.PlainText("wust-slack"))))))
+      changed <- client.api.changeGraph(
+        List(
+          GraphChanges(
+            addNodes = Set(Node.Content(Constants.slackId, NodeData.PlainText("wust-slack")))
+          )
+        )
+      )
       if changed
       graph <- client.api.getGraph(Page.empty)
     } yield Right(new WustReceiver(client))
 
-    res recover { case e =>
-      system.terminate()
-      Left(e.getMessage)
+    res recover {
+      case e =>
+        system.terminate()
+        Left(e.getMessage)
     }
   }
 }
-
 
 class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
 
@@ -113,7 +122,7 @@ class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
         def respond(msg: String) = client.sendMessage(e.channel, s"<@${e.user}>: $msg")
 
         val mentionedIds = SlackUtil.extractMentionedIds(e.text)
-        if(mentionedIds.contains(selfId)) {
+        if (mentionedIds.contains(selfId)) {
           val message = ExchangeMessage(e.text)
           receiver.push(message, WustReceiver.wustUser) foreach {
             case Left(error) => respond(s"Failed to sync with wust: $error")
@@ -121,14 +130,15 @@ class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
           }
         }
 
-
       case e => println(s"ignored event: $e")
     }
   }
 }
 
 object SlackClient {
-  def apply(accessToken: String)(implicit ec: ExecutionContext, actorSystem: ActorSystem): SlackClient = {
+  def apply(
+      accessToken: String
+  )(implicit ec: ExecutionContext, actorSystem: ActorSystem): SlackClient = {
     val client = SlackRtmClient(accessToken)
     new SlackClient(client)
   }
@@ -144,7 +154,7 @@ object App extends scala.App {
       val client = SlackClient(config.accessToken)
       WustReceiver.run(config.wust, client).foreach {
         case Right(receiver) => client.run(receiver)
-        case Left(err) => println(s"Cannot connect to Wust: $err")
+        case Left(err)       => println(s"Cannot connect to Wust: $err")
       }
   }
 }

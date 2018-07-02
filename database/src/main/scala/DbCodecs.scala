@@ -1,6 +1,5 @@
 package wust.db
 
-
 import io.getquill._
 import io.circe.parser._
 import io.circe.syntax._
@@ -18,42 +17,76 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   import Data._
   import ctx._
 
-  private def encodeJson[T : io.circe.Encoder](json: T): String = json.asJson.noSpaces
-  private def decodeJson[T : io.circe.Decoder](json: String): T = decode[T](json) match {
+  private def encodeJson[T: io.circe.Encoder](json: T): String = json.asJson.noSpaces
+  private def decodeJson[T: io.circe.Decoder](json: String): T = decode[T](json) match {
     case Right(v) => v
-    case Left(e) => throw new Exception(s"Failed to decode json: '$json': $e")
+    case Left(e)  => throw new Exception(s"Failed to decode json: '$json': $e")
   }
 
   implicit val encodingNodeId: MappedEncoding[NodeId, UUID] = MappedEncoding[NodeId, UUID](_.toUuid)
-  implicit val decodingNodeId: MappedEncoding[UUID, NodeId] = MappedEncoding[UUID, NodeId](uuid => NodeId(Cuid.fromUuid(uuid)))
+  implicit val decodingNodeId: MappedEncoding[UUID, NodeId] =
+    MappedEncoding[UUID, NodeId](uuid => NodeId(Cuid.fromUuid(uuid)))
   implicit val encodingUserId: MappedEncoding[UserId, UUID] = MappedEncoding[UserId, UUID](_.toUuid)
-  implicit val decodingUserId: MappedEncoding[UUID, UserId] = MappedEncoding[UUID, UserId](uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
+  implicit val decodingUserId: MappedEncoding[UUID, UserId] =
+    MappedEncoding[UUID, UserId](uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
 
   //TODO: quill PR: add these seq[UUID] encoder/decoder
   //TODO: quill PR: rename arrayRawEncoder To ...Decoder
-  implicit def arrayUUIDDecoder[Col <: Seq[UUID]](implicit bf: CBF[UUID, Col]): Decoder[Col] = arrayRawEncoder[UUID, Col]
+  implicit def arrayUUIDDecoder[Col <: Seq[UUID]](implicit bf: CBF[UUID, Col]): Decoder[Col] =
+    arrayRawEncoder[UUID, Col]
   implicit def arrayUUIDEncoder[Col <: Seq[UUID]]: Encoder[Col] = arrayRawEncoder[UUID, Col]
 
-  implicit val encodingEdgeDataType: MappedEncoding[EdgeData.Type, String] = MappedEncoding[EdgeData.Type, String](identity)
-  implicit val decodingEdgeDataType: MappedEncoding[String, EdgeData.Type] = MappedEncoding[String, EdgeData.Type](EdgeData.Type(_))
-  implicit val encodingEdgeData: MappedEncoding[EdgeData, String] = MappedEncoding[EdgeData, String](encodeJson[EdgeData])
-  implicit val decodingEdgeData: MappedEncoding[String, EdgeData] = MappedEncoding[String, EdgeData](decodeJson[EdgeData])
+  implicit val encodingEdgeDataType: MappedEncoding[EdgeData.Type, String] =
+    MappedEncoding[EdgeData.Type, String](identity)
+  implicit val decodingEdgeDataType: MappedEncoding[String, EdgeData.Type] =
+    MappedEncoding[String, EdgeData.Type](EdgeData.Type(_))
+  implicit val encodingEdgeData: MappedEncoding[EdgeData, String] =
+    MappedEncoding[EdgeData, String](encodeJson[EdgeData])
+  implicit val decodingEdgeData: MappedEncoding[String, EdgeData] =
+    MappedEncoding[String, EdgeData](decodeJson[EdgeData])
 
-  implicit val encodingNodeDataType: MappedEncoding[NodeData.Type, String] = MappedEncoding[NodeData.Type, String](identity)
-  implicit val decodingNodeDataType: MappedEncoding[String, NodeData.Type] = MappedEncoding[String, NodeData.Type](NodeData.Type(_))
-  implicit def encodingNodeData[Data <: NodeData]: MappedEncoding[Data, String] = MappedEncoding[Data, String](encodeJson[NodeData]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
-  implicit val decodingNodData: MappedEncoding[String, NodeData] = MappedEncoding[String, NodeData](decodeJson[NodeData])
-  implicit val decodingNodeDataUser: MappedEncoding[String, NodeData.User] = MappedEncoding[String, NodeData.User](decodeJson[NodeData.User]) // explicitly provided for query[User] where data has type PostData.User
+  implicit val encodingNodeDataType: MappedEncoding[NodeData.Type, String] =
+    MappedEncoding[NodeData.Type, String](identity)
+  implicit val decodingNodeDataType: MappedEncoding[String, NodeData.Type] =
+    MappedEncoding[String, NodeData.Type](NodeData.Type(_))
+  implicit def encodingNodeData[Data <: NodeData]: MappedEncoding[Data, String] =
+    MappedEncoding[Data, String](encodeJson[NodeData]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
+  implicit val decodingNodData: MappedEncoding[String, NodeData] =
+    MappedEncoding[String, NodeData](decodeJson[NodeData])
+  implicit val decodingNodeDataUser: MappedEncoding[String, NodeData.User] =
+    MappedEncoding[String, NodeData.User](
+      decodeJson[NodeData.User]
+    ) // explicitly provided for query[User] where data has type PostData.User
 
-  implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] = MappedEncoding[EpochMilli, Date] { d => new Date(d) }
-  implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] = MappedEncoding[Date, EpochMilli] { d => EpochMilli(d.toInstant.toEpochMilli) }
+  implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] =
+    MappedEncoding[EpochMilli, Date] { d =>
+      new Date(d)
+    }
+  implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] =
+    MappedEncoding[Date, EpochMilli] { d =>
+      EpochMilli(d.toInstant.toEpochMilli)
+    }
 
-  implicit val encodingDeletedDate: MappedEncoding[DeletedDate, Date] = MappedEncoding[DeletedDate, Date] { d => encodingEpochMilli.f(d.timestamp) }
-  implicit val decodingDeletedDate: MappedEncoding[Date, DeletedDate] = MappedEncoding[Date, DeletedDate] { d => DeletedDate.from(decodingEpochMilli.f(d)) }
-  implicit val encodingJoinDate: MappedEncoding[JoinDate, Date] = MappedEncoding[JoinDate, Date] { d => encodingEpochMilli.f(d.timestamp) }
-  implicit val decodingJoinDate: MappedEncoding[Date, JoinDate] = MappedEncoding[Date, JoinDate] { d => JoinDate.from(decodingEpochMilli.f(d)) }
-  implicit val encodingAccessLevel: MappedEncoding[AccessLevel, String] = MappedEncoding[AccessLevel, String] { _.str }
-  implicit val decodingAccessLevel: MappedEncoding[String, AccessLevel] = MappedEncoding[String, AccessLevel] { AccessLevel.from }
+  implicit val encodingDeletedDate: MappedEncoding[DeletedDate, Date] =
+    MappedEncoding[DeletedDate, Date] { d =>
+      encodingEpochMilli.f(d.timestamp)
+    }
+  implicit val decodingDeletedDate: MappedEncoding[Date, DeletedDate] =
+    MappedEncoding[Date, DeletedDate] { d =>
+      DeletedDate.from(decodingEpochMilli.f(d))
+    }
+  implicit val encodingJoinDate: MappedEncoding[JoinDate, Date] = MappedEncoding[JoinDate, Date] {
+    d =>
+      encodingEpochMilli.f(d.timestamp)
+  }
+  implicit val decodingJoinDate: MappedEncoding[Date, JoinDate] = MappedEncoding[Date, JoinDate] {
+    d =>
+      JoinDate.from(decodingEpochMilli.f(d))
+  }
+  implicit val encodingAccessLevel: MappedEncoding[AccessLevel, String] =
+    MappedEncoding[AccessLevel, String] { _.str }
+  implicit val decodingAccessLevel: MappedEncoding[String, AccessLevel] =
+    MappedEncoding[String, AccessLevel] { AccessLevel.from }
 
   implicit class EpochMilliQuillOps(ldt: EpochMilli) {
     def > = ctx.quote((date: EpochMilli) => infix"$ldt > $date".as[Boolean])

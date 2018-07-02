@@ -11,12 +11,12 @@ object JoinDate {
   }
   case class Until(timestamp: EpochMilli) extends JoinDate
   case object Always extends JoinDate {
-    def timestamp:EpochMilli = EpochMilli.max
+    def timestamp: EpochMilli = EpochMilli.max
   }
 
-  val from: EpochMilli => JoinDate =  {
+  val from: EpochMilli => JoinDate = {
     case timestamp if timestamp >= JoinDate.Always.timestamp => JoinDate.Always
-    case timestamp if timestamp <= JoinDate.Never.timestamp => JoinDate.Never
-    case timeStamp => JoinDate.Until(timeStamp)
+    case timestamp if timestamp <= JoinDate.Never.timestamp  => JoinDate.Never
+    case timeStamp                                           => JoinDate.Until(timeStamp)
   }
 }

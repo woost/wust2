@@ -54,7 +54,9 @@ object Server {
     }
   }
 
-  private def createRoute(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
+  private def createRoute(
+      config: Config
+  )(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
     import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
@@ -75,18 +77,26 @@ object Server {
 
     val eventDistributor = new HashSetEventDistributorWithPush(db, config.pushNotification)
     val apiConfig = new ApiConfiguration(guardDsl, stateInterpreter, eventDistributor)
-    val serverConfig = WebsocketServerConfig(bufferSize = config.server.clientBufferSize, overflowStrategy = OverflowStrategy.fail)
+    val serverConfig = WebsocketServerConfig(
+      bufferSize = config.server.clientBufferSize,
+      overflowStrategy = OverflowStrategy.fail
+    )
 
     val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*))
+      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
+    )
 
     path("ws") {
       AkkaWsRoute.fromApiRouter(binaryRouter, serverConfig, apiConfig)
     } ~ pathPrefix("api") {
       cors(corsSettings) {
-        implicit val jsonMarshaller: ToResponseMarshaller[String] = Marshaller.withFixedContentType(ContentTypes.`application/json`) { s =>
-          HttpResponse(status = StatusCodes.OK, entity = HttpEntity(ContentTypes.`application/json`, s))
-        }
+        implicit val jsonMarshaller: ToResponseMarshaller[String] =
+          Marshaller.withFixedContentType(ContentTypes.`application/json`) { s =>
+            HttpResponse(
+              status = StatusCodes.OK,
+              entity = HttpEntity(ContentTypes.`application/json`, s)
+            )
+          }
         AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
       }
     } ~ (path("health") & get) {

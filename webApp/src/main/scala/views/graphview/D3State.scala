@@ -1,16 +1,16 @@
- package wust.webApp.views.graphview
+package wust.webApp.views.graphview
 
- import d3v4._
- import vectory._
- import wust.ids._
+import d3v4._
+import vectory._
+import wust.ids._
 
- import scala.collection.{breakOut, mutable}
- import scala.scalajs.js
- import scala.scalajs.js.JSConverters._
- import scala.scalajs.js.annotation._
- import rx._
- import wust.webApp.DevPrintln
- import wust.util.time.time
+import scala.collection.{breakOut, mutable}
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.annotation._
+import rx._
+import wust.webApp.DevPrintln
+import wust.util.time.time
 
 abstract class CustomForce[N <: SimulationNode] extends js.Object {
   def initialize(nodes: js.Array[N]): Unit = {}
@@ -37,28 +37,30 @@ object ForceUtil {
     }
   }
 
-  def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(code: Int => Unit): Unit = {
-    quadtree.visit{
-      (n: QuadtreeNode[Int], x0: Double, y0: Double, x1: Double, y1: Double) =>
-        forAllNodes(n)(code)
+  def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(
+      code: Int => Unit
+  ): Unit = {
+    quadtree.visit { (n: QuadtreeNode[Int], x0: Double, y0: Double, x1: Double, y1: Double) =>
+      forAllNodes(n)(code)
 
-        val rw = x1 - x0
-        val rh = y1 - y0
-        val rwh = rw * 0.5
-        val rhh = rh * 0.5
-        val centerX = x0 + rwh
-        val centerY = y0 + rhh
-        !Algorithms.intersectCircleAARect(x, y, r, centerX, centerY, rw, rh)
+      val rw = x1 - x0
+      val rh = y1 - y0
+      val rwh = rw * 0.5
+      val rhh = rh * 0.5
+      val centerX = x0 + rwh
+      val centerY = y0 + rhh
+      !Algorithms.intersectCircleAARect(x, y, r, centerX, centerY, rw, rh)
     }
   }
 
   //noinspection ComparingUnrelatedTypes
-  def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(code: Int => Unit): Unit = {
-    quadtree.visit{
-      (n: QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>
-        forAllNodes(n)(code)
+  def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(
+      code: Int => Unit
+  ): Unit = {
+    quadtree.visit { (n: QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>
+      forAllNodes(n)(code)
 
-        x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0
+      x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0
     }
   }
 
@@ -240,8 +242,6 @@ object ForceUtil {
 //    }
 //  }
 //}
-
-
 //class MetaForce extends CustomForce[SimPost] {
 //  var n: Int = 0
 //  var n2: Int = 0

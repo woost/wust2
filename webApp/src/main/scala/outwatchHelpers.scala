@@ -26,11 +26,12 @@ import scala.concurrent.Future
 //TODO nicer name
 package object outwatchHelpers {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
-  implicit val monixScheduler: Scheduler = Scheduler.trampoline(executionModel = SynchronousExecution)
+  implicit val monixScheduler: Scheduler =
+    Scheduler.trampoline(executionModel = SynchronousExecution)
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
-  implicit class RichRx[T](rx:Rx[T])(implicit ctx: Ctx.Owner) {
-    def toObservable:Observable[T] = Observable.create[T](Unbounded) { observer =>
+  implicit class RichRx[T](rx: Rx[T])(implicit ctx: Ctx.Owner) {
+    def toObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
       rx.foreach(observer.onNext)
       Cancelable() //TODO
     }
@@ -46,23 +47,30 @@ package object outwatchHelpers {
     }
   }
 
-  implicit def rxAsVDomModifier[T:AsVDomModifier](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[T]] = (value: Rx[T]) => value.toObservable
-  implicit def rxSeqAsVDomModifier[T:AsVDomModifier](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => value.toObservable
-  implicit def rxOptionAsVDomModifier[T:AsVDomModifier](implicit ctx:Ctx.Owner):AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
-  implicit class RichEmitterBuilder[E,O,R](val eb:EmitterBuilder[E,O,R]) extends AnyVal {
+  implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
+    (value: Rx[T]) => value.toObservable
+  implicit def rxSeqAsVDomModifier[T: AsVDomModifier](
+      implicit ctx: Ctx.Owner
+  ): AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => value.toObservable
+  implicit def rxOptionAsVDomModifier[T: AsVDomModifier](
+      implicit ctx: Ctx.Owner
+  ): AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
+  implicit class RichEmitterBuilder[E, O, R](val eb: EmitterBuilder[E, O, R]) extends AnyVal {
     //TODO: scala.rx have a contravariant trait for writing-only
-    def -->(rxVar: Var[_ >: O])(implicit ctx:Ctx.Owner): IO[R] = eb --> rxVar.toSink
+    def -->(rxVar: Var[_ >: O])(implicit ctx: Ctx.Owner): IO[R] = eb --> rxVar.toSink
   }
-  implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab:AttributeBuilder[T,A]) extends AnyVal {
-    def <--(valueStream: Rx[T])(implicit ctx:Ctx.Owner) = ab <-- valueStream.toObservable
+  implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab: AttributeBuilder[T, A])
+      extends AnyVal {
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- valueStream.toObservable
   }
-  implicit class RichStyle[T](val ab:Style[T]) {
+  implicit class RichStyle[T](val ab: Style[T]) {
     import outwatch.dom.StyleIsBuilder
     //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
-    def <--(valueStream: Rx[T])(implicit ctx:Ctx.Owner) = StyleIsBuilder[T](ab) <-- valueStream.toObservable
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) =
+      StyleIsBuilder[T](ab) <-- valueStream.toObservable
   }
 
-  implicit class RichVar[T](rxVar:Var[T])(implicit ctx: Ctx.Owner) {
+  implicit class RichVar[T](rxVar: Var[T])(implicit ctx: Ctx.Owner) {
     def toHandler: Handler[T] = {
 
       val h = Handler.create[T](rxVar.now).unsafeRunSync()
@@ -73,10 +81,12 @@ package object outwatchHelpers {
 
     def toSink: Sink[T] = {
 
-      Sink.create[T] { event =>
-        rxVar.update(event)
-        Future.successful(Continue)
-      }.unsafeRunSync()
+      Sink
+        .create[T] { event =>
+          rxVar.update(event)
+          Future.successful(Continue)
+        }
+        .unsafeRunSync()
     }
   }
 
@@ -118,24 +128,25 @@ package object outwatchHelpers {
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
-  def keyDown(keyCode: Int):Observable[Boolean] = Observable.merge(
+  def keyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
     outwatch.dom.dsl.events.window.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dom.dsl.events.window.onKeyUp.collect { case e if e.keyCode == keyCode => false },
-    )
+    outwatch.dom.dsl.events.window.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
+  )
 
-  private def abstractTreeToVNode(tree:AbstractElement):VNode = {
+  private def abstractTreeToVNode(tree: AbstractElement): VNode = {
     import outwatch.dom.dsl.{attr, tag}
     tag(tree.tag)(
-      tree.attributes.map{case (name,value) => attr(name) := value}(breakOut):Seq[VDomModifier],
-      tree.children.fold(Seq.empty[VNode]){_.map(abstractTreeToVNode)}
+      tree.attributes
+        .map { case (name, value) => attr(name) := value }(breakOut): Seq[VDomModifier],
+      tree.children.fold(Seq.empty[VNode]) { _.map(abstractTreeToVNode) }
     )
   }
 
-  implicit def renderFontAwesomeIcon(icon:IconLookup):VNode = {
+  implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
     abstractTreeToVNode(fontawesome.icon(icon).`abstract`(0))
   }
 
-  implicit def renderFontAwesomeObject(icon:FontawesomeObject):VNode = {
+  implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
     abstractTreeToVNode(icon.`abstract`(0))
   }
 }

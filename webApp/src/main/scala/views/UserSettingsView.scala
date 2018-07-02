@@ -17,15 +17,12 @@ object UserSettingsView extends View {
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._
     div(
-       height := "100%",
+      height := "100%",
       div(
         user.map(u => listSettings(u)),
-
-
         margin := "0 auto",
         maxWidth := "48rem",
         height := "100%",
-
         display.flex,
         flexDirection.column,
         justifyContent.flexStart,
@@ -43,12 +40,12 @@ object UserSettingsView extends View {
       Client.auth.issuePluginToken().foreach { auth =>
         scribe.info(s"Generated plugin token: $auth")
         val connUser = Client.githubApi.connectUser(auth.token)
-          connUser foreach {
-            case Some(url) =>
-              org.scalajs.dom.window.location.href = url
-            case None =>
-              scribe.info(s"Could not connect user: $auth")
-          }
+        connUser foreach {
+          case Some(url) =>
+            org.scalajs.dom.window.location.href = url
+          case None =>
+            scribe.info(s"Could not connect user: $auth")
+        }
       }
     }
 
@@ -78,9 +75,15 @@ object UserSettingsView extends View {
         p("Connect Woost with a Service"),
         button("Link with GitHub", onClick --> sideEffect(linkWithGithub())),
         br(),
-        button("Link with Gitter", onClick(user.id) --> sideEffect((userId: UserId) => linkWithGitter(userId))),
+        button(
+          "Link with Gitter",
+          onClick(user.id) --> sideEffect((userId: UserId) => linkWithGitter(userId))
+        ),
         br(),
-        button("Link with Slack", onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))),
+        button(
+          "Link with Slack",
+          onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))
+        ),
       )
     )
   }

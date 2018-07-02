@@ -7,7 +7,11 @@ import scala.collection.{IterableLike, mutable}
 // http://blog.gapotchenko.com/stable-topological-sort
 // https://en.wikipedia.org/wiki/Feedback_arc_set
 object HierarchicalTopologicalSort {
-  def apply[V, COLL[V]](vertices: IterableLike[V, COLL[V]], successors: V => Iterable[V], children: V => Iterable[V]): List[V] = {
+  def apply[V, COLL[V]](
+      vertices: IterableLike[V, COLL[V]],
+      successors: V => Iterable[V],
+      children: V => Iterable[V]
+  ): List[V] = {
     val connectionSort = topologicalSort[V, COLL](vertices, successors)
     topologicalSort[V, List](connectionSort, children)
   }

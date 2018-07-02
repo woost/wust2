@@ -6,25 +6,25 @@ import scala.scalajs.js
 
 //TODO: use typedarrays? with DataViews to store interleaved data? shared typed arrays for webworkers?
 class SimulationData(
-                      val n: Int,
-                      var alpha: Double = 1.0,
-                      var alphaMin: Double = 0.001,
-                      var alphaTarget: Double = 0,
-                      var alphaDecay: Double = 1 - Math.pow(0.001, 1.0 / 300.0), // ~0.0228
-                      var velocityDecay: Double = 0.4,
-                      val x: Array[Double],
-                      val y: Array[Double],
-                      val vx: Array[Double],
-                      val vy: Array[Double],
-                      var quadtree: Quadtree[Int],
-                      var eulerSetPolygons: Array[js.Array[js.Tuple3[Double, Double, Int]]], //TODO: rename to eulerSetPolygon
-                      var eulerSetGeometricCenterX : Array[Double],
-                      var eulerSetGeometricCenterY : Array[Double],
-                      var eulerSetPolygonMinX: Array[Double],
-                      var eulerSetPolygonMinY: Array[Double],
-                      var eulerSetPolygonMaxX: Array[Double],
-                      var eulerSetPolygonMaxY: Array[Double]
-                    ) {
+    val n: Int,
+    var alpha: Double = 1.0,
+    var alphaMin: Double = 0.001,
+    var alphaTarget: Double = 0,
+    var alphaDecay: Double = 1 - Math.pow(0.001, 1.0 / 300.0), // ~0.0228
+    var velocityDecay: Double = 0.4,
+    val x: Array[Double],
+    val y: Array[Double],
+    val vx: Array[Double],
+    val vy: Array[Double],
+    var quadtree: Quadtree[Int],
+    var eulerSetPolygons: Array[js.Array[js.Tuple3[Double, Double, Int]]], //TODO: rename to eulerSetPolygon
+    var eulerSetGeometricCenterX: Array[Double],
+    var eulerSetGeometricCenterY: Array[Double],
+    var eulerSetPolygonMinX: Array[Double],
+    var eulerSetPolygonMinY: Array[Double],
+    var eulerSetPolygonMaxX: Array[Double],
+    var eulerSetPolygonMaxY: Array[Double]
+) {
   def this(n: Int) = this(
     n = n,
     x = Array.fill(n)(Double.NaN),
@@ -67,8 +67,8 @@ class SimulationData(
 
 // used to backup coordinates in DOM
 class Coordinates(
-                   var x: Double = Double.NaN,
-                   var y: Double = Double.NaN,
-                   var vx: Double = 0,
-                   var vy: Double = 0
-                 ) extends js.Object
+    var x: Double = Double.NaN,
+    var y: Double = Double.NaN,
+    var vx: Double = 0,
+    var vy: Double = 0
+) extends js.Object

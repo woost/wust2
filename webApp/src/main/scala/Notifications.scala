@@ -27,8 +27,8 @@ object Notifications {
     // TODO: we need to disbable permissiondescriptor for push-notifications, as firefox only supports normal notification as a permissiondescriptor when using permissions.query to get a change event.
     // As push notification contains permissions for normal notifications, this should be enough.
     //permissionStateObservableOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
-      //case t =>
-      permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
+    //case t =>
+    permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
     //}
   }
 
@@ -41,8 +41,11 @@ object Notifications {
     })
   }
 
-  def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(implicit ec: ExecutionContext): Unit = Notification.toOption match {
-    case None => scribe.info(s"Notifications are not supported in browser, cannot send notification: $title")
+  def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(
+      implicit ec: ExecutionContext
+  ): Unit = Notification.toOption match {
+    case None =>
+      scribe.info(s"Notifications are not supported in browser, cannot send notification: $title")
     case Some(n) if n.permission.asInstanceOf[PermissionState] != PermissionState.granted =>
       scribe.info(s"Notifications are not granted, cannot send notification: $title")
     case Some(n) =>
@@ -54,20 +57,27 @@ object Notifications {
       )
 
       serviceWorker match {
-        case Some(serviceWorker) => serviceWorkerNotify(serviceWorker, title, options).foreach { success =>
-          if (success) scribe.info(s"Sent notification via ServiceWorker: $title")
-          else {
-            scribe.info(s"Cannot send notification via ServiceWorker, falling back to browser notify: $title")
-            browserNotify(title, options)
+        case Some(serviceWorker) =>
+          serviceWorkerNotify(serviceWorker, title, options).foreach { success =>
+            if (success) scribe.info(s"Sent notification via ServiceWorker: $title")
+            else {
+              scribe.info(
+                s"Cannot send notification via ServiceWorker, falling back to browser notify: $title"
+              )
+              browserNotify(title, options)
+            }
           }
-        }
         case None =>
-          scribe.info(s"ServiceWorker ist not supported by browser, falling back to browser notify: $title")
+          scribe.info(
+            s"ServiceWorker ist not supported by browser, falling back to browser notify: $title"
+          )
           browserNotify(title, options)
       }
-    }
+  }
 
-  private def permissionStateObservableOf(permissionDescriptor: PermissionDescriptor)(implicit ec: ExecutionContext): Observable[PermissionState] = {
+  private def permissionStateObservableOf(
+      permissionDescriptor: PermissionDescriptor
+  )(implicit ec: ExecutionContext): Observable[PermissionState] = {
     Notification.toOption match {
       case Some(n) =>
         val subject = BehaviorSubject[PermissionState](n.permission.asInstanceOf[PermissionState])
@@ -79,11 +89,13 @@ object Notifications {
                 subject.onNext(desc.state)
               }
             case Failure(t) =>
-              scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
+              scribe.warn(
+                s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t"
+              )
               subject.onError(t)
           }
         }
-      subject
+        subject
       case None => Observable.empty
     }
   }
@@ -100,39 +112,66 @@ object Notifications {
           applicationServerKey = publicKeyBytes
         }
         persistPushSubscription(_.subscribe(options))
-      case None => scribe.warn("No public key of server available for web push subscriptions. Cannot subscribe to push notifications.")
+      case None =>
+        scribe.warn(
+          "No public key of server available for web push subscriptions. Cannot subscribe to push notifications."
+        )
     }
 
-  private def persistPushSubscription(getSubscription: PushManager => js.Promise[PushSubscription])(implicit ec: ExecutionContext): Unit = serviceWorker match {
-    case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.onComplete {
-      case Success(reg) => reg.toOption match {
-        case Some(reg) =>
-          getSubscription(reg.pushManager).toFuture.onComplete {
-            case Success(sub) if sub != null =>
-              //TODO rename p256dh attribute of WebPushSub to publicKey
-              val webpush = WebPushSubscription(endpointUrl = sub.endpoint, p256dh = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))), auth = Base64Codec.encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
-              scribe.info(s"WebPush subscription: $webpush")
-              Client.push.subscribeWebPush(webpush)
-            case err =>
-              scribe.warn(s"Failed to subscribe to push: $err")
+  private def persistPushSubscription(
+      getSubscription: PushManager => js.Promise[PushSubscription]
+  )(implicit ec: ExecutionContext): Unit = serviceWorker match {
+    case Some(serviceWorker) =>
+      serviceWorker.getRegistration().toFuture.onComplete {
+        case Success(reg) =>
+          reg.toOption match {
+            case Some(reg) =>
+              getSubscription(reg.pushManager).toFuture.onComplete {
+                case Success(sub) if sub != null =>
+                  //TODO rename p256dh attribute of WebPushSub to publicKey
+                  val webpush = WebPushSubscription(
+                    endpointUrl = sub.endpoint,
+                    p256dh = Base64Codec
+                      .encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))),
+                    auth = Base64Codec
+                      .encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth)))
+                  )
+                  scribe.info(s"WebPush subscription: $webpush")
+                  Client.push.subscribeWebPush(webpush)
+                case err =>
+                  scribe.warn(s"Failed to subscribe to push: $err")
+              }
+            case None =>
+              scribe.warn(s"Got empty service worker registration")
           }
-        case None =>
-          scribe.warn(s"Got empty service worker registration")
+        case err =>
+          scribe.warn(s"Failed to get service worker registration: $err")
       }
-      case err =>
-        scribe.warn(s"Failed to get service worker registration: $err")
-    }
     case None =>
       scribe.info("Push notifications are not available in this browser")
       Future.successful(false)
   }
 
-  private def serviceWorkerNotify(serviceWorker: ServiceWorkerContainer, title: String, options: NotificationOptions)(implicit ec: ExecutionContext): Future[Boolean] = {
-    serviceWorker.getRegistration().toFuture.flatMap {
-      case registration if registration.isDefined =>
-        registration.get.showNotification(title, options).toFuture.map { _ => true }.recover { case _ => false }
-      case _ => Future.successful(false)
-    }.recover { case _ => false }
+  private def serviceWorkerNotify(
+      serviceWorker: ServiceWorkerContainer,
+      title: String,
+      options: NotificationOptions
+  )(implicit ec: ExecutionContext): Future[Boolean] = {
+    serviceWorker
+      .getRegistration()
+      .toFuture
+      .flatMap {
+        case registration if registration.isDefined =>
+          registration.get
+            .showNotification(title, options)
+            .toFuture
+            .map { _ =>
+              true
+            }
+            .recover { case _ => false }
+        case _ => Future.successful(false)
+      }
+      .recover { case _ => false }
   }
 
   private def browserNotify(title: String, options: NotificationOptions): Unit = {

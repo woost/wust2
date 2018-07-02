@@ -10,4 +10,3 @@ object RandomUtil {
     new BigInteger(nrChars * 5, random).toString(32)
   }
 }
-

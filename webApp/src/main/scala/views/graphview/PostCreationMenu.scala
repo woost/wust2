@@ -23,9 +23,10 @@ import scala.scalajs.js
 import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders
 
-
 object PostCreationMenu {
-  def apply(state: GlobalState, pos: Vec2, transformRx: Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
+  def apply(state: GlobalState, pos: Vec2, transformRx: Rx[d3v4.Transform])(
+      implicit owner: Ctx.Owner
+  ) = {
 //    import graphState.rxNodeIdToSimPost
 
     val transformStyle = transformRx.map { t =>
@@ -38,12 +39,12 @@ object PostCreationMenu {
 
     val inputHandler = Handler.create[String].unsafeRunSync()
     var ySimPostOffset: Double = 50
-    inputHandler.foreach{ content =>
+    inputHandler.foreach { content =>
       val author = state.user.now
       val changes = GraphChanges.addNode(NodeData.Markdown(content))
       state.eventProcessor.enriched.changes.onNext(changes)
 
-      // TODO: move created post below menu (not working yet)
+    // TODO: move created post below menu (not working yet)
 //      val simPostOpt = rxNodeIdToSimPost.now.get(newPost.id)
 //      simPostOpt.foreach { simPost =>
 //        simPost.fx = m.pos.x

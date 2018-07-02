@@ -11,7 +11,8 @@ import wust.db.Db
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
+class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext)
+    extends AuthApi[ApiFunction] {
   import dsl._
 
   //TODO: some password checks
@@ -21,12 +22,13 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
       case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
-      case Some(AuthUser.Assumed(userId, channelNodeId)) => db.user(userId, name, digest, channelNodeId)
+      case Some(AuthUser.Assumed(userId, channelNodeId)) =>
+        db.user(userId, name, digest, channelNodeId)
       case _ => db.user(UserId.fresh, name, digest, NodeId.fresh)
     }
 
-   val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
-   resultOnVerifiedAuth(newAuth, AuthResult.Success)
+    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
+    resultOnVerifiedAuth(newAuth, AuthResult.Success)
   }
 
   def login(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
@@ -41,17 +43,22 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
               .mergeImplicitUser(prevUserId, user.id)
               .flatMap {
                 case true => Future.successful(Right(user))
-                case false => Future.failed(new Exception(s"Failed to merge implicit user ($prevUserId) into real user (${user.id})"))
+                case false =>
+                  Future.failed(
+                    new Exception(
+                      s"Failed to merge implicit user ($prevUserId) into real user (${user.id})"
+                    )
+                  )
               }
           case _ => Future.successful(Right(user))
         }
 
       case Some(_) => Future.successful(Left(AuthResult.BadPassword))
-      case None => Future.successful(Left(AuthResult.BadUser))
+      case None    => Future.successful(Left(AuthResult.BadUser))
     }
 
-   val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
-   resultOnVerifiedAuth(newAuth, AuthResult.Success)
+    val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)))
+    resultOnVerifiedAuth(newAuth, AuthResult.Success)
   }
 
   def loginToken(token: Authentication.Token): ApiFunction[Boolean] = Effect { state =>
@@ -59,9 +66,10 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnVerifiedAuth(newAuth)
   }
 
-  def verifyToken(token: Authentication.Token): ApiFunction[Option[Authentication.Verified]] = Action {
-    validAuthFromToken(token)
-  }
+  def verifyToken(token: Authentication.Token): ApiFunction[Option[Authentication.Verified]] =
+    Action {
+      validAuthFromToken(token)
+    }
 
   def assumeLogin(user: AuthUser.Assumed): ApiFunction[Boolean] = Effect { state =>
     val newAuth = Authentication.Assumed(user)
@@ -82,7 +90,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   private def authChangeEvents(auth: Authentication): Seq[ApiEvent] = {
     val authEvent = auth match {
-      case auth: Authentication.Assumed => ApiEvent.AssumeLoggedIn(auth)
+      case auth: Authentication.Assumed  => ApiEvent.AssumeLoggedIn(auth)
       case auth: Authentication.Verified => ApiEvent.LoggedIn(auth)
     }
 
@@ -93,13 +101,18 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     Future.successful(Returns(true, authChangeEvents(auth)))
   }
 
-  private def resultOnVerifiedAuth[T](auth: Future[Either[T, Authentication.Verified]], positiveValue: T): Future[ApiData.Effect[T]] = auth.map {
+  private def resultOnVerifiedAuth[T](
+      auth: Future[Either[T, Authentication.Verified]],
+      positiveValue: T
+  ): Future[ApiData.Effect[T]] = auth.map {
     case Right(auth) => Returns(positiveValue, authChangeEvents(auth))
-    case Left(err) => Returns(err)
+    case Left(err)   => Returns(err)
   }
 
-  private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.map {
+  private def resultOnVerifiedAuth(
+      auth: Future[Option[Authentication.Verified]]
+  ): Future[ApiData.Effect[Boolean]] = auth.map {
     case Some(auth) => Returns(true, authChangeEvents(auth))
-    case _ => Returns(false)
+    case _          => Returns(false)
   }
 }

@@ -14,8 +14,11 @@ import org.scalajs.dom.html
 // https://github.com/Shopify/draggable/tree/master/src/Draggable#api
 @js.native
 @JSImport("@shopify/draggable", "Draggable")
-class Draggable(containers: js.Array[html.Element]|NodeList|html.Element, options: js.UndefOr[Options] = js.undefined) extends js.Object {
-  def destroy():Unit = js.native
+class Draggable(
+    containers: js.Array[html.Element] | NodeList | html.Element,
+    options: js.UndefOr[Options] = js.undefined
+) extends js.Object {
+  def destroy(): Unit = js.native
   def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
   def on[E <: DragEvent](eventName: String, listener: js.Function1[E, Unit]): Draggable = js.native
 //  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
@@ -45,20 +48,26 @@ class DragOutEvent extends DragEvent {
 
 @js.native
 @JSImport("@shopify/draggable", "Droppable")
-class Droppable(containers: js.Array[html.Element]|NodeList|html.Element, options: js.UndefOr[Options] = js.undefined) extends Draggable(containers, options)
+class Droppable(
+    containers: js.Array[html.Element] | NodeList | html.Element,
+    options: js.UndefOr[Options] = js.undefined
+) extends Draggable(containers, options)
 
 @js.native
 @JSImport("@shopify/draggable", "Sortable")
-class Sortable(containers: js.Array[html.Element]|NodeList|html.Element, options: js.UndefOr[Options] = js.undefined) extends Draggable(containers, options)
+class Sortable(
+    containers: js.Array[html.Element] | NodeList | html.Element,
+    options: js.UndefOr[Options] = js.undefined
+) extends Draggable(containers, options)
 
 // https://github.com/Shopify/draggable/tree/master/src/Draggable#options
 trait Options extends js.Object {
   var draggable: js.UndefOr[String] = js.undefined
   var dropzone: js.UndefOr[String] = js.undefined
   var handle: js.UndefOr[String] = js.undefined
-  var delay: js.UndefOr[Double] = js.undefined 
+  var delay: js.UndefOr[Double] = js.undefined
   // var plugins: js.UndefOr[js.Array[Plugin]] = js.undefined
   // var sensors: js.UndefOr[js.Array[Sensor]] = js.undefined
-  var appendTo: js.UndefOr[String|html.Element|js.Function0[html.Element]] = js.undefined
+  var appendTo: js.UndefOr[String | html.Element | js.Function0[html.Element]] = js.undefined
   // var classes: js.UndefOr[Object] = js.undefined
 }

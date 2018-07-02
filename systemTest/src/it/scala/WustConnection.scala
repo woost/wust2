@@ -25,9 +25,13 @@ object WustConnection {
 
   lazy val nginxHttpConnection = Http().outgoingConnection(hostname, httpPort)
   lazy val wsHttpConnection = Http().outgoingConnection(hostname, wsPort)
-  def wsConnection(flow: Flow[Message, Message, Future[Done]]) = Http().singleWebSocketRequest(WebSocketRequest(wsUrl), flow)
+  def wsConnection(flow: Flow[Message, Message, Future[Done]]) =
+    Http().singleWebSocketRequest(WebSocketRequest(wsUrl), flow)
 
-  def ws(sink: Sink[Message, Future[Done]], source: Source[Message, NotUsed]): (Future[WebSocketUpgradeResponse], Future[Done]) = {
+  def ws(
+      sink: Sink[Message, Future[Done]],
+      source: Source[Message, NotUsed]
+  ): (Future[WebSocketUpgradeResponse], Future[Done]) = {
     wsConnection(Flow.fromSinkAndSourceMat(sink, source)(Keep.left))
   }
 
@@ -47,8 +51,7 @@ object WustConnection {
       if (n > 1) {
         if (sleepMillis > 0) Thread.sleep(sleepMillis)
         retry(n - 1, sleepMillis)(fun)
-      }
-      else false
+      } else false
   }
 
   def pathIsUp(get: => Future[HttpResponse], validate: HttpResponse => Boolean) =
@@ -57,7 +60,7 @@ object WustConnection {
   lazy val ready = {
     println("Waiting for Woost to be up...")
     pathIsUp(get("/"), r => r.status.isSuccess) &&
-      pathIsUp(wsGet("/ws"), _.status == StatusCodes.BadRequest)
+    pathIsUp(wsGet("/ws"), _.status == StatusCodes.BadRequest)
   }
 }
 
@@ -87,7 +90,8 @@ trait Browser extends mutable.After {
       // look for something that looks like a stacktrace
       val warningStacktraces = logs.filter(Level.WARNING).toList.filter { warning =>
         val head :: tail = warning.getMessage.split("\n").toList
-        head.startsWith("TypeError: ") || tail.exists(_.matches("  [^ ]+ \\(http://.*/.*\\.js:[0-9]+:[0-9]+\\)"))
+        head.startsWith("TypeError: ") || tail
+          .exists(_.matches("  [^ ]+ \\(http://.*/.*\\.js:[0-9]+:[0-9]+\\)"))
       }
 
       (errors ++ warningStacktraces).map(_.getMessage)

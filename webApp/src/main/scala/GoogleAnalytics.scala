@@ -20,6 +20,14 @@ object Analytics {
 @js.native
 @JSGlobalScope
 object GoogleAnalytics extends js.Object {
-  def ga(send: String, event: String, category: String, action: String, label: String): Unit = js.native
-  def ga(send: String, event: String, category: String, action: String, label: String, value: js.Any): Unit = js.native
+  def ga(send: String, event: String, category: String, action: String, label: String): Unit =
+    js.native
+  def ga(
+      send: String,
+      event: String,
+      category: String,
+      action: String,
+      label: String,
+      value: js.Any
+  ): Unit = js.native
 }

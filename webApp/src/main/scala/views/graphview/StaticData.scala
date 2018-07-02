@@ -19,48 +19,46 @@ import scala.collection.{breakOut, mutable}
  * Data, which is only recalculated once per graph update and stays the same during the simulation
  */
 class StaticData(
-                  val nodeCount: Int,
-                  val edgeCount: Int,
-                  val containmentCount: Int,
+    val nodeCount: Int,
+    val edgeCount: Int,
+    val containmentCount: Int,
+    var posts: Array[Node],
+    val indices: Array[Int],
+    val width: Array[Double],
+    val height: Array[Double],
+    val centerOffsetX: Array[Double],
+    val centerOffsetY: Array[Double],
+    val radius: Array[Double],
+    var maxRadius: Double,
+    val collisionRadius: Array[Double],
+    val containmentRadius: Array[Double], // TODO: still needed?
+    val nodeParentCount: Array[Int],
+    val bgColor: Array[String],
+    //                  val border: Array[String],
+    val nodeReservedArea: Array[Double], //TODO: rename to reservedArea
+    var reservedArea: Double, //TODO: rename to totalReservedArea
 
-                  var posts: Array[Node],
-                  val indices: Array[Int],
-                  val width: Array[Double],
-                  val height: Array[Double],
-                  val centerOffsetX: Array[Double],
-                  val centerOffsetY: Array[Double],
-                  val radius: Array[Double],
-                  var maxRadius: Double,
-                  val collisionRadius: Array[Double],
-                  val containmentRadius: Array[Double], // TODO: still needed?
-                  val nodeParentCount: Array[Int],
-                  val bgColor: Array[String],
-                  //                  val border: Array[String],
-                  val nodeReservedArea:Array[Double], //TODO: rename to reservedArea
-                  var reservedArea: Double, //TODO: rename to totalReservedArea
+    // Edges
+    val source: Array[Int], //TODO: Rename to edgeSource
+    val target: Array[Int], //TODO: Rename to edgeTarget
 
-                  // Edges
-                  val source: Array[Int], //TODO: Rename to edgeSource
-                  val target: Array[Int], //TODO: Rename to edgeTarget
-
-                  // Euler
-                  val containmentChild: Array[Int],
-                  val containmentParent: Array[Int],
-                  val containmentTest: AdjacencyMatrix,
-                  var eulerSetCount: Int,
-                  var eulerSetParent: Array[Int],
-                  var eulerSetChildren: Array[Array[Int]],
-                  var eulerSetAllNodes: Array[Array[Int]],
-                  var eulerSetArea: Array[Double],
-                  var eulerSetRadius: Array[Double],
-                  var eulerSetColor: Array[String],
-                  var eulerSetDepth: Array[Int],
-              ) {
-  def this(nodeCount: Int, edgeCount: Int, containmentCount:Int) = this(
+    // Euler
+    val containmentChild: Array[Int],
+    val containmentParent: Array[Int],
+    val containmentTest: AdjacencyMatrix,
+    var eulerSetCount: Int,
+    var eulerSetParent: Array[Int],
+    var eulerSetChildren: Array[Array[Int]],
+    var eulerSetAllNodes: Array[Array[Int]],
+    var eulerSetArea: Array[Double],
+    var eulerSetRadius: Array[Double],
+    var eulerSetColor: Array[String],
+    var eulerSetDepth: Array[Int],
+) {
+  def this(nodeCount: Int, edgeCount: Int, containmentCount: Int) = this(
     nodeCount = nodeCount,
     edgeCount = edgeCount,
     containmentCount = containmentCount,
-
     posts = null,
     indices = Array.tabulate(nodeCount)(identity),
     width = new Array(nodeCount),
@@ -76,10 +74,8 @@ class StaticData(
 //    border = new Array(nodeCount),
     nodeReservedArea = new Array(nodeCount),
     reservedArea = NaN,
-
     source = new Array(edgeCount),
     target = new Array(edgeCount),
-
     containmentChild = new Array(containmentCount),
     containmentParent = new Array(containmentCount),
     containmentTest = new AdjacencyMatrix(nodeCount),
@@ -96,40 +92,49 @@ class StaticData(
 
 class AdjacencyMatrix(nodeCount: Int) {
   private val data = new mutable.BitSet(nodeCount * nodeCount) //TODO: Avoid Quadratic Space complexity when over threshold!
-  @inline private def index(source:Int, target:Int): Int = source*nodeCount + target
-  @inline def set(source:Int, target:Int):Unit = data.add(index(source, target))
-  @inline def apply(source:Int, target:Int):Boolean = data(index(source, target))
+  @inline private def index(source: Int, target: Int): Int = source * nodeCount + target
+  @inline def set(source: Int, target: Int): Unit = data.add(index(source, target))
+  @inline def apply(source: Int, target: Int): Boolean = data(index(source, target))
 }
-
 
 class EulerSet(val parent: NodeId, val children: Array[NodeId], val depth: Int) {
   val allNodes: Array[NodeId] = children :+ parent
 }
 
 class GraphTopology(
-                     val graph: Graph,
-                     val posts: Array[Node]
-                   )
+    val graph: Graph,
+    val posts: Array[Node]
+)
 
 object StaticData {
   import ForceSimulation.log
 
-  def apply(graphTopology: GraphTopology, selection: Selection[Node], transform: Transform, labelVisualization:PartialFunction[EdgeData.Type, VisualizationType]): StaticData = {
+  def apply(
+      graphTopology: GraphTopology,
+      selection: Selection[Node],
+      transform: Transform,
+      labelVisualization: PartialFunction[EdgeData.Type, VisualizationType]
+  ): StaticData = {
     time(log(s"calculateStaticData[${selection.size()}]")) {
       import graphTopology.{graph, posts}
 
-      val PartitionedConnections(edges,containments,tags) = partitionConnections(graph.edges, labelVisualization)
+      val PartitionedConnections(edges, containments, tags) =
+        partitionConnections(graph.edges, labelVisualization)
 //      println("edges: " + edges.mkString(", "))
 //      println("containments: " + containments.mkString(", "))
 
       val nodeCount = posts.length
       val edgeCount = edges.length
       val containmentCount = containments.length
-      val staticData = new StaticData(nodeCount = nodeCount,edgeCount = edgeCount,containmentCount = containmentCount)
+      val staticData = new StaticData(
+        nodeCount = nodeCount,
+        edgeCount = edgeCount,
+        containmentCount = containmentCount
+      )
       staticData.posts = posts
       val scale = transform.k
 
-      @inline def sq(x:Double) = x * x
+      @inline def sq(x: Double) = x * x
 
       var maxRadius = 0.0
       var reservedArea = 0.0
@@ -173,7 +178,7 @@ object StaticData {
       }
 
       i = 0
-      while(i < containmentCount) {
+      while (i < containmentCount) {
         val child = nodeIdToIndex(containments(i).sourceId)
         val parent = nodeIdToIndex(containments(i).targetId)
         staticData.containmentChild(i) = child
@@ -182,8 +187,7 @@ object StaticData {
         i += 1
       }
 
-
-      val eulerSets:Array[EulerSet] = {
+      val eulerSets: Array[EulerSet] = {
         //        staticData.parent.map{ pId =>
         //          val p = posts(pId)
         //
@@ -197,24 +201,22 @@ object StaticData {
         }(breakOut)
       }
 
-
       //TODO: collapsed euler sets
-  // val rxCollapsedContainmentCluster = Rx {
-  //   val graph = rxDisplayGraph().graph
-  //   val nodeIdToSimPost = rxNodeIdToSimPost()
+      // val rxCollapsedContainmentCluster = Rx {
+      //   val graph = rxDisplayGraph().graph
+      //   val nodeIdToSimPost = rxNodeIdToSimPost()
 
-  //   val children: Map[NodeId, Seq[NodeId]] = rxDisplayGraph().collapsedContainments.groupBy(_.targetId).mapValues(_.map(_.sourceId)(breakOut))
-  //   val parents: Iterable[NodeId] = children.keys
+      //   val children: Map[NodeId, Seq[NodeId]] = rxDisplayGraph().collapsedContainments.groupBy(_.targetId).mapValues(_.map(_.sourceId)(breakOut))
+      //   val parents: Iterable[NodeId] = children.keys
 
-  //   parents.map { p =>
-  //     new ContainmentCluster(
-  //       parent = nodeIdToSimPost(p),
-  //       children = children(p).map(p => nodeIdToSimPost(p))(breakOut),
-  //       depth = graph.childDepth(p)
-  //     )
-  //   }.toJSArray
-  // }
-
+      //   parents.map { p =>
+      //     new ContainmentCluster(
+      //       parent = nodeIdToSimPost(p),
+      //       children = children(p).map(p => nodeIdToSimPost(p))(breakOut),
+      //       depth = graph.childDepth(p)
+      //     )
+      //   }.toJSArray
+      // }
 
       i = 0
       val eulerSetCount = eulerSets.length
@@ -226,18 +228,18 @@ object StaticData {
       staticData.eulerSetRadius = new Array[Double](eulerSetCount)
       staticData.eulerSetColor = new Array[String](eulerSetCount)
       staticData.eulerSetDepth = new Array[Int](eulerSetCount)
-      while(i < eulerSetCount) {
+      while (i < eulerSetCount) {
         staticData.eulerSetChildren(i) = eulerSets(i).children.map(nodeIdToIndex)
         staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes.map(nodeIdToIndex)
         staticData.eulerSetParent(i) = nodeIdToIndex(eulerSets(i).parent)
         staticData.eulerSetDepth(i) = eulerSets(i).depth
 
         val aribtraryFactor = 1.3
-        staticData.eulerSetArea(i) = eulerSets(i).allNodes.map{ pid =>
+        staticData.eulerSetArea(i) = eulerSets(i).allNodes.map { pid =>
           val pi = nodeIdToIndex(pid)
           staticData.nodeReservedArea(pi)
         }.sum * aribtraryFactor
-        staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i)/PI) // a = pi*r^2 solved by r = sqrt(a/pi)
+        staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i) / PI) // a = pi*r^2 solved by r = sqrt(a/pi)
 
         val color = d3.lab(baseColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
         color.opacity = 0.8
@@ -261,12 +263,15 @@ object StaticData {
   }
 
   private case class PartitionedConnections(
-                                             edges:Array[Edge],
-                                             containments:Array[Edge],
-                                             tags:Array[Edge]
-                                   )
+      edges: Array[Edge],
+      containments: Array[Edge],
+      tags: Array[Edge]
+  )
 
-  private def partitionConnections(connections:Iterable[Edge], labelVisualization:PartialFunction[EdgeData.Type, VisualizationType]):PartitionedConnections = {
+  private def partitionConnections(
+      connections: Iterable[Edge],
+      labelVisualization: PartialFunction[EdgeData.Type, VisualizationType]
+  ): PartitionedConnections = {
     val edgeBuilder = ArrayBuffer.empty[Edge]
     val containmentBuilder = ArrayBuffer.empty[Edge]
     val tagBuilder = ArrayBuffer.empty[Edge]
@@ -274,10 +279,10 @@ object StaticData {
     def separator = labelVisualization.lift
 
     connections.foreach { connection =>
-      separator(connection.data.tpe).foreach{
-        case Edge => edgeBuilder += connection
+      separator(connection.data.tpe).foreach {
+        case Edge        => edgeBuilder += connection
         case Containment => containmentBuilder += connection
-        case Tag => tagBuilder += connection
+        case Tag         => tagBuilder += connection
       }
     }
 

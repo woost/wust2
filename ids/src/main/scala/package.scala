@@ -18,13 +18,14 @@ package object ids {
   type UserId = UserId.Type
 
   object EpochMilli extends TaggedType[Long] {
-    def now:EpochMilli = EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
-    def from(time:String) = EpochMilli(Instant.parse(time).toEpochMilli)
-    implicit class RichEpochMilli(val t:EpochMilli) extends AnyVal {
-      @inline def <(that:EpochMilli) = t < that
-      @inline def >(that:EpochMilli) = t > that
-      @inline def isBefore(that:EpochMilli) = t < that
-      @inline def isAfter(that:EpochMilli) = t > that
+    def now: EpochMilli =
+      EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
+    def from(time: String) = EpochMilli(Instant.parse(time).toEpochMilli)
+    implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
+      @inline def <(that: EpochMilli) = t < that
+      @inline def >(that: EpochMilli) = t > that
+      @inline def isBefore(that: EpochMilli) = t < that
+      @inline def isAfter(that: EpochMilli) = t > that
     }
 
     // https://www.postgresql.org/docs/9.1/static/datatype-datetime.html

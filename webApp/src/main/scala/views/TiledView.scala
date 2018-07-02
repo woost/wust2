@@ -22,22 +22,17 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
     }.toList
 
     operator match {
-      case ViewOperator.Row => div(
-        cls := "viewgridRow",
-        appliedViews.map(_.value))
-      case ViewOperator.Column => div(
-        cls := "viewgridColumn",
-        appliedViews.map(_.value))
-      case ViewOperator.Auto => div(
-        cls := "viewgridAuto",
-        appliedViews.map(_.value))
-      case ViewOperator.Optional => div(
-        cls := "viewgridAuto",
-        state.screenSize.map {
-          case ScreenSize.Desktop => appliedViews.map(_.value)
-          case ScreenSize.Mobile => appliedViews.head.value :: Nil
-        }
-      )
+      case ViewOperator.Row    => div(cls := "viewgridRow", appliedViews.map(_.value))
+      case ViewOperator.Column => div(cls := "viewgridColumn", appliedViews.map(_.value))
+      case ViewOperator.Auto   => div(cls := "viewgridAuto", appliedViews.map(_.value))
+      case ViewOperator.Optional =>
+        div(
+          cls := "viewgridAuto",
+          state.screenSize.map {
+            case ScreenSize.Desktop => appliedViews.map(_.value)
+            case ScreenSize.Mobile  => appliedViews.head.value :: Nil
+          }
+        )
     }
   }
 }

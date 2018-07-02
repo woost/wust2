@@ -9,21 +9,26 @@ def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
       run("chown", "-R", "user:user", "/flyway")
       user("user")
       copy(baseDirectory(_ / "sql").value, "/flyway/sql")
-      copy(baseDirectory(_ / "../flyway-await-postgres.sh").value, s"/flyway/flyway-await-postgres.sh")
+      copy(
+        baseDirectory(_ / "../flyway-await-postgres.sh").value,
+        s"/flyway/flyway-await-postgres.sh"
+      )
       entryPoint("/flyway/flyway-await-postgres.sh", postgresHost)
     }
   },
-
   imageNames in docker := (Defs.dockerVersionTags in projectRef).value.map { v =>
     ImageName(namespace = Some("woost"), repository = "db-migration", tag = Some(v + "-" + name))
   }
 )
 
-lazy val dbMigration = project.in(file("."))
+lazy val dbMigration = project
+  .in(file("."))
   .aggregate(dbMigrationCore, dbMigrationGithub)
-lazy val dbMigrationCore = project.in(file("core"))
+lazy val dbMigrationCore = project
+  .in(file("core"))
   .enablePlugins(DockerPlugin)
   .settings(dockerDbMigration("core"))
-lazy val dbMigrationGithub = project.in(file("github"))
+lazy val dbMigrationGithub = project
+  .in(file("github"))
   .enablePlugins(DockerPlugin)
   .settings(dockerDbMigration("github"))

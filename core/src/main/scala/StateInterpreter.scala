@@ -15,16 +15,16 @@ class StateInterpreter(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
   //TODO: was this even needed?
   def triggeredEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =
     Future.successful(events)
-    //TODO: broken
-    // Future.sequence(events.map {
-    // case NewMembership(membership) =>
-    //   membershipEventsForState(state, membership)
+  //TODO: broken
+  // Future.sequence(events.map {
+  // case NewMembership(membership) =>
+  //   membershipEventsForState(state, membership)
 
-    //case NewUser(_) =>
-    //    //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
-    //    Future.successful(Nil)
+  //case NewUser(_) =>
+  //    //TODO explicitly ignored, see membershipEventsForState: ownGroupInvolved
+  //    Future.successful(Nil)
 
-    // case other => Future.successful(other :: Nil)
+  // case other => Future.successful(other :: Nil)
   // }).map(_.flatten)
 
   //private def membershipEventsForState(state: State, membership: Membership): Future[List[ApiEvent.Public]] = {

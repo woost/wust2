@@ -21,8 +21,13 @@ object WustClient extends NativeWustClient {
   val config = WebsocketClientConfig(pingInterval = 100 seconds) // needs to be in sync with idle timeout of backend
 }
 
-class WustClientFactory(val client: WsClient[ByteBuffer, Future, ApiEvent, ApiError, ClientException]) {
-  def sendWith(sendType: SendType = SendType.WhenConnected, requestTimeout: FiniteDuration = 30 seconds): WustClient = new WustClient(client.sendWith(sendType, requestTimeout))
+class WustClientFactory(
+    val client: WsClient[ByteBuffer, Future, ApiEvent, ApiError, ClientException]
+) {
+  def sendWith(
+      sendType: SendType = SendType.WhenConnected,
+      requestTimeout: FiniteDuration = 30 seconds
+  ): WustClient = new WustClient(client.sendWith(sendType, requestTimeout))
   def observable = client.observable
   lazy val nowOrFail = sendWith(SendType.NowOrFail)
   lazy val highPriority = sendWith(SendType.WhenConnected.highPriority)

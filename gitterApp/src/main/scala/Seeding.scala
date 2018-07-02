@@ -13,14 +13,15 @@ object GitterImporter {
   private val gitterAccessToken = sys.env.getOrElse("WUST_GITTER_TOKEN", "")
 
   def getRoomMessages(url: String, user: Node.User): Future[(Set[Node], Set[Edge])] = {
-    val _uri = url.stripLineEnd.stripMargin.trim.
-      stripPrefix("https://").
-      stripPrefix("http://").
-      stripPrefix("gitter.im/").
-      takeWhile(_ != '?').
-      stripSuffix("/")
+    val _uri = url.stripLineEnd.stripMargin.trim
+      .stripPrefix("https://")
+      .stripPrefix("http://")
+      .stripPrefix("gitter.im/")
+      .takeWhile(_ != '?')
+      .stripSuffix("/")
     val tempUserId = user.id
-    val client: SyncGitterApiClient = new SyncGitterApiClient.Builder().withAccountToken(gitterAccessToken).build()
+    val client: SyncGitterApiClient =
+      new SyncGitterApiClient.Builder().withAccountToken(gitterAccessToken).build()
 
     // Ensure gitter post
     // TODO: author: tempUserId

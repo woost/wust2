@@ -26,9 +26,14 @@ import wust.webApp.views.Elements._
 
 import collection.breakOut
 
-
 object SelectedPostMenu {
-  def apply(pos:Vec2, nodeId: NodeId, state: GlobalState, selectedNodeId:Var[Option[(Vec2, NodeId)]], transformRx:Rx[d3v4.Transform])(implicit owner: Ctx.Owner) = {
+  def apply(
+      pos: Vec2,
+      nodeId: NodeId,
+      state: GlobalState,
+      selectedNodeId: Var[Option[(Vec2, NodeId)]],
+      transformRx: Rx[d3v4.Transform]
+  )(implicit owner: Ctx.Owner) = {
 
     val rxPost: Rx[Node.Content] = Rx {
       val graph = state.graph()
@@ -51,12 +56,11 @@ object SelectedPostMenu {
       //        val p = rxPost()
       //
       val xOffset = -300 / 2
-      val yOffset = 0//-(p.size.y) / 2
+      val yOffset = 0 //-(p.size.y) / 2
       val x = xOffset + t.applyX(pos.x)
       val y = yOffset + t.applyY(pos.y)
       s"translate(${x}px, ${y}px)"
     }
-
 
     val parentList = rxParents.map { parents =>
       div(
@@ -68,33 +72,41 @@ object SelectedPostMenu {
             p.data.str,
             fontWeight.bold,
             backgroundColor := baseColor(p.id).toString,
-            margin := "2px", padding := "1px 0px 1px 5px",
+            margin := "2px",
+            padding := "1px 0px 1px 5px",
             borderRadius := "2px",
-            span("×", onClick --> sideEffect {
-              val addedGrandParents: collection.Set[Edge] = {
-                if (parents.size == 1)
-                  state.graphContent.now.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
-                else
-                  Set.empty
-              }
+            span(
+              "×",
+              onClick --> sideEffect {
+                val addedGrandParents: collection.Set[Edge] = {
+                  if (parents.size == 1)
+                    state.graphContent.now.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
+                  else
+                    Set.empty
+                }
 
-              state.eventProcessor.changes.onNext(GraphChanges(
-                delEdges = Set(Edge.Parent(rxPost.now.id, p.id)),
-                addEdges = addedGrandParents
-              ))
-              ()
-            }, cursor.pointer, padding := "0px 5px")
+                state.eventProcessor.changes.onNext(
+                  GraphChanges(
+                    delEdges = Set(Edge.Parent(rxPost.now.id, p.id)),
+                    addEdges = addedGrandParents
+                  )
+                )
+                ()
+              },
+              cursor.pointer,
+              padding := "0px 5px"
+            )
           )
         }
       )
     }
 
-
     val editMode = Handler.create[Boolean](false).unsafeRunSync()
 
     val updatePostHandler = Handler.create[String].unsafeRunSync()
     updatePostHandler.foreach { newContent =>
-      val changes = GraphChanges(updateNodes = Set(rxPost.now.copy(data = NodeData.Markdown(newContent))))
+      val changes =
+        GraphChanges(updateNodes = Set(rxPost.now.copy(data = NodeData.Markdown(newContent))))
       state.eventProcessor.enriched.changes.onNext(changes)
 
       editMode.unsafeOnNext(false)
@@ -104,7 +116,10 @@ object SelectedPostMenu {
     insertPostHandler.foreach { content =>
       val newPost = Node.Content(NodeData.Markdown(content))
 
-      val changes = GraphChanges(addNodes = Set(newPost), addEdges = Set(Edge.Parent(newPost.id, rxPost.now.id)))
+      val changes = GraphChanges(
+        addNodes = Set(newPost),
+        addEdges = Set(Edge.Parent(newPost.id, rxPost.now.id))
+      )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
@@ -116,7 +131,9 @@ object SelectedPostMenu {
         addNodes = Set(newPost),
         addEdges = Set(
           Edge.Label(rxPost.now.id, EdgeData.Label("related"), newPost.id)
-        ) ++ state.graphContent.now.parents(rxPost.now.id).map(parentId => Edge.Parent(newPost.id, parentId))
+        ) ++ state.graphContent.now
+          .parents(rxPost.now.id)
+          .map(parentId => Edge.Parent(newPost.id, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
@@ -127,7 +144,8 @@ object SelectedPostMenu {
           textArea(
             valueWithEnter --> updatePostHandler,
             rxPost.now.data.str,
-            onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select()))
+            onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select())
+          )
         } else {
           div(
             rxPost.map(_.data.str),
@@ -178,19 +196,25 @@ object SelectedPostMenu {
     )
   }
 
-  def actionMenu(post: Node, graphState: GlobalState, selectedNodeId:Var[Option[(Vec2,NodeId)]]) = {
+  def actionMenu(
+      post: Node,
+      graphState: GlobalState,
+      selectedNodeId: Var[Option[(Vec2, NodeId)]]
+  ) = {
     div(
       cls := "shadow",
-      position.absolute, top := "-55px", left := "0px",
-      height := "50px", width := "300px",
+      position.absolute,
+      top := "-55px",
+      left := "0px",
+      height := "50px",
+      width := "300px",
       borderRadius := "5px",
       border := "2px solid #111111",
-      backgroundColor := "rgba(0,0,0,0.7)", color.white,
-
+      backgroundColor := "rgba(0,0,0,0.7)",
+      color.white,
       display.flex,
       justifyContent.spaceAround,
       alignItems.stretch,
-
       menuActions.filter(_.showIf(post, graphState)).map { action =>
         div(
           display.flex,
@@ -217,10 +241,16 @@ object SelectedPostMenu {
     )
   }
 
-  case class MenuAction(name: String, action: (Node, GlobalState) => Unit, showIf: (Node, GlobalState) => Boolean = (_, _) => true)
+  case class MenuAction(
+      name: String,
+      action: (Node, GlobalState) => Unit,
+      showIf: (Node, GlobalState) => Boolean = (_, _) => true
+  )
 
   val menuActions: List[MenuAction] = List(
-    MenuAction("Focus", { (p: Node, state: GlobalState) => state.page() = Page(Seq(p.id)) }),
+    MenuAction("Focus", { (p: Node, state: GlobalState) =>
+      state.page() = Page(Seq(p.id))
+    }),
 //    MenuAction(
 //      "Collapse",
 //      action = (p: Post, gs: GraphState) => gs.rxCollapsedNodeIds.update(_ + p.id),
@@ -232,7 +262,9 @@ object SelectedPostMenu {
 //      showIf = (p: Post, gs: GraphState) => gs.rxCollapsedNodeIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
 //    ),
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
-    MenuAction("Delete", { (p: Node, state: GlobalState) => state.eventProcessor.enriched.changes.onNext(GraphChanges(delNodes = Set(p.id))) }),
+    MenuAction("Delete", { (p: Node, state: GlobalState) =>
+      state.eventProcessor.enriched.changes.onNext(GraphChanges(delNodes = Set(p.id)))
+    }),
     // MenuAction(
     //   "Autopos",
     //   { (p: Post) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },

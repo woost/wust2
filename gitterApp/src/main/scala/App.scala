@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 
 object Constants {
   //TODO
-  val gitterId:NodeId = ???
+  val gitterId: NodeId = ???
 }
 
 //class GitterApiImpl(client: WustClient, server: ServerConfig, github: GitterConfig, redis: RedisClient)(implicit ec: ExecutionContext) extends PluginApi {
@@ -81,7 +81,9 @@ object WustReceiver {
 
   val wustUser: UserId = "wust-gitter".asInstanceOf[UserId]
 
-  def run(config: WustConfig, gitter: GitterClient)(implicit system: ActorSystem): Future[Result[WustReceiver]] = {
+  def run(config: WustConfig, gitter: GitterClient)(
+      implicit system: ActorSystem
+  ): Future[Result[WustReceiver]] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
@@ -106,12 +108,14 @@ object WustReceiver {
 
     val res = for { // Assume thas user exists
 //      _ <- valid(client.auth.register(config.user, config.password), "Cannot register")
-      _ <- valid(client.auth.login(config.user, config.password).map{
+      _ <- valid(client.auth.login(config.user, config.password).map {
         case AuthResult.Success => true
-        case _ => false
+        case _                  => false
       }, "Cannot login")
       // TODO: author: wustUser
-      changes = GraphChanges(addNodes = Set(Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter"))))
+      changes = GraphChanges(
+        addNodes = Set(Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter")))
+      )
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
       graph <- valid(client.api.getGraph(Page.empty))
     } yield new WustReceiver(client)
@@ -119,32 +123,43 @@ object WustReceiver {
     res.value
   }
 
-  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) = EitherT(fut.map(Either.cond(_, (), errorMsg)))
-  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) = EitherT(fut.map(Right(_) : Either[String, T]))
+  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) =
+    EitherT(fut.map(Either.cond(_, (), errorMsg)))
+  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) =
+    EitherT(fut.map(Right(_): Either[String, T]))
 }
 
-class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient)(implicit ec: ExecutionContext, system: ActorSystem) {
+class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient)(
+    implicit ec: ExecutionContext,
+    system: ActorSystem
+) {
 
   // TODO: change this
   val roomId = "584862d0d73408ce4f3b747f"
   def send(msg: ExchangeMessage): Unit = {
     val text = msg.content
 
-    sendClient.sendMessage(roomId, text, new Callback[MessageResponse]() {
-      override def success(t: MessageResponse, response: Response): Unit = {
-        println("Successfully send message")
+    sendClient.sendMessage(
+      roomId,
+      text,
+      new Callback[MessageResponse]() {
+        override def success(t: MessageResponse, response: Response): Unit = {
+          println("Successfully send message")
+        }
+        override def failure(error: RetrofitError): Unit = {
+          println(s"Error while send message: ${error.getKind}")
+        }
       }
-      override def failure(error: RetrofitError): Unit = {
-        println(s"Error while send message: ${error.getKind}")
-      }
-    })
+    )
 
   }
 
   def run(receiver: MessageReceiver): Unit = {
     val roomMessagesChannel: RoomMessagesChannel = new RoomMessagesChannel(roomId) {
       override def onMessage(channel: String, e: MessageEvent): Unit = {
-        println(s"Got message from '${e.message.fromUser}' in channel '${channel}': ${e.message.text}")
+        println(
+          s"Got message from '${e.message.fromUser}' in channel '${channel}': ${e.message.text}"
+        )
 
         val message = ExchangeMessage(e.message.text)
         receiver.push(message, WustReceiver.wustUser) foreach {
@@ -163,7 +178,9 @@ class GitterClient(streamClient: GitterFayeClient, sendClient: GitterAsyncClient
 }
 
 object GitterClient {
-  def apply(accessToken: String)(implicit ec: ExecutionContext, system: ActorSystem): GitterClient = {
+  def apply(
+      accessToken: String
+  )(implicit ec: ExecutionContext, system: ActorSystem): GitterClient = {
 
     val streamClient: GitterFayeClient = new AsyncGitterFayeClientBuilder()
       .withAccountToken(accessToken)
@@ -193,7 +210,7 @@ object App extends scala.App {
       val client = GitterClient(config.accessToken)
       WustReceiver.run(config.wust, client).foreach {
         case Right(receiver) => client.run(receiver)
-        case Left(err) => println(s"Cannot connect to Wust: $err")
+        case Left(err)       => println(s"Cannot connect to Wust: $err")
       }
   }
 }

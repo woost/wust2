@@ -12,7 +12,7 @@ object EventUpdate {
   }
 
   def createAuthFromEvent(event: ApiEvent.AuthContent): Authentication = event match {
-    case ApiEvent.LoggedIn(auth) => auth
+    case ApiEvent.LoggedIn(auth)       => auth
     case ApiEvent.AssumeLoggedIn(auth) => auth
   }
 }

@@ -12,7 +12,10 @@ object NewGroupView extends View {
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
-      display.flex, justifyContent.spaceAround, flexDirection.column, alignItems.center,
+      display.flex,
+      justifyContent.spaceAround,
+      flexDirection.column,
+      alignItems.center,
       newGroupButton(state)(ctx)(padding := "20px", marginBottom := "10%")
     )
   }

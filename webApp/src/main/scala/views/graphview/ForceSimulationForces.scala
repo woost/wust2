@@ -13,7 +13,7 @@ object ForceSimulationForces {
   import Math._
   import wust.webApp.views.graphview.ForceUtil._
 
-  @inline private def sq(x:Double): Double = x * x
+  @inline private def sq(x: Double): Double = x * x
 
   def nanToPhyllotaxis(data: SimulationData, spacing: Double): Unit = {
     import data.{vx, vy, x, y}
@@ -50,7 +50,7 @@ object ForceSimulationForces {
 
   def eulerSetGeometricCenter(simData: SimulationData, staticData: StaticData): Unit = {
     val eulerSetCount = staticData.eulerSetCount
-    if(simData.eulerSetGeometricCenterX.length != eulerSetCount) {
+    if (simData.eulerSetGeometricCenterX.length != eulerSetCount) {
       simData.eulerSetGeometricCenterX = new Array[Double](eulerSetCount)
       simData.eulerSetGeometricCenterY = new Array[Double](eulerSetCount)
     }
@@ -60,13 +60,13 @@ object ForceSimulationForces {
     var j = 0
 
     var i = 0
-    while(i < eulerSetCount) {
+    while (i < eulerSetCount) {
       val allNodes = staticData.eulerSetAllNodes(i)
       val nodeCount = allNodes.length
       j = 1
       cx = simData.x(allNodes(0))
       cy = simData.y(allNodes(0))
-      while(j < nodeCount){
+      while (j < nodeCount) {
         //TODO: take radius into account: (        *        ) ( * )
         //      and padding                                  ^
         //                                                   |
@@ -82,9 +82,9 @@ object ForceSimulationForces {
     }
   }
 
-  def calculateEulerSetPolygons(simData:SimulationData, staticData: StaticData): Unit = {
+  def calculateEulerSetPolygons(simData: SimulationData, staticData: StaticData): Unit = {
     val eulerSetCount = staticData.eulerSetCount
-    if(simData.eulerSetPolygons.length != eulerSetCount) {
+    if (simData.eulerSetPolygons.length != eulerSetCount) {
       simData.eulerSetPolygons = new Array[js.Array[js.Tuple3[Double, Double, Int]]](eulerSetCount)
       simData.eulerSetPolygonMinX = new Array[Double](eulerSetCount)
       simData.eulerSetPolygonMinY = new Array[Double](eulerSetCount)
@@ -96,64 +96,72 @@ object ForceSimulationForces {
       val eulerSetNodes = staticData.eulerSetAllNodes(i)
 
       // this stores the index hidden in the points
-      val centerPoints:d3polygon.Polygon = eulerSetNodes.map(j => js.Tuple3(simData.x(j), simData.y(j), j).asInstanceOf[js.Tuple2[Double,Double]])(breakOut)
+      val centerPoints: d3polygon.Polygon = eulerSetNodes.map(
+        j => js.Tuple3(simData.x(j), simData.y(j), j).asInstanceOf[js.Tuple2[Double, Double]]
+      )(breakOut)
       val centerConvexHull = {
         val hull = d3.polygonHull(centerPoints)
-        if(hull == null) centerPoints
+        if (hull == null) centerPoints
         else hull
-      }.asInstanceOf[js.Array[js.Tuple3[Double,Double,Int]]] // contains hull points with index in ccw order
+      }.asInstanceOf[js.Array[js.Tuple3[Double, Double, Int]]] // contains hull points with index in ccw order
 
       // calculate tangents
       // TODO: Different circle sizes are a problem, therefore the trivial convex hull of the circle centers is not enough, we need
       // the convex hull of the circles:
       // https://www.sciencedirect.com/science/article/pii/092577219290015K (A convex hull algorithm for discs, and applications)
 
-      val tangents: Array[(Double, Double, Int)] = (centerConvexHull :+ centerConvexHull(0)).sliding(2).flatMap { points =>
-        val point1 = points(0)
-        val point2 = points(1)
-        // outer tangent with corrected atan sign: https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Outer_tangent
-        val x1 = simData.x(point1._3)
-        val y1 = simData.y(point1._3)
-        val r1 = staticData.radius(point1._3)
-        val x2 = simData.x(point2._3)
-        val y2 = simData.y(point2._3)
-        val r2 = staticData.radius(point2._3)
+      val tangents: Array[(Double, Double, Int)] = (centerConvexHull :+ centerConvexHull(0))
+        .sliding(2)
+        .flatMap { points =>
+          val point1 = points(0)
+          val point2 = points(1)
+          // outer tangent with corrected atan sign: https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Outer_tangent
+          val x1 = simData.x(point1._3)
+          val y1 = simData.y(point1._3)
+          val r1 = staticData.radius(point1._3)
+          val x2 = simData.x(point2._3)
+          val y2 = simData.y(point2._3)
+          val r2 = staticData.radius(point2._3)
 
-        val gamma = -atan2(y2 - y1, x2 - x1) // atan2 sets the correct sign, so that all tangents are on the right side of point order
-      val beta = asin((r2 - r1) / sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)))
-        val alpha = gamma - beta
+          val gamma = -atan2(y2 - y1, x2 - x1) // atan2 sets the correct sign, so that all tangents are on the right side of point order
+          val beta = asin((r2 - r1) / sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)))
+          val alpha = gamma - beta
 
-        val x3 = x1 + r1 * cos(PI / 2 - alpha)
-        val y3 = y1 + r1 * sin(PI / 2 - alpha)
-        val x4 = x2 + r2 * cos(PI / 2 - alpha)
-        val y4 = y2 + r2 * sin(PI / 2 - alpha)
+          val x3 = x1 + r1 * cos(PI / 2 - alpha)
+          val y3 = y1 + r1 * sin(PI / 2 - alpha)
+          val x4 = x2 + r2 * cos(PI / 2 - alpha)
+          val y4 = y2 + r2 * sin(PI / 2 - alpha)
 
-        Array((x3, y3, point1._3), (x4, y4, point2._3))
-      }.toArray
+          Array((x3, y3, point1._3), (x4, y4, point2._3))
+        }
+        .toArray
 
-      val polygon = (tangents ++ tangents.take(2)).sliding(4, 2).flatMap { points =>
-        val i = points(1)._3
-        val point0 = Vec2(points(0)._1, points(0)._2)
-        val point1 = Vec2(points(1)._1, points(1)._2)
-        val point2 = Vec2(points(2)._1, points(2)._2)
-        val point3 = Vec2(points(3)._1, points(3)._2)
+      val polygon = (tangents ++ tangents.take(2))
+        .sliding(4, 2)
+        .flatMap { points =>
+          val i = points(1)._3
+          val point0 = Vec2(points(0)._1, points(0)._2)
+          val point1 = Vec2(points(1)._1, points(1)._2)
+          val point2 = Vec2(points(2)._1, points(2)._2)
+          val point3 = Vec2(points(3)._1, points(3)._2)
 
-        val preLine = Line(point0, point1)
-        val postLine = Line(point2, point3)
+          val preLine = Line(point0, point1)
+          val postLine = Line(point2, point3)
 
-        val tangentDirection = point1 - point2
-        val a = tangentDirection.normal.normalized * staticData.radius(i)
-        val center = Vec2(simData.x(i), simData.y(i))
-        val tangentPoint = center + a
-        val tangent = Line(tangentPoint, tangentPoint + tangentDirection)
+          val tangentDirection = point1 - point2
+          val a = tangentDirection.normal.normalized * staticData.radius(i)
+          val center = Vec2(simData.x(i), simData.y(i))
+          val tangentPoint = center + a
+          val tangent = Line(tangentPoint, tangentPoint + tangentDirection)
 
-        val edge = (for {
-          LineIntersection(corner1, _, _) <- preLine.intersect(tangent)
-          LineIntersection(corner2, _, _) <- tangent.intersect(postLine)
-        } yield Line(corner1, corner2)).get
+          val edge = (for {
+            LineIntersection(corner1, _, _) <- preLine.intersect(tangent)
+            LineIntersection(corner2, _, _) <- tangent.intersect(postLine)
+          } yield Line(corner1, corner2)).get
 
-        Array(js.Tuple3(edge.x1, edge.y1, i), js.Tuple3(edge.x2, edge.y2, i))
-      }.toJSArray
+          Array(js.Tuple3(edge.x1, edge.y1, i), js.Tuple3(edge.x2, edge.y2, i))
+        }
+        .toJSArray
 
       simData.eulerSetPolygons(i) = polygon
 
@@ -166,13 +174,13 @@ object ForceSimulationForces {
       var maxX = minX
       var maxY = minY
       j = 1
-      while(j < polygon.length) {
+      while (j < polygon.length) {
         val x = polygon(j)._1
         val y = polygon(j)._2
-        if(x < minX) minX = x
-        else if(x > maxX) maxX = x
-        if(y < minY) minY = y
-        else if(y > maxY) maxY = y
+        if (x < minX) minX = x
+        else if (x > maxX) maxX = x
+        if (y < minY) minY = y
+        else if (y > maxY) maxY = y
         j += 1
       }
       simData.eulerSetPolygonMinX(i) = minX
@@ -184,7 +192,7 @@ object ForceSimulationForces {
     }
   }
 
-  def clearVelocities(simData:SimulationData): Unit = {
+  def clearVelocities(simData: SimulationData): Unit = {
     var i = 0
     val nodeCount = simData.n
     while (i < nodeCount) {
@@ -208,7 +216,12 @@ object ForceSimulationForces {
     }
   }
 
-  def rectBound(simData: SimulationData, staticData: StaticData, planeDimension: PlaneDimension, strength:Double): Unit = {
+  def rectBound(
+      simData: SimulationData,
+      staticData: StaticData,
+      planeDimension: PlaneDimension,
+      strength: Double
+  ): Unit = {
     import planeDimension.{simHeight => planeHeight, simWidth => planeWidth, _}
     import simData._
     import staticData._
@@ -239,8 +252,12 @@ object ForceSimulationForces {
     }
   }
 
-
-  def keepDistance(simData: SimulationData, staticData: StaticData, distance: Double, strength:Double): Unit = {
+  def keepDistance(
+      simData: SimulationData,
+      staticData: StaticData,
+      distance: Double,
+      strength: Double
+  ): Unit = {
     import simData._
     import staticData._
 
@@ -266,8 +283,8 @@ object ForceSimulationForces {
             val dirx = (bx - ax) / centerDist
             val diry = (by - ay) / centerDist
             val factor = (distance - visibleDist) * 0.5 * alpha * strength // the other half goes to the other node
-              vx(bi) += dirx * factor
-              vy(bi) += diry * factor
+            vx(bi) += dirx * factor
+            vy(bi) += diry * factor
           }
         }
       }
@@ -276,7 +293,11 @@ object ForceSimulationForces {
     }
   }
 
-  def eulerSetClustering(simData:SimulationData, staticData:StaticData, strength:Double): Unit = {
+  def eulerSetClustering(
+      simData: SimulationData,
+      staticData: StaticData,
+      strength: Double
+  ): Unit = {
     // If a node is too far away from the geometric center of its euler set, push it towards it
     import staticData._
     import simData._
@@ -313,7 +334,7 @@ object ForceSimulationForces {
     }
   }
 
-  def edgeLength(simData:SimulationData, staticData:StaticData): Unit = {
+  def edgeLength(simData: SimulationData, staticData: StaticData): Unit = {
     import staticData._
     import simData._
 
@@ -343,8 +364,7 @@ object ForceSimulationForces {
     }
   }
 
-
-  def pushOutOfWrongEulerSet(simData:SimulationData, staticData:StaticData): Unit = {
+  def pushOutOfWrongEulerSet(simData: SimulationData, staticData: StaticData): Unit = {
     import staticData._
     import simData._
 
@@ -355,12 +375,13 @@ object ForceSimulationForces {
       //TODO: variable for eulerSetAllNodes.length
       val forceWeight = 1.0 / (eulerSetAllNodes.length + 1) // per node
 
-      forAllPointsInRect(quadtree, 
+      forAllPointsInRect(
+        quadtree,
         eulerSetPolygonMinX(ci),
         eulerSetPolygonMinY(ci),
         eulerSetPolygonMaxX(ci),
         eulerSetPolygonMaxY(ci)
-        ) { ai =>
+      ) { ai =>
         val center = Vec2(x(ai), y(ai))
         val radius = staticData.radius(ai) + nodeSpacing
 
@@ -374,21 +395,21 @@ object ForceSimulationForces {
             vx(ai) += nodePushDir.x
             vy(ai) += nodePushDir.y
 
-            //TODO: push eulerSet away
+          //TODO: push eulerSet away
 
-            // // push closest nodes of cluster (forming line segment) back
-            // // TODO: the closest points are not necessarily forming the closest line segment.
-            // val (ia, ib) = min2By(containmentClusterPostIndices(ci), i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y))
-            // vel(ia * 2) += -nodePushDir.x
-            // vel(ia * 2 + 1) += -nodePushDir.y
-            // vel(ib * 2) += -nodePushDir.x
-            // vel(ib * 2 + 1) += -nodePushDir.y
+          // // push closest nodes of cluster (forming line segment) back
+          // // TODO: the closest points are not necessarily forming the closest line segment.
+          // val (ia, ib) = min2By(containmentClusterPostIndices(ci), i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y))
+          // vel(ia * 2) += -nodePushDir.x
+          // vel(ia * 2 + 1) += -nodePushDir.y
+          // vel(ib * 2) += -nodePushDir.x
+          // vel(ib * 2 + 1) += -nodePushDir.y
 
-            // containmentClusterPostIndices(ci).toSeq.sortBy(i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y)).take(2).foreach{ i =>
-            //   val i2 = i * 2
-            //   vel(i2) += -nodePushDir.x
-            //   vel(i2 + 1) += -nodePushDir.y
-            // }
+          // containmentClusterPostIndices(ci).toSeq.sortBy(i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y)).take(2).foreach{ i =>
+          //   val i2 = i * 2
+          //   vel(i2) += -nodePushDir.x
+          //   vel(i2 + 1) += -nodePushDir.y
+          // }
           }
         }
       }

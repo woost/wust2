@@ -12,7 +12,8 @@ import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object SafeDom {
-  val Notification = experimental.Notification.asInstanceOf[js.UndefOr[experimental.Notification.type]]
+  val Notification =
+    experimental.Notification.asInstanceOf[js.UndefOr[experimental.Notification.type]]
 }
 
 object Navigator {
@@ -20,20 +21,25 @@ object Navigator {
   import org.scalajs.dom.experimental.serviceworkers._
 
   val permissions = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
-  val serviceWorker = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
+  val serviceWorker =
+    window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
 }
 
 object ServiceWorker {
 
-  def register():Unit = {
+  def register(): Unit = {
     // Use the window load event to keep the page load performant
     Navigator.serviceWorker.foreach { sw =>
-      window.addEventListener("load", (_:Any) => {
-        sw.register("sw.js").toFuture.onComplete { 
-          case Success(registration) => console.log("SW registered: ", registration)
-          case Failure(registrationError) => console.warn("SW registration failed: ", registrationError.toString)
+      window.addEventListener(
+        "load",
+        (_: Any) => {
+          sw.register("sw.js").toFuture.onComplete {
+            case Success(registration) => console.log("SW registered: ", registration)
+            case Failure(registrationError) =>
+              console.warn("SW registration failed: ", registrationError.toString)
+          }
         }
-      })
+      )
     }
   }
 }

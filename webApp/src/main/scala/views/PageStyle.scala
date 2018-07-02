@@ -16,14 +16,16 @@ object PageStyle {
     val border = RGB("#95CCDF").hcl
   }
 
-  def apply(view: View, page:Page) = {
+  def apply(view: View, page: Page) = {
     val pageColors = view match {
-      case view if view.isContent => NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut):List[Color]).map(mixColors)
+      case view if view.isContent =>
+        NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut): List[Color]).map(mixColors)
       case _ => None
     }
 
     val baseHue = pageColors.map(_.hcl.h)
-    def withBaseHueDefaultGray(base:HCL) = baseHue.fold(LAB(base.l, 0, 0):Color)(hue => HCL(hue, base.c, base.l))
+    def withBaseHueDefaultGray(base: HCL) =
+      baseHue.fold(LAB(base.l, 0, 0): Color)(hue => HCL(hue, base.c, base.l))
 
     new PageStyle(
       baseHue,
@@ -35,6 +37,10 @@ object PageStyle {
   }
 }
 
-case class PageStyle(baseHue:Option[Double], bgColor:Color, accentLineColor:Color, darkBgColor:Color, darkBgColorHighlight:Color)
-
-
+case class PageStyle(
+    baseHue: Option[Double],
+    bgColor: Color,
+    accentLineColor: Color,
+    darkBgColor: Color,
+    darkBgColorHighlight: Color
+)

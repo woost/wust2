@@ -36,24 +36,30 @@ object SyncMode {
   val all = Seq(Live, Local)
 }
 
-case class ChangesHistory(undos: List[GraphChanges], redos: List[GraphChanges], current: GraphChanges) {
+case class ChangesHistory(
+    undos: List[GraphChanges],
+    redos: List[GraphChanges],
+    current: GraphChanges
+) {
   def canUndo = undos.nonEmpty
   def canRedo = redos.nonEmpty
   def undo(graph: Graph) = undos match {
-    case changes :: undos => ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
+    case changes :: undos =>
+      ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
     case Nil => copy(current = GraphChanges.empty)
   }
   def redo = redos match {
-    case changes :: redos => ChangesHistory(undos = changes :: undos, redos = redos, current = changes)
+    case changes :: redos =>
+      ChangesHistory(undos = changes :: undos, redos = redos, current = changes)
     case Nil => copy(current = GraphChanges.empty)
   }
   def push(changes: GraphChanges) = copy(undos = changes :: undos, redos = Nil, current = changes)
 
   def apply(graph: Graph): ChangesHistory.Action => ChangesHistory = {
     case ChangesHistory.NewChanges(changes) => push(changes)
-    case ChangesHistory.Undo => undo(graph)
-    case ChangesHistory.Redo => redo
-    case ChangesHistory.Clear => ChangesHistory.empty
+    case ChangesHistory.Undo                => undo(graph)
+    case ChangesHistory.Redo                => redo
+    case ChangesHistory.Clear               => ChangesHistory.empty
   }
 }
 object ChangesHistory {
@@ -71,18 +77,19 @@ object EventProcessor {
 
   //TODO factory and constructor shared responibility
   def apply(
-             rawEventStream: Observable[Seq[ApiEvent]],
-             syncDisabled: Observable[Boolean],
-             enrichChanges: (GraphChanges, Graph) => GraphChanges,
-             sendChange: List[GraphChanges] => Future[Boolean],
-             initialUser: AuthUser
-           )(implicit scheduler: Scheduler): EventProcessor = {
+      rawEventStream: Observable[Seq[ApiEvent]],
+      syncDisabled: Observable[Boolean],
+      enrichChanges: (GraphChanges, Graph) => GraphChanges,
+      sendChange: List[GraphChanges] => Future[Boolean],
+      initialUser: AuthUser
+  )(implicit scheduler: Scheduler): EventProcessor = {
     val eventStream: Observable[Seq[ApiEvent]] = {
       // when sync is disabled, holding back incoming graph events
-      val partitionedEvents:Observable[(Seq[ApiEvent], Seq[ApiEvent])] = rawEventStream.map(_.partition {
-        case NewGraphChanges(_) => true
-        case _ => false
-      })
+      val partitionedEvents: Observable[(Seq[ApiEvent], Seq[ApiEvent])] =
+        rawEventStream.map(_.partition {
+          case NewGraphChanges(_) => true
+          case _                  => false
+        })
 
       val graphEvents = partitionedEvents.map(_._1)
       val otherEvents = partitionedEvents.map(_._2)
@@ -101,18 +108,25 @@ object EventProcessor {
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
 
-    new EventProcessor(graphEvents, authEvents, syncDisabled, enrichChanges, sendChange, initialUser)
+    new EventProcessor(
+      graphEvents,
+      authEvents,
+      syncDisabled,
+      enrichChanges,
+      sendChange,
+      initialUser
+    )
   }
 }
 
-class EventProcessor private(
-                              eventStream: Observable[Seq[ApiEvent.GraphContent]],
-                              authEventStream: Observable[Seq[ApiEvent.AuthContent]],
-                              syncDisabled: Observable[Boolean],
-                              enrichChanges: (GraphChanges, Graph) => GraphChanges,
-                              sendChange: List[GraphChanges] => Future[Boolean],
-                              initialUser: AuthUser
-                            )(implicit scheduler: Scheduler) {
+class EventProcessor private (
+    eventStream: Observable[Seq[ApiEvent.GraphContent]],
+    authEventStream: Observable[Seq[ApiEvent.AuthContent]],
+    syncDisabled: Observable[Boolean],
+    enrichChanges: (GraphChanges, Graph) => GraphChanges,
+    sendChange: List[GraphChanges] => Future[Boolean],
+    initialUser: AuthUser
+)(implicit scheduler: Scheduler) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
@@ -134,7 +148,11 @@ class EventProcessor private(
   }
 
   // public reader
-  val (changesHistory: Observable[ChangesHistory], localChanges: Observable[GraphChanges], graph: Observable[Graph]) = {
+  val (
+    changesHistory: Observable[ChangesHistory],
+    localChanges: Observable[GraphChanges],
+    graph: Observable[Graph]
+  ) = {
 
     // events  withLatestFrom
     // --------O----------------> localchanges
@@ -146,36 +164,53 @@ class EventProcessor private(
     val rawGraph = PublishSubject[Graph]()
     val rawGraphWithInit = rawGraph.startWith(Seq(Graph.empty))
 
-    changes.foreach { c => println("[Events] Got local changes: " + c) }
-    enriched.changes.foreach { c => println("[Events] Got enriched local changes: " + c) }
+    changes.foreach { c =>
+      println("[Events] Got local changes: " + c)
+    }
+    enriched.changes.foreach { c =>
+      println("[Events] Got enriched local changes: " + c)
+    }
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes)
-    val rawLocalChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a,b) => (a,b)).collect { case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id) }
+    val rawLocalChanges =
+      allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a, b) => (a, b)).collect {
+        case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
+      }
 
-    rawLocalChanges.foreach { c => println("[Events] Got all local changes: " + c) }
+    rawLocalChanges.foreach { c =>
+      println("[Events] Got all local changes: " + c)
+    }
 
-    val changesHistory = Observable.merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
+    val changesHistory = Observable
+      .merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
       .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
       .scan(ChangesHistory.empty) {
         case (history, (action, rawGraph)) => history(rawGraph)(action)
       }
-    val localChanges = changesHistory.collect { case history if history.current.nonEmpty => history.current }
+    val localChanges = changesHistory.collect {
+      case history if history.current.nonEmpty => history.current
+    }
 
-    localChanges.foreach { c => println("[Events] Got local changes after history: " + c) }
+    localChanges.foreach { c =>
+      println("[Events] Got local changes after history: " + c)
+    }
 
     val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
     val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] =
+      Observable.merge(eventStream, localEvents)
 
-    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) => events.foldLeft(graph)(EventUpdate.applyEventOnGraph) }
+    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
+      events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
+    }
 
     graphWithChanges subscribe rawGraph
 
     (changesHistory, localChanges, rawGraph.map(_.consistent))
   }
 
-  def applyChanges(changes:GraphChanges):Future[Graph] = {
+  def applyChanges(changes: GraphChanges): Future[Graph] = {
     //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
     //TODO should by sync
     this.changes.onNext(changes)
@@ -191,28 +226,36 @@ class EventProcessor private(
   private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
     BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
-  bufferedChanges.foreach { c => println("[Events] Got local changes buffered: " + c) }
+  bufferedChanges.foreach { c =>
+    println("[Events] Got local changes buffered: " + c)
+  }
 
-  private val sendingChanges: Observable[Long] = Observable.tailRecM(bufferedChanges) { changes =>
-    changes.flatMap { case (c, idx) =>
-      Observable.fromFuture(sendChanges(c)).map {
-        case true =>
-          scribe.info(s"Successfully sent out changes from EventProcessor")
-          Right(idx)
-        case false =>
-          // TODO delay with exponential backoff
-          // TODO: take more from buffer if fails?
-          Left(Observable((c, idx)).sample(1 seconds))
+  private val sendingChanges: Observable[Long] = Observable
+    .tailRecM(bufferedChanges) { changes =>
+      changes.flatMap {
+        case (c, idx) =>
+          Observable.fromFuture(sendChanges(c)).map {
+            case true =>
+              scribe.info(s"Successfully sent out changes from EventProcessor")
+              Right(idx)
+            case false =>
+              // TODO delay with exponential backoff
+              // TODO: take more from buffer if fails?
+              Left(Observable((c, idx)).sample(1 seconds))
+          }
       }
     }
-  }.share
+    .share
 
-  sendingChanges.foreach { c => println("[Events] Sending out changes done: " + c) }
+  sendingChanges.foreach { c =>
+    println("[Events] Sending out changes done: " + c)
+  }
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
     .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
-    .scan(List.empty[(GraphChanges, Long)]) { case (prevList, (nextLocal, sentIdx)) =>
-      (prevList :+ nextLocal) collect { case t@(_, idx) if idx > sentIdx => t }
+    .scan(List.empty[(GraphChanges, Long)]) {
+      case (prevList, (nextLocal, sentIdx)) =>
+        (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
     }
     .map(_.map(_._1))
     .startWith(Seq(Nil))

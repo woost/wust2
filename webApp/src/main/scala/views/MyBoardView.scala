@@ -7,15 +7,11 @@
 // // import outwatch.dom._
 // // import outwatch.dom.dsl._
 // // import wust.utilWeb.outwatchHelpers._
-
-
 // /// Reusable components that do not depend on a state
 // // trait MyBoardViewComponents {
 // // 	import outwatch.dom._
 // // 	import org.scalajs.dom.raw.{HTMLInputElement}
 // // 	import MyBoardView.{Entry}
-
-
 // // 	/// Renders a todo entry in the list view
 // // 	def boardEntry(entry: Entry,
 // // 				   remEntry : outwatch.Sink[Entry],
@@ -79,8 +75,6 @@
 // // 			button(click(entry) --> remEntry, "X")
 // // 		)
 // // 	}
-
-
 // // 	/// returns a clickable entry that spawns an input field to enter a new text
 // // 	def inputBoardEntry(newEntries: outwatch.Sink[Entry]) = {
 // // 		val clickedEvents = createBoolHandler()
@@ -110,8 +104,6 @@
 // // 				hidden <-- showInputEvents
 // // 			))
 // // 	}
-
-
 // // 	/// Displays a board with vertically aligned entries
 // // 	def entryBoardComponent(title : String,
 // // 							entries : rxscalajs.Observable[Seq[Entry]],
@@ -143,8 +135,6 @@
 // // 				children <-- entriesWrapped),
 // // 		)
 // // 	}
-
-
 // // 	/// Aligns all nodes horizontally via css float left
 // // 	def horizontalLayout(nodes: VNode*) = {
 // // 		def floatLeftWrapper(nodes: VNode*) = {
@@ -161,8 +151,6 @@
 // // 			wrappedNodes:_*
 // // 		)
 // // 	}
-
-
 // // }
 
 // object MyBoardView /*extends MyBoardViewComponents*/ {
@@ -221,8 +209,6 @@
 // 	// 											   }))
 // 	// 	)
 // 	// }
-
-
 // 	// /// Main method invoked to render this view
 // 	def apply(state: GlobalState) = {
 // 	// 	import state.persistence
@@ -234,8 +220,6 @@
 // 	// 	elem
 //       div()
 // 	}
-
-
 // 	// import outwatch.dom._
 // 	// /// construct an entryBoardComponent that is connected to the store
 // 	// private[this] def buildConnectedBoardComponent(name : String) = {
@@ -262,8 +246,6 @@
 // 	// 						entryDropEvents,
 // 	// 						entryChangeEvents)
 // 	// }
-
-
 // 	// /// Constructs a view with multiple horizontally aligned list views
 // 	// private[this] def kanbanBoard(boards : Seq[String],
 // 	// 							  maybeTitle : Option[String] = None) = {
@@ -280,8 +262,6 @@
 // 	// 		)
 // 	// 	)
 // 	// }
-
-
 // 	// // - actual render template & logic -
 // 	// private[this] def render() = {
 // 	// 	div(

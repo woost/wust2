@@ -21,7 +21,13 @@ case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
 case class ServerConfig(port: Int, clientBufferSize: Int, allowedOrigins: List[String])
 
-case class Config(server: ServerConfig, pushNotification: Option[PushNotificationConfig], auth: AuthConfig, email: Option[EmailConfig], db: TConfig) {
+case class Config(
+    server: ServerConfig,
+    pushNotification: Option[PushNotificationConfig],
+    auth: AuthConfig,
+    email: Option[EmailConfig],
+    db: TConfig
+) {
   override def toString: String = {
     val cleanDb = db.withoutPath("password")
     s"Config($server, $pushNotification, $auth, $email, $cleanDb)"

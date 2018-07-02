@@ -19,7 +19,11 @@ trait Api[Result[_]] {
 
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]
-  def chooseTaskNodes(heuristic: NlpHeuristic, nodes: List[NodeId], num: Option[Int]): Result[List[Heuristic.ApiResult]]
+  def chooseTaskNodes(
+      heuristic: NlpHeuristic,
+      nodes: List[NodeId],
+      num: Option[Int]
+  ): Result[List[Heuristic.ApiResult]]
 
   //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
@@ -49,28 +53,32 @@ object AuthResult {
   case object Success extends AuthResult
 }
 
-
 //TODO: anyval those hierarchies!
 sealed trait AuthUser {
   def id: UserId
   def name: String
-  def channelNodeId:NodeId
+  def channelNodeId: NodeId
 }
 object AuthUser {
   sealed trait Persisted extends AuthUser {
     def toNode: Node.User
   }
-  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted {
-    def toNode = Node.User(id, NodeData.User(name, isImplicit = false, revision, channelNodeId), NodeMeta.User)
+  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId)
+      extends Persisted {
+    def toNode =
+      Node.User(id, NodeData.User(name, isImplicit = false, revision, channelNodeId), NodeMeta.User)
   }
-  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId) extends Persisted {
-    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
+  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId)
+      extends Persisted {
+    def toNode =
+      Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
   }
   case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
     def name = s"anon-${id.toCuidString.takeRight(4)}"
   }
 
-  implicit def AsUserInfo(user: AuthUser): UserInfo = UserInfo(user.id, user.name, user.channelNodeId)
+  implicit def AsUserInfo(user: AuthUser): UserInfo =
+    UserInfo(user.id, user.name, user.channelNodeId)
 }
 
 sealed trait Authentication {
@@ -84,7 +92,8 @@ object Authentication {
   object Assumed {
     def fresh = Assumed(AuthUser.Assumed(UserId.fresh, NodeId.fresh))
   }
-  case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication {
+  case class Verified(user: AuthUser.Persisted, expires: Long, token: Token)
+      extends Authentication {
     override def toString = s"Authentication.Verified($user)"
   }
 }
@@ -111,7 +120,7 @@ object ApiEvent {
   object NewGraphChanges {
     def unapply(event: ApiEvent): Option[GraphChanges] = event match {
       case gc: NewGraphChanges => Some(gc.changes)
-      case _ => None
+      case _                   => None
     }
 
     def apply(changes: GraphChanges) = ForPublic(changes)
@@ -125,25 +134,29 @@ object ApiEvent {
   }
 
   case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
-  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent with Private
+  case class AssumeLoggedIn(auth: Authentication.Assumed)
+      extends AnyVal
+      with AuthContent
+      with Private
 
   def separateByScope(events: Seq[ApiEvent]): (List[Private], List[Public]) =
-    events.foldRight((List.empty[Private], List.empty[Public])) { case (ev, (privs, pubs)) =>
-      val newPrivs = ev match {
-        case ev: Private => ev :: privs
-        case _ => privs
-      }
-      val newPubs = ev match {
-        case ev: Public => ev :: pubs
-        case _ => pubs
-      }
-      (newPrivs, newPubs)
+    events.foldRight((List.empty[Private], List.empty[Public])) {
+      case (ev, (privs, pubs)) =>
+        val newPrivs = ev match {
+          case ev: Private => ev :: privs
+          case _           => privs
+        }
+        val newPubs = ev match {
+          case ev: Public => ev :: pubs
+          case _          => pubs
+        }
+        (newPrivs, newPubs)
     }
 
   def separateByContent(events: Seq[ApiEvent]): (List[GraphContent], List[AuthContent]) =
     events.foldRight((List.empty[GraphContent], List.empty[AuthContent])) {
       case (ev: GraphContent, (gs, as)) => (ev :: gs, as)
-      case (ev: AuthContent, (gs, as)) => (gs, ev :: as)
+      case (ev: AuthContent, (gs, as))  => (gs, ev :: as)
     }
 }
 
@@ -159,14 +172,15 @@ object Heuristic {
 
 sealed trait NlpHeuristic extends Any
 object NlpHeuristic {
-    case class DiceSorensen(nGram: Int) extends AnyVal with NlpHeuristic
-    case object Hamming extends NlpHeuristic
-    case class Jaccard(nGram: Int) extends AnyVal with NlpHeuristic
-    case object Jaro extends NlpHeuristic
-    case object JaroWinkler extends NlpHeuristic
-    case object Levenshtein extends NlpHeuristic
-    case class NGram(nGram: Int) extends AnyVal with NlpHeuristic
-    case class Overlap(nGram: Int) extends AnyVal with NlpHeuristic
-    case object RatcliffObershelp extends NlpHeuristic
-    case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int) extends NlpHeuristic
+  case class DiceSorensen(nGram: Int) extends AnyVal with NlpHeuristic
+  case object Hamming extends NlpHeuristic
+  case class Jaccard(nGram: Int) extends AnyVal with NlpHeuristic
+  case object Jaro extends NlpHeuristic
+  case object JaroWinkler extends NlpHeuristic
+  case object Levenshtein extends NlpHeuristic
+  case class NGram(nGram: Int) extends AnyVal with NlpHeuristic
+  case class Overlap(nGram: Int) extends AnyVal with NlpHeuristic
+  case object RatcliffObershelp extends NlpHeuristic
+  case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int)
+      extends NlpHeuristic
 }

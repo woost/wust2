@@ -20,18 +20,19 @@ import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
 
 import scala.collection.breakOut
 
-class GlobalState private(
-   val eventProcessor: EventProcessor,
-   val syncMode: Var[SyncMode],
-   val sidebarOpen: Var[Boolean],
-   val viewConfig: Var[ViewConfig]
- )(implicit ctx: Ctx.Owner) {
+class GlobalState private (
+    val eventProcessor: EventProcessor,
+    val syncMode: Var[SyncMode],
+    val sidebarOpen: Var[Boolean],
+    val viewConfig: Var[ViewConfig]
+)(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect { o: Observable[NodeData.Content] =>
-    o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg))
+  val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect {
+    o: Observable[NodeData.Content] =>
+      o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg))
   }
 
   val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
@@ -48,7 +49,7 @@ class GlobalState private(
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if( !view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
+    if (!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
       view()
     else
       NewGroupView
@@ -64,7 +65,11 @@ class GlobalState private(
   }
 
   val nodeAncestorsHierarchie: Rx[Map[Int, Seq[Node]]] =
-    pageAncestorsIds.map(_.map(node => (graph().parentDepth(node), graph().nodesById(node))).groupBy(_._1).mapValues(_.map(_._2)))
+    pageAncestorsIds.map(
+      _.map(node => (graph().parentDepth(node), graph().nodesById(node)))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2))
+    )
 
   val pageStyle = Rx {
     PageStyle(view(), page())
@@ -105,7 +110,9 @@ object GlobalState {
   def create()(implicit ctx: Ctx.Owner): GlobalState = {
     val syncMode = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
     val sidebarOpen = Client.storage.sidebarOpen
-    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
+    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(
+      x => Option(ViewConfig.toUrlHash(x))
+    )
 
     val additionalManualEvents = PublishSubject[ApiEvent]()
     val eventProcessor = EventProcessor(
@@ -129,17 +136,24 @@ object GlobalState {
 
     // on initial page load we add the currently viewed page as a channel
     eventProcessor.changes.onNext(
-      GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId))
+      GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId)
+    )
 
     //TODO: better build up state from server events?
     // when the viewconfig or user changes, we get a new graph for the current page
-    page.toObservable.combineLatest(user.toObservable).switchMap { case (page, user) =>
-      val newGraph = Client.api.getGraph(page).map(ReplaceGraph(_))
-      Observable.fromFuture(newGraph)
-    }.subscribe(additionalManualEvents)
+    page.toObservable
+      .combineLatest(user.toObservable)
+      .switchMap {
+        case (page, user) =>
+          val newGraph = Client.api.getGraph(page).map(ReplaceGraph(_))
+          Observable.fromFuture(newGraph)
+      }
+      .subscribe(additionalManualEvents)
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
-    page.foreach { _ => eventProcessor.history.action.onNext(ChangesHistory.Clear) }
+    page.foreach { _ =>
+      eventProcessor.history.action.onNext(ChangesHistory.Clear)
+    }
 
     // write all initial storage changes, in case they did not get through to the server
     // Client.storage.graphChanges.take(1).flatMap(Observable.fromIterable) subscribe eventProcessor.changes
@@ -162,9 +176,12 @@ object GlobalState {
     // servieworker. the serviceworker will not show push notifications if a
     // client is currently running.
     Client.observable.event.foreach { events =>
-      val changes = events.collect { case ApiEvent.NewGraphChanges(changes) => changes }.foldLeft(GraphChanges.empty)(_ merge _)
+      val changes = events
+        .collect { case ApiEvent.NewGraphChanges(changes) => changes }
+        .foldLeft(GraphChanges.empty)(_ merge _)
       if (changes.addNodes.nonEmpty) {
-        val msg = if (changes.addNodes.size == 1) "New Node" else s"New Node (${changes.addNodes.size})"
+        val msg =
+          if (changes.addNodes.size == 1) "New Node" else s"New Node (${changes.addNodes.size})"
         val body = changes.addNodes.map(_.data).mkString(", ")
         Notifications.notify(msg, body = Some(body), tag = Some("new-node"))
       }
@@ -195,16 +212,19 @@ object GlobalState {
     state
   }
 
-  private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(changes: GraphChanges): GraphChanges = {
+  private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(
+      changes: GraphChanges
+  ): GraphChanges = {
     import changes.consistent._
 
     val toDelete = delNodes.flatMap { nodeId =>
       Collapse.getHiddenNodes(graph removeNodes viewConfig.page.parentIds, Set(nodeId))
     }
 
-    def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] = page.parentIds.map(Edge.Parent(nodeId,  _))(breakOut)
+    def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] =
+      page.parentIds.map(Edge.Parent(nodeId, _))(breakOut)
 
-    val containedNodes = addEdges.collect { case Edge.Parent(source,  _) => source }
+    val containedNodes = addEdges.collect { case Edge.Parent(source, _) => source }
     val toContain = addNodes
       .filterNot(p => containedNodes(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))

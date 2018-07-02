@@ -11,9 +11,9 @@ import cats.data.NonEmptyList
 
 //TODO: better no oop for views, have a function that maps a string to a view/function?
 trait View {
-  def apply(state:GlobalState)(implicit ctx: Ctx.Owner):VNode //TODO: def apply(implicit state:GlobalState):VNode
-  val key:String
-  val displayName:String
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode //TODO: def apply(implicit state:GlobalState):VNode
+  val key: String
+  val displayName: String
 
   //TODO this is needed for tracking content view and deciding whether to show the new group button in mainview
   def innerViews: Seq[View] = Seq(this)
@@ -25,7 +25,7 @@ object View {
   val contentList: NonEmptyList[View] = NonEmptyList(ChatView, new GraphView :: Nil)
 
   val list: List[View] =
-      contentList.toList :::
+    contentList.toList :::
       LoginView ::
       SignupView ::
       NewGroupView ::
@@ -33,8 +33,7 @@ object View {
       // AvatarView ::
       Nil
 
-
-  val viewMap: Map[String,View] = list.map(v => v.key -> v)(breakOut)
+  val viewMap: Map[String, View] = list.map(v => v.key -> v)(breakOut)
   def default = ChatView // new TiledView(ViewOperator.Optional, contentList)
 }
 
@@ -48,9 +47,9 @@ object ViewOperator {
   case object Optional extends ViewOperator { override val separator = "?" }
 
   val fromString: PartialFunction[String, ViewOperator] = {
-    case Row.separator => Row
-    case Column.separator => Column
-    case Auto.separator => Auto
+    case Row.separator      => Row
+    case Column.separator   => Column
+    case Auto.separator     => Auto
     case Optional.separator => Optional
   }
 }

@@ -13,12 +13,16 @@ import scala.collection.mutable
 object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
-  val node = Memo.mutableHashMapMemo { nodeId:NodeId => twoMirror(nodeId, 8)}
-  val user = Memo.mutableHashMapMemo {userId:UserId => verticalMirror(userId, 5)}
+  val node = Memo.mutableHashMapMemo { nodeId: NodeId =>
+    twoMirror(nodeId, 8)
+  }
+  val user = Memo.mutableHashMapMemo { userId: UserId =>
+    verticalMirror(userId, 5)
+  }
 
-  val PI2 = PI*2
+  val PI2 = PI * 2
 
-  private def accentColorSelection(hue1:Double, rnd: scala.util.Random):Array[Double] = {
+  private def accentColorSelection(hue1: Double, rnd: scala.util.Random): Array[Double] = {
     // select two more hues randomly with minimum padding
     val padding = 1
 
@@ -44,19 +48,20 @@ object Avatar {
     val upperBound2Left = hue2 - padding
     val rangeLeft = { // check if there is space on the left of hue2
       val range = upperBound2Left - lowerBound2Left
-      if(range < 0) 0 else range
+      if (range < 0) 0 else range
     }
 
     val lowerBound2Right = hue2 + padding
     val upperBound2Right = upperBound
     val rangeRight = { // check if there is space on the right of hue2
       val range = upperBound2Right - lowerBound2Right
-      if(range < 0) 0 else range
+      if (range < 0) 0 else range
     }
 
-    val rand = rnd.nextDouble()*(rangeLeft+rangeRight)
-    val hue3 = if(rand < rangeLeft) lowerBound2Left + rand
-    else lowerBound2Right + (rand - rangeLeft)
+    val rand = rnd.nextDouble() * (rangeLeft + rangeRight)
+    val hue3 =
+      if (rand < rangeLeft) lowerBound2Left + rand
+      else lowerBound2Right + (rand - rangeLeft)
 
 //    assert((hue1 - hue2).abs >= padding)
 //    assert((hue1 - hue3).abs >= padding)
@@ -68,9 +73,10 @@ object Avatar {
     Array(hue1, hue1, hue1, hue1, hue2, hue3)
   }
 
-  @inline private def randomElement(array:Array[Double], rnd:scala.util.Random) = array(rnd.nextInt(array.length))
+  @inline private def randomElement(array: Array[Double], rnd: scala.util.Random) =
+    array(rnd.nextInt(array.length))
 
-  private def addPixel(pixels:mutable.ArrayBuffer[VNode], x:Int, y:Int, color:String):Unit = {
+  private def addPixel(pixels: mutable.ArrayBuffer[VNode], x: Int, y: Int, color: String): Unit = {
     import outwatch.dom.dsl.svg
     pixels += svg.rect(
       dsl.svg.x := x.toString,
@@ -85,27 +91,27 @@ object Avatar {
     import outwatch.dom.dsl.svg.{svg, viewBox}
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
-    val area = n*n
+    val area = n * n
     val half = (n / 2) + (n % 2)
 
     val pixels = new mutable.ArrayBuffer[VNode](initialSize = area)
     val colors = accentColorSelection(genericBaseHue(seed), rnd)
-    def rndColor() = randomElement(colors,rnd)
+    def rndColor() = randomElement(colors, rnd)
 
     // mirror on y axis
     var x = 0
     var y = 0
-    while(y < n) {
+    while (y < n) {
       x = 0
-      while(x < half) {
-        if(rnd.nextBoolean()) {
+      while (x < half) {
+        if (rnd.nextBoolean()) {
           val color = HCL(rndColor(), 60, 65).toHex
-          addPixel(pixels, x,y, color)
-          addPixel(pixels, n-x-1,y, color)
+          addPixel(pixels, x, y, color)
+          addPixel(pixels, n - x - 1, y, color)
         }
-        x+=1
+        x += 1
       }
-      y+=1
+      y += 1
     }
 
     svg(
@@ -118,50 +124,50 @@ object Avatar {
     import outwatch.dom.dsl.svg.{svg, viewBox}
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
-    val area = n*n
+    val area = n * n
     val half = (n / 2) + (n % 2)
 
     val pixels = new mutable.ArrayBuffer[VNode](initialSize = area)
     val colors = accentColorSelection(genericBaseHue(seed), rnd)
-    def rndColor() = randomElement(colors,rnd)
+    def rndColor() = randomElement(colors, rnd)
 
-    if(rnd.nextBoolean()) {
+    if (rnd.nextBoolean()) {
       // mirror on x and y axis
       var x = 0
       var y = 0
-      while(y < half) {
+      while (y < half) {
         x = 0
-        while(x < half) {
-          if(rnd.nextBoolean()) {
+        while (x < half) {
+          if (rnd.nextBoolean()) {
             val color = HCL(rndColor(), 60, 65).toHex
-            addPixel(pixels, x,y, color)
-            addPixel(pixels, x,n-y-1, color)
-            addPixel(pixels, n-x-1,y, color)
-            addPixel(pixels, n-x-1,n-y-1, color)
+            addPixel(pixels, x, y, color)
+            addPixel(pixels, x, n - y - 1, color)
+            addPixel(pixels, n - x - 1, y, color)
+            addPixel(pixels, n - x - 1, n - y - 1, color)
           }
-          x+=1
+          x += 1
         }
-        y+=1
+        y += 1
       }
     } else {
       // mirror on diagonals
       var x = 0
       var y = 0
       var startx = 0
-      while(y < half) {
+      while (y < half) {
         x = startx
-        while(x < n - startx) {
-          if(rnd.nextBoolean()) {
+        while (x < n - startx) {
+          if (rnd.nextBoolean()) {
             val c = HCL(rndColor(), 60, 65).toHex
-            addPixel(pixels, x,y, c)
-            addPixel(pixels, y,x, c)
-            addPixel(pixels, n-y-1,n-x-1, c)
-            addPixel(pixels, n-x-1,n-y-1, c)
+            addPixel(pixels, x, y, c)
+            addPixel(pixels, y, x, c)
+            addPixel(pixels, n - y - 1, n - x - 1, c)
+            addPixel(pixels, n - x - 1, n - y - 1, c)
           }
-          x+=1
+          x += 1
         }
         startx += 1
-        y+=1
+        y += 1
       }
     }
 

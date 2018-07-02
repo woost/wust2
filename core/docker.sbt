@@ -18,7 +18,12 @@ dockerfile in docker := {
     volume(logsFolder)
     user("user")
 
-    healthCheck(Seq("curl", "-f", "-X", "GET", "localhost:8080/health"), interval = Some(30 seconds), timeout = Some(10 seconds), retries = Some(2))
+    healthCheck(
+      Seq("curl", "-f", "-X", "GET", "localhost:8080/health"),
+      interval = Some(30 seconds),
+      timeout = Some(10 seconds),
+      retries = Some(2)
+    )
 
     workDir(appFolder)
     copy(artifact, appFolder)

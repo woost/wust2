@@ -5,8 +5,14 @@ import java.util.UUID
 case class Cuid(left: Long, right: Long) {
   // the maximum number of each long for being convertable to a cuid (base 36 with 12 digits): java.lang.Long.parseLong("z" * 12, 36)
   private val maxLong = 4738381338321616895L
-  require(left >= 0 && left <= maxLong, s"left part of Cuid needs to be positive and less than $maxLong, value is: $left")
-  require(right >= 0 && right <= maxLong, s"right part of Cuid needs to be positive and less than $maxLong, value is: $right")
+  require(
+    left >= 0 && left <= maxLong,
+    s"left part of Cuid needs to be positive and less than $maxLong, value is: $left"
+  )
+  require(
+    right >= 0 && right <= maxLong,
+    s"right part of Cuid needs to be positive and less than $maxLong, value is: $right"
+  )
 
   def toUuid: UUID = new UUID(left, right)
 

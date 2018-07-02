@@ -6,12 +6,17 @@ import scribe.writer.ConsoleWriter
 
 object Logging {
   val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)
-  val logFormatter: Formatter = formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
+  val logFormatter: Formatter =
+    formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
 
   def setup(): Unit = {
     Logger.root
       .clearHandlers()
-      .withHandler(formatter = logFormatter, minimumLevel = Some(Level.Debug), writer = ConsoleWriter)
+      .withHandler(
+        formatter = logFormatter,
+        minimumLevel = Some(Level.Debug),
+        writer = ConsoleWriter
+      )
       .replace()
   }
 }

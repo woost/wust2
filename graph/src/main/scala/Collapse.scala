@@ -13,10 +13,14 @@ object Collapse {
 
     val collapsingPosts: collection.Set[NodeId] = graph.nodeIds.filter(collapsing)
     val hiddenPosts: collection.Set[NodeId] = getHiddenNodes(graph, collapsingPosts)
-    val alternativePosts: collection.Map[NodeId, Set[NodeId]] = getAlternativePosts(graph, hiddenPosts, collapsingPosts)
-    val redirectedConnections: Set[LocalConnection] = getRedirectedConnections(graph, alternativePosts)
-    val hiddenContainments: collection.Set[Edge] = collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
-    val collapsedLocalContainments: collection.Set[LocalConnection] = getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
+    val alternativePosts: collection.Map[NodeId, Set[NodeId]] =
+      getAlternativePosts(graph, hiddenPosts, collapsingPosts)
+    val redirectedConnections: Set[LocalConnection] =
+      getRedirectedConnections(graph, alternativePosts)
+    val hiddenContainments: collection.Set[Edge] =
+      collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
+    val collapsedLocalContainments: collection.Set[LocalConnection] =
+      getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
 
     // println("collapsingPosts: " + collapsingPosts)
     // println("hiddenPosts: " + hiddenPosts)
@@ -32,17 +36,25 @@ object Collapse {
     )
   }
 
-  def getHiddenNodes(graph: Graph, collapsingPosts: collection.Set[NodeId]): collection.Set[NodeId] = {
+  def getHiddenNodes(
+      graph: Graph,
+      collapsingPosts: collection.Set[NodeId]
+  ): collection.Set[NodeId] = {
     val candidates = collapsingPosts.flatMap(graph.descendants)
     candidates
       .filterNot { child =>
         involvedInCycleWithCollapsedPost(graph, child, collapsingPosts) ||
-          hasOneUncollapsedTransitiveParent(graph, child, collapsingPosts) // only hide post if all parents are collapsing
+        hasOneUncollapsedTransitiveParent(graph, child, collapsingPosts) // only hide post if all parents are collapsing
       }
   }
 
-  def getAlternativePosts(graph: Graph, hiddenPosts: collection.Set[NodeId], collapsingPosts: collection.Set[NodeId]): Map[NodeId, Set[NodeId]] = {
-    hiddenPosts.flatMap(graph.incidentParentContainments)
+  def getAlternativePosts(
+      graph: Graph,
+      hiddenPosts: collection.Set[NodeId],
+      collapsingPosts: collection.Set[NodeId]
+  ): Map[NodeId, Set[NodeId]] = {
+    hiddenPosts
+      .flatMap(graph.incidentParentContainments)
       .groupBy(_.sourceId)
       .mapValues(_.flatMap { c =>
         if (hiddenPosts(c.targetId))
@@ -52,45 +64,84 @@ object Collapse {
       .withDefault(post => Set(post))
   }
 
-  def getRedirectedConnections(graph: Graph, alternativePosts: collection.Map[NodeId, Set[NodeId]]): Set[LocalConnection] = {
+  def getRedirectedConnections(
+      graph: Graph,
+      alternativePosts: collection.Map[NodeId, Set[NodeId]]
+  ): Set[LocalConnection] = {
     (alternativePosts.keys.flatMap { post =>
       graph.incidentEdges(post).flatMap { c =>
         //TODO: assert(c.targetId is NodeId) => this will be different for hyperedges
-        for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId)) yield {
-          LocalConnection(sourceId = altSource, EdgeData.Label("redirected"), targetId = altTarget)
-        }
+        for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId))
+          yield {
+            LocalConnection(
+              sourceId = altSource,
+              EdgeData.Label("redirected"),
+              targetId = altTarget
+            )
+          }
       }
     }(breakOut): Set[LocalConnection])
       .filterNot(c => graph.successorsWithoutParent(c.sourceId) contains c.targetId) // drop already existing connections
   }
 
-  def getLocalContainments(graph: Graph, hiddenPosts: collection.Set[NodeId], hiddenContainments: collection.Set[Edge], collapsingPosts: collection.Set[NodeId]): collection.Set[LocalConnection] = {
+  def getLocalContainments(
+      graph: Graph,
+      hiddenPosts: collection.Set[NodeId],
+      hiddenContainments: collection.Set[Edge],
+      collapsingPosts: collection.Set[NodeId]
+  ): collection.Set[LocalConnection] = {
     collapsingPosts.flatMap { parent =>
       // children remain visible when:
       // - also contained in other uncollapsed post
       // - involved in containment cycle
       val visibleChildren = graph.descendants(parent).filterNot { child =>
         hiddenPosts(child) ||
-          (!(graph.children(parent) contains child) && graph.involvedInContainmentCycle(child))
+        (!(graph.children(parent) contains child) && graph.involvedInContainmentCycle(child))
       }
       visibleChildren.map(LocalConnection(_, EdgeData.Parent, parent))
     }
   }
 
-  def involvedInCycleWithCollapsedPost(graph: Graph, child: NodeId, collapsing: NodeId => Boolean): Boolean = {
+  def involvedInCycleWithCollapsedPost(
+      graph: Graph,
+      child: NodeId,
+      collapsing: NodeId => Boolean
+  ): Boolean = {
     graph.involvedInContainmentCycle(child) && graph.descendants(child).exists(collapsing)
   }
 
-  def hasOneUncollapsedTransitiveParent(graph: Graph, child: NodeId, collapsing: collection.Set[NodeId]): Boolean = {
-    graph.ancestors(child).exists(parent => graph.parents(parent).isEmpty && !collapsing(parent) && reachableByUncollapsedPath(child, parent, graph, collapsing))
+  def hasOneUncollapsedTransitiveParent(
+      graph: Graph,
+      child: NodeId,
+      collapsing: collection.Set[NodeId]
+  ): Boolean = {
+    graph
+      .ancestors(child)
+      .exists(
+        parent =>
+          graph.parents(parent).isEmpty && !collapsing(parent) && reachableByUncollapsedPath(
+            child,
+            parent,
+            graph,
+            collapsing
+          )
+      )
   }
 
-  def reachableByUncollapsedPath(sourceId: NodeId, targetId: NodeId, graph: Graph, collapsing: collection.Set[NodeId]): Boolean = {
+  def reachableByUncollapsedPath(
+      sourceId: NodeId,
+      targetId: NodeId,
+      graph: Graph,
+      collapsing: collection.Set[NodeId]
+  ): Boolean = {
     val space = graph removeNodes (collapsing - sourceId)
     depthFirstSearch(sourceId, space.parents).iterator contains targetId
   }
 
   def highestParents(graph: Graph, child: NodeId, predicate: NodeId => Boolean): Set[NodeId] = {
-    graph.ancestors(child).filter(parent => predicate(parent) && graph.parents(parent).forall(!predicate(_))).toSet
+    graph
+      .ancestors(child)
+      .filter(parent => predicate(parent) && graph.parents(parent).forall(!predicate(_)))
+      .toSet
   }
 }
