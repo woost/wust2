@@ -7,3 +7,4 @@ proguard-sbt.txt
 .metals/
 .metaserver/
 /.sql_checksum
+/.yarn-offline-cache
