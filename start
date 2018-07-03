@@ -112,7 +112,7 @@ function self() {
         export "EXTRASBTARGS=$EXTRASBTARGS -Dsbt.watch.mode=polling"
         ;&
     nsbt)
-        nix-shell --run "./start sbt"
+        nix-shell production.nix --run "./start sbt"
         ;;
     sbt)
         env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
