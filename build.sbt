@@ -246,6 +246,7 @@ lazy val ids = crossProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++=
       Deps.cuid.value ::
+        Deps.base58s.value ::
         Deps.taggedTypes.value ::
         Deps.circe.core.value % Optional ::
         Deps.circe.genericExtras.value % Optional ::

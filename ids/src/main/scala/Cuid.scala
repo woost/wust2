@@ -1,6 +1,9 @@
 package wust.ids
 
 import java.util.UUID
+import java.nio.ByteBuffer
+
+import org.sazabi.base58.Base58
 
 case class Cuid(left: Long, right: Long) {
   import wust.ids.Cuid._
@@ -18,15 +21,29 @@ case class Cuid(left: Long, right: Long) {
 
   def toCuidString: String = {
     val base = 36
-    val leftCuid = java.lang.Long.toString(left, base).reverse.padTo(12, '0').reverse
-    val rightCuid = java.lang.Long.toString(right, base).reverse.padTo(12, '0').reverse
+    val leftCuid =
+      java.lang.Long.toString(left, base).reverse.padTo(12, '0').reverse
+    val rightCuid =
+      java.lang.Long.toString(right, base).reverse.padTo(12, '0').reverse
     "c" + leftCuid + rightCuid
+  }
+
+  def toByteArray: Array[Byte] = {
+    val bb = java.nio.ByteBuffer.allocate(16)
+    bb.putLong(left)
+    bb.putLong(right)
+    bb.array
+  }
+
+  def toBase58: String = {
+    Base58(toByteArray).str
   }
 
   override def toString = toCuidString
 }
 object Cuid {
-  def fromUuid(uuid: UUID): Cuid = Cuid(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
+  def fromUuid(uuid: UUID): Cuid =
+    Cuid(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
 
   def fromCuidString(cuid: String): Cuid = {
     require(cuid.startsWith("c"), "Cuid string needs to start with letter c")
@@ -38,6 +55,18 @@ object Cuid {
     val leftLong = java.lang.Long.parseLong(leftCuid, base)
     val rightLong = java.lang.Long.parseLong(rightCuid, base)
     Cuid(leftLong, rightLong)
+  }
+
+  def fromByteArray(arr: Array[Byte]): Cuid = {
+    val bb = java.nio.ByteBuffer.allocate(16)
+    bb.put(arr)
+    bb.flip()
+    Cuid(bb.getLong, bb.getLong)
+  }
+
+  def fromBase58(str: String): Cuid = {
+    println(str)
+    fromByteArray(Base58.toByteArray(Base58.fromString(str).get).get)
   }
 
   private def maxLong = 4738381338321616895L

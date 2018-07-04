@@ -47,27 +47,30 @@ object ViewConfigParser {
   )
 
   val nodeIdList: Parser[Seq[NodeId]] =
-    P(word.!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromCuidString(cuid))))
-  val pageMode: Parser[PageMode] = P((PageMode.Default.name | PageMode.Orphans.name).!)
-    .map {
-      case PageMode.Default.name => PageMode.Default
-      case PageMode.Orphans.name => PageMode.Orphans
-    }
+    P(word.!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
+  val pageMode: Parser[PageMode] =
+    P((PageMode.Default.name | PageMode.Orphans.name).!)
+      .map {
+        case PageMode.Default.name => PageMode.Default
+        case PageMode.Orphans.name => PageMode.Orphans
+      }
   val page: P[Page] = P(
     pageMode ~/ (pageSeparator ~/ nodeIdList ~ (pageSeparator ~ nodeIdList).?).? ~/ (urlSeparator | End)
   ).map {
-    case (mode, None)                    => Page(parentIds = Nil, mode = mode)
-    case (mode, Some((parentIds, None))) => Page(parentIds = parentIds, mode = mode)
+    case (mode, None) => Page(parentIds = Nil, mode = mode)
+    case (mode, Some((parentIds, None))) =>
+      Page(parentIds = parentIds, mode = mode)
     case (mode, Some((parentIds, Some(childrenIds)))) =>
       Page(parentIds = parentIds, childrenIds = childrenIds, mode = mode)
   }
 
   // TODO: marke order of values flexible
-  val viewConfig: P[ViewConfig] = P(viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).?)
-    .map {
-      case (view, page, prevView) =>
-        ViewConfig(view, page, prevView)
-    }
+  val viewConfig: P[ViewConfig] =
+    P(viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).?)
+      .map {
+        case (view, page, prevView) =>
+          ViewConfig(view, page, prevView)
+      }
 }
 
 object ViewConfigWriter {
@@ -77,11 +80,14 @@ object ViewConfigWriter {
       case Page(parentIds, childrenIds, mode) if parentIds.isEmpty && childrenIds.isEmpty =>
         s"${mode.name}"
       case Page(parentIds, childrenIds, mode) if childrenIds.isEmpty =>
-        s"${mode.name}${pageSeparator}${parentIds.map(_.toCuidString).mkString(idSeparator)}"
+        s"${mode.name}${pageSeparator}${parentIds.map(_.toBase58).mkString(idSeparator)}"
       case Page(parentIds, childrenIds, mode) =>
-        s"${mode.name}${pageSeparator}${parentIds.map(_.toCuidString).mkString(idSeparator)}${pageSeparator}${childrenIds.map(_.toCuidString).mkString(idSeparator)}"
+        s"${mode.name}${pageSeparator}${parentIds
+          .map(_.toBase58)
+          .mkString(idSeparator)}${pageSeparator}${childrenIds.map(_.toBase58).mkString(idSeparator)}"
     })
-    val prevViewStringWithSep = cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.key)
+    val prevViewStringWithSep =
+      cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.key)
     s"$viewString$urlSeparator$pageString$prevViewStringWithSep"
   }
 }
