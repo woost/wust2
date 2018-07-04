@@ -1,15 +1,20 @@
 workbox.skipWaiting();
 workbox.clientsClaim();
+
+// https://developers.google.com/web/tools/workbox/guides/precache-files/webpack
 workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
 
 // cache google fonts
 workbox.routing.registerRoute(
   new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
   workbox.strategies.cacheFirst({
-    cacheName: 'googleapis',
+    cacheName: 'google-fonts',
     plugins: [
       new workbox.expiration.Plugin({
         maxEntries: 30,
+      }),
+      new workbox.cacheableResponse.Plugin({
+        statuses: [0, 200]
       }),
     ],
   }),
