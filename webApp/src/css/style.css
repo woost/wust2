@@ -103,7 +103,7 @@
 }
 
 .postcontent > p {
-    margin: 3px 0;
+    padding: 3px;
 }
 .splitpost::selection {
     color: red;
@@ -114,7 +114,7 @@
     background: blue;
 }
 
-.chatmsg {
+.chatmsg-frame {
     display: block;
     cursor: pointer; /* TODO: What about cursor when selecting text? */
     max-width: 80%;
@@ -126,6 +126,25 @@
     background-color: #f8f8f8;
 }
 
-.chatmsg .draggable--over {
+.chatmsg-frame .draggable--over {
     background-color: #aaccff;
+    border-radius: 3px;
+}
+
+.chatmsg-frame .draggable-mirror {
+    background-color: #f8f8f8AA;
+    /* padding: 5px; */
+    border-radius: 5px;
+    border: 1px solid #999;
+}
+
+.chatmsg-frame .draggable-source--is-dragging {
+    color: #999;
+    border-radius: 5px;
+    border: 1px solid #999;
+    border-style: dashed;
+}
+
+.chatmsg-frame .draggable--over.draggable-source--is-dragging {
+    background-color: inherit;
 }

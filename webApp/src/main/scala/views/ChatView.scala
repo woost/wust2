@@ -260,7 +260,6 @@ object ChatView extends View {
 
     div(
       padding := "20px",
-      cls := "chatmsg-container",
       outline := "none", // hide outline when focused. This element is focusable because of the draggable library; TODO: don't make the whole container draggable?
       Rx {
         val nodes = graphContent().chronologicalNodesAscending.collect {
@@ -361,13 +360,13 @@ object ChatView extends View {
     chat match {
       case ChatSingle(node) =>
         chatMessageRenderer(state, Seq(node), graph, currentUser)
-      case ChatGroup(node) =>
-        chatMessageRenderer(state, node, graph, currentUser)
+      case ChatGroup(nodes) =>
+        chatMessageRenderer(state, nodes, graph, currentUser)
     }
   }
 
   private def styles(color: String) = Seq[VDomModifier](
-    cls := "chatmsg",
+    cls := "chatmsg-frame",
     borderColor := color,
   )
 
@@ -409,7 +408,7 @@ object ChatView extends View {
       graph: Graph,
       avatarSize: AvatarSize
   ) = {
-    Seq[VDomModifier](
+    div(
       optAuthorDiv(isMine, node, graph),
       optDateDiv(isMine, node, graph),
       color := chatHeaderTextColor,
