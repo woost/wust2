@@ -156,7 +156,7 @@ object GlobalState {
       Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
         scribe.info("Requesting updating from SW")
         reg.update().toFuture.onComplete { res =>
-          scribe.info(s"Result of update request:w.j$res")
+          scribe.info(s"Result of update request: $res")
         }
       }))
       eventProcessor.history.action.onNext(ChangesHistory.Clear)
