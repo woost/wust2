@@ -4,21 +4,32 @@ set -o pipefail
 
 export CI=true # also set by travis, but helps when running locally
 
-export SOURCEMAPS=true # for building production js assets with sourcemap
+export SOURCEMAPS=false # for building production js assets with sourcemap
 
 # We compile integration tests here, since the compiler is already hot and gives us a faster feedback
 
 # Scalajs isssue: https://github.com/scoverage/scalac-scoverage-plugin/issues/196
+# sbt \
+#  -Dquill.macro.log=false \
+#  compile \
+#  scalafmtCheck \
+#  scalafmtSbtCheck \
+#  it:scalafmtCheck \
+#  coverage \
+#  testJVM \
+#  coverageReport \
+#  coverageOff \
+#  testJSNonPure \
+#  it:compile \
+#  docker
+
 sbt \
  -Dquill.macro.log=false \
  compile \
  scalafmtCheck \
  scalafmtSbtCheck \
  it:scalafmtCheck \
- coverage \
  testJVM \
- coverageReport \
- coverageOff \
  testJSNonPure \
  it:compile \
  docker
