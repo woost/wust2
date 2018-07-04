@@ -152,6 +152,13 @@ object GlobalState {
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
     page.foreach { _ =>
+      //TODO
+      Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
+        scribe.info("Requesting updating from SW")
+        reg.update().toFuture.onComplete { res =>
+          scribe.info(s"Result of update request:w.j$res")
+        }
+      }))
       eventProcessor.history.action.onNext(ChangesHistory.Clear)
     }
 

@@ -4,6 +4,13 @@ workbox.clientsClaim();
 // https://developers.google.com/web/tools/workbox/guides/precache-files/webpack
 workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
 
+workbox.routing.registerRoute(
+  new RegExp('/(index.html)?'),
+    workbox.strategies.networkFirst({
+        networkTimeoutSeconds: 2
+    })
+);
+
 // cache google fonts
 workbox.routing.registerRoute(
   new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
