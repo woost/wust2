@@ -55,7 +55,8 @@ object MainViewParts {
             span(" / "),
           )
       }.toSeq.reverse),
-      display.flex
+      display.flex,
+      overflowX.auto
     )
   }
 

@@ -100,7 +100,8 @@ object ChatView extends View {
               )
           }
         )
-      })
+      }),
+      overflowX.auto
     )
   }
 
