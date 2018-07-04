@@ -65,7 +65,6 @@ object Cuid {
   }
 
   def fromBase58(str: String): Cuid = {
-    println(str)
     fromByteArray(Base58.toByteArray(Base58.fromString(str).get).get)
   }
 
