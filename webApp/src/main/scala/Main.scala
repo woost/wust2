@@ -15,11 +15,12 @@ object Main {
 
     Logging.setup()
 
-    if (!LinkingInfo.developmentMode)
-      ServiceWorker.register()
+    val swUpdateIsAvailable =
+      if (!LinkingInfo.developmentMode) ServiceWorker.register()
+      else Observable.empty
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
-    val state = GlobalState.create()
+    val state = GlobalState.create(swUpdateIsAvailable)
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }

@@ -4,7 +4,9 @@ import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
+import org.scalajs.dom.{Event, window}
 import org.scalajs.dom
+
 import scala.scalajs.js
 import rx._
 import fontAwesome.freeSolid._
@@ -59,11 +61,18 @@ object Sidebar {
     justifyContent.spaceBetween,
     alignItems.center,
     header(state)(ctx)(marginRight := "10px"),
+    appUpdatePrompt(state)(ctx)(marginRight := "10px"),
     beforeInstallPrompt()(ctx)(marginRight := "10px"),
     undoRedo(state)(ctx)(marginRight.auto),
     notificationSettings()(marginRight := "10px"),
     authentication(state)
   )
+
+  def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) = div(state.appUpdateIsAvailable.map { _ =>
+    button(cls := "tiny ui primary button", "update", onClick --> sideEffect {
+      window.location.reload(flag = false)
+    })
+  })
 
   def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
     val prompt: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {

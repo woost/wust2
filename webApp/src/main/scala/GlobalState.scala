@@ -19,12 +19,14 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
 
 import scala.collection.breakOut
+import scala.concurrent.duration._
 
 class GlobalState private (
-    val eventProcessor: EventProcessor,
-    val syncMode: Var[SyncMode],
-    val sidebarOpen: Var[Boolean],
-    val viewConfig: Var[ViewConfig]
+                            val appUpdateIsAvailable: Observable[Unit],
+                            val eventProcessor: EventProcessor,
+                            val syncMode: Var[SyncMode],
+                            val sidebarOpen: Var[Boolean],
+                            val viewConfig: Var[ViewConfig]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
@@ -107,7 +109,7 @@ class GlobalState private (
 }
 
 object GlobalState {
-  def create()(implicit ctx: Ctx.Owner): GlobalState = {
+  def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
     val syncMode = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
     val sidebarOpen = Client.storage.sidebarOpen
     val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(
@@ -123,7 +125,7 @@ object GlobalState {
       Client.currentAuth.user
     )
 
-    val state = new GlobalState(eventProcessor, syncMode, sidebarOpen, viewConfig)
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, syncMode, sidebarOpen, viewConfig)
 
     import state._
 
@@ -139,9 +141,10 @@ object GlobalState {
       GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId)
     )
 
+    val pageObservable = page.toObservable
     //TODO: better build up state from server events?
     // when the viewconfig or user changes, we get a new graph for the current page
-    page.toObservable
+    pageObservable
       .combineLatest(user.toObservable)
       .switchMap {
         case (page, user) =>
@@ -151,15 +154,24 @@ object GlobalState {
       .subscribe(additionalManualEvents)
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
-    page.foreach { _ =>
-      //TODO
+    pageObservable.map(_ => ChangesHistory.Clear).subscribe(eventProcessor.history.action)
+
+    // try to update serviceworker. We do this automatically every 60 minutes. If we do a navigation change like changing the page,
+    // we will check for an update immediately, but at max every 30 minutes.
+    val autoCheckUpdateInterval = 60.minutes
+    val maxCheckUpdateInterval = 30.minutes
+    pageObservable.echoRepeated(autoCheckUpdateInterval).throttleFirst(maxCheckUpdateInterval).foreach { _ =>
       Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
         scribe.info("Requesting updating from SW")
         reg.update().toFuture.onComplete { res =>
           scribe.info(s"Result of update request: $res")
         }
       }))
-      eventProcessor.history.action.onNext(ChangesHistory.Clear)
+    }
+
+    // if there is a page change and we got an sw update
+    pageObservable.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
+      window.location.reload(flag = false) // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
     }
 
     // write all initial storage changes, in case they did not get through to the server
