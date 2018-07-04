@@ -22,14 +22,17 @@ import scala.concurrent.duration._
 
 object Client {
   import window.location
+  // in firefox or chrome: location.port is always set
+  // in edge: location.port might be empty if not specified.
   private val wustUrl = {
     val protocol = if (location.protocol == "https:") "wss:" else "ws:"
+    val port = if (location.port.isEmpty) "" else ":" + location.port
     val hostname = location.hostname
 
     if (LinkingInfo.developmentMode)
-      s"$protocol//${hostname}:${location.port}/ws" // allows to access the devserver without subdomain
+      s"$protocol//${hostname}$port/ws" // allows to access the devserver without subdomain
     else
-      s"$protocol//core.${hostname}:${location.port}/ws"
+      s"$protocol//core.${hostname}$port/ws"
   }
   private val githubUrl = {
     import window.location
