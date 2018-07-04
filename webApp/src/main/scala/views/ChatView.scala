@@ -55,7 +55,6 @@ object ChatView extends View {
   val grouping = true
   val avatarSize = AvatarSize.Large
   val avatarBorder = true
-  val avatarBorderColor = "#DDDDDD"
   val chatHeaderTextColor = "grey"
   val chatHeaderTextSize = "0.8em"
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
@@ -298,7 +297,6 @@ object ChatView extends View {
         user =>
           div(
             Avatar.user(user)(
-              border := s"1px solid $avatarBorderColor",
               margin := "5px",
               width := size.value,
             )
