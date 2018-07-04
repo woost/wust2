@@ -32,17 +32,18 @@ class Draggable(
 trait AbstractEvent extends js.Object
 
 @js.native
-class DragEvent extends AbstractEvent {
+trait DragEvent extends AbstractEvent {
   def source: html.Element = js.native
+  def originalSource: html.Element = js.native
 }
 
 @js.native
-class DragOverEvent extends DragEvent {
+trait DragOverEvent extends DragEvent {
   def over: html.Element = js.native
 }
 
 @js.native
-class DragOutEvent extends DragEvent {
+trait DragOutEvent extends DragEvent {
   def over: html.Element = js.native
 }
 
