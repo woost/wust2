@@ -11,6 +11,7 @@ import wust.ids._
 import wust.sdk.NodeColor._
 import wust.webApp._
 import fontAwesome.{freeBrands, freeRegular, freeSolid}
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import dom.{Event, console}
 import shopify.draggable._
@@ -214,42 +215,39 @@ object ChatView extends View {
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     val graph = state.graph
-    var lastDragOverId: Option[NodeId] = None
 
-    val dragable = Handler.create[Draggable].unsafeRunSync()
-    dragable.foreach { d =>
-      d.on[DragOverEvent](
-        "drag:over",
-        e => {
-          val parentId: NodeId =
-            NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("data-nodeid").value))
-          lastDragOverId = Some(parentId)
-          console.log(s"dragOver: over = ", e.over, ", parentId = ", parentId.toString)
+    val dragOverEvent = PublishSubject[DragOverEvent]
+    val dragOutEvent = PublishSubject[DragOutEvent]
+    val dragEvent = PublishSubject[DragEvent]
+    val lastDragOverId = PublishSubject[Option[NodeId]]
+
+    // TODO: Use js properties
+    dragOverEvent.foreach { e =>
+      //        val parentId: NodeId =  e.over.asInstanceOf[js.Dynamic].selectDynamic("woost_nodeid").asInstanceOf[NodeId]
+      val parentId: NodeId = NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("woost_nodeid").value))
+      lastDragOverId.onNext(Some(parentId))
+    }
+
+    dragOutEvent.foreach{ e =>
+      lastDragOverId.onNext(None)
+    }
+
+    dragEvent.withLatestFrom(lastDragOverId)((e,lastOverId) => (e, lastOverId)).foreach{
+      case (e, Some(parentId)) =>
+        val childId: NodeId =
+          NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("woost_nodeid").value))
+        if(parentId != childId) {
+          val changes = GraphChanges.connectParent(childId, parentId)
+          state.eventProcessor.enriched.changes.onNext(changes)
+          lastDragOverId.onNext(None)
+          console.log(s"Added GraphChange after drag: $changes")
         }
-      )
-
-      d.on[DragOutEvent]("drag:out", e => {
-        console.log(s"dragOut: over = ", e.over)
-        lastDragOverId = None
-      })
-
-      d.on[DragEvent](
-        "drag:stop",
-        e =>
-          lastDragOverId.foreach { parentId =>
-            val childId: NodeId =
-              NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("data-nodeid").value))
-            val changes = GraphChanges.connectParent(childId, parentId)
-            state.eventProcessor.enriched.changes.onNext(changes)
-            lastDragOverId = None
-            console.log(s"Added GraphChange after drag: $changes")
-          }
-      )
+      case _ =>
     }
 
     div(
       padding := "20px",
-      cls := "dropzone",
+      cls := "chatmsg-container",
       outline := "none", // hide outline when focused. This element is focusable because of the draggable library; TODO: don't make the whole container draggable?
       Rx {
         val nodes = graphContent().chronologicalNodesAscending.collect { case n: Node.Content => n }
@@ -259,9 +257,15 @@ object ChatView extends View {
             .map(chatMessage(state, _, graph(), user().id))
       },
       onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) },
-      onInsert.asHtml.map { elem =>
-        new Draggable(elem, new Options { draggable = ".dragable" })
-      } --> dragable
+      onInsert.asHtml --> sideEffect { elem =>
+        val d = new Draggable(elem, new Options { draggable = ".draggable" })
+        d.on[DragOverEvent]("drag:over", e => {
+          dragOverEvent.onNext(e)
+        })
+        d.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
+        d.on[DragEvent]("drag:stop", dragEvent.onNext(_))
+
+      }
     )
   }
 
@@ -342,19 +346,9 @@ object ChatView extends View {
     }
   }
 
-  private def styles(color: String, nodeId: NodeId) = Seq[VDomModifier](
-    cls := "sortable dragable dropable dropzone",
-    data.nodeid := nodeId.toCuidString,
+  private def styles(color: String) = Seq[VDomModifier](
+    cls := "chatmsg",
     borderColor := color,
-    backgroundColor := nodeDefaultColor,
-    borderRadius := "0px 7px 7px", //7px 0px 7px 7px
-    borderWidth := "1px 1px 1px 7px", //"1px 7px 1px 1px"
-    maxWidth := "80%",
-    padding := "0px 10px",
-    margin := "5px 0px",
-    borderStyle := "solid",
-    display.block,
-    cursor.pointer // TODO: What about cursor when selecting text?
   )
 
   private def chatMessageRenderer(
@@ -375,7 +369,7 @@ object ChatView extends View {
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageBody(state, graph, _)),
         tagsDiv(state, graph, currNode),
-        styles(computeColor(graph, currNode.id), currNode.id),
+        styles(computeColor(graph, currNode.id)),
         isDeleted.ifTrueOption(opacity := 0.5)
       ),
       display.flex,
@@ -398,7 +392,6 @@ object ChatView extends View {
     Seq[VDomModifier](
       optAuthorDiv(isMine, node, graph),
       optDateDiv(isMine, node, graph),
-      margin := "0px -5px",
       color := chatHeaderTextColor,
       fontSize := chatHeaderTextSize,
     )
@@ -412,17 +405,28 @@ object ChatView extends View {
     val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
     val content =
       if (graph.children(node).isEmpty)
-        renderNodeData(node.data)(paddingRight := "10px")
+        renderNodeData(node.data)
       else nodeTag(state, node)
     div(
       display.flex,
       alignItems.center,
-      overflowX.auto, // show scrollbar for very long messages
       // FIXME: If the content has long lines, the layout gets broken on devices that can not fit the entire
       // message. Potential fix: add max-width: XXpx & text-overflow: ellipsis. max-width: XX% does not work.
-      content,
-      isDeleted.ifFalseOption(nodeLink(state, node)),
-      isDeleted.ifFalseOption(deleteButton(state, node)),
+      div(
+        content,
+        attr("woost_nodeid") := node.id.toCuidString,
+        cls := "draggable",
+        overflowX.auto, // show scrollbar for very long messages
+        flexGrow := 1
+      ),
+      div(
+        display.flex,
+        alignItems.center,
+        flexGrow := 0,
+        marginLeft := "10px",
+        isDeleted.ifFalseOption(nodeLink(state, node)),
+        isDeleted.ifFalseOption(deleteButton(state, node))
+      )
     )
   }
 

@@ -113,3 +113,19 @@
     color: red;
     background: blue;
 }
+
+.chatmsg {
+    display: block;
+    cursor: pointer; /* TODO: What about cursor when selecting text? */
+    max-width: 80%;
+    padding: 0px 10px;
+    margin: 5px 0px;
+    border-radius: 0px 7px 7px; /* 7px 0px 7px 7px */
+    border-width: 1px 1px 1px 7px; /* 1px 7px 1px 1px */
+    border-style: solid;
+    background-color: #f8f8f8;
+}
+
+.chatmsg .draggable--over {
+    background-color: #aaccff;
+}
