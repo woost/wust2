@@ -250,6 +250,7 @@ object ChatView extends View {
     div(
       padding := "20px",
       cls := "dropzone",
+      outline := "none", // hide outline when focused. This element is focusable because of the draggable library; TODO: don't make the whole container draggable?
       Rx {
         val nodes = graphContent().chronologicalNodesAscending.collect { case n: Node.Content => n }
         if (nodes.isEmpty) Seq(emptyMessage)
