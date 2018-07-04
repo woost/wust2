@@ -4,7 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webApp.Sidebar.{sidebar, topbar}
-import wust.webApp.MainViewParts.breadcrumb
+import wust.webApp.BreadCrumbs
 import wust.webApp.outwatchHelpers._
 
 object MainView {
@@ -32,7 +32,7 @@ object MainView {
           minWidth := "0", // fixes full page scrolling when messages are too long
           flexDirection.column,
           width := "100%",
-          breadcrumb(state)(ctx)(fontSize := "12px"),
+          BreadCrumbs(state)(ctx)(fontSize := "12px", flexGrow := 0, flexShrink := 0),
           state.view.map(_.apply(state)(ctx)(height := "100%", width := "100%", flexGrow := 1))
         )
       )

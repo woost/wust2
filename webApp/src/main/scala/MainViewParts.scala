@@ -46,20 +46,6 @@ object MainViewParts {
     )
   }
 
-  def breadcrumb(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    div(
-      state.nodeAncestorsHierarchie.map(_.map {
-        case (level, nodeSeq) =>
-          span(
-            nodeSeq.map(n => postTag(state, n)): Seq[VNode],
-            span(" / "),
-          )
-      }.toSeq.reverse),
-      display.flex,
-      overflowX.auto
-    )
-  }
-
   def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val syncingIcon = fontawesome.layer(push => {
       push(fontawesome.icon(freeSolid.faCircle, new Params {

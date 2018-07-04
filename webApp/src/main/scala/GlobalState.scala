@@ -66,11 +66,11 @@ class GlobalState private (
     page().parentIds.flatMap(node => graph().ancestors(node).toSeq)
   }
 
-  val nodeAncestorsHierarchie: Rx[Map[Int, Seq[Node]]] =
+  val nodeAncestorsHierarchy: Rx[Map[Int, Seq[Node]]] =
     pageAncestorsIds.map(
       _.map(node => (graph().parentDepth(node), graph().nodesById(node)))
         .groupBy(_._1)
-        .mapValues(_.map(_._2))
+        .mapValues(_.map(_._2).distinct)
     )
 
   val pageStyle = Rx {
