@@ -68,11 +68,12 @@ object Sidebar {
     authentication(state)
   )
 
-  def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) = div(state.appUpdateIsAvailable.map { _ =>
-    button(cls := "tiny ui primary button", "update", onClick --> sideEffect {
-      window.location.reload(flag = false)
+  def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
+    div(state.appUpdateIsAvailable.map { _ =>
+      button(cls := "tiny ui primary button", "update", onClick --> sideEffect {
+        window.location.reload(flag = false)
+      })
     })
-  })
 
   def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
     val prompt: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {

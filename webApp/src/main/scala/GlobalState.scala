@@ -22,11 +22,11 @@ import scala.collection.breakOut
 import scala.concurrent.duration._
 
 class GlobalState private (
-                            val appUpdateIsAvailable: Observable[Unit],
-                            val eventProcessor: EventProcessor,
-                            val syncMode: Var[SyncMode],
-                            val sidebarOpen: Var[Boolean],
-                            val viewConfig: Var[ViewConfig]
+    val appUpdateIsAvailable: Observable[Unit],
+    val eventProcessor: EventProcessor,
+    val syncMode: Var[SyncMode],
+    val sidebarOpen: Var[Boolean],
+    val viewConfig: Var[ViewConfig]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
@@ -125,7 +125,8 @@ object GlobalState {
       Client.currentAuth.user
     )
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, syncMode, sidebarOpen, viewConfig)
+    val state =
+      new GlobalState(swUpdateIsAvailable, eventProcessor, syncMode, sidebarOpen, viewConfig)
 
     import state._
 
@@ -160,18 +161,22 @@ object GlobalState {
     // we will check for an update immediately, but at max every 30 minutes.
     val autoCheckUpdateInterval = 60.minutes
     val maxCheckUpdateInterval = 30.minutes
-    pageObservable.echoRepeated(autoCheckUpdateInterval).throttleFirst(maxCheckUpdateInterval).foreach { _ =>
-      Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
-        scribe.info("Requesting updating from SW")
-        reg.update().toFuture.onComplete { res =>
-          scribe.info(s"Result of update request: $res")
-        }
-      }))
-    }
+    pageObservable
+      .echoRepeated(autoCheckUpdateInterval)
+      .throttleFirst(maxCheckUpdateInterval)
+      .foreach { _ =>
+        Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
+          scribe.info("Requesting updating from SW")
+          reg.update().toFuture.onComplete { res =>
+            scribe.info(s"Result of update request: $res")
+          }
+        }))
+      }
 
     // if there is a page change and we got an sw update
     pageObservable.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
-      window.location.reload(flag = false) // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
+      window.location
+        .reload(flag = false) // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
     }
 
     // write all initial storage changes, in case they did not get through to the server

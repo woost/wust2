@@ -107,16 +107,23 @@ object ChatView extends View {
 
   private def channelControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = div(
     Rx {
-      (state.graph().children(state.user().channelNodeId).contains(node.id) match {
+      (state
+        .graph()
+        .children(state.user().channelNodeId)
+        .contains(node.id) match {
         case true  => freeSolid.faBookmark
         case false => freeRegular.faBookmark
       }): VNode //TODO: implicit for Rx[IconDefinition] ?
     },
     cursor.pointer,
     onClick --> sideEffect { _ =>
-      val changes = state.graph.now.children(state.user.now.channelNodeId).contains(node.id) match {
-        case true  => GraphChanges.disconnectParent(node.id, state.user.now.channelNodeId)
-        case false => GraphChanges.connectParent(node.id, state.user.now.channelNodeId)
+      val changes = state.graph.now
+        .children(state.user.now.channelNodeId)
+        .contains(node.id) match {
+        case true =>
+          GraphChanges.disconnectParent(node.id, state.user.now.channelNodeId)
+        case false =>
+          GraphChanges.connectParent(node.id, state.user.now.channelNodeId)
       }
       state.eventProcessor.changes.onNext(changes)
     }
@@ -187,7 +194,10 @@ object ChatView extends View {
   ) = {
     def shouldGroup(nodes: Node*) = {
       grouping && // grouping enabled
-      (nodes.map(getNodeTags(graph, _, state.page.now)).distinct.size == 1 // tags must match
+      (nodes
+        .map(getNodeTags(graph, _, state.page.now))
+        .distinct
+        .size == 1 // tags must match
       // all nodes either mine or not mine
       && (nodes.forall(node => graph.authorIds(node).contains(currentUserId))
       || nodes.forall(node => !graph.authorIds(node).contains(currentUserId))))
@@ -224,39 +234,46 @@ object ChatView extends View {
     // TODO: Use js properties
     dragOverEvent.foreach { e =>
       //        val parentId: NodeId =  e.over.asInstanceOf[js.Dynamic].selectDynamic("woost_nodeid").asInstanceOf[NodeId]
-      val parentId: NodeId = NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("woost_nodeid").value))
+      val parentId: NodeId =
+        NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("woost_nodeid").value))
       lastDragOverId.onNext(Some(parentId))
     }
 
-    dragOutEvent.foreach{ e =>
+    dragOutEvent.foreach { e =>
       lastDragOverId.onNext(None)
     }
 
-    dragEvent.withLatestFrom(lastDragOverId)((e,lastOverId) => (e, lastOverId)).foreach{
-      case (e, Some(parentId)) =>
-        val childId: NodeId =
-          NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("woost_nodeid").value))
-        if(parentId != childId) {
-          val changes = GraphChanges.connectParent(childId, parentId)
-          state.eventProcessor.enriched.changes.onNext(changes)
-          lastDragOverId.onNext(None)
-          console.log(s"Added GraphChange after drag: $changes")
-        }
-      case _ =>
-    }
+    dragEvent
+      .withLatestFrom(lastDragOverId)((e, lastOverId) => (e, lastOverId))
+      .foreach {
+        case (e, Some(parentId)) =>
+          val childId: NodeId =
+            NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("woost_nodeid").value))
+          if (parentId != childId) {
+            val changes = GraphChanges.connectParent(childId, parentId)
+            state.eventProcessor.enriched.changes.onNext(changes)
+            lastDragOverId.onNext(None)
+            console.log(s"Added GraphChange after drag: $changes")
+          }
+        case _ =>
+      }
 
     div(
       padding := "20px",
       cls := "chatmsg-container",
       outline := "none", // hide outline when focused. This element is focusable because of the draggable library; TODO: don't make the whole container draggable?
       Rx {
-        val nodes = graphContent().chronologicalNodesAscending.collect { case n: Node.Content => n }
+        val nodes = graphContent().chronologicalNodesAscending.collect {
+          case n: Node.Content => n
+        }
         if (nodes.isEmpty) Seq(emptyMessage)
         else
           groupNodes(graph(), nodes, state, user().id)
             .map(chatMessage(state, _, graph(), user().id))
       },
-      onPostPatch --> sideEffect[(Element, Element)] { case (_, elem) => scrollToBottom(elem) },
+      onPostPatch --> sideEffect[(Element, Element)] {
+        case (_, elem) => scrollToBottom(elem)
+      },
       onInsert.asHtml --> sideEffect { elem =>
         val d = new Draggable(elem, new Options { draggable = ".draggable" })
         d.on[DragOverEvent]("drag:over", e => {
@@ -331,7 +348,10 @@ object ChatView extends View {
     if (showAuthor == ShowOpts.Always
         || (showAuthor == ShowOpts.OtherOnly && !isOwn)
         || (showAuthor == ShowOpts.OwnOnly && isOwn))
-      graph.authors(node).headOption.fold(span())(author => span(author.name, fontWeight.bold))
+      graph
+        .authors(node)
+        .headOption
+        .fold(span())(author => span(author.name, fontWeight.bold))
     else span()
   }
 

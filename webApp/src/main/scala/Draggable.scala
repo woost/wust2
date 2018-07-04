@@ -22,7 +22,8 @@ class Draggable(
   def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
   def on[E <: DragEvent](eventName: String, listener: js.Function1[E, Unit]): Draggable = js.native
 //  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
-  def off(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
+  def off(eventName: String, listener: js.Function0[Unit]): Draggable =
+    js.native
   def off(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def getDraggableElements(): js.Array[html.Element] = js.native
   def getDraggableElementsForContainer(container: html.Element): js.Array[html.Element] = js.native
@@ -69,6 +70,7 @@ trait Options extends js.Object {
   var delay: js.UndefOr[Double] = js.undefined
   // var plugins: js.UndefOr[js.Array[Plugin]] = js.undefined
   // var sensors: js.UndefOr[js.Array[Sensor]] = js.undefined
-  var appendTo: js.UndefOr[String | html.Element | js.Function0[html.Element]] = js.undefined
+  var appendTo: js.UndefOr[String | html.Element | js.Function0[html.Element]] =
+    js.undefined
   // var classes: js.UndefOr[Object] = js.undefined
 }
