@@ -246,16 +246,20 @@ object Topbar {
     )
   }
 
-  def authentication(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
-    state.user.flatMap {
-      case user: AuthUser.Assumed  => login(state)
-      case user: AuthUser.Implicit => login(state)
-      case user: AuthUser.Real     => Rx(logout)
+  def authentication(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =
+    state.user.map {
+      case user: AuthUser.Assumed  => login(state): VDomModifier
+      case user: AuthUser.Implicit => login(state): VDomModifier
+      case user: AuthUser.Real =>
+        VDomModifier(
+          Avatar.user(user.id)(height := "20px"),
+          span(user.name, padding := "0 5px"),
+          logout
+        )
     }
-  )
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) = state.viewConfig.map { viewConfig =>
-    VDomModifier(
+    div(
       viewConfigLink(viewConfig.overlayView(SignupView))("Signup", color := "white"),
       " or ",
       viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white")
