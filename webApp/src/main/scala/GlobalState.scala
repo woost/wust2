@@ -87,19 +87,6 @@ class GlobalState private (
     perspective().union(Perspective(collapsed = Selector.Predicate(collapsedNodeIds())))
   }
 
-  val upButtonTargetPage: Rx[Option[Page]] = Rx {
-    //TODO: handle containment cycles
-    page() match {
-      case Page(parentIds, _, _) if parentIds.isEmpty => None
-      case Page(parentIds, _, _) =>
-        val newParentIds = parentIds.flatMap(graph().parents)
-        Some(Page(newParentIds))
-    }
-  }
-
-//  val upButtonTargets: Rx[Seq[Seq[Page]]]  = Rx {
-//  }
-
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
   val screenSize: Observable[ScreenSize] = events.window.onResize

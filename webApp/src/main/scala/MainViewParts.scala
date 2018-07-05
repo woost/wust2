@@ -36,16 +36,6 @@ object MainViewParts {
     )
   }
 
-  def upButton(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    span(
-      state.upButtonTargetPage.map(
-        _.toSeq.map(
-          upTarget => button("↑", width := "2.5em", onClick(upTarget) --> state.page.toHandler)
-        )
-      )
-    )
-  }
-
   def newGroupTitle(state: GlobalState) = {
     var today = new Date()
     // January is 0!
