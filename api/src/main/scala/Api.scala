@@ -74,7 +74,7 @@ object AuthUser {
       Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
   }
   case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
-    def name = s"anon-${id.toCuidString.takeRight(4)}"
+    def name = s"anonymous user"
   }
 
   implicit def AsUserInfo(user: AuthUser): UserInfo =
