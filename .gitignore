@@ -8,3 +8,4 @@ proguard-sbt.txt
 .metaserver/
 /.sql_checksum
 /.yarn-offline-cache
+*/yarn.lock
