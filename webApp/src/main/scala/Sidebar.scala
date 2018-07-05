@@ -18,87 +18,11 @@ import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor, SyncMode}
+import MainViewParts._
 
 object Sidebar {
-  import MainViewParts._
 
-  def buttonStyle = Seq(
-    cls := "tiny compact ui inverted grey button"
-  )
-
-  val notificationSettings: VNode = {
-    div(
-      Notifications.permissionStateObservable.map { state =>
-        if (state == PermissionState.granted) Option.empty[VNode]
-        else if (state == PermissionState.denied)
-          Some(
-            span(
-              freeRegular.faBellSlash,
-              color := "tomato",
-              title := "Notifications blocked by browser. Reconfigure your browser allow Notifications for this site."
-            )
-          )
-        else
-          Some(
-            div(
-              freeRegular.faBellSlash,
-              cursor.pointer,
-              onClick --> sideEffect { Notifications.requestPermissions() },
-              title := "Enable Notifications"
-            )
-          )
-      }
-    )
-  }
-
-  def topbar(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
-    paddingRight := "5px",
-    height := "35px",
-    backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
-    color := "white",
-    display.flex,
-    flexDirection.row,
-    justifyContent.spaceBetween,
-    alignItems.center,
-    header(state)(ctx)(marginRight := "10px"),
-    appUpdatePrompt(state)(ctx)(marginRight := "10px"),
-    beforeInstallPrompt()(ctx)(marginRight := "10px"),
-    undoRedo(state)(ctx)(marginRight.auto),
-    notificationSettings()(marginRight := "10px"),
-    authentication(state)
-  )
-
-  def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    div(state.appUpdateIsAvailable.map { _ =>
-      button(cls := "tiny ui primary button", "update", onClick --> sideEffect {
-        window.location.reload(flag = false)
-      })
-    })
-
-  def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
-    val prompt: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {
-      observer: Var[Option[dom.Event]] =>
-        dom.window.addEventListener(
-          "beforeinstallprompt", { e: dom.Event =>
-            e.preventDefault(); // Prevents immediate prompt display
-            dom.console.log("BEFOREINSTALLPROMPT: ", e)
-            observer() = Some(e)
-          }
-        );
-    }
-
-    div(
-      Rx {
-        prompt().map { e =>
-          button(cls := "tiny ui primary button", "install", onClick --> sideEffect {
-            e.asInstanceOf[js.Dynamic].prompt(); ()
-          })
-        }
-      }
-    )
-  }
-
-  def sidebar(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state.sidebarOpen
     div(
       minWidth := "40px",
@@ -150,43 +74,9 @@ object Sidebar {
     )
   }
 
-  def hamburger(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state.sidebarOpen
-    div(
-      padding := "10px",
-      fontSize := "20px",
-      width := "40px",
-      textAlign.center,
-      faBars,
-      cursor.pointer,
-      // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-      onClick --> sideEffect { ev =>
-        sidebarOpen() = !sidebarOpen.now; ev.stopPropagation()
-      }
-    )
-  }
-
-  def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    div(
-      display.flex,
-      alignItems.center,
-      hamburger(state),
-      div(
-        state.user.map(
-          user =>
-            viewConfigLink(ViewConfig.default.copy(page = Page.ofUser(user)))(
-              "Woost",
-              color := "white",
-              textDecoration := "none"
-            )
-        ),
-        padding := "5px 5px",
-        fontSize := "14px",
-        fontWeight.bold
-      ),
-      syncStatus(state)(ctx)(fontSize := "12px"),
-    ),
-  }
+  def buttonStyle = Seq(
+    cls := "tiny compact ui inverted grey button"
+  )
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     def channelDiv(selected: Boolean, pageStyle: PageStyle) = div(
