@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "Checking scalafmt..."
+sbt scalafmtCheck scalafmtSbtCheck it:scalafmtCheck
