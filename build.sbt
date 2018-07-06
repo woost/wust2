@@ -322,6 +322,7 @@ lazy val core = project
         Deps.monix.value ::
         Deps.stringmetric.value ::
         Deps.webPush.value ::
+        Deps.scalacss.value ::
         Nil,
     javaOptions in reStart += "-Xmx50m"
   )
