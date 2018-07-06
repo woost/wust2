@@ -24,7 +24,6 @@ import scala.concurrent.duration._
 class GlobalState private (
     val appUpdateIsAvailable: Observable[Unit],
     val eventProcessor: EventProcessor,
-    val syncMode: Var[SyncMode],
     val sidebarOpen: Var[Boolean],
     val viewConfig: Var[ViewConfig]
 )(implicit ctx: Ctx.Owner) {
@@ -97,7 +96,6 @@ class GlobalState private (
 
 object GlobalState {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
-    val syncMode = Client.storage.syncMode.imap[SyncMode](_.getOrElse(SyncMode.default))(Option(_))
     val sidebarOpen = Client.storage.sidebarOpen
     val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(
       x => Option(ViewConfig.toUrlHash(x))
@@ -106,14 +104,13 @@ object GlobalState {
     val additionalManualEvents = PublishSubject[ApiEvent]()
     val eventProcessor = EventProcessor(
       Observable.merge(additionalManualEvents.map(Seq(_)), Client.observable.event),
-      syncMode.map(_ != SyncMode.Live).toObservable,
       (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
       Client.api.changeGraph _,
       Client.currentAuth.user
     )
 
     val state =
-      new GlobalState(swUpdateIsAvailable, eventProcessor, syncMode, sidebarOpen, viewConfig)
+      new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig)
 
     import state._
 

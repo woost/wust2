@@ -7,20 +7,15 @@ import rx._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
 import wust.graph.GraphChanges
-import wust.sdk.SyncMode
 import wust.webApp.outwatchHelpers._ //TODO use outwatch.util.Storage(dom.Storage)
 
 class ClientStorage(implicit owner: Ctx.Owner) {
   private val internal = org.scalajs.dom.ext.LocalStorage
 
-  implicit val SyncModeDecoder: Decoder[SyncMode] = deriveDecoder[SyncMode]
-  implicit val SyncModeEncoder: Encoder[SyncMode] = deriveEncoder[SyncMode]
-
   object keys {
     val auth = "wust.auth"
     val sidebarOpen = "wust.sidebar.open"
     val graphChanges = "wust.graph.changes"
-    val syncMode = "wust.graph.syncMode"
   }
 
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
@@ -43,14 +38,6 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       .imap(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))(
         changes => Option(toJson(changes))
       )
-  }
-
-  val syncMode: Var[Option[SyncMode]] = {
-    LocalStorage
-      .handler(keys.syncMode)
-      .unsafeRunSync()
-      .imap(_.flatMap(fromJson[SyncMode]))(mode => mode.map(toJson(_)))
-      .toVar(internal(keys.syncMode).flatMap(fromJson[SyncMode]))
   }
 
   val sidebarOpen: Var[Boolean] = {

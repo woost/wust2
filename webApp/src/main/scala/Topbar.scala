@@ -22,7 +22,7 @@ import wust.ids._
 import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
-import wust.sdk.{ChangesHistory, NodeColor, SyncMode}
+import wust.sdk.{ChangesHistory, NodeColor}
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
@@ -129,28 +129,8 @@ object Topbar {
       case (false, _)    => span(offlineIcon, color := "tomato", title := "Disconnected")
     }
 
-    val syncModeSwitcher = DevOnly {
-      span(
-        " (",
-        state.syncMode.map { mode =>
-          span(
-            mode.toString,
-            cursor.pointer,
-            title := "Click to switch syncing mode (Live/Local). Live mode automatically synchronizes all changes online. Local mode will keep all your changes locally and hide incoming events.",
-            if (mode == SyncMode.Live) Seq(color := "white")
-            else Seq(color := "grey"),
-            onClick.map(
-              _ => (if (mode == SyncMode.Live) SyncMode.Local else SyncMode.Live): SyncMode
-            ) --> state.syncMode
-          )
-        },
-        ")"
-      )
-    }
-
     div(
-      syncStatusIcon,
-      syncModeSwitcher
+      syncStatusIcon
     )
   }
 

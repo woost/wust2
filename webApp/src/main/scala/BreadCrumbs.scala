@@ -10,7 +10,7 @@ import rx._
 import wust.api.AuthUser
 import wust.graph._
 import wust.ids._
-import wust.sdk.{ChangesHistory, SyncMode}
+import wust.sdk.ChangesHistory
 import wust.sdk.NodeColor._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._

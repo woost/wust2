@@ -17,7 +17,7 @@ import wust.ids._
 import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
-import wust.sdk.{ChangesHistory, NodeColor, SyncMode}
+import wust.sdk.{ChangesHistory, NodeColor}
 import MainViewParts._
 
 object Sidebar {

@@ -6,7 +6,6 @@ import monix.reactive.subjects.PublishSubject
 import wust.api.ApiEvent._
 import wust.api._
 import wust.graph._
-import wust.util.BufferWhenTrue
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -25,15 +24,6 @@ object SyncStatus {
   case object Pending extends SyncStatus
   case object Done extends SyncStatus
   case object Error extends SyncStatus
-}
-
-sealed trait SyncMode
-object SyncMode {
-  case object Live extends SyncMode
-  case object Local extends SyncMode
-
-  val default = Live
-  val all = Seq(Live, Local)
 }
 
 case class ChangesHistory(
@@ -77,29 +67,11 @@ object EventProcessor {
 
   //TODO factory and constructor shared responibility
   def apply(
-      rawEventStream: Observable[Seq[ApiEvent]],
-      syncDisabled: Observable[Boolean],
+      eventStream: Observable[Seq[ApiEvent]],
       enrichChanges: (GraphChanges, Graph) => GraphChanges,
       sendChange: List[GraphChanges] => Future[Boolean],
       initialUser: AuthUser
   )(implicit scheduler: Scheduler): EventProcessor = {
-    val eventStream: Observable[Seq[ApiEvent]] = {
-      // when sync is disabled, holding back incoming graph events
-      val partitionedEvents: Observable[(Seq[ApiEvent], Seq[ApiEvent])] =
-        rawEventStream.map(_.partition {
-          case NewGraphChanges(_) => true
-          case _                  => false
-        })
-
-      val graphEvents = partitionedEvents.map(_._1)
-      val otherEvents = partitionedEvents.map(_._2)
-      //TODO bufferunless here will crash merge for rawGraph with infinite loop.
-      // somehow `x.bufferUnless(..) merge y.bufferUnless(..)` does not work.
-      val bufferedGraphEvents = BufferWhenTrue(graphEvents, syncDisabled).map(_.flatten)
-
-      Observable.merge(bufferedGraphEvents, otherEvents)
-    }
-
     val graphEvents = eventStream
       .map(_.collect { case e: ApiEvent.GraphContent => e })
       .collect { case l if l.nonEmpty => l }
@@ -111,7 +83,6 @@ object EventProcessor {
     new EventProcessor(
       graphEvents,
       authEvents,
-      syncDisabled,
       enrichChanges,
       sendChange,
       initialUser
@@ -122,7 +93,6 @@ object EventProcessor {
 class EventProcessor private (
     eventStream: Observable[Seq[ApiEvent.GraphContent]],
     authEventStream: Observable[Seq[ApiEvent.AuthContent]],
-    syncDisabled: Observable[Boolean],
     enrichChanges: (GraphChanges, Graph) => GraphChanges,
     sendChange: List[GraphChanges] => Future[Boolean],
     initialUser: AuthUser
@@ -222,19 +192,16 @@ class EventProcessor private (
   }
 
   private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex
-  // TODO: NonEmptyList in observables
-  private val bufferedChanges: Observable[(Seq[GraphChanges], Long)] =
-    BufferWhenTrue(localChangesIndexed, syncDisabled).map(l => l.map(_._1) -> l.last._2)
 
-  bufferedChanges.foreach { c =>
-    println("[Events] Got local changes buffered: " + c)
+  localChangesIndexed.foreach { c =>
+    println("[Events] Got local changes indexed: " + c)
   }
 
   private val sendingChanges: Observable[Long] = Observable
-    .tailRecM(bufferedChanges) { changes =>
+    .tailRecM(localChangesIndexed) { changes =>
       changes.flatMap {
         case (c, idx) =>
-          Observable.fromFuture(sendChanges(c)).map {
+          Observable.fromFuture(sendChanges(c :: Nil)).map {
             case true =>
               scribe.info(s"Successfully sent out changes from EventProcessor")
               Right(idx)
