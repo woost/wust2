@@ -23,16 +23,12 @@ object MainViewParts {
 
   def postTag(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
     span(
+      cls := "msg-tag",
       node.data.str, //TODO trim! fit for tag usage...
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(node.id)); e.stopPropagation()
       },
       backgroundColor := computeTagColor(node.id),
-      fontSize.small,
-      color := "#fefefe",
-      borderRadius := "2px",
-      padding := "0px 3px",
-      marginRight := "3px"
     )
   }
 

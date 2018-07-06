@@ -289,21 +289,6 @@ object ChatView extends View {
   private def emptyMessage: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  private def nodeTag(state: GlobalState, node: Node): VNode = {
-    span(
-      node.data.str, //TODO trim! fit for tag usage...
-      onClick --> sideEffect { e =>
-        state.page() = Page(Seq(node.id)); e.stopPropagation()
-      },
-      backgroundColor := computeTagColor(node.id),
-      fontSize.small,
-      color := "#fefefe",
-      borderRadius := "2px",
-      padding := "0px 3px",
-      marginRight := "3px"
-    )
-  }
-
   private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
     state.viewConfig.map { cfg =>
       val newCfg = cfg.copy(page = Page(node.id))
@@ -426,7 +411,7 @@ object ChatView extends View {
     val content =
       if (graph.children(node).isEmpty)
         renderNodeData(node.data)
-      else nodeTag(state, node)
+      else MainViewParts.postTag(state, node)
 
     val msgControls = div(
       cls := "chatmsg-controls",
@@ -456,10 +441,9 @@ object ChatView extends View {
 
     div( // node tags
       nodeTags.map { tag =>
-        nodeTag(state, tag)
+        MainViewParts.postTag(state, node)
       },
-      margin := "2px",
-      padding := "4px"
+      padding := "3px 3px 0"
     )
   }
 

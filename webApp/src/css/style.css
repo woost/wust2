@@ -163,3 +163,17 @@ div.chatmsg-controls {
 div.chatmsg-body:hover > div.chatmsg-controls {
     visibility: visible;
 }
+
+/* TODO: Focus is only used as a quick hack in order to use controls on mobile browser */
+div.chatmsg-body:hover, div.chatmsg-body:focus > div.chatmsg-controls {
+    visibility: visible;
+}
+
+
+span.msg-tag {
+    font-size : x-small;
+    color: #fefefe;
+    border-radius: 2px;
+    padding: 0px 3px;
+    margin-right: 3px;
+}
