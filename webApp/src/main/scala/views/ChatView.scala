@@ -180,6 +180,7 @@ object ChatView extends View {
   )
 
   //TODO: memoize?
+  //TODO: seems to be buggy: check why dragging A in B leads to tag A in A instead of tag A in B
   private def getNodeTags(graph: Graph, node: Node, page: Page): Seq[Node] = {
     (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds)
       .map(graph.nodesById(_))
@@ -199,7 +200,7 @@ object ChatView extends View {
       //   .distinct
       //   .size == 1) // tags must match
       (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
-        nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
+      nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
       // TODO: within a specific timespan && nodes.last.
     }
 
@@ -419,22 +420,22 @@ object ChatView extends View {
     )
 
     Seq(
-    div(
-      cls := "chatmsg-body",
-      display.flex,
-      alignItems.center,
       div(
+        cls := "chatmsg-body",
+        display.flex,
+        alignItems.center,
         div(
-          content,
-          attr("woost_nodeid") := node.id.toCuidString,
-          cls := "draggable"
+          div(
+            content,
+            attr("woost_nodeid") := node.id.toCuidString,
+            cls := "draggable"
+          ),
+          overflowX.auto, // show scrollbar for very long messages
+          flexGrow := 1
         ),
-        overflowX.auto, // show scrollbar for very long messages
-        flexGrow := 1
+        msgControls
       ),
-      msgControls
-    ),
-    tagsDiv(state, graph, node)
+      tagsDiv(state, graph, node)
     )
   }
 
