@@ -23,15 +23,20 @@ object ServiceWorker {
               console.log("SW registered: ", registration)
               registration.onupdatefound = { event =>
                 val installingWorker = registration.installing
-                if (installingWorker.state == "installed" && Navigator.serviceWorker.get.controller
-                      .asInstanceOf[js.UndefOr[ServiceWorker]]
-                      .isDefined) {
-                  console.log("New SW installed, can update.")
-                  subject.onNext(())
+
+                installingWorker.onstatechange = { event =>
+                  console.log("Update of SW found", installingWorker, Navigator.serviceWorker.get.controller)
+                  if (installingWorker.state == "installed"
+                    && (Navigator.serviceWorker.get.controller
+                        .asInstanceOf[js.UndefOr[ServiceWorker]]
+                        .isDefined)) {
+                      console.log("New SW installed, can update.")
+                      subject.onNext(())
+                  }
                 }
               }
             case Failure(registrationError) =>
-              console.warn("SW registration failed: ", registrationError.toString)
+              scribe.warn("SW registration failed: ", registrationError)
               subject.onError(registrationError)
           }
         }

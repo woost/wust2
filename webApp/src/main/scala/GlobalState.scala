@@ -146,6 +146,7 @@ object GlobalState {
     val autoCheckUpdateInterval = 60.minutes
     val maxCheckUpdateInterval = 30.minutes
     pageObservable
+      .drop(1) // check for update when page was changed manually AFTER initial page
       .echoRepeated(autoCheckUpdateInterval)
       .throttleFirst(maxCheckUpdateInterval)
       .foreach { _ =>
@@ -157,10 +158,11 @@ object GlobalState {
         }))
       }
 
-    // if there is a page change and we got an sw update
+    // if there is a page change and we got an sw update, we want to reload the page
     pageObservable.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
-      window.location
-        .reload(flag = false) // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
+      scribe.info("Going to reload page, due to SW update")
+      // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
+      window.location.reload(flag = false)
     }
 
     // write all initial storage changes, in case they did not get through to the server
