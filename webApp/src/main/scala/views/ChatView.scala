@@ -71,7 +71,7 @@ object ChatView extends View {
       minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)
       minWidth := "0", // fixes full page scrolling when messages are too long
       chatHeader(state)(ctx)(flexGrow := 0, flexShrink := 0),
-      chatHistory(state)(ctx)(height := "100%", overflow.auto),
+      chatHistory(state)(ctx)(height := "100%", overflow.auto, backgroundColor := "#fff"),
       inputField(state)(ctx)(flexGrow := 0, flexShrink := 0)
     )
   }
@@ -433,7 +433,7 @@ object ChatView extends View {
         div(
           content,
           attr("woost_nodeid") := node.id.toCuidString,
-          cls := "draggable",
+          cls := "draggable"
         ),
         overflowX.auto, // show scrollbar for very long messages
         flexGrow := 1
