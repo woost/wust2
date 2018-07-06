@@ -172,7 +172,7 @@ object ChatView extends View {
 
   private def deleteButton(state: GlobalState, node: Node) = div(
     freeRegular.faTrashAlt,
-    padding := "5px",
+    padding := "0px 5px",
     cursor.pointer,
     onClick.map { e =>
       e.stopPropagation(); GraphChanges.delete(node)
@@ -201,6 +201,7 @@ object ChatView extends View {
       // all nodes either mine or not mine
       && (nodes.forall(node => graph.authorIds(node).contains(currentUserId))
       || nodes.forall(node => !graph.authorIds(node).contains(currentUserId))))
+      // TODO: within a specific timespan && nodes.last.
     }
 
     nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
@@ -426,6 +427,18 @@ object ChatView extends View {
       if (graph.children(node).isEmpty)
         renderNodeData(node.data)
       else nodeTag(state, node)
+
+    val displayControls = Handler.create[String]("none").unsafeRunSync()
+    val msgControls = div(
+      display <-- displayControls,
+      alignItems.center,
+      flexGrow := 0,
+      flexShrink := 0,
+      paddingLeft := "10px",
+      isDeleted.ifFalseOption(nodeLink(state, node)),
+      isDeleted.ifFalseOption(deleteButton(state, node))
+    )
+
     div(
       display.flex,
       alignItems.center,
@@ -438,14 +451,9 @@ object ChatView extends View {
         overflowX.auto, // show scrollbar for very long messages
         flexGrow := 1
       ),
-      div(
-        display.flex,
-        alignItems.center,
-        flexGrow := 0,
-        marginLeft := "10px",
-        isDeleted.ifFalseOption(nodeLink(state, node)),
-        isDeleted.ifFalseOption(deleteButton(state, node))
-      )
+      onMouseOver.map(_ => "flex") --> displayControls,
+      onMouseOut.map(_ => "none") --> displayControls,
+      msgControls
     )
   }
 
