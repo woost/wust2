@@ -181,7 +181,7 @@ object ChatView extends View {
 
   //TODO: memoize?
   private def getNodeTags(graph: Graph, node: Node, page: Page): Seq[Node] = {
-    (graph.ancestors(node.id) diff graph.channelNodeIds.toSeq diff page.parentIds)
+    (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds)
       .map(graph.nodesById(_))
   }
 
@@ -194,13 +194,12 @@ object ChatView extends View {
   ) = {
     def shouldGroup(nodes: Node*) = {
       grouping && // grouping enabled
-      (nodes
-        .map(getNodeTags(graph, _, state.page.now))
-        .distinct
-        .size == 1 // tags must match
-      // all nodes either mine or not mine
-      && (nodes.forall(node => graph.authorIds(node).contains(currentUserId))
-      || nodes.forall(node => !graph.authorIds(node).contains(currentUserId))))
+      // && (nodes
+      //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
+      //   .distinct
+      //   .size == 1) // tags must match
+      (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
+        nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
       // TODO: within a specific timespan && nodes.last.
     }
 
@@ -373,7 +372,7 @@ object ChatView extends View {
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageBody(state, graph, _)),
-        tagsDiv(state, graph, currNode),
+        // tagsDiv(state, graph, currNode),
         styles(computeColor(graph, currNode.id)),
         isDeleted.ifTrueOption(opacity := 0.5)
       ),
@@ -419,6 +418,7 @@ object ChatView extends View {
       isDeleted.ifFalseOption(deleteButton(state, node))
     )
 
+    Seq(
     div(
       cls := "chatmsg-body",
       display.flex,
@@ -433,6 +433,8 @@ object ChatView extends View {
         flexGrow := 1
       ),
       msgControls
+    ),
+    tagsDiv(state, graph, node)
     )
   }
 
