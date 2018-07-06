@@ -150,3 +150,16 @@
 .chatmsg-frame .draggable--over.draggable-source--is-dragging {
     background-color: inherit;
 }
+
+div.chatmsg-controls {
+    visibility: hidden;
+    display: flex;
+    alignItems: center;
+    flexGrow: 0;
+    flexShrink: 0;
+    paddingLeft: 10px;
+}
+
+div.chatmsg-body:hover > div.chatmsg-controls {
+    visibility: visible;
+}

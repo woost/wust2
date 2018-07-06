@@ -428,18 +428,14 @@ object ChatView extends View {
         renderNodeData(node.data)
       else nodeTag(state, node)
 
-    val displayControls = Handler.create[String]("none").unsafeRunSync()
     val msgControls = div(
-      display <-- displayControls,
-      alignItems.center,
-      flexGrow := 0,
-      flexShrink := 0,
-      paddingLeft := "10px",
+      cls := "chatmsg-controls",
       isDeleted.ifFalseOption(nodeLink(state, node)),
       isDeleted.ifFalseOption(deleteButton(state, node))
     )
 
     div(
+      cls := "chatmsg-body",
       display.flex,
       alignItems.center,
       div(
@@ -451,8 +447,6 @@ object ChatView extends View {
         overflowX.auto, // show scrollbar for very long messages
         flexGrow := 1
       ),
-      onMouseOver.map(_ => "flex") --> displayControls,
-      onMouseOut.map(_ => "none") --> displayControls,
       msgControls
     )
   }
