@@ -18,15 +18,16 @@ object IndexedDbOps {
     val auth = "auth"
   }
 
-  private lazy val db = OptionT(indexedDb.fold(Future.successful(Option.empty[IDBDatabase])) {
-    indexedDb =>
+  private lazy val db: OptionT[Future, IDBDatabase] = OptionT(
+    indexedDb.fold(Future.successful(Option.empty[IDBDatabase])) { indexedDb =>
       val openreq = indexedDb.open("woost", 1)
       openreq.onupgradeneeded = { e =>
         val db = openreq.result.asInstanceOf[IDBDatabase]
         db.createObjectStore(stores.auth)
       }
       requestFuture[IDBDatabase](openreq)
-  })
+    }
+  )
 
   def storeAuth(auth: Authentication)(implicit ec: ExecutionContext): Future[Boolean] = auth match {
     case Authentication.Verified(_, _, token) =>
