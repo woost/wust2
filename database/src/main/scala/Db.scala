@@ -30,24 +30,22 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
   private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
 
   //TODO should actually rollback transactions when batch action had partial error
+  // ^does anybody know what this is about?
   object node {
     // node ids are unique, so the methods can assume that at max 1 row was touched in each operation
-
-    //TODO need to check rights before we can do this
-    private val insert = quote { node: Node =>
-      val q = query[Node].insert(node)
-      // when adding a new node, we undelete it in case it was already there
-      //TODO this approach hides conflicts on node ids!!
-      //TODO what about title
-      //TODO can undelete nodes that i do not own
-      infix"$q ON CONFLICT(id) DO UPDATE SET deleted = ${lift(DeletedDate.NotDeleted.timestamp)}"
-        .as[Insert[Node]]
-    }
-
     def create(node: Node)(implicit ec: ExecutionContext): Future[Boolean] = create(List(node))
     def create(nodes: Iterable[Node])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx
-        .run(liftQuery(nodes).foreach(insert(_)))
+      // if there is an id conflict, we update the post.
+      // this is fine, because we always check permissions before creating new nodes.
+      // non-exisiting ids are automatically allowed.
+      // important: the permission checks must run in the same transaction.
+        .run(liftQuery(nodes).foreach {
+          query[Node].insert(_).onConflictUpdate(_.id)(
+            (node, excluded) => node.data -> excluded.data,
+            (node, excluded) => node.accessLevel -> excluded.accessLevel
+          )
+        })
         .map(_.forall(_ <= 1))
     }
 
@@ -62,7 +60,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       //ctx.run(query[Node].filter(p => liftQuery(nodeIds) contains p.id))
       val q = quote {
         infix"""
-        select node.* from unnest(${lift(nodeIds.toList)} :: varchar(36)[]) inputNodeId join node on node.id = inputNodeId
+        select node.* from unnest(${lift(nodeIds.toList)} :: uuid[]) inputNodeId join node on node.id = inputNodeId
       """.as[Query[Node]]
       }
 
@@ -74,22 +72,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       ctx
         .run(
           liftQuery(nodes.toList)
-            .foreach(node => query[Node].filter(_.id == node.id).update(_.data -> node.data))
-        )
-        .map(_.forall(_ == 1))
-    }
-
-    //TODO delete should be part of update?
-    def delete(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(nodeId))
-    def delete(nodeId: NodeId, when: DeletedDate)(implicit ec: ExecutionContext): Future[Boolean] =
-      delete(Set(nodeId), when)
-    def delete(nodeIds: Iterable[NodeId], when: DeletedDate = DeletedDate.Deleted(EpochMilli.now))(
-        implicit ec: ExecutionContext
-    ): Future[Boolean] = {
-      ctx
-        .run(
-          liftQuery(nodeIds.toList)
-            .foreach(nodeId => query[Node].filter(_.id == nodeId).update(_.deleted -> lift(when)))
+            .foreach(
+              node =>
+                query[Node]
+                  .filter(_.id == node.id)
+                  .update(
+                    _.data -> node.data,
+                    _.accessLevel -> node.accessLevel
+                  )
+            )
         )
         .map(_.forall(_ == 1))
     }
@@ -105,76 +96,20 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       }
     }
 
-    def addMemberWithCurrentJoinLevel(nodeId: NodeId, userId: UserId)(
+    def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel)(
         implicit ec: ExecutionContext
-    ): Future[Option[AccessLevel]] =
-      addMemberWithCurrentJoinLevel(nodeId :: Nil, userId).map(_.headOption.map {
-        case (nodeId, level) => level
-      })
-    def addMemberWithCurrentJoinLevel(nodeIds: List[NodeId], userId: UserId)(
-        implicit ec: ExecutionContext
-    ): Future[Seq[(NodeId, AccessLevel)]] = {
-      val now = EpochMilli.now
-      val insertMembership = quote {
-        // val membershipConnectionsToBeCreated = for {
-        //   user <- query[Node].filter(_.id == lift(userId))
-        //   node = query[Node].filter(p => liftQuery(nodeIds).contains(p.id) && lift(now) < p.joinDate)
-        //   connection <- node.map(p => Connection(user.id, ConnectionData.Member(p.joinLevel), p.id))
-        // } yield connection
-        //
-        //
-        val membershipConnectionsToBeCreated =
-          infix"""SELECT x22.id, jsonb_build_object('type', 'Member', 'level', p.joinlevel), p.id FROM node as x22, node p WHERE x22.id = ${lift(
-            userId
-          )} AND p.id = ANY(${lift(nodeIds)}) AND ${lift(now)} < p.joindate"""
-        // don't lower permission level
-
-        infix"""
-          insert into edge(sourceid, data, targetid)
-          $membershipConnectionsToBeCreated
-          ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE set data =
-            CASE EXCLUDED.data->>'level'  WHEN 'read' THEN edge.data
-                                          WHEN 'readwrite' THEN EXCLUDED.data
-            END
-        """.as[Insert[Edge]]
-        //TODO: https://github.com/getquill/quill/issues/1093
-        // returning nodeid
-        // """.as[ActionReturning[Membership, NodeId]]
-      }
-
-      // val r = ctx.run(liftQuery(nodeIds).foreach(insertMembership(_)))
-      ctx
-        .run(insertMembership)
-        //TODO: fix query with returning
-        .map { _ =>
-          nodeIds.map(p => (p, AccessLevel.Read))
-        } //TODO: this is fake data
-    }
-
-    def addMemberEvenIfLocked(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel)(
-        implicit ec: ExecutionContext
-    ): Future[Boolean] = addMemberEvenIfLocked(nodeId :: Nil, userId, accessLevel).map(_.nonEmpty)
-    def addMemberEvenIfLocked(nodeIds: List[NodeId], userId: UserId, accessLevel: AccessLevel)(
+    ): Future[Boolean] = addMember(nodeId :: Nil, userId, accessLevel).map(_.nonEmpty)
+    def addMember(nodeIds: List[NodeId], userId: UserId, accessLevel: AccessLevel)(
         implicit ec: ExecutionContext
     ): Future[Seq[NodeId]] = {
       val insertMembership = quote { nodeId: NodeId =>
         infix"""
           insert into edge(sourceid, data, targetid) values
           (${lift(userId)}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${nodeId})
-          ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE set data =
-            CASE EXCLUDED.data->>'level' WHEN 'read' THEN edge.data
-                                        WHEN 'readwrite' THEN EXCLUDED.data
-            END
+          ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.targetId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_)))
-    }
-    def setJoinDate(nodeId: NodeId, joinDate: JoinDate)(
-        implicit ec: ExecutionContext
-    ): Future[Boolean] = {
-      ctx
-        .run(query[Node].filter(_.id == lift(nodeId)).update(_.joinDate -> lift(joinDate)))
-        .map(_ == 1)
     }
   }
 
@@ -244,8 +179,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         .as[Insert[Edge]]
     }
 
-    def apply(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = apply(List(edge))
-    def apply(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
+    def create(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = create(List(edge))
+    def create(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
       ctx
         .run(liftQuery(edges.toList).foreach(insert(_)))
         .map(_.forall(_ <= 1))
@@ -296,36 +231,28 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     ): Future[Option[User]] = {
       val channelNode = Node(
         channelNodeId,
-        NodeData.Channels,
-        DeletedDate.NotDeleted,
-        JoinDate.Never,
-        AccessLevel.ReadWrite
+        NodeData.defaultChannelsData,
+        NodeAccess.Level(AccessLevel.Restricted)
       )
       val userData =
         NodeData.User(name = name, isImplicit = false, revision = 0, channelNodeId = channelNode.id)
       val user =
-        User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      val membership: EdgeData = EdgeData.Member(AccessLevel.Read)
+        User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
+      val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
 
       val q = quote {
         infix"""
-        with insert_channelnode as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(
-          channelNode.id
-        )}, ${lift(channelNode.data)}, ${lift(channelNode.deleted)}, ${lift(channelNode.joinDate)}, ${lift(
-          channelNode.joinLevel
-        )})),
-             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(
-          user.id
-        )}, ${lift(user.data)}, ${lift(user.deleted)}, ${lift(user.joinDate)}, ${lift(
-          user.joinLevel
-        )})),
+        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift( channelNode.id )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
+             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift( user.data )}, ${lift(user.accessLevel)})),
              ins_m_cp as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(channelNodeId)})),
              ins_m_up as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(userId)}))
-                      insert into password(userid, digest) select id, ${lift(digest)}
+                          insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(
+          digest
+        )})
       """.as[Insert[Node]]
       }
 
@@ -340,33 +267,23 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     ): Future[Option[User]] = {
       val channelNode = Node(
         channelNodeId,
-        NodeData.Channels,
-        DeletedDate.NotDeleted,
-        JoinDate.Never,
-        AccessLevel.ReadWrite
+        NodeData.defaultChannelsData,
+        NodeAccess.Level(AccessLevel.Restricted)
       )
       val userData =
         NodeData.User(name = name, isImplicit = true, revision = 0, channelNodeId = channelNode.id)
       val user =
-        User(userId, userData, DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      val membership: EdgeData = EdgeData.Member(AccessLevel.Read)
+        User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
+      val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
 
       val q = quote {
         infix"""
-        with insert_channelnode as (insert into node (id,data,deleted,joindate,joinlevel) values (${lift(
-          channelNode.id
-        )}, ${lift(channelNode.data)}, ${lift(channelNode.deleted)}, ${lift(channelNode.joinDate)}, ${lift(
-          channelNode.joinLevel
-        )})),
-             insert_user as (insert into node (id,data,deleted,joindate,joinlevel) values(${lift(
-          user.id
-        )}, ${lift(user.data)}, ${lift(user.deleted)}, ${lift(user.joinDate)}, ${lift(
-          user.joinLevel
-        )})),
-             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
+        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift( channelNode.id )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
+             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift( user.data )}, ${lift(user.accessLevel)})),
+              ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(channelNodeId)}))
-                      insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
+                          insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(userId)})
      """.as[Insert[Node]]
@@ -488,42 +405,38 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         .map(_.nonEmpty)
     }
 
-    def isMember(nodeId: NodeId, userId: UserId, minAccessLevel: AccessLevel)(
+    def canAccessNode(userId: UserId, nodeId: NodeId)(
         implicit ec: ExecutionContext
-    ): Future[Boolean] = {
-      //TODO: move these mappings into AccessLevel
-      val allowedLevels: List[String] = minAccessLevel match {
-        case AccessLevel.Read      => AccessLevel.Read.str :: AccessLevel.ReadWrite.str :: Nil
-        case AccessLevel.ReadWrite => AccessLevel.ReadWrite.str :: Nil
-      }
-      def find(allowedLevels: List[String]) = quote {
-        (for {
-          user <- query[Node].filter(_.id == lift(userId))
-          connectionExists <- query[Edge].filter(
-            c =>
-              c.targetId == lift(nodeId) && c.sourceId == user.id && c.data.jsonType == lift(
-                EdgeData.Member.tpe
-              ) && lift(allowedLevels).contains(c.data ->> "level")
-          )
-        } yield connectionExists).nonEmpty
-      }
-      ctx.run(find(allowedLevels))
+    ): Future[Boolean] = ctx.run {
+      canAccessNodeQuery(lift(userId), lift(nodeId))
+    }
+
+    def inaccessibleNodes(userId: UserId, nodeIds: List[NodeId])(
+        implicit ec: ExecutionContext
+    ): Future[Seq[NodeId]] = ctx.run {
+      inaccessibleNodesQuery(lift(userId), lift(nodeIds.toList))
+    }
+
+    private val canAccessNodeQuery = quote { (userId: UserId, nodeId: NodeId) =>
+      // TODO why not as[Query[Boolean]] like other functions?
+      infix"select * from can_access_node($userId, $nodeId)".as[Boolean]
+    }
+
+    private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: List[NodeId]) =>
+      infix"select * from inaccessible_nodes($userId, $nodeIds)".as[Seq[NodeId]]
     }
   }
 
   object graph {
-    private def graphPage(parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) =
-      quote {
-        infix"select * from graph_page(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})"
+    private val graphPage = quote {
+      (parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) =>
+        infix"select * from graph_page($parents, $children, $requestingUserId)"
           .as[Query[GraphRow]]
-      }
-    private def graphPageWithOrphans(
-        parents: Seq[NodeId],
-        children: Seq[NodeId],
-        requestingUserId: UserId
-    ) = quote {
-      infix"select * from graph_page_with_orphans(${lift(parents)}, ${lift(children)}, ${lift(requestingUserId)})"
-        .as[Query[GraphRow]]
+    }
+    private val graphPageWithOrphans = quote {
+      (parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) =>
+        infix"select * from graph_page_with_orphans($parents, $children, $requestingUserId)"
+          .as[Query[GraphRow]]
     }
 
     def getPage(parentIds: Seq[NodeId], childIds: Seq[NodeId], requestingUserId: UserId)(
@@ -532,7 +445,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       //TODO: also get visible direct parents in stored procedure
       ctx
         .run {
-          graphPage(parentIds, childIds, requestingUserId)
+          graphPage(lift(parentIds), lift(childIds), lift(requestingUserId))
         }
         .map(Graph.from)
     }
@@ -543,7 +456,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       //TODO: also get visible direct parents in stored procedure
       ctx
         .run {
-          graphPageWithOrphans(parentIds, childIds, requestingUserId)
+          graphPageWithOrphans(lift(parentIds), lift(childIds), lift(requestingUserId))
         }
         .map(Graph.from)
     }

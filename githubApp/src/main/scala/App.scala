@@ -494,17 +494,12 @@ object WustReceiver {
           m + (p.id -> graph.ancestors(p.id))
         })
 
-      val updateAncestors =
-        graphChanges.updateNodes.foldLeft(Map.empty[NodeId, Iterable[NodeId]])((m, p) => {
-          m + (p.id -> graph.ancestors(p.id))
-        })
+//      val delAncestors =
+//        graphChanges.delNodes.foldLeft(Map.empty[NodeId, Iterable[NodeId]])((m, pid) => {
+//          m + (pid -> prevGraph.ancestors(pid))
+//        })
 
-      val delAncestors =
-        graphChanges.delNodes.foldLeft(Map.empty[NodeId, Iterable[NodeId]])((m, pid) => {
-          m + (pid -> prevGraph.ancestors(pid))
-        })
-
-      addAncestors ++ updateAncestors ++ delAncestors
+      addAncestors ++ ??? // TODO: delAncestors
     }
 
     def issuePostOfDesc(graph: Graph, pid: NodeId): Option[Node] = {
@@ -525,52 +520,53 @@ object WustReceiver {
       val prevGraph = graphTransition.prevGraph
       val ancestors = getAncestors(prevGraph, currGraph, gc)
 
-      val githubChanges = gc.copy(
+      val githubChanges:GraphChanges = ??? /*gc.copy(
         addNodes = gc.addNodes.filter(p => ancestors(p.id).exists(_ == Constants.githubId)),
-        delNodes = gc.delNodes.filter(pid => ancestors(pid).exists(_ == Constants.githubId)),
-        updateNodes = gc.updateNodes.filter(p => ancestors(p.id).exists(_ == Constants.githubId))
-      )
+        delNodes = gc.delNodes.filter(pid => ancestors(pid).exists(_ == Constants.githubId))
+      )*/
 
       // Delete
-      val githubDeletePosts = githubChanges.delNodes
-      val issuesToDelete: collection.Set[NodeId] =
-        githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
-      val commentsToDelete: collection.Set[NodeId] = githubDeletePosts.filter(
-        pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId)
-      )
+//      val githubDeletePosts = githubChanges.delNodes
+//      val issuesToDelete: collection.Set[NodeId] =
+//        githubDeletePosts.filter(pid => prevGraph.inChildParentRelation(pid, Constants.issueTagId))
+//      val commentsToDelete: collection.Set[NodeId] = githubDeletePosts.filter(
+//        pid => prevGraph.inChildParentRelation(pid, Constants.commentTagId)
+//      )
 
-      val deleteIssuesCall = issuesToDelete
-        .flatMap { pid =>
-          val externalId = Try(pid.toString.toInt).toOption
-          externalId.map(
-            eid =>
-              DeleteIssue(
-                owner = Constants.wustOwner,
-                repo = Constants.wustRepo,
-                externalNumber = eid,
-                title = prevGraph.nodesById(pid).data.str,
-                content = issuePostOfDesc(prevGraph, pid).map(_.data.str).getOrElse(""),
-                nodeId = pid
-              )
-          )
-        }
-
-      val deleteCommentsCall = commentsToDelete
-        .flatMap { pid =>
-          val externalId = Try(pid.toString.toInt).toOption
-          externalId.map(
-            eid =>
-              DeleteComment(
-                owner = Constants.wustOwner,
-                repo = Constants.wustRepo,
-                externalId = eid,
-                nodeId = pid
-              )
-          )
-        }
+//      val deleteIssuesCall = issuesToDelete
+//        .flatMap { pid =>
+//          val externalId = Try(pid.toString.toInt).toOption
+//          externalId.map(
+//            eid =>
+//              DeleteIssue(
+//                owner = Constants.wustOwner,
+//                repo = Constants.wustRepo,
+//                externalNumber = eid,
+//                title = prevGraph.nodesById(pid).data.str,
+//                content = issuePostOfDesc(prevGraph, pid).map(_.data.str).getOrElse(""),
+//                nodeId = pid
+//              )
+//          )
+//        }
+//
+//      val deleteCommentsCall = commentsToDelete
+//        .flatMap { pid =>
+//          val externalId = Try(pid.toString.toInt).toOption
+//          externalId.map(
+//            eid =>
+//              DeleteComment(
+//                owner = Constants.wustOwner,
+//                repo = Constants.wustRepo,
+//                externalId = eid,
+//                nodeId = pid
+//              )
+//          )
+//        }
 
       // Update
-      val githubUpdatePosts = githubChanges.updateNodes
+      // TODO: graphchanges do not have updatenodes. just addnodes, which can either be added or updated.
+      // we need to check somewhere (in github?) whether this issue already exists or is new.
+      val githubUpdatePosts: collection.Set[Node] = ??? //githubChanges.updateNodes
       val issuesToUpdate: collection.Set[Node] = githubUpdatePosts.filter(
         post => currGraph.inChildParentRelation(post.id, Constants.issueTagId)
       )
@@ -677,7 +673,7 @@ object WustReceiver {
         }
 
       val combinedCalls =
-        (createIssuesCall ++ createCommentsCall ++ redirectCreateCommentsCall ++ editIssuesCall ++ editCommentsCall ++ deleteIssuesCall ++ deleteCommentsCall).toSeq
+        (createIssuesCall ++ createCommentsCall ++ redirectCreateCommentsCall ++ editIssuesCall ++ editCommentsCall ++ ??? /*deleteIssuesCall ++ deleteCommentsCall*/).toSeq
 
 //      println("-" * 200)
 //      println(s"Github post ancestors: $ancestors")

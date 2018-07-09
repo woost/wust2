@@ -8,12 +8,12 @@ import wust.util.collection._
 import collection.mutable
 import collection.breakOut
 
-case class NodeMeta(deleted: DeletedDate, joinDate: JoinDate, joinLevel: AccessLevel)
+case class NodeMeta(accessLevel: NodeAccess)
 object NodeMeta {
   //TODO a user should NOT have NodeMeta. We cannot delete users like normal
   //posts and what does join and accesslevel actually mean in the context of a
   //user?
-  def User = NodeMeta(DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
+  def User = NodeMeta(NodeAccess.Level(AccessLevel.Restricted))
 }
 
 sealed trait Node {
@@ -27,15 +27,13 @@ object Node {
   case class User(id: UserId, data: NodeData.User, meta: NodeMeta) extends Node
   case class Content(id: NodeId, data: NodeData.Content, meta: NodeMeta) extends Node
   object Content {
+    private val defaultMeta = NodeMeta(NodeAccess.Inherited)
+
     def apply(id: NodeId, data: NodeData.Content): Content = {
-      new Content(id, data, NodeMeta(DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite))
+      new Content(id, data, defaultMeta)
     }
     def apply(data: NodeData.Content): Content = {
-      new Content(
-        NodeId.fresh,
-        data,
-        NodeMeta(DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
-      )
+      new Content(NodeId.fresh, data, defaultMeta)
     }
   }
 
@@ -50,14 +48,15 @@ sealed trait Edge {
 }
 
 object Edge {
+  //TODO: should Edge have a equals and hashcode depending only on sourceid, targetid and data.str?
   sealed trait Content extends Edge
 
-  //TODO should have constructor: level: AccessLevel
+  //TODO should have constructor: level: AccessLevel // or not: this makes it less extensible if you add fields to EdgeData
   case class Member(userId: UserId, data: EdgeData.Member, groupId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = groupId
   }
-  //TODO should have constructor: timestamp: Timestamp
+  //TODO should have constructor: timestamp: Timestamp // or not: this makes it less extensible if you add fields to EdgeData
   case class Author(userId: UserId, data: EdgeData.Author, nodeId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = nodeId
@@ -67,6 +66,11 @@ object Edge {
     def sourceId = childId
     def targetId = parentId
     def data = EdgeData.Parent
+  }
+
+  case class DeletedParent(childId: NodeId, data: EdgeData.DeletedParent, parentId: NodeId) extends Content {
+    def sourceId = childId
+    def targetId = parentId
   }
 
   //TODO should have constructor: label: String
@@ -82,7 +86,6 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
-
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
   def size: Int = nodes.size
@@ -108,7 +111,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     containments: collection.Set[Edge.Parent],
     children: collection.Map[NodeId, collection.Set[NodeId]],
     parents: collection.Map[NodeId, collection.Set[NodeId]],
+    deletedParents: collection.Map[NodeId, collection.Set[NodeId]],
     authorshipsByNodeId: collection.Map[NodeId, List[Edge.Author]],
+    membershipsByNodeId: collection.Map[NodeId, List[Edge.Member]],
     allUserIds: collection.Set[UserId], //TODO: List?
     allAuthorIds: collection.Set[UserId], //TODO: List?
     channelNodeIds: collection.Set[NodeId], //TODO: List?
@@ -133,8 +138,12 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val parents = mutable
       .HashMap[NodeId, collection.Set[NodeId]]()
       .withDefaultValue(mutable.HashSet.empty[NodeId])
+    val deletedParents = mutable
+      .HashMap[NodeId, collection.Set[NodeId]]()
+      .withDefaultValue(mutable.HashSet.empty[NodeId])
 
     val authorshipsByNodeId = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
+    val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
     val allAuthorIds = mutable.HashSet[UserId]()
     val allUserIds = mutable.HashSet[UserId]()
 
@@ -146,10 +155,14 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       case e @ Edge.Author(authorId, _, nodeId) =>
         authorshipsByNodeId(nodeId) ::= e
         allAuthorIds += authorId
+      case e @ Edge.Member(authorId, _, nodeId) =>
+        membershipsByNodeId(nodeId) ::= e
       case e @ Edge.Parent(childId, parentId) =>
         children(parentId) += childId
         parents(childId) += parentId
         containments += e
+      case e @ Edge.DeletedParent(childId,_ , parentId) =>
+        deletedParents(childId) += parentId
       case e: Edge.Label =>
         labeledEdges += e
       case _ =>
@@ -162,15 +175,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       nodesById(nodeId) = node
 
       node match {
-        case Node.User(id, _, _) =>
+        case Node.User(id, data, _) =>
           allUserIds += id
-        case Node.Content(id, data, _) =>
-          data match {
-            case NodeData.Channels =>
-              channelNodeIds += id
-              channelIds ++= children(id)
-            case _ =>
-          }
+          channelNodeIds += data.channelNodeId
+          channelIds ++= children(data.channelNodeId)
         case _ =>
       }
     }
@@ -194,7 +202,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       containments,
       children,
       parents,
+      deletedParents,
       authorshipsByNodeId,
+      membershipsByNodeId,
       allAuthorIds,
       allUserIds,
       channelNodeIds,
@@ -223,8 +233,14 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
   def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
 
+  def isDeletedNow(node: Node, parentIds: Set[NodeId]):Boolean = isDeletedNow(node.id, parentIds)
+  def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]):Boolean = {
+    parentIds subsetOf deletedParents(nodeId)
+  }
+
+
   lazy val channels: collection.Set[Node] =
-    channelIds.map(nodesById).filterNot(_.meta.deleted.isNowDeleted)
+    channelIds.map(nodesById)
   lazy val withoutChannels: Graph = this.filterNot(channelIds ++ channelNodeIds)
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
@@ -355,6 +371,34 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
   }
 
+  // IMPORTANT:
+  // exactly the same as in the stored procedure
+  // when changing things, make sure to change them for the stored procedure as well.
+  def can_access_node(userId:NodeId, nodeId:NodeId):Boolean = {
+    def can_access_node_recursive(userId:NodeId, nodeId:NodeId, visited:Set[NodeId] = Set.empty):Boolean = {
+      if(visited(nodeId)) return false // prevent inheritance cycles
+
+      // is there a membership?
+      val levelFromMembership = membershipsByNodeId(nodeId).collectFirst{ case Edge.Member(`userId`, EdgeData.Member(level), _) => level }
+      levelFromMembership match {
+        case None => // if no member edge exists
+          // read access level directly from node
+          nodesById(nodeId).meta.accessLevel match {
+            case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
+            case NodeAccess.Inherited =>
+              // recursively inherit permissions from parents. minimum one parent needs to allow access.
+              parents(nodeId).exists(parentId => can_access_node_recursive(userId, parentId, visited + nodeId))
+          }
+        case Some(level) =>
+          level == AccessLevel.ReadWrite
+      }
+    }
+
+    // everybody has full access to non-existent nodes
+    if(!(nodeIds contains nodeId)) return true
+    can_access_node_recursive(userId, nodeId)
+  }
+
   lazy val containmentNeighbours
     : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
     NodeId,
@@ -386,17 +430,11 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def addConnections(es: Iterable[Edge]): Graph =
     copy(edges = edges ++ es.filter(e => nodeIds(e.sourceId) && nodeIds(e.targetId)))
 
-  def applyChanges(c: GraphChanges): Graph = {
-    val updatedIds = c.updateNodes.map(_.id)
-    copy(
-      nodes = (nodes.filterNot(n => updatedIds(n.id)) ++ c.addNodes ++ c.updateNodes).map {
-        case p: Node.Content if c.delNodes(p.id) =>
-          p.copy(meta = p.meta.copy(deleted = DeletedDate.Deleted.now))
-        case p => p
-      },
+  def applyChanges(c: GraphChanges): Graph =     copy(
+      nodes = nodes ++ c.addNodes,
       edges = edges ++ c.addEdges -- c.delEdges
     )
-  }
+
 
   def +(node: Node): Graph = copy(nodes = nodes + node)
   def +(edge: Edge): Graph = copy(

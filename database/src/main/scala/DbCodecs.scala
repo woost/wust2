@@ -23,12 +23,12 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
     case Left(e)  => throw new Exception(s"Failed to decode json: '$json': $e")
   }
 
-  implicit val encodingNodeId: MappedEncoding[NodeId, UUID] = MappedEncoding[NodeId, UUID](_.toUuid)
+  implicit val encodingNodeId: MappedEncoding[NodeId, UUID] = MappedEncoding(_.toUuid)
   implicit val decodingNodeId: MappedEncoding[UUID, NodeId] =
-    MappedEncoding[UUID, NodeId](uuid => NodeId(Cuid.fromUuid(uuid)))
-  implicit val encodingUserId: MappedEncoding[UserId, UUID] = MappedEncoding[UserId, UUID](_.toUuid)
+    MappedEncoding(uuid => NodeId(Cuid.fromUuid(uuid)))
+  implicit val encodingUserId: MappedEncoding[UserId, UUID] = MappedEncoding(_.toUuid)
   implicit val decodingUserId: MappedEncoding[UUID, UserId] =
-    MappedEncoding[UUID, UserId](uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
+    MappedEncoding(uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
 
   //TODO: quill PR: add these seq[UUID] encoder/decoder
   //TODO: quill PR: rename arrayRawEncoder To ...Decoder
@@ -37,56 +37,50 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit def arrayUUIDEncoder[Col <: Seq[UUID]]: Encoder[Col] = arrayRawEncoder[UUID, Col]
 
   implicit val encodingEdgeDataType: MappedEncoding[EdgeData.Type, String] =
-    MappedEncoding[EdgeData.Type, String](identity)
+    MappedEncoding(identity)
   implicit val decodingEdgeDataType: MappedEncoding[String, EdgeData.Type] =
-    MappedEncoding[String, EdgeData.Type](EdgeData.Type(_))
+    MappedEncoding(EdgeData.Type(_))
   implicit val encodingEdgeData: MappedEncoding[EdgeData, String] =
-    MappedEncoding[EdgeData, String](encodeJson[EdgeData])
+    MappedEncoding(encodeJson[EdgeData])
   implicit val decodingEdgeData: MappedEncoding[String, EdgeData] =
-    MappedEncoding[String, EdgeData](decodeJson[EdgeData])
+    MappedEncoding(decodeJson[EdgeData])
 
   implicit val encodingNodeDataType: MappedEncoding[NodeData.Type, String] =
-    MappedEncoding[NodeData.Type, String](identity)
+    MappedEncoding(identity)
   implicit val decodingNodeDataType: MappedEncoding[String, NodeData.Type] =
-    MappedEncoding[String, NodeData.Type](NodeData.Type(_))
+    MappedEncoding(NodeData.Type(_))
   implicit def encodingNodeData[Data <: NodeData]: MappedEncoding[Data, String] =
-    MappedEncoding[Data, String](encodeJson[NodeData]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
+    MappedEncoding(encodeJson[NodeData]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
   implicit val decodingNodData: MappedEncoding[String, NodeData] =
-    MappedEncoding[String, NodeData](decodeJson[NodeData])
+    MappedEncoding(decodeJson[NodeData])
   implicit val decodingNodeDataUser: MappedEncoding[String, NodeData.User] =
-    MappedEncoding[String, NodeData.User](
+    MappedEncoding(
       decodeJson[NodeData.User]
     ) // explicitly provided for query[User] where data has type PostData.User
 
   implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] =
-    MappedEncoding[EpochMilli, Date] { d =>
+    MappedEncoding { d =>
       new Date(d)
     }
   implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] =
-    MappedEncoding[Date, EpochMilli] { d =>
+    MappedEncoding { d =>
       EpochMilli(d.toInstant.toEpochMilli)
     }
 
-  implicit val encodingDeletedDate: MappedEncoding[DeletedDate, Date] =
-    MappedEncoding[DeletedDate, Date] { d =>
-      encodingEpochMilli.f(d.timestamp)
+  implicit val encodingNodeAccessLevel: MappedEncoding[NodeAccess, Option[String]] =
+    MappedEncoding {
+      case NodeAccess.Level(level) => Some(level.str)
+      case NodeAccess.Inherited    => None
     }
-  implicit val decodingDeletedDate: MappedEncoding[Date, DeletedDate] =
-    MappedEncoding[Date, DeletedDate] { d =>
-      DeletedDate.from(decodingEpochMilli.f(d))
+  implicit val decodingNodeAccessLevel: MappedEncoding[Option[String], NodeAccess] =
+    MappedEncoding {
+      _.fold[NodeAccess](NodeAccess.Inherited)(AccessLevel.fromString andThen NodeAccess.Level)
     }
-  implicit val encodingJoinDate: MappedEncoding[JoinDate, Date] = MappedEncoding[JoinDate, Date] {
-    d =>
-      encodingEpochMilli.f(d.timestamp)
-  }
-  implicit val decodingJoinDate: MappedEncoding[Date, JoinDate] = MappedEncoding[Date, JoinDate] {
-    d =>
-      JoinDate.from(decodingEpochMilli.f(d))
-  }
+
   implicit val encodingAccessLevel: MappedEncoding[AccessLevel, String] =
-    MappedEncoding[AccessLevel, String] { _.str }
+    MappedEncoding { _.str }
   implicit val decodingAccessLevel: MappedEncoding[String, AccessLevel] =
-    MappedEncoding[String, AccessLevel] { AccessLevel.from }
+    MappedEncoding { AccessLevel.fromString }
 
   implicit class EpochMilliQuillOps(ldt: EpochMilli) {
     def > = ctx.quote((date: EpochMilli) => infix"$ldt > $date".as[Boolean])

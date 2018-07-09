@@ -11,6 +11,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit def tupleIsConnection(t: (Int, Int)): Edge = Connection(t._1, t._2)
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Edge] = connections.map(tupleIsConnection)
 
+  implicit def stringToCuid(id:String):Cuid = Cuid.fromBase58("5Q4is6Gc5NbA7T7W7PvAUw".dropRight(id.length) + id)
+  def user(id:Cuid) = Node.User(UserId(NodeId(id)), NodeData.User(id.toString, false, 0, 0), NodeMeta.User)
+
   implicit class ContainmentBuilder(parentId: Int) {
     def cont(childId: Int) = Containment(parentId, childId);
   }
@@ -229,6 +232,251 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
       graph.containmentNeighbours(1) mustEqual Set[NodeId](11, 12)
       graph.containmentNeighbours(12) mustEqual Set[NodeId](1, 13)
+    }
+
+    "permissions" - {
+      // IMPORTANT:
+      // exactly the same test cases as for stored procedure `can_access_node()`
+      // when changing things, make sure to change them for the stored procedure as well.
+      import wust.ids.NodeAccess._
+      import wust.ids.AccessLevel._
+      def node(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeMeta(nodeAccess))
+      def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(UserId(NodeId(user)), EdgeData.Member(level), NodeId(node))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def access(g:Graph, user:Cuid, node:Cuid):Boolean = g.can_access_node(UserId(NodeId(user)), NodeId(node))
+
+      "simple" - {
+        "1" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(Restricted))),
+            edges = Set(member("A", Restricted, "B"))
+          )
+          assert(access(g, "A", "B") == false)
+        }
+        "2" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(ReadWrite))),
+            edges = Set(member("A", Restricted, "B"))
+          )
+          assert(access(g, "A", "B") == false)
+        }
+        "3" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Inherited)),
+            edges = Set(member("A", Restricted, "B"))
+          )
+          assert(access(g, "A", "B") == false)
+        }
+
+
+        "4" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(Restricted))),
+            edges = Set(member("A", ReadWrite, "B"))
+          )
+          assert(access(g, "A", "B") == true)
+        }
+        "5" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(ReadWrite))),
+            edges = Set(member("A", ReadWrite, "B"))
+          )
+          assert(access(g, "A", "B") == true)
+        }
+        "6" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Inherited)),
+            edges = Set(member("A", ReadWrite, "B"))
+          )
+          assert(access(g, "A", "B") == true)
+        }
+
+
+        "7" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(Restricted))),
+            edges = Set()
+          )
+          assert(access(g, "A", "B") == false)
+        }
+        "8" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(ReadWrite))),
+            edges = Set()
+          )
+          assert(access(g, "A", "B") == true)
+        }
+      }
+
+      "simple inheritance" - {
+        "1" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(Restricted)), node("C", Inherited)),
+            edges = Set(member("A", Restricted, "B"), parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == false)
+        }
+        "2" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(ReadWrite)), node("C", Inherited)),
+            edges = Set(member("A", Restricted, "B"), parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == false)
+        }
+        "3" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Inherited), node("C", Inherited)),
+            edges = Set(member("A", Restricted, "B"), parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == false)
+        }
+
+
+        "4" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(Restricted)), node("C", Inherited)),
+            edges = Set(member("A", ReadWrite, "B"), parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == true)
+        }
+        "5" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(ReadWrite)), node("C", Inherited)),
+            edges = Set(member("A", ReadWrite, "B"), parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == true)
+        }
+        "6" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Inherited), node("C", Inherited)),
+            edges = Set(member("A", ReadWrite, "B"), parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == true)
+        }
+
+
+        "7" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(Restricted)), node("C", Inherited)),
+            edges = Set(parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == false)
+        }
+        "8" in {
+          val g = Graph(
+            nodes = Set(user("A"), node("B", Level(ReadWrite)), node("C", Inherited)),
+            edges = Set(parent("C", "B"))
+          )
+          assert(access(g, "A", "C") == true)
+        }
+      }
+
+      "multiple inheritance: max wins" in {
+        val g = Graph(
+          nodes = Set(
+            user("A"),
+            node("B", Level(Restricted)),
+            node("C", Level(ReadWrite)),
+            node("D", Inherited)
+          ),
+          edges = Set(
+            parent("D", "B"),
+            parent("D", "C")
+          )
+        )
+        assert(access(g, "A", "D") == true)
+      }
+
+      "long inheritance chain: readwrite" in {
+        val g = Graph(
+          nodes = Set(
+            user("A"),
+            node("B", Level(ReadWrite)),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Set(
+            parent("C", "B"),
+            parent("D", "C")
+          )
+        )
+        assert(access(g, "A", "D") == true)
+      }
+
+      "long inheritance chain: restricted" in {
+        val g = Graph(
+          nodes = Set(
+            user("A"),
+            node("B", Level(Restricted)),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Set(
+            parent("C", "B"),
+            parent("D", "C")
+          )
+        )
+        assert(access(g, "A", "D") == false)
+      }
+
+      "inheritance cycle: readwrite" in {
+        val g = Graph(
+          nodes = Set(
+            user("A"),
+            node("B", Level(ReadWrite)),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Set(
+            parent("C", "B"),
+            parent("D", "C"),
+            parent("C", "D")
+          )
+        )
+        assert(access(g, "A", "D") == true)
+        assert(access(g, "A", "C") == true)
+      }
+
+      "inheritance cycle: restricted" in {
+        val g = Graph(
+          nodes = Set(
+            user("A"),
+            node("B", Level(Restricted)),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Set(
+            parent("C", "B"),
+            parent("D", "C"),
+            parent("C", "D")
+          )
+        )
+        assert(access(g, "A", "D") == false)
+        assert(access(g, "A", "C") == false)
+      }
+
+      "non-existing nodes" in {
+        val g = Graph(
+          nodes = Set(
+            user("A")
+          ),
+          edges = Set(
+          )
+        )
+        assert(access(g, "A", "D") == true)
+      }
+
+      "inherit without any parent" in {
+        val g = Graph(
+          nodes = Set(
+            user("A"),
+            node("B", Inherited)
+          ),
+          edges = Set(
+          )
+        )
+        assert(access(g, "A", "B") == false)
+      }
     }
   }
 }

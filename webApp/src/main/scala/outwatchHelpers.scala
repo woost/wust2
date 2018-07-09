@@ -4,14 +4,14 @@ import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
 import monix.execution.ExecutionModel.SynchronousExecution
-import monix.execution.{Cancelable, Scheduler, Ack}
+import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.document
 import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode, dsl}
-import outwatch.{AsVDomModifier, Sink}
+import outwatch.{AsVDomModifier, ObserverSink, Sink}
 import rx._
 
 import scala.collection.breakOut
@@ -47,6 +47,9 @@ package object outwatchHelpers {
       rx
     }
   }
+
+  implicit def observerAsSink[T](observer: Observer[T])(implicit ctx: Ctx.Owner): Sink[T] =
+    ObserverSink(observer)
 
   implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
     (value: Rx[T]) => value.toObservable

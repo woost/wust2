@@ -2,7 +2,7 @@ package wust.webApp
 
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom.experimental.serviceworkers.ServiceWorker
+import org.scalajs.dom.experimental.serviceworkers.{ServiceWorker => OriginalServiceWorker}
 import org.scalajs.dom.{experimental, window, _}
 import wust.webApp.outwatchHelpers._
 
@@ -33,7 +33,7 @@ object ServiceWorker {
                     )
                     if (installingWorker.state == "installed"
                         && (Navigator.serviceWorker.get.controller
-                          .asInstanceOf[js.UndefOr[ServiceWorker]]
+                          .asInstanceOf[js.UndefOr[OriginalServiceWorker]]
                           .isDefined)) {
                       console.log("New SW installed, can update.")
                       subject.onNext(())

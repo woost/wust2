@@ -22,6 +22,9 @@ object EdgeData {
 
   case object Parent extends Named with EdgeData
 
+  case class DeletedParent(timestamp: EpochMilli) extends Named with EdgeData
+  object DeletedParent extends Named
+
   // content types
   case class Label(name: String) extends Named with EdgeData
   object Label extends Named

@@ -106,7 +106,7 @@ object SelectedPostMenu {
     val updatePostHandler = Handler.create[String].unsafeRunSync()
     updatePostHandler.foreach { newContent =>
       val changes =
-        GraphChanges(updateNodes = Set(rxPost.now.copy(data = NodeData.Markdown(newContent))))
+        GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
       state.eventProcessor.enriched.changes.onNext(changes)
 
       editMode.unsafeOnNext(false)
@@ -263,7 +263,7 @@ object SelectedPostMenu {
 //    ),
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
     MenuAction("Delete", { (p: Node, state: GlobalState) =>
-      state.eventProcessor.enriched.changes.onNext(GraphChanges(delNodes = Set(p.id)))
+      state.eventProcessor.enriched.changes.onNext(GraphChanges.delete(p.id, state.page.now.parentIdSet))
     }),
     // MenuAction(
     //   "Autopos",

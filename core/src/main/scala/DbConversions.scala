@@ -7,14 +7,10 @@ import wust.ids._
 
 object DbConversions {
   private def nodeMeta(node: Data.Node) = new NodeMeta(
-    deleted = node.deleted,
-    joinDate = node.joinDate,
-    joinLevel = node.joinLevel
+    accessLevel = node.accessLevel
   )
   private def nodeMeta(node: Data.User) = new NodeMeta(
-    deleted = node.deleted,
-    joinDate = node.joinDate,
-    joinLevel = node.joinLevel
+    accessLevel = node.accessLevel
   )
 
   implicit def forClient(s: Data.WebPushSubscription): WebPushSubscription =
@@ -46,6 +42,7 @@ object DbConversions {
     case data: EdgeData.Author => new Edge.Author(UserId(c.sourceId), data, c.targetId)
     case data: EdgeData.Member => new Edge.Member(UserId(c.sourceId), data, c.targetId)
     case EdgeData.Parent       => new Edge.Parent(c.sourceId, c.targetId)
+    case data: EdgeData.DeletedParent  => new Edge.DeletedParent(c.sourceId, data, c.targetId)
     case data: EdgeData.Label  => new Edge.Label(c.sourceId, data, c.targetId)
   }
 
@@ -56,9 +53,7 @@ object DbConversions {
     new Data.Node(
       id = id,
       data = data,
-      deleted = meta.deleted,
-      joinDate = meta.joinDate,
-      joinLevel = meta.joinLevel
+      accessLevel = meta.accessLevel
     )
   }
 

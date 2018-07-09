@@ -539,9 +539,8 @@ case class MergePosts(posts: Posts) extends YesNoTask {
 
     GraphChanges(
       addEdges = postsToUpdate.flatMap(_._2).toSet,
-      updateNodes = postsToUpdate.map(_._1).toSet,
-      delNodes = postsToDelete.map(_.id).toSet
-    )
+      addNodes = postsToUpdate.map(_._1).toSet,
+    ) merge GraphChanges.delete(postsToDelete.map(_.id), parentIds = ???)
   }
 
   def mergePosts(mergeTarget: Node.Content, source: Node.Content): Node.Content = {
@@ -615,9 +614,8 @@ case class UnifyPosts(posts: Posts)
 
     GraphChanges(
       addEdges = postsToUpdate.flatMap(_._2).toSet,
-      updateNodes = postsToUpdate.map(_._1).toSet,
-      delNodes = postsToDelete.map(_.id).toSet
-    )
+      addNodes = postsToUpdate.map(_._1).toSet,
+    ) merge GraphChanges.delete(postsToDelete.map(_.id), parentIds = ???)
   }
 
   def unifyPosts(unifyTarget: Node.Content, post: Node.Content): Node.Content = {
@@ -668,7 +666,7 @@ case class DeletePosts(posts: Posts) extends YesNoTask {
     """.stripMargin
 
   def component(state: GlobalState): VNode = {
-    constructComponent(state, posts, GraphChanges(delNodes = posts.map(_.id).toSet))
+    constructComponent(state, posts, GraphChanges.delete(posts.map(_.id), parentIds = ???))
   }
 }
 
@@ -791,8 +789,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
     GraphChanges(
       addNodes = newPosts,
       addEdges = newConnections ++ keepRelatives,
-      delNodes = originalPosts.map(_.id).toSet,
-    )
+    ) merge GraphChanges.delete(originalPosts.map(_.id), parentIds = ???)
   }
 
   def component(state: GlobalState): VNode = {

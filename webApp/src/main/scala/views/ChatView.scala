@@ -10,7 +10,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
 import wust.webApp._
-import fontAwesome.{freeBrands, freeRegular, freeSolid}
+import fontAwesome._
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import dom.{Event, console}
@@ -93,10 +93,10 @@ object ChatView extends View {
           state.user.map { user =>
             if (user.channelNodeId == parent.id) Seq.empty
             else
-              Seq(
+              Seq[VDomModifier](
                 channelControl(state, parent)(ctx)(marginLeft := "5px"),
                 joinControl(state, parent)(ctx)(marginLeft := "5px"),
-                deleteButton(state, parent)(marginLeft := "5px")
+                Rx{deleteButton(state, parent, state.graph(), state.page())(marginLeft := "5px")}
               )
           }
         )
@@ -130,53 +130,62 @@ object ChatView extends View {
   )
 
   private def joinControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val text = node.meta.joinDate match {
-      case JoinDate.Always =>
-        div(
-          cls := "ui label",
-          title := "Users can join via URL (click to toggle)",
-          (freeSolid.faUserPlus: VNode)(cls := "icon"),
-          span("Forever")
-        )
-      case JoinDate.Never =>
-        span(freeSolid.faLock: VNode, title := "Private Group (click to toggle)")
-        div(
-          cls := "ui label",
-          title := "Nobody can join (click to toggle)",
-          (freeSolid.faLock: VNode)(cls := "icon"),
-          span("Private")
-        )
-      case JoinDate.Until(time) =>
-        div(
-          cls := "ui label",
-          title := "Users can join via URL (click to toggle)",
-          (freeSolid.faUserPlus: VNode)(cls := "icon"),
-          span(dateFns.formatDistance(new js.Date(time), new js.Date(js.Date.now()))) // js.Date.now() is UTC
-        )
+    def controlElement(
+        name: String,
+        description: String,
+        icon: IconLookup,
+        toggleAccess: NodeAccess
+    ): VNode = {
+      def nextNode = node match {
+        case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = toggleAccess))
+        case _               => ??? //FIXME
+      }
+
+      div(
+        cls := "ui label",
+        title := s"$description (click to toggle)",
+        renderFontAwesomeIcon(icon)(cls := "icon"),
+        span(name),
+        cursor.pointer,
+        onClick(GraphChanges.addNode(nextNode)) --> state.eventProcessor.changes
+      )
     }
 
-    div(
-      text,
-      cursor.pointer,
-      onClick --> sideEffect { _ =>
-        val newJoinDate = node.meta.joinDate match {
-          case JoinDate.Always => JoinDate.Never
-          case JoinDate.Never  => JoinDate.Always
-          case _               => JoinDate.Never
+    node.meta.accessLevel match {
+      case NodeAccess.Inherited =>
+        controlElement(
+          name = "Inherited",
+          description = "The permissions for this Node are inherited from its parents",
+          icon = freeSolid.faArrowUp,
+          toggleAccess = NodeAccess.Level(AccessLevel.ReadWrite)
+        )
+      case NodeAccess.Level(level) =>
+        level match {
+          case AccessLevel.ReadWrite =>
+            controlElement(
+              name = "Public",
+              description = "Anyone can access this Node via the URL",
+              icon = freeSolid.faUserPlus,
+              toggleAccess = NodeAccess.Level(AccessLevel.Restricted)
+            )
+          case AccessLevel.Restricted =>
+            controlElement(
+              name = "Private",
+              description = "Only you and explicit members can access this Node",
+              icon = freeSolid.faLock,
+              toggleAccess = NodeAccess.Inherited
+            )
         }
-
-        Client.api.setJoinDate(node.id, newJoinDate)
-      }
-    )
+    }
   }
 
-  private def deleteButton(state: GlobalState, node: Node) = div(
+  private def deleteButton(state: GlobalState, node: Node, graph:Graph, page:Page) = div(
     paddingLeft := "3px",
     freeRegular.faTrashAlt,
     cursor.pointer,
     onClick.map { e =>
       e.stopPropagation()
-      GraphChanges.delete(node)
+      GraphChanges.delete(node, graph.parents(node).toSet intersect page.parentIdSet)
     } --> ObserverSink(state.eventProcessor.changes)
   )
 
@@ -275,7 +284,7 @@ object ChatView extends View {
         if (nodes.isEmpty) Seq(emptyMessage)
         else
           groupNodes(graph(), nodes, state, user().id)
-            .map(chatMessage(state, _, graph(), user().id))
+            .map(chatMessage(state, _, graph(), page(), user().id))
       },
       onUpdate --> sideEffect { (prev, _) =>
         scrolledToBottom
@@ -350,14 +359,14 @@ object ChatView extends View {
     else span()
   }
 
-  private def chatMessage(state: GlobalState, chat: ChatKind, graph: Graph, currentUser: UserId)(
+  private def chatMessage(state: GlobalState, chat: ChatKind, graph: Graph, page:Page, currentUser: UserId)(
       implicit ctx: Ctx.Owner
   ): VNode = {
     chat match {
       case ChatSingle(node) =>
-        chatMessageRenderer(state, Seq(node), graph, currentUser)
+        chatMessageRenderer(state, Seq(node), graph, page, currentUser)
       case ChatGroup(nodes) =>
-        chatMessageRenderer(state, nodes, graph, currentUser)
+        chatMessageRenderer(state, nodes, graph, page, currentUser)
     }
   }
 
@@ -365,6 +374,7 @@ object ChatView extends View {
       state: GlobalState,
       nodes: Seq[Node],
       graph: Graph,
+      page: Page,
       currentUser: UserId
   )(implicit ctx: Ctx.Owner): VNode = {
 
@@ -376,7 +386,7 @@ object ChatView extends View {
       avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodes.map(chatMessageBody(state, graph, _)),
+        nodes.map(chatMessageBody(state, graph, page, _)),
         borderColor := computeColor(graph, currNode.id),
         cls := "chatmsg-inner-frame",
       ),
@@ -400,10 +410,10 @@ object ChatView extends View {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def chatMessageBody(state: GlobalState, graph: Graph, node: Node)(
+  private def chatMessageBody(state: GlobalState, graph: Graph, page:Page, node: Node)(
       implicit ctx: Ctx.Owner
   ) = {
-    val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
+    val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)
     val content = renderNodeData(node.data)
     // if (graph.children(node).isEmpty)
     //   renderNodeData(node.data)
@@ -412,7 +422,7 @@ object ChatView extends View {
     val msgControls = div(
       cls := "chatmsg-controls",
       isDeleted.ifFalseOption(nodeLink(state, node)),
-      isDeleted.ifFalseOption(deleteButton(state, node)),
+      isDeleted.ifFalseOption(deleteButton(state, node, graph, page)),
     )
 
     div(

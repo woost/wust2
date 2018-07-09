@@ -32,20 +32,22 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       changes: List[GraphChanges],
       user: AuthUser.Persisted
   ): Future[ApiData.Effect[Boolean]] = {
-    //TODO more permissions!
+
+    //  addNodes // none of the ids can already exist
+    //  addEdges // needs permissions on all involved nodeids, or nodeids are in addNodes
+    //  delEdges // needs permissions on all involved nodeids
+
     val changesAreAllowed = changes.forall { changes =>
       //TODO check conns
       // addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
-      ApiLogger.client.info("WARNING: Allowing everything")
-
-      val touchedNodes = changes.addNodes ++ changes.updateNodes
 
       // Author checks: I am the only author
-      // TODO: memberships can only be added / deleted if the user hat the rights to do so
+      // TODO: memberships can only be added / deleted if the user hat the rights to do so, currently not possible. maybe allow?
       //TODO: consistent timestamps (not in future...)
+      //TODO: white-list instead of black-list what a user can do?
       def validAddEdges = changes.addEdges.forall {
         case Edge.Author(authorId, _, nodeId) =>
-          authorId == user.id && touchedNodes.map(_.id).contains(nodeId)
+          authorId == user.id && changes.addNodes.map(_.id).contains(nodeId)
         case _: Edge.Member => false
         case _              => true
       }
@@ -55,7 +57,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         val allPostsWithAuthor = changes.addEdges.collect {
           case Edge.Author(_, _, postId) => postId
         }
-        touchedNodes.forall {
+        changes.addNodes.forall {
           case Node.Content(id, _, _) => allPostsWithAuthor.contains(id)
           case _                      => false
         }
@@ -64,27 +66,47 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       validAddEdges && validNodes
     }
 
-    if (changesAreAllowed) {
-      val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-        changes.foldLeft(Future.successful(true)) { (previousSuccess, changes) =>
-          import changes.consistent._
+    // TODO: task instead of this function
+    val checkAllChanges: () => Future[Boolean] = () => {
+      val usedIdsFromDb = changes.flatMap(_.involvedNodeIdsWithEdges) diff changes.flatMap(
+        _.addNodes
+          .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
+      )
+      db.user.inaccessibleNodes(user.id, usedIdsFromDb).map { conflictingIds =>
+        if (conflictingIds.isEmpty) true
+        else {
+          scribe.warn(
+            s"Cannot apply graph changes, there are inaccessible node ids in this change set: $conflictingIds"
+          )
+          false
+        }
+      }
+    }
 
-          previousSuccess.flatMap { success =>
-            if (success) {
-              for {
-                true <- db.node.create(addNodes)
-                _ <- db.edge(addEdges) // TODO: are redundant connections handled?
-                true <- db.node.update(updateNodes)
-                true <- db.node.delete(delNodes)
-                true <- db.edge.delete(delEdges)
-                _ <- db.node.addMemberEvenIfLocked(
-                  addNodes.map(_.id).toList,
-                  user.id,
-                  AccessLevel.ReadWrite
-                ) //TODO: check
-              } yield true
-            } else Future.successful(false)
-          }
+    def applyChangesToDb(changes: GraphChanges): () => Future[Boolean] = () => {
+      import changes.consistent._
+
+      for {
+        true <- db.node.create(addNodes)
+        true <- db.edge.create(addEdges)
+        true <- db.edge.delete(delEdges)
+        _ <- db.node.addMember(
+          addNodes.map(_.id).toList,
+          user.id,
+          AccessLevel.ReadWrite
+        ) //TODO: check
+      } yield true
+    }
+
+    if (changesAreAllowed) {
+      val changeOperations = changes.map(applyChangesToDb)
+
+      val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
+        (checkAllChanges +: changeOperations).foldLeft(Future.successful(true)) {
+          (previousSuccess, operation) =>
+            previousSuccess.flatMap { success =>
+              if (success) operation() else Future.successful(false)
+            }
         }
       }
 
@@ -106,10 +128,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       accessLevel: AccessLevel
   ): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
-      isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
+      canAccessNode(user.id, nodeId) {
         for {
           Some(user) <- db.user.get(newMemberId)
-          added <- db.node.addMemberEvenIfLocked(nodeId, newMemberId, accessLevel)
+          added <- db.node.addMember(nodeId, newMemberId, accessLevel)
         } yield
           Returns(
             added,
@@ -127,22 +149,6 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       }
     }
   }
-  override def setJoinDate(nodeId: NodeId, joinDate: JoinDate): ApiFunction[Boolean] =
-    Effect.assureDbUser { (_, user) =>
-      db.ctx.transaction { implicit ec =>
-        isPostMember(nodeId, user.id, AccessLevel.ReadWrite) {
-          for {
-            updatedJoinDate <- db.node.setJoinDate(nodeId, joinDate)
-            Some(updatedPost) <- db.node.get(nodeId)
-          } yield {
-            Returns(
-              updatedJoinDate,
-              Seq(NewGraphChanges.ForAll(GraphChanges.updatePost(updatedPost)))
-            )
-          }
-        }
-      }
-    }
 
 //  override def addMemberByName(nodeId: NodeId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
 //    db.ctx.transaction { implicit ec =>

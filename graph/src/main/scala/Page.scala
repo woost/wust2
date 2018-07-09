@@ -11,7 +11,9 @@ case class Page(
     parentIds: Seq[NodeId],
     childrenIds: Seq[NodeId] = Nil,
     mode: PageMode = PageMode.Default
-)
+) {
+  lazy val parentIdSet = parentIds.toSet
+}
 
 object Page {
   val empty = Page(Seq.empty)

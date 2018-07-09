@@ -12,17 +12,13 @@ object Data {
   case class Node(
       id: NodeId,
       data: NodeData,
-      deleted: DeletedDate,
-      joinDate: JoinDate,
-      joinLevel: AccessLevel
+      accessLevel: NodeAccess
   )
 
   case class User(
       id: UserId,
       data: NodeData.User,
-      deleted: DeletedDate,
-      joinDate: JoinDate,
-      joinLevel: AccessLevel
+      accessLevel: NodeAccess
   )
 
   case class SimpleUser(id: UserId, data: NodeData.User)
@@ -55,9 +51,7 @@ object Data {
   case class GraphRow(
       nodeId: NodeId,
       data: NodeData,
-      deleted: DeletedDate,
-      joinDate: JoinDate,
-      joinLevel: AccessLevel,
+      accessLevel: NodeAccess,
       targetIds: List[NodeId],
       edgeData: List[EdgeData]
   ) {
@@ -74,7 +68,7 @@ object Data {
       while (i < rows.length) {
         val row = rows(i)
         val targetIds = row.targetIds
-        val post = Node(row.nodeId, row.data, row.deleted, row.joinDate, row.joinLevel)
+        val post = Node(row.nodeId, row.data, row.accessLevel)
 
         posts += post
 

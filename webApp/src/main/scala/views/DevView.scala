@@ -99,7 +99,7 @@ object DevView {
           def addRandomPost(count: Int): Unit = {
             val newPosts =
               List.fill(count)(Node.Content(NodeId.fresh, data = NodeData.PlainText(rSentence)))
-            val changes = GraphChanges.from(addPosts = newPosts)
+            val changes = GraphChanges.from(addNodes = newPosts)
             state.eventProcessor.enriched.changes.onNext(changes)
           }
 
@@ -114,7 +114,9 @@ object DevView {
           val posts = scala.util.Random.shuffle(state.graph().nodeIds.toSeq)
 
           def deletePost(ids: Seq[NodeId]): Unit = {
-            state.eventProcessor.changes.onNext(GraphChanges(delNodes = ids.toSet))
+            ids.foreach { nodeId =>
+              state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, state.page.now.parentIdSet))
+            }
           }
 
           div(

@@ -15,7 +15,6 @@ trait Boopickle {
   ): Pickler[T#Type @@ U] = f.asInstanceOf[Pickler[T#Type @@ U]]
 
   implicit val accessLevelPickler: Pickler[AccessLevel] = generatePickler[AccessLevel]
-  implicit val joinDatePickler: Pickler[JoinDate] = generatePickler[JoinDate]
 
   implicit val postContentPickler: Pickler[NodeData] = generatePickler[NodeData]
   implicit val connectionContentPickler: Pickler[EdgeData] = generatePickler[EdgeData]

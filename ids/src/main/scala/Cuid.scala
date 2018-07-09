@@ -58,6 +58,7 @@ object Cuid {
   }
 
   def fromByteArray(arr: Array[Byte]): Cuid = {
+    require(arr.length == 16, "Array[Byte] must have exactly 16 elements")
     val bb = java.nio.ByteBuffer.allocate(16)
     bb.put(arr)
     bb.flip()

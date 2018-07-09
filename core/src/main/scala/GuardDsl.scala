@@ -73,13 +73,12 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     )
   }
 
-  def isPostMember[T, F[_]: ApiData.MonadError](
-      nodeId: NodeId,
+  def canAccessNode[T, F[_]: ApiData.MonadError](
       userId: UserId,
-      accessLevel: AccessLevel
+      nodeId: NodeId
   )(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
-      true <- db.user.isMember(nodeId, userId, accessLevel)
+      true <- db.user.canAccessNode(userId, nodeId)
       result <- code
     } yield result).recover {
       case NonFatal(_) => ApiData.MonadError.raiseError(ApiError.Forbidden)

@@ -32,10 +32,6 @@ object NodeData {
   }
   object Link extends Named
 
-  case object Channels extends Named with Content {
-    def str = "Channels"
-  }
-
   object User extends Named
   case class User(name: String, isImplicit: Boolean, revision: Int, channelNodeId: NodeId)
       extends Named
@@ -43,4 +39,5 @@ object NodeData {
     def str = name
   }
 
+  def defaultChannelsData = PlainText("Channels")
 }

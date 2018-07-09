@@ -69,7 +69,7 @@ class GlobalState private (
 
   //
   val pageAncestorsIds: Rx[Seq[NodeId]] = Rx {
-    page().parentIds.flatMap(node => graph().ancestors(node).toSeq)
+    page().parentIds.flatMap(node => graph().ancestors(node))(breakOut)
   }
 
   val nodeAncestorsHierarchy: Rx[Map[Int, Seq[Node]]] =
@@ -229,10 +229,6 @@ object GlobalState {
   ): GraphChanges = {
     import changes.consistent._
 
-    val toDelete = delNodes.flatMap { nodeId =>
-      Collapse.getHiddenNodes(graph removeNodes viewConfig.page.parentIds, Set(nodeId))
-    }
-
     def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] =
       page.parentIds.map(Edge.Parent(nodeId, _))(breakOut)
 
@@ -241,6 +237,6 @@ object GlobalState {
       .filterNot(p => containedNodes(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))
 
-    changes.consistent merge GraphChanges(delNodes = toDelete, addEdges = toContain)
+    changes.consistent merge GraphChanges(addEdges = toContain)
   }
 }

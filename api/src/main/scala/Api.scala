@@ -14,7 +14,6 @@ trait Api[Result[_]] {
 
   def getGraph(selection: Page): Result[Graph]
   def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
-  def setJoinDate(nodeId: NodeId, joinDate: JoinDate): Result[Boolean]
 //  def addMemberByName(nodeId: NodeId, userName: String): Result[Boolean]
 
 //  def importGithubUrl(url: String): Result[Boolean]

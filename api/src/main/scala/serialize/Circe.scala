@@ -7,7 +7,7 @@ import io.circe._, io.circe.generic.extras.semiauto._
 
 object Circe extends wust.ids.serialize.Circe {
 
-  //TODO why not working?
+  //TODO anyval with circe?
   implicit val postMetaDecoder: Decoder[NodeMeta] = deriveDecoder[NodeMeta]
   implicit val postMetaEncoder: Encoder[NodeMeta] = deriveEncoder[NodeMeta]
   implicit val PostDecoder: Decoder[Node] = deriveDecoder[Node]

@@ -29,15 +29,14 @@ trait Circe {
       implicit f: Decoder[T#Type]
   ): Decoder[T#Type @@ U] = f.asInstanceOf[Decoder[T#Type @@ U]]
 
-  implicit val DeletedDateDecoder: Decoder[DeletedDate] = deriveDecoder[DeletedDate]
-  implicit val DeletedDateEncoder: Encoder[DeletedDate] = deriveEncoder[DeletedDate]
-  implicit val JoinDateDecoder: Decoder[JoinDate] = deriveDecoder[JoinDate]
-  implicit val JoinDateEncoder: Encoder[JoinDate] = deriveEncoder[JoinDate]
-
   // decode accesslevel as string instead of
   implicit val AccessLevelDecoder: Decoder[AccessLevel] =
-    Decoder.decodeString.emap(s => AccessLevel.from.lift(s).toRight(s"Is not an access level: $s"))
+    Decoder.decodeString.emap(
+      s => AccessLevel.fromString.lift(s).toRight(s"Is not an access level: $s")
+    )
   implicit val AccessLevelEncoder: Encoder[AccessLevel] = level => Json.fromString(level.str)
+  implicit val nodeAccessDecoder: Decoder[NodeAccess] = deriveDecoder[NodeAccess]
+  implicit val nodeAccessEncoder: Encoder[NodeAccess] = deriveEncoder[NodeAccess]
 
   implicit val postContentDecoder2: Decoder[NodeData.Content] = deriveDecoder[NodeData.Content]
   implicit val postContentEncoder2: Encoder[NodeData.Content] = deriveEncoder[NodeData.Content]
@@ -51,6 +50,8 @@ trait Circe {
     deriveDecoder[EdgeData.Parent.type]
   implicit val connectionContentEncoder2: Encoder[EdgeData.Parent.type] =
     deriveEncoder[EdgeData.Parent.type]
+  implicit val connectionContentDecoder5: Decoder[EdgeData.DeletedParent] = deriveDecoder[EdgeData.DeletedParent]
+  implicit val connectionContentEncoder5: Encoder[EdgeData.DeletedParent] = deriveEncoder[EdgeData.DeletedParent]
   implicit val connectionContentDecoder3: Decoder[EdgeData.Member] = deriveDecoder[EdgeData.Member]
   implicit val connectionContentEncoder3: Encoder[EdgeData.Member] = deriveEncoder[EdgeData.Member]
   implicit val connectionContentDecoder4: Decoder[EdgeData.Author] = deriveDecoder[EdgeData.Author]

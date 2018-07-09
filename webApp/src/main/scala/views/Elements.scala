@@ -28,7 +28,6 @@ object Rendered {
       wrap.appendChild(text)
       wrap.innerHTML
     case NodeData.Link(url)  => s"<a href=$url>" //TODO
-    case NodeData.Channels   => "Channels"
     case user: NodeData.User => s"User: ${user.name}"
   }
 
@@ -36,7 +35,6 @@ object Rendered {
     case NodeData.Markdown(content)  => mdHtml(content)
     case NodeData.PlainText(content) => div(content)
     case c: NodeData.Link            => MediaViewer.embed(c)
-    case NodeData.Channels           => div("Channels")
     case user: NodeData.User         => div(s"User: ${user.name}")
   }
 

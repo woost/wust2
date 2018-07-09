@@ -35,7 +35,7 @@ case class ChangesHistory(
   def canRedo = redos.nonEmpty
   def undo(graph: Graph) = undos match {
     case changes :: undos =>
-      ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert(Map.empty)) //TODO
+      ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert) //TODO
     case Nil => copy(current = GraphChanges.empty)
   }
   def redo = redos match {

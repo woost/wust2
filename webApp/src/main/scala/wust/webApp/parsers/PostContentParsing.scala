@@ -40,9 +40,8 @@ object NodeDataParser {
           val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
           val updatedPost = post.copy(data = data)
           GraphChanges.from(
-            addConnections = tagPosts.map(Edge.Parent(updatedPost.id, _)),
-            updatePosts = Set(updatedPost),
-            addPosts = newTagPosts
+            addEdges = tagPosts.map(Edge.Parent(updatedPost.id, _)),
+            addNodes = Set(updatedPost) ++ newTagPosts
           )
       }
 
@@ -58,8 +57,8 @@ object NodeDataParser {
           val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
           val newPost = Node.Content(data)
           GraphChanges.from(
-            addConnections = tagPosts.map(Edge.Parent(newPost.id, _)),
-            addPosts = newPost +: newTagPosts
+            addEdges = tagPosts.map(Edge.Parent(newPost.id, _)),
+            addNodes = newPost +: newTagPosts
           )
       }
 
