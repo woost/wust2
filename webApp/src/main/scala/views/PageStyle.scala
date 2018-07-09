@@ -2,7 +2,8 @@ package wust.webApp.views
 
 import cats.data.NonEmptyList
 import colorado.{Color, HCL, LAB, RGB}
-import wust.graph.{Page, Node}
+import rx.{Ctx, Rx}
+import wust.graph.{Node, Page}
 import wust.sdk.NodeColor._
 
 import scala.collection.breakOut
@@ -10,25 +11,31 @@ import scala.collection.breakOut
 object PageStyle {
   object Color {
     //TODO: ensure that these are calculated at compile time
+    val baseBgLight = RGB("#f2fdfb").hcl
     val baseBg = RGB("#F3EFCC").hcl
     val baseBgDark = RGB("#4D394B").hcl
     val baseBgDarkHighlight = RGB("#9D929B").hcl
     val border = RGB("#95CCDF").hcl
   }
 
-  def apply(view: View, page: Page) = {
-    val pageColors = view match {
-      case view if view.isContent =>
-        NonEmptyList.fromList(page.parentIds.map(baseColor)(breakOut): List[Color]).map(mixColors)
-      case _ => None
+  def apply(view: Rx[View], page: Rx[Page])(implicit ctx: Ctx.Owner) = {
+    val pageColor: Rx[Option[LAB]] = Rx {
+      view() match {
+        case view if view.isContent =>
+          NonEmptyList
+            .fromList(page().parentIds.map(baseColor)(breakOut): List[Color])
+            .map(mixColors)
+        case _ => None
+      }
     }
 
-    val baseHue = pageColors.map(_.hcl.h)
-    def withBaseHueDefaultGray(base: HCL) =
-      baseHue.fold(LAB(base.l, 0, 0): Color)(hue => HCL(hue, base.c, base.l))
+    val pageHue: Rx[Option[Double]] = Rx { pageColor().map(_.hcl.h) }
+    def withBaseHueDefaultGray(base: HCL): Rx[String] = Rx {
+      val pageHue = pageColor().map(_.hcl.h)
+      pageHue.fold(LAB(base.l, 0, 0): Color)(hue => HCL(hue, base.c, base.l)).toHex
+    }
 
     new PageStyle(
-      baseHue,
       bgColor = withBaseHueDefaultGray(Color.baseBg),
       accentLineColor = withBaseHueDefaultGray(Color.border),
       darkBgColor = withBaseHueDefaultGray(Color.baseBgDark),
@@ -38,9 +45,8 @@ object PageStyle {
 }
 
 case class PageStyle(
-    baseHue: Option[Double],
-    bgColor: Color,
-    accentLineColor: Color,
-    darkBgColor: Color,
-    darkBgColorHighlight: Color
+    bgColor: Rx[String],
+    accentLineColor: Rx[String],
+    darkBgColor: Rx[String],
+    darkBgColorHighlight: Rx[String]
 )

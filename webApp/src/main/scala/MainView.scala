@@ -23,7 +23,7 @@ object MainView {
         height := "100%",
         width := "100%",
         Sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
-        backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
+        backgroundColor <-- state.pageStyle.bgColor,
         div(
           display.flex,
           minHeight := "0", // fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686)

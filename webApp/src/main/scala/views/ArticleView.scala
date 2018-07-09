@@ -18,11 +18,11 @@ object ArticleView extends View {
     component(graph, page, pageStyle)
   }
 
-  def component(graph: Rx[Graph], graphSelection: Var[Page], pageStyle: Rx[PageStyle])(
+  def component(graph: Rx[Graph], graphSelection: Var[Page], pageStyle: PageStyle)(
       implicit owner: Ctx.Owner
   ): VNode = {
     div(
-      backgroundColor <-- pageStyle.map(_.bgColor.toHex),
+      backgroundColor <-- pageStyle.bgColor,
       div(
         cls := "article",
         graph.map { graph =>

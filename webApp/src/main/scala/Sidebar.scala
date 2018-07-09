@@ -27,7 +27,7 @@ object Sidebar {
     div(
       minWidth := "40px",
       maxWidth := "250px",
-      backgroundColor <-- state.pageStyle.map(_.darkBgColor.toHex),
+      backgroundColor <-- state.pageStyle.darkBgColor,
       color := "white",
       transition := "flex-basis 0.2s, background-color 0.5s",
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
@@ -86,8 +86,8 @@ object Sidebar {
       cursor.pointer,
       selected.ifTrueSeq(
         Seq(
-          color := pageStyle.darkBgColor.toHex,
-          backgroundColor := pageStyle.darkBgColorHighlight.toHex
+          color := pageStyle.darkBgColor.now,
+          backgroundColor := pageStyle.darkBgColorHighlight.now
         )
       )
     )
@@ -98,7 +98,7 @@ object Sidebar {
         state.channels().map {
           p =>
             val selected = state.page().parentIds.contains(p.id)
-            channelDiv(selected, state.pageStyle())(
+            channelDiv(selected, state.pageStyle)(
               paddingRight := "5px",
               //TODO: inner state.page obs again
               channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(
@@ -111,7 +111,7 @@ object Sidebar {
         }
       },
       Rx {
-        channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle())(
+        channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle)(
           //TODO: inner state.page obs again
           noChannelIcon(state.page.map(_.mode == PageMode.Orphans), 30)(ctx)(marginRight := "5px"),
           PageMode.Orphans.toString,

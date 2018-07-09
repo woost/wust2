@@ -72,9 +72,7 @@ class GlobalState private (
         .mapValues(_.map(_._2).distinct)
     )
 
-  val pageStyle = Rx {
-    PageStyle(view(), page())
-  }
+  val pageStyle = PageStyle(view, page)
 
   // be aware that this is a potential memory leak.
   // it contains all ids that have ever been collapsed in this session.

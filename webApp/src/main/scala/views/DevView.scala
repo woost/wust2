@@ -29,8 +29,8 @@ object DevView {
       right := "0",
       boxSizing.borderBox,
       padding := "5px",
-      backgroundColor <-- state.pageStyle.map(_.bgColor.toHex),
-      border <-- state.pageStyle.map(c => s"1px solid ${c.accentLineColor.toHex}"),
+      backgroundColor <-- state.pageStyle.bgColor,
+      border <-- state.pageStyle.accentLineColor.map(color => s"1px solid $color"),
       cls := "shadow"
     )
 
