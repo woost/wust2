@@ -175,14 +175,15 @@ object ChatView extends View {
     padding := "0px 5px",
     cursor.pointer,
     onClick.map { e =>
-      e.stopPropagation(); GraphChanges.delete(node)
+      e.stopPropagation()
+      GraphChanges.delete(node)
     } --> ObserverSink(state.eventProcessor.changes)
   )
 
   //TODO: memoize?
   //TODO: seems to be buggy: check why dragging A in B leads to tag A in A instead of tag A in B
   private def getNodeTags(graph: Graph, node: Node, page: Page): Seq[Node] = {
-    (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds)
+    (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds diff Seq(node.id))
       .map(graph.nodesById(_))
   }
 
@@ -444,7 +445,7 @@ object ChatView extends View {
 
     div( // node tags
       nodeTags.map { tag =>
-        MainViewParts.postTag(state, node)
+        MainViewParts.postTag(state, tag)
       },
       padding := "3px 3px 0"
     )
