@@ -183,8 +183,9 @@ object ChatView extends View {
   //TODO: memoize?
   //TODO: seems to be buggy: check why dragging A in B leads to tag A in A instead of tag A in B
   private def getNodeTags(graph: Graph, node: Node, page: Page): Seq[Node] = {
-    (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds diff Seq(node.id))
-      .map(graph.nodesById(_))
+    (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds diff Seq(
+      node.id
+    )).map(graph.nodesById(_))
   }
 
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
@@ -374,7 +375,6 @@ object ChatView extends View {
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageBody(state, graph, _)),
-        // tagsDiv(state, graph, currNode),
         styles(computeColor(graph, currNode.id)),
         isDeleted.ifTrueOption(opacity := 0.5)
       ),
@@ -412,7 +412,7 @@ object ChatView extends View {
     val content =
       if (graph.children(node).isEmpty)
         renderNodeData(node.data)
-      else MainViewParts.postTag(state, node)
+      else MainViewParts.postTag(state, node)(ctx)(fontSize := "14px")
 
     val msgControls = div(
       cls := "chatmsg-controls",
@@ -420,7 +420,7 @@ object ChatView extends View {
       isDeleted.ifFalseOption(deleteButton(state, node))
     )
 
-    Seq(
+    div(
       div(
         cls := "chatmsg-body",
         display.flex,
@@ -436,7 +436,7 @@ object ChatView extends View {
         ),
         msgControls
       ),
-      tagsDiv(state, graph, node)
+      tagsDiv(state, graph, node),
     )
   }
 
@@ -446,8 +446,7 @@ object ChatView extends View {
     div( // node tags
       nodeTags.map { tag =>
         MainViewParts.postTag(state, tag)
-      },
-      padding := "3px 3px 0"
+      }
     )
   }
 
