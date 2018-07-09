@@ -2,3 +2,6 @@
 
 echo "Checking scalafmt..."
 sbt scalafmtCheck scalafmtSbtCheck it:scalafmtCheck
+
+# TODO: only check formatting on master branch
+# TODO: only check formatting if changes to scala files have been staged
