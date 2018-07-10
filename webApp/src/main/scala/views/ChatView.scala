@@ -438,9 +438,9 @@ object ChatView extends View {
           overflowX.auto, // show scrollbar for very long messages
           flexGrow := 1
         ),
+        tagsDiv(state, graph, node),
         msgControls
       ),
-      tagsDiv(state, graph, node),
     )
   }
 
