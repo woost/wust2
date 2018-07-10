@@ -345,7 +345,7 @@ object ChatView extends View {
       graph
         .authors(node)
         .headOption
-        .fold(span())(author => span(author.name, fontWeight.bold))
+        .fold(span())(author => span(author.name, fontWeight.bold, color := "#50575f"))
     else span()
   }
 
