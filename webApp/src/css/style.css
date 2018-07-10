@@ -134,10 +134,14 @@
 }
 
 .chatmsg-frame .draggable-mirror {
-    background-color: #f8f8f8AA;
+    background-color: #fefefe;
     /* padding: 5px; */
-    border-radius: 5px;
-    border: 1px solid #999;
+    border-radius: 3px;
+
+    border-top: 1px solid rgba(158,158,158,0.19);
+    -webkit-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
+    -moz-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
+    box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
 }
 
 .chatmsg-frame .draggable-source--is-dragging {

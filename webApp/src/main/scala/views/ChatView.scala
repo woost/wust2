@@ -434,10 +434,15 @@ object ChatView extends View {
             content,
             attr("woost_nodeid") := node.id.toCuidString,
             cls := "draggable",
-            border := "solid 1px grey"
+            // border := "solid 1px grey"
           ),
           overflowX.auto, // show scrollbar for very long messages
-          flexGrow := 1
+          flexGrow := 1,
+          cls := "hard-shadow",
+          borderRadius := "3px",
+          margin := "3px 0",
+          backgroundColor := "#FEFEFE",
+          padding := "2px 5px"
         ),
         tagsDiv(state, graph, node),
         msgControls
