@@ -205,8 +205,11 @@ object ChatView extends View {
       //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
       //   .distinct
       //   .size == 1) // tags must match
-      (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
-      nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
+      // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
+      // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
+      graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
+        nodes.forall(node => graph.authorIds(node).head == authorId)
+      }
       // TODO: within a specific timespan && nodes.last.
     }
 
