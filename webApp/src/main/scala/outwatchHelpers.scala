@@ -30,8 +30,8 @@ package object outwatchHelpers {
     Scheduler.trampoline(executionModel = SynchronousExecution)
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
-  implicit class RichRx[T](rx: Rx[T])(implicit ctx: Ctx.Owner) {
-    def toObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
+  implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
+    def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) { observer =>
       rx.foreach(observer.onNext)
       Cancelable() //TODO
     }
@@ -63,15 +63,15 @@ package object outwatchHelpers {
       extends AnyVal {
     def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- valueStream.toObservable
   }
-  implicit class RichStyle[T](val ab: Style[T]) {
+  implicit class RichStyle[T](val ab: Style[T]) extends AnyVal {
     import outwatch.dom.StyleIsBuilder
     //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
     def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) =
       StyleIsBuilder[T](ab) <-- valueStream.toObservable
   }
 
-  implicit class RichVar[T](rxVar: Var[T])(implicit ctx: Ctx.Owner) {
-    def toHandler: Handler[T] = {
+  implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
+    def toHandler(implicit ctx: Ctx.Owner): Handler[T] = {
 
       val h = Handler.create[T](rxVar.now).unsafeRunSync()
       h.filter(_ != rxVar.now).foreach(rxVar.update)
@@ -79,7 +79,7 @@ package object outwatchHelpers {
       h
     }
 
-    def toSink: Sink[T] = {
+    def toSink(implicit ctx: Ctx.Owner): Sink[T] = {
 
       Sink
         .create[T] { event =>
