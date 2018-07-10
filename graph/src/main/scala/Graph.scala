@@ -10,7 +10,10 @@ import collection.breakOut
 
 case class NodeMeta(deleted: DeletedDate, joinDate: JoinDate, joinLevel: AccessLevel)
 object NodeMeta {
-  def User = NodeMeta(DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.Read)
+  //TODO a user should NOT have NodeMeta. We cannot delete users like normal
+  //posts and what does join and accesslevel actually mean in the context of a
+  //user?
+  def User = NodeMeta(DeletedDate.NotDeleted, JoinDate.Never, AccessLevel.ReadWrite)
 }
 
 sealed trait Node {
