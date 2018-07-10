@@ -3,10 +3,10 @@ package wust.webApp
 import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
-import monix.execution.Ack.Continue
 import monix.execution.ExecutionModel.SynchronousExecution
-import monix.execution.{Cancelable, Scheduler}
+import monix.execution.{Cancelable, Scheduler, Ack}
 import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.document
 import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
@@ -31,9 +31,10 @@ package object outwatchHelpers {
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
-    def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) { observer =>
-      rx.foreach(observer.onNext)
-      Cancelable() //TODO
+    def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
+      observer =>
+        rx.foreach(observer.onNext)
+        Cancelable() //TODO
     }
 
     def debug(implicit ctx: Ctx.Owner): Rx[T] = { debug() }
@@ -84,7 +85,7 @@ package object outwatchHelpers {
       Sink
         .create[T] { event =>
           rxVar.update(event)
-          Future.successful(Continue)
+          Ack.Continue
         }
         .unsafeRunSync()
     }
@@ -118,7 +119,16 @@ package object outwatchHelpers {
   implicit class RichObservable[T](val o: Observable[T]) extends AnyVal {
     def toRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {
       val rx = Var[T](seed)
-      o.foreach(rx() = _)
+      o.subscribe(new Observer.Sync[T] {
+        override def onNext(elem: T): Ack = {
+          rx() = elem
+          Ack.Continue
+        }
+        override def onError(ex: Throwable): Unit = {
+          scribe.error("Error occurred in Observable", ex)
+        }
+        override def onComplete(): Unit = ()
+      })
       rx
     }
 
