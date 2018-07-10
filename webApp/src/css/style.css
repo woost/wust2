@@ -135,7 +135,6 @@
 
 .chatmsg-frame .draggable-mirror {
     background-color: #fefefe;
-    /* padding: 5px; */
     border-radius: 3px;
 
     border-top: 1px solid rgba(158,158,158,0.19);
@@ -155,7 +154,7 @@
     background-color: inherit;
 }
 
-div.chatmsg-controls {
+.chatmsg-controls {
     visibility: hidden;
     display: flex;
     alignItems: center;
@@ -164,12 +163,16 @@ div.chatmsg-controls {
     paddingLeft: 10px;
 }
 
-div.chatmsg-body:hover > div.chatmsg-controls {
+.chatmsg-body {
+    padding: 0 0 5px;
+}
+
+.chatmsg-body:hover .chatmsg-controls {
     visibility: visible;
 }
 
 /* TODO: Focus is only used as a quick hack in order to use controls on mobile browser */
-div.chatmsg-body:hover, div.chatmsg-body:focus > div.chatmsg-controls {
+.chatmsg-body:focus .chatmsg-controls {
     visibility: visible;
 }
 

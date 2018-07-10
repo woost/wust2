@@ -444,7 +444,8 @@ object ChatView extends View {
             borderRadius := "3px",
             backgroundColor := "#FEFEFE",
           ),
-        flexGrow := 1,
+          cls := "chatmsg-box",
+          flexGrow := 1,
         ),
         tagsDiv(state, graph, node),
         msgControls
