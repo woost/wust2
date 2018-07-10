@@ -176,7 +176,7 @@ object ChatView extends View {
 
   private def deleteButton(state: GlobalState, node: Node) = div(
     freeRegular.faTrashAlt,
-    padding := "0px 5px",
+    paddingLeft := "5px",
     cursor.pointer,
     onClick.map { e =>
       e.stopPropagation()
@@ -434,18 +434,17 @@ object ChatView extends View {
         alignItems.center,
         div(
           div(
-            content,
-            attr("woost_nodeid") := node.id.toCuidString,
-            cls := "draggable",
-            // border := "solid 1px grey"
+            div(
+              content,
+              attr("woost_nodeid") := node.id.toCuidString,
+              cls := "draggable",
+            ),
+            overflowX.auto, // show scrollbar for very long messages
+            cls := "hard-shadow",
+            borderRadius := "3px",
+            backgroundColor := "#FEFEFE",
           ),
-          overflowX.auto, // show scrollbar for very long messages
-          flexGrow := 1,
-          cls := "hard-shadow",
-          borderRadius := "3px",
-          margin := "3px 0",
-          backgroundColor := "#FEFEFE",
-          padding := "2px 5px"
+        flexGrow := 1,
         ),
         tagsDiv(state, graph, node),
         msgControls
@@ -459,7 +458,8 @@ object ChatView extends View {
     div( // node tags
       nodeTags.map { tag =>
         MainViewParts.postTag(state, tag)
-      }
+      },
+      padding := "0px 3px"
     )
   }
 
