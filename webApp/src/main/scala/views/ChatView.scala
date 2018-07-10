@@ -414,9 +414,9 @@ object ChatView extends View {
   ) = {
     val isDeleted = node.meta.deleted.timestamp < EpochMilli.now
     val content = renderNodeData(node.data)
-      // if (graph.children(node).isEmpty)
-      //   renderNodeData(node.data)
-      // else MainViewParts.postTag(state, node)(ctx)(fontSize := "14px")
+    // if (graph.children(node).isEmpty)
+    //   renderNodeData(node.data)
+    // else MainViewParts.postTag(state, node)(ctx)(fontSize := "14px")
 
     val msgControls = div(
       cls := "chatmsg-controls",
@@ -433,7 +433,8 @@ object ChatView extends View {
           div(
             content,
             attr("woost_nodeid") := node.id.toCuidString,
-            cls := "draggable"
+            cls := "draggable",
+            border := "solid 1px grey"
           ),
           overflowX.auto, // show scrollbar for very long messages
           flexGrow := 1
