@@ -319,13 +319,13 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         )}, ${lift(user.data)}, ${lift(user.deleted)}, ${lift(user.joinDate)}, ${lift(
           user.joinLevel
         )})),
-             ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
+             ins_m_cp as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(channelNodeId)})),
-             ins_m_up as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
+             ins_m_up as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(userId)}))
-                      insert into password(id, digest) select id, ${lift(digest)}
+                      insert into password(userid, digest) select id, ${lift(digest)}
       """.as[Insert[Node]]
       }
 
