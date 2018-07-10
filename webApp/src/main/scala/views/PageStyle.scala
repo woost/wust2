@@ -36,8 +36,9 @@ object PageStyle {
     }
 
     new PageStyle(
-      bgColor = withBaseHueDefaultGray(Color.baseBg),
       accentLineColor = withBaseHueDefaultGray(Color.border),
+      bgColor = withBaseHueDefaultGray(Color.baseBg),
+      bgLightColor = withBaseHueDefaultGray(Color.baseBgLight),
       darkBgColor = withBaseHueDefaultGray(Color.baseBgDark),
       darkBgColorHighlight = withBaseHueDefaultGray(Color.baseBgDarkHighlight)
     )
@@ -45,8 +46,9 @@ object PageStyle {
 }
 
 case class PageStyle(
-    bgColor: Rx[String],
     accentLineColor: Rx[String],
+    bgColor: Rx[String],
+    bgLightColor: Rx[String],
     darkBgColor: Rx[String],
     darkBgColorHighlight: Rx[String]
 )
