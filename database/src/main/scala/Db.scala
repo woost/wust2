@@ -291,7 +291,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     }
 
     // TODO share code with createimplicit?
-    def apply(userId: UserId, name: String, digest: Array[Byte], channelNodeId: NodeId)(
+    def create(userId: UserId, name: String, digest: Array[Byte], channelNodeId: NodeId)(
         implicit ec: ExecutionContext
     ): Future[Option[User]] = {
       val channelNode = Node(

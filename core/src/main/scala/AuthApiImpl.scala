@@ -23,8 +23,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
       case Some(AuthUser.Assumed(userId, channelNodeId)) =>
-        db.user(userId, name, digest, channelNodeId)
-      case _ => db.user(UserId.fresh, name, digest, NodeId.fresh)
+        db.user.create(userId, name, digest, channelNodeId)
+      case _ => db.user.create(UserId.fresh, name, digest, NodeId.fresh)
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
