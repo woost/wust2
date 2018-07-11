@@ -11,7 +11,7 @@ import scala.collection.breakOut
 object PageStyle {
   object Color {
     //TODO: ensure that these are calculated at compile time
-    val baseBgLight = RGB("#f2fdfb").hcl
+    val baseBgLight = RGB("#e2f8f2").hcl
     val baseBg = RGB("#F3EFCC").hcl
     val baseBgDark = RGB("#4D394B").hcl
     val baseBgDarkHighlight = RGB("#9D929B").hcl
