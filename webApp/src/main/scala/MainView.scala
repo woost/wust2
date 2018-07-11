@@ -4,6 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webApp.outwatchHelpers._
+import wust.util._
 
 object MainView {
 
@@ -24,7 +25,14 @@ object MainView {
           cls := "flex",
           flexDirection.column,
           width := "100%",
-          BreadCrumbs(state)(ctx)(fontSize := "12px", flexGrow := 0, flexShrink := 0),
+          Rx {
+            state
+              .view()
+              .isContent
+              .ifTrueOption(
+                BreadCrumbs(state)(ctx)(fontSize := "12px", flexGrow := 0, flexShrink := 0)
+              )
+          },
           state.view.map(_.apply(state)(ctx)(height := "100%", width := "100%", flexGrow := 1))
         )
       )
