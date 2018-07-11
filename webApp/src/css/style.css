@@ -134,7 +134,6 @@
 
 .chatmsg-inner-frame {
     display: block;
-    cursor: pointer; /* TODO: What about cursor when selecting text? */
     padding: 0px 10px;
     margin: 5px 0px;
 }
@@ -151,6 +150,7 @@
 }
 
 .chatmsg-card {
+    cursor: move; /* TODO: What about cursor when selecting text? */
     border-radius: 3px;
     margin-left: 3px;
     background-color: #FEFEFE;
@@ -193,6 +193,7 @@ span.msg-tag {
     padding: 0px 3px;
     margin-right: 3px;
     white-space: nowrap;
+    cursor: pointer;
 }
 
 
