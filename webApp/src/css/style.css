@@ -102,9 +102,6 @@
     /* border-radius : 3px; */ /* affects graph rendering performance */
 }
 
-.postcontent > p {
-    padding: 3px;
-}
 .splitpost::selection {
     color: red;
     background: blue;
@@ -114,59 +111,91 @@
     background: blue;
 }
 
-.chatmsg-frame {
+
+
+/************/
+/* ChatView */
+/************/
+.chatmsg-outer-frame {
+}
+
+.chatmsg-avatar {
+    margin: 5px;
+}
+
+.chatmsg-author {
+    font-weight: bold;
+    color: #50575f;
+}
+
+.chatmsg-inner-frame {
     display: block;
     cursor: pointer; /* TODO: What about cursor when selecting text? */
-    max-width: 80%;
     padding: 0px 10px;
     margin: 5px 0px;
-    /* border-width: 0px 0px 0px 4px; */
-    /* border-style: solid; */
-    /* border-radius: 7px 0px 7px; /1* 7px 0px 7px 7px *1/ */
-    /* border-radius: 0px 7px 7px; /1* 7px 0px 7px 7px *1/ */
-    /* border-width: 1px 1px 1px 7px; /1* 1px 7px 1px 1px *1/ */
-    /* background-color: #f8f8f8; */
 }
 
-.chatmsg-frame .draggable--over {
-    background-color: #aaccff;
+.chatmsg-header {
+    font-size: 0.8em;
+    line-height: 100%;
+    padding-bottom: 3px;
+}
+
+.chatmsg-body {
+    align-items: center;
+    padding: 0 0 3px;
+}
+
+.chatmsg-card {
     border-radius: 3px;
+    margin-left: 3px;
+    background-color: #FEFEFE;
+    overflow-x: auto;
 }
 
-.chatmsg-frame .draggable-mirror {
-    background-color: #fefefe;
-    border-radius: 3px;
-
-    border-top: 1px solid rgba(158,158,158,0.19);
-    -webkit-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
-    -moz-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
-    box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
+.chatmsg-content {
+    word-wrap: break-word;
+    word-break: break-all;
+    padding: 3px 5px;
+    /* display: inline-block; */
 }
 
-.chatmsg-frame .draggable-source--is-dragging {
-    color: #999;
-    border-radius: 5px;
-    border: 1px solid #999;
-    border-style: dashed;
-}
-
-.chatmsg-frame .draggable--over.draggable-source--is-dragging {
-    background-color: inherit;
+.chatmsg-content pre {
+    white-space: normal;
 }
 
 .chatmsg-controls {
     visibility: hidden;
     display: flex;
-    alignItems: center;
-    flexGrow: 0;
-    flexShrink: 0;
-    paddingLeft: 10px;
+    align-items: center;
+    padding-left: 3px;
 }
 
-.chatmsg-body {
-    padding: 0 0 5px;
+.chatmsg-date {
+    margin-left: 8px;
+    font-size: smaller;
+    color: gray;
 }
 
+div.msg-tags {
+    padding: 0px 3px 0 5px;
+}
+
+span.msg-tag {
+    font-size : x-small;
+    color: #fefefe;
+    border-radius: 2px;
+    padding: 0px 3px;
+    margin-right: 3px;
+    white-space: nowrap;
+}
+
+
+
+
+/*********************/
+/* Controls on hover */
+/*********************/
 .chatmsg-body:hover .chatmsg-controls {
     visibility: visible;
 }
@@ -176,10 +205,36 @@
     visibility: visible;
 }
 
-span.msg-tag {
-    font-size : x-small;
-    color: #fefefe;
-    border-radius: 2px;
-    padding: 0px 3px;
-    margin-right: 3px;
+/*************/
+/* Draggable */
+/*************/
+.chatmsg-inner-frame .draggable--over {
+    background-color: #aaccff;
+    border-radius: 3px;
+}
+
+.chatmsg-inner-frame .draggable-mirror {
+    background-color: #fefefe;
+    border-radius: 3px;
+    overflow: hidden;
+
+    border-top: 1px solid rgba(158,158,158,0.19);
+    -webkit-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
+    -moz-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
+    box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
+}
+
+.chatmsg-inner-frame .draggable-source--is-dragging {
+    color: #999;
+    border-radius: 5px;
+    border: 1px solid #999;
+    border-style: dashed;
+}
+
+.chatmsg-inner-frame .draggable--over.draggable-source--is-dragging {
+    background-color: inherit;
+}
+
+.text {
+    cursor: text;
 }

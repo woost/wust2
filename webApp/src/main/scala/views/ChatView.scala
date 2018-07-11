@@ -56,14 +56,12 @@ object ChatView extends View {
   val grouping = true
   val avatarSize = AvatarSize.Large
   val avatarBorder = true
-  val chatHeaderTextColor = "grey"
-  val chatHeaderTextSize = "0.8em"
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     div(
-      display.flex,
+      cls := "flex",
       flexDirection.column,
       justifyContent.flexStart,
       alignItems.stretch,
@@ -86,7 +84,7 @@ object ChatView extends View {
       padding := "5px 10px",
       pageParentNodes.map(_.map { parent =>
         div(
-          display.flex,
+          cls := "flex",
           alignItems.center,
           Avatar.node(parent.id)(
             width := "40px",
@@ -175,8 +173,8 @@ object ChatView extends View {
   }
 
   private def deleteButton(state: GlobalState, node: Node) = div(
+    paddingLeft := "3px",
     freeRegular.faTrashAlt,
-    paddingLeft := "5px",
     cursor.pointer,
     onClick.map { e =>
       e.stopPropagation()
@@ -313,9 +311,9 @@ object ChatView extends View {
         user =>
           div(
             Avatar.user(user)(
-              margin := "5px",
               width := size.value,
-            )
+            ),
+            cls := "chatmsg-avatar"
           )
       )
     } else div()
@@ -329,9 +327,7 @@ object ChatView extends View {
       span(
         (new java.text.SimpleDateFormat(chatMessageDateFormat))
           .format(new java.util.Date(graph.nodeCreated(node))),
-        marginLeft := "8px",
-        fontSize.smaller,
-        color.gray
+        cls := "chatmsg-date"
       )
     else
       span()
@@ -345,7 +341,7 @@ object ChatView extends View {
       graph
         .authors(node)
         .headOption
-        .fold(span())(author => span(author.name, fontWeight.bold, color := "#50575f"))
+        .fold(span())(author => span(author.name, cls := "chatmsg-author"))
     else span()
   }
 
@@ -359,11 +355,6 @@ object ChatView extends View {
         chatMessageRenderer(state, nodes, graph, currentUser)
     }
   }
-
-  private def styles(color: String) = Seq[VDomModifier](
-    cls := "chatmsg-frame",
-    borderColor := color,
-  )
 
   private def chatMessageRenderer(
       state: GlobalState,
@@ -382,17 +373,12 @@ object ChatView extends View {
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageBody(state, graph, _)),
-        styles(computeColor(graph, currNode.id)),
-        isDeleted.ifTrueOption(opacity := 0.5)
+        isDeleted.ifTrueOption(opacity := 0.5),
+        borderColor := computeColor(graph, currNode.id),
+        cls := "chatmsg-inner-frame",
       ),
-      display.flex,
-      flexDirection.row,
-      justifyContent.flexStart,
-      alignSelf.flexStart,
-      alignItems.flexStart,
-      alignContent.flexStart
+      cls := "flex",
     )
-
   }
 
   /// @return a vnode containing a chat header with optional name, date and avatar
@@ -405,8 +391,7 @@ object ChatView extends View {
     div(
       optAuthorDiv(isMine, node, graph),
       optDateDiv(isMine, node, graph),
-      color := chatHeaderTextColor,
-      fontSize := chatHeaderTextSize,
+      cls := "chatmsg-header"
     )
   }
 
@@ -428,28 +413,20 @@ object ChatView extends View {
     )
 
     div(
+      cls := "flex",
+      cls := "chatmsg-body",
       div(
-        cls := "chatmsg-body",
-        display.flex,
-        alignItems.center,
         div(
-          div(
-            div(
-              content,
-              attr("woost_nodeid") := node.id.toCuidString,
-              cls := "draggable",
-            ),
-            overflowX.auto, // show scrollbar for very long messages
-            cls := "hard-shadow",
-            borderRadius := "3px",
-            backgroundColor := "#FEFEFE",
-          ),
-          cls := "chatmsg-box",
-          flexGrow := 1,
+          content,
+          attr("woost_nodeid") := node.id.toCuidString,
+          cls := "draggable",
+          cls := "chatmsg-content",
         ),
-        tagsDiv(state, graph, node),
-        msgControls
+        cls := "hard-shadow",
+        cls := "chatmsg-card",
       ),
+      tagsDiv(state, graph, node),
+      msgControls,
     )
   }
 
@@ -460,7 +437,7 @@ object ChatView extends View {
       nodeTags.map { tag =>
         MainViewParts.postTag(state, tag)
       },
-      padding := "0px 3px"
+      cls := "msg-tags"
     )
   }
 

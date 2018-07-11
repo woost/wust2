@@ -34,13 +34,13 @@ object Rendered {
 
   val renderNodeData: NodeData => VNode = {
     case NodeData.Markdown(content)  => mdHtml(content)
-    case NodeData.PlainText(content) => span(content)
+    case NodeData.PlainText(content) => div(content)
     case c: NodeData.Link            => MediaViewer.embed(c)
-    case NodeData.Channels           => span("Channels")
-    case user: NodeData.User         => span(s"User: ${user.name}")
+    case NodeData.Channels           => div("Channels")
+    case user: NodeData.User         => div(s"User: ${user.name}")
   }
 
-  def mdHtml(str: String) = span(prop("innerHTML") := marked(str))(cls := "postcontent")
+  def mdHtml(str: String) = div(prop("innerHTML") := marked(str))
   def mdString(str: String): String = marked(str)
 }
 

@@ -31,3 +31,9 @@ body {
     -moz-box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
     box-shadow: 0px 1px 0px 1px rgba(158,158,158,0.45);
 }
+
+.flex {
+    min-width: 0px; /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
+    min-height: 0px; /* fixes full page scrolling when messages are too long */
+    display: flex;
+}
