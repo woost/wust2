@@ -371,14 +371,12 @@ object ChatView extends View {
     val currNode = nodes.last
     val headNode = nodes.head
     val isMine = graph.authors(currNode).contains(currentUser)
-    val isDeleted = currNode.meta.deleted.timestamp < EpochMilli.now //TODO: Handle group msgs when all msg are deleted
 
     div( // node wrapper
       avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageBody(state, graph, _)),
-        isDeleted.ifTrueOption(opacity := 0.5),
         borderColor := computeColor(graph, currNode.id),
         cls := "chatmsg-inner-frame",
       ),
@@ -414,23 +412,25 @@ object ChatView extends View {
     val msgControls = div(
       cls := "chatmsg-controls",
       isDeleted.ifFalseOption(nodeLink(state, node)),
-      isDeleted.ifFalseOption(deleteButton(state, node))
+      isDeleted.ifFalseOption(deleteButton(state, node)),
     )
 
     div(
       cls := "flex",
       cls := "chatmsg-body",
+      isDeleted.ifTrueOption(opacity := 0.5),
       div(
         div(
           content,
           attr("woost_nodeid") := node.id.toCuidString,
           cls := "draggable",
           cls := "chatmsg-content",
+          isDeleted.ifTrueOption(cls := "chatmsg-deleted")
         ),
         cls := "hard-shadow",
         cls := "chatmsg-card",
       ),
-      tagsDiv(state, graph, node),
+      isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
       msgControls,
     )
   }

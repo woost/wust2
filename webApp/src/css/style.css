@@ -128,6 +128,10 @@
     color: #50575f;
 }
 
+.chatmsg-deleted {
+    text-decoration: line-through;
+}
+
 .chatmsg-inner-frame {
     display: block;
     cursor: pointer; /* TODO: What about cursor when selecting text? */
