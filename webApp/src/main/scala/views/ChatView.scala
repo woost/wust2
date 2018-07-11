@@ -236,6 +236,7 @@ object ChatView extends View {
     val dragOutEvent = PublishSubject[DragOutEvent]
     val dragEvent = PublishSubject[DragEvent]
     val lastDragOverId = PublishSubject[Option[NodeId]]
+    val scrolledToBottom = PublishSubject[Boolean]
 
     // TODO: Use js properties
     dragOverEvent.foreach { e =>
@@ -276,8 +277,14 @@ object ChatView extends View {
           groupNodes(graph(), nodes, state, user().id)
             .map(chatMessage(state, _, graph(), user().id))
       },
-      onPostPatch --> sideEffect[(Element, Element)] {
-        case (_, elem) => scrollToBottom(elem)
+      onUpdate --> sideEffect { (prev, _) =>
+        scrolledToBottom
+          .onNext(prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11) // at bottom + 10 px tolerance
+      },
+      onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
+        case ((_, elem), atBottom) => (elem, atBottom)
+      }) --> sideEffect { (elem, atBottom) =>
+        if (atBottom) scrollToBottom(elem)
       },
       onInsert.asHtml --> sideEffect { elem =>
         val d = new Draggable(elem, new Options { draggable = ".draggable" })
