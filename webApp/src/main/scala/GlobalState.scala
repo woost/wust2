@@ -119,7 +119,8 @@ object GlobalState {
       IndexedDbOps.storeAuth(auth)
     }
 
-    val pageObservable = page.toObservable
+    val pageObservable = page.toObservable.drop(1) // update of page was changed manually AFTER initial page
+
     //TODO: better build up state from server events?
     // when the viewconfig or user changes, we get a new graph for the current page
     pageObservable
@@ -139,7 +140,6 @@ object GlobalState {
     val autoCheckUpdateInterval = 60.minutes
     val maxCheckUpdateInterval = 30.minutes
     pageObservable
-      .drop(1) // check for update when page was changed manually AFTER initial page
       .echoRepeated(autoCheckUpdateInterval)
       .throttleFirst(maxCheckUpdateInterval)
       .foreach { _ =>
