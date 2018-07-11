@@ -156,8 +156,9 @@
 .chatmsg-content {
     word-wrap: break-word;
     word-break: break-all;
-    padding: 3px 5px;
+    padding: 2px 4px;
     /* display: inline-block; */
+    border: 1px solid transparent; /* placeholder for the dashed border when dragging */
 }
 
 .chatmsg-content pre {
@@ -226,7 +227,7 @@ span.msg-tag {
 
 .chatmsg-inner-frame .draggable-source--is-dragging {
     color: #999;
-    border-radius: 5px;
+    border-radius: 3px;
     border: 1px solid #999;
     border-style: dashed;
 }
