@@ -119,11 +119,6 @@ object GlobalState {
       IndexedDbOps.storeAuth(auth)
     }
 
-    // on initial page load we add the currently viewed page as a channel
-    eventProcessor.changes.onNext(
-      GraphChanges.addToParent(viewConfig.now.page.parentIds, user.now.channelNodeId)
-    )
-
     val pageObservable = page.toObservable
     //TODO: better build up state from server events?
     // when the viewconfig or user changes, we get a new graph for the current page
