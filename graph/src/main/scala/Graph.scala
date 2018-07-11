@@ -228,9 +228,13 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   lazy val withoutChannels: Graph = this.filterNot(channelIds ++ channelNodeIds)
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
-  lazy val content: Graph = this.filterNot(
-    channelIds ++ channelNodeIds ++ (allUserIds -- allAuthorIds).map(id => UserId.raw(id))
-  )
+  def content(page: Page): Graph = {
+    val pageParents = page.parentIds.flatMap(ancestors)
+    this.filterNot(
+      channelIds ++ channelNodeIds ++ page.parentIds ++ pageParents ++ (allUserIds -- allAuthorIds)
+        .map(id => UserId.raw(id))
+    )
+  }
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] =
     nodes.toIndexedSeq.sortBy(n => nodeCreated(n))

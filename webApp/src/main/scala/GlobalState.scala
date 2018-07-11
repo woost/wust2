@@ -37,7 +37,6 @@ class GlobalState private (
   }
 
   val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
-  val graphContent: Rx[Graph] = graph.map(_.content.consistent)
 
   val channels: Rx[Seq[Node]] = Rx {
     graph().channels.toSeq.sortBy(_.data.str)
@@ -48,6 +47,8 @@ class GlobalState private (
       parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
     )
   }
+
+  val graphContent: Rx[Graph] = Rx { graph().content(page()) }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
     if (!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
