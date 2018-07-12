@@ -439,8 +439,8 @@ object ChatView extends View {
     val nodeTags: Seq[Node] = getNodeTags(graph, node, state.page.now)
 
     div( // node tags
-      nodeTags.map { tag =>
-        MainViewParts.postTag(state, tag)
+      nodeTags.flatMap { tag =>
+        Seq[VDomModifier](MainViewParts.postTag(state, tag), " ")
       },
       cls := "msg-tags"
     )

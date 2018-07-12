@@ -193,7 +193,7 @@ span.msg-tag {
     color: #fefefe;
     border-radius: 2px;
     padding: 0px 3px;
-    margin-right: 3px;
+    margin: 1px 0px;
     white-space: nowrap;
     cursor: pointer;
 }
