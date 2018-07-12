@@ -187,8 +187,8 @@ div.msg-tags {
 }
 
 span.msg-tag {
-    font-size: x-small;
     font-weight: bold;
+    font-size: small;
     color: #fefefe;
     border-radius: 2px;
     padding: 0px 3px;
