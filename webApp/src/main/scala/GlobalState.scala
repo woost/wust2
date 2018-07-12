@@ -48,6 +48,12 @@ class GlobalState private (
     )
   }
 
+  val pageIsBookmarked: Rx[Boolean] = Rx {
+    page().parentIds.forall(
+      graph().children(user().channelNodeId).contains
+    )
+  }
+
   val graphContent: Rx[Graph] = Rx { graph().content(page()) }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>

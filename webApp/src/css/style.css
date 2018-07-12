@@ -246,3 +246,16 @@ span.msg-tag {
 .text {
     cursor: text;
 }
+
+.non-bookmarked-page-frame {
+    padding: 20px;
+    -webkit-box-shadow: inset 0px 2px 10px 0px rgba(0,0,0,0.75);
+    -moz-box-shadow: inset 0px 2px 10px 0px rgba(0,0,0,0.75);
+    box-shadow: inset 0px 2px 10px 0px rgba(0,0,0,0.75);
+}
+
+.non-bookmarked-page-frame > * {
+    -webkit-box-shadow: 0px 2px 10px 0px rgba(0,0,0,0.75);
+    -moz-box-shadow: 0px 2px 10px 0px rgba(0,0,0,0.75);
+    box-shadow: 0px 2px 10px 0px rgba(0,0,0,0.75);
+}

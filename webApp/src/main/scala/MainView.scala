@@ -22,18 +22,29 @@ object MainView {
         Sidebar(state)(ctx)(flexGrow := 0, flexShrink := 0),
         backgroundColor <-- state.pageStyle.bgColor,
         div(
-          cls := "flex",
-          flexDirection.column,
           width := "100%",
           Rx {
             state
-              .view()
-              .isContent
-              .ifTrueOption(
-                BreadCrumbs(state)(ctx)(fontSize := "12px", flexGrow := 0, flexShrink := 0)
+              .pageIsBookmarked()
+              .ifFalseOption(
+                Seq(backgroundColor <-- state.pageStyle.bgColor, cls := "non-bookmarked-page-frame")
               )
           },
-          state.view.map(_.apply(state)(ctx)(height := "100%", width := "100%", flexGrow := 1))
+          div(
+            cls := "flex",
+            flexDirection.column,
+            width := "100%",
+            height := "100%",
+            Rx {
+              state
+                .view()
+                .isContent
+                .ifTrueOption(
+                  BreadCrumbs(state)(ctx)(fontSize := "12px", flexGrow := 0, flexShrink := 0)
+                )
+            },
+            state.view.map(_.apply(state)(ctx)(height := "100%", width := "100%", flexGrow := 1))
+          )
         )
       )
     )
