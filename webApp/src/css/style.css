@@ -130,6 +130,7 @@
 
 .chatmsg-deleted {
     text-decoration: line-through;
+    cursor: default;
 }
 
 .chatmsg-inner-frame {
