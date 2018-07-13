@@ -5,6 +5,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webApp.outwatchHelpers._
 import wust.util._
+import wust.css.Styles
 
 object MainView {
 
@@ -13,7 +14,8 @@ object MainView {
       cls := "flex mainview",
       Topbar(state)(ctx)(width := "100%", flexGrow := 0, flexShrink := 0),
       div(
-        cls := "flex growFull",
+        cls := s"flex",
+        Styles.growFull,
         Sidebar(state)(ctx),
         backgroundColor <-- state.pageStyle.bgColor,
         div(

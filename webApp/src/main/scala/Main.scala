@@ -3,6 +3,7 @@ package wust.webApp
 import outwatch.dom._
 import rx._
 import wust.webApp.outwatchHelpers._
+import org.scalajs.dom.document
 
 import scala.scalajs.{LinkingInfo, js}
 
@@ -21,6 +22,13 @@ object Main {
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalState.create(swUpdateIsAvailable)
+
+    // TODO: DevOnly {
+      val styleTag = document.createElement("style")
+      document.head.appendChild(styleTag)
+      styleTag.innerHTML = wust.css.StyleRendering.renderAll
+    // }
+
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }

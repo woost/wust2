@@ -1,9 +1,11 @@
-package wust.backend
+package wust.css
 
 import scalacss.DevDefaults._
 import scalacss.internal.{Attr, Literal, Transform, CanIUse}
 import scalacss.internal.ValueT.{TypedAttrT1, ZeroLit, Len}
 
+// TODO: generate by sbt:
+// https://stackoverflow.com/questions/23409993/defining-sbt-task-that-invokes-method-from-project-code
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
   import CanIUse.Agent._
@@ -37,7 +39,7 @@ object gridGap extends TypedAttrT1[Len] with ZeroLit {
   // def normal = av(L.normal)
 }
 
-class SharedStyle(implicit r: StyleSheet.Register) extends StyleSheet.Inline()(r) {
+object Styles extends StyleSheet.Inline {
   import dsl._
 
   val slim = style(
@@ -65,16 +67,16 @@ class SharedStyle(implicit r: StyleSheet.Register) extends StyleSheet.Inline()(r
 
 }
 
-object CommonStyle extends StyleSheet.Standalone {
+//TODO: port over to Style as inline and reference class via Styles
+object CommonStyles extends StyleSheet.Standalone {
   import dsl._
-  val shared = new SharedStyle
 
   "*, *:before, *:after" - (
     boxSizing.borderBox
 )
 
   "html, body" - (
-    shared.slim,
+    Styles.slim,
     width(100 %%),
     height(100 %%),
   )
@@ -90,7 +92,7 @@ object CommonStyle extends StyleSheet.Standalone {
 
   ".hard-shadow" - (
     borderTop(1 px, solid, rgba(158,158,158,0.19)),
-    boxShadow := "0 px 1 px 0 px 1 px rgba(158,158,158,0.45)"
+    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   )
 
   ".flex" - (
@@ -102,12 +104,12 @@ object CommonStyle extends StyleSheet.Standalone {
   )
 
   ".growFull" - (
-    shared.growFull
+    Styles.growFull
   )
 
   ".mainview" - (
     flexDirection.column,
-    shared.growFull
+    Styles.growFull
   )
 
   // -- breadcrumb --
@@ -116,7 +118,7 @@ object CommonStyle extends StyleSheet.Standalone {
     display.flex,
     overflowX.auto,
     fontSize(12 px),
-    shared.flexStatic,
+    Styles.flexStatic,
   )
 
   ".breadcrumb" - (
@@ -136,7 +138,7 @@ object CommonStyle extends StyleSheet.Standalone {
     maxWidth(250 px),
     color.white,
     transition := "flex-basis 0.2s, background-color 0.5s",
-    shared.flexStatic,
+    Styles.flexStatic,
     height(100 %%),
     display.flex,
     flexDirection.column,
@@ -181,7 +183,7 @@ object CommonStyle extends StyleSheet.Standalone {
     marginRight(0 px),
     marginTop(5 px),
     alignSelf.center,
-    shared.flexStatic
+    Styles.flexStatic
   )
 
   ".ui.button.newGroupButton-small" - (
@@ -190,19 +192,12 @@ object CommonStyle extends StyleSheet.Standalone {
     paddingLeft(12 px),
     paddingRight(12 px),
     alignSelf.center,
-    shared.flexStatic,
+    Styles.flexStatic,
   )
 
-}
-
-
-object Style extends StyleSheet.Standalone {
-  import dsl._
-  val shared = new SharedStyle
-
   ".viewgridAuto" - (
-    shared.slim,
-    shared.gridOpts,
+    Styles.slim,
+    Styles.gridOpts,
     media.only.screen.minWidth(992 px) - (
       gridTemplateColumns := "repeat(2, 50%)"
     )
@@ -210,14 +205,14 @@ object Style extends StyleSheet.Standalone {
  )
 
   ".viewgridRow" - (
-    shared.slim,
+    Styles.slim,
     display.flex
   )
 
   /* TODO: too many columns overlaps the content because it autofits the screen height */
   ".viewgridColumn" - (
-    shared.slim,
-    shared.gridOpts,
+    Styles.slim,
+    Styles.gridOpts,
   )
 
   /* inspired by https://github.com/markdowncss/air/blob/master/index.css */
@@ -378,7 +373,7 @@ object Style extends StyleSheet.Standalone {
 )
 
   // -- draggable --
-  ".chatmsg-inner-frame.draggable--over" - (
+  ".chatmsg-inner-frame .draggable--over" - (
     backgroundColor(c"#aaccff"),
     borderRadius(3 px)
   )
@@ -418,15 +413,19 @@ object Style extends StyleSheet.Standalone {
   )
 }
 
-object Styles
-{
-  import java.io.{File, PrintWriter}
+object StyleRendering {
+  def renderAll: String = CommonStyles.renderA[String] ++ Styles.renderA[String]
 
-  /** Generates css files from scalacss styles */
-  def Build() = {
-    // val w = new PrintWriter(new File("../webApp/src/css/generated.css"))
-    val w = new PrintWriter(new File("../webApp/src/css/style.css"))
-    w.write(CommonStyle.render ++ Style.render)
-    w.close()
-  }
+  //    final def render[Out](implicit r: Renderer[Out], env: Env): Out =
+      // cssRegister.render
+
+  // import java.io.{File, PrintWriter}
+
+  // /** Generates css files from scalacss styles */
+  // def Build() = {
+  //   // val w = new PrintWriter(new File("../webApp/src/css/generated.css"))
+  //   val w = new PrintWriter(new File("../webApp/src/css/style.css"))
+  //   w.write(renderAll)
+  //   w.close()
+  // }
 }

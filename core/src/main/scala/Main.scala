@@ -6,8 +6,6 @@ import wust.utilBackend.Logging
 object Main extends App {
   Logging.setup()
 
-  Styles.Build()
-
   Config.load match {
     case Left(error) =>
       val sep = "\n\t- "

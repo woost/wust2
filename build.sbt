@@ -150,6 +150,8 @@ lazy val root = project
     idsJVM,
     graphJS,
     graphJVM,
+    cssJS,
+    cssJVM,
     utilJS,
     utilJVM,
     utilBackend,
@@ -197,7 +199,7 @@ lazy val root = project
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := Seq(apiJS, apiJVM, database, core, sdkJS, sdkJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in utilBackend).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in cssJS).value ++ (watchSources in cssJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in utilBackend).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
 lazy val util = crossProject(JSPlatform, JVMPlatform)
@@ -268,6 +270,19 @@ lazy val graph = crossProject(JSPlatform, JVMPlatform)
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
+lazy val css = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Pure)
+  .settings(commonSettings)
+  .jsSettings(commonWebSettings)
+  .settings(
+    libraryDependencies ++=
+      Deps.scalacss.value ::
+      Nil
+    )
+
+lazy val cssJS = css.js
+lazy val cssJVM = css.jvm
+
 lazy val api = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
   .dependsOn(graph)
@@ -322,14 +337,13 @@ lazy val core = project
         Deps.monix.value ::
         Deps.stringmetric.value ::
         Deps.webPush.value ::
-        Deps.scalacss.value ::
         Nil,
     javaOptions in reStart += "-Xmx50m"
   )
 
 lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(sdkJS)
+  .dependsOn(sdkJS, cssJS)
   .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
     libraryDependencies ++=

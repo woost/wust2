@@ -10,7 +10,7 @@ import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.document
 import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
-import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode}
+import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode, dsl}
 import outwatch.{AsVDomModifier, Sink}
 import rx._
 
@@ -159,4 +159,7 @@ package object outwatchHelpers {
   implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
     abstractTreeToVNode(icon.`abstract`(0))
   }
+
+  import scalacss.defaults.Exports.StyleA
+  implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 }
