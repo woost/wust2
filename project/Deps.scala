@@ -111,8 +111,8 @@ object Deps {
         "source-map-loader" -> "0.2.3" ::
         "node-sass" -> "4.7.2" ::
         "sass-loader" -> "6.0.7" ::
-        "css-loader" -> "0.28.11" ::
-        "style-loader" -> "0.20.3" ::
+        "css-loader" -> "1.0.0" ::
+        "style-loader" -> "0.21.0" ::
         "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
         "webpack-merge" -> "4.1.2" ::
         "copy-webpack-plugin" -> "4.5.1" ::
