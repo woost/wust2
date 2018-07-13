@@ -200,10 +200,9 @@ function self() {
         cat <<EOF
     unknown option '$1', expected one of:
 
-    sbt
-    apps
-    env
-    migrate
+    sbt [ all | core | githubApp | gitterApp | slackApp | * ]
+    sbtWithPoll # Activate watch mode
+    nsbt        # Start sbt in a nix-shell
 
     psql [options]
     pgcli [options]
@@ -212,11 +211,16 @@ function self() {
     pgrestorefromprod
     pgclean
 
+    apps
+    env
+    migrate
+
     prodlocal
 
     test
     test.postgres
     test.integration
+
 EOF
         exit 1
 
