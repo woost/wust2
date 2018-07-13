@@ -24,8 +24,7 @@ object MainView {
         div(
           width := "100%",
           Rx {
-            state
-              .pageIsBookmarked()
+            (state.pageIsBookmarked() || !state.view().isContent)
               .ifFalseOption(
                 Seq(backgroundColor <-- state.pageStyle.bgColor, cls := "non-bookmarked-page-frame")
               )
