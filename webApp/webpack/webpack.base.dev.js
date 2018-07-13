@@ -53,7 +53,7 @@ module.exports.devServer = {
     open: false, // open page in browser
     hot: false,
     hotOnly: false, // only reload when build is sucessful
-    inline: true, // show build errors in browser console
+    inline: true, // live reloading
     overlay: false, // this breaks the compiled app-fastopt-library.js
     host: "0.0.0.0", //TODO this is needed so that in dev docker containers can access devserver through docker bridge
     allowedHosts: [ ".localhost" ],
