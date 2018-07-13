@@ -25,65 +25,33 @@ object Sidebar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state.sidebarOpen
     div(
-      minWidth := "40px",
-      maxWidth := "250px",
+      cls := "sidebar",
       backgroundColor <-- state.pageStyle.darkBgColor,
-      color := "white",
-      transition := "flex-basis 0.2s, background-color 0.5s",
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
       sidebarOpen.map {
         case true =>
           VDomModifier(
-            height := "100%",
-            display.flex,
-            flexDirection.column,
-            justifyContent.flexStart,
-            alignItems.stretch,
-            alignContent.stretch,
-            channels(state)(ctx)(overflowY.auto),
+            channels(state)(ctx),
             newGroupButton(state)(ctx)(
-              buttonStyle,
-              marginRight := "0",
-              marginTop := "5px",
-              alignSelf.center,
-              flexGrow := 0,
-              flexShrink := 0
+              cls := "newGroupButton-large " + buttonStyles,
             ),
           )
         case false =>
           VDomModifier(
-            height := "100%",
-            display.flex,
-            flexDirection.column,
-            justifyContent.flexStart,
-            alignItems.stretch,
-            alignContent.stretch,
-            channelIcons(state, 40)(ctx)(overflowY.auto),
+            channelIcons(state, 40)(ctx),
             newGroupButton(state, "+")(ctx)(
-              buttonStyle,
-              marginRight := "0",
-              marginTop := "3px",
-              paddingLeft := "12px",
-              paddingRight := "12px",
-              alignSelf.center,
-              flexGrow := 0,
-              flexShrink := 0
+              cls := "newGroupButton-small " + buttonStyles,
             ),
           )
       }
     )
   }
 
-  def buttonStyle = Seq(
-    cls := "tiny compact ui inverted grey button"
-  )
+  val buttonStyles = Seq("tiny", "compact", "inverted","grey").mkString(" ")
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     def channelDiv(selected: Boolean, pageStyle: PageStyle) = div(
-      paddingRight := "3px",
-      display.flex,
-      alignItems.center,
-      cursor.pointer,
+      cls := "channel",
       selected.ifTrueSeq(
         Seq(
           color := pageStyle.darkBgColor.now,
@@ -93,7 +61,7 @@ object Sidebar {
     )
 
     div(
-      color := "#C4C4CA",
+      cls := "channels",
       Rx {
         state.channels().map {
           p =>
@@ -113,7 +81,7 @@ object Sidebar {
       Rx {
         channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle)(
           //TODO: inner state.page obs again
-          noChannelIcon(state.page.map(_.mode == PageMode.Orphans), 30)(ctx)(marginRight := "5px"),
+          noChannelIcon(state.page.map(_.mode == PageMode.Orphans))(ctx)(marginRight := "5px"),
           PageMode.Orphans.toString,
           onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
         )
@@ -121,10 +89,8 @@ object Sidebar {
     )
   }
 
-  def noChannelIcon(selected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner) = div(
-    margin := "0",
-    width := s"${size}px",
-    height := s"${size}px",
+  def noChannelIcon(selected: Rx[Boolean])(implicit ctx: Ctx.Owner) = div(
+    cls := "noChannelIcon",
     backgroundColor <-- selected.map {
       case true  => "grey" //TODO: better
       case false => "white"
@@ -133,12 +99,13 @@ object Sidebar {
 
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
     div(
+      cls := "channelIcons",
       state.channels.map(_.map { p =>
         channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)(ctx)(
           onChannelClick(ChannelAction.Post(p.id))(state)
         )
       }),
-      noChannelIcon(state.page.map(_.mode == PageMode.Orphans), size)(ctx)(
+      noChannelIcon(state.page.map(_.mode == PageMode.Orphans))(ctx)(
         onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
       )
     )

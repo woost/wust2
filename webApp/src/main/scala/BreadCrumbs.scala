@@ -24,16 +24,14 @@ object BreadCrumbs {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      padding := "1px 3px",
+      cls := "breadcrumbs",
       state.nodeAncestorsHierarchy.map(_.map {
         case (level, nodeSeq) =>
-          span(
+          span(cls := "breadcrumb",
             nodeSeq.map(n => postTag(state, n)(ctx)(cursor.pointer)): Seq[VNode],
-            span("/", marginRight := "3px", fontWeight.bold),
+            span("/", cls := "divider"),
           )
       }.toSeq.reverse),
-      display.flex,
-      overflowX.auto
     )
   }
 }

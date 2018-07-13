@@ -45,6 +45,17 @@ class SharedStyle(implicit r: StyleSheet.Register) extends StyleSheet.Inline()(r
     padding(0 px)
   )
 
+  /** width & height 100% */
+  val growFull = style(
+    width(100 %%),
+    height(100 %%)
+  )
+
+  val flexStatic = style(
+    flexGrow(0),
+    flexShrink(0)
+  )
+
   val gridOpts = style(
     display.grid,
     gridGap(0 px),
@@ -87,8 +98,101 @@ object CommonStyle extends StyleSheet.Standalone {
     minWidth(0 px),
     /* fixes full page scrolling when messages are too long */
     minHeight(0 px ),
-    display.flex
+    display.flex,
   )
+
+  ".growFull" - (
+    shared.growFull
+  )
+
+  ".mainview" - (
+    flexDirection.column,
+    shared.growFull
+  )
+
+  // -- breadcrumb --
+  ".breadcrumbs" - (
+    padding(1 px, 3 px),
+    display.flex,
+    overflowX.auto,
+    fontSize(12 px),
+    shared.flexStatic,
+  )
+
+  ".breadcrumb" - (
+  )
+
+  ".breadcrumbs .divider" - (
+    marginLeft(1 px),
+    marginRight(3 px),
+    color(c"#fefefe"),
+    fontWeight.bold
+  )
+
+
+  // -- sidebar --
+  ".sidebar" - (
+    minWidth(40 px),
+    maxWidth(250 px),
+    color.white,
+    transition := "flex-basis 0.2s, background-color 0.5s",
+    shared.flexStatic,
+    height(100 %%),
+    display.flex,
+    flexDirection.column,
+    justifyContent.flexStart,
+    alignItems.stretch,
+    alignContent.stretch,
+  )
+
+
+  ".noChannelIcon" - (
+    margin(0 px),
+  )
+
+  ".channels .noChannelIcon" - (
+    width(30 px),
+    height(30 px),
+    )
+
+  ".channelIcons .noChannelIcon" - (
+    width(40 px),
+    height(40 px),
+  )
+
+  ".channels" - (
+    overflowY.auto,
+    color(c"#C4C4CA"),
+  )
+
+  ".channel" - (
+    paddingRight(3 px),
+    display.flex,
+    alignItems.center,
+    cursor.pointer,
+  )
+
+  ".channelIcons" - (
+    overflowY.auto
+  )
+
+  /* must be more specific than .ui.button */
+  ".ui.button.newGroupButton-large" - (
+    marginRight(0 px),
+    marginTop(5 px),
+    alignSelf.center,
+    shared.flexStatic
+  )
+
+  ".ui.button.newGroupButton-small" - (
+    marginRight(0 px),
+    marginTop(3 px),
+    paddingLeft(12 px),
+    paddingRight(12 px),
+    alignSelf.center,
+    shared.flexStatic,
+  )
+
 }
 
 
