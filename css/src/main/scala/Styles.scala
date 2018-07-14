@@ -256,7 +256,7 @@ object CommonStyles extends StyleSheet.Standalone {
     userDrag.element
   )
 
-  ".graphpost" - (
+  ".graphnode" - (
     wordWrap.breakWord,
     textRendering := "optimizeLegibility",
     position.absolute,

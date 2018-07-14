@@ -4,6 +4,7 @@ import d3v4._
 import org.scalajs.dom.ext.KeyCode
 import io.circe.Decoder.state
 import org.scalajs.dom
+import org.scalajs.dom.console
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.{MutationObserver, MutationRecord}
@@ -337,12 +338,13 @@ class ForceSimulation(
       stop()
 
       // We want to let d3 do the re-ordering while keeping the old coordinates
-      postSelection = postContainer.selectAll[Node]("div")
+      postSelection = postContainer.selectAll[Node]("div.graphnode")
+      console.log(postSelection)
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
       updateDomPosts(posts.toJSArray, postSelection, onClick) // d3 data join
-      postSelection = postContainer.selectAll[Node]("div") // update outdated postSelection
+      postSelection = postContainer.selectAll[Node]("div.graphnode") // update outdated postSelection
       registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
       simData = createSimDataFromDomBackup(postSelection)
@@ -480,7 +482,7 @@ object ForceSimulation {
           div(
             postWidth,
             renderNodeData(node.data),
-            cls := "graphpost",
+            cls := "graphnode",
             // pointerEvents.auto, // re-enable mouse events
             cursor.default
           ).render
@@ -575,7 +577,7 @@ object ForceSimulation {
   ): Unit = {
     import ForceSimulationForces._
 
-    //    dom.console.log(staticData.asInstanceOf[js.Any])
+    //    console.log(staticData.asInstanceOf[js.Any])
     initQuadtree(simData, staticData)
     eulerSetGeometricCenter(simData, staticData)
     calculateEulerSetPolygons(simData, staticData)
