@@ -45,10 +45,9 @@ object SelectedPostMenu {
         .getOrElse(Node.Content(NodeData.PlainText("")))
     }
 
-    val rxParents: Rx[Seq[Node]] = Rx {
-      val graph = state.graphContent()
-      val directParentIds = graph.parents.getOrElse(nodeId, Set.empty)
-      directParentIds.flatMap(graph.nodesById.get)(breakOut)
+    val rxTags: Rx[Seq[Node]] = Rx {
+      val g = state.graphContent()
+      g.parents(nodeId).map(g.nodesById)(breakOut)
     }
 
     val transformStyle = Rx {
@@ -62,42 +61,10 @@ object SelectedPostMenu {
       s"translate(${x}px, ${y}px)"
     }
 
-    val parentList = rxParents.map { parents =>
+    val tagList = rxTags.map { tags =>
       div(
         marginBottom := "5px",
-        parents.map { p =>
-          span(
-            p.id.toCuidString,
-            br(),
-            p.data.str,
-            fontWeight.bold,
-            backgroundColor := baseColor(p.id).toString,
-            margin := "2px",
-            padding := "1px 0px 1px 5px",
-            borderRadius := "2px",
-            span(
-              "×",
-              onClick --> sideEffect {
-                val addedGrandParents: collection.Set[Edge] = {
-                  if (parents.size == 1)
-                    state.graphContent.now.parents(p.id).map(Edge.Parent(rxPost.now.id, _))
-                  else
-                    Set.empty
-                }
-
-                state.eventProcessor.changes.onNext(
-                  GraphChanges(
-                    delEdges = Set(Edge.Parent(rxPost.now.id, p.id)),
-                    addEdges = addedGrandParents
-                  )
-                )
-                ()
-              },
-              cursor.pointer,
-              padding := "0px 5px"
-            )
-          )
-        }
+        tags.map { tag => removableNodeTag(state, tag, taggedNodeId = rxPost.now.id, state.graph.now) }
       )
     }
 
@@ -175,7 +142,7 @@ object SelectedPostMenu {
         //        backgroundColor <-- rxPost.map(_.color),
         backgroundColor := "#EEE",
         borderRadius := "5px",
-        parentList,
+        tagList,
         textArea(valueWithEnter --> insertPostHandler, Placeholders.newNode, marginTop := "20px")
       ),
       div(

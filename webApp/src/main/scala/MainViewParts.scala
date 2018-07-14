@@ -21,19 +21,6 @@ import scala.scalajs.js.Date
 
 object MainViewParts {
 
-  def postTag(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val rawString = node.data.str.trim
-    val contentString = if (rawString.length > 20) rawString.take(17) + "..." else rawString
-    span(
-      cls := "msg-tag",
-      contentString, //TODO trim correctly! fit for tag usage...
-      onClick --> sideEffect { e =>
-        state.page() = Page(Seq(node.id)); e.stopPropagation()
-      },
-      backgroundColor := computeTagColor(node.id),
-    )
-  }
-
   def newGroupTitle(state: GlobalState) = {
     var today = new Date()
     // January is 0!

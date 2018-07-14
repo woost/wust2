@@ -127,7 +127,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".breadcrumbs .divider" - (
     marginLeft(1 px),
     marginRight(3 px),
-    color(c"#fefefe"),
+    color(c"#666"),
     fontWeight.bold
   )
 
@@ -342,19 +342,30 @@ object CommonStyles extends StyleSheet.Standalone {
     color.grey
   )
 
-  "div.msg-tags" - (
+  "div.tags" - (
     padding(0 px, 3 px, 0 px, 5 px)
   )
 
-  "span.msg-tag" - (
+  "span.tag" - (
     fontWeight.bold,
     fontSize.small,
-    color(messageBackground),
+    color(c"#FEFEFE"),
     borderRadius(2 px),
     padding(0 px, 3 px),
     margin(1 px, 0 px),
     whiteSpace.nowrap,
     cursor.pointer
+  )
+
+  "span.tag .removebutton" - (
+    cursor.pointer,
+    padding( 0 px, 5 px ),
+    marginLeft(2 px),
+    borderRadius(50 %%)
+  )
+
+  "span.tag .removebutton:hover" - (
+    backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
 

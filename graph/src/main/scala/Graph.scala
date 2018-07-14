@@ -244,10 +244,16 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   lazy val withoutChannels: Graph = this.filterNot(channelIds ++ channelNodeIds)
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
+
   def content(page: Page): Graph = {
     val pageChildren = page.parentIds.flatMap(descendants)
     this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds))
   }
+
+  val nodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo { ((nodeId:NodeId, page:Page) =>
+    (ancestors(nodeId).toSet -- channelNodeIds -- channelIds -- page.parentIds - nodeId).map(nodesById)
+  ).tupled }
+
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] =
     nodes.toIndexedSeq.sortBy(n => nodeCreated(n))

@@ -2,16 +2,20 @@ package wust.webApp.views
 
 import wust.webApp.marked
 import org.scalajs.dom
+import wust.sdk.NodeColor._
 import org.scalajs.dom.ext.KeyCode
 import outwatch.{ObserverSink, Sink}
 import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
+import wust.graph._
 import monix.reactive.Observer
 import wust.ids.NodeData
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.window
 import views.MediaViewer
+import wust.webApp.GlobalState
+import wust.ids._
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -75,6 +79,47 @@ object Elements {
         )
       } yield modifiers).unsafeRunSync() //TODO: https://github.com/OutWatch/outwatch/issues/195
   }
+
+  def nodeTag(state: GlobalState, tag: Node): VNode = {
+    val rawString = tag.data.str.trim
+    val contentString = if (rawString.length > 20) rawString.take(17) + "..." else rawString
+    span(
+      cls := "tag",
+      contentString, //TODO trim correctly! fit for tag usage...
+      onClick --> sideEffect { e =>
+        state.page() = Page(Seq(tag.id)); e.stopPropagation()
+      },
+      backgroundColor := computeTagColor(tag.id),
+    )
+  }
+
+  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, graph:Graph): VNode = {
+    nodeTag(state, tag)(
+      span(
+        "×",
+        cls := "removebutton",
+        onClick.stopPropagation --> sideEffect {
+          // when removing last parent, fall one level lower into the still existing grandparents
+          val removingLastParent = graph.parents(taggedNodeId).size == 1
+          println("removing last parent: " + removingLastParent)
+          val addedGrandParents:collection.Set[Edge] = if( removingLastParent )
+            graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
+          else
+            Set.empty
+          println("addedGrandParents: " + addedGrandParents.map(e => graph.nodesById(e.targetId).data.str))
+
+          state.eventProcessor.changes.onNext(
+            GraphChanges(
+              delEdges = Set(Edge.Parent(taggedNodeId, tag.id)),
+              addEdges = addedGrandParents
+            )
+          )
+        ()
+        },
+      )
+    )
+  }
+
 
   //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
   //  textarea(

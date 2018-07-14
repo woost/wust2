@@ -23,6 +23,7 @@ import wust.util._
 
 import scala.scalajs.js
 import scala.util.Success
+import scala.collection.breakOut
 
 /** hide size behind a semantic */
 class AvatarSize(val value: String)
@@ -188,14 +189,6 @@ object ChatView extends View {
       GraphChanges.delete(node, graph.parents(node).toSet intersect page.parentIdSet)
     } --> ObserverSink(state.eventProcessor.changes)
   )
-
-  //TODO: memoize?
-  //TODO: seems to be buggy: check why dragging A in B leads to tag A in A instead of tag A in B
-  private def getNodeTags(graph: Graph, node: Node, page: Page): Seq[Node] = {
-    (graph.ancestors(node.id).distinct diff graph.channelNodeIds.toSeq diff page.parentIds diff Seq(
-      node.id
-    )).map(graph.nodesById(_))
-  }
 
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
   private def groupNodes(
@@ -417,7 +410,7 @@ object ChatView extends View {
     val content = renderNodeData(node.data)
     // if (graph.children(node).isEmpty)
     //   renderNodeData(node.data)
-    // else MainViewParts.postTag(state, node)(ctx)(fontSize := "14px")
+    // else nodeTag(state, node)(ctx)(fontSize := "14px")
 
     val msgControls = div(
       cls := "chatmsg-controls",
@@ -446,13 +439,13 @@ object ChatView extends View {
   }
 
   private def tagsDiv(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
-    val nodeTags: Seq[Node] = getNodeTags(graph, node, state.page.now)
+    val nodeTags = graph.nodeTags((node.id, state.page.now))
 
     div( // node tags
       nodeTags.flatMap { tag =>
-        Seq[VDomModifier](MainViewParts.postTag(state, tag), " ")
-      },
-      cls := "msg-tags"
+        Seq[VDomModifier](removableNodeTag(state, tag, node.id, graph), " ")
+      }(breakOut):Seq[VDomModifier],
+      cls := "tags"
     )
   }
 

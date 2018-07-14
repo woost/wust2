@@ -339,7 +339,6 @@ class ForceSimulation(
 
       // We want to let d3 do the re-ordering while keeping the old coordinates
       postSelection = postContainer.selectAll[Node]("div.graphnode")
-      console.log(postSelection)
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
