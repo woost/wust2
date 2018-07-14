@@ -64,7 +64,9 @@ object SelectedPostMenu {
     val tagList = rxTags.map { tags =>
       div(
         marginBottom := "5px",
-        tags.map { tag => removableNodeTag(state, tag, taggedNodeId = rxPost.now.id, state.graph.now) }
+        tags.map { tag =>
+          removableNodeTag(state, tag, taggedNodeId = rxPost.now.id, state.graph.now)
+        }
       )
     }
 
@@ -230,7 +232,8 @@ object SelectedPostMenu {
 //    ),
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
     MenuAction("Delete", { (p: Node, state: GlobalState) =>
-      state.eventProcessor.enriched.changes.onNext(GraphChanges.delete(p.id, state.page.now.parentIdSet))
+      state.eventProcessor.enriched.changes
+        .onNext(GraphChanges.delete(p.id, state.page.now.parentIdSet))
     }),
     // MenuAction(
     //   "Autopos",

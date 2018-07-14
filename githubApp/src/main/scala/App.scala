@@ -520,7 +520,7 @@ object WustReceiver {
       val prevGraph = graphTransition.prevGraph
       val ancestors = getAncestors(prevGraph, currGraph, gc)
 
-      val githubChanges:GraphChanges = ??? /*gc.copy(
+      val githubChanges: GraphChanges = ??? /*gc.copy(
         addNodes = gc.addNodes.filter(p => ancestors(p.id).exists(_ == Constants.githubId)),
         delNodes = gc.delNodes.filter(pid => ancestors(pid).exists(_ == Constants.githubId))
       )*/
@@ -673,7 +673,7 @@ object WustReceiver {
         }
 
       val combinedCalls =
-        (createIssuesCall ++ createCommentsCall ++ redirectCreateCommentsCall ++ editIssuesCall ++ editCommentsCall ++ ??? /*deleteIssuesCall ++ deleteCommentsCall*/).toSeq
+        (createIssuesCall ++ createCommentsCall ++ redirectCreateCommentsCall ++ editIssuesCall ++ editCommentsCall ++ ??? /*deleteIssuesCall ++ deleteCommentsCall*/ ).toSeq
 
 //      println("-" * 200)
 //      println(s"Github post ancestors: $ancestors")

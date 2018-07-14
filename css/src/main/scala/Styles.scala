@@ -12,22 +12,23 @@ object userDrag extends TypedAttrT1[Len] with ZeroLit {
   import CanIUse.Support._
 
   val CanUseDrag: CanIUse.Subject = Map(
-    AndroidBrowser    -> Set(FullX),
-    AndroidChrome     -> Set(FullX),
-    AndroidFirefox    -> Set(FullX),
-    AndroidUC         -> Set(FullX),
+    AndroidBrowser -> Set(FullX),
+    AndroidChrome -> Set(FullX),
+    AndroidFirefox -> Set(FullX),
+    AndroidUC -> Set(FullX),
     BlackberryBrowser -> Set(FullX),
-    Chrome            -> Set(FullX),
-    Edge              -> Set(FullX),
-    Firefox           -> Set(FullX),
-    IE                -> Set(FullX),
-    IEMobile          -> Set(FullX),
-    IOSSafari         -> Set(FullX),
-    Opera             -> Set(FullX),
-    OperaMini         -> Set(FullX),
-    OperaMobile       -> Set(FullX),
-    Safari            -> Set(FullX),
-    Samsung           -> Set(FullX))
+    Chrome -> Set(FullX),
+    Edge -> Set(FullX),
+    Firefox -> Set(FullX),
+    IE -> Set(FullX),
+    IEMobile -> Set(FullX),
+    IOSSafari -> Set(FullX),
+    Opera -> Set(FullX),
+    OperaMini -> Set(FullX),
+    OperaMobile -> Set(FullX),
+    Safari -> Set(FullX),
+    Samsung -> Set(FullX)
+  )
 
   /// FIXME: this should add -webkit-user-drag and -khtml-user-drag
   override val attr = Attr.real("user-drag", Transform keys CanUseDrag)
@@ -73,7 +74,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   "*, *:before, *:after" - (
     boxSizing.borderBox
-)
+  )
 
   "html, body" - (
     Styles.slim,
@@ -91,7 +92,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".hard-shadow" - (
-    borderTop(1 px, solid, rgba(158,158,158,0.19)),
+    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   )
 
@@ -99,7 +100,7 @@ object CommonStyles extends StyleSheet.Standalone {
     /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
     minWidth(0 px),
     /* fixes full page scrolling when messages are too long */
-    minHeight(0 px ),
+    minHeight(0 px),
     display.flex,
   )
 
@@ -121,8 +122,7 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flexStatic,
   )
 
-  ".breadcrumb" - (
-  )
+  ".breadcrumb" - ()
 
   ".breadcrumbs .divider" - (
     marginLeft(1 px),
@@ -130,7 +130,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#666"),
     fontWeight.bold
   )
-
 
   // -- sidebar --
   ".sidebar" - (
@@ -147,7 +146,6 @@ object CommonStyles extends StyleSheet.Standalone {
     alignContent.stretch,
   )
 
-
   ".noChannelIcon" - (
     margin(0 px),
   )
@@ -155,7 +153,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".channels .noChannelIcon" - (
     width(30 px),
     height(30 px),
-    )
+  )
 
   ".channelIcons .noChannelIcon" - (
     width(40 px),
@@ -201,8 +199,7 @@ object CommonStyles extends StyleSheet.Standalone {
     media.only.screen.minWidth(992 px) - (
       gridTemplateColumns := "repeat(2, 50%)"
     )
-
- )
+  )
 
   ".viewgridRow" - (
     Styles.slim,
@@ -270,10 +267,8 @@ object CommonStyles extends StyleSheet.Standalone {
     background := "blue", // why no background(...) possible?
   )
 
-
   // -- chatview --
-  ".chatmsg-outer-frame" - (
-  )
+  ".chatmsg-outer-frame" - ()
 
   ".chatmsg-avatar" - (
     margin(5 px)
@@ -343,7 +338,12 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   "div.tags" - (
-    padding(0 px, 3 px, 0 px, 5 px)
+    padding(
+      0 px,
+      3 px,
+      0 px,
+      5 px
+    )
   )
 
   "span.tag" - (
@@ -359,7 +359,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   "span.tag .removebutton" - (
     cursor.pointer,
-    padding( 0 px, 5 px ),
+    padding(0 px, 5 px),
     marginLeft(2 px),
     borderRadius(50 %%)
   )
@@ -367,7 +367,6 @@ object CommonStyles extends StyleSheet.Standalone {
   "span.tag .removebutton:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
-
 
   // -- controls on hover --
   ".chatmsg-body".hover - (
@@ -381,7 +380,7 @@ object CommonStyles extends StyleSheet.Standalone {
     &("focus.chatmsg-controls") - (
       visibility.visible
     )
-)
+  )
 
   // -- draggable --
   ".chatmsg-inner-frame .draggable--over" - (
@@ -393,7 +392,7 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(messageBackground),
     borderRadius(3 px),
     overflow.hidden,
-    borderTop(1 px, solid, rgba(158,158,158,0.19)),
+    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
   )
 
@@ -428,7 +427,7 @@ object StyleRendering {
   def renderAll: String = CommonStyles.renderA[String] ++ Styles.renderA[String]
 
   //    final def render[Out](implicit r: Renderer[Out], env: Env): Out =
-      // cssRegister.render
+  // cssRegister.render
 
   // import java.io.{File, PrintWriter}
 

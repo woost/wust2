@@ -97,7 +97,7 @@ object ChatView extends View {
               Seq[VDomModifier](
                 channelControl(state, parent)(ctx)(marginLeft := "5px"),
                 joinControl(state, parent)(ctx)(marginLeft := "5px"),
-                Rx{deleteButton(state, parent, state.graph(), state.page())(marginLeft := "5px")}
+                Rx { deleteButton(state, parent, state.graph(), state.page())(marginLeft := "5px") }
               )
           }
         )
@@ -180,7 +180,7 @@ object ChatView extends View {
     }
   }
 
-  private def deleteButton(state: GlobalState, node: Node, graph:Graph, page:Page) = div(
+  private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page) = div(
     paddingLeft := "3px",
     freeRegular.faTrashAlt,
     cursor.pointer,
@@ -352,7 +352,13 @@ object ChatView extends View {
     else span()
   }
 
-  private def chatMessage(state: GlobalState, chat: ChatKind, graph: Graph, page:Page, currentUser: UserId)(
+  private def chatMessage(
+      state: GlobalState,
+      chat: ChatKind,
+      graph: Graph,
+      page: Page,
+      currentUser: UserId
+  )(
       implicit ctx: Ctx.Owner
   ): VNode = {
     chat match {
@@ -403,7 +409,7 @@ object ChatView extends View {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def chatMessageBody(state: GlobalState, graph: Graph, page:Page, node: Node)(
+  private def chatMessageBody(state: GlobalState, graph: Graph, page: Page, node: Node)(
       implicit ctx: Ctx.Owner
   ) = {
     val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)
@@ -444,7 +450,7 @@ object ChatView extends View {
     div( // node tags
       nodeTags.flatMap { tag =>
         Seq[VDomModifier](removableNodeTag(state, tag, node.id, graph), " ")
-      }(breakOut):Seq[VDomModifier],
+      }(breakOut): Seq[VDomModifier],
       cls := "tags"
     )
   }

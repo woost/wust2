@@ -41,10 +41,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
       // non-exisiting ids are automatically allowed.
       // important: the permission checks must run in the same transaction.
         .run(liftQuery(nodes).foreach {
-          query[Node].insert(_).onConflictUpdate(_.id)(
-            (node, excluded) => node.data -> excluded.data,
-            (node, excluded) => node.accessLevel -> excluded.accessLevel
-          )
+          query[Node]
+            .insert(_)
+            .onConflictUpdate(_.id)(
+              (node, excluded) => node.data -> excluded.data,
+              (node, excluded) => node.accessLevel -> excluded.accessLevel
+            )
         })
         .map(_.forall(_ <= 1))
     }
@@ -242,8 +244,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
 
       val q = quote {
         infix"""
-        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift( channelNode.id )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
-             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift( user.data )}, ${lift(user.accessLevel)})),
+        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift(
+          channelNode.id
+        )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
+             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(
+          user.data
+        )}, ${lift(user.accessLevel)})),
              ins_m_cp as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(channelNodeId)})),
@@ -278,8 +284,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
 
       val q = quote {
         infix"""
-        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift( channelNode.id )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
-             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift( user.data )}, ${lift(user.accessLevel)})),
+        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift(
+          channelNode.id
+        )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
+             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(
+          user.data
+        )}, ${lift(user.accessLevel)})),
               ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
           membership
         )}, ${lift(channelNodeId)}))

@@ -34,18 +34,18 @@ case class GraphChanges(
     ).consistent
 
   private val swapDeletedParent: Edge => Edge = {
-    case Edge.Parent(source, target) => Edge.DeletedParent(source, EdgeData.DeletedParent(EpochMilli.now), target)
+    case Edge.Parent(source, target) =>
+      Edge.DeletedParent(source, EdgeData.DeletedParent(EpochMilli.now), target)
     case Edge.DeletedParent(source, data, target) => Edge.Parent(source, target)
-    case other => other
+    case other                                    => other
   }
 
-  def revert =  GraphChanges(
-      addEdges = consistent.delEdges.map(swapDeletedParent),
-      delEdges = consistent.addEdges.map(swapDeletedParent)
-    )
+  def revert = GraphChanges(
+    addEdges = consistent.delEdges.map(swapDeletedParent),
+    delEdges = consistent.addEdges.map(swapDeletedParent)
+  )
 
-
-  lazy val consistent = copy( addEdges = addEdges -- delEdges)
+  lazy val consistent = copy(addEdges = addEdges -- delEdges)
 
   def involvedNodeIds: collection.Set[NodeId] = addNodes.map(_.id)
 
@@ -64,9 +64,9 @@ object GraphChanges {
   def empty = GraphChanges()
 
   def from(
-            addNodes: Iterable[Node] = Set.empty,
-            addEdges: Iterable[Edge] = Set.empty,
-            delEdges: Iterable[Edge] = Set.empty
+      addNodes: Iterable[Node] = Set.empty,
+      addEdges: Iterable[Edge] = Set.empty,
+      delEdges: Iterable[Edge] = Set.empty
   ) =
     GraphChanges(
       addNodes.toSet,
@@ -89,15 +89,18 @@ object GraphChanges {
     val post = new Node.Content(
       nodeId,
       NodeData.PlainText(title),
-      NodeMeta( accessLevel = NodeAccess.Level(AccessLevel.Restricted) )
+      NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
     )
     GraphChanges.addNodeWithParent(post, channelNodeId)
   }
 
-  def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]):GraphChanges = nodeIds.foldLeft(GraphChanges.empty)((acc,nextNode) => acc merge delete(nextNode, parentIds))
-  def delete(node: Node, parentIds: Set[NodeId]):GraphChanges = delete(node.id, parentIds)
-  def delete(nodeId: NodeId, parentIds: Set[NodeId]):GraphChanges = GraphChanges(
-    addEdges = parentIds.map(parentId => Edge.DeletedParent(nodeId, EdgeData.DeletedParent(EpochMilli.now), parentId)),
+  def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
+    nodeIds.foldLeft(GraphChanges.empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
+  def delete(node: Node, parentIds: Set[NodeId]): GraphChanges = delete(node.id, parentIds)
+  def delete(nodeId: NodeId, parentIds: Set[NodeId]): GraphChanges = GraphChanges(
+    addEdges = parentIds.map(
+      parentId => Edge.DeletedParent(nodeId, EdgeData.DeletedParent(EpochMilli.now), parentId)
+    ),
     delEdges = parentIds.map(parentId => Edge.Parent(nodeId, parentId))
   )
 

@@ -47,7 +47,7 @@ object Sidebar {
     )
   }
 
-  val buttonStyles = Seq("tiny", "compact", "inverted","grey").mkString(" ")
+  val buttonStyles = Seq("tiny", "compact", "inverted", "grey").mkString(" ")
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     def channelDiv(selected: Boolean, pageStyle: PageStyle) = div(

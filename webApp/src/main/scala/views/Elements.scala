@@ -93,7 +93,7 @@ object Elements {
     )
   }
 
-  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, graph:Graph): VNode = {
+  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, graph: Graph): VNode = {
     nodeTag(state, tag)(
       span(
         "×",
@@ -102,11 +102,14 @@ object Elements {
           // when removing last parent, fall one level lower into the still existing grandparents
           val removingLastParent = graph.parents(taggedNodeId).size == 1
           println("removing last parent: " + removingLastParent)
-          val addedGrandParents:collection.Set[Edge] = if( removingLastParent )
-            graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
-          else
-            Set.empty
-          println("addedGrandParents: " + addedGrandParents.map(e => graph.nodesById(e.targetId).data.str))
+          val addedGrandParents: collection.Set[Edge] =
+            if (removingLastParent)
+              graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
+            else
+              Set.empty
+          println(
+            "addedGrandParents: " + addedGrandParents.map(e => graph.nodesById(e.targetId).data.str)
+          )
 
           state.eventProcessor.changes.onNext(
             GraphChanges(
@@ -114,13 +117,11 @@ object Elements {
               addEdges = addedGrandParents
             )
           )
-        ()
+          ()
         },
       )
     )
   }
-
-
   //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
   //  textarea(
   //    onkeypress := { (e: KeyboardEvent) =>

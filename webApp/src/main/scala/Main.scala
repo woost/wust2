@@ -24,11 +24,10 @@ object Main {
     val state = GlobalState.create(swUpdateIsAvailable)
 
     // TODO: DevOnly {
-      val styleTag = document.createElement("style")
-      document.head.appendChild(styleTag)
-      styleTag.innerHTML = wust.css.StyleRendering.renderAll
+    val styleTag = document.createElement("style")
+    document.head.appendChild(styleTag)
+    styleTag.innerHTML = wust.css.StyleRendering.renderAll
     // }
-
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }

@@ -27,7 +27,8 @@ object BreadCrumbs {
       cls := "breadcrumbs",
       state.nodeAncestorsHierarchy.map(_.map {
         case (level, nodeSeq) =>
-          span(cls := "breadcrumb",
+          span(
+            cls := "breadcrumb",
             nodeSeq.map(n => nodeTag(state, n)(cursor.pointer)): Seq[VNode],
             span("/", cls := "divider"),
           )

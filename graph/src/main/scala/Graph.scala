@@ -68,7 +68,8 @@ object Edge {
     def data = EdgeData.Parent
   }
 
-  case class DeletedParent(childId: NodeId, data: EdgeData.DeletedParent, parentId: NodeId) extends Content {
+  case class DeletedParent(childId: NodeId, data: EdgeData.DeletedParent, parentId: NodeId)
+      extends Content {
     def sourceId = childId
     def targetId = parentId
   }
@@ -161,7 +162,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
         children(parentId) += childId
         parents(childId) += parentId
         containments += e
-      case e @ Edge.DeletedParent(childId,_ , parentId) =>
+      case e @ Edge.DeletedParent(childId, _, parentId) =>
         deletedParents(childId) += parentId
       case e: Edge.Label =>
         labeledEdges += e
@@ -233,11 +234,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
   def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
 
-  def isDeletedNow(node: Node, parentIds: Set[NodeId]):Boolean = isDeletedNow(node.id, parentIds)
-  def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]):Boolean = {
+  def isDeletedNow(node: Node, parentIds: Set[NodeId]): Boolean = isDeletedNow(node.id, parentIds)
+  def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]): Boolean = {
     parentIds subsetOf deletedParents(nodeId)
   }
-
 
   lazy val channels: collection.Set[Node] =
     channelIds.map(nodesById)
@@ -250,10 +250,16 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds))
   }
 
-  val nodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo { ((nodeId:NodeId, page:Page) =>
-    (ancestors(nodeId).toSet -- channelNodeIds -- channelIds -- page.parentIds - nodeId).map(nodesById)
-  ).tupled }
-
+  val nodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
+    (
+        (
+            nodeId: NodeId,
+            page: Page
+        ) =>
+          (ancestors(nodeId).toSet -- channelNodeIds -- channelIds -- page.parentIds - nodeId)
+            .map(nodesById)
+      ).tupled
+  }
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] =
     nodes.toIndexedSeq.sortBy(n => nodeCreated(n))
@@ -377,20 +383,28 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   // IMPORTANT:
   // exactly the same as in the stored procedure
   // when changing things, make sure to change them for the stored procedure as well.
-  def can_access_node(userId:NodeId, nodeId:NodeId):Boolean = {
-    def can_access_node_recursive(userId:NodeId, nodeId:NodeId, visited:Set[NodeId] = Set.empty):Boolean = {
-      if(visited(nodeId)) return false // prevent inheritance cycles
+  def can_access_node(userId: NodeId, nodeId: NodeId): Boolean = {
+    def can_access_node_recursive(
+        userId: NodeId,
+        nodeId: NodeId,
+        visited: Set[NodeId] = Set.empty
+    ): Boolean = {
+      if (visited(nodeId)) return false // prevent inheritance cycles
 
       // is there a membership?
-      val levelFromMembership = membershipsByNodeId(nodeId).collectFirst{ case Edge.Member(`userId`, EdgeData.Member(level), _) => level }
+      val levelFromMembership = membershipsByNodeId(nodeId).collectFirst {
+        case Edge.Member(`userId`, EdgeData.Member(level), _) => level
+      }
       levelFromMembership match {
         case None => // if no member edge exists
           // read access level directly from node
           nodesById(nodeId).meta.accessLevel match {
             case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
-            case NodeAccess.Inherited =>
+            case NodeAccess.Inherited    =>
               // recursively inherit permissions from parents. minimum one parent needs to allow access.
-              parents(nodeId).exists(parentId => can_access_node_recursive(userId, parentId, visited + nodeId))
+              parents(nodeId).exists(
+                parentId => can_access_node_recursive(userId, parentId, visited + nodeId)
+              )
           }
         case Some(level) =>
           level == AccessLevel.ReadWrite
@@ -398,7 +412,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
 
     // everybody has full access to non-existent nodes
-    if(!(nodeIds contains nodeId)) return true
+    if (!(nodeIds contains nodeId)) return true
     can_access_node_recursive(userId, nodeId)
   }
 
@@ -433,11 +447,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def addConnections(es: Iterable[Edge]): Graph =
     copy(edges = edges ++ es.filter(e => nodeIds(e.sourceId) && nodeIds(e.targetId)))
 
-  def applyChanges(c: GraphChanges): Graph =     copy(
-      nodes = nodes ++ c.addNodes,
-      edges = edges ++ c.addEdges -- c.delEdges
-    )
-
+  def applyChanges(c: GraphChanges): Graph = copy(
+    nodes = nodes ++ c.addNodes,
+    edges = edges ++ c.addEdges -- c.delEdges
+  )
 
   def +(node: Node): Graph = copy(nodes = nodes + node)
   def +(edge: Edge): Graph = copy(
