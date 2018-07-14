@@ -135,7 +135,7 @@ object GlobalState {
       .switchMap {
         case (page, user) =>
           val newGraph = Client.api.getGraph(page)
-          Observable.fromFuture(newGraph).startWith(Graph.empty :: Nil).map(ReplaceGraph.apply)
+          Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
       }
       .subscribe(additionalManualEvents)
 
