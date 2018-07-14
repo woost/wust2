@@ -457,8 +457,10 @@ object ChatView extends View {
   }
 
   private def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val graphIsEmpty = Rx {
-      state.graphContent().isEmpty && state.page().mode == PageMode.Default
+    val disableUserInput = Rx {
+      val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
+      val pageModeOrphans = state.page().mode == PageMode.Orphans
+      graphNotLoaded || pageModeOrphans
     }
 
     textArea(
@@ -476,7 +478,7 @@ object ChatView extends View {
 
         state.eventProcessor.enriched.changes.onNext(changes)
       },
-      disabled <-- graphIsEmpty,
+      disabled <-- disableUserInput,
       height := "3em",
       style("resize") := "vertical", //TODO: outwatch resize?
       Placeholders.newNode
