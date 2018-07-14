@@ -33,6 +33,7 @@ object GraphView {
     }
 
     div(
+      backgroundColor <-- state.pageStyle.bgLightColor,
       controls.ifTrueOption {
         div(
           position := "absolute",
