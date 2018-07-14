@@ -265,9 +265,9 @@ class ForceSimulation(
       //TODO: if nothing was changed, jump back to drag start with animation
     }
 
-    def onClick(post: Node, i: Int): Unit = {
+    def onClick(node: Node, i: Int): Unit = {
 
-      println(s"clicked post[$i]")
+      println(s"clicked node[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
 
       //TODO:
@@ -276,7 +276,7 @@ class ForceSimulation(
       //     //   VarTuple(graphState.state.postCreatorMenus, Nil)
       //   // )
       val pos = Vec2(simData.x(i), simData.y(i))
-      selectedNodeId() = Some((pos, post.id))
+      selectedNodeId() = Some((pos, node.id))
       postCreationMenus() = Nil
     }
 
@@ -286,7 +286,7 @@ class ForceSimulation(
       val resizedFromZero = (planeDimension.width == 0 || planeDimension.height == 0) && width > 0 && height > 0
       if (resizedFromZero) { // happens when graphview was rendered in a hidden element
         // since postContainer had size zero, all posts also had size zero,
-        // so we have to resize postContainer and then reinitialize the post sizes in static data
+        // so we have to resize postContainer and then reinitialize the node sizes in static data
         transform = d3.zoomIdentity
         postContainer.style(
           "transform",
@@ -348,7 +348,7 @@ class ForceSimulation(
       simData = createSimDataFromDomBackup(postSelection)
       // For each node, we calculate its rendered size, radius etc.
       staticData = StaticData(graphTopology, postSelection, transform, labelVisualization)
-      resized() // adjust zoom to possibly changed accumulated post area
+      resized() // adjust zoom to possibly changed accumulated node area
       ForceSimulationForces.nanToPhyllotaxis(simData, spacing = 20) // set initial positions for new nodes
 
       println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
@@ -439,10 +439,10 @@ object ForceSimulation {
   import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
-  def calcPostWidth(post: Node) = {
+  def calcPostWidth(node: Node) = {
     import outwatch.dom.dsl._
     val arbitraryFactor = 2.4
-    val contentWidth = post.data.str.length // TODO: wrong with markdown rendering
+    val contentWidth = node.data.str.length // TODO: wrong with markdown rendering
     val calcWidth = if (contentWidth > 10) {
       val sqrtWidth = (math.sqrt(contentWidth) * arbitraryFactor) min 60
       Some(width := s"${sqrtWidth}ch")
@@ -456,30 +456,30 @@ object ForceSimulation {
       onClick: (Node, Int) => Unit
   ): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
-    val post = postSelection.data(posts, (p: Node) => p.id)
-    time(log(s"removing old posts from dom[${post.exit().size()}]")) {
-      post
+    val node = postSelection.data(posts, (p: Node) => p.id.toString)
+    time(log(s"removing old posts from dom[${node.exit().size()}]")) {
+      node
         .exit()
         .remove()
     }
 
-    time(log(s"updating staying posts[${post.size()}]")) {
-      post
-        .html((post: Node) => htmlPostData(post.data))
-        .style("width", (post: Node) => calcPostWidth(post).getOrElse(js.undefined))
+    time(log(s"updating staying posts[${node.size()}]")) {
+      node
+        .html((node: Node) => htmlPostData(node.data))
+        .style("width", (node: Node) => calcPostWidth(node).getOrElse(js.undefined))
         .on("click", onClick) //TODO: does d3 provide a wrong index?
     }
 
-    time(log(s"adding new posts to dom[${post.enter().size()}]")) {
-      post
+    time(log(s"adding new posts to dom[${node.enter().size()}]")) {
+      node
         .enter()
-        .append((post: Node) => {
+        .append((node: Node) => {
           import outwatch.dom.dsl._
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
-          val postWidth = calcPostWidth(post)
+          val postWidth = calcPostWidth(node)
           div(
             postWidth,
-            renderNodeData(post.data),
+            renderNodeData(node.data),
             cls := "graphpost",
             // pointerEvents.auto, // re-enable mouse events
             cursor.default
@@ -825,7 +825,7 @@ object ForceSimulation {
 
     val nodeCount = simData.n
 
-    // for every post
+    // for every node
     var i = 0
     canvasContext.lineWidth = 1
     while (i < nodeCount) {
