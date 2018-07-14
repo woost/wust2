@@ -4,7 +4,9 @@ import cats.data.NonEmptyList
 import colorado.{Color, HCL, LAB, RGB}
 import rx.{Ctx, Rx}
 import wust.graph.{Node, Page}
+import wust.sdk.NodeColor
 import wust.sdk.NodeColor._
+import wust.util._
 
 import scala.collection.breakOut
 
@@ -19,28 +21,18 @@ object PageStyle {
   }
 
   def apply(view: Rx[View], page: Rx[Page])(implicit ctx: Ctx.Owner) = {
-    val pageColor: Rx[Option[LAB]] = Rx {
-      view() match {
-        case view if view.isContent =>
-          NonEmptyList
-            .fromList(page().parentIds.map(baseColor)(breakOut): List[Color])
-            .map(mixColors)
-        case _ => None
-      }
-    }
 
-    val pageHue: Rx[Option[Double]] = Rx { pageColor().map(_.hcl.h) }
-    def withBaseHueDefaultGray(base: HCL): Rx[String] = Rx {
-      val pageHue = pageColor().map(_.hcl.h)
-      pageHue.fold(LAB(base.l, 0, 0): Color)(hue => HCL(hue, base.c, base.l)).toHex
+    def applyPageHue(base: HCL): Rx[String] = Rx {
+      val pageHueOpt = NodeColor.pageHue(page()).filter(_ => view().isContent)
+      pageHueOpt.fold[Color](LAB(base.l, 0, 0))(hue => HCL(hue, base.c, base.l)).toHex
     }
 
     new PageStyle(
-      accentLineColor = withBaseHueDefaultGray(Color.border),
-      bgColor = withBaseHueDefaultGray(Color.baseBg),
-      bgLightColor = withBaseHueDefaultGray(Color.baseBgLight),
-      darkBgColor = withBaseHueDefaultGray(Color.baseBgDark),
-      darkBgColorHighlight = withBaseHueDefaultGray(Color.baseBgDarkHighlight)
+      accentLineColor = applyPageHue(Color.border),
+      bgColor = applyPageHue(Color.baseBg),
+      bgLightColor = applyPageHue(Color.baseBgLight),
+      darkBgColor = applyPageHue(Color.baseBgDark),
+      darkBgColorHighlight = applyPageHue(Color.baseBgDarkHighlight)
     )
   }
 }

@@ -2,8 +2,9 @@ package wust.sdk
 
 import cats.data.NonEmptyList
 import colorado._
-import wust.graph.Graph
+import wust.graph.{Graph, Page}
 import wust.ids._
+import collection.breakOut
 
 object NodeColor {
   implicit def ColorToString(c: Color) = c.toHex
@@ -18,6 +19,10 @@ object NodeColor {
   def baseColor(id: NodeId) = HCL(baseHue(id), 50, 75)
   def baseColorDark(id: NodeId) = HCL(baseHue(id), 65, 60)
   def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), nodeDefaultColor)
+
+  def pageHue(page:Page): Option[Double] = NonEmptyList
+            .fromList(page.parentIds.map(baseColor)(breakOut):List[Color])
+            .map(parentColors => mixColors(parentColors).hcl.h)
 
   def mixColors(a: Color, b: Color): LAB = {
     val aLab = a.lab
