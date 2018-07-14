@@ -127,9 +127,7 @@ package object outwatchHelpers {
           rx() = elem
           Ack.Continue
         }
-        override def onError(ex: Throwable): Unit = {
-          scribe.error("Error occurred in Observable", ex)
-        }
+        override def onError(ex: Throwable): Unit = throw ex
         override def onComplete(): Unit = ()
       })
       rx
