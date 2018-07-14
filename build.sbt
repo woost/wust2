@@ -277,8 +277,8 @@ lazy val css = crossProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++=
       Deps.scalacss.value ::
-      Nil
-    )
+        Nil
+  )
 
 lazy val cssJS = css.js
 lazy val cssJVM = css.jvm
