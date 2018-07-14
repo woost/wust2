@@ -11,10 +11,11 @@ object MainView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      cls := "flex mainview",
-      Topbar(state)(ctx)(width := "100%", flexGrow := 0, flexShrink := 0),
+      cls := "mainview",
+      Styles.flex,
+      Topbar(state)(ctx)(width := "100%", Styles.flexStatic),
       div(
-        cls := s"flex",
+        Styles.flex,
         Styles.growFull,
         Sidebar(state)(ctx),
         backgroundColor <-- state.pageStyle.bgColor,
@@ -27,7 +28,8 @@ object MainView {
               )
           },
           div(
-            cls := "flex growFull",
+            Styles.flex,
+            Styles.growFull,
             flexDirection.column,
             Rx {
               state
@@ -37,7 +39,7 @@ object MainView {
                   BreadCrumbs(state)(ctx)
                 )
             },
-            state.view.map(_.apply(state)(ctx)(cls := "growFull", flexGrow := 1))
+            state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1))
           )
         )
       )

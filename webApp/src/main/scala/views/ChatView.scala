@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import fastparse.core.Parsed
 import org.scalajs.dom.raw.Element
+import wust.css.Styles
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -62,7 +63,7 @@ object ChatView extends View {
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     div(
-      cls := "flex",
+      Styles.flex,
       flexDirection.column,
       justifyContent.flexStart,
       alignItems.stretch,
@@ -83,7 +84,7 @@ object ChatView extends View {
       padding := "5px 10px",
       pageParentNodes.map(_.map { parent =>
         div(
-          cls := "flex",
+          Styles.flex,
           alignItems.center,
           Avatar.node(parent.id)(
             width := "40px",
@@ -389,7 +390,7 @@ object ChatView extends View {
         borderColor := computeColor(graph, currNode.id),
         cls := "chatmsg-inner-frame",
       ),
-      cls := "flex",
+      Styles.flex,
     )
   }
 
@@ -425,7 +426,7 @@ object ChatView extends View {
     )
 
     div(
-      cls := "flex",
+      Styles.flex,
       cls := "chatmsg-body",
       isDeleted.ifTrueOption(opacity := 0.5),
       div(

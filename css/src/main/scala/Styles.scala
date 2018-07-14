@@ -54,6 +54,16 @@ object Styles extends StyleSheet.Inline {
     height(100 %%)
   )
 
+
+  val flex = style(
+    /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
+    minWidth(0 px),
+    /* fixes full page scrolling when messages are too long */
+    minHeight(0 px),
+    display.flex,
+  )
+
+
   val flexStatic = style(
     flexGrow(0),
     flexShrink(0)
@@ -94,18 +104,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".hard-shadow" - (
     borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
-  )
-
-  ".flex" - (
-    /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
-    minWidth(0 px),
-    /* fixes full page scrolling when messages are too long */
-    minHeight(0 px),
-    display.flex,
-  )
-
-  ".growFull" - (
-    Styles.growFull
   )
 
   ".mainview" - (
