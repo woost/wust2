@@ -54,8 +54,8 @@ object Sidebar {
       cls := "channel",
       selected.ifTrueSeq(
         Seq(
-          color := pageStyle.darkBgColor.now,
-          backgroundColor := pageStyle.darkBgColorHighlight.now
+          color <-- pageStyle.darkBgColor,
+          backgroundColor <-- pageStyle.darkBgColorHighlight
         )
       )
     )
