@@ -54,7 +54,7 @@ class GlobalState private (
     )
   }
 
-  val graphContent: Rx[Graph] = Rx { graph().content(page()) }
+  val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
     if (!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)

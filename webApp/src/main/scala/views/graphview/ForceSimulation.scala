@@ -131,7 +131,9 @@ class ForceSimulation(
       //val rawGraph = state.rawGraph().consistent
       println(log("\n") + log(s"---- graph update[${graph().nodes.size}] ----"))
       time(log("graph to wrapper arrays")) {
-        new GraphTopology(graph(), posts = graph().nodes.toArray)
+        val onlyContentGraph = graph().pageContent(state.page())
+        println(onlyContentGraph)
+        new GraphTopology(onlyContentGraph, posts = onlyContentGraph.nodes.toArray)
       }
     }
 

@@ -245,9 +245,14 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
 
-  def content(page: Page): Graph = {
+  def pageContentWithAuthors(page: Page): Graph = {
     val pageChildren = page.parentIds.flatMap(descendants)
     this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds))
+  }
+
+  def pageContent(page: Page): Graph = {
+    val pageChildren = page.parentIds.flatMap(descendants)
+    this.filter(pageChildren.toSet)
   }
 
   val nodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {

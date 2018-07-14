@@ -19,7 +19,7 @@ class GraphView(disableSimulation: Boolean = false) extends View {
   override val displayName = "Mindmap"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode =
-    GraphView(state, state.graphContent)
+    GraphView(state, state.graph)
 }
 
 object GraphView {
