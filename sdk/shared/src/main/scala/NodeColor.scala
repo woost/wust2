@@ -20,9 +20,10 @@ object NodeColor {
   def baseColorDark(id: NodeId) = HCL(baseHue(id), 65, 60)
   def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), nodeDefaultColor)
 
-  def pageHue(page:Page): Option[Double] = NonEmptyList
-            .fromList(page.parentIds.map(baseColor)(breakOut):List[Color])
-            .map(parentColors => mixColors(parentColors).hcl.h)
+  def pageHue(page: Page): Option[Double] =
+    NonEmptyList
+      .fromList(page.parentIds.map(baseColor)(breakOut): List[Color])
+      .map(parentColors => mixColors(parentColors).hcl.h)
 
   def mixColors(a: Color, b: Color): LAB = {
     val aLab = a.lab

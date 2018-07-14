@@ -26,9 +26,13 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
   override def logRequest(path: List[String], arguments: Product, result: Future[_]): Unit = {
     val watch = StopWatch.started
 
-    val randomHue = 0.75 * Math.PI + scala.util.Random.nextDouble() * Math.PI // green to pink without red/orange/yellow, to not look like errors/warnings
-    val baseHue:Double = path match {
-      case List("Api", "getGraph") => NodeColor.pageHue(arguments.productIterator.toList.head.asInstanceOf[Page]).getOrElse(randomHue)
+    val randomHue = 0.75 * Math.PI + scala.util.Random
+      .nextDouble() * Math.PI // green to pink without red/orange/yellow, to not look like errors/warnings
+    val baseHue: Double = path match {
+      case List("Api", "getGraph") =>
+        NodeColor
+          .pageHue(arguments.productIterator.toList.head.asInstanceOf[Page])
+          .getOrElse(randomHue)
       case _ => randomHue
     }
     val boxBgColor = HCL(baseHue, 50, 63).toHex
