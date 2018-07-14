@@ -245,12 +245,8 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
   def content(page: Page): Graph = {
-    val pageParents = page.parentIds.flatMap(ancestors)
     val pageChildren = page.parentIds.flatMap(descendants)
-    this.filterNot(
-      channelIds ++ channelNodeIds ++ page.parentIds ++ pageParents ++ (allUserIds -- allAuthorIds)
-        .map(id => UserId.raw(id))
-    ).filter(pageChildren.toSet)
+    this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds))
   }
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] =
