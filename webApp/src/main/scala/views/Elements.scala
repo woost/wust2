@@ -3,6 +3,7 @@ package wust.webApp.views
 import wust.webApp.marked
 import org.scalajs.dom
 import wust.sdk.NodeColor._
+import rx._
 import org.scalajs.dom.ext.KeyCode
 import outwatch.{ObserverSink, Sink}
 import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
@@ -13,9 +14,13 @@ import monix.reactive.Observer
 import wust.ids.NodeData
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.window
+import org.scalajs.dom.console
+import org.scalajs.dom.html
+import scala.scalajs.js
 import views.MediaViewer
 import wust.webApp.GlobalState
 import wust.ids._
+import wust.util._
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -102,7 +107,7 @@ object Elements {
           // when removing last parent, fall one level lower into the still existing grandparents
           val removingLastParent = graph.parents(taggedNodeId).size == 1
           println("removing last parent: " + removingLastParent)
-          val addedGrandParents: collection.Set[Edge] =
+          val addedGrandParents: scala.collection.Set[Edge] =
             if (removingLastParent)
               graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
             else
@@ -122,6 +127,50 @@ object Elements {
       )
     )
   }
+
+  def editableNode(state: GlobalState, node: Node, domContent: VNode)(
+      implicit ctx: Ctx.Owner
+  ): VNode = {
+    node match {
+      case contentNode: Node.Content => editableNode(state, contentNode, domContent)
+      case _                         => domContent
+    }
+  }
+
+  def editableNode(state: GlobalState, node: Node.Content, domContent: VNode)(
+      implicit ctx: Ctx.Owner
+  ): VNode = {
+    val editable = Var(false)
+    val domElement = Var[html.Element](null)
+    def save() {
+      val newContent: String =
+        domElement.now.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]
+      val changes = GraphChanges.addNode(node.copy(data = NodeData.Markdown(newContent)))
+      state.eventProcessor.enriched.changes.onNext(changes)
+      editable() = false
+    }
+    domContent(
+      Rx {
+        editable().ifTrueSeq(
+          Seq(
+            contentEditable := true,
+            backgroundColor := "#FFF",
+            cursor.auto,
+            onEnter --> sideEffect { save() },
+            onBlur --> sideEffect { save() }
+          )
+        )
+      },
+      onInsert.asHtml --> domElement,
+      onClick --> sideEffect {
+        if (!editable.now) {
+          editable() = true
+          domElement.now.focus()
+        }
+      },
+    )
+  }
+
   //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
   //  textarea(
   //    onkeypress := { (e: KeyboardEvent) =>

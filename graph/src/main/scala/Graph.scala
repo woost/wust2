@@ -261,6 +261,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
             nodeId: NodeId,
             page: Page
         ) =>
+          //TODO: how to deal with self-loops?
           (parents(nodeId).toSet -- channelNodeIds -- channelIds -- page.parentIds - nodeId)
             .map(nodesById)
       ).tupled
@@ -478,8 +479,8 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val addNodeIds = c.addNodes.map(_.id)
     copy(
       nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ c.addNodes,
-    edges = edges ++ c.addEdges -- c.delEdges
-  )
+      edges = edges ++ c.addEdges -- c.delEdges
+    )
   }
 
   def +(node: Node): Graph = copy(nodes = nodes + node)

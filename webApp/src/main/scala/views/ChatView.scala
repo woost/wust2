@@ -91,7 +91,7 @@ object ChatView extends View {
             height := "40px",
             marginRight := "10px"
           ),
-          renderNodeData(parent.data)(fontSize := "20px"),
+          editableNode(state, parent, renderNodeData(parent.data)(fontSize := "20px")),
           state.user.map { user =>
             if (user.channelNodeId == parent.id) Seq.empty
             else
@@ -430,12 +430,16 @@ object ChatView extends View {
       cls := "chatmsg-body",
       isDeleted.ifTrueOption(opacity := 0.5),
       div(
-        div(
-          content,
-          attr("woost_nodeid") := node.id.toCuidString,
-          cls := "draggable",
-          cls := "chatmsg-content",
-          isDeleted.ifTrueOption(cls := "chatmsg-deleted")
+        editableNode(
+          state,
+          node,
+          div(
+            content,
+            attr("woost_nodeid") := node.id.toCuidString,
+            cls := "draggable",
+            cls := "chatmsg-content",
+            isDeleted.ifTrueOption(cls := "chatmsg-deleted")
+          )
         ),
         cls := "hard-shadow",
         cls := "chatmsg-card",
