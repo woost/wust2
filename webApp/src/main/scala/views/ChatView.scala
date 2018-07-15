@@ -446,13 +446,17 @@ object ChatView extends View {
   }
 
   private def tagsDiv(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
-    val nodeTags = graph.nodeTags((node.id, state.page.now))
+    val directNodeTags = graph.directNodeTags((node.id, state.page.now))
+    val transitiveNodeTags = graph.transitiveNodeTags((node.id, state.page.now))
 
-    div( // node tags
-      nodeTags.map { tag =>
+    div(
+      cls := "tags",
+      directNodeTags.map { tag =>
         removableNodeTag(state, tag, node.id, graph)
       }(breakOut): Seq[VDomModifier],
-      cls := "tags"
+      transitiveNodeTags.map { tag =>
+        nodeTag(state, tag)(opacity := 0.4)
+      }(breakOut): Seq[VDomModifier]
     )
   }
 

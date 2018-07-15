@@ -255,7 +255,29 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     this.filter(pageChildren.toSet)
   }
 
-  val nodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
+  val directNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
+    (
+        (
+            nodeId: NodeId,
+            page: Page
+        ) =>
+          (parents(nodeId).toSet -- channelNodeIds -- channelIds -- page.parentIds - nodeId)
+            .map(nodesById)
+      ).tupled
+  }
+
+  val transitiveNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
+    (
+        (
+            nodeId: NodeId,
+            page: Page
+        ) =>
+          (ancestors(nodeId).toSet -- parents(nodeId) -- channelNodeIds -- channelIds -- page.parentIds - nodeId)
+            .map(nodesById)
+      ).tupled
+  }
+
+  val allNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
     (
         (
             nodeId: NodeId,
