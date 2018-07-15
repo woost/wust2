@@ -348,9 +348,10 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#FEFEFE"),
     borderRadius(2 px),
     padding(0 px, 3 px),
-    margin(1 px, 0 px),
+    margin(1 px, 3 px, 1 px, 0 px),
     whiteSpace.nowrap,
-    cursor.pointer
+    cursor.pointer,
+    display.inlineBlock
   )
 
   "span.tag .removebutton" - (

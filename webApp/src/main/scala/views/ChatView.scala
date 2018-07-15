@@ -449,8 +449,8 @@ object ChatView extends View {
     val nodeTags = graph.nodeTags((node.id, state.page.now))
 
     div( // node tags
-      nodeTags.flatMap { tag =>
-        Seq[VDomModifier](removableNodeTag(state, tag, node.id, graph), " ")
+      nodeTags.map { tag =>
+        removableNodeTag(state, tag, node.id, graph)
       }(breakOut): Seq[VDomModifier],
       cls := "tags"
     )
