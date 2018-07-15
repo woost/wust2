@@ -474,10 +474,13 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def addConnections(es: Iterable[Edge]): Graph =
     copy(edges = edges ++ es.filter(e => nodeIds(e.sourceId) && nodeIds(e.targetId)))
 
-  def applyChanges(c: GraphChanges): Graph = copy(
-    nodes = nodes ++ c.addNodes,
+  def applyChanges(c: GraphChanges): Graph = {
+    val addNodeIds = c.addNodes.map(_.id)
+    copy(
+      nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ c.addNodes,
     edges = edges ++ c.addEdges -- c.delEdges
   )
+  }
 
   def +(node: Node): Graph = copy(nodes = nodes + node)
   def +(edge: Edge): Graph = copy(
