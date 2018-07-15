@@ -471,25 +471,31 @@ object ChatView extends View {
       graphNotLoaded || pageModeOrphans
     }
 
-    textArea(
-      valueWithEnter --> sideEffect { str =>
-        val graph = state.graphContent.now
-        val user = state.user.now
-        val changes = NodeDataParser
-          .newNode(contextNodes = graph.nodes.toSeq, author = user.id)
-          .parse(str) match {
-          case Parsed.Success(changes, _) => changes
-          case failure: Parsed.Failure[_, _] =>
-            scribe.warn(s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown.")
-            GraphChanges.addNode(NodeData.Markdown(str))
-        }
+    div(
+      cls := "ui form",
+      textArea(
+        cls := "field",
+        valueWithEnter --> sideEffect { str =>
+          val graph = state.graphContent.now
+          val user = state.user.now
+          val changes = NodeDataParser
+            .newNode(contextNodes = graph.nodes.toSeq, author = user.id)
+            .parse(str) match {
+            case Parsed.Success(changes, _) => changes
+            case failure: Parsed.Failure[_, _] =>
+              scribe.warn(
+                s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown."
+              )
+              GraphChanges.addNode(NodeData.Markdown(str))
+          }
 
-        state.eventProcessor.enriched.changes.onNext(changes)
-      },
-      disabled <-- disableUserInput,
-      height := "3em",
-      style("resize") := "vertical", //TODO: outwatch resize?
-      Placeholders.newNode
+          state.eventProcessor.enriched.changes.onNext(changes)
+        },
+        disabled <-- disableUserInput,
+        rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
+        style("resize") := "none", //TODO: add resize style to scala-dom-types
+        Placeholders.newNode
+      )
     )
   }
 }
