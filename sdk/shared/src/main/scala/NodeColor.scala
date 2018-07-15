@@ -58,7 +58,7 @@ object NodeColor {
     }
   }
 
-  def computeTagColor(nodeId: NodeId): Color = {
+  def tagColor(nodeId: NodeId): Color = {
     baseColorDark(nodeId)
   }
 }

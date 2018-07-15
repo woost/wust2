@@ -89,7 +89,7 @@ object Elements {
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      backgroundColor := computeTagColor(tag.id),
+      backgroundColor := tagColor(tag.id),
     )
   }
 
