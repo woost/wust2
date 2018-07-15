@@ -76,7 +76,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         if (conflictingIds.isEmpty) true
         else {
           scribe.warn(
-            s"Cannot apply graph changes, there are inaccessible node ids in this change set: $conflictingIds"
+            s"Cannot apply graph changes, there are inaccessible node ids in this change set: ${conflictingIds
+              .map(_.toUuid)}"
           )
           false
         }
