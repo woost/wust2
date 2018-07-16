@@ -281,8 +281,9 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-inner-frame" - (
+    width(100 %%),
     display.block,
-    padding(0 px, 10 px),
+    padding(0 px, 0 px, 0 px, 10 px),
     margin(5 px, 0 px)
   )
 
@@ -294,8 +295,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chatmsg-body" - (
     alignItems.center,
-    padding(0 px, 0 px, 3 px)
-    // padding :=! "0 0 3px"
+    padding(0 px, 20 px, 3 px, 0 px)
   )
 
   val messageBackground = c"#FEFEFE"
@@ -324,7 +324,8 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden,
     display.flex,
     alignItems.center,
-    paddingLeft(3 px)
+    paddingLeft(3 px),
+    marginLeft.auto
   )
 
   ".chatmsg-date" - (
@@ -369,7 +370,8 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chatmsg-body".hover - (
     &(".chatmsg-controls") - (
       visibility.visible
-    )
+    ),
+    backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
   /* TODO: Focus is only used as a quick hack in order to use controls on mobile browser */

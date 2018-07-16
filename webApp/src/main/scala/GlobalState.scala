@@ -91,6 +91,8 @@ class GlobalState private (
     perspective().union(Perspective(collapsed = Selector.Predicate(collapsedNodeIds())))
   }
 
+  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty)
+
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
   val screenSize: Observable[ScreenSize] = events.window.onResize
