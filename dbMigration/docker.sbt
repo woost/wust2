@@ -32,3 +32,7 @@ lazy val dbMigrationGithub = project
   .in(file("github"))
   .enablePlugins(DockerPlugin)
   .settings(dockerDbMigration("github"))
+lazy val dbMigrationSlack = project
+  .in(file("slack"))
+  .enablePlugins(DockerPlugin)
+  .settings(dockerDbMigration("slack"))
