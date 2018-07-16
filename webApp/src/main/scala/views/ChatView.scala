@@ -96,9 +96,8 @@ object ChatView extends View {
             if (user.channelNodeId == parent.id) Seq.empty
             else
               Seq[VDomModifier](
-                channelControl(state, parent)(ctx)(marginLeft := "5px"),
-                joinControl(state, parent)(ctx)(marginLeft := "5px"),
-                Rx { deleteButton(state, parent, state.graph(), state.page())(marginLeft := "5px") }
+                bookMarkControl(state, parent)(ctx)(margin := "0px 10px"),
+                joinControl(state, parent)(ctx)(marginLeft := "auto"),
               )
           }
         )
@@ -107,7 +106,7 @@ object ChatView extends View {
     )
   }
 
-  private def channelControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = div(
+  private def bookMarkControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = div(
     Rx {
       (state
         .graph()
@@ -117,6 +116,7 @@ object ChatView extends View {
         case false => freeRegular.faBookmark
       }): VNode //TODO: implicit for Rx[IconDefinition] ?
     },
+    fontSize := "20px",
     cursor.pointer,
     onClick --> sideEffect { _ =>
       val changes = state.graph.now
