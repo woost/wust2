@@ -47,6 +47,46 @@ sealed trait ChatKind
 case class ChatSingle(node: Node) extends ChatKind
 case class ChatGroup(nodes: Seq[Node]) extends ChatKind
 
+case class PermissionSelection(
+    access: NodeAccess,
+    value: String,
+    name: (NodeId, Graph) => String,
+    description: String,
+    icon: IconLookup
+)
+object PermissionSelection {
+  val all =
+    PermissionSelection(
+      access = NodeAccess.Inherited,
+      name = { (nodeId, graph) =>
+        val canAccess = graph
+          .parents(nodeId)
+          .exists(nid => graph.nodesById(nid).meta.accessLevel == NodeAccess.ReadWrite)
+        console.log(graph.parents(nodeId).map(nid => graph.nodesById(nid)).mkString(", "))
+        val inheritedLevel = if (canAccess) "Public" else "Private"
+        s"Inherited ($inheritedLevel)"
+      },
+      value = "Inherited",
+      description = "The permissions for this Node are inherited from its parents",
+      icon = freeSolid.faArrowUp
+    ) ::
+      PermissionSelection(
+        access = NodeAccess.Level(AccessLevel.ReadWrite),
+        name = (_, _) => "Public",
+        value = "Public",
+        description = "Anyone can access this Node via the URL",
+        icon = freeSolid.faUserPlus
+      ) ::
+      PermissionSelection(
+        access = NodeAccess.Level(AccessLevel.Restricted),
+        name = (_, _) => "Private",
+        value = "Private",
+        description = "Only you and explicit members can access this Node",
+        icon = freeSolid.faLock
+      ) ::
+      Nil
+}
+
 object ChatView extends View {
   override val key = "chat"
   override val displayName = "Chat"
@@ -131,54 +171,28 @@ object ChatView extends View {
     }
   )
 
-  private def joinControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
-    def controlElement(
-        name: String,
-        description: String,
-        icon: IconLookup,
-        toggleAccess: NodeAccess
-    ): VNode = {
-      def nextNode = node match {
-        case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = toggleAccess))
-        case _               => ??? //FIXME
-      }
-
-      div(
-        cls := "ui label",
-        title := s"$description (click to toggle)",
-        renderFontAwesomeIcon(icon)(cls := "icon"),
-        span(name),
-        cursor.pointer,
-        onClick(GraphChanges.addNode(nextNode)) --> state.eventProcessor.changes
-      )
-    }
-
-    node.meta.accessLevel match {
-      case NodeAccess.Inherited =>
-        controlElement(
-          name = "Inherited",
-          description = "The permissions for this Node are inherited from its parents",
-          icon = freeSolid.faArrowUp,
-          toggleAccess = NodeAccess.Level(AccessLevel.ReadWrite)
-        )
-      case NodeAccess.Level(level) =>
-        level match {
-          case AccessLevel.ReadWrite =>
-            controlElement(
-              name = "Public",
-              description = "Anyone can access this Node via the URL",
-              icon = freeSolid.faUserPlus,
-              toggleAccess = NodeAccess.Level(AccessLevel.Restricted)
-            )
-          case AccessLevel.Restricted =>
-            controlElement(
-              name = "Private",
-              description = "Only you and explicit members can access this Node",
-              icon = freeSolid.faLock,
-              toggleAccess = NodeAccess.Inherited
-            )
+  private def joinControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    select(
+      cls := "ui dropdown selection",
+      onChange.value.map { value =>
+        val newAccess = PermissionSelection.all.find(_.value == value).get.access
+        val nextNode = channel match {
+          case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = newAccess))
+          case _               => ??? //FIXME
         }
-    }
+        GraphChanges.addNode(nextNode)
+      } --> state.eventProcessor.changes,
+      PermissionSelection.all.map { selection =>
+        option(
+          (channel.meta.accessLevel == selection.access).ifTrueOption(selected := true),
+          value := selection.value,
+          renderFontAwesomeIcon(selection.icon)(cls := "icon"),
+          Rx {
+            selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
+          }
+        )
+      }
+    )
   }
 
   private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page) = div(
