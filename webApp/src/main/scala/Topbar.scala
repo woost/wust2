@@ -50,10 +50,12 @@ object Topbar {
       div(
         state.user.map(
           user =>
-            viewConfigLink(ViewConfig.default.copy(page = Page.ofUser(user)))(
+            div(
+              onClick(ViewConfig.default.copy(page = Page.ofUser(user))) --> state.viewConfig,
               "Woost",
               color := "white",
-              textDecoration := "none"
+              textDecoration := "none",
+              cursor.pointer
             )
         ),
         padding := "5px 5px",
@@ -240,9 +242,19 @@ object Topbar {
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) = state.viewConfig.map { viewConfig =>
     div(
-      viewConfigLink(viewConfig.overlayView(SignupView))("Signup", color := "white"),
+      span(
+        onClick(viewConfig.overlayView(SignupView)) --> state.viewConfig,
+        "Signup",
+        color := "white",
+        cursor.pointer
+      ),
       " or ",
-      viewConfigLink(viewConfig.overlayView(LoginView))("Login", color := "white")
+      span(
+        onClick(viewConfig.overlayView(LoginView)) --> state.viewConfig,
+        "Login",
+        color := "white",
+        cursor.pointer
+      )
     )
   }
 

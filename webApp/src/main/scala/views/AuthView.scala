@@ -91,11 +91,13 @@ object AuthView {
           div(cls := "ui divider"),
           h3(alternativeHeader, textAlign := "center"),
           state.viewConfig.map { cfg =>
-            viewConfigLink(cfg.copy(view = alternativeView))(
+            div(
+              onClick(cfg.copy(view = alternativeView)) --> state.viewConfig,
               cls := "ui fluid button",
               alternativeText,
               display.block,
-              margin := "auto"
+              margin := "auto",
+              cursor.pointer
             )
           }
         )

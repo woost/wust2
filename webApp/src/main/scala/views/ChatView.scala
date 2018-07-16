@@ -321,7 +321,7 @@ object ChatView extends View {
   private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
     state.viewConfig.map { cfg =>
       val newCfg = cfg.copy(page = Page(node.id))
-      viewConfigLink(newCfg)(freeSolid.faLink)
+      div(onClick(newCfg) --> state.viewConfig, cursor.pointer)(freeSolid.faExternalLinkAlt)
     }
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
@@ -443,6 +443,13 @@ object ChatView extends View {
       Styles.flex,
       cls := "chatmsg-body",
       isDeleted.ifTrueOption(opacity := 0.5),
+      div(
+        cls := "ui checkbox",
+        input(tpe := "checkbox", onChange.checked --> sideEffect { e =>
+          console.log(e)
+        }),
+        label()
+      ),
       div(
         div(
           editableNode(state, node, div(content)),

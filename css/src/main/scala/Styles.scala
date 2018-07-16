@@ -293,11 +293,6 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingBottom(3 px)
   )
 
-  ".chatmsg-body" - (
-    alignItems.center,
-    padding(0 px, 20 px, 3 px, 0 px)
-  )
-
   val messageBackground = c"#FEFEFE"
 
   ".chatmsg-card" - (
@@ -318,14 +313,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chatmsg-content pre" - (
     whiteSpace.normal
-  )
-
-  ".chatmsg-controls" - (
-    visibility.hidden,
-    display.flex,
-    alignItems.center,
-    paddingLeft(3 px),
-    marginLeft.auto
   )
 
   ".chatmsg-date" - (
@@ -366,19 +353,36 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
+  ".chatmsg-body" - (
+    alignItems.center,
+    padding(0 px, 20 px, 3 px, 5 px)
+  )
+
+  ".chatmsg-controls" - (
+    visibility.hidden,
+    display.flex,
+    alignItems.center,
+    paddingLeft(3 px),
+    marginLeft.auto
+  )
+
+  ".chatmsg-controls > *" - (
+    marginLeft(5 px)
+  )
+
+  ".chatmsg-body .checkbox" - (
+    visibility.hidden
+  )
+
   // -- controls on hover --
-  ".chatmsg-body".hover - (
-    &(".chatmsg-controls") - (
-      visibility.visible
-    ),
+  // TODO: Focus is only used as a quick hack in order to use controls on mobile browser
+  ".chatmsg-body:hover, .chatmsg-body:focus" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
-  /* TODO: Focus is only used as a quick hack in order to use controls on mobile browser */
-  ".chatmsg-body".focus - (
-    &("focus.chatmsg-controls") - (
-      visibility.visible
-    )
+  //TODO: how to generate this combinatorial explosion with scalacss?
+  ".chatmsg-body:hover .chatmsg-controls,.chatmsg-body:hover .checkbox, .chatmsg-body:focus .chatmsg-controls, .chatmsg-body:focus .chatmsg-checkbox" - (
+    visibility.visible
   )
 
   // -- draggable --

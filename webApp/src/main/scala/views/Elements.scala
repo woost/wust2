@@ -56,9 +56,6 @@ object Elements {
   // - textarea: enter emits keyCode for Enter
   // - input: Enter triggers submit
 
-  def viewConfigLink(viewConfig: ViewConfig): VNode =
-    a(href := "#" + ViewConfig.toUrlHash(viewConfig))
-
   def scrollToBottom(elem: dom.Element): Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
     try {
@@ -142,7 +139,7 @@ object Elements {
   ): VNode = {
     val editable = Var(false)
     val domElement = Var[html.Element](null)
-    def save() {
+    def save(): Unit = {
       val newContent: String =
         domElement.now.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]
       val changes = GraphChanges.addNode(node.copy(data = NodeData.Markdown(newContent)))
