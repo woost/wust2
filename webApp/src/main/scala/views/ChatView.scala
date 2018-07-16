@@ -430,16 +430,12 @@ object ChatView extends View {
       cls := "chatmsg-body",
       isDeleted.ifTrueOption(opacity := 0.5),
       div(
-        editableNode(
-          state,
-          node,
-          div(
-            content,
-            attr("woost_nodeid") := node.id.toCuidString,
-            cls := "draggable",
-            cls := "chatmsg-content",
-            isDeleted.ifTrueOption(cls := "chatmsg-deleted")
-          )
+        div(
+          editableNode(state, node, div(content)),
+          attr("woost_nodeid") := node.id.toCuidString,
+          cls := "draggable",
+          cls := "chatmsg-content",
+          isDeleted.ifTrueOption(cls := "chatmsg-deleted")
         ),
         cls := "hard-shadow",
         cls := "chatmsg-card",
