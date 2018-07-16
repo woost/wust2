@@ -121,8 +121,10 @@ create aggregate array_merge_agg(anyarray) (
 
 -- this function generates traversal functions.
 -- traversal over specified edges. Returns array of ids. Expects a temporary table 'visited (id uuid NOT NULL)' to exist.
--- can_access_node_f has to be a function that accepts a userid and a nodeid
-create function create_traversal_function(name text, edge regclass, edge_source text, parentlabel text, edge_target text, node_limit int, can_access_node_f text) returns void as $$
+-- can_access_node_contextual has to be a function that accepts a userid and a nodeid and returns boolean.
+-- for downwards traversal, we use a more optimized version which can assume that parent nodes are accessible.
+-- for upwards traversal, we use the normal can_access_node which has to check upwards if rights are inherited.
+create function create_traversal_function(name text, edge regclass, edge_source text, parentlabel text, edge_target text, node_limit int, can_access_node_contextual text) returns void as $$
 begin
     -- TODO: benchmark array_length vs cardinality
     -- TODO: test if traversal only happens via provided label
@@ -130,7 +132,13 @@ EXECUTE '
 create function ' || quote_ident(name) || '(start uuid[], stop uuid[], userid uuid) returns uuid[] as $func$
 declare
     queue uuid[] := start;
+    can_access_start boolean;
 begin
+    select bool_and(can_access_node(userid, startnodes.id)) into can_access_start from (select unnest(start) as id) as startnodes;
+    IF (not (COALESCE(can_access_start, false))) THEN
+        return array[]::uuid[];
+    END IF;
+
     WHILE array_length(queue,1) > 0 LOOP
         insert into visited (select unnest(queue)) on conflict do nothing;
         queue := array(select unnest(queue) except select unnest(stop)); -- stop traversal for ids in stop-array
@@ -140,7 +148,7 @@ begin
             queue := array(
                 select distinct '|| quote_ident(edge_target) ||'
                 from (select unnest(queue) as id) as q
-                join '|| edge ||' on '|| quote_ident(edge_source) ||' = q.id and '|| edge ||'.data->>''type'' = '''|| parentlabel ||''' and ' || quote_ident(can_access_node_f) || '(userid, q.id)
+                join '|| edge ||' on '|| quote_ident(edge_source) ||' = q.id and '|| edge ||'.data->>''type'' = '''|| parentlabel ||''' and ' || quote_ident(can_access_node_contextual) || '(userid, ' || quote_ident(edge_target) || ')
                 left outer join visited on '|| quote_ident(edge_target) ||' = visited.id
                 where visited.id is NULL
                 limit '|| node_limit ||' -- also apply limit on node degree
@@ -173,13 +181,7 @@ create function graph_page_nodes(edge_parents uuid[], edge_children uuid[], user
 declare
     parents uuid[];
     children uuid[];
-    can_access_page boolean;
 begin
-    select bool_and(can_access_node(userid, id)) into can_access_page from (select unnest(edge_parents));
-    IF (COALLESCE(can_access_page, false)) THEN
-        return array[]::uuid[]
-    END IF;
-
     -- we have to privde the temporary visited table for the traversal functions,
     -- since it is not possible to create function local temporary tables.
     -- Creating is transaction local, which leads to "table 'visited' already exists" errors,
