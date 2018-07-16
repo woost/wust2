@@ -37,7 +37,7 @@ object Topbar {
     header(state)(ctx)(marginRight := "10px"),
     appUpdatePrompt(state)(ctx)(marginRight := "10px"),
     beforeInstallPrompt()(ctx)(marginRight := "10px"),
-    undoRedo(state)(ctx)(marginRight.auto),
+//    undoRedo(state)(ctx)(marginRight.auto),
     notificationSettings()(marginRight := "10px"),
     authentication(state)
   )
