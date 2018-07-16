@@ -26,4 +26,7 @@ object NodeAccess {
   case object Inherited extends NodeAccess
 
   case class Level(level: AccessLevel) extends NodeAccess
+
+  val Restricted = Level(AccessLevel.Restricted)
+  val ReadWrite = Level(AccessLevel.ReadWrite)
 }
