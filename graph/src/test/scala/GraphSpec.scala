@@ -238,7 +238,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       // IMPORTANT:
       // exactly the same test cases as for stored procedure `can_access_node()`
       // when changing things, make sure to change them for the stored procedure as well.
-      import wust.ids.NodeAccess._
+      import wust.ids.NodeAccess.{Level, Inherited}
       import wust.ids.AccessLevel._
       def node(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeMeta(nodeAccess))
       def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(UserId(NodeId(user)), EdgeData.Member(level), NodeId(node))
