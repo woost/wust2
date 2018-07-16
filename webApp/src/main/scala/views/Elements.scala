@@ -146,7 +146,7 @@ object Elements {
       val newContent: String =
         domElement.now.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]
       val changes = GraphChanges.addNode(node.copy(data = NodeData.Markdown(newContent)))
-      state.eventProcessor.enriched.changes.onNext(changes)
+      state.eventProcessor.changes.onNext(changes)
       editable() = false
     }
     domContent(
