@@ -1,6 +1,24 @@
-version: '2'
+version: '3'
 
 services:
+  postgres:
+    restart: ${DOCKER_RESTART_POLICY-on-failure}
+    image: postgres:10.1-alpine
+    environment: &pg_env
+      POSTGRES_USER: 'slack'
+      POSTGRES_PASSWORD: ${SLACK_POSTGRES_PASSWORD}
+      POSTGRES_DB: 'slack'
+    volumes:
+      - slack_postgres_data/:/var/lib/postgresql/data
+
+  db-migration:
+    restart: on-failure
+    image: woost/db-migration:${WUST_VERSION-latest}-core
+    environment:
+      <<: *pg_env
+    depends_on:
+      - postgres
+
   slack:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/slack:${WUST_VERSION-latest}
@@ -9,5 +27,11 @@ services:
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: ${WUST_HOSTNAME}
+      WUST_PORT: ${WUST_PORT}
     depends_on:
-      - wust-core
+      - postgres
+    ports:
+      - "127.0.0.1:${WUST_SLACK_PORT-8080}:8080"
+
+volumes:
+    slack_postgres_data:
