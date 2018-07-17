@@ -311,9 +311,7 @@ object ChatView extends View {
       }) --> sideEffect { (elem, atBottom) =>
         if (atBottom) scrollToBottom(elem)
       },
-      onInsert.asHtml --> sideEffect { elem =>
-        state.draggable.addContainer(elem)
-      }
+      registerDraggableContainer(state)
     )
   }
 

@@ -121,6 +121,12 @@ object Elements {
     )
   }
 
+  def registerDraggableContainer(state: GlobalState) = {
+    onInsert.asHtml --> sideEffect { elem =>
+      state.draggable.addContainer(elem)
+    }
+  }
+
   def editableNode(state: GlobalState, node: Node, domContent: VNode)(
       implicit ctx: Ctx.Owner
   ): VNode = {
