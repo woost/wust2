@@ -258,11 +258,15 @@ object Topbar {
     )
 
   def logout(state: GlobalState) =
-    button(cls := "tiny compact ui inverted grey button", "Logout", onClick --> sideEffect {
-      Client.auth.logout().foreach { _ =>
-        state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).overlayView(LoginView)
+    button(
+      cls := "tiny compact ui inverted grey button",
+      "Logout",
+      onClick --> sideEffect {
+        Client.auth.logout().foreach { _ =>
+          state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).overlayView(LoginView)
+        }
+        ()
       }
-      ()
-    })
+    )
 
 }

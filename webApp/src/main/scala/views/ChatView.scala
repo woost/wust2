@@ -442,37 +442,37 @@ object ChatView extends View {
 
     div(
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
-    div(
-      Styles.flex,
-      cls := "chatmsg-body",
-      isDeleted.ifTrueOption(opacity := 0.5),
-      onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
       div(
-        cls := "ui checkbox",
-        isSelected.map(_.ifTrueOption(visibility.visible)),
-        input(
-          tpe := "checkbox",
-          checked <-- isSelected,
-          onChange.checked --> sideEffect { checked =>
-            if (checked) state.selectedNodeIds.update(_ + node.id)
-            else state.selectedNodeIds.update(_ - node.id)
-          }
-        ),
-        label()
-      ),
-      div(
+        Styles.flex,
+        cls := "chatmsg-body",
+        isDeleted.ifTrueOption(opacity := 0.5),
+        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
         div(
-          editableNode(state, node, div(content)),
-          attr("woost_nodeid") := node.id.toCuidString,
-          cls := "draggable",
-          cls := "chatmsg-content",
-          isDeleted.ifTrueOption(cls := "chatmsg-deleted")
+          cls := "ui checkbox",
+          isSelected.map(_.ifTrueOption(visibility.visible)),
+          input(
+            tpe := "checkbox",
+            checked <-- isSelected,
+            onChange.checked --> sideEffect { checked =>
+              if (checked) state.selectedNodeIds.update(_ + node.id)
+              else state.selectedNodeIds.update(_ - node.id)
+            }
+          ),
+          label()
         ),
-        cls := "hard-shadow chatmsg-card",
-      ),
-      isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
-      msgControls,
-    )
+        div(
+          div(
+            editableNode(state, node, div(content)),
+            attr("woost_nodeid") := node.id.toCuidString,
+            cls := "draggable",
+            cls := "chatmsg-content",
+            isDeleted.ifTrueOption(cls := "chatmsg-deleted")
+          ),
+          cls := "hard-shadow chatmsg-card",
+        ),
+        isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
+        msgControls,
+      )
     )
   }
 
