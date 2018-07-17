@@ -302,6 +302,7 @@ object ChatView extends View {
           div(
             editableNode(state, node, div(content)),
             attr("woost_nodeid") := node.id.toCuidString,
+            attr("woost_dragtype") := "node",
             cls := "draggable",
             cls := "chatmsg-content",
             isDeleted.ifTrueOption(cls := "chatmsg-deleted")

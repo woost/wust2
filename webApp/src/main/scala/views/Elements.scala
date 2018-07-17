@@ -92,6 +92,10 @@ object Elements {
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       backgroundColor := tagColor(tag.id),
+      registerDraggableContainer(state),
+      cls := "draggable",
+      attr("woost_nodeid") := tag.id.toCuidString,
+      attr("woost_dragtype") := "tag"
     )
   }
 
