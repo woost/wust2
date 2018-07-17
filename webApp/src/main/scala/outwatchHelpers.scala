@@ -59,25 +59,20 @@ package object outwatchHelpers {
 
   implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
     (value: Rx[T]) => VDomModifier(value.now).map(current => ModifierStreamReceiver(value.toLaterObservable.map(VDomModifier(_)), current))
-  // implicit def rxSeqAsVDomModifier[T: AsVDomModifier](
-  //     implicit ctx: Ctx.Owner
-  // ): AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => ModifierStreamReceiver(value.toLaterObservable, rx.now.unsafeRunSync)
-  // implicit def rxOptionAsVDomModifier[T: AsVDomModifier](
-  //     implicit ctx: Ctx.Owner
-  // ): AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
+
   implicit class RichEmitterBuilder[E, O, R](val eb: EmitterBuilder[E, O, R]) extends AnyVal {
     //TODO: scala.rx have a contravariant trait for writing-only
     def -->(rxVar: Var[_ >: O])(implicit ctx: Ctx.Owner): IO[R] = eb --> rxVar.toSink
   }
   implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab: AttributeBuilder[T, A])
       extends AnyVal {
-    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- valueStream.toObservable
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- (valueStream.toLaterObservable, valueStream.now)
   }
   implicit class RichStyle[T](val ab: Style[T]) extends AnyVal {
     import outwatch.dom.StyleIsBuilder
     //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
     def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) =
-      StyleIsBuilder[T](ab) <-- valueStream.toObservable
+      StyleIsBuilder[T](ab) <-- (valueStream.toLaterObservable, valueStream.now)
   }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
