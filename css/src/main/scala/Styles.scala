@@ -312,7 +312,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-content pre" - (
-    whiteSpace.normal
+    whiteSpace.preWrap
   )
 
   ".chatmsg-date" - (
