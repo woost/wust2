@@ -272,50 +272,56 @@ object ChatView extends View {
     //   renderNodeData(node.data)
     // else nodeTag(state, node)(ctx)(fontSize := "14px")
 
+    val checkbox = div(
+      cls := "ui checkbox fitted",
+      isSelected.map(_.ifTrueOption(visibility.visible)),
+      input(
+        tpe := "checkbox",
+        checked <-- isSelected,
+        onChange.checked --> sideEffect { checked =>
+          if (checked) state.selectedNodeIds.update(_ + node.id)
+          else state.selectedNodeIds.update(_ - node.id)
+        }
+      ),
+      label()
+    )
+
+    val message = div(
+      div(
+        editableNode(state, node, div(content)),
+        attr("woost_nodeid") := node.id.toCuidString,
+        attr("woost_dragtype") := "node",
+        cls := "draggable",
+        cls := "chatmsg-content",
+        isDeleted.ifTrueOption(cls := "chatmsg-deleted")
+      ),
+      cls := "hard-shadow chatmsg-card",
+    )
+
     val msgControls = div(
       cls := "chatmsg-controls",
       isDeleted.ifFalseOption(nodeLink(state, node)),
       isDeleted.ifFalseOption(deleteButton(state, node, graph, page)),
     )
 
+
     div(
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
       div(
+        cls := "chatmsg-line",
         Styles.flex,
-        cls := "chatmsg-body",
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
-        div(
-          cls := "ui checkbox",
-          isSelected.map(_.ifTrueOption(visibility.visible)),
-          input(
-            tpe := "checkbox",
-            checked <-- isSelected,
-            onChange.checked --> sideEffect { checked =>
-              if (checked) state.selectedNodeIds.update(_ + node.id)
-              else state.selectedNodeIds.update(_ - node.id)
-            }
-          ),
-          label()
-        ),
-        div(
-          div(
-            editableNode(state, node, div(content)),
-            attr("woost_nodeid") := node.id.toCuidString,
-            attr("woost_dragtype") := "node",
-            cls := "draggable",
-            cls := "chatmsg-content",
-            isDeleted.ifTrueOption(cls := "chatmsg-deleted")
-          ),
-          cls := "hard-shadow chatmsg-card",
-        ),
-        isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
-        msgControls,
+
+        checkbox(Styles.flexStatic),
+        message,
+        isDeleted.ifFalseOption(messageTags(state, graph, node)),
+        msgControls(Styles.flexStatic),
       )
     )
   }
 
-  private def tagsDiv(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
+  private def messageTags(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
     val directNodeTags = graph.directNodeTags((node.id, state.page.now))
     val transitiveNodeTags = graph.transitiveNodeTags((node.id, state.page.now))
 

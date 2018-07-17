@@ -73,7 +73,6 @@ object Styles extends StyleSheet.Inline {
     gridTemplateColumns := "repeat(1, 1fr)",
     gridAutoRows := "minmax(50px, 1fr)"
   )
-
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -353,11 +352,6 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
-  ".chatmsg-body" - (
-    alignItems.center,
-    padding(2 px, 20 px, 2 px, 5 px)
-  )
-
   ".chatmsg-controls" - (
     visibility.hidden,
     display.flex,
@@ -370,18 +364,23 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(5 px)
   )
 
-  ".chatmsg-body .checkbox" - (
+  ".chatmsg-line" - (
+    alignItems.center,
+    padding(2 px, 20 px, 2 px, 5 px)
+  )
+
+  ".chatmsg-line .checkbox" - (
     visibility.hidden
   )
 
   // -- controls on hover --
   // TODO: Focus is only used as a quick hack in order to use controls on mobile browser
-  ".chatmsg-body:hover, .chatmsg-body:focus" - (
+  ".chatmsg-line:hover, .chatmsg-line:focus" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
   //TODO: how to generate this combinatorial explosion with scalacss?
-  ".chatmsg-body:hover .chatmsg-controls,.chatmsg-body:hover .checkbox, .chatmsg-body:focus .chatmsg-controls, .chatmsg-body:focus .chatmsg-checkbox" - (
+  ".chatmsg-line:hover .chatmsg-controls,.chatmsg-line:hover .checkbox, .chatmsg-line:focus .chatmsg-controls, .chatmsg-line:focus .chatmsg-checkbox" - (
     visibility.visible
   )
 
