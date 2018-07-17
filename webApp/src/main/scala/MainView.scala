@@ -35,11 +35,15 @@ object MainView {
               state
                 .view()
                 .isContent
-                .ifTrueOption(
-                  BreadCrumbs(state)(ctx)
+                .ifTrueSeq(
+                  Seq(
+                    BreadCrumbs(state)(ctx)(Styles.flexStatic),
+                    PageHeader(state)(ctx)(Styles.flexStatic)
+                  )
                 )
             },
-            state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1))
+            state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1)),
+            SelectedNodes(state)
           )
         )
       )
