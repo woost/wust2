@@ -342,20 +342,20 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineBlock
   )
 
-  "span.tag .removebutton" - (
+  ".removebutton" - (
     cursor.pointer,
     padding(0 px, 5 px),
     marginLeft(2 px),
     borderRadius(50 %%)
   )
 
-  "span.tag .removebutton:hover" - (
+  ".removebutton:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
   ".chatmsg-body" - (
     alignItems.center,
-    padding(0 px, 20 px, 3 px, 5 px)
+    padding(2 px, 20 px, 2 px, 5 px)
   )
 
   ".chatmsg-controls" - (

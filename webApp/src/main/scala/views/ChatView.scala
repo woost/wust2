@@ -21,6 +21,7 @@ import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import wust.util._
+import wust.util.collection._
 
 import scala.scalajs.js
 import scala.util.Success
@@ -105,16 +106,53 @@ object ChatView extends View {
     div(
       Styles.flex,
       flexDirection.column,
-      justifyContent.flexStart,
       alignItems.stretch,
       alignContent.stretch,
-      chatHeader(state)(ctx)(flexGrow := 0, flexShrink := 0),
+      chatHeader(state)(ctx)(Styles.flexStatic),
       chatHistory(state)(ctx)(
         height := "100%",
         overflow.auto,
         backgroundColor <-- state.pageStyle.bgLightColor
       ),
-      inputField(state)(ctx)(flexGrow := 0, flexShrink := 0)
+      inputField(state)(ctx)(Styles.flexStatic),
+      selectedNodes(state)(ctx)(Styles.flexStatic)
+    )
+  }
+
+  private def selectedNodes(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      Rx {
+        val graph = state.graph()
+        val selectedNodeIds = state.selectedNodeIds()
+        if (selectedNodeIds.nonEmpty)
+          div(
+            padding := "5px",
+            Styles.flex,
+            flexWrap.wrap,
+            selectedNodeIds.toSeq
+              .sortBy(nodeId => graph.nodeModified(nodeId): Long)
+              .map { nodeId =>
+                val node = graph.nodesById(nodeId)
+                div(
+                  cls := "hard-shadow chatmsg-card",
+                  marginBottom := "3px",
+                  div(
+                    cls := "chatmsg-content",
+                    editableNode(state, node, span(node.data.str)),
+                    span(
+                      "×",
+                      cls := "removebutton",
+                      onClick.stopPropagation --> sideEffect {
+                        state.selectedNodeIds.update(_ - nodeId)
+                      }
+                    )
+                  )
+                )
+              }
+          )
+        else
+          div()
+      }
     )
   }
 
@@ -392,6 +430,7 @@ object ChatView extends View {
       implicit ctx: Ctx.Owner
   ) = {
     val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)
+    val isSelected = state.selectedNodeIds.map(_ contains node.id)
     val content = renderNodeData(node.data)
     // if (graph.children(node).isEmpty)
     //   renderNodeData(node.data)
@@ -407,11 +446,19 @@ object ChatView extends View {
       Styles.flex,
       cls := "chatmsg-body",
       isDeleted.ifTrueOption(opacity := 0.5),
+      onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
+      isSelected.map(_.ifTrueOption(backgroundColor := "rgba(50,50,50, 0.5)")),
       div(
         cls := "ui checkbox",
-        input(tpe := "checkbox", onChange.checked --> sideEffect { e =>
-          console.log(e)
-        }),
+        isSelected.map(_.ifTrueOption(visibility.visible)),
+        input(
+          tpe := "checkbox",
+          checked <-- isSelected,
+          onChange.checked --> sideEffect { checked =>
+            if (checked) state.selectedNodeIds.update(_ + node.id)
+            else state.selectedNodeIds.update(_ - node.id)
+          }
+        ),
         label()
       ),
       div(
@@ -422,8 +469,7 @@ object ChatView extends View {
           cls := "chatmsg-content",
           isDeleted.ifTrueOption(cls := "chatmsg-deleted")
         ),
-        cls := "hard-shadow",
-        cls := "chatmsg-card",
+        cls := "hard-shadow chatmsg-card",
       ),
       isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
       msgControls,
