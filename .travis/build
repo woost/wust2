@@ -12,9 +12,6 @@ export SOURCEMAPS=false # for building production js assets with sourcemap
 # sbt \
 #  -Dquill.macro.log=false \
 #  compile \
-#  scalafmtCheck \
-#  scalafmtSbtCheck \
-#  it:scalafmtCheck \
 #  coverage \
 #  testJVM \
 #  coverageReport \
@@ -26,9 +23,6 @@ export SOURCEMAPS=false # for building production js assets with sourcemap
 sbt \
  -Dquill.macro.log=false \
  compile \
- scalafmtCheck \
- scalafmtSbtCheck \
- it:scalafmtCheck \
  testJVM \
  testJSNonPure \
  it:compile \
