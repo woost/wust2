@@ -50,6 +50,7 @@ object Sidebar {
   val buttonStyles = Seq("tiny", "compact", "inverted", "grey").mkString(" ")
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+
     def channelDiv(selected: Boolean, pageStyle: PageStyle) = div(
       cls := "channel",
       selected.ifTrueSeq(
@@ -67,6 +68,8 @@ object Sidebar {
           p =>
             val selected = state.page().parentIds.contains(p.id)
             channelDiv(selected, state.pageStyle)(
+              attr("woost_nodeid") := p.id.toCuidString,
+              cls := "draggable",
               paddingRight := "5px",
               //TODO: inner state.page obs again
               channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(
@@ -85,6 +88,9 @@ object Sidebar {
           PageMode.Orphans.toString,
           onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
         )
+      },
+      onInsert.asHtml --> sideEffect { elem =>
+        state.draggable.addContainer(elem)
       }
     )
   }

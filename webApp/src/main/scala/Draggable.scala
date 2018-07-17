@@ -27,6 +27,7 @@ class Draggable(
   def off(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def getDraggableElements(): js.Array[html.Element] = js.native
   def getDraggableElementsForContainer(container: html.Element): js.Array[html.Element] = js.native
+  def addContainer(containers: html.Element*): Draggable = js.native
 }
 
 @js.native

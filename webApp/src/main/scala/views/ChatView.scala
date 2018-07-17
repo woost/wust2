@@ -249,40 +249,10 @@ object ChatView extends View {
     import state._
     val graph = state.graph
 
-    val dragOverEvent = PublishSubject[DragOverEvent]
-    val dragOutEvent = PublishSubject[DragOutEvent]
-    val dragEvent = PublishSubject[DragEvent]
-    val lastDragOverId = PublishSubject[Option[NodeId]]
     val scrolledToBottom = PublishSubject[Boolean]
 
-    // TODO: Use js properties
-    dragOverEvent.foreach { e =>
-      //        val parentId: NodeId =  e.over.asInstanceOf[js.Dynamic].selectDynamic("woost_nodeid").asInstanceOf[NodeId]
-      val parentId: NodeId =
-        NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("woost_nodeid").value))
-      lastDragOverId.onNext(Some(parentId))
-    }
-
-    dragOutEvent.foreach { e =>
-      lastDragOverId.onNext(None)
-    }
-
-    dragEvent
-      .withLatestFrom(lastDragOverId)((e, lastOverId) => (e, lastOverId))
-      .foreach {
-        case (e, Some(parentId)) =>
-          val childId: NodeId =
-            NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("woost_nodeid").value))
-          if (parentId != childId) {
-            val changes = GraphChanges.connectParent(childId, parentId)
-            state.eventProcessor.enriched.changes.onNext(changes)
-            lastDragOverId.onNext(None)
-            console.log(s"Added GraphChange after drag: $changes")
-          }
-        case _ =>
-      }
-
     div(
+      cls := "chathistory",
       padding := "20px 0 20px 20px",
       outline := "none", // hide outline when focused. This element is focusable because of the draggable library; TODO: don't make the whole container draggable?
       Rx {
@@ -304,13 +274,7 @@ object ChatView extends View {
         if (atBottom) scrollToBottom(elem)
       },
       onInsert.asHtml --> sideEffect { elem =>
-        val d = new Draggable(elem, new Options { draggable = ".draggable" })
-        d.on[DragOverEvent]("drag:over", e => {
-          dragOverEvent.onNext(e)
-        })
-        d.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
-        d.on[DragEvent]("drag:stop", dragEvent.onNext(_))
-
+        state.draggable.addContainer(elem)
       }
     )
   }

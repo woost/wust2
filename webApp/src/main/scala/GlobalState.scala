@@ -4,11 +4,14 @@ import monix.execution.Cancelable
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
+import org.scalajs.dom
+import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.{Event, window}
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import shopify.draggable._
 import wust.api.ApiEvent.ReplaceGraph
 import wust.api._
 import wust.graph._
@@ -20,6 +23,7 @@ import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
+import scala.scalajs.js
 
 class GlobalState private (
     val appUpdateIsAvailable: Observable[Unit],
@@ -98,6 +102,50 @@ class GlobalState private (
   val screenSize: Observable[ScreenSize] = events.window.onResize
     .map(_ => ScreenSize.calculate())
     .startWith(Seq(ScreenSize.calculate()))
+
+  val dragOverEvent = PublishSubject[DragOverEvent]
+  val dragOutEvent = PublishSubject[DragOutEvent]
+  val dragEvent = PublishSubject[DragEvent]
+  val lastDragOverId = PublishSubject[Option[NodeId]]
+  // TODO: Use js properties
+  dragOverEvent.foreach { e =>
+    //        val parentId: NodeId =  e.over.asInstanceOf[js.Dynamic].selectDynamic("woost_nodeid").asInstanceOf[NodeId]
+    val parentId: NodeId =
+      NodeId(Cuid.fromCuidString(e.over.attributes.getNamedItem("woost_nodeid").value))
+
+    scribe.info(s"Dragging over: ${parentId.toCuidString}")
+
+    lastDragOverId.onNext(Some(parentId))
+  }
+
+  dragOutEvent.foreach { e =>
+    lastDragOverId.onNext(None)
+  }
+
+  dragEvent
+    .withLatestFrom(lastDragOverId)((e, lastOverId) => (e, lastOverId))
+    .foreach {
+      case (e, Some(parentId)) =>
+        val childId: NodeId =
+          NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("woost_nodeid").value))
+        if (parentId != childId) {
+          val changes = GraphChanges.connectParent(childId, parentId)
+          eventProcessor.enriched.changes.onNext(changes)
+          lastDragOverId.onNext(None)
+          scribe.info(s"Added GraphChange after drag: $changes")
+        }
+      case _ =>
+    }
+
+  val draggable = new Draggable(js.Array(): js.Array[HTMLElement], new Options {
+    draggable = ".draggable"
+    delay = 300
+  })
+  draggable.on[DragOverEvent]("drag:over", e => {
+    dragOverEvent.onNext(e)
+  })
+  draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
+  draggable.on[DragEvent]("drag:stop", dragEvent.onNext(_))
 
 }
 
