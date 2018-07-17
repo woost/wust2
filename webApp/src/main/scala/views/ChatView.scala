@@ -280,7 +280,7 @@ object ChatView extends View {
 
     div(
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
-        div(
+      div(
         Styles.flex,
         cls := "chatmsg-body",
         isDeleted.ifTrueOption(opacity := 0.5),
@@ -297,8 +297,8 @@ object ChatView extends View {
             }
           ),
           label()
-          ),
-          div(
+        ),
+        div(
           div(
             editableNode(state, node, div(content)),
             attr("woost_nodeid") := node.id.toCuidString,
@@ -308,7 +308,7 @@ object ChatView extends View {
             isDeleted.ifTrueOption(cls := "chatmsg-deleted")
           ),
           cls := "hard-shadow chatmsg-card",
-          ),
+        ),
         isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
         msgControls,
       )

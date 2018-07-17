@@ -231,10 +231,15 @@ object SelectedPostMenu {
 //      showIf = (p: Post, gs: GraphState) => gs.rxCollapsedNodeIds.now(p.id) && !gs.rxDisplayGraph.now.graph.hasChildren(p.id)
 //    ),
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
-    MenuAction("Delete", { (p: Node, state: GlobalState) =>
-      state.eventProcessor.enriched.changes
-        .onNext(GraphChanges.delete(p.id, state.graph.now.parents(p).toSet intersect state.page.now.parentIdSet))
-    }),
+    MenuAction(
+      "Delete", { (p: Node, state: GlobalState) =>
+        state.eventProcessor.enriched.changes
+          .onNext(
+            GraphChanges
+              .delete(p.id, state.graph.now.parents(p).toSet intersect state.page.now.parentIdSet)
+          )
+      }
+    ),
     // MenuAction(
     //   "Autopos",
     //   { (p: Post) => p.fixedPos = js.undefined; d3State.simulation.alpha(0.1).restart() },
