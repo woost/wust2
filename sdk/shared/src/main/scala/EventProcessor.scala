@@ -1,7 +1,7 @@
 package wust.sdk
 
 import monix.execution.Scheduler
-import monix.reactive.Observable
+import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.PublishSubject
 import wust.api.ApiEvent._
 import wust.api._
@@ -143,6 +143,7 @@ class EventProcessor private (
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes)
+
     val rawLocalChanges =
       allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a, b) => (a, b)).collect {
         case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
@@ -160,7 +161,7 @@ class EventProcessor private (
       }
     val localChanges = changesHistory.collect {
       case history if history.current.nonEmpty => history.current
-    }
+    }.asyncBoundary(OverflowStrategy.Unbounded)
 
     localChanges.foreach { c =>
       println("[Events] Got local changes after history: " + c)
