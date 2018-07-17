@@ -33,10 +33,7 @@ package object outwatchHelpers {
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
     def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
-        rx.triggerLater { value =>
-          println("value " + value)
-          observer.onNext(value)
-        }
+        rx.triggerLater(observer.onNext(_))
         Cancelable() //TODO
     }
 
