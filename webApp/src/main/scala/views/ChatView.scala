@@ -443,11 +443,12 @@ object ChatView extends View {
     )
 
     div(
+      isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
+    div(
       Styles.flex,
       cls := "chatmsg-body",
       isDeleted.ifTrueOption(opacity := 0.5),
       onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
-      isSelected.map(_.ifTrueOption(backgroundColor := "rgba(50,50,50, 0.5)")),
       div(
         cls := "ui checkbox",
         isSelected.map(_.ifTrueOption(visibility.visible)),
@@ -473,6 +474,7 @@ object ChatView extends View {
       ),
       isDeleted.ifFalseOption(tagsDiv(state, graph, node)),
       msgControls,
+    )
     )
   }
 
