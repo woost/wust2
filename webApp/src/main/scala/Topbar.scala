@@ -236,7 +236,7 @@ object Topbar {
         VDomModifier(
           Avatar.user(user.id)(height := "20px"),
           span(user.name, padding := "0 5px"),
-          logout
+          logout(state)
         )
     }
 
@@ -257,9 +257,12 @@ object Topbar {
       )
     )
 
-  val logout =
+  def logout(state: GlobalState) =
     button(cls := "tiny compact ui inverted grey button", "Logout", onClick --> sideEffect {
-      Client.auth.logout(); ()
+      Client.auth.logout().foreach { _ =>
+        state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).overlayView(LoginView)
+      }
+      ()
     })
 
 }
