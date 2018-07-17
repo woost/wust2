@@ -22,10 +22,13 @@ object MainView {
         div(
           width := "100%",
           Rx {
-            (state.pageIsBookmarked() || !state.view().isContent)
-              .ifFalseOption(
-                Seq(backgroundColor <-- state.pageStyle.bgColor, cls := "non-bookmarked-page-frame")
-              )
+            val bookmarked = state.pageIsBookmarked()
+            val viewingChannelNode = state.page().parentIdSet.contains(state.user().channelNodeId)
+            val noContent = !state.view().isContent
+
+            (bookmarked || viewingChannelNode || noContent).ifFalseOption(
+              Seq(backgroundColor <-- state.pageStyle.bgColor, cls := "non-bookmarked-page-frame")
+            )
           },
           div(
             Styles.flex,
