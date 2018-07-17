@@ -44,9 +44,7 @@ object AuthView {
       elem <- div(
         padding := "10px",
         maxWidth := "400px",
-        width := "400px",
         maxHeight := "400px",
-        height := "400px",
         margin := "auto",
         form(
           h2(header),
