@@ -233,7 +233,7 @@ object SelectedPostMenu {
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
     MenuAction("Delete", { (p: Node, state: GlobalState) =>
       state.eventProcessor.enriched.changes
-        .onNext(GraphChanges.delete(p.id, state.page.now.parentIdSet))
+        .onNext(GraphChanges.delete(p.id, state.graph.now.parents(p).toSet intersect state.page.now.parentIdSet))
     }),
     // MenuAction(
     //   "Autopos",
