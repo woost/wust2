@@ -22,11 +22,13 @@ object MainView {
         div(
           width := "100%",
           Rx {
+            // don't show non-bookmarked border for:
+            val noChannelNodeInGraph = state.graph().channelNodeIds.isEmpty // happens when assumed user clicks on "new group"
             val bookmarked = state.pageIsBookmarked()
             val viewingChannelNode = state.page().parentIdSet.contains(state.user().channelNodeId)
             val noContent = !state.view().isContent
 
-            (bookmarked || viewingChannelNode || noContent).ifFalseOption(
+            (noChannelNodeInGraph || bookmarked || viewingChannelNode || noContent).ifFalseOption(
               Seq(backgroundColor <-- state.pageStyle.bgColor, cls := "non-bookmarked-page-frame")
             )
           },
