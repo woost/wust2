@@ -38,7 +38,7 @@ object Topbar {
     appUpdatePrompt(state)(ctx)(marginRight := "10px"),
     beforeInstallPrompt()(ctx)(marginRight := "10px"),
 //    undoRedo(state)(ctx)(marginRight.auto),
-    notificationSettings()(marginRight := "10px"),
+    notificationSettings()(marginLeft := "auto", marginRight := "10px"),
     authentication(state)
   )
 
@@ -240,23 +240,22 @@ object Topbar {
         )
     }
 
-  def login(state: GlobalState)(implicit ctx: Ctx.Owner) = state.viewConfig.map { viewConfig =>
+  def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(
       span(
-        onClick(viewConfig.overlayView(SignupView)) --> state.viewConfig,
+        onClick(state.viewConfig.now.overlayView(SignupView)) --> state.viewConfig,
         "Signup",
         color := "white",
         cursor.pointer
       ),
       " or ",
       span(
-        onClick(viewConfig.overlayView(LoginView)) --> state.viewConfig,
+        onClick(state.viewConfig.now.overlayView(LoginView)) --> state.viewConfig,
         "Login",
         color := "white",
         cursor.pointer
       )
     )
-  }
 
   val logout =
     button(cls := "tiny compact ui inverted grey button", "Logout", onClick --> sideEffect {
