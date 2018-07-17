@@ -161,7 +161,7 @@ object Elements {
         )
       },
       onInsert.asHtml --> domElement,
-      onClick --> sideEffect {
+      onClick.stopPropagation.stopImmediatePropagation --> sideEffect {
         if (!editable.now) {
           editable() = true
           domElement.now.focus()
