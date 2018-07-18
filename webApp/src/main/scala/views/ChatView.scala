@@ -17,7 +17,6 @@ import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Elements._
-import wust.webApp.views.Rendered._
 
 import scala.collection.breakOut
 
@@ -135,7 +134,7 @@ object ChatView extends View {
         val nodes = graphContent().chronologicalNodesAscending.collect {
           case n: Node.Content => n
         }
-        if (nodes.isEmpty) Seq(emptyMessage)
+        if (nodes.isEmpty) Seq(emptyChatNotice)
         else
           groupNodes(graph(), nodes, state, user().id)
             .map(chatMessage(state, _, graph(), page(), user().id))
@@ -153,7 +152,7 @@ object ChatView extends View {
     )
   }
 
-  private def emptyMessage: VNode =
+  private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
   private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
@@ -267,7 +266,6 @@ object ChatView extends View {
   ) = {
     val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)
     val isSelected = state.selectedNodeIds.map(_ contains node.id)
-    val content = renderNodeData(node.data)
     // if (graph.children(node).isEmpty)
     //   renderNodeData(node.data)
     // else nodeTag(state, node)(ctx)(fontSize := "14px")
@@ -286,18 +284,6 @@ object ChatView extends View {
       label()
     )
 
-    val message = div(
-      div(
-        editableNode(state, node, div(content)),
-        attr("woost_nodeid") := node.id.toCuidString,
-        attr("woost_dragtype") := "node",
-        cls := "draggable",
-        cls := "chatmsg-content",
-        isDeleted.ifTrueOption(cls := "chatmsg-deleted")
-      ),
-      cls := "hard-shadow chatmsg-card",
-    )
-
     val msgControls = div(
       cls := "chatmsg-controls",
       isDeleted.ifFalseOption(nodeLink(state, node)),
@@ -314,9 +300,9 @@ object ChatView extends View {
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
 
         checkbox(Styles.flexStatic),
-        message,
+        nodeCardCompact(state, node)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
-        msgControls(Styles.flexStatic),
+        msgControls(Styles.flexStatic)
       )
     )
   }

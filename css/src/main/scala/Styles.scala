@@ -98,11 +98,6 @@ object CommonStyles extends StyleSheet.Standalone {
     boxShadow := "0px 7px 21px -6px rgba(0,0,0,0.75)"
   )
 
-  ".hard-shadow" - (
-    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
-    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
-  )
-
   ".mainview" - (
     flexDirection.column,
     Styles.growFull
@@ -274,11 +269,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#50575f")
   )
 
-  ".chatmsg-deleted" - (
-    textDecoration := "line-through",
-    cursor.default
-  )
-
   ".chatmsg-inner-frame" - (
     width(100 %%),
     display.block,
@@ -294,15 +284,18 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val messageBackground = c"#FEFEFE"
 
-  ".chatmsg-card" - (
+  ".nodecardcompact" - (
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
     marginLeft(3 px),
     backgroundColor(messageBackground),
-    overflowX.auto
+    overflowX.auto,
+
+    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
+    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   )
 
-  ".chatmsg-content" - (
+  ".nodecardcompact-content" - (
     wordWrap.breakWord,
     wordBreak.breakAll,
     padding(2 px, 4 px),
@@ -310,8 +303,13 @@ object CommonStyles extends StyleSheet.Standalone {
     border(1 px, solid, transparent) /* placeholder for the dashed border when dragging */
   )
 
-  ".chatmsg-content pre" - (
+  ".nodecardcompact-content pre" - (
     whiteSpace.preWrap
+  )
+
+  ".node-deleted .nodecardcompact-content" - (
+    textDecoration := "line-through",
+    cursor.default
   )
 
   ".chatmsg-date" - (

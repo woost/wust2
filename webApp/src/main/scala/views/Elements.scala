@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import wust.webApp.marked
+import wust.webApp.views.Rendered._
 import org.scalajs.dom
 import wust.sdk.NodeColor._
 import rx._
@@ -121,6 +122,25 @@ object Elements {
           )
           ()
         },
+      )
+    )
+  }
+
+  def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, cutLength: Boolean = false)(implicit ctx: Ctx.Owner) = {
+    val content:VNode = if(cutLength) {
+      val rawString = node.data.str.trim
+      if (rawString.length > 20) span(rawString.take(17) + "...") else renderNodeData(node.data)
+    } else renderNodeData(node.data)
+
+    div(
+      cls := "nodecardcompact",
+      div(
+        cls := "nodecardcompact-content",
+        editableNode(state, node, content),
+        cls := "draggable",
+        attr("woost_nodeid") := node.id.toCuidString,
+        attr("woost_dragtype") := "node",
+        injected
       )
     )
   }

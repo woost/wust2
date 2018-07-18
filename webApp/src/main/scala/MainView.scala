@@ -48,7 +48,7 @@ object MainView {
                 )
             },
             state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1)),
-            SelectedNodes(state)
+            SelectedNodes(state)(ctx)(Styles.flexStatic)
           )
         )
       )
