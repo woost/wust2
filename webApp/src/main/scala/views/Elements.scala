@@ -48,7 +48,7 @@ object Rendered {
     case user: NodeData.User         => div(s"User: ${user.name}")
   }
 
-  def mdHtml(str: String) = div(prop("innerHTML") := marked(str))
+  def mdHtml(str: String) = div(div(prop("innerHTML") := marked(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
   def mdString(str: String): String = marked(str)
 }
 
