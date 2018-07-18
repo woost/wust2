@@ -147,8 +147,7 @@ object ChatView extends View {
         case ((_, elem), atBottom) => (elem, atBottom)
       }) --> sideEffect { (elem, atBottom) =>
         if (atBottom) scrollToBottom(elem)
-      },
-      registerDraggableContainer(state)
+      }
     )
   }
 
@@ -237,9 +236,9 @@ object ChatView extends View {
       avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodes.map(chatMessageBody(state, graph, page, _)),
+        nodes.map(chatMessageLine(state, graph, page, _)),
         borderColor := computeColor(graph, currNode.id),
-        cls := "chatmsg-inner-frame",
+        cls := "chatmsg-group-inner-frame",
       ),
       Styles.flex,
     )
@@ -261,7 +260,7 @@ object ChatView extends View {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def chatMessageBody(state: GlobalState, graph: Graph, page: Page, node: Node)(
+  private def chatMessageLine(state: GlobalState, graph: Graph, page: Page, node: Node)(
       implicit ctx: Ctx.Owner
   ) = {
     val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)

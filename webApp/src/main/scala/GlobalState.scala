@@ -103,7 +103,7 @@ class GlobalState private (
     .map(_ => ScreenSize.calculate())
     .startWith(Seq(ScreenSize.calculate()))
 
-  val draggable = new Draggable(js.Array(): js.Array[HTMLElement], new Options {
+  val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
     delay = 300
   })

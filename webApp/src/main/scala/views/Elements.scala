@@ -87,16 +87,13 @@ object Elements {
     val rawString = tag.data.str.trim
     val contentString = if (rawString.length > 20) rawString.take(17) + "..." else rawString
     span(
-      cls := "tag",
+      cls := "node tag",
       contentString, //TODO trim correctly! fit for tag usage...
+      backgroundColor := tagColor(tag.id),
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      backgroundColor := tagColor(tag.id),
-      registerDraggableContainer(state),
-      cls := "draggable",
-      attr("woost_nodeid") := tag.id.toCuidString,
-      attr("woost_dragtype") := "tag"
+      draggableAs(state, "tag", tag)
     )
   }
 
@@ -133,23 +130,31 @@ object Elements {
     } else renderNodeData(node.data)
 
     div(
-      cls := "nodecardcompact",
+      cls := "node nodecardcompact",
+      draggableAs(state, "node", node),
       div(
         cls := "nodecardcompact-content",
         editableNode(state, node, content),
-        cls := "draggable",
-        attr("woost_nodeid") := node.id.toCuidString,
-        attr("woost_dragtype") := "node",
         injected
       )
     )
   }
 
-  def registerDraggableContainer(state: GlobalState) = {
+  def draggableAs(state:GlobalState, dragType: String, node:Node):VDomModifier = Seq(
+    cls := "draggable",
+    attr("woost_nodeid") := node.id.toCuidString,
+    attr("woost_dragtype") := dragType,
+    registerDraggableContainer(state)
+  )
+
+  def registerDraggableContainer(state: GlobalState):VDomModifier = Seq(
     onInsert.asHtml --> sideEffect { elem =>
       state.draggable.addContainer(elem)
+    },
+    onDestroy.asHtml --> sideEffect { elem =>
+      state.draggable.removeContainer(elem)
     }
-  }
+  )
 
   def editableNode(state: GlobalState, node: Node, domContent: VNode)(
       implicit ctx: Ctx.Owner

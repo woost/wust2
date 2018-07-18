@@ -258,8 +258,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- chatview --
-  ".chatmsg-outer-frame" - ()
-
   ".chatmsg-avatar" - (
     margin(5 px)
   )
@@ -269,7 +267,7 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#50575f")
   )
 
-  ".chatmsg-inner-frame" - (
+  ".chatmsg-group-inner-frame" - (
     width(100 %%),
     display.block,
     padding(0 px, 0 px, 0 px, 10 px),
@@ -291,6 +289,7 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(messageBackground),
     overflowX.auto,
 
+    border(1 px, solid, transparent), // when dragging this will be replaced with a color
     borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   )
@@ -312,28 +311,15 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.default
   )
 
-  ".chatmsg-date" - (
-    marginLeft(8 px),
-    fontSize.smaller,
-    color.grey
-  )
-
-  "div.tags" - (
-    padding(
-      0 px,
-      3 px,
-      0 px,
-      5 px
-    )
-  )
-
+  val tagBorderRadius = 2.px
   "span.tag" - (
     fontWeight.bold,
     fontSize.small,
     color(c"#FEFEFE"),
-    borderRadius(2 px),
+    borderRadius(tagBorderRadius),
+    border(1 px, solid, transparent), // when dragging this will be replaced with a color
     padding(0 px, 3 px),
-    margin(1 px, 3 px, 1 px, 0 px),
+    marginRight(2 px),
     whiteSpace.nowrap,
     cursor.pointer,
     display.inlineBlock
@@ -348,6 +334,71 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".removebutton:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
+    )
+
+
+  // -- draggable --
+  ".node.draggable--over" - (
+    backgroundColor(c"rgba(65,184,255, 1)").important,
+    color.white.important,
+    opacity(1).important,
+    cursor.move.important
+  )
+
+  ".node.draggable-mirror" - (
+    opacity(1).important,
+    zIndex(10), // needs to overlap checkboxes
+  )
+
+
+  ".nodecardcompact.draggable--over" - (
+    borderTop(1 px, solid, rgba(93, 120, 158, 0.19)).important,
+    (boxShadow := "0px 1px 0px 1px rgba(93, 120, 158,0.45)").important
+  )
+
+  val onDragNodeCardCompactColor = c"rgba(0,0,0,0.5)"
+  ".nodecardcompact.draggable-source--is-dragging" - (
+    boxShadow := none,
+    border(1 px, dashed, onDragNodeCardCompactColor),
+    color := onDragNodeCardCompactColor
+  )
+
+
+  ".channelicon.draggable-mirror" - (
+    border(2 px, solid, c"#383838").important
+  )
+
+  ".channelicon.draggable-source--is-dragging" - (
+    border(2 px, dashed, c"#383838").important
+    )
+
+
+  val onDragNodeTagColor = c"rgba(255,255,255,0.8)"
+  ".tag.draggable-source--is-dragging" - (
+    border(1 px, dashed, onDragNodeTagColor),
+    color := onDragNodeTagColor
+  )
+
+
+  ".node.draggable--over .removebutton" - (
+    backgroundColor.inherit.important,
+    cursor.move.important
+  )
+
+
+  ".chatmsg-date" - (
+    marginLeft(8 px),
+    fontSize.smaller,
+    color.grey
+  )
+
+  "div.tags" - (
+    padding(
+      0 px,
+      3 px,
+      0 px,
+      5 px
+    )
   )
 
   ".chatmsg-controls" - (
@@ -380,32 +431,6 @@ object CommonStyles extends StyleSheet.Standalone {
   //TODO: how to generate this combinatorial explosion with scalacss?
   ".chatmsg-line:hover .chatmsg-controls,.chatmsg-line:hover .checkbox, .chatmsg-line:focus .chatmsg-controls, .chatmsg-line:focus .chatmsg-checkbox" - (
     visibility.visible
-  )
-
-  // -- draggable --
-  ".chatmsg-inner-frame .draggable--over" - (
-    backgroundColor(c"#aaccff"),
-    borderRadius(3 px)
-  )
-
-  ".chatmsg-inner-frame .draggable-mirror" - (
-    backgroundColor(messageBackground),
-    borderRadius(3 px),
-    overflow.hidden,
-    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
-    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
-  )
-
-  val onDragColor = c"#999"
-  ".chatmsg-inner-frame .draggable-source--is-dragging" - (
-    color(onDragColor),
-    borderRadius(3 px),
-    border(1 px, solid, onDragColor),
-    borderStyle.dashed
-  )
-
-  ".chatmsg-inner-frame .draggable--over.draggable-source--is-dragging" - (
-    backgroundColor.inherit
   )
 
   ".text" - (
