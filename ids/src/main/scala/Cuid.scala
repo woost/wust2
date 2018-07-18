@@ -39,7 +39,7 @@ case class Cuid(left: Long, right: Long) {
     Base58(toByteArray).str
   }
 
-  override def toString = toCuidString
+  override def toString = toBase58
 }
 object Cuid {
   def fromUuid(uuid: UUID): Cuid =
