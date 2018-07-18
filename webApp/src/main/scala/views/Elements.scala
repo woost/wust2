@@ -207,28 +207,4 @@ object Elements {
       },
     )
   }
-
-  //def inlineTextarea(submit: HTMLTextAreaElement => Any) = {
-  //  textarea(
-  //    onkeypress := { (e: KeyboardEvent) =>
-  //      e.keyCode match {
-  //        case KeyCode.Enter if !e.shiftKey =>
-  //          e.preventDefault()
-  //          e.stopPropagation()
-  //          submit(e.target.asInstanceOf[HTMLTextAreaElement])
-  //        case _ =>
-  //      }
-  //    },
-  //    onblur := { (e: dom.Event) =>
-  //      submit(e.target.asInstanceOf[HTMLTextAreaElement])
-  //    }
-  //  )
-  //}
-
-  //val inputText = input(`type` := "text")
-  //val inputPassword = input(`type` := "password")
-  //def buttonClick(name: String, handler: => Any) = button(name, onclick := handler _)
-  //   val radio = input(`type` := "radio")
-  //   def labelfor(id: String) = label(`for` := id)
-  //   def aUrl(url:String) = a(href := url, url)
 }
