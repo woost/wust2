@@ -74,9 +74,7 @@ object ChatView extends View {
     paddingLeft := "3px",
     freeRegular.faTrashAlt,
     cursor.pointer,
-    onClick.stopPropagation.map {_ =>
-      GraphChanges.delete(node, graph.parents(node).toSet intersect page.parentIdSet)
-    } --> state.eventProcessor.changes
+    onClick.stopPropagation.map(_ => GraphChanges.delete(node, graph, page)) --> state.eventProcessor.changes
   )
 
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */

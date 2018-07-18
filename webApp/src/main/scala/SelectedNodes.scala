@@ -66,10 +66,7 @@ object SelectedNodes {
       margin := "5px",
 
       onClick --> sideEffect{_ =>
-        val graph = state.graph.now
-        val directParents = graph.parents(selectedNodeIds.head).toSet
-        val pageParents = state.page.now.parentIdSet
-        val changes = GraphChanges.delete(selectedNodeIds.toList, directParents intersect pageParents)
+        val changes = GraphChanges.delete(selectedNodeIds.toList, state.graph.now, state.page.now)
         state.eventProcessor.changes.onNext(changes)
         state.selectedNodeIds() = Set.empty[NodeId]
       }

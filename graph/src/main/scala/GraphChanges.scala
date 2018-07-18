@@ -94,6 +94,18 @@ object GraphChanges {
     GraphChanges.addNodeWithParent(post, channelNodeId)
   }
 
+  def delete(nodeIds: Iterable[NodeId], graph: Graph, page: Page): GraphChanges = {
+    if(nodeIds.isEmpty) GraphChanges.empty
+    else {
+      val directParents = graph.parents(nodeIds.head).toSet
+      val pageParents = page.parentIdSet
+      val parentIds = directParents intersect pageParents
+      delete(nodeIds, parentIds)
+    }
+  }
+  def delete(node: Node, graph: Graph, page: Page): GraphChanges = delete(node.id, graph, page)
+  def delete(nodeId: NodeId, graph: Graph, page: Page): GraphChanges = delete(nodeId :: Nil, graph, page)
+
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(GraphChanges.empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
   def delete(node: Node, parentIds: Set[NodeId]): GraphChanges = delete(node.id, parentIds)
