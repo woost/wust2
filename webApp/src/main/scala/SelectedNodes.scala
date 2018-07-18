@@ -1,6 +1,8 @@
 package wust.webApp
 
+import cats.data.{NonEmptyList, NonEmptySet}
 import fastparse.core.Parsed
+import cats.syntax._
 import fontAwesome._
 import monix.reactive.subjects.PublishSubject
 import outwatch.ObserverSink
@@ -24,25 +26,64 @@ import scala.collection.breakOut
 object SelectedNodes {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      backgroundColor := "rgba(65,184,255, 0.5)",
+      backgroundColor := "#85D5FF",
       Rx {
         val graph = state.graph()
-        val selectedNodeIds = state.selectedNodeIds()
-        if (selectedNodeIds.nonEmpty)
-          div(
-            padding := "5px 5px 2px 5px",
-            Styles.flex,
-            alignItems.center,
-            flexWrap.wrap,
-            selectedNodeIds.toSeq
-              .sortBy(nodeId => graph.nodeModified(nodeId): Long)
-              .map { nodeId =>
-                val node = graph.nodesById(nodeId)
-                nodeCard(state, node)
-              }
-          )
-        else
-          div()
+        val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)
+        NonEmptyList.fromList(sortedNodeIds) match {
+          case Some(nonEmptyNodeIds) =>
+            div(
+              padding := "5px 5px 2px 5px",
+              Styles.flex,
+              alignItems.center,
+
+              nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto),
+              deleteAllButton(state, nonEmptyNodeIds),
+              clearSelectionButton(state)
+            )
+          case None => div()
+        }
+      }
+    )
+  }
+
+  private def nodeList(state:GlobalState, selectedNodeIds:NonEmptyList[NodeId], graph:Graph)(implicit ctx: Ctx.Owner) = {
+    div(
+      Styles.flex,
+      alignItems.center,
+      flexWrap.wrap,
+      selectedNodeIds.toList.map { nodeId =>
+          val node = graph.nodesById(nodeId)
+          nodeCard(state, node)
+        }
+    )
+  }
+
+  private def deleteAllButton(state:GlobalState, selectedNodeIds:NonEmptyList[NodeId])(implicit ctx: Ctx.Owner) = {
+    div(
+      freeRegular.faTrashAlt,
+      cls := "removebutton",
+      margin := "5px",
+
+      onClick --> sideEffect{_ =>
+        val graph = state.graph.now
+        val directParents = graph.parents(selectedNodeIds.head).toSet
+        val pageParents = state.page.now.parentIdSet
+        val changes = GraphChanges.delete(selectedNodeIds.toList, directParents intersect pageParents)
+        state.eventProcessor.changes.onNext(changes)
+        state.selectedNodeIds() = Set.empty[NodeId]
+      }
+    )
+  }
+
+  private def clearSelectionButton(state:GlobalState) = {
+    div(
+      "×",
+      cls := "removebutton",
+      margin := "5px",
+      fontWeight.bold,
+      onClick --> sideEffect {
+        state.selectedNodeIds() = Set.empty[NodeId]
       }
     )
   }

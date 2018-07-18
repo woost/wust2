@@ -70,14 +70,13 @@ object ChatView extends View {
     )
   }
 
-  private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page) = div(
+  private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page)(implicit ctx: Ctx.Owner) = div(
     paddingLeft := "3px",
     freeRegular.faTrashAlt,
     cursor.pointer,
-    onClick.map { e =>
-      e.stopPropagation()
+    onClick.stopPropagation.map {_ =>
       GraphChanges.delete(node, graph.parents(node).toSet intersect page.parentIdSet)
-    } --> ObserverSink(state.eventProcessor.changes)
+    } --> state.eventProcessor.changes
   )
 
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
