@@ -10,7 +10,7 @@ import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom.document
 import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
-import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode, dsl, ModifierStreamReceiver}
+import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode, dsl}
 import outwatch.{AsVDomModifier, ObserverSink, Sink}
 import rx._
 
@@ -31,12 +31,6 @@ package object outwatchHelpers {
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
-    def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
-      observer =>
-        rx.triggerLater(observer.onNext(_))
-        Cancelable() //TODO
-    }
-
     def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
         rx.foreach(observer.onNext)
@@ -58,21 +52,26 @@ package object outwatchHelpers {
     ObserverSink(observer)
 
   implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
-    (value: Rx[T]) => VDomModifier(value.now).map(current => ModifierStreamReceiver(value.toLaterObservable.map(VDomModifier(_)), current))
-
+    (value: Rx[T]) => value.toObservable
+  implicit def rxSeqAsVDomModifier[T: AsVDomModifier](
+      implicit ctx: Ctx.Owner
+  ): AsVDomModifier[Rx[Seq[T]]] = (value: Rx[Seq[T]]) => value.toObservable
+  implicit def rxOptionAsVDomModifier[T: AsVDomModifier](
+      implicit ctx: Ctx.Owner
+  ): AsVDomModifier[Rx[Option[T]]] = (value: Rx[Option[T]]) => value.toObservable
   implicit class RichEmitterBuilder[E, O, R](val eb: EmitterBuilder[E, O, R]) extends AnyVal {
     //TODO: scala.rx have a contravariant trait for writing-only
     def -->(rxVar: Var[_ >: O])(implicit ctx: Ctx.Owner): IO[R] = eb --> rxVar.toSink
   }
   implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab: AttributeBuilder[T, A])
       extends AnyVal {
-    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- (valueStream.toLaterObservable, valueStream.now)
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- valueStream.toObservable
   }
   implicit class RichStyle[T](val ab: Style[T]) extends AnyVal {
     import outwatch.dom.StyleIsBuilder
     //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
     def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) =
-      StyleIsBuilder[T](ab) <-- (valueStream.toLaterObservable, valueStream.now)
+      StyleIsBuilder[T](ab) <-- valueStream.toObservable
   }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
