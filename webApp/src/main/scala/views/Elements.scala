@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import wust.webApp.marked
+import wust.webApp.{DragPayload, DragTarget, GlobalState, marked}
 import wust.webApp.views.Rendered._
 import org.scalajs.dom
 import wust.sdk.NodeColor._
@@ -17,9 +17,9 @@ import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.window
 import org.scalajs.dom.console
 import org.scalajs.dom.html
+
 import scala.scalajs.js
 import views.MediaViewer
-import wust.webApp.GlobalState
 import wust.ids._
 import wust.util._
 
@@ -93,7 +93,8 @@ object Elements {
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      draggableAs(state, "tag", tag)
+      draggableAs(state, DragPayload.Tag(tag.id)),
+      dragTarget(DragTarget.Tag(tag.id))
     )
   }
 
@@ -131,7 +132,8 @@ object Elements {
 
     div(
       cls := "node nodecardcompact",
-      draggableAs(state, "node", node),
+      draggableAs(state, DragPayload.Node(node.id)),
+      dragTarget(DragTarget.Node(node.id)),
       div(
         cls := "nodecardcompact-content",
         editableNode(state, node, content),
@@ -140,12 +142,19 @@ object Elements {
     )
   }
 
-  def draggableAs(state:GlobalState, dragType: String, node:Node):VDomModifier = Seq(
-    cls := "draggable",
-    attr("woost_nodeid") := node.id.toCuidString,
-    attr("woost_dragtype") := dragType,
-    registerDraggableContainer(state)
-  )
+  def dragTarget(dragTarget: DragTarget) = {
+    import io.circe.syntax._
+    attr(DragTarget.attrName) := dragTarget.asJson.noSpaces
+  }
+
+  def draggableAs(state:GlobalState, payload:DragPayload):VDomModifier = {
+    import io.circe.syntax._
+    Seq(
+      cls := "draggable", // makes this element discoverable for the Draggable library
+      attr(DragPayload.attrName) := payload.asJson.noSpaces,
+      registerDraggableContainer(state)
+    )
+  }
 
   def registerDraggableContainer(state: GlobalState):VDomModifier = Seq(
     onInsert.asHtml --> sideEffect { elem =>

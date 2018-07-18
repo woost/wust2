@@ -69,7 +69,8 @@ object Sidebar {
             val selected = state.page().parentIds.contains(p.id)
             channelDiv(selected, state.pageStyle)(
               cls := "node",
-              draggableAs(state, "tag", p),
+              draggableAs(state, DragPayload.Tag(p.id)),
+              dragTarget(DragTarget.Tag(p.id)),
               paddingRight := "5px",
               //TODO: inner state.page obs again
               channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(
@@ -106,7 +107,8 @@ object Sidebar {
       state.channels.map(_.map { p =>
         channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)(ctx)(
           onChannelClick(ChannelAction.Post(p.id))(state),
-          draggableAs(state, "tag", p),
+          draggableAs(state, DragPayload.Tag(p.id)),
+          dragTarget(DragTarget.Tag(p.id)),
           cls := "node"
         )
       }),

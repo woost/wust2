@@ -5,48 +5,70 @@ import monix.reactive.subjects.PublishSubject
 import shopify.draggable.{DragEvent, DragOutEvent, DragOverEvent, Draggable}
 import wust.graph.GraphChanges
 import wust.ids.{Cuid, NodeId}
+import io.circe.parser.decode
+
+sealed trait DragPayload
+object DragPayload extends wust.ids.serialize.Circe {
+  case class Node(nodeId: NodeId) extends DragPayload
+  case class Tag(nodeId: NodeId) extends DragPayload
+
+  import io.circe._, io.circe.generic.semiauto._
+  implicit val decoder: Decoder[DragPayload] = deriveDecoder[DragPayload]
+  implicit val encoder: Encoder[DragPayload] = deriveEncoder[DragPayload]
+
+  val attrName = "data-dragpayload"
+}
+
+sealed trait DragTarget
+object DragTarget extends wust.ids.serialize.Circe {
+  case class Node(nodeId: NodeId) extends DragTarget
+  case class Tag(nodeId: NodeId) extends DragTarget
+
+  import io.circe._, io.circe.generic.semiauto._
+  implicit val decoder: Decoder[DragTarget] = deriveDecoder[DragTarget]
+  implicit val encoder: Encoder[DragTarget] = deriveEncoder[DragTarget]
+
+  val attrName = "data-dragtarget"
+}
 
 class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: Scheduler) {
   private val dragOverEvent = PublishSubject[DragOverEvent]
   private val dragOutEvent = PublishSubject[DragOutEvent]
   private val dragEvent = PublishSubject[DragEvent]
-  private val lastDragOverId = PublishSubject[Option[NodeId]]
+  private val lastDragTarget = PublishSubject[Option[DragTarget]]
 
   dragOverEvent.foreach { e =>
-    // TODO: Use js properties
-    //        val parentId: NodeId =  e.over.asInstanceOf[js.Dynamic].selectDynamic("woost_nodeid").asInstanceOf[NodeId]
-
-    val hoveringNodeId = NodeId(
-      Cuid.fromCuidString(e.over.attributes.getNamedItem("woost_nodeid").value)
-    ) //TODO: encode as uuid
-
-    scribe.info(s"Dragging over: ${hoveringNodeId.toCuidString}")
-
-    lastDragOverId.onNext(Some(hoveringNodeId))
+    val target = decode[DragTarget](e.over.attributes.getNamedItem(DragTarget.attrName).value).toOption
+    scribe.info(s"Dragging over: $target")
+    lastDragTarget.onNext(target)
   }
 
   dragOutEvent.foreach { e =>
-    lastDragOverId.onNext(None)
+    lastDragTarget.onNext(None)
   }
 
   dragEvent
-    .withLatestFrom(lastDragOverId)((e, lastOverId) => (e, lastOverId))
+    .withLatestFrom(lastDragTarget){(e, targetOpt) =>
+      val payloadOpt = decode[DragPayload](e.source.attributes.getNamedItem(DragPayload.attrName).value).toOption
+      (payloadOpt, targetOpt)
+    }
     .foreach {
-      case (e, Some(hoveringNodeId)) =>
-        //TODO: we need typesafety here. Especially for dragtype to get match exhaustiveness
-        val draggingNodeId =
-          NodeId(Cuid.fromCuidString(e.source.attributes.getNamedItem("woost_nodeid").value))
-        val dragtype = e.source.attributes.getNamedItem("woost_dragtype").value
-
-        if (hoveringNodeId != draggingNodeId) {
-          val changes = dragtype match {
-            case "node" => GraphChanges.connectParent(draggingNodeId, hoveringNodeId)
-            case "tag"  => GraphChanges.connectParent(hoveringNodeId, draggingNodeId)
-          }
-          state.eventProcessor.enriched.changes.onNext(changes)
-          lastDragOverId.onNext(None)
-          scribe.info(s"Added GraphChange after drag: $changes")
+      case (Some(payload), Some(target)) =>
+        val changes = (payload,target) match {
+          case (DragPayload.Node(draggingNodeId), DragTarget.Node(targetNodeId)) if draggingNodeId != targetNodeId =>
+            GraphChanges.connectParent(draggingNodeId, targetNodeId)
+          case (DragPayload.Node(draggingNodeId), DragTarget.Tag(targetNodeId)) if draggingNodeId != targetNodeId =>
+            GraphChanges.connectParent(draggingNodeId, targetNodeId)
+          case (DragPayload.Tag(draggingNodeId), DragTarget.Node(targetNodeId)) if draggingNodeId != targetNodeId =>
+            GraphChanges.connectParent(targetNodeId, draggingNodeId)
+          case (DragPayload.Tag(draggingNodeId), DragTarget.Tag(targetNodeId)) if draggingNodeId != targetNodeId =>
+            GraphChanges.connectParent(draggingNodeId, targetNodeId)
         }
+
+        state.eventProcessor.enriched.changes.onNext(changes)
+        lastDragTarget.onNext(None)
+        scribe.info(s"Added GraphChange after drag: $changes")
+
       case _ =>
     }
 
