@@ -3,7 +3,7 @@ package wust.webApp
 import outwatch.dom._
 import rx._
 import wust.webApp.outwatchHelpers._
-import org.scalajs.dom.document
+import org.scalajs.dom.{console,document}
 
 import scala.scalajs.{LinkingInfo, js}
 
@@ -13,6 +13,10 @@ object Main {
   // global.require("default-passive-events")
 
   def main(args: Array[String]): Unit = {
+
+    helpers.OutwatchTracing.patch.zipWithIndex.foreach { case ((old, cur), index) =>
+      console.log(s"Snabbdom patch ($index)!", old, cur)
+    }
 
     Logging.setup()
 
