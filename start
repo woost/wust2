@@ -114,7 +114,7 @@ function self() {
         export "EXTRASBTARGS=$EXTRASBTARGS -Dsbt.watch.mode=polling"
         ;&
     nsbt)
-        nix-shell production.nix --run "./start sbt"
+        nix-shell production.nix --run "./start sbt ${@:2}"
         ;;
     sbt)
         env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_local $env_wust_local $env_wust_local_connectivity"
@@ -122,7 +122,7 @@ function self() {
         export $env
 
         assure_db_migration
-
+        SBT_ARGS=""
         case "$2" in
         all)
             docker_compose core dev up -d db-migration
@@ -139,12 +139,13 @@ function self() {
         slackApp)
             ;;
         *)
+            SBT_ARGS=${@:2}
             docker_compose core dev up -d db-migration
             ;;
         esac
 
         set +e # after sbt crash or termination, still shut down docker containers
-        sbt
+        sbt $SBT_ARGS
         docker_compose core dev down
         ;;
     apps)
