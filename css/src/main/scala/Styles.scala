@@ -338,6 +338,10 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(255,255,255,0.5)")
     )
 
+  ".selectednodes" - (
+    backgroundColor := c"#85D5FF",
+    padding(5 px, 5 px, 2 px, 5 px),
+  )
 
   // -- draggable node
   " .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
@@ -398,6 +402,22 @@ object CommonStyles extends StyleSheet.Standalone {
     color := onDragNodeTagColor
   )
 
+  // -- draggable selectednodes
+  ".selectednodes.draggable--over" - (
+    backgroundColor(c"rgba(65,184,255, 1)").important,
+  )
+
+  ".selectednodes.draggable-mirror > *" - (
+    display.none
+  )
+
+  ".selectednodes.draggable-mirror > .nodelist" - (
+    display.flex,
+  )
+
+  ".selectednodes.draggable-mirror" - (
+    borderRadius(3 px)
+  )
 
   // -- draggable removebutton
   ".node.draggable--over .removebutton" - (

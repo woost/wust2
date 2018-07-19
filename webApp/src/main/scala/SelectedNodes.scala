@@ -26,47 +26,50 @@ import scala.collection.breakOut
 object SelectedNodes {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      backgroundColor := "#85D5FF",
       Rx {
         val graph = state.graph()
         val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)
-        NonEmptyList.fromList(sortedNodeIds) match {
-          case Some(nonEmptyNodeIds) =>
-            div(
-              padding := "5px 5px 2px 5px",
-              Styles.flex,
-              alignItems.center,
+        div(
+          draggableAs(state, DragPayload.Nodes(sortedNodeIds)),
+          dragTarget(DragTarget.SelectedNodes),
 
-              nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto),
-              deleteAllButton(state, nonEmptyNodeIds),
-              clearSelectionButton(state)
-            )
-          case None => div()
-        }
+          sortedNodeIds match {
+            case Nil => VDomModifier.empty
+            case nonEmptyNodeIds =>
+              Seq[VDomModifier](
+                cls := "selectednodes",
+                Styles.flex,
+                alignItems.center,
+                nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto, cls := "nodelist"),
+                deleteAllButton(state, nonEmptyNodeIds),
+                clearSelectionButton(state)
+              )
+          }
+        )
       }
     )
   }
 
-  private def nodeList(state:GlobalState, selectedNodeIds:NonEmptyList[NodeId], graph:Graph)(implicit ctx: Ctx.Owner) = {
+  private def nodeList(state:GlobalState, selectedNodeIds:List[NodeId], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       alignItems.center,
       flexWrap.wrap,
-      selectedNodeIds.toList.map { nodeId =>
+      selectedNodeIds.map { nodeId =>
           val node = graph.nodesById(nodeId)
           nodeCard(state, node)
         }
     )
   }
 
-  private def deleteAllButton(state:GlobalState, selectedNodeIds:NonEmptyList[NodeId])(implicit ctx: Ctx.Owner) = {
+  private def deleteAllButton(state:GlobalState, selectedNodeIds:List[NodeId])(implicit ctx: Ctx.Owner) = {
     div(
       freeRegular.faTrashAlt,
       cls := "removebutton",
       margin := "5px",
 
       onClick --> sideEffect{_ =>
-        val changes = GraphChanges.delete(selectedNodeIds.toList, state.graph.now, state.page.now)
+        val changes = GraphChanges.delete(selectedNodeIds, state.graph.now, state.page.now)
         state.eventProcessor.changes.onNext(changes)
         state.selectedNodeIds() = Set.empty[NodeId]
       }
