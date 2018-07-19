@@ -102,7 +102,7 @@ object Elements {
     nodeTag(state, tag)(
       span(
         "×",
-        cls := "removebutton",
+        cls := "actionbutton",
         onClick.stopPropagation --> sideEffect {
           // when removing last parent, fall one level lower into the still existing grandparents
           val removingLastParent = graph.parents(taggedNodeId).size == 1
@@ -124,7 +124,7 @@ object Elements {
     )
   }
 
-  def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, cutLength: Boolean = false)(implicit ctx: Ctx.Owner) = {
+  def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, cutLength: Boolean = false, editable:Var[Boolean] = Var(false))(implicit ctx: Ctx.Owner) = {
     val content:VNode = if(cutLength) {
       val rawString = node.data.str.trim
       if (rawString.length > 20) span(rawString.take(17) + "...") else renderNodeData(node.data)
@@ -136,9 +136,11 @@ object Elements {
       dragTarget(DragTarget.Node(node.id)),
       div(
         cls := "nodecardcompact-content",
-        editableNode(state, node, content),
+        editableNode(state, node, content, editable),
         injected
-      )
+      ),
+      onClick.stopPropagation --> sideEffect(()),
+      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
     )
   }
 
@@ -151,6 +153,7 @@ object Elements {
     import io.circe.syntax._
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
+      outline := "none", // hide outline when focused
       attr(DragPayload.attrName) := payload.asJson.noSpaces,
       registerDraggableContainer(state)
     )
@@ -165,19 +168,33 @@ object Elements {
     }
   )
 
-  def editableNode(state: GlobalState, node: Node, domContent: VNode)(
+
+  def editableNodeOnClick(state: GlobalState, node: Node, domContent: VNode)(
+    implicit ctx: Ctx.Owner
+  ): VNode = {
+    val editable = Var(false)
+    editableNode(state, node, domContent, editable)(ctx){
+      onClick.stopPropagation.stopImmediatePropagation --> sideEffect {
+        if (!editable.now) {
+          editable() = true
+        }
+      }
+    }
+  }
+
+
+  def editableNode(state: GlobalState, node: Node, domContent: VNode, editable:Var[Boolean])(
       implicit ctx: Ctx.Owner
   ): VNode = {
     node match {
-      case contentNode: Node.Content => editableNode(state, contentNode, domContent)
+      case contentNode: Node.Content => editableNode(state, contentNode, domContent, editable)
       case _                         => domContent
     }
   }
 
-  def editableNode(state: GlobalState, node: Node.Content, domContent: VNode)(
+  def editableNode(state: GlobalState, node: Node.Content, domContent: VNode, editable:Var[Boolean])(
       implicit ctx: Ctx.Owner
   ): VNode = {
-    val editable = Var(false)
     val domElement = Var[html.Element](null)
     def save(): Unit = {
       val newContent: String =
@@ -186,25 +203,20 @@ object Elements {
       state.eventProcessor.changes.onNext(changes)
       editable() = false
     }
-    domContent(
+    val resultNode = domContent(
       Rx {
-        editable().ifTrueSeq(
-          Seq(
+        editable().ifTrueSeq(Seq(
             contentEditable := true,
             backgroundColor := "#FFF",
-            cursor.auto,
-            onEnter --> sideEffect { save() },
-            onBlur --> sideEffect { save() }
-          )
-        )
+            cursor.auto
+        ))
       },
       onInsert.asHtml --> domElement,
-      onClick.stopPropagation.stopImmediatePropagation --> sideEffect {
-        if (!editable.now) {
-          editable() = true
-          domElement.now.focus()
-        }
-      },
+      onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
+      onClick --> sideEffect{ e => if(editable.now) e.stopPropagation() },
+      onEnter --> sideEffect { if(editable.now) save() },
+      onBlur --> sideEffect { if(editable.now) save() }
     )
+    resultNode
   }
 }

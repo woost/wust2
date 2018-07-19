@@ -70,13 +70,6 @@ object ChatView extends View {
     )
   }
 
-  private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page)(implicit ctx: Ctx.Owner) = div(
-    paddingLeft := "3px",
-    freeRegular.faTrashAlt,
-    cursor.pointer,
-    onClick.stopPropagation.map(_ => GraphChanges.delete(node, graph, page)) --> state.eventProcessor.changes
-  )
-
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
   private def groupNodes(
       graph: Graph,
@@ -151,11 +144,28 @@ object ChatView extends View {
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
+  private def editButton(state: GlobalState, node: Node, editable:Var[Boolean])(implicit ctx: Ctx.Owner) =
+    div(
+      cls := "actionbutton",
+      freeRegular.faEdit,
+      onClick.stopPropagation(!editable.now) --> editable
+    )
+
+  private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page)(implicit ctx: Ctx.Owner) =
+    div(
+      cls := "actionbutton",
+      freeRegular.faTrashAlt,
+      onClick.stopPropagation(GraphChanges.delete(node, graph, page)) --> state.eventProcessor.changes
+    )
+
   private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
-    state.viewConfig.map { cfg =>
-      val newCfg = cfg.copy(page = Page(node.id))
-      div(onClick(newCfg) --> state.viewConfig, cursor.pointer)(freeSolid.faExternalLinkAlt)
-    }
+    div(
+      cls := "actionbutton",
+      freeRegular.faArrowAltCircleRight,
+      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
+    )
+
+
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
   private def avatarDiv(isOwn: Boolean, user: Option[UserId], size: AvatarSize) = {
@@ -262,6 +272,7 @@ object ChatView extends View {
   ) = {
     val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)
     val isSelected = state.selectedNodeIds.map(_ contains node.id)
+    val editable = Var(false)
     // if (graph.children(node).isEmpty)
     //   renderNodeData(node.data)
     // else nodeTag(state, node)(ctx)(fontSize := "14px")
@@ -282,8 +293,11 @@ object ChatView extends View {
 
     val msgControls = div(
       cls := "chatmsg-controls",
-      isDeleted.ifFalseOption(nodeLink(state, node)),
-      isDeleted.ifFalseOption(deleteButton(state, node, graph, page)),
+      isDeleted.ifFalseSeq(Seq[VDomModifier](
+        editButton(state, node, editable),
+        deleteButton(state, node, graph, page),
+        nodeLink(state, node)
+      ))
     )
 
 
@@ -299,7 +313,7 @@ object ChatView extends View {
         dragTarget(DragTarget.Node(node.id)),
 
         checkbox(Styles.flexStatic),
-        nodeCardCompact(state, node)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
+        nodeCardCompact(state, node, editable = editable)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
         msgControls(Styles.flexStatic)
       )

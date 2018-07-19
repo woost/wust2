@@ -65,7 +65,7 @@ object SelectedNodes {
   private def deleteAllButton(state:GlobalState, selectedNodeIds:List[NodeId])(implicit ctx: Ctx.Owner) = {
     div(
       freeRegular.faTrashAlt,
-      cls := "removebutton",
+      cls := "actionbutton",
       margin := "5px",
 
       onClick --> sideEffect{_ =>
@@ -79,7 +79,7 @@ object SelectedNodes {
   private def clearSelectionButton(state:GlobalState) = {
     div(
       "×",
-      cls := "removebutton",
+      cls := "actionbutton",
       margin := "5px",
       fontWeight.bold,
       onClick --> sideEffect {
@@ -94,7 +94,7 @@ object SelectedNodes {
       alignItems.center,
       span(
         "×",
-        cls := "removebutton",
+        cls := "actionbutton",
         onClick.stopPropagation --> sideEffect {
           state.selectedNodeIds.update(_ - node.id)
         }

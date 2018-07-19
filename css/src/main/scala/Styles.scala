@@ -296,6 +296,10 @@ object CommonStyles extends StyleSheet.Standalone {
     nodeCardCompactShadow
   )
 
+  ".nodecardcompact a" - (
+    cursor.pointer
+  )
+
   ".nodecardcompact-content" - (
     wordWrap.breakWord,
     wordBreak.breakAll,
@@ -327,14 +331,14 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineBlock
   )
 
-  ".removebutton" - (
+  ".actionbutton" - (
     cursor.pointer,
     padding(0 px, 5 px),
     marginLeft(2 px),
     borderRadius(50 %%)
   )
 
-  ".removebutton:hover" - (
+  ".actionbutton:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
     )
 
@@ -419,12 +423,15 @@ object CommonStyles extends StyleSheet.Standalone {
     borderRadius(3 px)
   )
 
-  // -- draggable removebutton
-  ".node.draggable--over .removebutton" - (
+  // -- draggable actionbutton, transitivetags
+  ".node.draggable--over .actionbutton" - (
     backgroundColor.inherit.important,
     cursor.move.important
   )
 
+  ".chatmsg-line.draggable-source--is-dragging .transitivetags" - (
+    visibility.visible
+    )
 
   ".chatmsg-date" - (
     marginLeft(8 px),
@@ -454,7 +461,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-controls > *" - (
-    marginLeft(5 px)
+    padding(3 px, 5 px),
+    cursor.pointer
   )
 
   ".chatmsg-line" - (
