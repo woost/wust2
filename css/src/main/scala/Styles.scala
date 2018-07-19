@@ -441,6 +441,10 @@ object CommonStyles extends StyleSheet.Standalone {
     )
   )
 
+  ".transitivetags" - (
+    visibility.hidden
+  )
+
   ".chatmsg-controls" - (
     visibility.hidden,
     display.flex,
@@ -470,7 +474,12 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   //TODO: how to generate this combinatorial explosion with scalacss?
-  ".chatmsg-line:hover .chatmsg-controls,.chatmsg-line:hover .checkbox, .chatmsg-line:focus .chatmsg-controls, .chatmsg-line:focus .chatmsg-checkbox" - (
+  ".chatmsg-line:hover .chatmsg-controls,"+
+  ".chatmsg-line:hover .checkbox,"+
+  ".chatmsg-line:hover .transitivetags,"+
+  ".chatmsg-line:focus .chatmsg-controls,"+
+  ".chatmsg-line:focus .chatmsg-checkbox,"+
+  ".chatmsg-line:focus .transitivetags" - (
     visibility.visible
   )
 

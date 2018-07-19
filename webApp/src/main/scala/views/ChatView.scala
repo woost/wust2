@@ -315,9 +315,12 @@ object ChatView extends View {
       directNodeTags.map { tag =>
         removableNodeTag(state, tag, node.id, graph)
       }(breakOut): Seq[VDomModifier],
-      transitiveNodeTags.map { tag =>
-        nodeTag(state, tag)(opacity := 0.4)
-      }(breakOut): Seq[VDomModifier]
+      span(
+        cls := "transitivetags",
+        transitiveNodeTags.map { tag =>
+          nodeTag(state, tag)(opacity := 0.4)
+        }(breakOut): Seq[VDomModifier]
+      )
     )
   }
 
