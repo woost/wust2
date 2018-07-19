@@ -95,7 +95,9 @@ class GlobalState private (
     perspective().union(Perspective(collapsed = Selector.Predicate(collapsedNodeIds())))
   }
 
-  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty)
+  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead{ selectedNodeIds =>
+    selectedNodeIds().filter(graph().nodesById.isDefinedAt)
+  }
 
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
