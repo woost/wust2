@@ -282,16 +282,18 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val messageBackground = c"#FEFEFE"
 
+  val nodeCardCompactShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
+  val nodeCardCompactBackgroundColor = backgroundColor(messageBackground)
   ".nodecardcompact" - (
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
     marginLeft(3 px),
-    backgroundColor(messageBackground),
+    nodeCardCompactBackgroundColor,
     overflowX.auto,
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
-    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
+    nodeCardCompactShadow
   )
 
   ".nodecardcompact-content" - (
@@ -337,8 +339,8 @@ object CommonStyles extends StyleSheet.Standalone {
     )
 
 
-  // -- draggable --
-  ".node.draggable--over" - (
+  // -- draggable node
+  " .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
     opacity(1).important,
@@ -351,19 +353,35 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  ".nodecardcompact.draggable--over" - (
-    borderTop(1 px, solid, rgba(93, 120, 158, 0.19)).important,
+  // -- draggable nodecardcompact
+  ".nodecardcompact.draggable--over," +
+  ".chatmsg-line.draggable--over .nodecardcompact" - (
+    borderTop(1 px, solid, transparent).important,
     (boxShadow := "0px 1px 0px 1px rgba(93, 120, 158,0.45)").important
   )
 
-  val onDragNodeCardCompactColor = c"rgba(0,0,0,0.5)"
-  ".nodecardcompact.draggable-source--is-dragging" - (
-    boxShadow := none,
-    border(1 px, dashed, onDragNodeCardCompactColor),
-    color := onDragNodeCardCompactColor
+  ".chatmsg-line .nodecardcompact.draggable-mirror" - (
+    nodeCardCompactBackgroundColor.important,
+    nodeCardCompactShadow.important,
+    color.inherit.important
   )
 
+  ".chatmsg-line.draggable-mirror .tag" - (
+    visibility.hidden
+  )
 
+  val onDragNodeCardCompactColor = c"rgba(0,0,0,0.5)"
+  ".nodecardcompact.draggable-source--is-dragging," +
+  ".chatmsg-line.draggable-source--is-dragging .nodecardcompact,"+
+  ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecardcompact,"+
+  ".chatmsg-line.draggable--over .nodecardcompact.draggable-source--is-dragging" - (
+    backgroundColor(white).important,
+    (boxShadow := none).important,
+    border(1 px, dashed, onDragNodeCardCompactColor).important,
+    (color := onDragNodeCardCompactColor).important,
+  )
+
+  // -- draggable chanelicon
   ".channelicon.draggable-mirror" - (
     border(2 px, solid, c"#383838").important
   )
@@ -373,6 +391,7 @@ object CommonStyles extends StyleSheet.Standalone {
     )
 
 
+  // -- draggable tag
   val onDragNodeTagColor = c"rgba(255,255,255,0.8)"
   ".tag.draggable-source--is-dragging" - (
     border(1 px, dashed, onDragNodeTagColor),
@@ -380,6 +399,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
+  // -- draggable removebutton
   ".node.draggable--over .removebutton" - (
     backgroundColor.inherit.important,
     cursor.move.important
@@ -414,6 +434,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-line" - (
+    cursor.move,
     alignItems.center,
     padding(2 px, 20 px, 2 px, 5 px)
   )

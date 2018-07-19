@@ -289,11 +289,14 @@ object ChatView extends View {
 
     div(
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
-      div(
+      div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
         Styles.flex,
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
+
+        draggableAs(state, DragPayload.Node(node.id)),
+        dragTarget(DragTarget.Node(node.id)),
 
         checkbox(Styles.flexStatic),
         nodeCardCompact(state, node)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
