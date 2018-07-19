@@ -46,24 +46,34 @@ object Topbar {
     div(
       display.flex,
       alignItems.center,
+
       hamburger(state),
+      state.user.map(
+        user =>
+          div(
+            padding := "5px 5px",
+            fontSize := "14px",
+            fontWeight.bold,
+            onClick(ViewConfig.default.copy(page = Page.ofUser(user))) --> state.viewConfig,
+            "Woost",
+            color := "white",
+            textDecoration := "none",
+            cursor.pointer
+          )
+      ),
       div(
-        state.user.map(
-          user =>
-            div(
-              onClick(ViewConfig.default.copy(page = Page.ofUser(user))) --> state.viewConfig,
-              "Woost",
-              color := "white",
-              textDecoration := "none",
-              cursor.pointer
-            )
-        ),
-        padding := "5px 5px",
-        fontSize := "14px",
-        fontWeight.bold
+        "beta",
+        backgroundColor := "#F2711C",
+        color := "white",
+        borderRadius := "3px",
+        padding := "0px 5px",
+        fontWeight.bold,
+        style("transform") := "rotate(-7deg)",
+
+        marginRight := "5px"
       ),
       syncStatus(state)(ctx)(fontSize := "12px"),
-    ),
+    )
   }
 
   def hamburger(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
