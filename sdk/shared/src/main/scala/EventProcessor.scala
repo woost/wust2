@@ -161,7 +161,7 @@ class EventProcessor private (
       }
     val localChanges = changesHistory.collect {
       case history if history.current.nonEmpty => history.current
-    }
+    }.asyncBoundary(OverflowStrategy.Unbounded)
 
     localChanges.foreach { c =>
       println("[Events] Got local changes after history: " + c)
@@ -192,10 +192,7 @@ class EventProcessor private (
     appliedToGraph.future
   }
 
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] =
-    localChanges
-      .asyncBoundary(OverflowStrategy.Unbounded)
-      .zipWithIndex
+  private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex
 
   localChangesIndexed.foreach { c =>
     println("[Events] Got local changes indexed: " + c)
