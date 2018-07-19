@@ -14,8 +14,10 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    helpers.OutwatchTracing.patch.zipWithIndex.foreach { case ((old, cur), index) =>
-      console.log(s"Snabbdom patch ($index)!", old, cur)
+    DevOnly {
+      helpers.OutwatchTracing.patch.zipWithIndex.foreach { case ((old, cur), index) =>
+        console.log(s"Snabbdom patch ($index)!", old, cur)
+      }
     }
 
     Logging.setup()
