@@ -203,6 +203,7 @@ object Elements {
       state.eventProcessor.changes.onNext(changes)
       editable() = false
     }
+    editable.foreach(editable => if(editable) domElement.now.asInstanceOf[js.Dynamic].innerText = node.data.str) // replace the trimmed/formatted content with the node's source code
     val resultNode = domContent(
       Rx {
         editable().ifTrueSeq(Seq(
