@@ -29,6 +29,8 @@ object Node {
   object Content {
     private val defaultMeta = NodeMeta(NodeAccess.Inherited)
 
+    def empty = new Content(NodeId.fresh, NodeData.Markdown(""), defaultMeta)
+
     def apply(id: NodeId, data: NodeData.Content): Content = {
       new Content(id, data, defaultMeta)
     }

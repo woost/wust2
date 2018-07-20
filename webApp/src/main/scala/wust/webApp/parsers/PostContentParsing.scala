@@ -20,7 +20,7 @@ object NodeDataParser {
   val anyContent: P[NodeData.Markdown] = P(AnyChar.rep.!.map(NodeData.Markdown(_)))
 
   val contentWithTags: P[(NodeData.Content, Seq[String])] = P(
-    (taggableContent ~ whitespaceChar.rep ~ contentTags)
+    taggableContent ~ whitespaceChar.rep ~ contentTags
   )
 
   //TODO: better?
@@ -28,39 +28,30 @@ object NodeDataParser {
     (contentWithTags | anyContent.map((_, Seq.empty))) ~ End
   )
 
-  def editPost(contextPosts: Seq[Node], author: UserId)(post: Node.Content): P[GraphChanges] =
-    taggedContent
-      .map {
+  def addNode(str:String, contextNodes: Iterable[Node], baseNode:Node.Content = Node.Content.empty): GraphChanges = {
+    val parser = taggedContent.map {
         case (data, tags) =>
-          val tagPostsEither = tags.map(
-            tag =>
-              contextPosts.find(_.data.str == tag).toRight(Node.Content(NodeData.PlainText(tag)))
-          )
-          val newTagPosts = tagPostsEither.collect { case Left(p) => p }
-          val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
-          val updatedPost = post.copy(data = data)
-          GraphChanges.from(
-            addEdges = tagPosts.map(Edge.Parent(updatedPost.id, _)),
-            addNodes = Set(updatedPost) ++ newTagPosts
-          )
-      }
-
-  def newNode(contextNodes: Seq[Node], author: UserId): P[GraphChanges] =
-    taggedContent
-      .map {
-        case (data, tags) =>
-          val tagPostsEither = tags.map(
+          val tagNodesEither = tags.map(
             tag =>
               contextNodes.find(_.data.str == tag).toRight(Node.Content(NodeData.PlainText(tag)))
           )
-          val newTagPosts = tagPostsEither.collect { case Left(p) => p }
-          val tagPosts = tagPostsEither.map(_.fold(_.id, _.id))
-          val newPost = Node.Content(data)
+          val newTagNodes = tagNodesEither.collect { case Left(p) => p }
+          val tagNodes = tagNodesEither.map(_.fold(_.id, _.id))
+          val newNode = baseNode.copy(data = data)
           GraphChanges.from(
-            addEdges = tagPosts.map(Edge.Parent(newPost.id, _)),
-            addNodes = newPost +: newTagPosts
+            addEdges = tagNodes.map(Edge.Parent(newNode.id, _)),
+            addNodes = newNode +: newTagNodes
           )
       }
+    parser.parse(str) match {
+      case Parsed.Success(changes, _) => changes
+      case failure: Parsed.Failure =>
+        scribe.warn(
+          s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown."
+        )
+        GraphChanges.addNode(NodeData.Markdown(str))
+    }
+  }
 
   //TODO integrate help text
   def formattingHelp =

@@ -22,6 +22,7 @@ import scala.scalajs.js
 import views.MediaViewer
 import wust.ids._
 import wust.util._
+import wust.webApp.parsers.NodeDataParser
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -197,10 +198,12 @@ object Elements {
   ): VNode = {
     val domElement = Var[html.Element](null)
     def save(): Unit = {
-      val newContent: String =
-        domElement.now.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]
-      val changes = GraphChanges.addNode(node.copy(data = NodeData.Markdown(newContent)))
-      state.eventProcessor.changes.onNext(changes)
+      val userInput: String = domElement.now.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] //TODO: https://github.com/scala-js/scala-js-dom/issues/19
+
+      val graph = state.graphContent.now
+      val changes = NodeDataParser.addNode(userInput, contextNodes = graph.nodes, baseNode = node)
+      state.eventProcessor.enriched.changes.onNext(changes)
+
       editable() = false
     }
     editable.foreach(editable => if(editable) domElement.now.asInstanceOf[js.Dynamic].innerText = node.data.str) // replace the trimmed/formatted content with the node's source code

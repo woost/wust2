@@ -350,18 +350,7 @@ object ChatView extends View {
         cls := "field",
         valueWithEnter --> sideEffect { str =>
           val graph = state.graphContent.now
-          val user = state.user.now
-          val changes = NodeDataParser
-            .newNode(contextNodes = graph.nodes.toSeq, author = user.id)
-            .parse(str) match {
-            case Parsed.Success(changes, _) => changes
-            case failure: Parsed.Failure[_, _] =>
-              scribe.warn(
-                s"Error parsing chat message '$str': ${failure.msg}. Will assume Markdown."
-              )
-              GraphChanges.addNode(NodeData.Markdown(str))
-          }
-
+          val changes = NodeDataParser.addNode(str, contextNodes = graph.nodes)
           state.eventProcessor.enriched.changes.onNext(changes)
         },
         disabled <-- disableUserInput,
