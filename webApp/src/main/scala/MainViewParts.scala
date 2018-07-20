@@ -40,15 +40,8 @@ object MainViewParts {
       onClick --> sideEffect { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
-        val nowInAWeek = dateFns.addWeeks(new js.Date(js.Date.now()), 1)
-        val groupNodeId = NodeId.fresh
-        for {
-          _ <- state.eventProcessor.changes
-            .onNext(GraphChanges.newGroup(groupNodeId, newGroupTitle(state), user.channelNodeId))
-        } {
-          if (!state.view.now.isContent) state.view() = View.default
-          state.page() = Page(groupNodeId)
-        }
+        if (!state.view.now.isContent) state.view() = View.default
+        state.page() = Page.NewGroup(NodeId.fresh)
       }
     )
   }

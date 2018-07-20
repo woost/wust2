@@ -42,15 +42,21 @@ class GlobalState private (
   }
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
-    rawPage().copy(
-      parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
-    )
+    rawPage() match {
+      case p: Page.Selection => p.copy(
+        parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
+      )
+      case p => p
+    }
   }
 
   val pageIsBookmarked: Rx[Boolean] = Rx {
-    page().parentIds.forall(
-      graph().children(user().channelNodeId).contains
-    )
+    page() match {
+      case p: Page.Selection => p.parentIds.forall(
+        graph().children(user().channelNodeId).contains
+      )
+      case Page.NewGroup(_) => true
+    }
   }
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
@@ -144,8 +150,15 @@ object GlobalState {
       .combineLatest(user.toObservable)
       .switchMap {
         case (page, user) =>
-          val newGraph = Client.api.getGraph(page)
-          Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
+          page match {
+            case Page.Selection(parentIds, childrenIds, mode) =>
+              val newGraph = Client.api.getGraph(page)
+              Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
+            case Page.NewGroup(nodeId) =>
+              val changes = GraphChanges.newGroup(nodeId, MainViewParts.newGroupTitle(state), user.channelNodeId)
+              eventProcessor.enriched.changes.onNext(changes)
+              Observable.empty
+          }
       }
       .subscribe(additionalManualEvents)
 
