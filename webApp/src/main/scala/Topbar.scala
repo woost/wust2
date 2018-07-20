@@ -30,6 +30,7 @@ object Topbar {
     height := "35px",
     backgroundColor <-- state.pageStyle.map(_.darkBgColor),
     color := "white",
+    transition := "background-color 0.5s",
     display.flex,
     flexDirection.row,
     justifyContent.spaceBetween,

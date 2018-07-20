@@ -126,7 +126,7 @@ object CommonStyles extends StyleSheet.Standalone {
     minWidth(40 px),
     maxWidth(250 px),
     color.white,
-    transition := "flex-basis 0.2s, background-color 0.5s",
+    transition := "background-color 0.5s",
     Styles.flexStatic,
     height(100 %%),
     display.flex,
