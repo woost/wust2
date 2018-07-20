@@ -132,13 +132,15 @@ object Topbar {
     val isOnline = Observable.merge(
       Client.observable.connected.map(_ => true),
       Client.observable.closed.map(_ => false)
-    )
-    val isSynced = state.eventProcessor.changesInTransit.map(_.isEmpty)
+    ).toRx(true)
+    val isSynced = state.eventProcessor.changesInTransit.map(_.isEmpty).toRx(true)
 
-    val syncStatusIcon = Observable.combineLatestMap2(isOnline, isSynced) {
-      case (true, true)  => span(syncedIcon, title := "Everything is up to date")
-      case (true, false) => span(syncingIcon, title := "Syncing changes...")
-      case (false, _)    => span(offlineIcon, color := "tomato", title := "Disconnected")
+    val syncStatusIcon = Rx {
+      (isOnline(), isSynced()) match {
+        case (true, true)  => span(syncedIcon, title := "Everything is up to date")
+        case (true, false) => span(syncingIcon, title := "Syncing changes...")
+        case (false, _)    => span(offlineIcon, color := "tomato", title := "Disconnected")
+      }
     }
 
     div(
@@ -215,7 +217,7 @@ object Topbar {
 
   val notificationSettings: VNode = {
     div(
-      Notifications.permissionStateObservable.map { state =>
+      Notifications.permissionStateRx.map { state =>
         if (state == PermissionState.granted) Option.empty[VNode]
         else if (state == PermissionState.denied)
           Some(

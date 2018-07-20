@@ -226,7 +226,6 @@ class EventProcessor private (
         (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
     }
     .map(_.map(_._1))
-    .startWith(Seq(Nil))
 
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
     //TODO: why is import wust.util._ not enough to resolve RichFuture?

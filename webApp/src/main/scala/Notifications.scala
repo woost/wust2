@@ -11,6 +11,7 @@ import SafeDom._
 import org.scalajs.dom.window
 import outwatch.dom.dsl.events
 import wust.api._
+import rx._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -23,12 +24,12 @@ object Notifications {
   import Navigator._
 
   //TODO: this fallback code is difficult to read and we want to model this state as a rx var.
-  def permissionStateObservable(implicit ec: ExecutionContext) = {
+  def permissionStateRx(implicit ec: ExecutionContext, ctx: Ctx.Owner) = {
     // TODO: we need to disbable permissiondescriptor for push-notifications, as firefox only supports normal notification as a permissiondescriptor when using permissions.query to get a change event.
     // As push notification contains permissions for normal notifications, this should be enough.
-    //permissionStateObservableOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
+    //permissionStateRxOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
     //case t =>
-    permissionStateObservableOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
+    permissionStateRxOf(PermissionDescriptor(PermissionName.notifications)) // fallback to normal notification permissions if push permission not available
     //}
   }
 
@@ -75,28 +76,27 @@ object Notifications {
       }
   }
 
-  private def permissionStateObservableOf(
+  private def permissionStateRxOf(
       permissionDescriptor: PermissionDescriptor
-  )(implicit ec: ExecutionContext): Observable[PermissionState] = {
+  )(implicit ec: ExecutionContext, ctx: Ctx.Owner): Rx[PermissionState] = {
     Notification.toOption match {
       case Some(n) =>
-        val subject = BehaviorSubject[PermissionState](n.permission.asInstanceOf[PermissionState])
+        val subject = Var[PermissionState](n.permission.asInstanceOf[PermissionState])
         permissions.foreach { (permissions: Permissions) =>
           permissions.query(permissionDescriptor).toFuture.onComplete {
             case Success(desc) =>
-              subject.onNext(desc.state)
+              subject() = desc.state
               desc.onchange = { _ =>
-                subject.onNext(desc.state)
+                subject() = desc.state
               }
             case Failure(t) =>
               scribe.warn(
                 s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t"
               )
-              subject.onError(t)
           }
         }
         subject
-      case None => Observable.empty
+      case None => Rx[PermissionState](PermissionState.denied)
     }
   }
 
