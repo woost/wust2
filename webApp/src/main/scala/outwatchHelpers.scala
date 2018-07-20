@@ -34,14 +34,14 @@ package object outwatchHelpers {
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
     def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
-        rx.triggerLater(observer.onNext(_))
-        Cancelable() //TODO
+        val obs = rx.triggerLater(observer.onNext(_))
+        Cancelable(() => obs.kill())
     }
 
     def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
-        rx.foreach(observer.onNext)
-        Cancelable() //TODO
+        val obs = rx.foreach(observer.onNext)
+        Cancelable(() => obs.kill())
     }
 
     def debug(implicit ctx: Ctx.Owner): Rx[T] = { debug() }
