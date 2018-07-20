@@ -239,27 +239,27 @@ object Elements {
       }
     }
 
-    div(
-      renderedNodeData.startWith(renderNodeData(node.data, maxLength) :: Nil).map{ rendered =>
-        Seq[VDomModifier](
-          Rx[VDomModifier] {
-            if(editable())
-              Seq[VDomModifier](
-                node.data.str,
+    val decorator = VDomModifier(
+      Rx {
+        editable().ifTrueSeq(Seq[VDomModifier](
+          node.data.str,
           contentEditable := true,
           backgroundColor := "#FFF",
           cursor.auto
-              )
-          else
-            rendered
+        ))
       },
       onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
       onInput.map(_.target.textContent) --> currentText,
 
-          onEnter --> sideEffect { save() },
-          onBlur --> sideEffect { discardChanges() },
-        )
-      }
+      onEnter --> sideEffect { save() },
+      onBlur --> sideEffect { discardChanges() },
+    )
+
+    div(
+      VDomModifier.stream(
+        renderedNodeData.map(_(decorator)),
+        renderNodeData(node.data, maxLength)(decorator)
+      )
     )
   }
 
