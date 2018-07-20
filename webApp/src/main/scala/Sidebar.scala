@@ -104,14 +104,17 @@ object Sidebar {
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "channelIcons",
-      state.channels.map(_.map { p =>
-        channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)(ctx)(
-          onChannelClick(ChannelAction.Post(p.id))(state),
-          draggableAs(state, DragPayload.Tag(p.id)),
-          dragTarget(DragTarget.Tag(p.id)),
-          cls := "node"
-        )
-      }),
+      Rx {
+        val allChannels = state.graph().nodesById.get(state.user().channelNodeId).toSeq ++ state.channels()
+        allChannels.map { p =>
+          channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)(ctx)(
+            onChannelClick(ChannelAction.Post(p.id))(state),
+            draggableAs(state, DragPayload.Tag(p.id)),
+            dragTarget(DragTarget.Tag(p.id)),
+            cls := "node"
+          )
+        }
+      },
       noChannelIcon(state.page.map(_.mode == PageMode.Orphans))(ctx)(
         onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
       )

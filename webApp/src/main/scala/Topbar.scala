@@ -54,11 +54,9 @@ object Topbar {
             padding := "5px 5px",
             fontSize := "14px",
             fontWeight.bold,
-            onClick(ViewConfig.default.copy(page = Page.ofUser(user))) --> state.viewConfig,
             "Woost",
             color := "white",
-            textDecoration := "none",
-            cursor.pointer
+            textDecoration := "none"
           )
       ),
       div(
