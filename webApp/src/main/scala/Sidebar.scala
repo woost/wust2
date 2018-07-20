@@ -64,7 +64,8 @@ object Sidebar {
     div(
       cls := "channels",
       Rx {
-        state.channels().map {
+        val allChannels = state.graph().nodesById.get(state.user().channelNodeId).toSeq ++ state.channels()
+        allChannels.map {
           p =>
             val selected = state.page().parentIds.contains(p.id)
             channelDiv(selected, state.pageStyle)(
