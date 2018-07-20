@@ -225,25 +225,28 @@ object Elements {
       nodeData.onNext(node.data)
     }
 
-    div(
-      renderedNodeData.startWith(renderNodeData(node.data, maxLength) :: Nil).map( rendered =>
-        rendered(
-          Rx {
-            editable().ifTrueSeq(Seq(
-              contentEditable := true,
-              backgroundColor := "#FFF",
-              cursor.auto
-            ))
-          },
-          onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
-          onInput.map(_.target.textContent) --> currentText,
-          onInsert.map(_.textContent) --> currentText,
+    val decoration: Seq[VDomModifier] = Seq(
+      Rx {
+        editable().ifTrueSeq(Seq(
+          contentEditable := true,
+          backgroundColor := "#FFF",
+          cursor.auto
+        ))
+      },
+      onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
+      onInput.map(_.target.textContent) --> currentText,
+      onInsert.map(_.textContent) --> currentText,
 
-          onClick --> sideEffect{ e => if(editable.now) e.stopPropagation() },
-          onEnter --> sideEffect { if(editable.now) save() },
-          onBlur --> sideEffect { if(editable.now) save() }
-          //          onEscape --> sideEffect { println("escape"); discardChanges() },
-        )
+      onClick --> sideEffect{ e => if(editable.now) e.stopPropagation() },
+      onEnter --> sideEffect { if(editable.now) save() },
+      onBlur --> sideEffect { if(editable.now) save() }
+      //          onEscape --> sideEffect { println("escape"); discardChanges() },
+    )
+
+    div(
+      VDomModifier.stream(
+        renderedNodeData.map(_(decoration)),
+        renderNodeData(node.data, maxLength)(decoration)
       )
     )
   }
