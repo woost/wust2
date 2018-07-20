@@ -35,11 +35,6 @@ class GlobalState private (
   val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val newNodeSink = ObserverSink(eventProcessor.enriched.changes).redirect {
-    o: Observable[NodeData.Content] =>
-      o.withLatestFrom(user.toObservable)((msg, user) => GraphChanges.addNode(msg))
-  }
-
   val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
 
   val channels: Rx[Seq[Node]] = Rx {
@@ -154,7 +149,7 @@ object GlobalState {
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
     // update of page was changed manually AFTER initial page
-    pageObservable.drop(1).map(_ => ChangesHistory.Clear).subscribe(eventProcessor.history.action)
+    // pageObservable.drop(1).map(_ => ChangesHistory.Clear).subscribe(eventProcessor.history.action)
 
     // try to update serviceworker. We do this automatically every 60 minutes. If we do a navigation change like changing the page,
     // we will check for an update immediately, but at max every 30 minutes.

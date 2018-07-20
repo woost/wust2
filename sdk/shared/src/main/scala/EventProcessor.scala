@@ -108,7 +108,7 @@ class EventProcessor private (
   // changes that are only applied to the graph but are never sent
   val nonSendingChanges = PublishSubject[GraphChanges] // TODO: merge with manualUnsafeEvents?
 
-  //TODO: publish only Observer?
+  //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
   object enriched {
     val changes = PublishSubject[GraphChanges]
@@ -118,12 +118,7 @@ class EventProcessor private (
   }
 
   // public reader
-  val (
-    changesHistory: Observable[ChangesHistory],
-    localChanges: Observable[GraphChanges],
-    graph: Observable[Graph]
-  ) = {
-
+  val (changesHistory, localChanges, graph): (Observable[ChangesHistory], Observable[GraphChanges], Observable[Graph]) = {
     // events  withLatestFrom
     // --------O----------------> localchanges
     //         ^          |
@@ -134,45 +129,35 @@ class EventProcessor private (
     val rawGraph = PublishSubject[Graph]()
     val rawGraphWithInit = rawGraph.startWith(Seq(Graph.empty))
 
-    changes.foreach { c =>
-      println("[Events] Got local changes: " + c)
-    }
-    enriched.changes.foreach { c =>
-      println("[Events] Got enriched local changes: " + c)
-    }
+    val enrichedChanges = enriched.changes
+    val allChanges = Observable.merge(enrichedChanges, changes).share
 
-    val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
-    val allChanges = Observable.merge(enrichedChanges, changes)
-
-    val rawLocalChanges =
+    val rawLocalChanges: Observable[GraphChanges] =
       allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a, b) => (a, b)).collect {
-        case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
+        case (changes, user) if changes.nonEmpty =>
+          scribe.info("[Events] Got raw local changes: " + changes)
+          changes.consistent.withAuthor(user.id)
       }
-
-    rawLocalChanges.foreach { c =>
-      println("[Events] Got all local changes: " + c)
-    }
 
     val changesHistory = Observable
       .merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
       .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
       .scan(ChangesHistory.empty) {
-        case (history, (action, rawGraph)) => history(rawGraph)(action)
+        case (history, (action, rawGraph)) =>
+          history(rawGraph)(action)
       }
     val localChanges = changesHistory.collect {
-      case history if history.current.nonEmpty => history.current
+      case history if history.current.nonEmpty =>
+       scribe.info("[Events] Got local changes after history: " + history.current)
+       history.current
     }.asyncBoundary(OverflowStrategy.Unbounded)
-
-    localChanges.foreach { c =>
-      println("[Events] Got local changes after history: " + c)
-    }
 
     val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
     val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] =
-      Observable.merge(eventStream, localEvents)
+    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
+      scribe.info("[Events] Got graph and events: " + graph + ", " + events)
       events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
     }
 
