@@ -19,7 +19,15 @@ class NodeDataParsingSpec extends FreeSpec with MustMatchers {
     tags mustEqual Seq.empty
   }
 
-  "content with tags" in {
+  "content with single tag" in {
+    val text = "ich bin einfach"
+    val (content, tags) = NodeDataParser.taggedContent.parse(text + "#foo").get.value
+    val expected = NodeData.Markdown(text)
+    content mustEqual expected
+    tags mustEqual Seq("foo")
+  }
+
+  "content with multiple tags" in {
     val text = "so ist das nunmal"
     val (content, tags) = NodeDataParser.taggedContent.parse(text + "#foo #bar").get.value
     val expected = NodeData.Markdown(text)
@@ -27,12 +35,12 @@ class NodeDataParsingSpec extends FreeSpec with MustMatchers {
     tags mustEqual Seq("foo", "bar")
   }
 
-  "content with space-tags" in {
-    val text = "so ist das nunmal"
-    val (content, tags) = NodeDataParser.taggedContent.parse(text + """#foo #"hans dieter"""").get.value
+  "content with umlauts" in {
+    val text = "so ist äöü nunmal"
+    val (content, tags) = NodeDataParser.taggedContent.parse(text + """#äöü #müh!""").get.value
     val expected = NodeData.Markdown(text)
     content mustEqual expected
-    tags mustEqual Seq("foo", "hans dieter")
+    tags mustEqual Seq("äöü", "müh!")
   }
 
   "media with tags" in {
