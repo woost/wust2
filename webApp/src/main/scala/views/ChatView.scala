@@ -112,8 +112,6 @@ object ChatView extends View {
 
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
-    val graph = state.graph
-
     val scrolledToBottom = PublishSubject[Boolean]
 
     div(
