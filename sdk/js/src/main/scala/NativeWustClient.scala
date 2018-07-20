@@ -8,6 +8,7 @@ import boopickle.Default._
 import java.nio.ByteBuffer
 
 import colorado.HCL
+import covenant.core.DefaultLogHandler
 import covenant.core.util.StopWatch
 import sloth.LogHandler
 
@@ -15,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import org.scalajs.dom.console
 import wust.graph.{Graph, Page}
 
-import scala.scalajs.js
+import scala.scalajs.{LinkingInfo, js}
 import scala.scalajs.js.JSConverters._
 import scala.util.{Failure, Success}
 import scala.collection.breakOut
@@ -112,8 +113,11 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
 }
 
 private[sdk] trait NativeWustClient {
-  def apply(location: String)(implicit ec: ExecutionContext) =
+  def apply(location: String)(implicit ec: ExecutionContext) = {
+    val logger = if (LinkingInfo.developmentMode) new BrowserLogHandler
+    else new DefaultLogHandler[Future](identity)
     new WustClientFactory(
-      WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, new BrowserLogHandler)
+      WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, logger)
     )
+  }
 }
