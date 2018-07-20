@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import cats.effect.IO
 import monix.reactive.Observer
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
@@ -79,6 +80,11 @@ object Elements {
     onKeyDown
       .filter( _.keyCode == KeyCode.Escape )
       .preventDefault
+
+  val onGlobalEscape = 
+    SimpleEmitterBuilder { observer: Observer[dom.KeyboardEvent] =>
+      VDomModifier(managed(IO(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape).subscribe(observer)))).unsafeRunSync
+    }
 
   def valueWithEnter: SimpleEmitterBuilder[String, Modifier] = SimpleEmitterBuilder {
     (observer: Observer[String]) =>
@@ -212,42 +218,49 @@ object Elements {
     val nodeData = PublishSubject[NodeData.Content]
     val renderedNodeData = nodeData.map(renderNodeData(_, maxLength))
 
-    def save(): Unit = {
-      val graph = state.graphContent.now
-      val changes = NodeDataParser.addNode(currentText.now, contextNodes = graph.nodes, baseNode = node)
-      submit.onNext(changes)
+    editable.filter(_ == true).foreach { _ =>
+      currentText() = node.data.str // on edit show markdown code
+    }
 
-      editable() = false
+    def save(): Unit = {
+      if(editable.now) {
+        val graph = state.graphContent.now
+        val changes = NodeDataParser.addNode(currentText.now, contextNodes = graph.nodes, baseNode = node)
+        submit.onNext(changes)
+
+        editable() = false
+      }
     }
 
     def discardChanges():Unit = {
-      editable() = false
-      nodeData.onNext(node.data)
+      if(editable.now) {
+        editable() = false
+        nodeData.onNext(node.data)
+      }
     }
 
-    val decoration: Seq[VDomModifier] = Seq(
-      Rx {
-        editable().ifTrueSeq(Seq(
+    div(
+      renderedNodeData.startWith(renderNodeData(node.data, maxLength) :: Nil).map{ rendered =>
+        Seq[VDomModifier](
+          Rx[VDomModifier] {
+            if(editable())
+              Seq[VDomModifier](
+                node.data.str,
           contentEditable := true,
           backgroundColor := "#FFF",
           cursor.auto
-        ))
+              )
+          else
+            rendered
       },
       onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
       onInput.map(_.target.textContent) --> currentText,
-      onInsert.map(_.textContent) --> currentText,
 
-      onClick --> sideEffect{ e => if(editable.now) e.stopPropagation() },
-      onEnter --> sideEffect { if(editable.now) save() },
-      onBlur --> sideEffect { if(editable.now) save() }
-      //          onEscape --> sideEffect { println("escape"); discardChanges() },
-    )
-
-    div(
-      VDomModifier.stream(
-        renderedNodeData.map(_(decoration)),
-        renderNodeData(node.data, maxLength)(decoration)
-      )
+          onEnter --> sideEffect { save() },
+          onBlur --> sideEffect { discardChanges() },
+        )
+      }
     )
   }
+
 }
