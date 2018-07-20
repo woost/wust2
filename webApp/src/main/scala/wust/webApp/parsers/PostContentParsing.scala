@@ -14,7 +14,7 @@ object NodeDataParser {
   val taggableContent: P[NodeData.Content] = P(linkContent | nonHashContent)
 
   val contentTags: P[Seq[String]] = P(
-    ("#" ~ (word.! | "\"" ~ word.rep(sep = whitespaceChar).! ~ "\"")).rep(sep = whitespaceChar)
+    ("#" ~ (CharPred(_ != whitespaceChar).rep.! | "\"" ~ AnyChar.rep.! ~ "\"")).rep(sep = whitespaceChar)
   )
 
   val anyContent: P[NodeData.Markdown] = P(AnyChar.rep.!.map(NodeData.Markdown(_)))
