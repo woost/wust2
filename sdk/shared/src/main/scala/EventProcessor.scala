@@ -129,7 +129,7 @@ class EventProcessor private (
     val rawGraph = PublishSubject[Graph]()
     val rawGraphWithInit = rawGraph.startWith(Seq(Graph.empty))
 
-    val enrichedChanges = enriched.changes
+    val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes).share
 
     val rawLocalChanges: Observable[GraphChanges] =
