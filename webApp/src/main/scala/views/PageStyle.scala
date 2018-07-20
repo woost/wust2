@@ -20,10 +20,10 @@ object PageStyle {
     val border = RGB("#95CCDF").hcl
   }
 
-  def apply(view: Rx[View], page: Rx[Page])(implicit ctx: Ctx.Owner) = {
+  def apply(view: View, page: Page)(implicit ctx: Ctx.Owner) = {
 
-    def applyPageHue(base: HCL): Rx[String] = Rx {
-      val pageHueOpt = NodeColor.pageHue(page()).filter(_ => view().isContent)
+    def applyPageHue(base: HCL): String = {
+      val pageHueOpt = NodeColor.pageHue(page).filter(_ => view.isContent)
       pageHueOpt.fold[Color](LAB(base.l, 0, 0))(hue => HCL(hue, base.c, base.l)).toHex
     }
 
@@ -38,9 +38,9 @@ object PageStyle {
 }
 
 case class PageStyle(
-    accentLineColor: Rx[String],
-    bgColor: Rx[String],
-    bgLightColor: Rx[String],
-    darkBgColor: Rx[String],
-    darkBgColorHighlight: Rx[String]
+    accentLineColor: String,
+    bgColor: String,
+    bgLightColor: String,
+    darkBgColor: String,
+    darkBgColorHighlight: String
 )

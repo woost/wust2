@@ -26,7 +26,7 @@ object Sidebar {
     import state.sidebarOpen
     div(
       cls := "sidebar",
-      backgroundColor <-- state.pageStyle.darkBgColor,
+      backgroundColor <-- state.pageStyle.map(_.darkBgColor),
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
       sidebarOpen.map {
         case true =>
@@ -55,8 +55,8 @@ object Sidebar {
       cls := "channel",
       selected.ifTrueSeq(
         Seq(
-          color <-- pageStyle.darkBgColor,
-          backgroundColor <-- pageStyle.darkBgColorHighlight
+          color := pageStyle.darkBgColor,
+          backgroundColor := pageStyle.darkBgColorHighlight
         )
       )
     )
@@ -68,7 +68,7 @@ object Sidebar {
         allChannels.map {
           p =>
             val selected = state.page().parentIds.contains(p.id)
-            channelDiv(selected, state.pageStyle)(
+            channelDiv(selected, state.pageStyle())(
               cls := "node",
               draggableAs(state, DragPayload.Tag(p.id)),
               dragTarget(DragTarget.Tag(p.id)),
@@ -84,7 +84,7 @@ object Sidebar {
         }
       },
       Rx {
-        channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle)(
+        channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle())(
           //TODO: inner state.page obs again
           noChannelIcon(state.page.map(_.mode == PageMode.Orphans))(ctx)(marginRight := "5px"),
           PageMode.Orphans.toString,

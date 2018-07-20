@@ -18,7 +18,7 @@ object MainView {
         Styles.flex,
         Styles.growFull,
         Sidebar(state)(ctx),
-        backgroundColor <-- state.pageStyle.bgColor,
+        backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
           width := "100%",
           Rx {
@@ -29,7 +29,7 @@ object MainView {
             val noContent = !state.view().isContent
 
             (noChannelNodeInGraph || bookmarked || viewingChannelNode || noContent).ifFalseOption(
-              Seq(backgroundColor <-- state.pageStyle.bgColor, cls := "non-bookmarked-page-frame")
+              Seq(cls := "non-bookmarked-page-frame")
             )
           },
           div(

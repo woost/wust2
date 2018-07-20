@@ -64,7 +64,7 @@ object ChatView extends View {
       chatHistory(state)(ctx)(
         height := "100%",
         overflow.auto,
-        backgroundColor <-- state.pageStyle.bgLightColor
+        backgroundColor <-- state.pageStyle.map(_.bgLightColor)
       ),
       inputField(state)(ctx)(Styles.flexStatic)
     )
