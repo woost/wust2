@@ -99,6 +99,6 @@ object SelectedNodes {
           state.selectedNodeIds.update(_ - node.id)
         }
       )
-    ), cutLength = true)(ctx)(marginBottom := "3px")
+    ), maxLength = Some(20))(ctx)(marginBottom := "3px")
   }
 }

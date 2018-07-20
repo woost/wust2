@@ -1,28 +1,24 @@
 package wust.webApp.views
 
-import wust.webApp.{DragPayload, DragTarget, GlobalState, marked}
-import wust.webApp.views.Rendered._
+import monix.reactive.Observer
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import wust.sdk.NodeColor._
-import rx._
 import org.scalajs.dom.ext.KeyCode
-import outwatch.{ObserverSink, Sink}
-import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
+import org.scalajs.dom.window
+import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.graph._
-import monix.reactive.Observer
-import wust.ids.NodeData
-import wust.webApp.outwatchHelpers._
-import org.scalajs.dom.window
-import org.scalajs.dom.console
-import org.scalajs.dom.html
-
-import scala.scalajs.js
+import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
+import rx._
 import views.MediaViewer
-import wust.ids._
+import wust.graph._
+import wust.ids.{NodeData, _}
+import wust.sdk.NodeColor._
 import wust.util._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
+import wust.webApp.views.Rendered._
+import wust.webApp.{DragPayload, DragTarget, GlobalState, marked}
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -42,9 +38,18 @@ object Rendered {
     case user: NodeData.User => s"User: ${user.name}"
   }
 
-  val renderNodeData: NodeData => VNode = {
-    case NodeData.Markdown(content)  => mdHtml(content)
-    case NodeData.PlainText(content) => div(content)
+  def trimToMaxLength(str:String, maxLength:Option[Int]):String = {
+    maxLength.fold(str) { length =>
+      val rawString = str.trim
+      if (rawString.length > length)
+        rawString.take(length - 3) + "..."
+      else rawString
+    }
+  }
+
+  def renderNodeData(nodeData:NodeData, maxLength: Option[Int] = None):VNode = nodeData match {
+    case NodeData.Markdown(content)  => mdHtml(trimToMaxLength(content, maxLength))
+    case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case c: NodeData.Link            => MediaViewer.embed(c)
     case user: NodeData.User         => div(s"User: ${user.name}")
   }
@@ -65,10 +70,15 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  def onEnter: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
-    onKeyDown.collect {
-      case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e
-    }
+  val onEnter: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
+    onKeyDown
+      .filter( e => e.keyCode == KeyCode.Enter && !e.shiftKey)
+      .preventDefault
+
+  val onEscape: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
+    onKeyDown
+      .filter( _.keyCode == KeyCode.Escape )
+      .preventDefault
 
   def valueWithEnter: SimpleEmitterBuilder[String, Modifier] = SimpleEmitterBuilder {
     (observer: Observer[String]) =>
@@ -85,8 +95,7 @@ object Elements {
   }
 
   def nodeTag(state: GlobalState, tag: Node): VNode = {
-    val rawString = tag.data.str.trim
-    val contentString = if (rawString.length > 20) rawString.take(17) + "..." else rawString
+    val contentString = Rendered.trimToMaxLength(tag.data.str, Some(20))
     span(
       cls := "node tag",
       contentString, //TODO trim correctly! fit for tag usage...
@@ -125,25 +134,28 @@ object Elements {
     )
   }
 
-  def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, cutLength: Boolean = false, editable:Var[Boolean] = Var(false))(implicit ctx: Ctx.Owner) = {
-    val content:VNode = if(cutLength) {
-      val rawString = node.data.str.trim
-      if (rawString.length > 20) span(rawString.take(17) + "...") else renderNodeData(node.data)
-    } else renderNodeData(node.data)
-
+  private def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int])(implicit ctx: Ctx.Owner):VNode = {
     div(
       cls := "node nodecardcompact",
       draggableAs(state, DragPayload.Node(node.id)),
       dragTarget(DragTarget.Node(node.id)),
       div(
         cls := "nodecardcompact-content",
-        editableNode(state, node, content, editable),
         injected
       ),
       onClick.stopPropagation --> sideEffect(()),
       onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
     )
   }
+  def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
+    renderNodeCardCompact(state, node, VDomModifier(renderNodeData(node.data, maxLength),
+      injected), maxLength)
+  }
+  def nodeCardCompactEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
+    renderNodeCardCompact(state, node, VDomModifier(editableNode(state, node, editable, submit, maxLength),
+        injected), maxLength)
+  }
+
 
   def dragTarget(dragTarget: DragTarget) = {
     import io.circe.syntax._
@@ -170,57 +182,69 @@ object Elements {
   )
 
 
-  def editableNodeOnClick(state: GlobalState, node: Node, domContent: VNode)(
+  def editableNodeOnClick(state: GlobalState, node: Node, submit:Observer[GraphChanges])(
     implicit ctx: Ctx.Owner
   ): VNode = {
     val editable = Var(false)
-    editableNode(state, node, domContent, editable)(ctx){
+    editableNode(state, node, editable, submit)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation --> sideEffect {
         if (!editable.now) {
           editable() = true
         }
       }
-    }
+    )
   }
 
 
-  def editableNode(state: GlobalState, node: Node, domContent: VNode, editable:Var[Boolean])(
+  def editableNode(state: GlobalState, node: Node, editable:Var[Boolean], submit:Observer[GraphChanges], maxLength: Option[Int] = None)(
       implicit ctx: Ctx.Owner
   ): VNode = {
     node match {
-      case contentNode: Node.Content => editableNode(state, contentNode, domContent, editable)
-      case _                         => domContent
+      case contentNode: Node.Content => editableNode(state, contentNode, editable, submit, maxLength)
+      case _                         => renderNodeData(node.data, maxLength)
     }
   }
 
-  def editableNode(state: GlobalState, node: Node.Content, domContent: VNode, editable:Var[Boolean])(
+  def editableNode(state: GlobalState, node: Node.Content, editable:Var[Boolean], submit:Observer[GraphChanges], maxLength: Option[Int])(
       implicit ctx: Ctx.Owner
   ): VNode = {
-    val domElement = Var[html.Element](null)
-    def save(): Unit = {
-      val userInput: String = domElement.now.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] //TODO: https://github.com/scala-js/scala-js-dom/issues/19
+    val currentText = Var("")
+    val nodeData = PublishSubject[NodeData.Content]
+    val renderedNodeData = nodeData.map(renderNodeData(_, maxLength))
 
+    def save(): Unit = {
       val graph = state.graphContent.now
-      val changes = NodeDataParser.addNode(userInput, contextNodes = graph.nodes, baseNode = node)
-      state.eventProcessor.enriched.changes.onNext(changes)
+      val changes = NodeDataParser.addNode(currentText.now, contextNodes = graph.nodes, baseNode = node)
+      submit.onNext(changes)
 
       editable() = false
     }
-    editable.foreach(editable => if(editable) domElement.now.asInstanceOf[js.Dynamic].innerText = node.data.str) // replace the trimmed/formatted content with the node's source code
-    val resultNode = domContent(
-      Rx {
-        editable().ifTrueSeq(Seq(
-            contentEditable := true,
-            backgroundColor := "#FFF",
-            cursor.auto
-        ))
-      },
-      onInsert.asHtml --> domElement,
-      onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
-      onClick --> sideEffect{ e => if(editable.now) e.stopPropagation() },
-      onEnter --> sideEffect { if(editable.now) save() },
-      onBlur --> sideEffect { if(editable.now) save() }
+
+    def discardChanges():Unit = {
+      editable() = false
+      nodeData.onNext(node.data)
+    }
+
+    div(
+      renderedNodeData.startWith(renderNodeData(node.data, maxLength) :: Nil).map( rendered =>
+        rendered(
+          Rx {
+            editable().ifTrueSeq(Seq(
+              contentEditable := true,
+              backgroundColor := "#FFF",
+              cursor.auto
+            ))
+          },
+          onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
+          onInput.map(_.target.textContent) --> currentText,
+          onInsert.map(_.textContent) --> currentText,
+
+          onClick --> sideEffect{ e => if(editable.now) e.stopPropagation() },
+          onEnter --> sideEffect { if(editable.now) save() },
+          onBlur --> sideEffect { if(editable.now) save() }
+          //          onEscape --> sideEffect { println("escape"); discardChanges() },
+        )
+      )
     )
-    resultNode
   }
 }

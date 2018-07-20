@@ -28,7 +28,7 @@ object PageHeader {
             height := "40px",
             marginRight := "10px"
           ),
-          editableNodeOnClick(state, parent, renderNodeData(parent.data)(fontSize := "20px")),
+          editableNodeOnClick(state, parent, state.eventProcessor.changes)(ctx)(fontSize := "20px"),
           state.user.map { user =>
             if (user.channelNodeId == parent.id) Seq.empty
             else
