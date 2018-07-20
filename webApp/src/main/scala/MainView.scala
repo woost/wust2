@@ -37,17 +37,17 @@ object MainView {
             Styles.growFull,
             flexDirection.column,
             Rx {
-              state
-                .view()
-                .isContent
-                .ifTrueSeq(
-                  Seq(
-                    BreadCrumbs(state)(ctx)(Styles.flexStatic),
-                    PageHeader(state)(ctx)(Styles.flexStatic)
-                  )
-                )
+              VDomModifier(
+                state.view()
+                  .isContent
+                  .ifTrueSeq(
+                    Seq(
+                      BreadCrumbs(state)(ctx)(Styles.flexStatic),
+                      PageHeader(state)(ctx)(Styles.flexStatic)
+                    )),
+                state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1))
+              )
             },
-            state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1)),
             SelectedNodes(state)(ctx)(Styles.flexStatic)
           )
         )

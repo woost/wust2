@@ -65,41 +65,42 @@ object Sidebar {
       cls := "channels",
       Rx {
         val allChannels = state.graph().nodesById.get(state.user().channelNodeId).toSeq ++ state.channels()
-        allChannels.map {
-          p =>
-            val selected = state.page().parentIds.contains(p.id)
-            channelDiv(selected, state.pageStyle())(
-              cls := "node",
-              draggableAs(state, DragPayload.Tag(p.id)),
-              dragTarget(DragTarget.Tag(p.id)),
-              paddingRight := "5px",
-              //TODO: inner state.page obs again
-              channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), 30)(ctx)(
-                marginRight := "5px"
-              ),
-              p.data.str,
-              onChannelClick(ChannelAction.Post(p.id))(state),
-              title := p.id.toCuidString
-            )
-        }
-      },
-      Rx {
-        channelDiv(state.page().mode == PageMode.Orphans, state.pageStyle())(
-          //TODO: inner state.page obs again
-          noChannelIcon(state.page.map(_.mode == PageMode.Orphans))(ctx)(marginRight := "5px"),
-          PageMode.Orphans.toString,
-          onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
+        val page = state.page()
+        VDomModifier(
+          allChannels.map {
+            p =>
+              val selected = page.parentIds.contains(p.id)
+              channelDiv(selected, state.pageStyle())(
+                cls := "node",
+                draggableAs(state, DragPayload.Tag(p.id)),
+                dragTarget(DragTarget.Tag(p.id)),
+                paddingRight := "5px",
+                //TODO: inner state.page obs again
+                channelIcon(state, p, page.parentIds.contains(p.id), 30)(ctx)(
+                  marginRight := "5px"
+                ),
+                p.data.str,
+                onChannelClick(ChannelAction.Post(p.id))(state),
+                title := p.id.toCuidString
+              )
+          },
+          channelDiv(page.mode == PageMode.Orphans, state.pageStyle())(
+            //TODO: inner state.page obs again
+            noChannelIcon(page.mode == PageMode.Orphans)(ctx)(marginRight := "5px"),
+            PageMode.Orphans.toString,
+            onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
+          )
         )
       }
     )
   }
 
-  def noChannelIcon(selected: Rx[Boolean])(implicit ctx: Ctx.Owner) = div(
+  def noChannelIcon(selected: Boolean)(implicit ctx: Ctx.Owner) = div(
     cls := "noChannelIcon",
-    backgroundColor <-- selected.map {
+    backgroundColor := (selected match {
       case true  => "grey" //TODO: better
       case false => "white"
-    }
+    })
   )
 
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
@@ -107,22 +108,25 @@ object Sidebar {
       cls := "channelIcons",
       Rx {
         val allChannels = state.graph().nodesById.get(state.user().channelNodeId).toSeq ++ state.channels()
-        allChannels.map { p =>
-          channelIcon(state, p, state.page.map(_.parentIds.contains(p.id)), size)(ctx)(
-            onChannelClick(ChannelAction.Post(p.id))(state),
-            draggableAs(state, DragPayload.Tag(p.id)),
-            dragTarget(DragTarget.Tag(p.id)),
-            cls := "node"
+        val page = state.page()
+        VDomModifier(
+          allChannels.map { p =>
+            channelIcon(state, p, page.parentIds.contains(p.id), size)(ctx)(
+              onChannelClick(ChannelAction.Post(p.id))(state),
+              draggableAs(state, DragPayload.Tag(p.id)),
+              dragTarget(DragTarget.Tag(p.id)),
+              cls := "node"
+            )
+          },
+          noChannelIcon(page.mode == PageMode.Orphans)(ctx)(
+            onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
           )
-        }
-      },
-      noChannelIcon(state.page.map(_.mode == PageMode.Orphans))(ctx)(
-        onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
-      )
+        )
+      }
     )
   }
 
-  def channelIcon(state: GlobalState, post: Node, selected: Rx[Boolean], size: Int)(
+  def channelIcon(state: GlobalState, post: Node, selected: Boolean, size: Int)(
       implicit ctx: Ctx.Owner
   ): VNode = {
     div(
@@ -136,13 +140,11 @@ object Sidebar {
         .copy(h = NodeColor.genericBaseHue(post.id))
         .toHex, //TODO: make different post color tones better accessible
       //TODO: https://github.com/OutWatch/outwatch/issues/187
-      opacity <-- selected.map(if (_) 1.0 else 0.75),
-      padding <-- selected.map(if (_) "2px" else "4px"),
-      border <-- selected.map(
-        if (_)
-          s"2px solid ${PageStyle.Color.baseBgDark.copy(h = NodeColor.genericBaseHue(post.id)).toHex}"
-        else "none"
-      ),
+      opacity := (if (selected) 1.0 else 0.75),
+      padding := (if (selected) "2px" else "4px"),
+      border := (
+        if (selected) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = NodeColor.genericBaseHue(post.id)).toHex}"
+        else "none"),
       Avatar.node(post.id)
     )
   }
