@@ -29,7 +29,7 @@ object SelectedNodes {
       Rx {
         val graph = state.graph()
         val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)
-        div(
+        Seq[VDomModifier](
           draggableAs(state, DragPayload.Nodes(sortedNodeIds)),
           dragTarget(DragTarget.SelectedNodes),
 
