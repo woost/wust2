@@ -17,6 +17,7 @@ import scala.scalajs.{LinkingInfo, js}
 import scala.scalajs.js.annotation._
 import org.scalajs.dom.window
 
+import scala.util.{Success, Failure}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
@@ -54,17 +55,7 @@ object Client {
   val push = factory.defaultPriority.push
   val observable = factory.observable
   observable.connected.foreach { _ =>
-    //TODO we need to check whether the current auth.verified is still valid, otherwise better prompt the user and login with assumed auth.
-    loginStorageAuth(currentAuth).foreach {
-      case true => ()
-      case false =>
-        scribe.warn("Login failed, token is not valid.")
-        storage.auth() = None // forget invalid token
-        // get a new initialAssumedAuth, as the old one might have already be used to become a real user.
-        // TODO: is that enough?
-        initialAssumedAuth = Authentication.Assumed.fresh
-        loginStorageAuth(initialAssumedAuth)
-    }
+    doLoginWithRetry()
   }
 
   val storage = new ClientStorage
@@ -73,5 +64,18 @@ object Client {
   private def loginStorageAuth(auth: Authentication): Future[Boolean] = auth match {
     case auth: Authentication.Assumed  => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
+  }
+  private def doLoginWithRetry(): Unit = loginStorageAuth(currentAuth).onComplete {
+    case Success(true) => ()
+    case Success(false) =>
+      scribe.warn("Login failed, token is not valid. Will switch to new assumed auth.")
+      storage.auth() = None // forget invalid token
+      // get a new initialAssumedAuth, as the old one might have already be used to become a real user.
+      // TODO: is that enough?
+      initialAssumedAuth = Authentication.Assumed.fresh
+      doLoginWithRetry()
+    case Failure(t) =>
+      scribe.warn("Login request failed, will retry", t)
+      doLoginWithRetry()
   }
 }
