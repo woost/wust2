@@ -118,13 +118,14 @@ object ChatView extends View {
       cls := "chathistory",
       padding := "20px 0 20px 20px",
       Rx {
-        val nodes = graphContent().chronologicalNodesAscending.collect {
-          case n: Node.Content if !graphContent().hasChildren(n.id) => n
+        val graph = graphContent()
+        val nodes = graph.chronologicalNodesAscending.collect {
+          case n: Node.Content if !graph.hasChildren(n.id) => n
         }
         if (nodes.isEmpty) Seq(emptyChatNotice)
         else
-          groupNodes(graph(), nodes, state, user().id)
-            .map(chatMessage(state, _, graph(), page(), user().id))
+          groupNodes(graph, nodes, state, user().id)
+            .map(chatMessage(state, _, graph, page(), user().id))
       },
       onUpdate --> sideEffect { (prev, _) =>
         scrolledToBottom
