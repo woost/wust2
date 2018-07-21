@@ -216,8 +216,6 @@ object Elements {
       implicit ctx: Ctx.Owner
   ): VNode = {
     val currentText = Var("")
-    val nodeData = PublishSubject[NodeData.Content]
-    val renderedNodeData = nodeData.map(renderNodeData(_, maxLength))
 
     editable.filter(_ == true).foreach { _ =>
       currentText() = node.data.str // on edit show markdown code
@@ -236,31 +234,25 @@ object Elements {
     def discardChanges():Unit = {
       if(editable.now) {
         editable() = false
-        nodeData.onNext(node.data)
       }
     }
 
-    val decorator = VDomModifier(
+    val initialRender = renderNodeData(node.data, maxLength)
+    div(
       Rx {
-        editable().ifTrueSeq(Seq[VDomModifier](
-          node.data.str,
+        if(editable()) VDomModifier(
+          node.data.str, // Markdown source code
           contentEditable := true,
           backgroundColor := "#FFF",
-          cursor.auto
-        ))
-      },
-      onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
-      onInput.map(_.target.textContent) --> currentText,
+          cursor.auto,
 
-      onEnter --> sideEffect { save() },
-      onBlur --> sideEffect { discardChanges() },
-    )
+          onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
+          onInput.map(_.target.textContent) --> currentText,
 
-    div(
-      VDomModifier.stream(
-        renderedNodeData.map(_(decorator)),
-        renderNodeData(node.data, maxLength)(decorator)
-      )
+          onEnter --> sideEffect { save() },
+          onBlur --> sideEffect { discardChanges() },
+        ) else initialRender
+      }
     )
   }
 
