@@ -175,7 +175,6 @@ object Elements {
       cls := "draggable", // makes this element discoverable for the Draggable library
       outline := "none", // hide outline when focused
       attr(DragPayload.attrName) := payload.asJson.noSpaces,
-      registerDraggableContainer(state)
     )
   }
 

@@ -6,6 +6,7 @@ import rx._
 import wust.webApp.outwatchHelpers._
 import wust.util._
 import wust.css.Styles
+import wust.webApp.views.Elements._
 
 object MainView {
 
@@ -51,7 +52,8 @@ object MainView {
             SelectedNodes(state)(ctx)(Styles.flexStatic)
           )
         )
-      )
+      ),
+      registerDraggableContainer(state)
     )
   }
 }
