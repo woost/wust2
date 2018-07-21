@@ -309,7 +309,7 @@ object ChatView extends View {
         draggableAs(state, DragPayload.Node(node.id)),
         dragTarget(DragTarget.Node(node.id)),
 
-        checkbox(Styles.flexStatic),
+        // checkbox(Styles.flexStatic),
         nodeCardCompactEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
         msgControls(Styles.flexStatic)
