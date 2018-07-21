@@ -30,7 +30,7 @@ object MainView {
             val noContent = !state.view().isContent
 
             (noChannelNodeInGraph || bookmarked || viewingChannelNode || noContent).ifFalseOption(
-              Seq(cls := "non-bookmarked-page-frame")
+              cls := "non-bookmarked-page-frame"
             )
           },
           div(
@@ -38,15 +38,17 @@ object MainView {
             Styles.growFull,
             flexDirection.column,
             Rx {
+              val view = state.view() //TODO: fix Rx bug, where you have to assign a value before using it
               VDomModifier(
-                state.view()
+                view
                   .isContent
                   .ifTrueSeq(
                     Seq(
                       BreadCrumbs(state)(ctx)(Styles.flexStatic),
                       PageHeader(state)(ctx)(Styles.flexStatic)
                     )),
-                state.view.map(_.apply(state)(ctx)(Styles.growFull, flexGrow := 1))
+
+                view.apply(state)(ctx)(Styles.growFull, flexGrow := 1)
               )
             },
             SelectedNodes(state)(ctx)(Styles.flexStatic)
