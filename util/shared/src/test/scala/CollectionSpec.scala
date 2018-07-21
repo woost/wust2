@@ -36,4 +36,20 @@ class CollectionSpec extends FreeSpec with MustMatchers {
       (None: Option[Int]).setOrToggle(1) mustEqual Option(1)
     }
   }
+
+  "leftPadTo" - {
+    "same number" in {
+      List(1,2).leftPadTo(2,0) mustEqual List(1,2)
+    }
+    "smaller number" in {
+      List(1,2).leftPadTo(5,0) mustEqual List(0,0,0,1,2)
+    }
+    "bigger number" in {
+      List(1,2,3,4).leftPadTo(2,0) mustEqual List(1,2,3,4)
+    }
+
+    "with string" in {
+      "tenor".leftPadTo(6,'a') mustEqual "atenor"
+    }
+  }
 }

@@ -242,6 +242,7 @@ lazy val sdkJVM = sdk.jvm
 //TODO: rename to atoms/basetypes
 lazy val ids = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
+  .dependsOn(util)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
   .settings(
@@ -259,7 +260,7 @@ lazy val idsJVM = ids.jvm
 
 lazy val graph = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
-  .dependsOn(ids, util)
+  .dependsOn(ids)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
   .settings(

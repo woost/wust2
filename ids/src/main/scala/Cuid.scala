@@ -3,6 +3,7 @@ package wust.ids
 import java.util.UUID
 import java.nio.ByteBuffer
 
+import wust.util.collection._
 import org.sazabi.base58.Base58
 
 case class Cuid(left: Long, right: Long) {
@@ -21,10 +22,8 @@ case class Cuid(left: Long, right: Long) {
 
   def toCuidString: String = {
     val base = 36
-    val leftCuid =
-      java.lang.Long.toString(left, base).reverse.padTo(12, '0').reverse
-    val rightCuid =
-      java.lang.Long.toString(right, base).reverse.padTo(12, '0').reverse
+    val leftCuid: String = java.lang.Long.toString(left, base).leftPadTo(12, '0')
+    val rightCuid: String = java.lang.Long.toString(right, base).leftPadTo(12, '0')
     "c" + leftCuid + rightCuid
   }
 
