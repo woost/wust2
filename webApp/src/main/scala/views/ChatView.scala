@@ -119,7 +119,7 @@ object ChatView extends View {
       padding := "20px 0 20px 20px",
       Rx {
         val nodes = graphContent().chronologicalNodesAscending.collect {
-          case n: Node.Content => n
+          case n: Node.Content if !graphContent().hasChildren(n.id) => n
         }
         if (nodes.isEmpty) Seq(emptyChatNotice)
         else
