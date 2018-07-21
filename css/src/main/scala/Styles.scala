@@ -259,7 +259,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- chatview --
   ".chatmsg-avatar" - (
-    margin(5 px)
+    marginRight(10 px)
   )
 
   ".chatmsg-author" - (
@@ -267,17 +267,29 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#50575f")
   )
 
+  ".chatmsg-group-outer-frame" - (
+    media.only.screen.minWidth(500 px) - (
+      //TODO: how to use Styles.flex ?
+      /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
+      minWidth(0 px),
+      /* fixes full page scrolling when messages are too long */
+      minHeight(0 px),
+      display.flex,
+    )
+  )
+
   ".chatmsg-group-inner-frame" - (
     width(100 %%),
     display.block,
-    padding(0 px, 0 px, 0 px, 10 px),
-    margin(5 px, 0 px)
   )
+
+
 
   ".chatmsg-header" - (
     fontSize(0.8 em),
     lineHeight(100 %%),
-    paddingBottom(3 px)
+    paddingBottom(3 px),
+    paddingLeft(2 px)
   )
 
   val messageBackground = c"#FEFEFE"
@@ -468,7 +480,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chatmsg-line" - (
     cursor.move,
     alignItems.center,
-    padding(2 px, 20 px, 2 px, 5 px)
+    padding(2 px, 20 px, 2 px, 0 px)
   )
 
   ".chatmsg-line .checkbox" - (

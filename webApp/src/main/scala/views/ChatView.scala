@@ -236,7 +236,8 @@ object ChatView extends View {
     val headNode = nodes.head
     val isMine = graph.authors(currNode).contains(currentUser)
 
-    div( // node wrapper
+    div(
+      cls := "chatmsg-group-outer-frame",
       avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
@@ -244,7 +245,6 @@ object ChatView extends View {
         borderColor := computeColor(graph, currNode.id),
         cls := "chatmsg-group-inner-frame",
       ),
-      Styles.flex,
     )
   }
 

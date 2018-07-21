@@ -26,7 +26,8 @@ object PageHeader {
           Avatar.node(parent.id)(
             width := "40px",
             height := "40px",
-            marginRight := "10px"
+            marginRight := "10px",
+            Styles.flexStatic
           ),
           editableNodeOnClick(state, parent, state.eventProcessor.changes)(ctx)(fontSize := "20px"),
           state.user.map { user =>
