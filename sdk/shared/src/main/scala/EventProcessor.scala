@@ -2,7 +2,7 @@ package wust.sdk
 
 import monix.execution.Scheduler
 import monix.reactive.{Observable, OverflowStrategy}
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
 import wust.api.ApiEvent._
 import wust.api._
 import wust.graph._
@@ -126,11 +126,12 @@ class EventProcessor private (
     //         -----------O---->--
     //          graph,viewconfig
 
-    val rawGraph = PublishSubject[Graph]()
-    val rawGraphWithInit = rawGraph.startWith(Seq(Graph.empty))
+    val rawGraph = PublishToOneSubject[Graph]()
+    val sharedRawGraph = rawGraph.share
+    val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
-    val allChanges = Observable.merge(enrichedChanges, changes).share
+    val allChanges = Observable.merge(enrichedChanges, changes)
 
     val rawLocalChanges: Observable[GraphChanges] =
       allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a, b) => (a, b)).collect {
@@ -143,14 +144,13 @@ class EventProcessor private (
       .merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
       .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
       .scan(ChangesHistory.empty) {
-        case (history, (action, rawGraph)) =>
-          history(rawGraph)(action)
+        case (history, (action, graph)) =>
+          history(graph)(action)
       }
     val localChanges = changesHistory.collect {
       case history if history.current.nonEmpty =>
-       scribe.info("[Events] Got local changes after history: " + history.current)
        history.current
-    }.asyncBoundary(OverflowStrategy.Unbounded)
+    }
 
     val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
     val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
@@ -163,7 +163,7 @@ class EventProcessor private (
 
     graphWithChanges subscribe rawGraph
 
-    (changesHistory, localChanges, rawGraph.map(_.consistent))
+    (changesHistory.share, localChanges.share, sharedRawGraph.map(_.consistent))
   }
 
   def applyChanges(changes: GraphChanges): Future[Graph] = {
@@ -177,11 +177,10 @@ class EventProcessor private (
     appliedToGraph.future
   }
 
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex
-
-  localChangesIndexed.foreach { c =>
-    println("[Events] Got local changes indexed: " + c)
-  }
+  private val localChangesIndexed: Observable[(GraphChanges, Long)] =
+    localChanges
+      .zipWithIndex
+      .asyncBoundary(OverflowStrategy.Unbounded)
 
   private val sendingChanges: Observable[Long] = Observable
     .tailRecM(localChangesIndexed) { changes =>
@@ -211,6 +210,7 @@ class EventProcessor private (
         (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
     }
     .map(_.map(_._1))
+    .share
 
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
     //TODO: why is import wust.util._ not enough to resolve RichFuture?
