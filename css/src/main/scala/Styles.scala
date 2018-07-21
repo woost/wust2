@@ -259,18 +259,23 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- chatview --
   ".chatmsg-group-outer-frame" - (
-    media.only.screen.minWidth(500 px) - (
+    marginTop(10 px),
+    // media.only.screen.minWidth(500 px) - (
       //TODO: how to use Styles.flex ?
       /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
       minWidth(0 px),
       /* fixes full page scrolling when messages are too long */
       minHeight(0 px),
       display.flex,
-    )
+    // )
   )
 
   ".chatmsg-avatar" - (
-    marginRight(10 px)
+    marginRight(10 px),
+    width(40 px),
+    media.only.screen.maxWidth(500 px) - (
+      width(20 px)
+    ),
   )
 
   ".chatmsg-group-inner-frame" - (

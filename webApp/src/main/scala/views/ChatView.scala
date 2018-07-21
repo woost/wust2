@@ -172,10 +172,10 @@ object ChatView extends View {
       user.fold(div())(
         user =>
           div(
+            cls := "chatmsg-avatar",
             Avatar.user(user)(
-              width := size.value,
+              // width := size.value,
             ),
-            cls := "chatmsg-avatar"
           )
       )
     } else div()
