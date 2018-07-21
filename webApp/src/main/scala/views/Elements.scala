@@ -91,11 +91,10 @@ object Elements {
       (for {
         userInput <- Handler.create[String]
         clearHandler = userInput.map(_ => "")
-        actionSink = ObserverSink(observer)
         modifiers <- Seq(
           value <-- clearHandler,
-          managed(actionSink <-- userInput),
-          onEnter.value.filter(_.nonEmpty) --> userInput
+          onEnter.value.filter(_.nonEmpty) --> userInput,
+            managed(IO(userInput.subscribe(observer)))
         )
       } yield modifiers).unsafeRunSync() //TODO: https://github.com/OutWatch/outwatch/issues/195
   }
