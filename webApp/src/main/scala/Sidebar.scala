@@ -139,7 +139,6 @@ object Sidebar {
       backgroundColor := PageStyle.Color.baseBg
         .copy(h = NodeColor.genericBaseHue(post.id))
         .toHex, //TODO: make different post color tones better accessible
-      //TODO: https://github.com/OutWatch/outwatch/issues/187
       opacity := (if (selected) 1.0 else 0.75),
       padding := (if (selected) "2px" else "4px"),
       border := (

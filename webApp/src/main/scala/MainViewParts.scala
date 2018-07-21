@@ -40,8 +40,13 @@ object MainViewParts {
       onClick --> sideEffect { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
+
+        val nextPage = Page.NewGroup(NodeId.fresh)
+        //TODO why does Var.set not work properly here with scalarx?
+        // if (state.view.now.isContent) state.page() = nextPage
+        // else Var.set(, state.view -> View.default)
+        state.page() = nextPage
         if (!state.view.now.isContent) state.view() = View.default
-        state.page() = Page.NewGroup(NodeId.fresh)
       }
     )
   }
