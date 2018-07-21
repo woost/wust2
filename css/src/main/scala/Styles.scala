@@ -281,6 +281,8 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chatmsg-group-inner-frame" - (
     width(100 %%),
     display.block,
+    media.only.screen.maxWidth(500 px) - (
+      marginLeft(-2 px)
   )
 
 
