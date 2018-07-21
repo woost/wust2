@@ -59,5 +59,3 @@ object NodeDataParser {
       |The format support multiple types: markdown, media and tags.
     """.stripMargin
 }
-
-object PostDataWriter {}
