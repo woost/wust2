@@ -79,7 +79,7 @@ package object outwatchHelpers {
   }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
-    def toHandler(implicit ctx: Ctx.Owner): Handler[T] = {
+    def unsafeToHandler(implicit ctx: Ctx.Owner): Handler[T] = {
 
       val h = Handler.create[T](rxVar.now).unsafeRunSync()
       h.filter(_ != rxVar.now).foreach(rxVar.update)
@@ -107,7 +107,7 @@ package object outwatchHelpers {
   }
 
   implicit class RichHandler[T](val o: Handler[T]) extends AnyVal {
-    def toVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
+    def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
       o.foreach(rx.update)
       rx.foreach(o.unsafeOnNext)
@@ -116,7 +116,7 @@ package object outwatchHelpers {
   }
 
   implicit class RichSink[T](val o: Sink[T]) extends AnyVal {
-    def toVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
+    def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
       rx.foreach(o.unsafeOnNext)
       rx

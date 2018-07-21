@@ -27,7 +27,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       .handlerWithoutEvents(keys.auth)
       .unsafeRunSync()
       .imap(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
-      .toVar(internal(keys.auth).flatMap(fromJson[Authentication]))
+      .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
   //TODO: howto handle with events from other tabs?
@@ -45,6 +45,6 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       .handlerWithoutEvents(keys.sidebarOpen)
       .unsafeRunSync()
       .imap(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
-      .toVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
+      .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
   }
 }
