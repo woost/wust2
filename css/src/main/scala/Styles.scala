@@ -258,15 +258,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- chatview --
-  ".chatmsg-avatar" - (
-    marginRight(10 px)
-  )
-
-  ".chatmsg-author" - (
-    fontWeight.bold,
-    color(c"#50575f")
-  )
-
   ".chatmsg-group-outer-frame" - (
     media.only.screen.minWidth(500 px) - (
       //TODO: how to use Styles.flex ?
@@ -278,14 +269,17 @@ object CommonStyles extends StyleSheet.Standalone {
     )
   )
 
+  ".chatmsg-avatar" - (
+    marginRight(10 px)
+  )
+
   ".chatmsg-group-inner-frame" - (
     width(100 %%),
     display.block,
     media.only.screen.maxWidth(500 px) - (
       marginLeft(-2 px)
+    )
   )
-
-
 
   ".chatmsg-header" - (
     fontSize(0.8 em),
@@ -293,6 +287,57 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingBottom(3 px),
     paddingLeft(2 px)
   )
+
+  ".chatmsg-author" - (
+    fontWeight.bold,
+    color(c"#50575f")
+  )
+
+  ".chatmsg-date" - (
+    marginLeft(8 px),
+    fontSize.smaller,
+    color.grey
+  )
+
+  ".chatmsg-line" - (
+    cursor.move,
+    alignItems.center,
+    padding(2 px, 20 px, 2 px, 0 px)
+  )
+
+  ".chatmsg-line .checkbox" - (
+    visibility.hidden
+  )
+
+  ".chatmsg-controls" - (
+    visibility.hidden,
+    display.flex,
+    alignItems.center,
+    paddingLeft(3 px),
+    marginLeft.auto
+  )
+
+  ".chatmsg-controls > *" - (
+    padding(3 px, 5 px)
+  )
+
+
+  // -- controls on hover --
+  // TODO: Focus is only used as a quick hack in order to use controls on mobile browser
+  ".chatmsg-line:hover, .chatmsg-line:focus" - (
+    backgroundColor(c"rgba(255,255,255,0.5)")
+  )
+
+  //TODO: how to generate this combinatorial explosion with scalacss?
+  ".chatmsg-line:hover .chatmsg-controls,"+
+  ".chatmsg-line:hover .checkbox,"+
+  ".chatmsg-line:hover .transitivetags,"+
+  ".chatmsg-line:focus .chatmsg-controls,"+
+  ".chatmsg-line:focus .chatmsg-checkbox,"+
+  ".chatmsg-line:focus .transitivetags" - (
+    visibility.visible
+  )
+
 
   val messageBackground = c"#FEFEFE"
 
@@ -447,12 +492,6 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.visible
     )
 
-  ".chatmsg-date" - (
-    marginLeft(8 px),
-    fontSize.smaller,
-    color.grey
-  )
-
   "div.tags" - (
     padding(
       0 px,
@@ -464,45 +503,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".transitivetags" - (
     visibility.hidden
-  )
-
-  ".chatmsg-controls" - (
-    visibility.hidden,
-    display.flex,
-    alignItems.center,
-    paddingLeft(3 px),
-    marginLeft.auto
-  )
-
-  ".chatmsg-controls > *" - (
-    padding(3 px, 5 px),
-    cursor.pointer
-  )
-
-  ".chatmsg-line" - (
-    cursor.move,
-    alignItems.center,
-    padding(2 px, 20 px, 2 px, 0 px)
-  )
-
-  ".chatmsg-line .checkbox" - (
-    visibility.hidden
-  )
-
-  // -- controls on hover --
-  // TODO: Focus is only used as a quick hack in order to use controls on mobile browser
-  ".chatmsg-line:hover, .chatmsg-line:focus" - (
-    backgroundColor(c"rgba(255,255,255,0.5)")
-  )
-
-  //TODO: how to generate this combinatorial explosion with scalacss?
-  ".chatmsg-line:hover .chatmsg-controls,"+
-  ".chatmsg-line:hover .checkbox,"+
-  ".chatmsg-line:hover .transitivetags,"+
-  ".chatmsg-line:focus .chatmsg-controls,"+
-  ".chatmsg-line:focus .chatmsg-checkbox,"+
-  ".chatmsg-line:focus .transitivetags" - (
-    visibility.visible
   )
 
   ".text" - (
