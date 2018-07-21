@@ -128,14 +128,8 @@ object Topbar {
       }))
     })
 
-    val isOnline = Observable.merge(
-      Client.observable.connected.map(_ => true),
-      Client.observable.closed.map(_ => false)
-    ).toRx(true)
-    val isSynced = state.eventProcessor.changesInTransit.map(_.isEmpty).toRx(true)
-
     val syncStatusIcon = Rx {
-      (isOnline(), isSynced()) match {
+      (state.isOnline(), state.isSynced()) match {
         case (true, true)  => span(syncedIcon, title := "Everything is up to date")
         case (true, false) => span(syncingIcon, title := "Syncing changes...")
         case (false, _)    => span(offlineIcon, color := "tomato", title := "Disconnected")

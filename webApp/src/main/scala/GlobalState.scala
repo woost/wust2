@@ -32,14 +32,21 @@ class GlobalState private (
     val viewConfig: Var[ViewConfig]
 )(implicit ctx: Ctx.Owner) {
 
-  val auth: Rx[Authentication] = eventProcessor.currentAuth.toRx(seed = Client.currentAuth)
+  val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = Client.currentAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val graph: Rx[Graph] = eventProcessor.graph.toRx(seed = Graph.empty)
+  val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
 
   val channels: Rx[Seq[Node]] = Rx {
     graph().channels.toSeq.sortBy(_.data.str)
   }
+
+  val isOnline = Observable.merge(
+    Client.observable.connected.map(_ => true),
+    Client.observable.closed.map(_ => false)
+  ).unsafeToRx(true)
+
+  val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
     rawPage() match {

@@ -45,18 +45,19 @@ package object outwatchHelpers {
         Cancelable(() => obs.kill())
     }
 
-    def debug(implicit ctx: Ctx.Owner): Rx[T] = { debug() }
-    def debug(name: String = "")(implicit ctx: Ctx.Owner): Rx[T] = {
+    def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
+    def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
       rx.foreach(x => println(s"$name: $x"))
-      rx
     }
-    def debug(print: T => String)(implicit ctx: Ctx.Owner): Rx[T] = {
+    def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
       rx.foreach(x => println(print(x)))
-      rx
     }
   }
 
-  implicit def observerAsSink[T](observer: Observer[T])(implicit ctx: Ctx.Owner): Sink[T] =
+  implicit def obsToCancelable(subscription: IO[Obs])(implicit s: Scheduler): IO[Cancelable] = {
+    subscription.map(obs => Cancelable(() => obs.kill()))
+  }
+  implicit def observerAsSink[T](observer: Observer[T]): Sink[T] =
     ObserverSink(observer)
 
   implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
@@ -123,7 +124,9 @@ package object outwatchHelpers {
   }
 
   implicit class RichObservable[T](val o: Observable[T]) extends AnyVal {
-    def toRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {
+    //This is unsafe, as we leak the subscription here, this should only be done
+    //for rx that are created only once in the app lifetime (e.g. in globalState)
+    def unsafeToRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {
       val rx = Var[T](seed)
       o.subscribe(new Observer.Sync[T] {
         override def onNext(elem: T): Ack = {
