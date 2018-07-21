@@ -338,7 +338,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chatmsg-line:hover .checkbox,"+
   ".chatmsg-line:hover .transitivetags,"+
   ".chatmsg-line:focus .chatmsg-controls,"+
-  ".chatmsg-line:focus .chatmsg-checkbox,"+
+  ".chatmsg-line:focus .checkbox,"+
   ".chatmsg-line:focus .transitivetags" - (
     visibility.visible
   )
@@ -409,6 +409,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".selectednodes" - (
     backgroundColor := c"#85D5FF",
     padding(5 px, 5 px, 2 px, 5 px),
+    cursor.move
   )
 
   // -- draggable node
