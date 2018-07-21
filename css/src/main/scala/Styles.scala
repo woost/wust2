@@ -465,9 +465,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable tag
   val onDragNodeTagColor = c"rgba(255,255,255,0.8)"
-  ".tag.draggable-source--is-dragging" - (
-    border(1 px, dashed, onDragNodeTagColor),
-    color := onDragNodeTagColor
+  ".tag.draggable-source--is-dragging," +
+  ".tag.draggable-source--is-dragging.draggable--over" - (
+    border(1 px, dashed, onDragNodeTagColor).important,
+    (color := onDragNodeTagColor).important,
+    backgroundColor(c"#98A3AB").important
   )
 
   // -- draggable selectednodes
