@@ -29,18 +29,22 @@ object SelectedNodes {
       Rx {
         val graph = state.graph()
         val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)
-        sortedNodeIds match {
-          case Nil => VDomModifier.empty
-          case nonEmptyNodeIds => VDomModifier(
-            cls := "selectednodes",
-            Styles.flex,
-            alignItems.center,
-            draggableAs(state, DragPayload.Nodes(sortedNodeIds)),
-            nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto, cls := "nodelist"),
-            deleteAllButton(state, nonEmptyNodeIds),
-            clearSelectionButton(state)
-          )
-        }
+        VDomModifier(
+          draggableAs(state, DragPayload.Nodes(sortedNodeIds)),
+          dragTarget(DragTarget.SelectedNodes),
+
+          sortedNodeIds match {
+            case Nil => VDomModifier.empty
+            case nonEmptyNodeIds => VDomModifier(
+              cls := "selectednodes",
+              Styles.flex,
+              alignItems.center,
+              nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto, cls := "nodelist"),
+              deleteAllButton(state, nonEmptyNodeIds),
+              clearSelectionButton(state)
+            )
+          }
+        )
       }
     )
   }
