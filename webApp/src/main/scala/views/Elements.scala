@@ -9,7 +9,7 @@ import org.scalajs.dom.window
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{EmitterBuilder, SimpleEmitterBuilder}
+import outwatch.dom.helpers.{EmitterBuilder, CustomEmitterBuilder}
 import rx._
 import views.MediaViewer
 import wust.graph._
@@ -82,21 +82,23 @@ object Elements {
       .preventDefault
 
   val onGlobalEscape = 
-    SimpleEmitterBuilder { observer: Observer[dom.KeyboardEvent] =>
-      VDomModifier(managed(IO(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape).subscribe(observer)))).unsafeRunSync
+    CustomEmitterBuilder { sink: Sink[dom.KeyboardEvent] =>
+      VDomModifier(
+        managed(sink <-- events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
+      )
     }
 
-  def valueWithEnter: SimpleEmitterBuilder[String, Modifier] = SimpleEmitterBuilder {
-    (observer: Observer[String]) =>
-      (for {
+  def valueWithEnter: CustomEmitterBuilder[String, Modifier] = CustomEmitterBuilder {
+    (sink: Sink[String]) =>
+      for {
         userInput <- Handler.create[String]
         clearHandler = userInput.map(_ => "")
         modifiers <- Seq(
           value <-- clearHandler,
           onEnter.value.filter(_.nonEmpty) --> userInput,
-            managed(IO(userInput.subscribe(observer)))
+          managed(sink <-- userInput)
         )
-      } yield modifiers).unsafeRunSync() //TODO: https://github.com/OutWatch/outwatch/issues/195
+      } yield modifiers
   }
 
   def nodeTag(state: GlobalState, tag: Node): VNode = {
