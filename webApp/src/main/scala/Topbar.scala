@@ -57,7 +57,9 @@ object Topbar {
             fontWeight.bold,
             "Woost",
             color := "white",
-            textDecoration := "none"
+            textDecoration := "none",
+            onClick(ViewConfig.default) --> state.viewConfig,
+            cursor.pointer
           )
       ),
       div(
