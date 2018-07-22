@@ -1,6 +1,7 @@
 package wust.webApp
 
-import monix.execution.Scheduler
+import monix.execution.{Ack,Scheduler}
+import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import shopify.draggable.{DragEvent, DragOutEvent, DragOverEvent, Draggable}
 import wust.graph.GraphChanges
@@ -33,11 +34,24 @@ object DragTarget extends wust.ids.serialize.Circe {
   val attrName = "data-dragtarget"
 }
 
+sealed trait DragStatus
+object DragStatus {
+  case object None extends DragStatus
+  case object Dragging extends DragStatus
+}
+
 class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: Scheduler) {
   private val dragOverEvent = PublishSubject[DragOverEvent]
   private val dragOutEvent = PublishSubject[DragOutEvent]
-  private val dragEvent = PublishSubject[DragEvent]
-  private val lastDragTarget = PublishSubject[Option[DragTarget]]
+  private val dragStartEvent = PublishSubject[DragEvent] //TODO type event
+  private val dragStopEvent = PublishSubject[DragEvent] //TODO type event
+  private val lastDragTarget = PublishSubject[Option[DragTarget]] //TODO: observable derived from other subjects
+
+  val status: Observable[DragStatus] = Observable.merge(dragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
+
+  private val currentDragPayload: Observable[Option[DragPayload]] = dragStopEvent.map { e =>
+    decode[DragPayload](e.source.attributes.getNamedItem(DragPayload.attrName).value).toOption
+  }
 
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
@@ -56,22 +70,16 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
     }
   }
 
-  dragOverEvent.foreach { e =>
+  dragOverEvent.map { e =>
     val target = decode[DragTarget](e.over.attributes.getNamedItem(DragTarget.attrName).value).toOption
     scribe.info(s"Dragging over: $target")
-    lastDragTarget.onNext(target)
-  }
+    target
+  }.subscribe(lastDragTarget)
 
-  dragOutEvent.foreach { e =>
-    lastDragTarget.onNext(None)
-  }
+  dragOutEvent.map(_ => None).subscribe(lastDragTarget)
 
-  dragEvent
-    .withLatestFrom(lastDragTarget){(e, targetOpt) =>
-      val payloadOpt = decode[DragPayload](e.source.attributes.getNamedItem(DragPayload.attrName).value).toOption
-      (payloadOpt, targetOpt)
-    }
-    .foreach {
+  currentDragPayload
+    .withLatestFrom(lastDragTarget){
       case (Some(payload), Some(target)) =>
         val changes = (payload,target) match {
           case (DragPayload.Node(draggingId), DragTarget.Node(targetId)) => addTag(draggingId, targetId)
@@ -91,10 +99,13 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
       case _ =>
     }
+    .subscribe(
+      _ => Ack.Continue,
+      e => scribe.error("Error in drag events", e)
+    )
 
-  draggable.on[DragOverEvent]("drag:over", e => {
-    dragOverEvent.onNext(e)
-  })
+  draggable.on[DragOverEvent]("drag:over", dragOverEvent.onNext(_))
   draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
-  draggable.on[DragEvent]("drag:stop", dragEvent.onNext(_))
+  draggable.on[DragEvent]("drag:start", dragStartEvent.onNext(_))
+  draggable.on[DragEvent]("drag:stop", dragStopEvent.onNext(_))
 }
