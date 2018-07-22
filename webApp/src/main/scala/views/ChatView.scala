@@ -61,12 +61,20 @@ object ChatView extends View {
       flexDirection.column,
       alignItems.stretch,
       alignContent.stretch,
-      chatHistory(state)(ctx)(
+      height := "100%",
+      div(
+        Styles.flex,
+        flexDirection.row,
         height := "100%",
-        overflow.auto,
-        backgroundColor <-- state.pageStyle.map(_.bgLightColor)
+        chatHistory(state).apply(
+          height := "100%",
+          width := "100%",
+          overflow.auto,
+          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+        ),
+        TagsList(state).apply(Styles.flexStatic, overflow.auto)
       ),
-      inputField(state)(ctx)(Styles.flexStatic)
+      inputField(state).apply(Styles.flexStatic)
     )
   }
 
