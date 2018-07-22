@@ -34,7 +34,18 @@ object SelectedNodes {
           dragTarget(DragTarget.SelectedNodes),
 
           sortedNodeIds match {
-            case Nil => VDomModifier.empty
+            case Nil => state.dragEvents.status.map {
+              case DragStatus.None =>
+                VDomModifier.empty
+              case DragStatus.Dragging => VDomModifier(
+                cls := "selectednodes",
+                position := "absolute",
+                bottom := "0px",
+                height := "20px",
+                width := "100%",
+                textAlign.center
+              )
+            }
             case nonEmptyNodeIds => VDomModifier(
               cls := "selectednodes",
               Styles.flex,
