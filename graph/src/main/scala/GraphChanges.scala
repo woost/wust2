@@ -105,7 +105,7 @@ object GraphChanges {
     else {
       val directParents = graph.parents(nodeIds.head).toSet
       val pageParents = page.parentIdSet
-      val parentIds = directParents intersect pageParents
+      val parentIds = directParents ++ pageParents
       delete(nodeIds, parentIds)
     }
   }
