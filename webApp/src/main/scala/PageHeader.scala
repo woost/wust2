@@ -19,28 +19,35 @@ object PageHeader {
     import state._
     div(
       padding := "5px 10px",
-      pageParentNodes.map(_.map { parent =>
-        div(
-          Styles.flex,
-          alignItems.center,
-          Avatar.node(parent.id)(
-            width := "40px",
-            height := "40px",
-            marginRight := "10px",
-            Styles.flexStatic
-          ),
-          editableNodeOnClick(state, parent, state.eventProcessor.changes)(ctx)(fontSize := "20px"),
-          state.user.map { user =>
-            if (user.channelNodeId == parent.id) Seq.empty
-            else
-              Seq[VDomModifier](
-                bookMarkControl(state, parent)(ctx)(margin := "0px 10px"),
-                joinControl(state, parent)(ctx)(marginLeft := "auto"),
-              )
-          }
+      overflowX.auto,
+      Rx {
+        pageParentNodes().map { channel => channelRow(state, channel) },
+      }
+    )
+  }
+
+  private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      Styles.flex,
+      alignItems.center,
+
+      channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
+      editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(fontSize := "20px"),
+      Rx {
+        (channel.id != state.user().channelNodeId).ifTrueSeq(
+          Seq[VDomModifier](
+            bookMarkControl(state, channel)(ctx)(margin := "0px 10px"),
+            joinControl(state, channel)(ctx)(marginLeft := "auto"),
+          )
         )
-      }),
-      overflowX.auto
+      }
+    )
+  }
+
+  private def channelAvatar(nodeId:NodeId, size:Int) = {
+    Avatar.node(nodeId)(
+      width := s"${size}px",
+      height := s"${size}px"
     )
   }
 
