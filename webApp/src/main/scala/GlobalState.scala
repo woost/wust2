@@ -58,12 +58,9 @@ class GlobalState private (
   }
 
   val pageIsBookmarked: Rx[Boolean] = Rx {
-    page() match {
-      case p: Page.Selection => p.parentIds.forall(
-        graph().children(user().channelNodeId).contains
-      )
-      case Page.NewGroup(_) => true
-    }
+    page().parentIds.forall(
+      graph().children(user().channelNodeId).contains
+    )
   }
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
@@ -164,7 +161,13 @@ object GlobalState {
             case Page.NewGroup(nodeId) =>
               val changes = GraphChanges.newGroup(nodeId, MainViewParts.newGroupTitle(state), user.channelNodeId)
               eventProcessor.enriched.changes.onNext(changes)
-              Observable.empty
+              // assumed users not do not have an initial graph, so just add an
+              // initial graph with a channelsnode so the channels list works
+              user match {
+                case AuthUser.Assumed(_, channelNodeId) =>
+                  Observable(ReplaceGraph(Graph(Node.Content(channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) :: Nil)))
+                case _ => Observable.empty
+              }
           }
       }
       .subscribe(additionalManualEvents)
