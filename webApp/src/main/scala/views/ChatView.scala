@@ -349,7 +349,15 @@ object ChatView extends View {
         cls := "field",
         valueWithEnter --> sideEffect { str =>
           val graph = state.graphContent.now
-          val changes = NodeDataParser.addNode(str, contextNodes = graph.nodes)
+          val selectedNodeIds = state.selectedNodeIds.now
+          val changes = if (selectedNodeIds.isEmpty) {
+            NodeDataParser.addNode(str, contextNodes = graph.nodes)
+          } else {
+            val newNode = Node.Content.empty
+            val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes, baseNode = newNode)
+            val parentChanges = GraphChanges.addToParents(newNode.id, selectedNodeIds)
+            nodeChanges merge parentChanges
+          }
           state.eventProcessor.enriched.changes.onNext(changes)
         },
         disabled <-- disableUserInput,

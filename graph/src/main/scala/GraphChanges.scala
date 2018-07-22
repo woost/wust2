@@ -85,6 +85,12 @@ object GraphChanges {
     }(breakOut)
   )
 
+  def addToParents(nodeId: NodeId, parentIds: Iterable[NodeId]) = GraphChanges(
+    addEdges = parentIds.map { parentId =>
+      Edge.Parent(nodeId, parentId)
+    }(breakOut)
+  )
+
   def newGroup(nodeId: NodeId, title: String, channelNodeId: NodeId) = {
     val post = new Node.Content(
       nodeId,
