@@ -14,9 +14,10 @@ object TagsList  {
 
     val sidebarVisible = Var[Boolean](false)
 
-    val sidebarWidth = "150px"
     val tagSidebar = VDomModifier(
-      width := sidebarWidth,
+      overflow.auto,
+      height := "100%",
+      width := "150px",
       Styles.flex,
       flexDirection.columnReverse,
       Rx {
@@ -33,26 +34,36 @@ object TagsList  {
       }
     )
 
+    val overlay = VDomModifier(
+      position := "absolute", //TODO: better?
+      bottom := "100px",
+      right := "0px"
+    )
 
     val sidebarToggleControl = div(
       freeSolid.faHashtag,
       onClick.map(_ => !sidebarVisible.now) --> sidebarVisible,
       cursor.pointer,
-      position := "absolute", //TODO: better?
-      bottom := "50px",
       paddingRight := "5px"
     )
 
     div(
-      state.screenSize.map {
+      state.screenSize.map[VDomModifier] {
         case ScreenSize.Desktop => tagSidebar
-        case ScreenSize.Mobile => VDomModifier(Rx {
-          if (sidebarVisible()) VDomModifier(
-            tagSidebar,
-            sidebarToggleControl(right := sidebarWidth)
+        case ScreenSize.Mobile => Rx {
+          if (sidebarVisible())
+          VDomModifier(
+            Styles.flex,
+            flexDirection.row,
+            alignItems.flexEnd,
+            overflow.auto,
+            height := "60%",
+            sidebarToggleControl,
+            div(tagSidebar),
+            overlay
           )
-          else sidebarToggleControl(right := "0px")
-        })
+          else sidebarToggleControl(overlay)
+        }
       }
     )
   }

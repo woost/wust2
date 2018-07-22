@@ -72,7 +72,7 @@ object ChatView extends View {
           overflow.auto,
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
-        TagsList(state).apply(Styles.flexStatic, overflow.auto)
+        TagsList(state).apply(Styles.flexStatic)
       ),
       inputField(state).apply(Styles.flexStatic)
     )
