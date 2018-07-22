@@ -144,8 +144,6 @@ object Elements {
   private def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int])(implicit ctx: Ctx.Owner):VNode = {
     div(
       cls := "node nodecardcompact",
-      draggableAs(state, DragPayload.Node(node.id)),
-      dragTarget(DragTarget.Node(node.id)),
       div(
         cls := "nodecardcompact-content",
         injected
@@ -155,12 +153,24 @@ object Elements {
     )
   }
   def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
-    renderNodeCardCompact(state, node, VDomModifier(renderNodeData(node.data, maxLength),
-      injected), maxLength)
+    renderNodeCardCompact(
+      state, node,
+      injected = VDomModifier(renderNodeData(node.data, maxLength), injected),
+      maxLength
+    )(ctx)(
+      draggableAs(state, DragPayload.Node(node.id)),
+      dragTarget(DragTarget.Node(node.id)),
+    )
   }
   def nodeCardCompactEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
-    renderNodeCardCompact(state, node, VDomModifier(editableNode(state, node, editable, submit, maxLength),
-        injected), maxLength)
+    renderNodeCardCompact(
+      state, node,
+      injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected),
+      maxLength
+    )(ctx)(
+      editable.map(_.ifFalseOption(draggableAs(state, DragPayload.Node(node.id)))), // prevents dragging when selecting text
+      dragTarget(DragTarget.Node(node.id)),
+    )
   }
 
 
@@ -173,12 +183,12 @@ object Elements {
     import io.circe.syntax._
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      outline := "none", // hide outline when focused
       attr(DragPayload.attrName) := payload.asJson.noSpaces,
     )
   }
 
   def registerDraggableContainer(state: GlobalState):VDomModifier = Seq(
+    outline := "none", // hides focus outline
     onInsert.asHtml --> sideEffect { elem =>
       state.draggable.addContainer(elem)
     },

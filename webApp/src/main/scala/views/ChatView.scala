@@ -307,7 +307,7 @@ object ChatView extends View {
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
 
-        draggableAs(state, DragPayload.Node(node.id)),
+        editable.map(_.ifFalseOption(draggableAs(state, DragPayload.Node(node.id)))), // prevents dragging when selecting text
         dragTarget(DragTarget.Node(node.id)),
 
         // checkbox(Styles.flexStatic),
