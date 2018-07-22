@@ -164,8 +164,12 @@ object GlobalState {
               // assumed users not do not have an initial graph, so just add an
               // initial graph with a channelsnode so the channels list works
               user match {
-                case AuthUser.Assumed(_, channelNodeId) =>
-                  Observable(ReplaceGraph(Graph(Node.Content(channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) :: Nil)))
+                case AuthUser.Assumed(userId, channelNodeId) =>
+                  Observable(ReplaceGraph(Graph(
+                    //TODO: better defaults
+                    Node.Content(channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
+                    Node.User(userId, NodeData.User(user.name, isImplicit = true, revision = 0, channelNodeId = channelNodeId), NodeMeta.User)  ::
+                    Nil)))
                 case _ => Observable.empty
               }
           }
