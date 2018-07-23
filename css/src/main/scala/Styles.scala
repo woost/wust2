@@ -407,7 +407,7 @@ object CommonStyles extends StyleSheet.Standalone {
     )
 
   ".selectednodes" - (
-    backgroundColor := c"#85D5FF",
+    backgroundColor(c"#85D5FF"),
     padding(5 px, 5 px, 2 px, 5 px),
     cursor.move
   )
@@ -451,7 +451,7 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(white).important,
     (boxShadow := none).important,
     border(1 px, dashed, onDragNodeCardCompactColor).important,
-    (color := onDragNodeCardCompactColor).important,
+    color(onDragNodeCardCompactColor).important,
   )
 
   // -- draggable chanelicon
@@ -469,7 +469,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".tag.draggable-source--is-dragging," +
   ".tag.draggable-source--is-dragging.draggable--over" - (
     border(1 px, dashed, onDragNodeTagColor).important,
-    (color := onDragNodeTagColor).important,
+    color(onDragNodeTagColor).important,
     backgroundColor(c"#98A3AB").important
   )
 
