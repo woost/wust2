@@ -84,7 +84,7 @@ package object outwatchHelpers {
     def unsafeToHandler(implicit ctx: Ctx.Owner): Handler[T] = {
 
       val h = Handler.create[T](rxVar.now).unsafeRunSync()
-      h.filter(_ != rxVar.now).foreach(rxVar.update)
+      h.filter(_ != rxVar.now).subscribe(new VarObserver(rxVar))
       rxVar.foreach(h.unsafeOnNext)
       h
     }
@@ -111,7 +111,7 @@ package object outwatchHelpers {
   implicit class RichHandler[T](val o: Handler[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
-      o.foreach(rx.update)
+      o.subscribe(new VarObserver(rx))
       rx.foreach(o.unsafeOnNext)
       rx
     }
@@ -130,14 +130,7 @@ package object outwatchHelpers {
     //for rx that are created only once in the app lifetime (e.g. in globalState)
     def unsafeToRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {
       val rx = Var[T](seed)
-      o.subscribe(new Observer.Sync[T] {
-        override def onNext(elem: T): Ack = {
-          rx() = elem
-          Ack.Continue
-        }
-        override def onError(ex: Throwable): Unit = throw ex
-        override def onComplete(): Unit = ()
-      })
+      o.subscribe(new VarObserver(rx))
       rx
     }
 
@@ -172,7 +165,6 @@ package object outwatchHelpers {
   import scalacss.defaults.Exports.StyleA
   implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
-
   implicit object VDomModifierEmpty extends Empty[VDomModifier] {
     def empty = VDomModifier.empty
   }
@@ -191,4 +183,12 @@ package object outwatchHelpers {
     def asSvg: EmitterBuilder[E, dom.svg.Element, H] = builder.map(_.asInstanceOf[dom.svg.Element])
   }
 
+  class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
+    override def onNext(elem: T): Ack = {
+      rx() = elem
+      Ack.Continue
+    }
+    override def onError(ex: Throwable): Unit = throw ex
+    override def onComplete(): Unit = ()
+  }
 }
