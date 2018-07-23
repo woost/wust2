@@ -8,11 +8,13 @@ import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
-import org.scalajs.dom.document
-import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
-import outwatch.dom.{Attribute, Handler, OutWatch, VDomModifier, VNode, dsl, ModifierStreamReceiver}
+import org.scalajs.dom
+import org.scalajs.dom.{Element, document}
+import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
+import outwatch.dom.{Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
 import outwatch.{AsVDomModifier, ObserverSink, Sink}
 import rx._
+import wust.util.Empty
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -169,4 +171,24 @@ package object outwatchHelpers {
 
   import scalacss.defaults.Exports.StyleA
   implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
+
+
+  implicit object VDomModifierEmpty extends Empty[VDomModifier] {
+    def empty = VDomModifier.empty
+  }
+
+
+  //TODO: put in outwatch?
+  val onDomElementChange = CustomEmitterBuilder[dom.Element, Modifier](sink => VDomModifier(
+    outwatch.dom.dsl.onInsert --> sink,
+    outwatch.dom.dsl.onPostPatch.map(_._2) --> sink
+  ))
+
+  //TODO: put in outwatch
+  implicit class TypedElements[E <: Element, H](builder: EmitterBuilder[E, E, H]) {
+    def asHtml: EmitterBuilder[E, dom.html.Element, H] = builder.map(_.asInstanceOf[dom.html.Element])
+
+    def asSvg: EmitterBuilder[E, dom.svg.Element, H] = builder.map(_.asInstanceOf[dom.svg.Element])
+  }
+
 }

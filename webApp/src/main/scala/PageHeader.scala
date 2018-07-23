@@ -2,10 +2,12 @@ package wust.webApp
 
 import fontAwesome._
 import org.scalajs.dom
-import org.scalajs.dom.console
+import org.scalajs.dom.{Element, console}
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
 import rx._
+
 import scala.scalajs.js
 import wust.css.Styles
 import wust.graph._
@@ -35,10 +37,15 @@ object PageHeader {
       channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
       editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(fontSize := "20px", marginRight := "auto"),
       Rx {
-        (channel.id != state.user().channelNodeId).ifTrueSeq(
-          Seq[VDomModifier](
-            bookMarkControl(state, channel)(ctx)(margin := "0px 10px"),
-            settingsMenu(state, channel)(ctx)(),
+        val bookmarked = state
+          .graph()
+          .children(state.user().channelNodeId)
+          .contains(channel.id)
+
+        (channel.id != state.user().channelNodeId).ifTrue(
+          VDomModifier(
+            bookmarked.ifFalse[VDomModifier](bookMarkControl(state, channel)(ctx)(marginRight := "10px")),
+            settingsMenu(state, channel, bookmarked)(ctx),
           )
         )
       }
@@ -52,43 +59,26 @@ object PageHeader {
     )
   }
 
-  private def bookMarkControl(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = div(
-    Rx {
-      (state
-        .graph()
-        .children(state.user().channelNodeId)
-        .contains(node.id) match {
-        case true  => freeSolid.faBookmark
-        case false => freeRegular.faBookmark
-      }): VNode //TODO: implicit for Rx[IconDefinition] ?
-    },
-    fontSize := "20px",
-    cursor.pointer,
-    onClick --> sideEffect { _ =>
-      val changes = state.graph.now
-        .children(state.user.now.channelNodeId)
-        .contains(node.id) match {
-        case true =>
-          GraphChanges.disconnectParent(node.id, state.user.now.channelNodeId)
-        case false =>
-          GraphChanges.connectParent(node.id, state.user.now.channelNodeId)
-      }
-      state.eventProcessor.changes.onNext(changes)
-    }
-  )
+  private def bookMarkControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
+    div(
+      freeRegular.faBookmark,
+      fontSize := "20px",
+      cursor.pointer,
+      onClick(GraphChanges.connectParent(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+    )
 
-  private def settingsMenu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner):VNode = {
+  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean)(implicit ctx: Ctx.Owner):VNode = {
     // https://semantic-ui.com/modules/dropdown.html#pointing
     div(
       cls := "ui icon top left pointing dropdown",
       (freeSolid.faCog:VNode)(fontSize := "20px"),
       div(
         cls := "menu",
-        div( cls := "header", "Settings"),
+        div( cls := "header", "Settings", cursor.default),
         div(
           cls := "item",
           i(cls := "dropdown icon"),
-          span(cls := "text", "Permissions"),
+          span(cls := "text", "Permissions", cursor.default),
           div(
             cls := "menu",
             PermissionSelection.all.map { selection =>
@@ -106,13 +96,20 @@ object PageHeader {
                   }
                   GraphChanges.addNode(nextNode)
                 } --> state.eventProcessor.changes
-              ),
-            },
+              )
+            }
           )
-        )
+        ),
+
+        bookmarked.ifTrueOption(div(
+          cls := "item",
+          span(cls := "text", "Leave Channel", cursor.pointer),
+
+          onClick(GraphChanges.disconnectParent(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+        ))
       ),
       // https://semantic-ui.com/modules/dropdown.html#/usage
-      onInsert.asHtml --> sideEffect { elem =>
+      onDomElementChange.asHtml --> sideEffect { elem =>
         import semanticUi.JQuery._
         $(elem).dropdown()
       }
