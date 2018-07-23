@@ -82,10 +82,10 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
     .withLatestFrom(lastDragTarget){
       case (Some(payload), Some(target)) =>
         val changes = (payload,target) match {
-          case (DragPayload.Node(draggingId), DragTarget.Node(targetId)) => addTag(draggingId, targetId)
+          case (DragPayload.Node(draggingId), DragTarget.Node(targetId)) => addTag(targetId, draggingId)
           case (DragPayload.Node(draggingId), DragTarget.Tag(targetId)) => addTag(draggingId, targetId)
           case (DragPayload.Tag(draggingId), DragTarget.Node(targetId)) => addTag(targetId, draggingId)
-          case (DragPayload.Tag(draggingId), DragTarget.Tag(targetId)) => addTag(draggingId, targetId)
+          case (DragPayload.Tag(draggingId), DragTarget.Tag(targetId)) => addTag(targetId, draggingId)
 
           case (DragPayload.Tag(draggingId), DragTarget.SelectedNodes) => state.selectedNodeIds.update(_ + draggingId)
           case (DragPayload.Node(draggingId), DragTarget.SelectedNodes) => state.selectedNodeIds.update(_ + draggingId)
