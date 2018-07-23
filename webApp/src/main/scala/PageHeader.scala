@@ -6,6 +6,7 @@ import org.scalajs.dom.console
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import scala.scalajs.js
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -14,12 +15,12 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 
+
 object PageHeader {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     div(
       padding := "5px 10px",
-      overflowX.auto,
       Rx {
         pageParentNodes().map { channel => channelRow(state, channel) },
       }
@@ -32,12 +33,12 @@ object PageHeader {
       alignItems.center,
 
       channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
-      editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(fontSize := "20px"),
+      editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(fontSize := "20px", marginRight := "auto"),
       Rx {
         (channel.id != state.user().channelNodeId).ifTrueSeq(
           Seq[VDomModifier](
             bookMarkControl(state, channel)(ctx)(margin := "0px 10px"),
-            joinControl(state, channel)(ctx)(marginLeft := "auto"),
+            settingsMenu(state, channel)(ctx)(),
           )
         )
       }
@@ -76,30 +77,47 @@ object PageHeader {
     }
   )
 
-  private def joinControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    select(
-      cls := "ui dropdown selection",
-      onChange.value.map { value =>
-        val newAccess = PermissionSelection.all.find(_.value == value).get.access
-        val nextNode = channel match {
-          case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = newAccess))
-          case _               => ??? //FIXME
-        }
-        GraphChanges.addNode(nextNode)
-      } --> state.eventProcessor.changes,
-      PermissionSelection.all.map { selection =>
-        option(
-          (channel.meta.accessLevel == selection.access).ifTrueOption(selected := true),
-          value := selection.value,
-          renderFontAwesomeIcon(selection.icon)(cls := "icon"),
-          Rx {
-            selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
-          }
+  private def settingsMenu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner):VNode = {
+    // https://semantic-ui.com/modules/dropdown.html#pointing
+    div(
+      cls := "ui icon top left pointing dropdown",
+      (freeSolid.faCog:VNode)(fontSize := "20px"),
+      div(
+        cls := "menu",
+        div( cls := "header", "Settings"),
+        div(
+          cls := "item",
+          i(cls := "dropdown icon"),
+          span(cls := "text", "Permissions"),
+          div(
+            cls := "menu",
+            PermissionSelection.all.map { selection =>
+              div(
+                cls := "item",
+                (channel.meta.accessLevel == selection.access).ifTrueOption(i(cls := "check icon")),
+                // value := selection.value,
+                Rx {
+                  selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
+                },
+                onClick{
+                  val nextNode = channel match {
+                    case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = selection.access))
+                    case _               => ??? //FIXME
+                  }
+                  GraphChanges.addNode(nextNode)
+                } --> state.eventProcessor.changes
+              ),
+            },
+          )
         )
+      ),
+      // https://semantic-ui.com/modules/dropdown.html#/usage
+      onInsert.asHtml --> sideEffect { elem =>
+        import semanticUi.JQuery._
+        $(elem).dropdown()
       }
     )
   }
-
 }
 
 case class PermissionSelection(
