@@ -366,7 +366,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecardcompact-content" - (
     wordWrap.breakWord,
-    wordBreak.breakAll,
+    wordBreak := "break-word",
     padding(2 px, 4 px),
     /* display.inlineBlock, */
     border(1 px, solid, transparent) /* placeholder for the dashed border when dragging */

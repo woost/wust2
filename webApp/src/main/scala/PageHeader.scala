@@ -35,7 +35,12 @@ object PageHeader {
       alignItems.center,
 
       channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
-      editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(fontSize := "20px", marginRight := "auto"),
+      editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
+        fontSize := "20px",
+        marginRight := "auto",
+        wordWrap.breakWord,
+        style("word-break") := "break-word",
+      ),
       Rx {
         val bookmarked = state
           .graph()
