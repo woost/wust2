@@ -224,18 +224,16 @@ object Elements {
   def editableNode(state: GlobalState, node: Node.Content, editable:Var[Boolean], submit:Observer[GraphChanges], maxLength: Option[Int])(
       implicit ctx: Ctx.Owner
   ): VNode = {
-    val currentText = Var("")
 
-    editable.filter(_ == true).foreach { _ =>
-      currentText() = node.data.str // on edit show markdown code
-    }
+    val initialRender:Var[VDomModifier] = Var(renderNodeData(node.data, maxLength))
 
-    def save(): Unit = {
+    def save(text:String): Unit = {
       if(editable.now) {
         val graph = state.graphContent.now
-        val changes = NodeDataParser.addNode(currentText.now, contextNodes = graph.nodes, baseNode = node)
+        val changes = NodeDataParser.addNode(text, contextNodes = graph.nodes, baseNode = node)
         submit.onNext(changes)
 
+        initialRender() = renderNodeData(changes.addNodes.head.data)
         editable() = false
       }
     }
@@ -246,7 +244,6 @@ object Elements {
       }
     }
 
-    val initialRender = renderNodeData(node.data, maxLength)
     div(
       Rx {
         if(editable()) VDomModifier(
@@ -256,11 +253,10 @@ object Elements {
           cursor.auto,
 
           onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},
-          onInput.map(_.target.textContent) --> currentText,
 
-          onEnter --> sideEffect { save() },
+          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
           onBlur --> sideEffect { discardChanges() },
-        ) else initialRender
+        ) else initialRender()
       }
     )
   }
