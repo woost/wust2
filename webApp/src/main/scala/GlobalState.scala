@@ -35,7 +35,16 @@ class GlobalState private (
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = Client.currentAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
+  val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty).map { graph =>
+    if (graph.isEmpty) {
+      val u = user.now
+      Graph(
+        //TODO: better defaults
+        Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
+        Node.User(u.id, NodeData.User(u.name, isImplicit = true, revision = 0, channelNodeId = u.channelNodeId), NodeMeta.User)  ::
+        Nil)
+    } else graph
+  }
 
   val channels: Rx[Seq[Node]] = Rx {
     graph().channels.toSeq.sortBy(_.data.str)
@@ -161,17 +170,7 @@ object GlobalState {
             case Page.NewGroup(nodeId) =>
               val changes = GraphChanges.newGroup(nodeId, MainViewParts.newGroupTitle(state), user.channelNodeId)
               eventProcessor.enriched.changes.onNext(changes)
-              // assumed users not do not have an initial graph, so just add an
-              // initial graph with a channelsnode so the channels list works
-              user match {
-                case AuthUser.Assumed(userId, channelNodeId) =>
-                  Observable(ReplaceGraph(Graph(
-                    //TODO: better defaults
-                    Node.Content(channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-                    Node.User(userId, NodeData.User(user.name, isImplicit = true, revision = 0, channelNodeId = channelNodeId), NodeMeta.User)  ::
-                    Nil)))
-                case _ => Observable.empty
-              }
+              Observable.empty
           }
       }
       .subscribe(additionalManualEvents)
