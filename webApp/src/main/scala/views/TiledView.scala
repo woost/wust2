@@ -30,8 +30,8 @@ class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends V
         div(
           cls := "viewgridAuto",
           state.screenSize.map {
-            case ScreenSize.Desktop => appliedViews.map(_.value)
-            case ScreenSize.Mobile  => appliedViews.head.value :: Nil
+            case ScreenSize.Large => appliedViews.map(_.value)
+            case _  => appliedViews.head.value :: Nil
           }
         )
     }

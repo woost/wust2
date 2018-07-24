@@ -56,8 +56,8 @@ object TagsList  {
       Rx {
         val graph = state.graphContent()
         state.screenSize() match {
-          case ScreenSize.Desktop => tagSidebar(graph)
-          case ScreenSize.Mobile =>
+          case ScreenSize.Large => tagSidebar(graph)
+          case _ =>
             if (sidebarVisible()) VDomModifier(
               Styles.flex,
               flexDirection.row,

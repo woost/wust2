@@ -30,7 +30,7 @@ object Sidebar {
     div(
       //TODO better
       managed(IO(state.page.triggerLater { _ =>
-        if (sidebarOpen.now && state.screenSize.now == ScreenSize.Mobile) sidebarOpen() = false
+        if (sidebarOpen.now && state.screenSize.now == ScreenSize.Small) sidebarOpen() = false
       })),
 
       cls := "sidebar",
@@ -43,15 +43,15 @@ object Sidebar {
             cls := "newGroupButton-large " + buttonStyles,
           ),
           state.screenSize.map {
-            case ScreenSize.Desktop => VDomModifier(
-              minWidth := "40px",
-              maxWidth := "250px"
-            )
-            case ScreenSize.Mobile => VDomModifier(
+            case ScreenSize.Small => VDomModifier(
               width := "100%",
               height := "100%",
               position.absolute,
               zIndex := 100
+            )
+            case _ => VDomModifier(
+              minWidth := "40px",
+              maxWidth := "250px"
             )
           }
         )
