@@ -24,26 +24,36 @@ object Sidebar {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state.sidebarOpen
+
     div(
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
       sidebarOpen.map {
-        case true =>
-          VDomModifier(
-            channels(state)(ctx),
-            newGroupButton(state)(ctx)(
-              cls := "newGroupButton-large " + buttonStyles,
-            ),
-          )
-        case false =>
-          VDomModifier(
-            channelIcons(state, 40)(ctx),
-            newGroupButton(state, "+")(ctx)(
-              cls := "newGroupButton-small " + buttonStyles,
-            ),
-          )
-      }
+        case true => VDomModifier(
+          channels(state)(ctx),
+          newGroupButton(state)(ctx)(
+            cls := "newGroupButton-large " + buttonStyles,
+          ),
+          state.screenSize.map {
+            case ScreenSize.Desktop => VDomModifier(
+              minWidth := "40px",
+              width := "auto",
+              maxWidth := "250px"
+            )
+            case ScreenSize.Mobile => VDomModifier(
+              width := "100%",
+              zIndex := 1
+            )
+          }
+        )
+        case false => VDomModifier(
+          channelIcons(state, 40)(ctx),
+          newGroupButton(state, "+")(ctx)(
+            cls := "newGroupButton-small " + buttonStyles,
+          ),
+        )
+      },
     )
   }
 

@@ -123,8 +123,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- sidebar --
   ".sidebar" - (
-    minWidth(40 px),
-    maxWidth(250 px),
     color.white,
     transition := "background-color 0.5s",
     Styles.flexStatic,
