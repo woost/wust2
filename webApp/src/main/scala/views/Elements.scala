@@ -101,11 +101,10 @@ object Elements {
       } yield modifiers
   }
 
-  def nodeTag(state: GlobalState, tag: Node): VNode = {
-    val contentString = Rendered.trimToMaxLength(tag.data.str, Some(20))
+  private def renderNodeTag(state: GlobalState, tag: Node, injected: VDomModifier): VNode = {
     span(
       cls := "node tag",
-      contentString, //TODO trim correctly! fit for tag usage...
+      injected,
       backgroundColor := tagColor(tag.id),
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
@@ -113,6 +112,15 @@ object Elements {
       draggableAs(state, DragPayload.Tag(tag.id)),
       dragTarget(DragTarget.Tag(tag.id))
     )
+  }
+
+  def nodeTag(state: GlobalState, tag: Node): VNode = {
+    val contentString = Rendered.trimToMaxLength(tag.data.str, Some(20))
+    renderNodeTag(state, tag, contentString)
+  }
+
+  def editableNodeTag(state: GlobalState, tag: Node, editable:Var[Boolean], submit:Observer[GraphChanges])(implicit ctx:Ctx.Owner): VNode = {
+    renderNodeTag(state, tag, editableNode(state, tag, editable, submit, Some(20)))
   }
 
   def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, graph: Graph): VNode = {
@@ -141,7 +149,7 @@ object Elements {
     )
   }
 
-  private def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int])(implicit ctx: Ctx.Owner):VNode = {
+  private def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier, maxLength: Option[Int])(implicit ctx: Ctx.Owner):VNode = {
     div(
       cls := "node nodecardcompact",
       div(
@@ -250,6 +258,7 @@ object Elements {
           node.data.str, // Markdown source code
           contentEditable := true,
           backgroundColor := "#FFF",
+          color := "#000",
           cursor.auto,
 
           onPostPatch.asHtml --> sideEffect{(_,node) => if(editable.now) node.focus()},

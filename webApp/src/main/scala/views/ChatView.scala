@@ -128,7 +128,7 @@ object ChatView extends View {
       Rx {
         val graph = graphContent()
         val nodes = graph.chronologicalNodesAscending.collect {
-          case n: Node.Content if !graph.hasChildren(n.id) => n
+          case n: Node.Content => n //  if !graph.hasChildren(n.id)
         }
         if (nodes.isEmpty) Seq(emptyChatNotice)
         else
@@ -319,7 +319,8 @@ object ChatView extends View {
         dragTarget(DragTarget.Node(node.id)),
 
         // checkbox(Styles.flexStatic),
-        nodeCardCompactEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
+        if( graph.hasChildren(node.id) ) editableNodeTag(state, node, editable, state.eventProcessor.enriched.changes)
+        else nodeCardCompactEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(isDeleted.ifTrueOption(cls := "node-deleted")),
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
         msgControls(Styles.flexStatic)
       )
