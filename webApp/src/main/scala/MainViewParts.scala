@@ -2,7 +2,6 @@ package wust.webApp
 
 import fontAwesome._
 import fontAwesome.freeSolid._
-import outwatch.ObserverSink
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._

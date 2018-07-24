@@ -76,6 +76,13 @@ object Edge {
     def targetId = parentId
   }
 
+  case class Notify(nodeId: NodeId, userId: UserId)
+      extends Content {
+    def sourceId = nodeId
+    def targetId = userId
+    def data = EdgeData.Notify
+  }
+
   //TODO should have constructor: label: String
   case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Content
 }

@@ -1,13 +1,13 @@
 package wust.webApp
 
 import monix.execution.Cancelable
+import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.{Event, window}
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._

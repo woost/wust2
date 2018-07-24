@@ -4,6 +4,7 @@ import outwatch.dom._
 import rx._
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom.{console, document}
+import monix.reactive.Observable
 
 import scala.scalajs.{LinkingInfo, js}
 

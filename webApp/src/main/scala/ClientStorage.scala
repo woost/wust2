@@ -24,7 +24,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   //TODO: howto handle with events from other tabs?
   val auth: Var[Option[Authentication]] = {
     LocalStorage
-      .handlerWithoutEvents(keys.auth)
+      .subjectWithoutEvents(keys.auth)
       .unsafeRunSync()
       .imap(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
       .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
@@ -33,7 +33,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   //TODO: howto handle with events from other tabs?
   val graphChanges: Handler[List[GraphChanges]] = {
     LocalStorage
-      .handlerWithoutEvents(keys.graphChanges)
+      .subjectWithoutEvents(keys.graphChanges)
       .unsafeRunSync()
       .imap(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))(
         changes => Option(toJson(changes))
@@ -42,7 +42,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
 
   val sidebarOpen: Var[Boolean] = {
     LocalStorage
-      .handlerWithoutEvents(keys.sidebarOpen)
+      .subjectWithoutEvents(keys.sidebarOpen)
       .unsafeRunSync()
       .imap(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
       .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))

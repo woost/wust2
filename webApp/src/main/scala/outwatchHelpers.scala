@@ -12,7 +12,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
-import outwatch.{AsVDomModifier, ObserverSink, Sink}
+import outwatch.{AsVDomModifier, Sink}
 import rx._
 import wust.util.Empty
 
@@ -59,8 +59,6 @@ package object outwatchHelpers {
   implicit def obsToCancelable(subscription: IO[Obs])(implicit s: Scheduler): IO[Cancelable] = {
     subscription.map(obs => Cancelable(() => obs.kill()))
   }
-  implicit def observerAsSink[T](observer: Observer[T]): Sink[T] =
-    ObserverSink(observer)
 
   implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
     (value: Rx[T]) => VDomModifier.stream(value.toLaterObservable.map(VDomModifier(_)), VDomModifier(value.now))

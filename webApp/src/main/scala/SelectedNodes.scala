@@ -5,7 +5,6 @@ import fastparse.core.Parsed
 import cats.syntax._
 import fontAwesome._
 import monix.reactive.subjects.PublishSubject
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._

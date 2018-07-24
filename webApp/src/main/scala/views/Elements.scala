@@ -6,7 +6,6 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.window
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{EmitterBuilder, CustomEmitterBuilder}

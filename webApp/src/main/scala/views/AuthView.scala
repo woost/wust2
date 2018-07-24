@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import org.scalajs.dom.raw.Element
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._

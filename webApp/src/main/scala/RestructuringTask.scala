@@ -4,7 +4,6 @@ import wust.webApp.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp.views.Elements._
@@ -199,7 +198,7 @@ sealed trait YesNoTask extends RestructuringTask {
       div(
         button(
           "Yes",
-          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
+          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
           onClick --> sideEffect(scribe.info(s"$title($postChoice) = YES")),
         ),
@@ -822,9 +821,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
       button(
         "Confirm",
         onClick(postPreview)
-          .map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(
-          state.eventProcessor.enriched.changes
-        ),
+          .map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> state.eventProcessor.enriched.changes,
         onClick(postPreview).map(
           preview =>
             TaskFeedback(
@@ -892,7 +889,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
 
   def addTagToPost(post: Posts, state: GlobalState): Sink[String] = {
 
-    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
+    state.eventProcessor.changes.redirectMap { (tag: String) =>
       val graph = getGraphFromState(state)
       val tagPostWithParents: GraphChanges = graph.nodes.find(_.data == tag) match {
         case None =>
