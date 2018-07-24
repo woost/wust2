@@ -388,6 +388,8 @@ object CommonStyles extends StyleSheet.Standalone {
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     padding(0 px, 3 px),
     marginRight(2 px),
+    marginTop(1 px),
+    marginBottom(1 px),
     whiteSpace.nowrap,
     cursor.pointer,
     display.inlineBlock
