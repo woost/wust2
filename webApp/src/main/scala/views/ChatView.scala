@@ -66,6 +66,7 @@ object ChatView extends View {
         Styles.flex,
         flexDirection.row,
         height := "100%",
+        position.relative,
         chatHistory(state).apply(
           height := "100%",
           width := "100%",
