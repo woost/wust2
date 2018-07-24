@@ -56,8 +56,8 @@ package object outwatchHelpers {
     }
   }
 
-  implicit def obsToCancelable(subscription: IO[Obs])(implicit s: Scheduler): IO[Cancelable] = {
-    subscription.map(obs => Cancelable(() => obs.kill()))
+  implicit def obsToCancelable(obs: Obs): Cancelable = {
+    Cancelable(() => obs.kill())
   }
   implicit def observerAsSink[T](observer: Observer[T]): Sink[T] =
     ObserverSink(observer)
