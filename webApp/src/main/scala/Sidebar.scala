@@ -6,6 +6,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import org.scalajs.dom.{Event, window}
 import org.scalajs.dom
+import cats.effect.IO
 
 import scala.scalajs.js
 import rx._
@@ -26,6 +27,11 @@ object Sidebar {
     import state.sidebarOpen
 
     div(
+      //TODO better
+      managed(IO(state.page.triggerLater { _ =>
+        if (sidebarOpen.now && state.screenSize.now == ScreenSize.Mobile) sidebarOpen() = false
+      })),
+
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
@@ -38,12 +44,13 @@ object Sidebar {
           state.screenSize.map {
             case ScreenSize.Desktop => VDomModifier(
               minWidth := "40px",
-              width := "auto",
               maxWidth := "250px"
             )
             case ScreenSize.Mobile => VDomModifier(
               width := "100%",
-              zIndex := 1
+              height := "100%",
+              position.absolute,
+              zIndex := 100
             )
           }
         )

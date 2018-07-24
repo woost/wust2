@@ -37,6 +37,7 @@ object MainView {
             Styles.flex,
             Styles.growFull,
             flexDirection.column,
+            position.relative,
             Rx {
               val view = state.view() //TODO: fix Rx bug, where you have to assign a value before using it
               VDomModifier(
