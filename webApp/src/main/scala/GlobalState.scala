@@ -118,6 +118,7 @@ class GlobalState private (
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
   val screenSize: Rx[ScreenSize] = events.window.onResize
+    .throttleFirst(1 second)
     .map(_ => ScreenSize.calculate())
     .unsafeToRx(ScreenSize.calculate())
 
