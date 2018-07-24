@@ -1,5 +1,6 @@
 package wust.webApp
 
+import wust.css.Styles
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.AsVDomModifier
 import outwatch.dom._
@@ -148,6 +149,7 @@ object Sidebar {
   ): VNode = {
     div(
       cls := "channelicon",
+      Styles.flexStatic,
       margin := "0",
       width := s"${size}px",
       height := s"${size}px",

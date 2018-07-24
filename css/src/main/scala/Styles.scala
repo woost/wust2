@@ -158,6 +158,8 @@ object CommonStyles extends StyleSheet.Standalone {
     display.flex,
     alignItems.center,
     cursor.pointer,
+    wordWrap.breakWord,
+    wordBreak := "break-word",
   )
 
   ".channelIcons" - (
@@ -310,6 +312,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chatmsg-line .checkbox" - (
     visibility.hidden
+  )
+
+  ".chatmsg-line > .tag" - (
+    marginLeft(3 px) // when a tag is displayed at message position
   )
 
   ".chatmsg-controls" - (
