@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.outwatchHelpers._
 import cats.data.NonEmptyList
 import cats.Eval
 import outwatch.dom._
