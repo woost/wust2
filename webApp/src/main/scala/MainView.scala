@@ -56,6 +56,7 @@ object MainView {
           )
         )
       ),
+      FeedbackForm(state),
       registerDraggableContainer(state)
     )
   }
