@@ -315,7 +315,13 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-line > .tag" - (
-    marginLeft(3 px) // when a tag is displayed at message position
+    marginLeft(3 px), // when a tag is displayed at message position
+    whiteSpace.normal, // displaying tags as content should behave like normal nodes
+  )
+
+  ".chatmsg-line > .tag *" - (
+    wordWrap.breakWord,
+    wordBreak := "break-word",
   )
 
   ".chatmsg-controls" - (
@@ -414,6 +420,11 @@ object CommonStyles extends StyleSheet.Standalone {
     whiteSpace.nowrap,
     cursor.pointer,
     display.inlineBlock
+  )
+
+  ".tag a" - (
+    color(c"#FEFEFE"),
+    textDecoration := "underline"
   )
 
   ".tagdot" - (

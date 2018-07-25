@@ -131,8 +131,8 @@ object Elements {
     renderNodeTag(state, tag, contentString)
   }
 
-  def editableNodeTag(state: GlobalState, tag: Node, editable:Var[Boolean], submit:Observer[GraphChanges])(implicit ctx:Ctx.Owner): VNode = {
-    renderNodeTag(state, tag, editableNode(state, tag, editable, submit, Some(20)))
+  def editableNodeTag(state: GlobalState, tag: Node, editable:Var[Boolean], submit:Observer[GraphChanges], maxLength:Option[Int] = Some(20))(implicit ctx:Ctx.Owner): VNode = {
+    renderNodeTag(state, tag, editableNode(state, tag, editable, submit, maxLength))
   }
 
   def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, graph: Graph): VNode = {
