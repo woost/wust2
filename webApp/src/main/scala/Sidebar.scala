@@ -21,6 +21,7 @@ import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor}
 import MainViewParts._
+import scala.concurrent.duration._
 
 object Sidebar {
 
@@ -28,11 +29,6 @@ object Sidebar {
     import state.sidebarOpen
 
     div(
-      //TODO better
-      managed(IO(state.page.triggerLater { _ =>
-        if (sidebarOpen.now && state.screenSize.now == ScreenSize.Small) sidebarOpen() = false
-      })),
-
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.darkBgColor),
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
@@ -47,7 +43,8 @@ object Sidebar {
               width := "100%",
               height := "100%",
               position.absolute,
-              zIndex := 100
+              zIndex := 100,
+              onClick(false) --> state.sidebarOpen
             )
             case _ => VDomModifier(
               minWidth := "40px",
@@ -59,7 +56,7 @@ object Sidebar {
           channelIcons(state, 40)(ctx),
           newGroupButton(state, "+")(ctx)(
             cls := "newGroupButton-small " + buttonStyles,
-          ),
+          )
         )
       },
     )
