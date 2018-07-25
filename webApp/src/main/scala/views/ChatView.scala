@@ -354,6 +354,7 @@ object ChatView extends View {
     }
 
     div(
+      padding := "3px",
       cls := "ui form",
       textArea(
         cls := "field",
