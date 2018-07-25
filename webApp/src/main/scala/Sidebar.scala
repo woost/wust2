@@ -149,6 +149,7 @@ object Sidebar {
   ): VNode = {
     div(
       cls := "channelicon",
+      outline := "none", // prevents focus outline
       Styles.flexStatic,
       margin := "0",
       width := s"${size}px",
