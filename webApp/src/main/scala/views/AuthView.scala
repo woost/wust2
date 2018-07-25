@@ -13,6 +13,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import cats.effect.IO
+import monix.reactive.Observer
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 
 import scala.concurrent.Future
@@ -97,7 +98,8 @@ object AuthView {
               margin := "auto",
               cursor.pointer
             )
-          }
+          },
+          onSubmit.preventDefault --> Observer.empty // prevent reloading the page on form submit
         )
       )
     } yield elem
