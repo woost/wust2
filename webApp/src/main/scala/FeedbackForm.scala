@@ -49,7 +49,7 @@ object FeedbackForm {
     div(
       div(
         inactiveDisplay,
-        position.fixed, bottom := "250px", right := "0",
+        position.fixed, top := "250px", right := "0",
         padding := "5px", background := "#F8F8F8", border := "1px solid #888", borderBottom := "none",
         "Give short feedback",
         style("transform") := "rotate(-90deg) translate(0,-100%)",
@@ -79,6 +79,7 @@ object FeedbackForm {
             "Show all Feedback",
             (freeRegular.faArrowAltCircleRight:VNode)(marginLeft := "5px"),
             onClick(Page(feedbackNodeId)) --> state.page.toSink,
+            onClick(false) --> show
           )
         )
       )
