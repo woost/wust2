@@ -319,6 +319,9 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-controls" - (
+    media.only.screen.maxWidth(500 px) - (
+      display.none
+    ),
     visibility.hidden,
     display.flex,
     alignItems.center,
