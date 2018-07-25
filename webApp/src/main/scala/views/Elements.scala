@@ -114,6 +114,18 @@ object Elements {
     )
   }
 
+  def nodeTagDot(state: GlobalState, tag: Node): VNode = {
+    span(
+      cls := "node tagdot",
+      backgroundColor := tagColor(tag.id),
+      onClick --> sideEffect { e =>
+        state.page() = Page(Seq(tag.id)); e.stopPropagation()
+      },
+      draggableAs(state, DragPayload.Tag(tag.id)),
+      dragTarget(DragTarget.Tag(tag.id))
+    )
+  }
+
   def nodeTag(state: GlobalState, tag: Node): VNode = {
     val contentString = Rendered.trimToMaxLength(tag.data.str, Some(20))
     renderNodeTag(state, tag, contentString)

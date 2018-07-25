@@ -340,10 +340,10 @@ object CommonStyles extends StyleSheet.Standalone {
   //TODO: how to generate this combinatorial explosion with scalacss?
   ".chatmsg-line:hover .chatmsg-controls,"+
   ".chatmsg-line:hover .checkbox,"+
-  ".chatmsg-line:hover .transitivetags,"+
+  ".chatmsg-line:hover .transitivetag,"+
   ".chatmsg-line:focus .chatmsg-controls,"+
   ".chatmsg-line:focus .checkbox,"+
-  ".chatmsg-line:focus .transitivetags" - (
+  ".chatmsg-line:focus .transitivetag" - (
     visibility.visible
   )
 
@@ -385,8 +385,20 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.default
   )
 
+  ".tags" - (
+    padding( 0 px, 3 px, 0 px, 5 px ),
+    display.flex,
+    flexWrap.wrap,
+    alignItems.center
+  )
+
+  ".transitivetag" - (
+    visibility.hidden
+  )
+
+
   val tagBorderRadius = 2.px
-  "span.tag" - (
+  ".tag" - (
     fontWeight.bold,
     fontSize.small,
     color(c"#FEFEFE"),
@@ -397,6 +409,19 @@ object CommonStyles extends StyleSheet.Standalone {
     marginTop(1 px),
     marginBottom(1 px),
     whiteSpace.nowrap,
+    cursor.pointer,
+    display.inlineBlock
+  )
+
+  ".tagdot" - (
+    width(1 em),
+    height(1 em),
+    borderRadius(50%%),
+    border(1 px, solid, transparent), // when dragging this will be replaced with a color
+    padding(0 px, 3 px),
+    marginRight(2 px),
+    marginTop(1 px),
+    marginBottom(1 px),
     cursor.pointer,
     display.inlineBlock
   )
@@ -473,7 +498,9 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- draggable tag
   val onDragNodeTagColor = c"rgba(255,255,255,0.8)"
   ".tag.draggable-source--is-dragging," +
-  ".tag.draggable-source--is-dragging.draggable--over" - (
+  ".tag.draggable-source--is-dragging.draggable--over," +
+  ".tagdot.draggable-source--is-dragging," +
+  ".tagdot.draggable-source--is-dragging.draggable--over" - (
     border(1 px, dashed, onDragNodeTagColor).important,
     color(onDragNodeTagColor).important,
     backgroundColor(c"#98A3AB").important
@@ -496,28 +523,15 @@ object CommonStyles extends StyleSheet.Standalone {
     borderRadius(3 px)
   )
 
-  // -- draggable actionbutton, transitivetags
+  // -- draggable actionbutton, transitivetag
   ".node.draggable--over .actionbutton" - (
     backgroundColor.inherit.important,
     cursor.move.important
   )
 
-  ".chatmsg-line.draggable-source--is-dragging .transitivetags" - (
+  ".chatmsg-line.draggable-source--is-dragging .transitivetag" - (
     visibility.visible
     )
-
-  "div.tags" - (
-    padding(
-      0 px,
-      3 px,
-      0 px,
-      5 px
-    )
-  )
-
-  ".transitivetags" - (
-    visibility.hidden
-  )
 
   ".text" - (
     cursor.text

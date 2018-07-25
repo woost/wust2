@@ -332,18 +332,31 @@ object ChatView extends View {
     val directNodeTags = graph.directNodeTags((node.id, state.page.now))
     val transitiveNodeTags = graph.transitiveNodeTags((node.id, state.page.now))
 
-    div(
-      cls := "tags",
-      directNodeTags.map { tag =>
-        removableNodeTag(state, tag, node.id, graph)
-      }(breakOut): Seq[VDomModifier],
-      span(
-        cls := "transitivetags",
-        transitiveNodeTags.map { tag =>
-          nodeTag(state, tag)(opacity := 0.4)
-        }(breakOut): Seq[VDomModifier]
-      )
-    )
+    Rx {
+      state.screenSize() match {
+        case ScreenSize.Small =>
+          div(
+            cls := "tags",
+            directNodeTags.map { tag =>
+              nodeTagDot(state, tag)
+            }(breakOut):Seq[VDomModifier],
+            transitiveNodeTags.map { tag =>
+              nodeTagDot(state, tag)(cls := "transitivetag", opacity := 0.4)
+            }(breakOut):Seq[VDomModifier]
+          )
+        case _ =>
+          div(
+            cls := "tags",
+            directNodeTags.map { tag =>
+              removableNodeTag(state, tag, node.id, graph)
+            }(breakOut):Seq[VDomModifier],
+            transitiveNodeTags.map { tag =>
+              nodeTag(state, tag)(cls := "transitivetag", opacity := 0.4)
+            }(breakOut):Seq[VDomModifier]
+          )
+      }
+    }
+
   }
 
   private def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
