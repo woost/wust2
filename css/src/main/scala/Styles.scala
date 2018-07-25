@@ -543,6 +543,9 @@ object CommonStyles extends StyleSheet.Standalone {
   val nonBookmarkShadowOpts = "0px 2px 10px 0px rgba(0,0,0,0.75)"
   ".non-bookmarked-page-frame" - (
     padding(20 px),
+    media.only.screen.maxWidth(500 px) - (
+      padding(7 px)
+    ),
     boxShadow := "inset " + nonBookmarkShadowOpts
   )
 
