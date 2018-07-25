@@ -84,6 +84,11 @@ Run sql from vim:
 find dbMigration/core/{sql,tests} | entr ./start test.postgres
 ```
 
+## watching database content
+```bash
+watch 'echo "SELECT * from node; select * from edge;" | docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432'
+```
+
 ## git bisect
 ```bash
 git checkout master -- start; sed -i 's/5433/5432/' start; docker-compose -p devcore -f core/docker-compose.yml -f core/docker-compose.dev.yml up -d db-migration; echo "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" | docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432; for m in $(ls dbMigration/core/sql -1v --color=none); do echo $m; cat dbMigration/core/sql/$m | docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432; done; SOURCEMAPS=true EXTRASBTARGS="webApp/clean dev" ./start nsbt
