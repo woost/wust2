@@ -253,6 +253,7 @@ object Elements {
     }
 
     div(
+      outline := "none",
       Rx {
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
