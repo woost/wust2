@@ -36,14 +36,16 @@ class GlobalState private (
   val user: Rx[AuthUser] = auth.map(_.user)
 
   val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty).map { graph =>
-    if (graph.isEmpty) {
-      val u = user.now
-      Graph(
-        //TODO: better defaults
-        Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-        Node.User(u.id, NodeData.User(u.name, isImplicit = true, revision = 0, channelNodeId = u.channelNodeId), NodeMeta.User)  ::
-        Nil)
-    } else graph
+    user.now match {
+      case u:AuthUser.Assumed =>
+        // when receiving an empty gaph from the backend, these nodes are obviously not in the graph, since the user is not persisted yet
+        graph.addNodes(
+          Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
+            Node.User(u.id, NodeData.User(u.name, isImplicit = true, revision = 0, channelNodeId = u.channelNodeId), NodeMeta.User)  ::
+            Nil
+        )
+      case _ => graph
+    }
   }
 
   val channels: Rx[Seq[Node]] = Rx {
