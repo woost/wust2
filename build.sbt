@@ -418,6 +418,7 @@ lazy val slackApp = project
   .settings(
     libraryDependencies ++=
       Deps.slackClient.value ::
+        Deps.akka.httpCirce.value ::
         Nil
   )
 
