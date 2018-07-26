@@ -76,7 +76,7 @@ object Deps {
   val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.16.0")
   val oAuthServer = dep("com.nulab-inc" %% "scala-oauth2-core" % "1.3.0")
   val oAuthAkkaProvider = dep("com.nulab-inc" %% "akka-http-oauth2-provider" % "1.3.0")
-  val oAuthClient = dep("com.github.GRBurst" % "akka-http-oauth2-client" % "c9e985f")
+  val oAuthClient = dep("com.github.GRBurst" % "akka-http-oauth2-client" % "260bf29")
 
   // database
   val quill = dep("io.getquill" %% "quill-async-postgres" % "2.5.4")
