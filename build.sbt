@@ -207,7 +207,7 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
-        Nil
+      Nil
   )
 
 lazy val utilJS = util.js
@@ -223,11 +223,14 @@ lazy val sdk = crossProject(JSPlatform, JVMPlatform)
         Deps.covenant.http.value ::
         Deps.monix.value ::
         Deps.colorado.value ::
+        Deps.oAuthClient.value ::
+        Deps.akka.httpTestkit.value ::
         Nil
   )
 
 lazy val sdkJS = sdk.js
 lazy val sdkJVM = sdk.jvm
+
 
 //TODO: rename to atoms/basetypes
 lazy val ids = crossProject(JSPlatform, JVMPlatform)

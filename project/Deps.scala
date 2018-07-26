@@ -25,6 +25,7 @@ object Deps {
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
     val testkit = dep("com.typesafe.akka" %% "akka-testkit" % version)
+    val httpTestkit = dep("com.typesafe.akka" %% "akka-http-testkit" % httpVersion)
   }
 
   // serialization
@@ -73,6 +74,9 @@ object Deps {
   val hasher = dep("com.roundeights" %% "hasher" % "1.2.0")
   val jbcrypt = dep("org.mindrot" % "jbcrypt" % "0.4")
   val jwt = dep("com.pauldijou" %% "jwt-circe" % "0.16.0")
+  val oAuthServer = dep("com.nulab-inc" %% "scala-oauth2-core" % "1.3.0")
+  val oAuthAkkaProvider = dep("com.nulab-inc" %% "akka-http-oauth2-provider" % "1.3.0")
+  val oAuthClient = dep("com.github.GRBurst" % "akka-http-oauth2-client" % "c9e985f")
 
   // database
   val quill = dep("io.getquill" %% "quill-async-postgres" % "2.5.4")
