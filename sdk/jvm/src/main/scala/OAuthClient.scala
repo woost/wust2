@@ -36,8 +36,7 @@ case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(imp
 
     val randomState = UUID.randomUUID().toString
     val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, Map(
-      //    "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
-      "redirect_uri" -> s"http://088eb7a9.ngrok.io/oauth/auth",
+      "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
       "state" -> randomState,
       "scopes" -> List("read:org", "read:user", "repo", "write:discussion").mkString(",")
     ) ++ params)
@@ -72,8 +71,7 @@ case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(imp
             grant = GrantType.AuthorizationCode,
             params = Map(
               "code" -> code,
-              // "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
-              "redirect_uri" -> s"http://088eb7a9.ngrok.io/oauth/auth",
+              "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
               "state" -> state
             )
           )

@@ -1,6 +1,7 @@
 package wust.github
 
-import covenant.http._, ByteBufferImplicits._
+import covenant.http._
+import ByteBufferImplicits._
 import sloth._
 import java.nio.ByteBuffer
 
@@ -16,13 +17,8 @@ import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
-import cats.free.Free
-import cats.implicits._
-import com.typesafe.config.ConfigFactory
-import io.circe._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -30,24 +26,26 @@ import scala.util.control.NonFatal
 import scala.collection.mutable
 import github4s.Github
 import github4s.Github._
-import github4s.GithubResponses.{GHException, GHResponse, GHResult}
-import github4s.free.domain.{Comment, Issue, NewOAuthRequest, OAuthToken, User => GHUser}
-import github4s.jvm.Implicits._
+import github4s.GithubResponses.GHResult
+import github4s.free.domain.{Comment, Issue}
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import cats.implicits._
-import github4s.app.GitHub4s
+import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
+import monix.reactive.subjects.ConcurrentSubject
 
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
 
-import scala.collection.concurrent.TrieMap
-
 object Constants {
   //TODO
-  val githubId: NodeId = ??? //NodeId("wust-github")
-  val issueTagId: NodeId = ??? //NodeId("wust-github-issue")
-  val commentTagId: NodeId = ??? //NodeId("wust-github-comment")
+  val githubNode = Node.Content(NodeData.PlainText("wust-github"))
+  val issuesNode = Node.Content(NodeData.PlainText("wust-github-issue"))
+  val commentsNode = Node.Content(NodeData.PlainText("wust-github-comment"))
+
+  val githubId: NodeId = githubNode.id //NodeId("wust-github")
+  val issueTagId: NodeId = issuesNode.id //NodeId("wust-github-issue")
+  val commentTagId: NodeId = commentsNode.id //NodeId("wust-github-comment")
 
   val label = EdgeData.Label("describes")
 
@@ -59,18 +57,14 @@ object Constants {
 
 }
 
-class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConfig)(
+class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
     implicit ec: ExecutionContext
 ) extends PluginApi {
   def connectUser(auth: Authentication.Token): Future[Option[String]] = {
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        // Step 1: Add wustId -> wustToken
-        PersistAdapter.addWustToken(verifiedAuth.user.id, verifiedAuth.token)
-
-        // Generate url called by client (e.g. WebApp)
-        AuthClient.generateAuthUrl(verifiedAuth.user.id, server, github)
+        oAuthClient.authorizeUrl(verifiedAuth.user.id).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
         None
@@ -78,67 +72,8 @@ class GithubApiImpl(client: WustClient, server: ServerConfig, github: GithubConf
   }
 
   override def importContent(identifier: String): Future[Boolean] = {
-    // Seeding.
+    // TODO: Seeding
     Future.successful(true)
-  }
-}
-
-object AuthClient {
-  import shapeless.syntax.std.function._
-  import shapeless.Generic
-
-  /** Mappings for Wust <-> Github Interactions
-    * wustUserId -> (wustToken, githubUserId)
-    * githubUserId -> (githubToken, wustUserId)
-    */
-  var oAuthRequests: TrieMap[String, UserId] = TrieMap.empty[String, UserId]
-
-  def confirmOAuthRequest(code: String, state: String): Boolean = {
-    val currRequest = oAuthRequests.get(state) match {
-      case Some(_) => true
-      case _ =>
-        scribe.error(s"Could not confirm oAuthRequest. No such request in queue")
-        false
-    }
-    code.nonEmpty && currRequest
-  }
-
-  def getToken(oAuthRequest: NewOAuthRequest): Option[OAuthToken] = {
-    (Github(None).auth.getAccessToken _)
-      .toProduct(Generic[NewOAuthRequest].to(oAuthRequest))
-      .exec[cats.Id, HttpResponse[String]]() match {
-      case Right(resp) =>
-        scribe.info(s"Received OAuthToken: ${resp.result}")
-        Some(resp.result: OAuthToken)
-      case Left(err) =>
-        scribe.error(s"Could not receive OAuthToken: ${err.getMessage}")
-        None
-    }
-  }
-
-  def generateAuthUrl(
-      userId: UserId,
-      server: ServerConfig,
-      github: GithubConfig
-  ): Option[String] = {
-    val scopes = List("read:org", "read:user", "repo", "write:discussion")
-    val redirectUri = s"http://${server.host}:${server.port}/${server.authPath}"
-
-    import github4s.jvm.Implicits._
-    Github(None).auth
-      .authorizeUrl(github.clientId, redirectUri, scopes)
-      .exec[cats.Id, HttpResponse[String]]() match {
-      case Right(GHResult(result, _, _)) =>
-        oAuthRequests.putIfAbsent(result.state, userId) match {
-          case None => Some(result.url)
-          case _ =>
-            scribe.error("Duplicate state in url generation")
-            None
-        }
-      case Left(err) =>
-        scribe.error(s"Could not generate url: ${err.getMessage}")
-        None
-    }
   }
 }
 
@@ -189,121 +124,108 @@ object AppServer {
   private def editComment(issue: Issue, comment: Comment) = GraphChanges.empty
   private def deleteComment(issue: Issue, comment: Comment) = GraphChanges.empty
 
-  def run(server: ServerConfig, github: GithubConfig, wustReceiver: WustReceiver)(
-      implicit system: ActorSystem
+  //  def run(server: ServerConfig, github: OAuthConfig, redis: RedisConfig, wustReceiver: WustReceiver)(
+  def run(config: Config, wustReceiver: WustReceiver, oAuthClient: OAuthClient)(
+      implicit system: ActorSystem, sheduler: Scheduler
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    import system.dispatcher
 
     import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
     import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]
-      .route[PluginApi](new GithubApiImpl(wustReceiver.client, server, github))
+      .route[PluginApi](new GithubApiImpl(wustReceiver.client, oAuthClient))
 
     val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(server.allowedOrigins.map(HttpOrigin(_)): _*)
+      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
 
+    val tokenObserver = ConcurrentSubject.publish[AccessToken]
+    tokenObserver.foreach{ t =>
+      scribe.info(s"persisting token: $t")
+      //          // get user information
+      //          Platform(token).users.getAuth.exec[cats.Id, HttpResponse[String]]() match {
+      //            case Right(r) =>
+      //              val wustUserId = oAuthRequests(state)
+      //              val platformUserId = r.result.id
+      //              // Platform data
+      //              PersistAdapter.addPlatformToken(platformUserId, token.get)
+      //              PersistAdapter.addWustUser(platformUserId, wustUserId)
+      //              // Wust data
+      //              PersistAdapter.addPlatformUser(wustUserId, platformUserId)
+      //            //                  PersistAdapter.oAuthRequests.remove(state)
+      //            case Left(e) => println(s"Could not authenticate with OAuthToken: ${e.getMessage}")
+      //          }
+
+
+
+    }
     val route = {
       pathPrefix("api") {
         cors(corsSettings) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
-        }
-      } ~ path(server.authPath) {
-        get {
-          parameters(('code, 'state)) { (code, state) =>
-            if (AuthClient.confirmOAuthRequest(code, state)) {
-              val tokenRequest = NewOAuthRequest(
-                github.clientId,
-                github.clientSecret,
-                code,
-                s"http://${server.host}:${server.port}/${server.authPath}",
-                state
-              )
-              val token = AuthClient.getToken(tokenRequest).map { ghToken =>
-                scribe.info(
-                  s"Verified token request(code, state) - Persisting token for user: ${AuthClient.oAuthRequests(state)}"
-                )
-                ghToken.access_token
-              }
-              Github(token).users.getAuth.exec[cats.Id, HttpResponse[String]]() match {
-                case Right(r) =>
-                  val wustUserId = AuthClient.oAuthRequests(state)
-                  val githubUserId = r.result.id
-                  // Github data
-                  PersistAdapter.addGithubToken(githubUserId, token.get)
-                  PersistAdapter.addWustUser(githubUserId, wustUserId)
-                  // Wust data
-                  PersistAdapter.addGithubUser(wustUserId, githubUserId)
-//                  PersistAdapter.oAuthRequests.remove(state)
-                case Left(e) => println(s"Could not authenticate with OAuthToken: ${e.getMessage}")
-              }
-            } else {
-              scribe.error(s"Could not verify request(code, state): ($code, $state)")
-            }
-            redirect(s"http://${server.host}:12345/#usersettings", StatusCodes.SeeOther)
-          }
-        }
-      } ~ path(server.webhookPath) {
-        post {
-          decodeRequest {
-            headerValueByName("X-GitHub-Event") {
-              case "issues" =>
-                entity(as[IssueEvent]) { issueEvent =>
-                  issueEvent.action match {
-                    case "created" =>
-                      scribe.info("Received Webhook: created issue")
-//                    if(EventCoordinator.createOrIgnore(issueEvent.issue))
-                      wustReceiver.push(List(createIssue(issueEvent.issue)))
-                    case "edited" =>
-                      scribe.info("Received Webhook: edited issue")
-                      wustReceiver.push(List(editIssue(issueEvent.issue)))
-                    case "deleted" =>
-                      scribe.info("Received Webhook: deleted issue")
-                      wustReceiver.push(List(deleteIssue(issueEvent.issue)))
-                    case a => scribe.error(s"Received unknown IssueEvent action: $a")
+        } ~ path(config.server.webhookPath) {
+          post {
+            decodeRequest {
+              headerValueByName("X-GitHub-Event") {
+                case "issues" =>
+                  entity(as[IssueEvent]) { issueEvent =>
+                    issueEvent.action match {
+                      case "created" =>
+                        scribe.info("Received Webhook: created issue")
+                        //                    if(EventCoordinator.createOrIgnore(issueEvent.issue))
+                        wustReceiver.push(List(createIssue(issueEvent.issue)))
+                      case "edited" =>
+                        scribe.info("Received Webhook: edited issue")
+                        wustReceiver.push(List(editIssue(issueEvent.issue)))
+                      case "deleted" =>
+                        scribe.info("Received Webhook: deleted issue")
+                        wustReceiver.push(List(deleteIssue(issueEvent.issue)))
+                      case a => scribe.error(s"Received unknown IssueEvent action: $a")
+                    }
+                    complete(StatusCodes.Success)
                   }
-                  complete(StatusCodes.Success)
-                }
-              case "issue_comment" =>
-                entity(as[IssueCommentEvent]) { issueCommentEvent =>
-                  issueCommentEvent.action match {
-                    case "created" =>
-                      scribe.info("Received Webhook: created comment")
-                      wustReceiver.push(
-                        List(createComment(issueCommentEvent.issue, issueCommentEvent.comment))
-                      )
-                    case "edited" =>
-                      scribe.info("Received Webhook: edited comment")
-                      wustReceiver.push(
-                        List(editComment(issueCommentEvent.issue, issueCommentEvent.comment))
-                      )
-                    case "deleted" =>
-                      scribe.info("Received Webhook: deleted comment")
-                      wustReceiver.push(
-                        List(deleteComment(issueCommentEvent.issue, issueCommentEvent.comment))
-                      )
-                    case a => scribe.error(s"Received unknown IssueCommentEvent: $a")
+                case "issue_comment" =>
+                  entity(as[IssueCommentEvent]) { issueCommentEvent =>
+                    issueCommentEvent.action match {
+                      case "created" =>
+                        scribe.info("Received Webhook: created comment")
+                        wustReceiver.push(
+                          List(createComment(issueCommentEvent.issue, issueCommentEvent.comment))
+                        )
+                      case "edited" =>
+                        scribe.info("Received Webhook: edited comment")
+                        wustReceiver.push(
+                          List(editComment(issueCommentEvent.issue, issueCommentEvent.comment))
+                        )
+                      case "deleted" =>
+                        scribe.info("Received Webhook: deleted comment")
+                        wustReceiver.push(
+                          List(deleteComment(issueCommentEvent.issue, issueCommentEvent.comment))
+                        )
+                      case a => scribe.error(s"Received unknown IssueCommentEvent: $a")
+                    }
+                    complete(StatusCodes.Success)
                   }
-                  complete(StatusCodes.Success)
-                }
-              case "ping" =>
-                scribe.info("Received ping")
-                complete(StatusCodes.Accepted)
-              case e =>
-                scribe.error(s"Received unknown GitHub Event Header: $e")
-                complete(StatusCodes.Accepted)
+                case "ping" =>
+                  scribe.info("Received ping")
+                  complete(StatusCodes.Accepted)
+                case e =>
+                  scribe.error(s"Received unknown GitHub Event Header: $e")
+                  complete(StatusCodes.Accepted)
+              }
             }
           }
         }
+      } ~ {
+        oAuthClient.route(tokenObserver)
       }
     }
 
-    Http().bindAndHandle(route, interface = server.host, port = server.port).onComplete {
+    Http().bindAndHandle(route, interface = config.server.host, port = config.server.port).onComplete {
       case Success(binding) =>
         val separator = "\n############################################################"
         val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
@@ -399,7 +321,7 @@ object WustReceiver {
 //    val changes = GraphChanges(addPosts = Set(Post(Constants.githubId, PostData.Text("wust-github"), Constants.wustUser.id)))
     // TODO: author
     val changes = GraphChanges(
-      addNodes = Set(Node.Content(Constants.githubId, NodeData.PlainText("wust-github")): Node)
+      addNodes = Set(Constants.githubNode: Node)
     )
     client.api.changeGraph(List(changes))
 
@@ -703,8 +625,8 @@ object WustReceiver {
 }
 
 object GithubClient {
-  def apply(config: GithubConfig)(implicit ec: ExecutionContext): GithubClient = {
-    new GithubClient(Github(config.accessToken))
+  def apply(accessToken: Option[String])(implicit ec: ExecutionContext): GithubClient = {
+    new GithubClient(Github(accessToken))
   }
 }
 class GithubClient(client: Github)(implicit ec: ExecutionContext) {
@@ -807,16 +729,17 @@ case object EventCoordinator {
 }
 
 object App extends scala.App {
-  import scala.concurrent.ExecutionContext.Implicits.global
+  import monix.execution.Scheduler.Implicits.global
   implicit val system: ActorSystem = ActorSystem("github")
 
   Config.load match {
+
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      val githubClient = GithubClient(config.github)
-//      val redisClient = new RedisClient(config.redis.host, config.redis.port)
-      val receiver = WustReceiver.run(config.wust, githubClient)
-//      AppServer.run(config.server, config.github, redisClient, receiver)
-      AppServer.run(config.server, config.github, receiver)
+      //      val githubClient = GithubClient(config.oauth)
+      val oAuthClient = OAuthClient.create(config.oauth, config.server)
+      val githubClient = GithubClient(Some("token")) //TODO: get token
+    val receiver = WustReceiver.run(config.wust, githubClient)
+      AppServer.run(config, receiver, oAuthClient)
   }
 }
