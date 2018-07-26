@@ -117,7 +117,7 @@ object GitHubImporter {
         val wustUserOfIssue = githubUserOfIssue match {
           case None => "unknown".asInstanceOf[UserId]
           case Some(githubUser: GHUser) =>
-            PersistAdapter.getWustUser(githubUser.id).getOrElse(UserId.fresh)
+            RedisAdapter.getWustUser(githubUser.id).getOrElse(UserId.fresh)
         }
 
         //TODO what about this userid?
