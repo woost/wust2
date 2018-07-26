@@ -139,7 +139,7 @@ object StaticData {
       var maxRadius = 0.0
       var reservedArea = 0.0
       selection.each[html.Element] { (node: html.Element, post: Node, i: Int) =>
-        staticData.bgColor(i) = computeColor(graph, post.id).toCSS
+        staticData.bgColor(i) = nodeColorWithContext(graph, post.id).toCSS
 //        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size
@@ -241,7 +241,7 @@ object StaticData {
         }.sum * aribtraryFactor
         staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i) / PI) // a = pi*r^2 solved by r = sqrt(a/pi)
 
-        val color = d3.lab(baseColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
+        val color = d3.lab(eulerBgColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
         color.opacity = 0.8
         staticData.eulerSetColor(i) = color.toString
 

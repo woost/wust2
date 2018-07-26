@@ -6,23 +6,31 @@ import wust.graph.{Graph, Page}
 import wust.ids._
 import collection.breakOut
 
+object BaseColors {
+  //TODO: ensure that these are calculated at compile time
+  val sidebarBg = RGB("#4D394B").hcl
+  val sidebarBgHighlight = RGB("#9D929B").hcl
+
+  val pageBg = RGB("#F3EFCC").hcl
+  val pageBgLight = RGB("#e2f8f2").hcl
+  val pagePorder = RGB("#95CCDF").hcl
+
+  val tag = RGB("#F45793").hcl
+  val eulerBg = RGB("#89B8FF").hcl
+}
+
 object NodeColor {
-  implicit def ColorToString(c: Color) = c.toHex
-
-  val nodeDefaultColor = RGB("#f8f8f8")
-
-  def genericBaseHue(seed: Any): Double = {
+  def genericHue(seed: Any): Double = {
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
     rnd.nextDouble() * Math.PI * 2
   }
-  @inline def baseHue(id: NodeId): Double = genericBaseHue(id)
-  def baseColor(id: NodeId) = HCL(baseHue(id), 50, 75)
-  def baseColorDark(id: NodeId) = HCL(baseHue(id), 65, 60)
-  def baseColorMixedWithDefault(id: NodeId) = mixColors(HCL(baseHue(id), 50, 75), nodeDefaultColor)
+  @inline def hue(id: NodeId): Double = genericHue(id)
+  def eulerBgColor(id: NodeId): HCL = BaseColors.eulerBg.copy(h = hue(id))
+  def tagColor(nodeId: NodeId): HCL =  BaseColors.tag.copy(h = hue(nodeId))
 
   def pageHue(page: Page): Option[Double] =
     NonEmptyList
-      .fromList(page.parentIds.map(baseColor)(breakOut): List[Color])
+      .fromList(page.parentIds.map(id => BaseColors.pageBg.copy(h = hue(id)))(breakOut): List[Color])
       .map(parentColors => mixColors(parentColors).hcl.h)
 
   def mixColors(a: Color, b: Color): LAB = {
@@ -43,11 +51,13 @@ object NodeColor {
   }
 
   def mixedDirectParentColors(graph: Graph, nodeId: NodeId): Option[Color] =
-    NonEmptyList.fromList(graph.parents(nodeId).map(baseColor).toList).map(mixColors)
+    NonEmptyList.fromList(graph.parents(nodeId).map(eulerBgColor).toList).map(mixColors)
 
-  def computeColor(graph: Graph, nodeId: NodeId): Color = {
+  def nodeColorWithContext(graph: Graph, nodeId: NodeId): Color = {
+    val nodeDefaultColor = RGB("#f8f8f8")
+
     if (graph.hasChildren(nodeId)) {
-      baseColor(nodeId)
+      eulerBgColor(nodeId)
     } else {
       if (graph.hasParents(nodeId)) {
         mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(
@@ -58,7 +68,4 @@ object NodeColor {
     }
   }
 
-  def tagColor(nodeId: NodeId): Color = {
-    baseColorDark(nodeId)
-  }
 }

@@ -105,7 +105,7 @@ object Elements {
     span(
       cls := "node tag",
       injected,
-      backgroundColor := tagColor(tag.id),
+      backgroundColor := tagColor(tag.id).toHex,
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
@@ -117,7 +117,7 @@ object Elements {
   def nodeTagDot(state: GlobalState, tag: Node): VNode = {
     span(
       cls := "node tagdot",
-      backgroundColor := tagColor(tag.id),
+      backgroundColor := tagColor(tag.id).toHex,
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },

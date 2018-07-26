@@ -28,7 +28,7 @@ object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
     paddingRight := "5px",
     height := "35px",
-    backgroundColor <-- state.pageStyle.map(_.darkBgColor),
+    backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
     color := "white",
     transition := "background-color 0.5s",
     display.flex,

@@ -252,7 +252,6 @@ object ChatView extends View {
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodes.map(chatMessageLine(state, graph, page, _)),
-        borderColor := computeColor(graph, currNode.id),
         cls := "chatmsg-group-inner-frame",
       ),
     )

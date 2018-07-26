@@ -19,7 +19,7 @@ import wust.ids._
 import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
-import wust.sdk.{ChangesHistory, NodeColor}
+import wust.sdk.{BaseColors, ChangesHistory, NodeColor}
 import MainViewParts._
 import scala.concurrent.duration._
 
@@ -30,7 +30,7 @@ object Sidebar {
 
     div(
       cls := "sidebar",
-      backgroundColor <-- state.pageStyle.map(_.darkBgColor),
+      backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
       sidebarOpen.map {
         case true => VDomModifier(
@@ -70,8 +70,8 @@ object Sidebar {
       cls := "channel",
       selected.ifTrueSeq(
         Seq(
-          color := pageStyle.darkBgColor,
-          backgroundColor := pageStyle.darkBgColorHighlight
+          color := pageStyle.sidebarBgColor,
+          backgroundColor := pageStyle.sidebarBgHighlightColor
         )
       )
     )
@@ -153,13 +153,11 @@ object Sidebar {
       height := s"${size}px",
       title := post.data.str,
       cursor.pointer,
-      backgroundColor := PageStyle.Color.baseBg
-        .copy(h = NodeColor.genericBaseHue(post.id))
-        .toHex, //TODO: make different post color tones better accessible
+      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(post.id)).toHex,
       opacity := (if (selected) 1.0 else 0.75),
       padding := (if (selected) "2px" else "4px"),
       border := (
-        if (selected) s"2px solid ${PageStyle.Color.baseBgDark.copy(h = NodeColor.genericBaseHue(post.id)).toHex}"
+        if (selected) s"2px solid ${BaseColors.sidebarBg.copy(h = NodeColor.hue(post.id)).toHex}"
         else "none"),
       Avatar.node(post.id)
     )

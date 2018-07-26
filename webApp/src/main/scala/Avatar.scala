@@ -6,7 +6,7 @@ import wust.util.Memo
 import colorado.HCL
 import outwatch.dom.{VNode, _}
 import wust.ids._
-import wust.sdk.NodeColor.genericBaseHue
+import wust.sdk.NodeColor.genericHue
 
 import scala.collection.mutable
 
@@ -95,7 +95,7 @@ object Avatar {
     val half = (n / 2) + (n % 2)
 
     val pixels = new mutable.ArrayBuffer[VNode](initialSize = area)
-    val colors = accentColorSelection(genericBaseHue(seed), rnd)
+    val colors = accentColorSelection(genericHue(seed), rnd)
     def rndColor() = randomElement(colors, rnd)
 
     // mirror on y axis
@@ -128,7 +128,7 @@ object Avatar {
     val half = (n / 2) + (n % 2)
 
     val pixels = new mutable.ArrayBuffer[VNode](initialSize = area)
-    val colors = accentColorSelection(genericBaseHue(seed), rnd)
+    val colors = accentColorSelection(genericHue(seed), rnd)
     def rndColor() = randomElement(colors, rnd)
 
     if (rnd.nextBoolean()) {

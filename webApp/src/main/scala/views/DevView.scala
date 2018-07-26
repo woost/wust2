@@ -32,7 +32,7 @@ object DevView {
       state.pageStyle.map { pageStyle =>
         Seq(
           backgroundColor := pageStyle.bgColor,
-          border := s"1px solid ${pageStyle.accentLineColor}"
+          border := s"1px solid ${pageStyle.borderColor}"
         )
       },
       cls := "shadow"
