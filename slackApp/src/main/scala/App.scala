@@ -1,5 +1,7 @@
 package wust.slack
 
+import java.nio.ByteBuffer
+
 import slack.SlackUtil
 import slack.models._
 import slack.rtm.SlackRtmClient
@@ -9,6 +11,7 @@ import wust.ids._
 import wust.graph._
 import mycelium.client.SendType
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import akka.stream.ActorMaterializer
 import monix.execution.Scheduler
 
@@ -16,6 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 import monix.reactive.Observable
+import sloth.Router
 
 object Constants {
   //TODO
@@ -23,6 +27,26 @@ object Constants {
 }
 
 case class ExchangeMessage(content: String)
+
+class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient)(
+  implicit ec: ExecutionContext
+) extends PluginApi {
+  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
+    client.auth.verifyToken(auth).map {
+      case Some(verifiedAuth) =>
+        scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
+        oAuthClient.authorizeUrl(verifiedAuth.user.id).map(_.toString())
+      case None =>
+        scribe.info(s"Invalid auth")
+        None
+    }
+  }
+
+  override def importContent(identifier: String): Future[Boolean] = {
+    // TODO: Seeding
+    Future.successful(true)
+  }
+}
 
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
@@ -52,8 +76,9 @@ object WustReceiver {
   val wustUser = ("wust-slack").asInstanceOf[UserId]
 
   def run(
-      config: WustConfig,
-      slack: SlackClient
+           config: WustConfig,
+           slackClient: SlackClient,
+           oAuthClient: OAuthClient
   )(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
@@ -70,7 +95,7 @@ object WustReceiver {
       val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
       val posts = changes.flatMap(_.addNodes)
       posts.map(p => ExchangeMessage(p.data.str)).foreach { msg =>
-        slack.send(msg).foreach { success =>
+        slackClient.send(msg).foreach { success =>
           println(s"Send message success: $success")
         }
       }
@@ -135,6 +160,24 @@ class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
   }
 }
 
+object App {
+
+  def run(config: sdk.Config, wustReceiver: WustReceiver, oAuthClient: OAuthClient)(
+    implicit system: ActorSystem, sheduler: Scheduler
+  ): Unit = {
+    import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
+    import cats.implicits._
+
+    val apiRouter = Router[ByteBuffer, Future]
+      .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient))
+
+    val corsSettings = CorsSettings.defaultSettings.copy(
+      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
+    )
+  }
+
+}
+
 object SlackClient {
   def apply(
       accessToken: String
@@ -151,11 +194,12 @@ object App extends scala.App {
   Config.load("wust.slack") match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-//      val client = SlackClient(config.oAuthConfig.accessToken.get)
       // TODO: get token for user or get a new one
-      val client = SlackClient("bla")
-      WustReceiver.run(config.wust, client).foreach {
-        case Right(receiver) => client.run(receiver)
+      val oAuthClient = OAuthClient.create(config.oauth, config.server)
+      //      val client = SlackClient(config.oAuthConfig.accessToken.get)
+      val slackClient = SlackClient("bla")
+      WustReceiver.run(config.wust, slackClient, oAuthClient).foreach {
+        case Right(receiver) => slackClient.run(receiver)
         case Left(err)       => println(s"Cannot connect to Wust: $err")
       }
   }
