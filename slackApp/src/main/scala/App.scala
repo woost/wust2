@@ -148,10 +148,12 @@ object App extends scala.App {
   import scala.concurrent.ExecutionContext.Implicits.global
   implicit val system: ActorSystem = ActorSystem("slack")
 
-  Config.load match {
+  Config.load("wust.slack") match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      val client = SlackClient(config.accessToken)
+//      val client = SlackClient(config.oAuthConfig.accessToken.get)
+      // TODO: get token for user or get a new one
+      val client = SlackClient("bla")
       WustReceiver.run(config.wust, client).foreach {
         case Right(receiver) => client.run(receiver)
         case Left(err)       => println(s"Cannot connect to Wust: $err")
