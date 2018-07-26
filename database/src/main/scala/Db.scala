@@ -131,6 +131,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         .map(_.toMap)
     }
 
+    def updateNodesForConnectedUser(userId: UserId, nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+      ctx.run(
+        infix"select id from unnest(${lift(nodeIds.toList)}::uuid[]) id where can_access_node(${lift(userId)}, id)".as[Query[NodeId]]
+      )
+    }
+
     def subscribeWebPush(
         subscription: WebPushSubscription
     )(implicit ec: ExecutionContext): Future[Boolean] = {

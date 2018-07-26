@@ -1,7 +1,7 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.Node
+import wust.graph.{Node,GraphChanges}
 import wust.db.Db
 import wust.ids._
 import covenant.ws.api.EventDistributor
@@ -63,6 +63,26 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
     val uncheckedNodeIds: Set[UserId] = uncheckedNodeIdsList.toSet.flatten
 
+    def filterEvents(permittedNodeIds: List[NodeId]): List[ApiEvent] = {
+      val allowedNodeIds: Set[NodeId] = (uncheckedNodeIds ++ permittedNodeIds)(breakOut)
+      events.map {
+        case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
+        case other => other
+      }
+    }
+
+    subscribers.foreach { client =>
+      if (origin.fold(true)(_ != client))
+        client.notify(stateFut =>
+          stateFut.flatMap { state =>
+            state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
+              db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds).map(filterEvents(_))
+            }
+          }
+        )
+    }
+
+    //TODO
     db.notifications.notifiedUsers(checkedNodeIds).onComplete {
 
       case Success(notifiedUsers) =>
@@ -74,17 +94,6 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                 ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
               case other => other
             }
-        }
-
-        subscribers.foreach { client =>
-          if (origin.fold(true)(_ != client))
-            client.notify(
-              stateFut =>
-                stateFut.map { state =>
-                  state.auth.flatMap(auth => eventsByUser.get(auth.user.id)) getOrElse List
-                    .empty[ApiEvent]
-                }
-            )
         }
 
         distributeNotifications(eventsByUser)
