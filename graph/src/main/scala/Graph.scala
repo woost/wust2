@@ -509,4 +509,22 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
     tmpDepths
   }
+
+  def redundantTree(root:Node, visited:Set[Node] = Set.empty):Tree = {
+    if(!visited(root) && hasChildren(root.id))
+      Tree.Parent(root, children(root).map(n => redundantTree(nodesById(n), visited + root))(breakOut))
+    else
+      Tree.Leaf(root)
+  }
+
+  def redundantForest:List[Tree] = {
+    val roots = nodes.filterNot(n => hasParents(n.id))
+    roots.map(n => redundantTree(n))(breakOut)
+  }
+}
+
+sealed trait Tree {def node:Node}
+object Tree {
+  case class Parent(node:Node, children:List[Tree]) extends Tree
+  case class Leaf(node:Node) extends Tree
 }

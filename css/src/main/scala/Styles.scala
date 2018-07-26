@@ -314,9 +314,14 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
+  val chatmsgIndent = marginLeft(3 px)
   ".chatmsg-line > .tag" - (
-    marginLeft(3 px), // when a tag is displayed at message position
+    chatmsgIndent, // when a tag is displayed at message position
     whiteSpace.normal, // displaying tags as content should behave like normal nodes
+  )
+
+  ".chatmsg-line > .nodecardcompact" - (
+    chatmsgIndent,
   )
 
   ".chatmsg-line > .tag *" - (
@@ -364,12 +369,13 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecardcompact" - (
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
-    marginLeft(3 px),
     nodeCardCompactBackgroundColor,
+    color(c"rgba(0, 0, 0, 0.87)"), // from semantic ui
+    fontWeight.normal,
     overflowX.auto,
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
-    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
+//    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     nodeCardCompactShadow
   )
 
