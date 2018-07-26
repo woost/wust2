@@ -1,10 +1,10 @@
 package wust.webApp
 
-import monix.execution.{Ack,Scheduler}
+import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import shopify.draggable.{DragEvent, DragOutEvent, DragOverEvent, Draggable}
-import wust.graph.GraphChanges
+import wust.graph.{Graph, GraphChanges}
 import wust.ids.{Cuid, NodeId}
 import io.circe.parser.decode
 
@@ -25,6 +25,7 @@ sealed trait DragTarget
 object DragTarget extends wust.ids.serialize.Circe {
   case class Node(nodeId: NodeId) extends DragTarget
   case class Tag(nodeId: NodeId) extends DragTarget
+  case class Parent(nodeId: NodeId) extends DragTarget
   case object SelectedNodes extends DragTarget
 
   import io.circe._, io.circe.generic.semiauto._
@@ -55,9 +56,27 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
+    //TODO: create GraphChanges factory for this
     val changes:GraphChanges = nodeIds.foldLeft(GraphChanges.empty){(changes, nodeId) =>
       changes.merge (
         if(nodeId != tagId) GraphChanges.connectParent(nodeId, tagId)
+        else GraphChanges.empty
+      )
+    }
+
+    if(changes.isEmpty) {
+      scribe.info(s"Attempted to create self-loop. Doing nothing.")
+    } else {
+      state.eventProcessor.enriched.changes.onNext(changes)
+      scribe.info(s"Added GraphChange after drag: $changes")
+    }
+  }
+
+  private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId)
+  private def moveInto(nodeIds:Seq[NodeId], parentId:NodeId):Unit = {
+    val changes:GraphChanges = nodeIds.foldLeft(GraphChanges.empty){(changes, nodeId) =>
+      changes.merge (
+        if(nodeId != parentId) GraphChanges.moveInto(state.graph.now, nodeId, parentId)
         else GraphChanges.empty
       )
     }
@@ -80,6 +99,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
   currentDragPayload
     .withLatestFrom(lastDragTarget){
+
       case (Some(payload), Some(target)) =>
         val changes = (payload,target) match {
           case (DragPayload.Node(draggingId), DragTarget.Node(targetId)) => addTag(targetId, draggingId)
@@ -93,6 +113,11 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
           case (DragPayload.Nodes(draggingIds), DragTarget.Node(targetId)) => addTag(draggingIds, targetId)
           case (DragPayload.Nodes(draggingIds), DragTarget.Tag(targetId)) => addTag(draggingIds, targetId)
+
+          case (DragPayload.Tag(draggingId), DragTarget.Parent(targetId)) => moveInto(draggingId, targetId)
+          case (DragPayload.Node(draggingId), DragTarget.Parent(targetId)) => moveInto(draggingId, targetId)
+          case (DragPayload.Nodes(draggingIds), DragTarget.Parent(targetId)) => moveInto(draggingIds, targetId)
+
         }
 
         lastDragTarget.onNext(None)
