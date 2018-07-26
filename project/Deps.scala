@@ -105,6 +105,9 @@ object Deps {
     val dateFns = "date-fns" -> "v2.0.0-alpha.10"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.7"
 
+    //TODO open PR at snabbdom for checking-parent-exists branch
+    val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.1"
+
     val webpackDependencies =
       "webpack-closure-compiler" -> "2.1.6" :: // TODO: use https://github.com/google/closure-compiler-js#webpack instead (after https://github.com/google/closure-compiler-js/issues/24 is fixed)
         "webpack-subresource-integrity" -> "1.1.0-rc.4" ::

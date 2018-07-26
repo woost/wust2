@@ -352,6 +352,7 @@ lazy val webApp = project
       Deps.npm.marked ::
         Deps.npm.dateFns ::
         Deps.npm.draggable ::
+        Deps.npm.snabbdom ::
         Nil
   )
 
