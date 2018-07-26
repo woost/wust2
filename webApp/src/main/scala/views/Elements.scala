@@ -161,7 +161,7 @@ object Elements {
     )
   }
 
-  private def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier, maxLength: Option[Int])(implicit ctx: Ctx.Owner):VNode = {
+  def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier)(implicit ctx: Ctx.Owner):VNode = {
     div(
       cls := "node nodecardcompact",
       div(
@@ -175,21 +175,19 @@ object Elements {
   def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
     renderNodeCardCompact(
       state, node,
-      injected = VDomModifier(renderNodeData(node.data, maxLength), injected),
-      maxLength
+      injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
     )(ctx)(
       draggableAs(state, DragPayload.Node(node.id)),
-      dragTarget(DragTarget.Node(node.id)),
+      dragTarget(DragTarget.Node(node.id))
     )
   }
   def nodeCardCompactEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
     renderNodeCardCompact(
       state, node,
-      injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected),
-      maxLength
+      injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)
     )(ctx)(
       editable.map(_.ifFalseOption(draggableAs(state, DragPayload.Node(node.id)))), // prevents dragging when selecting text
-      dragTarget(DragTarget.Node(node.id)),
+      dragTarget(DragTarget.Node(node.id))
     )
   }
 

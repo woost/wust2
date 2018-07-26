@@ -9,6 +9,7 @@ import wust.sdk.NodeColor._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import Elements._
+import Rendered._
 import colorado.RGB
 
 object KanbanView extends View {
@@ -49,7 +50,13 @@ object KanbanView extends View {
             rendered( children.map(t => renderTree(state, t)(ctx)(marginTop := "8px")))
           )
         case Tree.Leaf(node) =>
-          val rendered = nodeCardCompact(state, node)
+          val rendered = renderNodeCardCompact(
+            state, node,
+            injected = VDomModifier(renderNodeData(node.data, Some(100)))
+          )(ctx)(
+            draggableAs(state, DragPayload.Node(node.id)),
+            dragTarget(DragTarget.Node(node.id)),
+          )
           rendered(
             fontSize.medium,
             width := "200px"
