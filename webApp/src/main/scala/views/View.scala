@@ -29,7 +29,7 @@ object View {
       LoginView ::
       SignupView ::
       NewGroupView ::
-      // UserSettingsView ::
+      UserSettingsView ::
       // AvatarView ::
       Nil
 

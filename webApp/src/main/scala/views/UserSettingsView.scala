@@ -73,17 +73,21 @@ object UserSettingsView extends View {
       p(s"Username: ${user.name}"),
       div(
         p("Connect Woost with a Service"),
+
         button("Link with GitHub", onClick --> sideEffect(linkWithGithub())),
         br(),
+
         button(
           "Link with Gitter",
           onClick(user.id) --> sideEffect((userId: UserId) => linkWithGitter(userId))
         ),
         br(),
+
         button(
           "Link with Slack",
           onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))
         ),
+
       )
     )
   }
