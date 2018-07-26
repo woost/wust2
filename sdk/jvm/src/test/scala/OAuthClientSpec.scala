@@ -1,11 +1,12 @@
 package wust.sdk
 
 import org.scalatest._
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.server._
-import Directives._
 import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
+import monix.reactive.subjects.{ConcurrentSubject, PublishSubject}
+import shapeless.PolyDefns.~>
+import wust.ids.UserId
 
 class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
 
@@ -23,7 +24,7 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
   "generate url" in {
     val client = Config.load("wust.test").map(config => OAuthClient.create(config.oauth, config.server))
 
-    val url = client.map(c => c.authorizeUrl(Map("state" -> "de4a77dc-373b-4aad-a1f0-5c165060de31")).map(_.toString))
+    val url = client.map(c => c.authorizeUrl(UserId.fresh, Map("state" -> "de4a77dc-373b-4aad-a1f0-5c165060de31")).map(_.toString))
 
     url should be ('right)
     url shouldEqual Right(Some("http://localhost/wust/oauth/authorize?state=de4a77dc-373b-4aad-a1f0-5c165060de31&scopes=read:org,read:user,repo,write:discussion&redirect_uri=http://localhost:8080/oauth/auth&client_id=clientId&response_type=code"))
@@ -34,10 +35,11 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
 class OAuthClientRoutingSpec extends WordSpec with EitherValues with Matchers with ScalatestRouteTest {
 
   private val client = Config.load("wust.test").map(config => OAuthClient.create(config.oauth, config.server)).toOption.get
-  private val testRoute = client.getOAuthRoute
+  private val tokenObserver = PublishSubject[AccessToken]
+  private val testRoute = client.route(tokenObserver)
 
   "oauth ignore empty routing" in {
-    Get() ~> testRoute ~> check {
+      Get() ~> testRoute ~> check {
       handled shouldBe false
     }
   }

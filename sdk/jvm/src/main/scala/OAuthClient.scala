@@ -62,7 +62,7 @@ case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(imp
   //val newAccessToken: Future[Either[Throwable, AccessToken]] =
   //  client.getAccessToken(GrantType.RefreshToken, Map("refresh_token" -> "zzzzzzzz"))
 
-  def route(tokenObserver: Observer.Sync[AccessToken]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
+  def route(tokenObserver: Observer[AccessToken]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
     get {
       parameters(('code, 'state)) { (code: String, state: String) =>
         if (confirmOAuthRequest(code, state)) {
