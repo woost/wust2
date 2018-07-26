@@ -37,7 +37,7 @@ object Client {
   }
   private val githubUrl = {
     import window.location
-    s"${location.protocol}//github.${location.hostname}:${location.port}/api"
+    s"${location.protocol}//${location.hostname}:8902/api"
   }
   private val gitterUrl = {
     import window.location
