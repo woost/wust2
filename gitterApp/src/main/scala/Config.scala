@@ -8,7 +8,7 @@ case class Config(accessToken: String, wust: WustConfig)
 
 object Config {
   import pureconfig._
-  import wust.utilBackend.Config._
+  import wust.util.Config._
 
   def load = loadConfig[Config]("wust.gitter")
 }

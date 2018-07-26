@@ -16,7 +16,7 @@ case class Config(server: ServerConfig, wust: WustConfig, github: GithubConfig, 
 
 object Config {
   import pureconfig._
-  import wust.utilBackend.Config._
+  import wust.util.Config._
 
   def load = loadConfig[Config]("wust.github")
 }

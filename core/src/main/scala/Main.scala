@@ -1,7 +1,7 @@
 package wust.backend
 
 import wust.backend.config.Config
-import wust.utilBackend.Logging
+import wust.util.Logging
 
 object Main extends App {
   Logging.setup()
