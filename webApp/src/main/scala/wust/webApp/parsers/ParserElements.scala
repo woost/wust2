@@ -3,14 +3,14 @@ package wust.webApp.parsers
 import java.net.URL
 
 import scala.util.Try
+import fastparse.CharPredicates._
+import fastparse.utils.{MacroUtils, Utils}
 
 object ParserElements {
   import fastparse.all._
 
-  val word: P[String] = P(ElemsWhileIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9'), min = 1).!)
-
-  val whitespaceChar = CharPred(_.isWhitespace)
+  val maybeWhitespaces = CharsWhileIn(" ", min = 0)
 
   //TODO better?
-  val url = P((("http://" | "https://") ~ CharPred(s => !s.isWhitespace).rep(min = 1)).!)
+  val url = P((("http://" | "https://") ~/ CharsWhile(_ != ' ')).!)
 }

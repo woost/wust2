@@ -9,18 +9,18 @@ object NodeDataParser {
 
   val linkContent: P[NodeData.Link] = P(url.map(NodeData.Link(_)))
 
-  val nonHashContent: P[NodeData.Markdown] = P(CharPred(_ != '#').rep.!.map(NodeData.Markdown(_)))
+  val nonHashContent: P[NodeData.Markdown] = P(CharsWhile(_ != '#').!.map(NodeData.Markdown(_)))
 
   val taggableContent: P[NodeData.Content] = P(linkContent | nonHashContent)
 
   val contentTags: P[Seq[String]] = P(
-    ("#" ~ (CharPred(c => !c.isWhitespace && c != '"').rep.!)).rep(sep = whitespaceChar)
+    ("#" ~/ CharsWhile(c => c != '#' && c != ' ').!).rep(sep = maybeWhitespaces)
   )
 
   val anyContent: P[NodeData.Markdown] = P(AnyChar.rep.!.map(NodeData.Markdown(_)))
 
   val contentWithTags: P[(NodeData.Content, Seq[String])] = P(
-    taggableContent ~ whitespaceChar.rep ~ contentTags
+    taggableContent ~/ maybeWhitespaces ~/ contentTags
   )
 
   //TODO: better?

@@ -27,7 +27,7 @@ object ViewConfigParser {
 
   //TODO: support nested views with different operators and brackets.
   def viewWithOps(operator: ViewOperator): P[View] =
-    P(word.!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End))
+    P(CharsWhile(c => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)).!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End))
       .map(_.toList)
       .flatMap {
         case Nil => ??? // cannot happen, because min of repetition is 1
@@ -47,7 +47,7 @@ object ViewConfigParser {
   )
 
   val nodeIdList: Parser[Seq[NodeId]] =
-    P(word.!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
+    P(CharsWhile(c => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)).!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
   val pageMode: Parser[PageMode] =
     P((PageMode.Default.name | PageMode.Orphans.name).!)
       .map {
