@@ -7,9 +7,11 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
 import rx._
+import wust.api.AuthUser
 
 import scala.scalajs.js
 import wust.css.Styles
+import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
 import wust.util._
@@ -49,8 +51,9 @@ object PageHeader {
 
         (channel.id != state.user().channelNodeId).ifTrue(
           VDomModifier(
+            notifyControl(state, state.graph(), state.user(),channel)(ctx)(marginRight := "10px"),
             bookmarked.ifFalse[VDomModifier](bookMarkControl(state, channel)(ctx)(marginRight := "10px")),
-            settingsMenu(state, channel, bookmarked)(ctx),
+            settingsMenu(state, channel, bookmarked)(ctx)
           )
         )
       }
@@ -61,6 +64,25 @@ object PageHeader {
     Avatar.node(nodeId)(
       width := s"${size}px",
       height := s"${size}px"
+    )
+  }
+
+  private def notifyControl(state: GlobalState, graph: Graph, user: AuthUser, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    val sharedMods = VDomModifier(
+      fontSize := "20px",
+      cursor.pointer
+    )
+
+    if (graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)) div(
+      (freeRegular.faBell: VNode) (cls := "fa-fw"),
+      title := "You are watching this node and will be notified about changes",
+      sharedMods,
+      onClick(GraphChanges.disconnectNotify(channel.id, user.id)) --> state.eventProcessor.changes
+    ) else div(
+      (freeRegular.faBellSlash: VNode) (cls := "fa-fw"),
+      title := "You are not watching this node.",
+      sharedMods,
+      fontSize := "20px",      onClick(GraphChanges.connectNotify(channel.id, user.id)) --> state.eventProcessor.changes
     )
   }
 

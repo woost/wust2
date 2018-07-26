@@ -126,6 +126,10 @@ object GraphChanges {
     GraphChanges(addEdges = Set(Edge.Label(source, content, target)))
   def disconnect(source: NodeId, content: EdgeData.Label, target: NodeId) =
     GraphChanges(delEdges = Set(Edge.Label(source, content, target)))
+  def connectNotify(nodeId: NodeId, userId: UserId) =
+    GraphChanges(addEdges = Set(Edge.Notify(nodeId, userId)))
+  def disconnectNotify(nodeId: NodeId, userId: UserId) =
+    GraphChanges(delEdges = Set(Edge.Notify(nodeId, userId)))
   def connectParent(child: NodeId, parent: NodeId) =
     GraphChanges(addEdges = Set(Edge.Parent(child, parent)))
   def disconnectParent(child: NodeId, parent: NodeId) =

@@ -44,6 +44,7 @@ object DbConversions {
     case EdgeData.Parent              => new Edge.Parent(c.sourceId, c.targetId)
     case data: EdgeData.DeletedParent => new Edge.DeletedParent(c.sourceId, data, c.targetId)
     case data: EdgeData.Label         => new Edge.Label(c.sourceId, data, c.targetId)
+    case EdgeData.Notify              => new Edge.Notify(c.sourceId, UserId(c.targetId))
   }
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription =

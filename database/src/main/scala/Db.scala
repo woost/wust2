@@ -116,19 +116,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
   }
 
   object notifications {
-    private case class NotifiedUsersData(userId: UserId, nodeIds: List[NodeId])
-    private def notifiedUsersFunction(nodeIds: List[NodeId]) = quote {
-      infix"select * from notified_users(${lift(nodeIds)})".as[Query[NotifiedUsersData]]
-    }
-
-    def notifiedUsers(
-        nodeIds: Set[NodeId]
-    )(implicit ec: ExecutionContext): Future[Map[UserId, List[NodeId]]] = {
-      ctx
-        .run {
-          notifiedUsersFunction(nodeIds.toList).map(d => d.userId -> d.nodeIds)
-        }
-        .map(_.toMap)
+    def notifiedNodesForUser(userId: UserId, nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+      ctx.run {
+        infix"select nodeid from notified_nodes_for_user(${lift(userId)}, ${lift(nodeIds.toList)}::uuid[])".as[Query[NodeId]]
+      }
     }
 
     def updateNodesForConnectedUser(userId: UserId, nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
@@ -167,6 +158,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
           )
         } yield s
       }
+    }
+    def getAllSubscriptions()(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
+      ctx.run(query[WebPushSubscription])
     }
     //
     // def getSubscriptions(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {

@@ -1,21 +1,16 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.{Node,GraphChanges}
-import wust.db.Db
+import wust.graph.{GraphChanges, Node}
+import wust.db.{Data, Db}
 import wust.ids._
 import covenant.ws.api.EventDistributor
 import mycelium.server.NotifiableClient
-import nl.martijndwars.webpush._
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
 import scala.collection.breakOut
-import scala.concurrent.duration._
 import scala.collection.parallel.ExecutionContextTaskSupport
-import java.security.{PrivateKey, PublicKey, Security}
-
 import wust.backend.config.PushNotificationConfig
 
 import scala.util.{Failure, Success, Try}
@@ -26,17 +21,9 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 
   private val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent, State]]
 
-  //TODO: somewhere else?
-  pushConfig.foreach { _ =>
-    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider())
-  }
-
   private def base64UrlSafe(s: String) = s.replace("/", "_").replace("+", "-")
 
-  private val pushService = pushConfig.map(
-    c =>
-      new PushService(base64UrlSafe(c.keys.publicKey), base64UrlSafe(c.keys.privateKey), c.subject)
-  ) //TODO: expiry?
+  private val pushService = pushConfig.map(PushService.apply)
 
   def subscribe(client: NotifiableClient[ApiEvent, State]): Unit = {
     subscribers += client
@@ -63,103 +50,86 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
     val uncheckedNodeIds: Set[UserId] = uncheckedNodeIdsList.toSet.flatten
 
-    def filterEvents(permittedNodeIds: List[NodeId]): List[ApiEvent] = {
-      val allowedNodeIds: Set[NodeId] = (uncheckedNodeIds ++ permittedNodeIds)(breakOut)
-      events.map {
-        case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
-        case other => other
-      }
-    }
-
     subscribers.foreach { client =>
       if (origin.fold(true)(_ != client))
         client.notify(stateFut =>
           stateFut.flatMap { state =>
             state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
-              db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds).map(filterEvents(_))
+              db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds)
+                .map(permittedNodeIds => events.map(eventFilter(uncheckedNodeIds ++ permittedNodeIds)))
             }
           }
         )
     }
 
-    //TODO
-    db.notifications.notifiedUsers(checkedNodeIds).onComplete {
-
-      case Success(notifiedUsers) =>
-        val eventsByUser: Map[UserId, List[ApiEvent]] = notifiedUsers.mapValues {
-          permittedNodeIds =>
-            val allowedNodeIds: Set[NodeId] = uncheckedNodeIds ++ permittedNodeIds
-            events.map {
-              case ApiEvent.NewGraphChanges(changes) =>
-                ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
-              case other => other
-            }
-        }
-
-        distributeNotifications(eventsByUser)
-
-      case Failure(t) => scribe.warn(s"Failed get notified users for events ($events)", t)
+    db.notifications.getAllSubscriptions().onComplete {
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, uncheckedNodeIds = uncheckedNodeIds, checkedNodeIds = checkedNodeIds)
+      case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
 
-  private def distributeNotifications(notifiedUsers: Map[UserId, List[ApiEvent]]): Unit =
-    pushService.foreach { pushService =>
-      // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
-      val expiryStatusCodes = Set(404, 410)
-      val successStatusCode = 201
+  private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], uncheckedNodeIds: Set[UserId], checkedNodeIds: Set[NodeId]): Unit = pushService.foreach { pushService =>
+    // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
+    val expiryStatusCodes = Set(404, 410)
+    val successStatusCode = 201
 
-      if (notifiedUsers.nonEmpty) {
-        val notifiedUsersGraphChanges = notifiedUsers
-          .mapValues(_.collect {
+    //TODO really .par?
+    val parallelSubscriptions = subscriptions.par
+    parallelSubscriptions.tasksupport = new ExecutionContextTaskSupport(ec)
+
+    val expiredSubscriptions = parallelSubscriptions.map { s =>
+      db.notifications.notifiedNodesForUser(s.userId, checkedNodeIds).transformWith {
+        case Success(permittedNodeIds) =>
+          val filteredEvents = events.map(eventFilter(uncheckedNodeIds ++ permittedNodeIds))
+          val payload = filteredEvents.collect {
             case ApiEvent.NewGraphChanges(changes) if changes.addNodes.nonEmpty =>
-              changes.addNodes.map(_.data.str.trim).mkString(" | ")
-          }.mkString(" | "))
-          .filter(_._2.nonEmpty)
+              changes.addNodes.map(_.data.str.trim)
+          }.flatten
 
-        db.notifications.getSubscriptions(notifiedUsersGraphChanges.keySet).foreach {
-          subscriptions =>
-            val parallelSubscriptions = subscriptions.par
-            parallelSubscriptions.tasksupport = new ExecutionContextTaskSupport(ec)
-
-            val expiredSubscriptions = parallelSubscriptions.filter { s =>
-              val payload = notifiedUsersGraphChanges(s.userId)
-              val notification = new Notification(
-                s.endpointUrl,
-                base64UrlSafe(s.p256dh),
-                base64UrlSafe(s.auth),
-                payload.toString
-              )
-              //TODO sendAsync? really .par?
-              Try(pushService.send(notification)) match {
-                case Success(response) =>
-                  response.getStatusLine.getStatusCode match {
-                    case `successStatusCode` =>
-                      scribe.info(s"Successfully sent push notification")
-                      false
-                    case statusCode if expiryStatusCodes.contains(statusCode) =>
-                      scribe.info(s"Cannot send push notification, is expired: $response")
-                      true
-                    case _ =>
-                      scribe.info(s"Cannot send push notification: $response")
-                      false
-                  }
-                case Failure(t) =>
-                  scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
-                  false
-              }
+          if (payload.isEmpty) {
+            scribe.info("No events for subscription")
+            Future.successful(None)
+          } else {
+            pushService.send(s, payload.mkString(" | ")).transform {
+              case Success(response) =>
+                response.getStatusLine.getStatusCode match {
+                  case `successStatusCode` =>
+                    scribe.info(s"Successfully sent push notification")
+                    Success(None)
+                  case statusCode if expiryStatusCodes.contains(statusCode) =>
+                    scribe.info(s"Cannot send push notification, is expired: $response")
+                    Success(Some(s))
+                  case _ =>
+                    scribe.info(s"Cannot send push notification: $response")
+                    Success(None)
+                }
+              case Failure(t) =>
+                scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+                Success(None)
             }
+          }
 
-            if (expiredSubscriptions.nonEmpty) {
-              db.notifications.delete(expiredSubscriptions.seq.toSet).onComplete {
-                case Success(res) =>
-                  scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
-                case Failure(res) =>
-                  scribe.info(
-                    s"Failed to delete expired subscriptions ($expiredSubscriptions), due to exception: $res"
-                  )
-              }
-            }
+        case Failure(t) =>
+          scribe.warn("Failed to query permitted node ids for events", t)
+          Future.successful(None)
+      }
+    }
+
+    Future.traverse(expiredSubscriptions.seq)(identity).foreach { expiredSubscriptions =>
+      val flatExpiredSubscriptions = expiredSubscriptions.flatten
+      if (flatExpiredSubscriptions.nonEmpty) {
+        db.notifications.delete(flatExpiredSubscriptions.toSet).onComplete {
+          case Success(res) =>
+            scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
+          case Failure(res) =>
+            scribe.info(s"Failed to delete expired subscriptions ($expiredSubscriptions), due to exception: $res")
         }
       }
     }
+  }
+
+  private def eventFilter(allowedNodeIds: Set[NodeId]): ApiEvent => ApiEvent = {
+    case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
+    case other => other
+  }
 }
