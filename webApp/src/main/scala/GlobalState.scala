@@ -102,7 +102,18 @@ class GlobalState (
     pageAncestorsIds.map(
       _.map(node => (graph().parentDepth(node), graph().nodesById(node)))
         .groupBy(_._1)
-        .mapValues(_.map(_._2).distinct)
+        .mapValues(_.map {
+                     case (depth, node) => node
+                   }.distinct)
+    )
+
+  val nodeAncestorsHierarchyMinCycles: Rx[Map[Int, Seq[Node]]] =
+    pageAncestorsIds.map(
+      _.map(node => (graph().parentDepthMinCycles(node), graph().nodesById(node)))
+        .groupBy(_._1)
+        .mapValues(_.map {
+                     case (depth, node) => node
+                   }.distinct)
     )
 
   val pageStyle = Rx {
