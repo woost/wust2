@@ -163,7 +163,7 @@ class EventProcessor private (
 
     graphWithChanges subscribe rawGraph
 
-    (changesHistory.share, localChanges.share, sharedRawGraph.map(_.consistent))
+    (changesHistory.share, localChanges.share, sharedRawGraph)
   }
 
   def applyChanges(changes: GraphChanges): Future[Graph] = {
