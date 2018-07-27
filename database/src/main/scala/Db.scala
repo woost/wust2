@@ -453,22 +453,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         implicit ec: ExecutionContext
     ): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
-      ctx
-        .run {
-          graphPage(lift(parentIds), lift(childIds), lift(requestingUserId))
-        }
-        .map(Graph.from)
+      ctx.run {
+        graphPage(lift(parentIds), lift(childIds), lift(requestingUserId))
+      }.map(Graph.from)
     }
 
     def getPageWithOrphans(parentIds: Seq[NodeId], childIds: Seq[NodeId], requestingUserId: UserId)(
         implicit ec: ExecutionContext
     ): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
-      ctx
-        .run {
-          graphPageWithOrphans(lift(parentIds), lift(childIds), lift(requestingUserId))
-        }
-        .map(Graph.from)
+      ctx.run {
+        graphPageWithOrphans(lift(parentIds), lift(childIds), lift(requestingUserId))
+      }.map(Graph.from)
     }
   }
 }

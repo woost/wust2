@@ -248,8 +248,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     parentIds subsetOf deletedParents(nodeId)
   }
 
-  lazy val channels: collection.Set[Node] =
-    channelIds.map(nodesById)
+  lazy val channels: collection.Set[Node] = channelIds.map(nodesById)
   lazy val withoutChannels: Graph = this.filterNot(channelIds ++ channelNodeIds)
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
