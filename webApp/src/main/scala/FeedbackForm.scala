@@ -64,7 +64,7 @@ object FeedbackForm {
       div(
         activeDisplay,
         position.fixed, top := "150px", right := "20px",
-        padding := "10px", background := "#F8F8F8", border := "1px solid #888", borderRight := "none",
+        padding := "10px", background := "#F8F8F8", border := "1px solid #888",
         div(
           Styles.flex,
           justifyContent.spaceBetween,
