@@ -163,9 +163,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //  }
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
-    def defaultGraph = Future.successful(Graph.empty)
-    if (page.parentIds.isEmpty) getPage(user.id, page).map(Returns(_))
-    else getPage(user.id, page).map(Returns(_))
+    getPage(user.id, page)
   }
 
 //  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>
