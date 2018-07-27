@@ -24,6 +24,7 @@ object Deps {
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.21.0")
+    val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.21.0")
     val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.2.2")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
@@ -92,7 +93,8 @@ object Deps {
   val redis = dep("net.debasishg" %% "redisclient" % "3.7")
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
-  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.3")
+//  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.3")
+  val slackClient = dep("com.github.GRBurst" %% "slack-scala-client" % "4209003")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.1")
   val webPush = dep("nl.martijndwars" % "web-push" % "3.1.0")
 
