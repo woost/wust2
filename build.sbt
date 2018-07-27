@@ -417,8 +417,10 @@ lazy val slackApp = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      Deps.slackClient.value ::
+      Deps.akka.httpCors.value ::
         Deps.akka.httpCirce.value ::
+        Deps.akka.httpPlay.value ::
+        Deps.slackClient.value ::
         Nil
   )
 
@@ -438,10 +440,10 @@ lazy val githubApp = project
   .settings(
     libraryDependencies ++=
       Deps.akka.httpCors.value ::
-        Deps.github4s.value ::
-        Deps.graphQl.value ::
         Deps.akka.httpCirce.value ::
         Deps.redis.value ::
+        Deps.github4s.value ::
+        Deps.graphQl.value ::
         Nil
   )
 

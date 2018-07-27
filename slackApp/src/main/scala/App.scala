@@ -1,36 +1,47 @@
 package wust.slack
 
+import covenant.http._
+import ByteBufferImplicits._
+import sloth._
 import java.nio.ByteBuffer
 
-import slack.SlackUtil
-import slack.models._
-import slack.rtm.SlackRtmClient
+import boopickle.Default._
+import chameleon.ext.boopickle._
 import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import mycelium.client.SendType
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
-import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
-import covenant.http.AkkaHttpRoute
-import monix.execution.Scheduler
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import monix.execution.Scheduler
 import monix.reactive.Observable
+import cats.implicits._
+import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
+import io.circe.Decoder
+import io.circe.generic.extras.Configuration
+import io.circe.generic.extras.decoding.ConfiguredDecoder
 import monix.reactive.subjects.ConcurrentSubject
-import slack.api.SlackApiClient
-import sloth.Router
 
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
+import slack.SlackUtil
+import slack.api.SlackApiClient
+import slack.models._
+//import wust.test.events._
+import slack.rtm.SlackRtmClient
 
 object Constants {
   //TODO
+  val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
   val slackNode = Node.Content(NodeData.PlainText("wust-slack"))
   val slackId: NodeId = slackNode.id
 }
@@ -60,17 +71,22 @@ object AppServer {
   import akka.http.scaladsl.server.RouteResult._
   import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
-  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+//  import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
+
+//  implicit val genericConfiguration: Configuration = Configuration(transformMemberNames = identity, transformConstructorNames = _.toLowerCase, useDefaults = true, discriminator = Some("event"))
+//  import io.circe.generic.extras.auto._ // TODO: extras does not seem to work with heiko seeberger
+//  import cats.implicits._
+//  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+
+  import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
+
 
   implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
 
   def run(config: DefaultConfig, wustReceiver: WustReceiver, oAuthClient: OAuthClient)(
-    implicit system: ActorSystem, sheduler: Scheduler
+    implicit system: ActorSystem, scheduler: Scheduler
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-
-    import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
-    import cats.implicits._
 
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient))
@@ -95,46 +111,68 @@ object AppServer {
       //            //                  PersistAdapter.oAuthRequests.remove(state)
       //            case Left(e) => println(s"Could not authenticate with OAuthToken: ${e.getMessage}")
       //          }
-
-
-
     }
 
     val route = {
       pathPrefix("api") {
         cors(corsSettings) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
-        } ~ path(config.server.webhookPath) {
-          post {
-            decodeRequest {
+        }
+      } ~ path(config.server.webhookPath) {
+        post {
+          decodeRequest {
+            //            {
+            //              "token":"VaYExAdPeyQtPHe8zwcg72n0",
+            //              "team_id":"T70KGCA9J",
+            //              "api_app_id":"ABZ223TEK",
+            //              "event":
+            //                {
+            //                  "type":"message",
+            //                  "user":"UBMG643BJ",
+            //                  "text":"rand",
+            //                  "client_msg_id":"f9ae9f61-fd6e-4f2d-84a3-62ee2429710e",
+            //                  "ts":"1532687658.000118",
+            //                  "channel":"C70HT00EN",
+            //                  "event_ts":"1532687658.000118",
+            //                  "channel_type":"channel"
+            //                },
+            //              "type":"event_callback",
+            //              "authed_teams":["T70KGCA9J"],
+            //              "event_id":"EvBZDKMHNJ",
+            //              "event_time":1532687658
+            //            }
 
-//              headerValueByName("X-GitHub-Event") {
-//                case "issues" =>
-//                  entity(as[IssueEvent]) { issueEvent =>
-//                    issueEvent.action match {
-//                      case "created" =>
-//                        scribe.info("Received Webhook: created issue")
-//                        //                    if(EventCoordinator.createOrIgnore(issueEvent.issue))
-//                        wustReceiver.push(List(createIssue(issueEvent.issue)))
-//                      case "edited" =>
-//                        scribe.info("Received Webhook: edited issue")
-//                        wustReceiver.push(List(editIssue(issueEvent.issue)))
-//                      case "deleted" =>
-//                        scribe.info("Received Webhook: deleted issue")
-//                        wustReceiver.push(List(deleteIssue(issueEvent.issue)))
-//                      case a => scribe.error(s"Received unknown IssueEvent action: $a")
-//                    }
-//                    complete(StatusCodes.Success)
-//                  }
-//                case "ping" =>
-//                  scribe.info("Received ping")
-//                  complete(StatusCodes.Accepted)
-//                case e =>
-//                  scribe.error(s"Received unknown GitHub Event Header: $e")
-//                  complete(StatusCodes.Accepted)
+//            val incomingEvents = entity(as[SlackEvent]) { event =>
+//              event match {
+//                case e: Hello => scribe.info("hello")
+//                //                case e: Message => scribe.info(s"message: ${e.toString}")
+//                case unknown => scribe.info(s"unmatched SlackEvent: ${unknown.toString}")
 //              }
+//              complete(StatusCodes.OK)
+//            }
 
+            val incomingEvents = entity(as[SlackEventStructure]) { eventStructure =>
+              eventStructure.event match {
+                case e: Hello => scribe.info("hello")
+                case e: Message => scribe.info(s"message: ${e.toString}")
+                case unknown => scribe.info(s"unmatched SlackEvent: ${unknown.toString}")
+              }
+              complete(StatusCodes.OK)
             }
+
+            val challengeEvent = entity(as[EventServerChallenge]) { eventChallenge =>
+              complete {
+                HttpResponse(
+                  status = StatusCodes.OK,
+                  headers = Nil,
+                  entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`, eventChallenge.challenge)
+                )
+              }
+            }
+
+            //            incomingEvents orElse challengeEvent
+            incomingEvents
+
           }
         }
       } ~ {
@@ -145,9 +183,9 @@ object AppServer {
     Http().bindAndHandle(route, interface = config.server.host, port = config.server.port).onComplete {
       case Success(binding) =>
         val separator = "\n############################################################"
-        val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
+        val readyMsg = s"\n##### Slack App Server online at ${binding.localAddress} #####"
         scribe.info(s"$separator$readyMsg$separator")
-      case Failure(err) => scribe.error(s"Cannot start GitHub App Server: $err")
+      case Failure(err) => scribe.error(s"Cannot start Slack App Server: $err")
     }
   }
 }
@@ -220,9 +258,9 @@ object WustReceiver {
         GraphTransition(prevTrans.resGraph, changes, nextGraph)
     }
 
-    val slackApiCalls: Observable[Seq[SlackCall]] = graphObs.map { graphTransition =>
-      createCalls(slackClient, graphTransition)
-    }
+//    val slackApiCalls: Observable[Seq[SlackCall]] = graphObs.map { graphTransition =>
+//      createCalls(slackClient, graphTransition)
+//    }
 
     new WustReceiver(client)
   }
@@ -238,12 +276,12 @@ object WustReceiver {
 }
 
 object SlackClient {
-  def apply(accessToken: Option[String])(implicit ec: ExecutionContext): SlackClient = {
+  def apply(accessToken: String)(implicit ec: ExecutionContext): SlackClient = {
     new SlackClient(SlackApiClient(accessToken))
   }
 }
 
-class SlackClient(client: Slack)(implicit ec: ExecutionContext) {
+class SlackClient(client: SlackApiClient)(implicit ec: ExecutionContext) {
 
   case class Error(desc: String)
 
@@ -256,7 +294,9 @@ class SlackClient(client: Slack)(implicit ec: ExecutionContext) {
 }
 
 object App extends scala.App {
-  import scala.concurrent.ExecutionContext.Implicits.global
+
+  import monix.execution.Scheduler.Implicits.global
+
   implicit val system: ActorSystem = ActorSystem("slack")
 
   Config.load("wust.slack") match {
