@@ -118,6 +118,7 @@ object Elements {
     span(
       cls := "node tagdot",
       backgroundColor := tagColor(tag.id).toHex,
+      title := tag.data.str,
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
