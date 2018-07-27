@@ -1,7 +1,13 @@
 -- Many to one mappings are possible and necessary to imitate linking possibilities of woost in slack
 
+CREATE TABLE team_mapping (
+    slack_team_id text NOT NULL,
+    wust_id uuid NOT NULL,
+    PRIMARY KEY(slack_team_id, wust_id)
+);
+
 CREATE TABLE user_mapping (
-    slack_id text NOT NULL,
+    slack_user_id text NOT NULL,
     wust_id uuid NOT NULL,
     slack_token text NOT NULL,
     wust_token text NOT NULL,
