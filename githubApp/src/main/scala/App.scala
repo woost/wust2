@@ -287,7 +287,7 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
     // client.api.changeGraph(graphChanges, onBehalf = token).map{ success =>
     client.api.changeGraph(graphChanges).map { success =>
       if (success) Right(graphChanges)
-      else Left("Failed to create post")
+      else Left(s"Failed to apply GraphChanges: $graphChanges")
     }
   }
 }

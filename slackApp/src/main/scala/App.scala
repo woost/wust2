@@ -153,8 +153,187 @@ object AppServer {
 
             val incomingEvents = entity(as[SlackEventStructure]) { eventStructure =>
               eventStructure.event match {
-                case e: Hello => scribe.info("hello")
-                case e: Message => scribe.info(s"message: ${e.toString}")
+                case e: Hello =>
+                  scribe.info("hello")
+
+                case e: Message =>
+                  val (wustUserId, wustUserToken) = PersistenceAdapter.getOrCreateUser(user)
+                  val wustChannelNodeId = PersistenceAdapter.getChannelNode(channel)
+
+                  val msgNode = Node.Content(NodeData.PlainText(e.text))
+
+                  val msgAuthorEdge = Edge.Member(wustUserId, EdgeData.Author(EpochMilli.from(ts)), msgNode.id)
+                  val msgMemberEdge = Edge.Member(wustUserId, EdgeData.Member(NodeAccess.Inherited), msgNode.id)
+                  val channelEdge = Edge.Parent(msgNode.id, wustChannelNodeId)
+
+                  wustReceiver.push(List(GraphChanges(addNodes = msgNode, addEdges = List(msgMemberEdge, channelEdge))))
+                  scribe.info(s"message: ${e.toString}")
+                case e: MessageChanged =>
+                  scribe.info(s"message: ${e.toString}")
+                case e: MessageDeleted =>
+                  scribe.info(s"message: ${e.toString}")
+                case e: BotMessage =>
+                  scribe.info(s"message: ${e.toString}")
+                case e: MessageWithSubtype =>
+                  scribe.info(s"message: ${e.toString}")
+
+                case e: ReactionAdded =>
+                  scribe.info(s"reaction: ${e.toString}")
+                case e: ReactionRemoved =>
+                  scribe.info(s"reaction: ${e.toString}")
+
+                case e: UserTyping =>
+                  scribe.info(s"user typing: ${e.toString}")
+
+                case e: ChannelMarked =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelCreated =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelJoined =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelLeft =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelDeleted =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelRename =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelArchive =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelUnarchive =>
+                  scribe.info(s"channel: ${e.toString}")
+                case e: ChannelHistoryChanged =>
+                  scribe.info(s"channel: ${e.toString}")
+
+                case e: ImCreated =>
+                  scribe.info(s"im: ${e.toString}")
+                case e: ImOpened =>
+                  scribe.info(s"im: ${e.toString}")
+                case e: ImClose =>
+                  scribe.info(s"im: ${e.toString}")
+                case e: ImMarked =>
+                  scribe.info(s"im: ${e.toString}")
+                case e: ImHistoryChanged =>
+                  scribe.info(s"im: ${e.toString}")
+
+                case e: MpImJoined =>
+                  scribe.info(s"mp Im: ${e.toString}")
+                case e: MpImOpen =>
+                  scribe.info(s"mp Im: ${e.toString}")
+                case e: MpImClose =>
+                  scribe.info(s"mp Im: ${e.toString}")
+
+                case e: GroupJoined =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupLeft =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupOpen =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupClose =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupArchive =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupUnarchive =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupRename =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupMarked =>
+                  scribe.info(s"group: ${e.toString}")
+                case e: GroupHistoryChanged =>
+                  scribe.info(s"group: ${e.toString}")
+
+                case e: FileCreated =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileShared =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileUnshared =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FilePublic =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FilePrivate =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileChange =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileDeleted =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileCommentAdded =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileCommentEdited =>
+                  scribe.info(s"file: ${e.toString}")
+                case e: FileCommentDeleted =>
+                  scribe.info(s"file: ${e.toString}")
+
+                case e: PinAdded =>
+                  scribe.info(s"pin: ${e.toString}")
+                case e: PinRemoved =>
+                  scribe.info(s"pin: ${e.toString}")
+
+                case e: PresenceChange =>
+                  scribe.info(s"presence: ${e.toString}")
+                case e: ManualPresenceChange =>
+                  scribe.info(s"presence: ${e.toString}")
+
+                case e: PrefChange =>
+                  scribe.info(s"pref: ${e.toString}")
+
+                case e: UserChange =>
+                  scribe.info(s"user: ${e.toString}")
+
+                case e: TeamJoin =>
+                  scribe.info(s"team: ${e.toString}")
+
+                case e: StarAdded =>
+                  scribe.info(s"star: ${e.toString}")
+                case e: StarRemoved =>
+                  scribe.info(s"star: ${e.toString}")
+
+                case e: EmojiChanged =>
+                  scribe.info(s"emoji: ${e.toString}")
+
+                case e: CommandsChanged =>
+                  scribe.info(s"commands: ${e.toString}")
+
+                case e: TeamPlanChanged =>
+                  scribe.info(s"team: ${e.toString}")
+                case e: TeamPlanChanged =>
+                  scribe.info(s"team: ${e.toString}")
+                case e: TeamRename =>
+                  scribe.info(s"team: ${e.toString}")
+                case e: TeamDomainChange =>
+                  scribe.info(s"team: ${e.toString}")
+
+                case e: BotAdded =>
+                  scribe.info(s"bot: ${e.toString}")
+                case e: BotChanged =>
+                  scribe.info(s"bot: ${e.toString}")
+
+                case e: AccountsChanged =>
+                  scribe.info(s"account: ${e.toString}")
+
+                case e: TeamMigrationStarted =>
+                  scribe.info(s"team: ${e.toString}")
+
+                case e: ReconnectUrl =>
+                  scribe.info(s"reconnect: ${e.toString}")
+
+                case e: Reply =>
+                  scribe.info(s"reply: ${e.toString}")
+
+                case e: AppsChanged =>
+                  scribe.info(s"apps: ${e.toString}")
+                case e: AppsUninstalled =>
+                  scribe.info(s"apps: ${e.toString}")
+                case e: AppsInstalled =>
+                  scribe.info(s"apps: ${e.toString}")
+
+                case e: DesktopNotification =>
+                  scribe.info(s"desktop: ${e.toString}")
+
+                case e: DndUpdatedUser =>
+                  scribe.info(s"dnd: ${e.toString}")
+
+                case e: MemberJoined =>
+                  scribe.info(s"member: ${e.toString}")
+
                 case unknown => scribe.info(s"unmatched SlackEvent: ${unknown.toString}")
               }
               complete(StatusCodes.OK)
@@ -204,7 +383,7 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
     // client.api.changeGraph(graphChanges, onBehalf = token).map{ success =>
     client.api.changeGraph(graphChanges).map { success =>
       if (success) Right(graphChanges)
-      else Left("Failed to create post")
+      else Left(s"Failed to apply GraphChanges: $graphChanges")
     }
   }
 }
