@@ -463,6 +463,10 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move
   )
 
+  ".selectednodes .nodecardcompact" - (
+    marginLeft(3 px)
+  )
+
   // -- draggable node
   " .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
