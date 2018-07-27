@@ -272,4 +272,55 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           Tree(0, List(Tree(1, List(Tree(2, List(Tree(3, List.empty))))))))
     }
   }
+
+  "dijkstra" - {
+    "for simple case" in {
+      val (depths, predecessors) = dijkstra(Map(0 -> Seq(1),
+                                                1 -> Seq()), 0)
+      assert(depths == Map(0 -> 0, 1 -> 1))
+      assert(predecessors == Map(1 -> 0))
+    }
+    "for complex case" in {
+      val edges = Map(
+        0 -> Seq(10, 20),
+        10 -> Seq(30),
+        20 -> Seq(21),
+        21 -> Seq(30),
+        30 -> Seq()
+      )
+      val (depths, predecessors) = dijkstra(edges, 0)
+      assert(depths == Map(0 -> 0, 10 -> 1, 20 -> 1, 21 -> 2, 30 -> 2))
+      assert(predecessors == Map(30 -> 10, 10 -> 0, 21 -> 20, 20 -> 0))
+    }
+    "for case with cycles" in {
+      val edges = Map(
+        4 -> Seq(3),
+        3 -> Seq(2),
+        2 -> Seq(1),
+        1 -> Seq(3, 0),
+        0 -> Seq()
+      )
+      val (depths, predecessors) = dijkstra(edges, 4)
+      assert(depths == Map(4 -> 0, 3 -> 1, 2 -> 2, 1 -> 3, 0 -> 4))
+    }
+  }
+
+  "shortest paths to parents" - {
+    "simple case" - {
+      val edges = Map(
+        0 -> Seq(10, 20),
+        10 -> Seq(30),
+        20 -> Seq(21),
+        21 -> Seq(30)
+      )
+      // assert(
+      //   shortestPaths(edges, 0) == Map(
+      //     10 -> Seq(),
+      //     20 -> Seq(),
+      //     21 -> Seq(20),
+      //     30 -> Seq(10, 30),
+      //   )
+      // )
+    }
+  }
 }

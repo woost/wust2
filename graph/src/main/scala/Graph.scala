@@ -522,7 +522,48 @@ def redundantForest:List[Tree] = {
       }
       tmpDepths
   }
+
+  trait Grouping
+  case class Cycle(node : NodeId) extends Grouping
+  case class NoCycle(node : NodeId) extends Grouping
+  def parentDepths(node : NodeId) // : Map[NodeId, Int] 
+    = {
+    import wust.util.algorithm.{dijkstra}
+    type ResultMap = Map[ Distance, Map[ GroupIdx, Seq [ NodeId ] ] ]
+    def ResultMap() = Map[ Distance, Map[ GroupIdx, Seq [ NodeId ] ] ]()
+    // NodeId -> distance
+    val (distanceMap : Map[NodeId, Int], predecessorMap) = dijkstra(parents, node)
+    val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle(_))
+    val groupedByCycle = nodesInCycles.groupBy{ node => depthFirstSearch(node, parents).toSet }
+    type GroupIdx = Int
+    type Distance = Int
+    val distanceMapForCycles : Map[NodeId, (GroupIdx, Distance)] =
+      groupedByCycle.zipWithIndex.map { case ((group, cycledNodes), groupIdx) =>
+      val smallestDistToGroup : Int = group.map(distanceMap).min
+      cycledNodes.zip(Stream.continually { (groupIdx, smallestDistToGroup) })
+    }.flatten.toMap
+
+    // we want: distance -> (nocycle : Seq[NodeId], cycle1 : Seq[NodeId],...)
+    (distanceMap.keys.toSet ++ distanceMapForCycles.keys.toSet).foldLeft(
+      ResultMap()) { (result, nodeid) =>
+      // in case that the nodeid is inside distanceMapForCycles, it is contained
+      // inside a cycle, so we use the smallest distance of the cycle
+      val (gId, dist) = if(distanceMapForCycles.contains(nodeid))
+                   distanceMapForCycles(nodeid)
+                 else
+                   (-1, distanceMap(nodeid))
+
+      import monocle.function.At._
+      (monocle.Iso.id[ ResultMap ] composeLens at(dist)).modify { optInnerMap =>
+        val innerMap = optInnerMap.getOrElse(Map.empty)
+        Some(((monocle.Iso.id [ Map [ GroupIdx, Seq [ NodeId ]] ] composeLens at(gId)) modify { optInnerSeq =>
+                val innerSeq = optInnerSeq.getOrElse(Seq.empty)
+                Some(innerSeq ++ Seq(nodeid))
+        })(innerMap))
+      }(result)
+    }
   }
+}
 sealed trait Tree {def node:Node}
 object Tree {
   case class Parent(node:Node, children:List[Tree]) extends Tree

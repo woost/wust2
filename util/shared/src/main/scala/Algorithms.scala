@@ -131,6 +131,23 @@ object algorithm {
     iterator.size // consume iterator
   }
 
+  def dijkstra[V](edges: V => Iterable[V], source: V): (Map[V, Int], Map[V, V]) = {
+    def run(active: Set[V], res: Map[V, Int], pred: Map[V, V]): (Map[V, Int], Map[V, V]) =
+      if (active.isEmpty) (res, pred)
+      else {
+        val node = active.minBy(res)
+        val cost = res(node)
+        val neighbours = (for {
+          n <- edges(node) if cost + 1 < res.getOrElse(n, Int.MaxValue)
+        } yield n -> (cost + 1)).toMap
+        val active1 = active - node  ++ neighbours.keys
+        val preds = neighbours mapValues (_ => node)
+        run(active1, res ++ neighbours, pred ++ preds)
+      }
+
+    run(Set(source), Map(source -> 0), Map.empty)
+  }
+
   def connectedComponents[V](vertices: Iterable[V], continue: V => Iterable[V]): List[Set[V]] = {
     val left = mutable.HashSet.empty ++ vertices
     var components: List[Set[V]] = Nil
