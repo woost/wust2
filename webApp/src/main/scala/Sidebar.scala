@@ -43,7 +43,7 @@ object Sidebar {
               width := "100%",
               height := "100%",
               position.absolute,
-              zIndex := 100,
+              zIndex := 10,
               onClick(false) --> state.sidebarOpen
             )
             case _ => VDomModifier(
@@ -87,8 +87,8 @@ object Sidebar {
               val selected = page.parentIds.contains(p.id)
               channelDiv(selected, state.pageStyle())(
                 cls := "node",
-                draggableAs(state, DragPayload.Tag(p.id)),
-                dragTarget(DragTarget.Tag(p.id)),
+                draggableAs(state, DragItem.Channel(p.id)),
+                dragTarget(DragItem.Channel(p.id)),
                 paddingRight := "5px",
                 //TODO: inner state.page obs again
                 channelIcon(state, p, page.parentIds.contains(p.id), 30)(ctx)(
@@ -128,8 +128,8 @@ object Sidebar {
           allChannels.map { p =>
             channelIcon(state, p, page.parentIds.contains(p.id), size)(ctx)(
               onChannelClick(ChannelAction.Post(p.id))(state),
-              draggableAs(state, DragPayload.Tag(p.id)),
-              dragTarget(DragTarget.Tag(p.id)),
+              draggableAs(state, DragItem.Channel(p.id)),
+              dragTarget(DragItem.Channel(p.id)),
               cls := "node"
             )
           },
@@ -146,7 +146,6 @@ object Sidebar {
   ): VNode = {
     div(
       cls := "channelicon",
-      outline := "none", // prevents focus outline
       Styles.flexStatic,
       margin := "0",
       width := s"${size}px",

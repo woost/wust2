@@ -20,7 +20,7 @@ class Draggable(
 ) extends js.Object {
   def destroy(): Unit = js.native
   def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
-  def on[E <: DragEvent](eventName: String, listener: js.Function1[E, Unit]): Draggable = js.native
+  def on[E <: AbstractEvent](eventName: String, listener: js.Function1[E, Unit]): Draggable = js.native
 //  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def off(eventName: String, listener: js.Function0[Unit]): Draggable =
     js.native
@@ -31,24 +31,9 @@ class Draggable(
   def removeContainer(containers: html.Element*): Draggable = js.native
 }
 
-@js.native
-trait AbstractEvent extends js.Object
 
-@js.native
-trait DragEvent extends AbstractEvent {
-  def source: html.Element = js.native
-  def originalSource: html.Element = js.native
-}
 
-@js.native
-trait DragOverEvent extends DragEvent {
-  def over: html.Element = js.native
-}
 
-@js.native
-trait DragOutEvent extends DragEvent {
-  def over: html.Element = js.native
-}
 
 @js.native
 @JSImport("@shopify/draggable", "Droppable")
@@ -75,4 +60,57 @@ trait Options extends js.Object {
   var appendTo: js.UndefOr[String | html.Element | js.Function0[html.Element]] =
     js.undefined
   // var classes: js.UndefOr[Object] = js.undefined
+
+  var mirror: js.UndefOr[MirrorOptions] = js.undefined
+}
+
+// https://github.com/Shopify/draggable/blob/master/src/Draggable/Plugins/Mirror/README.md
+trait MirrorOptions extends js.Object {
+  var constrainDimensions: js.UndefOr[Boolean] = js.undefined
+}
+
+
+@js.native
+@JSImport("@shopify/draggable", "AbstractEvent")
+class AbstractEvent(data: js.Object) extends js.Object {
+  // https://github.com/Shopify/draggable/blob/master/src/shared/AbstractEvent/README.md
+  def cancel(data: js.Object):Null = js.native
+  def canceled():Boolean = js.native
+  val `type`:String = js.native
+  val cancelable:String = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragEvent")
+class DragEvent(data: js.Object) extends AbstractEvent(data) {
+  def source: html.Element = js.native
+  def originalSource: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragOverEvent")
+class DragOverEvent(data: js.Object) extends DragEvent(data) {
+  def over: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragOutEvent")
+class DragOutEvent(data: js.Object) extends DragEvent(data) {
+  def over: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DroppableEvent")
+class DroppableEvent(data: js.Object) extends AbstractEvent(data)
+
+@js.native
+@JSImport("@shopify/draggable", "DroppableDroppedEvent")
+class DroppableDroppedEvent(data: js.Object) extends DroppableEvent(data) {
+  def dropzone: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DroppableReturnedEvent")
+class DroppableReturnedEvent(data: js.Object) extends DroppableEvent(data) {
+  def dropzone: html.Element = js.native
 }

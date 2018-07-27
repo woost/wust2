@@ -127,7 +127,11 @@ class GlobalState private (
 
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
-    delay = 300
+//    dropzone = ".dropzone"
+    delay = 300.0
+    mirror = new MirrorOptions {
+      constrainDimensions = true
+    }
   })
   val dragEvents = new DragEvents(this, draggable)
 }

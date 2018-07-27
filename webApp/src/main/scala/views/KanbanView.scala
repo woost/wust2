@@ -13,10 +13,14 @@ import Rendered._
 import colorado.RGB
 import wust.ids.{NodeData, NodeId}
 import wust.webApp.parsers.NodeDataParser
+import collection.breakOut
 
 object KanbanView extends View {
   override val key = "kanban"
   override val displayName = "Kanban"
+
+  val maxLength = 100
+  val columnWidth = "200px"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -32,31 +36,63 @@ object KanbanView extends View {
           val notIsolated = graph.hasChildren(nid) || graph.hasParents(nid)
           isContent && notIsolated
         }.redundantForest
+        val isolatedNodes = graph.nodes.toSeq.filter(n => !graph.hasParents(n.id) && !graph.hasChildren(n.id) && n.isInstanceOf[Node.Content])
 
-        forest.map(tree => renderTree(state, tree)(ctx)(
-          margin := "0px 5px 20px 5px",
-          boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
-        ))
-      }
+        VDomModifier(
+          forest.map(tree => renderTree(state, tree)(ctx)(
+            cls := "kanbancolumn"
+          )),
+          renderIsolatedNodes(state, isolatedNodes)
+        )
+      },
+
+//      div(
+//        width := "80px",
+//        height := "80px",
+//      ),
+//        dragTarget(DragItem.SelectedNodesBar),
+//      cls := "dropzone",
     )
   }
+
+  private def renderIsolatedNodes(state:GlobalState, nodes:Seq[Node])(implicit ctx: Ctx.Owner) =
+    div(
+//      backgroundColor := "rgba(128,128,128,0.5)",
+      width := columnWidth,
+//      height := "100px",
+      margin := "0px 5px 20px 5px",
+      display.flex,
+      flexWrap.wrap,
+      alignItems.flexStart,
+      nodes.map{ node =>
+        div(
+//          cls := "dropzone",
+//          height := "30px",
+//          width := "30px",
+        nodeCardCompact(state, node, maxLength = Some(maxLength))(ctx)(
+          marginRight := "3px",
+          marginBottom := "3px",
+          draggableAs(state, DragItem.KanbanCard(node.id)),
+          dragTarget(DragItem.KanbanCard(node.id)),
+          cls := "draggable-dropzone--occupied",
+        )
+        )
+      }
+    )
 
   private def renderTree(state: GlobalState, tree:Tree)(implicit ctx: Ctx.Owner):VNode = {
     div(
       borderRadius := "3px",
       tree match {
         case Tree.Parent(node, children) =>
-          val rendered = Rendered.renderNodeData(node.data, maxLength = Some(100))
+          val rendered = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))
           VDomModifier(
-            padding := "7px",
-            color := "white",
-            fontWeight.bold,
-            fontSize.large,
+            cls := "kanbansubcolumn",
             backgroundColor := RGB("#ff7a8e").hcl.copy(h = hue(tree.node.id)).toHex,
-            boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
 
-            draggableAs(state, DragPayload.Node(node.id)),
-            dragTarget(DragTarget.Parent(node.id)),
+            draggableAs(state, DragItem.KanbanColumn(node.id)),
+            dragTarget(DragItem.KanbanColumn(node.id)),
+//            cls := "dropzone draggable-dropzone--occupied",
 
             rendered( children.map(t => renderTree(state, t)(ctx)(marginTop := "8px"))),
             addNodeField(state, node.id)
@@ -64,14 +100,15 @@ object KanbanView extends View {
         case Tree.Leaf(node) =>
           val rendered = renderNodeCardCompact(
             state, node,
-            injected = VDomModifier(renderNodeData(node.data, Some(100)))
+            injected = VDomModifier(renderNodeData(node.data, Some(maxLength)))
           )(ctx)(
-            draggableAs(state, DragPayload.Node(node.id)),
-            dragTarget(DragTarget.Node(node.id)),
+            draggableAs(state, DragItem.KanbanCard(node.id)),
+            dragTarget(DragItem.KanbanCard(node.id)),
+//            cls := "dropzone draggable-dropzone--occupied",
           )
           rendered(
             fontSize.medium,
-            minWidth := "200px"
+            minWidth := columnWidth
           )
       }
     )

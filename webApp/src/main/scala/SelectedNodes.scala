@@ -30,8 +30,8 @@ object SelectedNodes {
         val graph = state.graph()
         val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)
         VDomModifier(
-          draggableAs(state, DragPayload.Nodes(sortedNodeIds)),
-          dragTarget(DragTarget.SelectedNodes),
+          draggableAs(state, DragItem.SelectedNodes(sortedNodeIds)),
+          dragTarget(DragItem.SelectedNodesBar),
 
           sortedNodeIds match {
             case Nil => state.dragEvents.status.map {
@@ -41,9 +41,10 @@ object SelectedNodes {
                 cls := "selectednodes",
                 position := "absolute",
                 bottom := "0px",
-                height := "20px",
+                height := "37px",
                 width := "100%",
-                textAlign.center
+                textAlign.center,
+                "drag here to select"
               )
             }
             case nonEmptyNodeIds => VDomModifier(

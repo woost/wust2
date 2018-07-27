@@ -315,12 +315,12 @@ object ChatView extends View {
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
 
-        editable.map(_.ifFalseOption(draggableAs(state, DragPayload.Node(node.id)))), // prevents dragging when selecting text
-        dragTarget(DragTarget.Node(node.id)),
+        editable.map(_.ifFalseOption(draggableAs(state, DragItem.ChatMsg(node.id)))), // prevents dragging when selecting text
+        dragTarget(DragItem.ChatMsg(node.id)),
 
         // checkbox(Styles.flexStatic),
         nodeCardCompactEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
-          isDeleted.ifTrueOption(cls := "node-deleted"),
+          isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
         ),
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
         msgControls(Styles.flexStatic)

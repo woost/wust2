@@ -9,7 +9,7 @@ import org.scalajs.dom.window
 import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{EmitterBuilder, CustomEmitterBuilder}
+import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
 import rx._
 import views.MediaViewer
 import wust.graph._
@@ -19,7 +19,7 @@ import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Rendered._
-import wust.webApp.{DragPayload, DragTarget, GlobalState, marked}
+import wust.webApp._
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -109,8 +109,8 @@ object Elements {
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      draggableAs(state, DragPayload.Tag(tag.id)),
-      dragTarget(DragTarget.Tag(tag.id))
+      draggableAs(state, DragItem.Tag(tag.id)),
+      dragTarget(DragItem.Tag(tag.id))
     )
   }
 
@@ -122,8 +122,8 @@ object Elements {
       onClick --> sideEffect { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      draggableAs(state, DragPayload.Tag(tag.id)),
-      dragTarget(DragTarget.Tag(tag.id))
+      draggableAs(state, DragItem.Tag(tag.id)),
+      dragTarget(DragItem.Tag(tag.id))
     )
   }
 
@@ -177,37 +177,32 @@ object Elements {
     renderNodeCardCompact(
       state, node,
       injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
-    )(ctx)(
-      draggableAs(state, DragPayload.Node(node.id)),
-      dragTarget(DragTarget.Node(node.id))
     )
   }
   def nodeCardCompactEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
     renderNodeCardCompact(
       state, node,
       injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)
-    )(ctx)(
-      editable.map(_.ifFalseOption(draggableAs(state, DragPayload.Node(node.id)))), // prevents dragging when selecting text
-      dragTarget(DragTarget.Node(node.id))
     )
   }
 
 
   def dragTarget(dragTarget: DragTarget) = {
     import io.circe.syntax._
-    attr(DragTarget.attrName) := dragTarget.asJson.noSpaces
+    import DragItem.targetEncoder
+    attr(DragItem.targetAttrName) := dragTarget.asJson.noSpaces
   }
 
   def draggableAs(state:GlobalState, payload:DragPayload):VDomModifier = {
     import io.circe.syntax._
+    import DragItem.payloadEncoder
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      attr(DragPayload.attrName) := payload.asJson.noSpaces,
+      attr(DragItem.payloadAttrName) := payload.asJson.noSpaces,
     )
   }
 
   def registerDraggableContainer(state: GlobalState):VDomModifier = Seq(
-    outline := "none", // hides focus outline
     onInsert.asHtml --> sideEffect { elem =>
       state.draggable.addContainer(elem)
     },
@@ -264,7 +259,7 @@ object Elements {
     }
 
     div(
-      outline := "none",
+      outline := "none", // hides contenteditable outline
       Rx {
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code

@@ -446,6 +446,20 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineBlock
   )
 
+  ".kanbancolumn" - (
+    margin(0 px, 5 px, 20 px, 5 px),
+    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
+  )
+
+  ".kanbansubcolumn" - (
+    padding(7 px),
+    color(c"#FEFEFE"),
+    fontWeight.bold,
+    fontSize.large,
+    boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
+    cursor.move
+  )
+
   ".actionbutton" - (
     cursor.pointer,
     padding(0 px, 5 px),
@@ -467,6 +481,14 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(3 px)
   )
 
+  ".draggable" - (
+    outline.none // hides focus outline
+  )
+
+  ".dropzone" - (
+    backgroundColor(c"rgba(184,65,255,0.5)")
+  )
+
   // -- draggable node
   " .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
@@ -475,9 +497,9 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
-  ".node.draggable-mirror" - (
+  ".draggable-mirror" - (
     opacity(1).important,
-    zIndex(10), // needs to overlap checkboxes
+    zIndex(100), // needs to overlap checkboxes, selectednodesbar
   )
 
 
@@ -494,7 +516,8 @@ object CommonStyles extends StyleSheet.Standalone {
     color.inherit.important
   )
 
-  ".chatmsg-line.draggable-mirror .tag" - (
+  ".chatmsg-line.draggable-mirror .tag," +
+  ".chatmsg-line.draggable-mirror .tagdot" - (
     visibility.hidden
   )
 

@@ -1,39 +1,15 @@
 package wust.webApp
 
+import io.circe.parser.decode
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import shopify.draggable.{DragEvent, DragOutEvent, DragOverEvent, Draggable}
-import wust.graph.{Graph, GraphChanges}
-import wust.ids.{Cuid, NodeId}
-import io.circe.parser.decode
+import org.scalajs.dom
+import shopify.draggable._
+import wust.graph.GraphChanges
+import wust.ids.NodeId
+import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
 
-sealed trait DragPayload
-object DragPayload extends wust.ids.serialize.Circe {
-  case class Node(nodeId: NodeId) extends DragPayload
-  case class Tag(nodeId: NodeId) extends DragPayload
-  case class Nodes(nodeIds: Seq[NodeId]) extends DragPayload
-
-  import io.circe._, io.circe.generic.semiauto._
-  implicit val decoder: Decoder[DragPayload] = deriveDecoder[DragPayload]
-  implicit val encoder: Encoder[DragPayload] = deriveEncoder[DragPayload]
-
-  val attrName = "data-dragpayload"
-}
-
-sealed trait DragTarget
-object DragTarget extends wust.ids.serialize.Circe {
-  case class Node(nodeId: NodeId) extends DragTarget
-  case class Tag(nodeId: NodeId) extends DragTarget
-  case class Parent(nodeId: NodeId) extends DragTarget
-  case object SelectedNodes extends DragTarget
-
-  import io.circe._, io.circe.generic.semiauto._
-  implicit val decoder: Decoder[DragTarget] = deriveDecoder[DragTarget]
-  implicit val encoder: Encoder[DragTarget] = deriveEncoder[DragTarget]
-
-  val attrName = "data-dragtarget"
-}
 
 sealed trait DragStatus
 object DragStatus {
@@ -41,17 +17,20 @@ object DragStatus {
   case object Dragging extends DragStatus
 }
 
+
 class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: Scheduler) {
+  private val dragStartEvent = PublishSubject[DragEvent] //TODO type event
   private val dragOverEvent = PublishSubject[DragOverEvent]
   private val dragOutEvent = PublishSubject[DragOutEvent]
-  private val dragStartEvent = PublishSubject[DragEvent] //TODO type event
+  private val droppableDroppedEvent = PublishSubject[DroppableDroppedEvent] //TODO type event
+  private val droppableReturnedEvent = PublishSubject[DroppableReturnedEvent] //TODO type event
   private val dragStopEvent = PublishSubject[DragEvent] //TODO type event
   private val lastDragTarget = PublishSubject[Option[DragTarget]] //TODO: observable derived from other subjects
 
   val status: Observable[DragStatus] = Observable.merge(dragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
 
   private val currentDragPayload: Observable[Option[DragPayload]] = dragStopEvent.map { e =>
-    decode[DragPayload](e.source.attributes.getNamedItem(DragPayload.attrName).value).toOption
+    decode[DragPayload](e.source.attributes.getNamedItem(DragItem.payloadAttrName).value).toOption
   }
 
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
@@ -89,8 +68,13 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
     }
   }
 
-  dragOverEvent.map { e =>
-    val target = decode[DragTarget](e.over.attributes.getNamedItem(DragTarget.attrName).value).toOption
+  Observable.merge(dragOverEvent.map(_.over), droppableDroppedEvent.map(_.dropzone)).map { e =>
+    println("over...")
+    val target = for {
+      attr <- Option(e.attributes.getNamedItem(DragItem.targetAttrName))
+      target <- decode[DragTarget](attr.value).toOption
+    } yield target
+    println(target)
     scribe.info(s"Dragging over: $target")
     target
   }.subscribe(lastDragTarget)
@@ -99,25 +83,21 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
   currentDragPayload
     .withLatestFrom(lastDragTarget){
-
       case (Some(payload), Some(target)) =>
-        val changes = (payload,target) match {
-          case (DragPayload.Node(draggingId), DragTarget.Node(targetId)) => addTag(targetId, draggingId)
-          case (DragPayload.Node(draggingId), DragTarget.Tag(targetId)) => addTag(draggingId, targetId)
-          case (DragPayload.Tag(draggingId), DragTarget.Node(targetId)) => addTag(targetId, draggingId)
-          case (DragPayload.Tag(draggingId), DragTarget.Tag(targetId)) => addTag(targetId, draggingId)
+        import DragItem._
+        (payload,target) match {
+          case (dragging:KanbanCard, target:SingleNode) => moveInto(dragging.nodeId, target.nodeId)
+          case (dragging:KanbanColumn, target:SingleNode) => moveInto(dragging.nodeId, target.nodeId)
 
-          case (DragPayload.Tag(draggingId), DragTarget.SelectedNodes) => state.selectedNodeIds.update(_ + draggingId)
-          case (DragPayload.Node(draggingId), DragTarget.SelectedNodes) => state.selectedNodeIds.update(_ + draggingId)
-          case (DragPayload.Nodes(draggingIds), DragTarget.SelectedNodes) => state.selectedNodeIds.update(_ ++ draggingIds)
+          case (dragging:AnyNodes, target:Channel) => addTag(dragging.nodeIds, target.nodeId)
 
-          case (DragPayload.Nodes(draggingIds), DragTarget.Node(targetId)) => addTag(draggingIds, targetId)
-          case (DragPayload.Nodes(draggingIds), DragTarget.Tag(targetId)) => addTag(draggingIds, targetId)
+          case (dragging:ChildNode, target:ParentNode) => addTag(dragging.nodeId, target.nodeId)
+          case (dragging:ChildNode, target:ChildNode) => addTag(dragging.nodeId, target.nodeId)
+          case (dragging:ParentNode, target:SingleNode) => addTag(target.nodeId, dragging.nodeId)
 
-          case (DragPayload.Tag(draggingId), DragTarget.Parent(targetId)) => moveInto(draggingId, targetId)
-          case (DragPayload.Node(draggingId), DragTarget.Parent(targetId)) => moveInto(draggingId, targetId)
-          case (DragPayload.Nodes(draggingIds), DragTarget.Parent(targetId)) => moveInto(draggingIds, targetId)
-
+          case (dragging:SelectedNodes, target:SingleNode) => addTag(dragging.nodeIds, target.nodeId)
+          case (dragging:SelectedNodes, SelectedNodesBar) => // do nothing, since already selected
+          case (dragging:AnyNodes, SelectedNodesBar) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
         }
 
         lastDragTarget.onNext(None)
@@ -129,8 +109,20 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
       e => scribe.error("Error in drag events", e)
     )
 
+  draggable.on[DragEvent]("drag:start", dragStartEvent.onNext(_))
   draggable.on[DragOverEvent]("drag:over", dragOverEvent.onNext(_))
   draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
-  draggable.on[DragEvent]("drag:start", dragStartEvent.onNext(_))
   draggable.on[DragEvent]("drag:stop", dragStopEvent.onNext(_))
+  draggable.on[DroppableDroppedEvent]("droppable:dropped", droppableDroppedEvent.onNext(_))
+  draggable.on[DroppableReturnedEvent]("droppable:returned", droppableReturnedEvent.onNext(_))
+
+  draggable.on("droppable:dropped", () => dom.console.log("droppable:dropped"))
+  draggable.on("droppable:returned", () => dom.console.log("droppable:returned"))
+
+  draggable.on("drag:start", () => dom.console.log("drag:start"))
+  draggable.on("drag:over", () => dom.console.log("drag:over"))
+  draggable.on("drag:out", () => dom.console.log("drag:out"))
+  draggable.on("drag:stop", () => dom.console.log("drag:stop"))
+
+
 }
