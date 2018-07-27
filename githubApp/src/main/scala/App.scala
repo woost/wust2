@@ -739,7 +739,7 @@ object App extends scala.App {
       //      val githubClient = GithubClient(config.oauth)
       val oAuthClient = OAuthClient.create(config.oauth, config.server)
       val githubClient = GithubClient(Some("token")) //TODO: get token
-    val receiver = WustReceiver.run(config.wust, githubClient)
+      val receiver = WustReceiver.run(config.wust, githubClient)
       AppServer.run(config, receiver, oAuthClient)
   }
 }
