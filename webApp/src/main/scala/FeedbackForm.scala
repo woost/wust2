@@ -48,10 +48,14 @@ object FeedbackForm {
 
     div(
       div(
+        cls := "feedbackhint",
         inactiveDisplay,
-        position.fixed, top := "150px", right := "0",
-        padding := "5px", background := "#F8F8F8", border := "1px solid #888", borderBottom := "none",
-        "Give short feedback",
+        position.fixed, top := "150px", right := "20px",
+        padding := "2px", background := "#F8F8F8", border := "1px solid #888",
+        fontSize.xxSmall,
+        lineHeight.normal,
+        freeRegular.faLightbulb,
+        " Give short feedback ",
         style("transform") := "rotate(-90deg) translate(0,-100%)",
         style("transform-origin") := "100% 0",
         cursor.pointer,
@@ -59,7 +63,7 @@ object FeedbackForm {
       ),
       div(
         activeDisplay,
-        position.fixed, top := "150px", right := "0",
+        position.fixed, top := "150px", right := "20px",
         padding := "10px", background := "#F8F8F8", border := "1px solid #888", borderRight := "none",
         div(
           Styles.flex,
