@@ -28,7 +28,7 @@ import scala.scalajs.js
 class GlobalState private (
     val appUpdateIsAvailable: Observable[Unit],
     val eventProcessor: EventProcessor,
-    val sidebarOpen: Var[Boolean],
+    val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
     val viewConfig: Var[ViewConfig]
 )(implicit ctx: Ctx.Owner) {
 
@@ -133,7 +133,16 @@ class GlobalState private (
       constrainDimensions = true
     }
   })
+  val sortable = new Sortable(js.Array[HTMLElement](), new Options {
+    draggable = ".draggable"
+    //    dropzone = ".dropzone"
+//    delay = 300.0
+//    mirror = new MirrorOptions {
+//      constrainDimensions = true
+//    }
+  })
   val dragEvents = new DragEvents(this, draggable)
+  val dragSortableEvents = new DragEvents(this, sortable)
 }
 
 object GlobalState {

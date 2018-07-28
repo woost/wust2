@@ -106,7 +106,7 @@ object AuthView {
 }
 
 object LoginView extends View {
-  val key = "login"
+  val viewKey = "login"
   val displayName = "Login"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
@@ -125,7 +125,7 @@ object LoginView extends View {
     )
 }
 object SignupView extends View {
-  val key = "signup"
+  val viewKey = "signup"
   val displayName = "Signup"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =

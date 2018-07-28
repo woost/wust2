@@ -460,6 +460,12 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move
   )
 
+  ".kanbancolumn .nodecardcompact" - (
+    borderRadius(3 px),
+    fontSize.medium,
+    minWidth(200 px),
+  )
+
   ".actionbutton" - (
     cursor.pointer,
     padding(0 px, 5 px),
@@ -482,7 +488,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".draggable" - (
-    outline.none // hides focus outline
+    outline.none, // hides focus outline
+//    border(2 px, solid, green)
   )
 
   ".dropzone" - (
@@ -490,7 +497,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  " .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
+  ".draggable-container .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
     opacity(1).important,
@@ -551,6 +558,21 @@ object CommonStyles extends StyleSheet.Standalone {
     border(1 px, dashed, onDragNodeTagColor).important,
     color(onDragNodeTagColor).important,
     backgroundColor(c"#98A3AB").important
+  )
+
+  // -- sortable
+  ".sortable-container .draggable-source--is-dragging" - (
+    backgroundColor(c"rgba(102, 102, 102, 0.71)").important,
+    color(transparent).important,
+    borderColor(transparent).important,
+  )
+
+  ".kanbanisolatednodes .kanbancolumn.draggable-source--is-dragging" - (
+    minWidth(200 px)
+  )
+
+  ".sortable-container .draggable-source--is-dragging > *" - (
+    visibility.hidden
   )
 
   // -- draggable selectednodes

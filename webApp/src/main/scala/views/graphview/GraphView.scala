@@ -15,7 +15,7 @@ import scala.scalajs.LinkingInfo
 
 //TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
 class GraphView(disableSimulation: Boolean = false) extends View {
-  override val key = "graph"
+  override val viewKey = "graph"
   override val displayName = "Mindmap"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode =

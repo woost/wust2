@@ -203,13 +203,35 @@ object Elements {
   }
 
   def registerDraggableContainer(state: GlobalState):VDomModifier = Seq(
+//    border := "2px solid blue",
+    outline := "none", // hides focus outline
+    cls := "draggable-container",
     onInsert.asHtml --> sideEffect { elem =>
+//      dom.console.log("Adding Draggable Container:", elem)
       state.draggable.addContainer(elem)
     },
     onDestroy.asHtml --> sideEffect { elem =>
       state.draggable.removeContainer(elem)
     }
   )
+
+  def registerSortableContainer(state: GlobalState, container: DragContainer):VDomModifier = {
+    import io.circe.syntax._
+    import DragContainer.encoder
+    Seq(
+      //    border := "2px solid violet",
+      outline := "none", // hides focus outline
+      cls := "sortable-container",
+      attr(DragContainer.attrName) := container.asJson.noSpaces,
+      onInsert.asHtml --> sideEffect { elem =>
+//        dom.console.log("Adding Sortable Container:", elem)
+        state.sortable.addContainer(elem)
+      },
+      onDestroy.asHtml --> sideEffect { elem =>
+        state.sortable.removeContainer(elem)
+      }
+    )
+  }
 
 
   def editableNodeOnClick(state: GlobalState, node: Node, submit:Observer[GraphChanges])(

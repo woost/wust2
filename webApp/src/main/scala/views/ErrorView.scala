@@ -8,7 +8,7 @@ import rx._
 import org.scalajs.dom
 
 class ErrorView(msg: String) extends View {
-  override val key = "error"
+  override val viewKey = "error"
   override val displayName = "Error"
   override def toString = s"ErrorView($msg)"
 

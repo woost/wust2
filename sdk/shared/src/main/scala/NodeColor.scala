@@ -13,10 +13,11 @@ object BaseColors {
 
   val pageBg = RGB("#F3EFCC").hcl
   val pageBgLight = RGB("#e2f8f2").hcl
-  val pagePorder = RGB("#95CCDF").hcl
+  val pageBorder = RGB("#95CCDF").hcl
 
   val tag = RGB("#F45793").hcl
   val eulerBg = RGB("#89B8FF").hcl
+  val kanbanColumnBg = RGB("#ff7a8e").hcl
 }
 
 object NodeColor {

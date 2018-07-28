@@ -42,7 +42,7 @@ case class ChatSingle(node: Node) extends ChatKind
 case class ChatGroup(nodes: Seq[Node]) extends ChatKind
 
 object ChatView extends View {
-  override val key = "chat"
+  override val viewKey = "chat"
   override val displayName = "Chat"
 
   // -- display options --
@@ -75,7 +75,8 @@ object ChatView extends View {
         ),
         TagsList(state).apply(Styles.flexStatic)
       ),
-      inputField(state).apply(Styles.flexStatic)
+      inputField(state).apply(Styles.flexStatic),
+      registerDraggableContainer(state)
     )
   }
 

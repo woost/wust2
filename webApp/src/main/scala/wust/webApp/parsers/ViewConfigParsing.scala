@@ -75,7 +75,7 @@ object ViewConfigParser {
 
 object ViewConfigWriter {
   def write(cfg: ViewConfig): String = {
-    val viewString = viewKey + cfg.view.key
+    val viewString = viewKey + cfg.view.viewKey
     val pageString = pageKey + (cfg.page match {
       case Page(parentIds, childrenIds, mode) if parentIds.isEmpty && childrenIds.isEmpty =>
         s"${mode.name}"
@@ -87,7 +87,7 @@ object ViewConfigWriter {
           .mkString(idSeparator)}${pageSeparator}${childrenIds.map(_.toBase58).mkString(idSeparator)}"
     })
     val prevViewStringWithSep =
-      cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.key)
+      cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.viewKey)
     s"$viewString$urlSeparator$pageString$prevViewStringWithSep"
   }
 }

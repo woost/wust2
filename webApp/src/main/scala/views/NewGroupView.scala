@@ -7,7 +7,7 @@ import wust.webApp.GlobalState
 import wust.webApp.MainViewParts.newGroupButton
 
 object NewGroupView extends View {
-  override val key = "newgroup"
+  override val viewKey = "newgroup"
   override val displayName = "New Group"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {

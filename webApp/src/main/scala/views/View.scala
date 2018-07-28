@@ -12,7 +12,7 @@ import cats.data.NonEmptyList
 //TODO: better no oop for views, have a function that maps a string to a view/function?
 trait View {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode //TODO: def apply(implicit state:GlobalState):VNode
-  val key: String
+  val viewKey: String
   val displayName: String
 
   //TODO this is needed for tracking content view and deciding whether to show the new group button in mainview
@@ -33,7 +33,7 @@ object View {
       // AvatarView ::
       Nil
 
-  val viewMap: Map[String, View] = list.map(v => v.key -> v)(breakOut)
+  val viewMap: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
   def default = ChatView // new TiledView(ViewOperator.Optional, contentList)
 }
 

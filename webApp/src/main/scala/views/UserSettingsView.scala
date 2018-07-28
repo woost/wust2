@@ -11,7 +11,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views._
 
 object UserSettingsView extends View {
-  override val key = "usersettings"
+  override val viewKey = "usersettings"
   override val displayName = "User Settings"
 
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {

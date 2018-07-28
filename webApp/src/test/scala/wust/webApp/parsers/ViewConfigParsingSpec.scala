@@ -18,14 +18,14 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val cfg = ViewConfig.fromUrlHash("")
     val expected = ViewConfig(new ErrorView(""), Page.empty, None)
     cfg.page mustEqual expected.page
-    cfg.view.key mustEqual expected.view.key
+    cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "invalid String" in {
     val cfg = ViewConfig.fromUrlHash("someone said I should write something here")
     val expected = ViewConfig(new ErrorView(""), Page.empty, None)
     cfg.page mustEqual expected.page
-    cfg.view.key mustEqual expected.view.key
+    cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "from string to viewconfig - row" in {
@@ -38,7 +38,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
       new TiledView(ViewOperator.Row, NonEmptyList[View](new GraphView, ChatView :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
-    cfg.view.key mustEqual expected.view.key
+    cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "from string to viewconfig - column" in {
@@ -51,7 +51,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
       new TiledView(ViewOperator.Column, NonEmptyList[View](new GraphView, ChatView :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
-    cfg.view.key mustEqual expected.view.key
+    cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "from string to viewconfig - auto" in {
@@ -64,7 +64,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
       new TiledView(ViewOperator.Auto, NonEmptyList[View](new GraphView, ChatView :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
-    cfg.view.key mustEqual expected.view.key
+    cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "from string to viewconfig - optional" in {
@@ -77,55 +77,55 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
       new TiledView(ViewOperator.Optional, NonEmptyList[View](new GraphView, ChatView :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
-    cfg.view.key mustEqual expected.view.key
+    cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "single view - row" in {
     val orig = ViewConfig.apply(new TiledView(ViewOperator.Row, NonEmptyList[View](new GraphView, ChatView :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single view - column" in {
     val orig = ViewConfig.apply(new TiledView(ViewOperator.Column, NonEmptyList[View](new GraphView, ChatView :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single view - auto" in {
     val orig = ViewConfig.apply(new TiledView(ViewOperator.Auto, NonEmptyList[View](new GraphView, ChatView :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single view - optional" in {
     val orig = ViewConfig.apply(new TiledView(ViewOperator.Optional, NonEmptyList[View](new GraphView, ChatView :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single page" in {
     val orig = ViewConfig.apply(View.default, Page(Seq(freshNodeId(1), freshNodeId(2)), Seq(freshNodeId(3), freshNodeId(4))), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "view and page" in {
     val orig = ViewConfig.apply(ChatView, Page(freshNodeId(5)), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "view and page and prev" in {
     val orig = ViewConfig.apply(SignupView, Page(freshNodeId(6)), Some(ChatView))
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
-    cfg.view.key mustEqual orig.view.key
+    cfg.view.viewKey mustEqual orig.view.viewKey
   }
 }

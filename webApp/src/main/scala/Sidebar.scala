@@ -59,6 +59,7 @@ object Sidebar {
           )
         )
       },
+      registerDraggableContainer(state)
     )
   }
 

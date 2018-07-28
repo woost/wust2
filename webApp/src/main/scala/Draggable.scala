@@ -64,22 +64,24 @@ trait Options extends js.Object {
   var mirror: js.UndefOr[MirrorOptions] = js.undefined
 }
 
-// https://github.com/Shopify/draggable/blob/master/src/Draggable/Plugins/Mirror/README.md
+// https://github.com/Shopify/draggable/blob/master/src/Draggable/Plugins/Mirror
 trait MirrorOptions extends js.Object {
   var constrainDimensions: js.UndefOr[Boolean] = js.undefined
 }
 
 
+// AbstractEvent: https://github.com/Shopify/draggable/blob/master/src/shared/AbstractEvent
 @js.native
 @JSImport("@shopify/draggable", "AbstractEvent")
 class AbstractEvent(data: js.Object) extends js.Object {
-  // https://github.com/Shopify/draggable/blob/master/src/shared/AbstractEvent/README.md
   def cancel(data: js.Object):Null = js.native
   def canceled():Boolean = js.native
   val `type`:String = js.native
   val cancelable:String = js.native
 }
 
+
+// DragEvent: https://github.com/Shopify/draggable/tree/master/src/Draggable/DragEvent
 @js.native
 @JSImport("@shopify/draggable", "DragEvent")
 class DragEvent(data: js.Object) extends AbstractEvent(data) {
@@ -99,6 +101,8 @@ class DragOutEvent(data: js.Object) extends DragEvent(data) {
   def over: html.Element = js.native
 }
 
+
+// DroppableEvent: https://github.com/Shopify/draggable/tree/master/src/Droppable/DroppableEvent
 @js.native
 @JSImport("@shopify/draggable", "DroppableEvent")
 class DroppableEvent(data: js.Object) extends AbstractEvent(data)
@@ -113,4 +117,21 @@ class DroppableDroppedEvent(data: js.Object) extends DroppableEvent(data) {
 @JSImport("@shopify/draggable", "DroppableReturnedEvent")
 class DroppableReturnedEvent(data: js.Object) extends DroppableEvent(data) {
   def dropzone: html.Element = js.native
+}
+
+
+// SortableEvent: https://github.com/Shopify/draggable/tree/master/src/Sortable/SortableEvent
+@js.native
+@JSImport("@shopify/draggable", "SortableEvent")
+class SortableEvent(data: js.Object) extends AbstractEvent(data) {
+  def dragEvent:DragEvent = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "SortableStopEvent")
+class SortableStopEvent(data: js.Object) extends SortableEvent(data) {
+  def oldIndex:Int = js.native
+  def newIndex:Int = js.native
+  def oldContainer:html.Element = js.native
+  def newContainer:html.Element = js.native
 }

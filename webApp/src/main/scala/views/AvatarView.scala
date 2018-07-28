@@ -13,7 +13,7 @@ import collection.mutable
 import colorado.HCL
 
 object AvatarView extends View {
-  override val key = "avatar"
+  override val viewKey = "avatar"
   override val displayName = "Avatar"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {

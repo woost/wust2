@@ -24,7 +24,7 @@ object PageStyle {
       bgLightColor = applyPageHue(BaseColors.pageBgLight),
       sidebarBgColor = applyPageHue(BaseColors.sidebarBg),
       sidebarBgHighlightColor = applyPageHue(BaseColors.sidebarBgHighlight),
-      borderColor = applyPageHue(BaseColors.pagePorder),
+      borderColor = applyPageHue(BaseColors.pageBorder),
     )
   }
 }

@@ -43,28 +43,29 @@ object SelectedNodes {
                 bottom := "0px",
                 height := "37px",
                 width := "100%",
-                textAlign.center,
+//                textAlign.center,
                 "drag here to select"
               )
             }
             case nonEmptyNodeIds => VDomModifier(
               cls := "selectednodes",
               Styles.flex,
-              alignItems.center,
+//              alignItems.center,
               nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto, cls := "nodelist"),
               deleteAllButton(state, nonEmptyNodeIds),
               clearSelectionButton(state)
             )
           }
         )
-      }
+      },
+      registerDraggableContainer(state)
     )
   }
 
   private def nodeList(state:GlobalState, selectedNodeIds:List[NodeId], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
-      alignItems.center,
+//      alignItems.center,
       flexWrap.wrap,
       selectedNodeIds.map { nodeId =>
           val node = graph.nodesById(nodeId)
