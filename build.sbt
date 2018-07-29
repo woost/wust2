@@ -70,7 +70,14 @@ lazy val commonSettings = Seq(
     if (branch == "master") "latest" else branch
   } ::
     version.value ::
-    Nil
+    Nil,
+
+
+  // Acyclic: https://github.com/lihaoyi/acyclic
+  libraryDependencies += Deps.acyclic.value,
+  autoCompilerPlugins := true,
+  addCompilerPlugin(Deps.acyclicDef),
+  //    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
 )
 
 lazy val commonWebSettings = Seq(

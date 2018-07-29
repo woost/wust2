@@ -4,6 +4,9 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 object Deps {
   import Def.{setting => dep}
 
+  val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.1.7"
+  val acyclic = dep(acyclicDef % "provided")
+
   // testing
   val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.5")
   val specs2 = dep("org.specs2" %% "specs2-core" % "4.2.0")
