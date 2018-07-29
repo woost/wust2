@@ -14,6 +14,8 @@ import wust.css.Styles
 import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
+import wust.sdk.{BaseColors, NodeColor}
+import NodeColor.hue
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
@@ -24,7 +26,6 @@ object PageHeader {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
     div(
-      padding := "5px 10px",
       Rx {
         pageParentNodes().map { channel => channelRow(state, channel) },
       }
@@ -32,28 +33,33 @@ object PageHeader {
   }
 
   private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
+      fontSize := "20px",
+      wordWrap.breakWord,
+      style("word-break") := "break-word",
+    )
+
     div(
+      padding := "5px",
+      paddingRight := "20px",
+      backgroundColor := BaseColors.pageBg.copy(h = hue(channel.id)).toHex,
+
       Styles.flex,
       alignItems.center,
 
       channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
-      editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
-        fontSize := "20px",
-        marginRight := "auto",
-        wordWrap.breakWord,
-        style("word-break") := "break-word",
-      ),
+      channelTitle(marginRight := "10px"),
       Rx {
-        val bookmarked = state
+        val isBookmarked = state
           .graph()
           .children(state.user().channelNodeId)
           .contains(channel.id)
 
         (channel.id != state.user().channelNodeId).ifTrue(
           VDomModifier(
-            notifyControl(state, state.graph(), state.user(),channel)(ctx)(marginRight := "10px"),
-            bookmarked.ifFalse[VDomModifier](bookMarkControl(state, channel)(ctx)(marginRight := "10px")),
-            settingsMenu(state, channel, bookmarked)(ctx)
+            isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)),
+            notifyControl(state, state.graph(), state.user(),channel)(ctx)(marginLeft := "auto"),
+            settingsMenu(state, channel, isBookmarked)(ctx)(marginLeft := "10px")
           )
         )
       }
@@ -86,11 +92,10 @@ object PageHeader {
     )
   }
 
-  private def bookMarkControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
-    div(
-      freeRegular.faBookmark,
-      fontSize := "20px",
-      cursor.pointer,
+  private def joinButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
+    button(
+      cls := "ui compact primary button",
+      "Join",
       onClick(GraphChanges.connectParent(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
     )
 

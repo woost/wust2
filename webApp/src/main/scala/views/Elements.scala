@@ -5,6 +5,7 @@ import monix.reactive.Observer
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.document
+import org.scalajs.dom.console
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.window
 import outwatch.ObserverSink
@@ -225,7 +226,7 @@ object Elements {
     outline := "none", // hides focus outline
     cls := "draggable-container",
     onInsert.asHtml --> sideEffect { elem =>
-//      dom.console.log("Adding Draggable Container:", elem)
+//      console.log("Adding Draggable Container:", elem)
       state.draggable.addContainer(elem)
     },
     onDestroy.asHtml --> sideEffect { elem =>
@@ -242,7 +243,7 @@ object Elements {
       cls := "sortable-container",
       attr(DragContainer.attrName) := container.asJson.noSpaces,
       onInsert.asHtml --> sideEffect { elem =>
-//        dom.console.log("Adding Sortable Container:", elem)
+//        console.log("Adding Sortable Container:", elem)
         state.sortable.addContainer(elem)
       },
       onDestroy.asHtml --> sideEffect { elem =>

@@ -43,6 +43,7 @@ object NodeColor {
   }
 
   def mixColors(colors: NonEmptyList[Color]): LAB = {
+    // arithmetic mean in LAB color space
     val colorSum = colors.foldLeft(LAB(0, 0, 0))((c1, c2Color) => {
       val c2 = c2Color.lab
       LAB(c1.l + c2.l, c1.a + c2.a, c1.b + c2.b)
