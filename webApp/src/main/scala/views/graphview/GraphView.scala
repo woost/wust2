@@ -13,16 +13,13 @@ import wust.webApp.views.View
 
 import scala.scalajs.LinkingInfo
 
-//TODO: remove disableSimulation argument, as it is only relevant for tests. Better solution?
-class GraphView(disableSimulation: Boolean = false) extends View {
+object GraphView extends View {
   override val viewKey = "graph"
   override val displayName = "Mindmap"
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode =
     GraphView(state, state.graph)
-}
 
-object GraphView {
   def apply(state: GlobalState, graph: Rx[Graph], controls: Boolean = LinkingInfo.developmentMode)(
       implicit owner: Ctx.Owner
   ) = {

@@ -21,8 +21,7 @@ trait View {
 }
 
 object View {
-  //TODO: can GraphView be an object?
-  val contentList: NonEmptyList[View] = NonEmptyList(ChatView, KanbanView :: new GraphView :: Nil)
+  val contentList: NonEmptyList[View] = NonEmptyList(ChatView, KanbanView :: GraphView :: Nil)
 
   val list: List[View] =
     contentList.toList :::
