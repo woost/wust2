@@ -1,7 +1,5 @@
 package wust.graph
 
-import wust.graph.Edge.Parent
-import wust.ids.EdgeData.DeletedParent
 import wust.ids._
 
 import scala.collection.breakOut
@@ -19,7 +17,6 @@ case class GraphChanges(
     )
 
   def merge(other: GraphChanges): GraphChanges = {
-    val otherAddNodeIds = other.addNodes.map(_.id)
     GraphChanges.from(
       addNodes = addNodes ++ other.addNodes,
       addEdges = addEdges ++ other.addEdges,
@@ -36,7 +33,7 @@ case class GraphChanges(
   private val swapDeletedParent: Edge => Edge = {
     case Edge.Parent(source, target) =>
       Edge.DeletedParent(source, EdgeData.DeletedParent(EpochMilli.now), target)
-    case Edge.DeletedParent(source, data, target) => Edge.Parent(source, target)
+    case Edge.DeletedParent(source, _, target) => Edge.Parent(source, target)
     case other                                    => other
   }
 
@@ -45,7 +42,7 @@ case class GraphChanges(
     delEdges = consistent.addEdges.map(swapDeletedParent)
   )
 
-  lazy val consistent = copy(addEdges = addEdges -- delEdges)
+  lazy val consistent: GraphChanges = copy(addEdges = addEdges -- delEdges)
 
   def involvedNodeIds: collection.Set[NodeId] = addNodes.map(_.id)
 
@@ -56,9 +53,9 @@ case class GraphChanges(
 
   private val allProps = addNodes :: addEdges :: delEdges :: Nil
 
-  lazy val isEmpty = allProps.forall(s => s.isEmpty)
-  def nonEmpty = !isEmpty
-  lazy val size = allProps.foldLeft(0)(_ + _.size)
+  lazy val isEmpty: Boolean = allProps.forall(s => s.isEmpty)
+  def nonEmpty: Boolean = !isEmpty
+  lazy val size: Int = allProps.foldLeft(0)(_ + _.size)
 }
 object GraphChanges {
   def empty = GraphChanges()
@@ -91,7 +88,7 @@ object GraphChanges {
     }(breakOut)
   )
 
-  def newGroup(nodeId: NodeId, title: String, channelNodeId: NodeId) = {
+  def newChannel(nodeId: NodeId, title: String, channelNodeId: NodeId): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.PlainText(title),
@@ -130,24 +127,51 @@ object GraphChanges {
     GraphChanges(addEdges = Set(Edge.Notify(nodeId, userId)))
   def disconnectNotify(nodeId: NodeId, userId: UserId) =
     GraphChanges(delEdges = Set(Edge.Notify(nodeId, userId)))
-  def connectParent(child: NodeId, parent: NodeId) =
-    GraphChanges(addEdges = Set(Edge.Parent(child, parent)))
-  def disconnectParent(child: NodeId, parent: NodeId) =
-    GraphChanges(delEdges = Set(Edge.Parent(child, parent)))
 
-  def moveInto(graph: Graph, subject: NodeId, target: NodeId) = {
-    // TODO: only keep deepest parent in transitive chain
-    val newContainments = Set[Edge](Edge.Parent(subject, target))
-    val removeContainments: collection.Set[Edge] =
-      if (graph.ancestors(target).toSet contains subject) { // creating cycle
-        Set.empty // remove nothing, because in cycle
-      } else { // no cycle
-        (graph.parents(subject) map (Edge.Parent(subject, _): Edge)) - newContainments.head
-      }
-    GraphChanges(addEdges = newContainments, delEdges = removeContainments)
+  def connectParent(childId: NodeId, parentId: NodeId) =
+    GraphChanges(addEdges = Set(Edge.Parent(childId, parentId)))
+  def connectParent(childrenIds: Iterable[NodeId], parentId: NodeId):GraphChanges = {
+    childrenIds.foldLeft(GraphChanges.empty){ (changes, childId) =>
+      changes.merge (
+        if(childId != parentId) GraphChanges.connectParent(childId, parentId)
+        else GraphChanges.empty
+      )
+    }
+  }
+  def connectParents(childId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = {
+    parentIds.foldLeft(GraphChanges.empty) { (changes, parentId) =>
+      changes.merge( GraphChanges.connectParent(childId, parentId) )
+    }
   }
 
-  def tagWith(graph: Graph, subject: NodeId, tag: NodeId) = {
+  def disconnectParents(childId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = {
+    parentIds.foldLeft(GraphChanges.empty) { (changes, parentId) =>
+      changes.merge( GraphChanges.disconnectParent(childId, parentId) )
+    }
+  }
+
+  def disconnectParent(childrenIds: Iterable[NodeId], parentId: NodeId): GraphChanges = {
+    childrenIds.foldLeft(GraphChanges.empty){ (changes, childId) =>
+      changes.merge ( GraphChanges.disconnectParent(childId, parentId) )
+    }
+  }
+
+  def disconnectParent(childId: NodeId, parentId: NodeId):GraphChanges =
+    GraphChanges(delEdges = Set(Edge.Parent(childId, parentId)))
+
+  def moveInto(graph: Graph, subject: NodeId, target: NodeId): GraphChanges = moveInto(graph, subject :: Nil, target)
+  def moveInto(graph: Graph, subjects: Iterable[NodeId], target: NodeId): GraphChanges = {
+    // TODO: only keep deepest parent in transitive chain
+    val newParentships:Set[Edge] = subjects.map(subject => Edge.Parent(subject, target))(breakOut)
+    val cycleFreeSubjects: Iterable[NodeId] = subjects.filterNot(subject => subject == target || (graph.ancestors(target) contains subject)) // avoid self loops and cycles
+    val removeParentships: collection.Set[Edge] = (cycleFreeSubjects.flatMap(subject =>
+        graph.parents(subject) map (Edge.Parent(subject, _): Edge)
+    )(breakOut):collection.Set[Edge]) - newParentships.head
+
+    GraphChanges(addEdges = newParentships, delEdges = removeParentships)
+  }
+
+  def tagWith(graph: Graph, subject: NodeId, tag: NodeId): GraphChanges = {
     GraphChanges.connectParent(subject, tag)
   }
 }

@@ -88,6 +88,23 @@ object Elements {
       )
     }
 
+  def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName:String):Option[T] = {
+    import io.circe.parser.decode
+    for {
+      attr <- Option(elem.attributes.getNamedItem(attrName))
+      target <- decode[T](attr.value).toOption
+    } yield target
+  }
+
+  def removeDomElement(elem:dom.Element):Unit = {
+    elem.parentNode.removeChild(elem)
+  }
+
+  def defer(code: => Unit):Unit = {
+    dom.window.setTimeout(() => code, timeout = 0)
+  }
+
+
   def valueWithEnter: CustomEmitterBuilder[String, Modifier] = CustomEmitterBuilder {
     (sink: Sink[String]) =>
       for {

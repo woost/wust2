@@ -137,9 +137,9 @@ class GlobalState private (
     draggable = ".draggable"
     //    dropzone = ".dropzone"
 //    delay = 300.0
-//    mirror = new MirrorOptions {
-//      constrainDimensions = true
-//    }
+    mirror = new MirrorOptions {
+      constrainDimensions = true
+    }
   })
   val dragEvents = new DragEvents(this, draggable)
   val dragSortableEvents = new DragEvents(this, sortable)
@@ -185,7 +185,7 @@ object GlobalState {
               val newGraph = Client.api.getGraph(page)
               Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
             case Page.NewGroup(nodeId) =>
-              val changes = GraphChanges.newGroup(nodeId, MainViewParts.newGroupTitle(state), user.channelNodeId)
+              val changes = GraphChanges.newChannel(nodeId, MainViewParts.newGroupTitle(state), user.channelNodeId)
               eventProcessor.enriched.changes.onNext(changes)
               Observable.empty
           }

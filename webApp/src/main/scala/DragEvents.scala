@@ -1,6 +1,5 @@
 package wust.webApp
 
-import io.circe.parser.decode
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -10,6 +9,7 @@ import shopify.draggable._
 import wust.graph.GraphChanges
 import wust.ids.NodeId
 import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
+import wust.webApp.views.Elements._
 
 
 sealed trait DragStatus
@@ -53,22 +53,10 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 //  draggable.on("droppable:dropped", () => console.log("droppable:dropped"))
 //  draggable.on("droppable:returned", () => console.log("droppable:returned"))
 
-  def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName:String):Option[T] = {
-    for {
-      attr <- Option(elem.attributes.getNamedItem(attrName))
-      target <- decode[T](attr.value).toOption
-    } yield target
-  }
-
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
     //TODO: create GraphChanges factory for this
-    val changes:GraphChanges = nodeIds.foldLeft(GraphChanges.empty){(changes, nodeId) =>
-      changes.merge (
-        if(nodeId != tagId) GraphChanges.connectParent(nodeId, tagId)
-        else GraphChanges.empty
-      )
-    }
+    val changes:GraphChanges = GraphChanges.connectParent(nodeIds, tagId)
 
     if(changes.isEmpty) {
       scribe.info(s"Attempted to create self-loop. Doing nothing.")
@@ -80,12 +68,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
   private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId)
   private def moveInto(nodeIds:Seq[NodeId], parentId:NodeId):Unit = {
-    val changes:GraphChanges = nodeIds.foldLeft(GraphChanges.empty){(changes, nodeId) =>
-      changes.merge (
-        if(nodeId != parentId) GraphChanges.moveInto(state.graph.now, nodeId, parentId)
-        else GraphChanges.empty
-      )
-    }
+    val changes:GraphChanges = GraphChanges.moveInto(state.graph.now, nodeIds, parentId)
 
     if(changes.isEmpty) {
       scribe.info(s"Attempted to create self-loop. Doing nothing.")
@@ -150,24 +133,20 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
               val connect = if(alreadyInParent) GraphChanges.empty else GraphChanges.connectParent(dragging.nodeId, newContainer.nodeId)
               if(alreadyInParent) {
 //                console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
-                dom.window.setTimeout(() => e.dragEvent.originalSource.parentNode.removeChild(e.dragEvent.originalSource),0)
+                defer(removeDomElement(e.dragEvent.originalSource))
               }
               state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
 
             case (dragging:DragItem.KanbanItem, page:Page, newContainer:KanbanColumn) =>
               val connect = GraphChanges.connectParent(dragging.nodeId, newContainer.nodeId)
-              val disconnect = page.parentIds.foldLeft(GraphChanges.empty){ (acc,pId) =>
-                acc.merge(GraphChanges.disconnectParent(dragging.nodeId, pId))
-              }
+              val disconnect = GraphChanges.disconnectParents(dragging.nodeId, page.parentIds)
               state.eventProcessor.enriched.changes.onNext(connect merge disconnect)
 
             case (dragging:DragItem.KanbanItem, oldContainer:KanbanColumn, page:Page) =>
               val disconnect = GraphChanges.disconnectParent(dragging.nodeId, oldContainer.nodeId)
-              val connect = page.parentIds.foldLeft(GraphChanges.empty){ (acc,pId) =>
-                acc.merge(GraphChanges.connectParent(dragging.nodeId, pId))
-              }
+              val connect = GraphChanges.connectParents(dragging.nodeId, page.parentIds)
               // will be reintroduced by change event, so we delete the original node:
-              dom.window.setTimeout(() => e.dragEvent.originalSource.parentNode.removeChild(e.dragEvent.originalSource),0)
+              defer(removeDomElement(e.dragEvent.originalSource))
               state.eventProcessor.enriched.changes.onNext(disconnect merge connect)
 
             case other => println(s"not handled: $other")
