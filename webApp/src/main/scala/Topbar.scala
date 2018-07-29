@@ -9,7 +9,6 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 import rx._
-
 import wust.webApp.views._
 import wust.api.AuthUser
 import outwatch.ObserverSink
@@ -23,6 +22,7 @@ import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor}
+import wust.webApp.views.graphview.GraphView
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
@@ -30,15 +30,17 @@ object Topbar {
     height := "35px",
     backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
     color := "white",
-    transition := "background-color 0.5s",
+    transition := "background-color 0.5s", // fades on page change
     display.flex,
     flexDirection.row,
     justifyContent.spaceBetween,
     alignItems.center,
+
     header(state)(ctx)(marginRight := "10px"),
     appUpdatePrompt(state)(ctx)(marginRight := "10px"),
     beforeInstallPrompt()(ctx)(marginRight := "10px"),
 //    undoRedo(state)(ctx)(marginRight.auto),
+    viewSwitcher(state),
     notificationSettings()(marginLeft := "auto", marginRight := "10px"),
     authentication(state)
   )
@@ -207,6 +209,15 @@ object Topbar {
             else Seq.empty[VDomModifier]
           )
         }
+    )
+  }
+
+  def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VDomModifier = {
+    dom.console.log(freeBrands.asInstanceOf[js.Any])
+    VDomModifier(
+      div(freeRegular.faComments, onClick(ChatView:View) --> state.view, cursor.pointer),
+      div(freeSolid.faColumns, onClick(KanbanView:View) --> state.view, cursor.pointer, marginLeft := "5px"),
+      div(freeBrands.faCloudsmith, onClick(GraphView:View) --> state.view, cursor.pointer, marginLeft := "5px"),
     )
   }
 
