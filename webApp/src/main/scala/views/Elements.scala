@@ -4,6 +4,7 @@ import cats.effect.IO
 import monix.reactive.Observer
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
+import org.scalajs.dom.document
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.window
 import outwatch.ObserverSink
@@ -311,6 +312,7 @@ object Elements {
 
           onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
           onBlur --> sideEffect { discardChanges() },
+          onFocus --> sideEffect {e => document.execCommand("selectAll",false,null)}
         ) else initialRender()
       }
     )
