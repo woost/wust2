@@ -1,6 +1,6 @@
 package wust
 
-import java.time.Instant
+
 
 import supertagged._
 
@@ -20,12 +20,27 @@ package object ids {
   object EpochMilli extends TaggedType[Long] {
     def now: EpochMilli =
       EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
-    def from(time: String) = EpochMilli(Instant.parse(time).toEpochMilli)
+    def from(time: String) = {
+      import java.time.Instant
+      EpochMilli(Instant.parse(time).toEpochMilli)
+    }
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli) = t < that
       @inline def >(that: EpochMilli) = t > that
       @inline def isBefore(that: EpochMilli) = t < that
       @inline def isAfter(that: EpochMilli) = t > that
+      def humanReadable:String = {
+        // java.util.Date is deprecated, but implemented in java and scalajs
+        // and therefore a simple cross-compiling solution
+        import java.util.Date
+        val d = new Date(t)
+        val year = d.getYear + 1900
+        val month = d.getMonth + 1
+        val day = d.getDate
+        val hour = d.getHours
+        val minute = d.getMinutes
+        f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d"
+      }
     }
 
     // https://www.postgresql.org/docs/9.1/static/datatype-datetime.html

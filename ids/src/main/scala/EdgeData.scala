@@ -14,7 +14,9 @@ object EdgeData {
   }
 
   // system convention
-  case class Author(timestamp: EpochMilli) extends Named with EdgeData
+  case class Author(timestamp: EpochMilli) extends Named with EdgeData {
+    override def toString = s"Author(${timestamp.humanReadable})"
+  }
   object Author extends Named
 
   case class Member(level: AccessLevel) extends Named with EdgeData
@@ -22,7 +24,9 @@ object EdgeData {
 
   case object Parent extends Named with EdgeData
 
-  case class DeletedParent(timestamp: EpochMilli) extends Named with EdgeData
+  case class DeletedParent(timestamp: EpochMilli) extends Named with EdgeData {
+    override def toString = s"DeletedParent(${timestamp.humanReadable})"
+  }
   object DeletedParent extends Named
 
   case object Notify extends Named with EdgeData
