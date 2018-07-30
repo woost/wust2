@@ -11,6 +11,7 @@ import wust.webApp.outwatchHelpers._
 import Elements._
 import Rendered._
 import colorado.RGB
+import org.scalajs.dom.raw.HTMLInputElement
 import wust.ids.{NodeData, NodeId}
 import wust.sdk.BaseColors
 import wust.webApp.parsers.NodeDataParser
@@ -111,7 +112,9 @@ object KanbanView extends View {
                 active() = false
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onInsert.asHtml --> sideEffect{elem => elem.focus()}
+              key := cuid.Cuid(),
+              onInsert.asHtml --> sideEffect{elem => elem.focus()},
+              onBlur.value --> sideEffect{v => if(v.isEmpty) active() = false}
             )
           )
         else
