@@ -35,12 +35,11 @@ object Topbar {
     justifyContent.spaceBetween,
     alignItems.center,
 
-    header(state)(ctx)(marginRight := "10px"),
-    appUpdatePrompt(state)(ctx)(marginRight := "10px"),
-    beforeInstallPrompt()(ctx)(marginRight := "10px"),
+    header(state).apply(marginRight := "10px"),
+    appUpdatePrompt(state).apply(marginRight := "10px"),
+    beforeInstallPrompt().apply(marginRight := "10px"),
 //    undoRedo(state)(ctx)(marginRight.auto),
-    viewSwitcher(state),
-    notificationSettings()(marginLeft := "auto", marginRight := "10px"),
+    viewSwitcher(state).apply(marginRight := "auto"),
     authentication(state)
   )
 
@@ -211,50 +210,27 @@ object Topbar {
     )
   }
 
-  def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VDomModifier = {
+  def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VNode = {
     dom.console.log(freeBrands.asInstanceOf[js.Any])
-    VDomModifier(
+    div(
+      display.flex,
+      flexDirection.row,
+      justifyContent.spaceBetween,
+      alignItems.center,
       div(freeRegular.faComments, onClick(ChatView:View) --> state.view, cursor.pointer),
       div(freeSolid.faColumns, onClick(KanbanView:View) --> state.view, cursor.pointer, marginLeft := "5px"),
       div(freeBrands.faCloudsmith, onClick(GraphView:View) --> state.view, cursor.pointer, marginLeft := "5px"),
     )
   }
 
-  val notificationSettings: VNode = {
-    div(
-      Notifications.permissionStateRx.map { state =>
-        if (state == PermissionState.granted) Option.empty[VNode]
-        else if (state == PermissionState.denied)
-          Some(
-            span(
-              freeRegular.faBellSlash,
-              color := "tomato",
-              title := "Notifications blocked by browser. Reconfigure your browser to allow Notifications for this site."
-            )
-          )
-        else
-          Some(
-            div(
-              freeRegular.faBellSlash,
-              cursor.pointer,
-              onClick --> sideEffect { Notifications.requestPermissions() },
-              title := "Enable Notifications"
-            )
-          )
-      }
-    )
-  }
-
   def authentication(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =
     state.user.map {
-      case user: AuthUser.Assumed  => login(state): VDomModifier
-      case user: AuthUser.Implicit => login(state): VDomModifier
-      case user: AuthUser.Real =>
-        VDomModifier(
-          Avatar.user(user.id)(height := "20px"),
-          span(user.name, padding := "0 5px"),
-          logout(state)
-        )
+      case user: AuthUser.Assumed  => login(state)
+      case user: AuthUser.Implicit => login(state)
+      case user: AuthUser.Real => VDomModifier(
+        Avatar.user(user.id)(height := "20px"),
+        span(user.name, padding := "0 5px"),
+        logout(state))
     }
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =

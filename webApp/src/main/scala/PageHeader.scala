@@ -16,6 +16,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import NodeColor.hue
+import org.scalajs.dom.experimental.permissions.PermissionState
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
@@ -79,16 +80,54 @@ object PageHeader {
       cursor.pointer
     )
 
-    if (graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)) div(
-      (freeRegular.faBell: VNode) (cls := "fa-fw"),
-      title := "You are watching this node and will be notified about changes",
-      sharedMods,
-      onClick(GraphChanges.disconnectNotify(channel.id, user.id)) --> state.eventProcessor.changes
-    ) else div(
-      (freeRegular.faBellSlash: VNode) (cls := "fa-fw"),
-      title := "You are not watching this node.",
-      sharedMods,
-      fontSize := "20px",      onClick(GraphChanges.connectNotify(channel.id, user.id)) --> state.eventProcessor.changes
+    def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
+      fontawesome.icon(icon),
+      fontawesome.icon(
+        indicator,
+        new Params {
+          transform = new Transform { size = 5.0; x = 4; y = 7; }
+          styles = scalajs.js.Dictionary[String]("color" -> color)
+        }
+      )
+    )
+
+    def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String): VDomModifier = div(
+      permissionState match {
+        case PermissionState.granted => VDomModifier(
+          sharedMods,
+          (icon: VNode)(cls := "fa-fw"),
+          title := description,
+          action
+        )
+        case PermissionState.prompt => VDomModifier(
+          sharedMods,
+          iconWithIndicator(icon, freeRegular.faQuestionCircle, "cornflowerblue")(cls := "fa-fw"),
+          title := "Notifications are currently disabled. Click to enable.",
+          onClick --> sideEffect { Notifications.requestPermissions() }
+        )
+        case PermissionState.denied => VDomModifier(
+          sharedMods,
+          iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
+          title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
+          action
+        )
+      }
+    )
+
+    div(
+      Rx {
+        val permissionState = state.permissionState()
+        val hasNotifyEdge = graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)
+        if (hasNotifyEdge) decorateIcon(permissionState)(
+          freeRegular.faBell,
+          action = onClick(GraphChanges.disconnectNotify(channel.id, user.id)) --> state.eventProcessor.changes,
+          description = "You are watching this node and will be notified about changes. Click to stop watching."
+        ) else decorateIcon(permissionState)(
+          freeRegular.faBellSlash,
+          action = onClick(GraphChanges.connectNotify(channel.id, user.id)) --> state.eventProcessor.changes,
+          description = "You are not watching this node. Click to start watching."
+        )
+      }
     )
   }
 

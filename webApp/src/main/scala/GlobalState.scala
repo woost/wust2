@@ -6,6 +6,7 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
 import org.scalajs.dom
+import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.raw.{HTMLElement, VisibilityState}
 import org.scalajs.dom.{Event, window}
 import outwatch.dom._
@@ -78,6 +79,7 @@ class GlobalState private (
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
   val documentIsVisible: Rx[Boolean] = events.window.eventProp("visibilitychange").map(_ => dom.document.visibilityState == VisibilityState.visible).unsafeToRx(dom.document.visibilityState == VisibilityState.visible)
+  val permissionState: Rx[PermissionState] = Notifications.permissionStateRx
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
 
