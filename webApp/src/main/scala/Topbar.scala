@@ -206,7 +206,6 @@ object Topbar {
   }
 
   def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VNode = {
-    dom.console.log(freeBrands.asInstanceOf[js.Any])
     div(
       display.flex,
       flexDirection.row,

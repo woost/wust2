@@ -6,7 +6,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.console
 import shopify.draggable._
-import wust.graph.GraphChanges
+import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
 import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
 import wust.webApp.views.Elements._
@@ -56,7 +56,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
     //TODO: create GraphChanges factory for this
-    val changes:GraphChanges = GraphChanges.connectParent(nodeIds, tagId)
+    val changes:GraphChanges = GraphChanges.connect(Edge.Parent)(nodeIds, tagId)
 
     if(changes.isEmpty) {
       scribe.info(s"Attempted to create self-loop. Doing nothing.")
@@ -129,8 +129,8 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
           (dragging, oldContainer, newContainer) match {
             case (dragging:DragItem.KanbanItem, oldContainer:KanbanColumn, newContainer:KanbanColumn) =>
               val alreadyInParent = state.graph.now.children(newContainer.nodeId).contains(dragging.nodeId)
-              val disconnect = GraphChanges.disconnectParent(dragging.nodeId, oldContainer.nodeId)
-              val connect = if(alreadyInParent) GraphChanges.empty else GraphChanges.connectParent(dragging.nodeId, newContainer.nodeId)
+              val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, oldContainer.nodeId)
+              val connect = if(alreadyInParent) GraphChanges.empty else GraphChanges.connect(Edge.Parent)(dragging.nodeId, newContainer.nodeId)
               if(alreadyInParent) {
 //                console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
                 defer(removeDomElement(e.dragEvent.originalSource))
@@ -138,13 +138,13 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
               state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
 
             case (dragging:DragItem.KanbanItem, page:Page, newContainer:KanbanColumn) =>
-              val connect = GraphChanges.connectParent(dragging.nodeId, newContainer.nodeId)
-              val disconnect = GraphChanges.disconnectParents(dragging.nodeId, page.parentIds)
+              val connect = GraphChanges.connect(Edge.Parent)(dragging.nodeId, newContainer.nodeId)
+              val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, page.parentIds)
               state.eventProcessor.enriched.changes.onNext(connect merge disconnect)
 
             case (dragging:DragItem.KanbanItem, oldContainer:KanbanColumn, page:Page) =>
-              val disconnect = GraphChanges.disconnectParent(dragging.nodeId, oldContainer.nodeId)
-              val connect = GraphChanges.connectParents(dragging.nodeId, page.parentIds)
+              val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, oldContainer.nodeId)
+              val connect = GraphChanges.connect(Edge.Parent)(dragging.nodeId, page.parentIds)
               // will be reintroduced by change event, so we delete the original node:
               defer(removeDomElement(e.dragEvent.originalSource))
               state.eventProcessor.enriched.changes.onNext(disconnect merge connect)

@@ -447,7 +447,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumn" - (
-    margin(0 px, 5 px, 20 px, 5 px),
+    margin(5 px, 5 px, 20 px, 5 px),
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
   )
 
@@ -456,18 +456,18 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbansubcolumn" - (
+    minWidth(200 px),
     padding(7 px),
     color(c"#FEFEFE"),
     fontWeight.bold,
     fontSize.large,
     boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
-    cursor.move
+    cursor.move,
   )
 
   ".kanbancolumn .nodecardcompact" - (
     borderRadius(3 px),
     fontSize.medium,
-    width(200 px),
   )
 
   ".actionbutton" - (

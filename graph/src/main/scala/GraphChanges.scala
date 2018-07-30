@@ -58,7 +58,7 @@ case class GraphChanges(
   lazy val size: Int = allProps.foldLeft(0)(_ + _.size)
 }
 object GraphChanges {
-  def empty = GraphChanges()
+  val empty = new GraphChanges()
 
   def from(
       addNodes: Iterable[Node] = Set.empty,
@@ -98,7 +98,7 @@ object GraphChanges {
   }
 
   def delete(nodeIds: Iterable[NodeId], graph: Graph, page: Page): GraphChanges = {
-    if(nodeIds.isEmpty) GraphChanges.empty
+    if(nodeIds.isEmpty) empty
     else {
       val directParents = graph.parents(nodeIds.head).toSet
       val pageParents = page.parentIdSet
@@ -110,7 +110,7 @@ object GraphChanges {
   def delete(nodeId: NodeId, graph: Graph, page: Page): GraphChanges = delete(nodeId :: Nil, graph, page)
 
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
-    nodeIds.foldLeft(GraphChanges.empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
+    nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
   def delete(node: Node, parentIds: Set[NodeId]): GraphChanges = delete(node.id, parentIds)
   def delete(nodeId: NodeId, parentIds: Set[NodeId]): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
@@ -119,45 +119,32 @@ object GraphChanges {
     delEdges = parentIds.map(parentId => Edge.Parent(nodeId, parentId))
   )
 
-  def connect(source: NodeId, content: EdgeData.Label, target: NodeId) =
-    GraphChanges(addEdges = Set(Edge.Label(source, content, target)))
-  def disconnect(source: NodeId, content: EdgeData.Label, target: NodeId) =
-    GraphChanges(delEdges = Set(Edge.Label(source, content, target)))
-  def connectNotify(nodeId: NodeId, userId: UserId) =
-    GraphChanges(addEdges = Set(Edge.Notify(nodeId, userId)))
-  def disconnectNotify(nodeId: NodeId, userId: UserId) =
-    GraphChanges(delEdges = Set(Edge.Notify(nodeId, userId)))
-
-  def connectParent(childId: NodeId, parentId: NodeId) =
-    GraphChanges(addEdges = Set(Edge.Parent(childId, parentId)))
-  def connectParent(childrenIds: Iterable[NodeId], parentId: NodeId):GraphChanges = {
-    childrenIds.foldLeft(GraphChanges.empty){ (changes, childId) =>
-      changes.merge (
-        if(childId != parentId) GraphChanges.connectParent(childId, parentId)
-        else GraphChanges.empty
-      )
-    }
-  }
-  def connectParents(childId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = {
-    parentIds.foldLeft(GraphChanges.empty) { (changes, parentId) =>
-      changes.merge( GraphChanges.connectParent(childId, parentId) )
-    }
+  class ConnectFactory[SOURCEID, TARGETID, EDGE <: Edge](edge:(SOURCEID,TARGETID) => EDGE, toGraphChanges:collection.Set[EDGE] => GraphChanges) {
+    def apply(sourceId: SOURCEID, targetId: TARGETID): GraphChanges = 
+      if(sourceId != targetId) toGraphChanges(Set(edge(sourceId, targetId))) else empty
+    def apply(sourceId: SOURCEID, targetIds: Iterable[TARGETID]): GraphChanges =
+      toGraphChanges(targetIds.collect{case targetId if targetId != sourceId => edge(sourceId, targetId)}(breakOut))
+    def apply(sourceIds: Iterable[SOURCEID], targetId: TARGETID): GraphChanges =
+      toGraphChanges(sourceIds.collect{case sourceId if sourceId != targetId => edge(sourceId, targetId)}(breakOut))
+    def apply(sourceIds: Iterable[SOURCEID], targetIds: Iterable[TARGETID]): GraphChanges =
+      toGraphChanges(sourceIds.flatMap(sourceId => targetIds.collect{case targetId if targetId != sourceId => edge(sourceId, targetId)})(breakOut))
   }
 
-  def disconnectParents(childId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = {
-    parentIds.foldLeft(GraphChanges.empty) { (changes, parentId) =>
-      changes.merge( GraphChanges.disconnectParent(childId, parentId) )
-    }
+  class ConnectFactoryWithData[SOURCE, TARGET, DATA, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE, toGraphChanges:collection.Set[EDGE] => GraphChanges) {
+    def apply(sourceId: SOURCE, data:DATA, targetId: TARGET): GraphChanges = 
+      if(sourceId != targetId) toGraphChanges(Set(edge(sourceId, data, targetId))) else empty
+    def apply(sourceId: SOURCE, data:DATA, targetIds: Iterable[TARGET]): GraphChanges =
+      toGraphChanges(targetIds.collect{case targetId if targetId != sourceId => edge(sourceId, data, targetId)}(breakOut))
+    def apply(sourceIds: Iterable[SOURCE], data:DATA, targetId: TARGET): GraphChanges =
+      toGraphChanges(sourceIds.collect{case sourceId if sourceId != targetId => edge(sourceId, data, targetId)}(breakOut))
+    def apply(sourceIds: Iterable[SOURCE], data:DATA, targetIds: Iterable[TARGET]): GraphChanges =
+      toGraphChanges(sourceIds.flatMap(sourceId => targetIds.collect{case targetId if targetId != sourceId => edge(sourceId, data, targetId)})(breakOut))
   }
 
-  def disconnectParent(childrenIds: Iterable[NodeId], parentId: NodeId): GraphChanges = {
-    childrenIds.foldLeft(GraphChanges.empty){ (changes, childId) =>
-      changes.merge ( GraphChanges.disconnectParent(childId, parentId) )
-    }
-  }
-
-  def disconnectParent(childId: NodeId, parentId: NodeId):GraphChanges =
-    GraphChanges(delEdges = Set(Edge.Parent(childId, parentId)))
+  def connect[SOURCE, TARGET, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(addEdges = edges))
+  def connect[SOURCE, TARGET, DATA, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(addEdges = edges))
+  def disconnect[SOURCE, TARGET, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
+  def disconnect[SOURCE, TARGET, DATA, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
 
   def moveInto(graph: Graph, subject: NodeId, target: NodeId): GraphChanges = moveInto(graph, subject :: Nil, target)
   def moveInto(graph: Graph, subjects: Iterable[NodeId], target: NodeId): GraphChanges = {
@@ -169,9 +156,5 @@ object GraphChanges {
     )(breakOut):collection.Set[Edge]) - newParentships.head
 
     GraphChanges(addEdges = newParentships, delEdges = removeParentships)
-  }
-
-  def tagWith(graph: Graph, subject: NodeId, tag: NodeId): GraphChanges = {
-    GraphChanges.connectParent(subject, tag)
   }
 }

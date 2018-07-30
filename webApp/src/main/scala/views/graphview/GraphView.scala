@@ -75,6 +75,6 @@ object GraphView extends View {
 
   def onDropWithCtrl(state: GlobalState)(dragging: NodeId, target: NodeId): Unit = {
     val graph = state.graph.now
-    state.eventProcessor.changes.onNext(GraphChanges.tagWith(graph, dragging, target))
+    state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Parent)(dragging, target))
   }
 }

@@ -94,13 +94,13 @@ object PageHeader {
     def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String): VDomModifier = div(
       permissionState match {
         case PermissionState.granted => VDomModifier(
-          sharedMods,
+      sharedMods,
           (icon: VNode)(cls := "fa-fw"),
           title := description,
           action
         )
         case PermissionState.prompt => VDomModifier(
-          sharedMods,
+      sharedMods,
           iconWithIndicator(icon, freeRegular.faQuestionCircle, "cornflowerblue")(cls := "fa-fw"),
           title := "Notifications are currently disabled. Click to enable.",
           onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
@@ -120,11 +120,11 @@ object PageHeader {
         val hasNotifyEdge = graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)
         if (hasNotifyEdge) decorateIcon(permissionState)(
           freeRegular.faBell,
-          action = onClick(GraphChanges.disconnectNotify(channel.id, user.id)) --> state.eventProcessor.changes,
+          action = onClick(GraphChanges.disconnect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
           description = "You are watching this node and will be notified about changes. Click to stop watching."
         ) else decorateIcon(permissionState)(
           freeRegular.faBellSlash,
-          action = onClick(GraphChanges.connectNotify(channel.id, user.id)) --> state.eventProcessor.changes,
+          action = onClick(GraphChanges.connect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
           description = "You are not watching this node. Click to start watching."
         )
       }
@@ -135,7 +135,7 @@ object PageHeader {
     button(
       cls := "ui compact primary button",
       "Join",
-      onClick(GraphChanges.connectParent(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+      onClick(GraphChanges.connect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
     )
 
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean)(implicit ctx: Ctx.Owner):VNode = {
@@ -176,7 +176,7 @@ object PageHeader {
           cls := "item",
           span(cls := "text", "Leave Channel", cursor.pointer),
 
-          onClick(GraphChanges.disconnectParent(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+          onClick(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
         ))
       ),
       // https://semantic-ui.com/modules/dropdown.html#/usage

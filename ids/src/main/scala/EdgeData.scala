@@ -35,6 +35,8 @@ object EdgeData {
   case class Label(name: String) extends Named with EdgeData
   object Label extends Named
 
+  case object StaticParentIn extends Named with EdgeData
+
   // case class Number(content: String, weight: Double) extends Named with ConnectionData
   // object Number extends Named
 }

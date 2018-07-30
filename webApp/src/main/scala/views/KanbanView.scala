@@ -13,11 +13,13 @@ import Rendered._
 import colorado.RGB
 import fontAwesome.{freeRegular, freeSolid}
 import org.scalajs.dom.raw.HTMLInputElement
+import wust.ids.EdgeData.StaticParentIn
 import wust.ids.{NodeData, NodeId}
 import wust.sdk.BaseColors
 import wust.webApp.parsers.NodeDataParser
+import wust.util._
 
-import collection.breakOut
+import scala.collection.breakOut
 
 object KanbanView extends View {
   override val viewKey = "kanban"
@@ -34,6 +36,8 @@ object KanbanView extends View {
 
       Rx {
         val graph = state.graphContent()
+        val page = state.page()
+
         val forest = graph.filter{ nid =>
           val isContent = graph.nodesById(nid).isInstanceOf[Node.Content]
           val notIsolated = graph.hasChildren(nid) || graph.hasParents(nid)
@@ -49,7 +53,7 @@ object KanbanView extends View {
             alignItems.flexStart,
             flexWrap.wrap,
             overflow.auto,
-            forest.map(tree => renderTree(state, tree, inject = cls := "kanbancolumn")),
+            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, inject = cls := "kanbancolumn")),
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes)
         )
@@ -57,21 +61,20 @@ object KanbanView extends View {
     )
   }
 
-  private def renderTree(state: GlobalState, tree:Tree, parentId:Option[NodeId] = None, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
+  private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) => renderColumn(state, node, children, parentId)(ctx)(inject)
+      case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds)(ctx)(inject)
       case Tree.Leaf(node) =>
-        val promotedToColumn = Var(false)
         Rx{
-          if(promotedToColumn())
-            renderColumn(state, node, Nil, parentId)(ctx)(inject)
+          if(state.graph().isStaticParentIn(node.id, parentIds))
+            renderColumn(state, node, Nil, parentIds, isStaticParent = true)(ctx)(inject)
           else
-            renderCard(state, node, parentId, promotedToColumn)(ctx)(inject)
+            renderCard(state, node, parentIds)(ctx)(inject)
         }
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentId:Option[NodeId])(implicit ctx: Ctx.Owner):VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
     val columnTitle = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))(cls := "kanbancolumntitle")
     div(
       cls := "kanbansubcolumn",
@@ -79,19 +82,24 @@ object KanbanView extends View {
       borderRadius := "3px",
       draggableAs(state, DragItem.KanbanColumn(node.id)), // sortable: draggable needs to be direct child of container
       dragTarget(DragItem.KanbanColumn(node.id)),
-      key := s"draggablecolumn${node.id}parent$parentId",
+      key := s"draggablecolumn${node.id}parent${parentIds.mkString}",
       div(
         registerSortableContainer(state, DragContainer.KanbanColumn(node.id)),
         //            key := s"sortablecolumn${tree.node.id}parent${parentId}",
 
-        columnTitle,
-        children.map(t => renderTree(state, t, parentId = Some(node.id), inject = marginTop := "8px")),
+        div(
+          Styles.flex,
+          justifyContent.spaceBetween,
+          columnTitle,
+          isStaticParent.ifTrue[VDomModifier](div(freeRegular.faMinusSquare, onClick(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer))
+        ),
+        children.map(t => renderTree(state, t, parentIds = node.id :: Nil, inject = marginTop := "8px")),
       ),
       addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom
     )
   }
 
-  private def renderCard(state:GlobalState, node:Node, parentId:Option[NodeId], promotedToColumn: Var[Boolean])(implicit ctx: Ctx.Owner):VNode = {
+  private def renderCard(state:GlobalState, node:Node, parentIds:Seq[NodeId])(implicit ctx: Ctx.Owner):VNode = {
     val rendered = renderNodeCardCompact(
       state, node,
       injected = VDomModifier(renderNodeData(node.data, Some(maxLength)))
@@ -100,12 +108,12 @@ object KanbanView extends View {
         padding := "4px",
         paddingLeft := "0px",
         Styles.flexStatic,
-        div(freeRegular.faListAlt, onClick(true) --> promotedToColumn, cursor.pointer)
+        div(freeRegular.faListAlt, onClick(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer)
       )
     rendered(
       draggableAs(state, DragItem.KanbanCard(node.id)), // sortable: draggable needs to be direct child of container
       dragTarget(DragItem.KanbanCard(node.id)),
-      key := s"node${node.id}parent$parentId",
+      key := s"node${node.id}parent${parentIds.mkString}",
 
       Styles.flex,
       justifyContent.spaceBetween,

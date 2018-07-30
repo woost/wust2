@@ -76,6 +76,12 @@ object Edge {
     def targetId = parentId
   }
 
+  case class StaticParentIn(childId: NodeId, parentId: NodeId) extends Content {
+    def sourceId = childId
+    def targetId = parentId
+    def data = EdgeData.StaticParentIn
+  }
+
   case class Notify(nodeId: NodeId, userId: UserId)
       extends Content {
     def sourceId = nodeId
@@ -96,6 +102,7 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
+
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
   def size: Int = nodes.size
@@ -122,6 +129,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     children: collection.Map[NodeId, collection.Set[NodeId]],
     parents: collection.Map[NodeId, collection.Set[NodeId]],
     deletedParents: collection.Map[NodeId, collection.Set[NodeId]],
+    staticParentIn: collection.Map[NodeId, collection.Set[NodeId]],
     authorshipsByNodeId: collection.Map[NodeId, List[Edge.Author]],
     membershipsByNodeId: collection.Map[NodeId, List[Edge.Member]],
     allUserIds: collection.Set[UserId], //TODO: List?
@@ -151,6 +159,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val deletedParents = mutable
       .HashMap[NodeId, collection.Set[NodeId]]()
       .withDefaultValue(mutable.HashSet.empty[NodeId])
+    val staticParentIn = mutable
+      .HashMap[NodeId, collection.Set[NodeId]]()
+      .withDefaultValue(mutable.HashSet.empty[NodeId])
 
     val authorshipsByNodeId = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
     val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
@@ -171,6 +182,8 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
         children(parentId) += childId
         parents(childId) += parentId
         containments += e
+      case e @ Edge.StaticParentIn(childId, parentId) =>
+        staticParentIn(childId) += parentId
       case e @ Edge.DeletedParent(childId, _, parentId) =>
         deletedParents(childId) += parentId
       case e: Edge.Label =>
@@ -213,6 +226,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       children,
       parents,
       deletedParents,
+      staticParentIn,
       authorshipsByNodeId,
       membershipsByNodeId,
       allAuthorIds,
@@ -314,7 +328,13 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean =
     getParents(child).contains(possibleParent)
   def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean =
-    ancestors(descendent).exists(_ == possibleAncestor)
+    ancestors(descendent).contains(possibleAncestor)
+
+  def isStaticParentIn(id: NodeId, parentId: NodeId): Boolean = staticParentIn(id).contains(parentId)
+  def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = {
+    val staticInParents = staticParentIn(id)
+      parentIds.exists(parentId => staticInParents.contains(parentId))
+  }
 
   // There are cases where the key is not present and cases where the set is empty
   def hasChildren(node: NodeId): Boolean = children.contains(node) && children(node).nonEmpty
