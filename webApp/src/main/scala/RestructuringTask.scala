@@ -1,10 +1,10 @@
 package wust.webApp
 
+import monix.reactive.{Observable, Observer}
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp.views.Elements._
@@ -199,7 +199,7 @@ sealed trait YesNoTask extends RestructuringTask {
       div(
         button(
           "Yes",
-          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
+          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
           onClick --> sideEffect(scribe.info(s"$title($postChoice) = YES")),
         ),
@@ -223,7 +223,7 @@ sealed trait YesNoTask extends RestructuringTask {
       div(
         button(
           "Yes",
-          onClick(graphChangesYes) --> ObserverSink(state.eventProcessor.enriched.changes),
+          onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
         ),
         button(
@@ -238,9 +238,9 @@ sealed trait YesNoTask extends RestructuringTask {
 
 sealed trait AddTagTask extends RestructuringTask {
 
-  def constructComponent(sourcePosts: Posts, targetPosts: Posts, sink: Sink[String]): VNode = {
+  def constructComponent(sourcePosts: Posts, targetPosts: Posts, sink: Observer[String]): VNode = {
 
-    def textAreaWithEnterAndLog(actionSink: Sink[String]) = {
+    def textAreaWithEnterAndLog(actionSink: Observer[String]) = {
       val userInput = Handler.create[String].unsafeRunSync()
       val clearHandler = userInput.map(_ => "")
       userInput.foreach(txt => scribe.info(s"$title($sourcePosts -> $targetPosts) $txt"))
@@ -272,7 +272,7 @@ sealed trait AddTagTask extends RestructuringTask {
       )
     )
   }
-  def constructComponent(sourcePosts: Posts, sink: Sink[String]): VNode = {
+  def constructComponent(sourcePosts: Posts, sink: Observer[String]): VNode = {
     constructComponent(sourcePosts, List.empty[Node.Content], sink)
   }
 }
@@ -387,8 +387,8 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask {
       |Sie können einfach einen Tag in das Eingabefeld eingeben und mit der Enter-Taste bestätigen.
     """.stripMargin
 
-  def tagConnection(sourcePosts: Posts, targetPosts: Posts, state: GlobalState): Sink[String] = {
-    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
+  def tagConnection(sourcePosts: Posts, targetPosts: Posts, state: GlobalState): Observer[String] = {
+    state.eventProcessor.changes.redirectMap { (tag: String) =>
       val tagConnections = for {
         s <- sourcePosts
         t <- targetPosts if s.id != t.id
@@ -400,7 +400,7 @@ case class ConnectPostsWithTag(posts: Posts) extends AddTagTask {
         addEdges = tagConnections.toSet
       )
 
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(
+      RestructuringTaskGenerator.taskDisplayWithLogging.onNext(
         TaskFeedback(true, true, changes)
       )
 
@@ -822,9 +822,9 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
       button(
         "Confirm",
         onClick(postPreview)
-          .map(generateGraphChanges(splitPost, _, getGraphFromState(state))) --> ObserverSink(
+          .map(generateGraphChanges(splitPost, _, getGraphFromState(state))) -->
           state.eventProcessor.enriched.changes
-        ),
+        ,
         onClick(postPreview).map(
           preview =>
             TaskFeedback(
@@ -890,9 +890,9 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
       |Sie können den Tag bestätigen indem Sie Enter drücken.
     """.stripMargin
 
-  def addTagToPost(post: Posts, state: GlobalState): Sink[String] = {
+  def addTagToPost(post: Posts, state: GlobalState): Observer[String] = {
 
-    ObserverSink(state.eventProcessor.changes).redirectMap { (tag: String) =>
+    state.eventProcessor.changes.redirectMap { (tag: String) =>
       val graph = getGraphFromState(state)
       val tagPostWithParents: GraphChanges = graph.nodes.find(_.data == tag) match {
         case None =>
@@ -911,7 +911,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
             .reduceLeft((gc1, gc2) => gc2.merge(gc1))
       }
 
-      RestructuringTaskGenerator.taskDisplayWithLogging.unsafeOnNext(
+      RestructuringTaskGenerator.taskDisplayWithLogging.onNext(
         TaskFeedback(true, true, tagPostWithParents)
       )
 

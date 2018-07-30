@@ -8,7 +8,6 @@ import org.scalajs.dom.document
 import org.scalajs.dom.console
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.window
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
@@ -84,7 +83,7 @@ object Elements {
       .preventDefault
 
   val onGlobalEscape = 
-    CustomEmitterBuilder { sink: Sink[dom.KeyboardEvent] =>
+    CustomEmitterBuilder { sink: Observer[dom.KeyboardEvent] =>
       VDomModifier(
         managed(sink <-- events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
       )
@@ -108,7 +107,7 @@ object Elements {
 
 
   def valueWithEnter: CustomEmitterBuilder[String, Modifier] = CustomEmitterBuilder {
-    (sink: Sink[String]) =>
+    (sink: Observer[String]) =>
       for {
         userInput <- Handler.create[String]
         clearHandler = userInput.map(_ => "")

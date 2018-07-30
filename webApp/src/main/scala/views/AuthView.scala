@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import org.scalajs.dom.raw.Element
-import outwatch.ObserverSink
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -35,8 +34,8 @@ object AuthView {
         case (userName, password) =>
           submitAction(userName, password).onComplete {
             case Success(None)        => state.viewConfig() = state.viewConfig.now.noOverlayView
-            case Success(Some(vnode)) => errorMessageHandler.unsafeOnNext(vnode)
-            case Failure(t)           => errorMessageHandler.unsafeOnNext(s"Unexpected error: $t")
+            case Success(Some(vnode)) => errorMessageHandler.onNext(vnode)
+            case Failure(t)           => errorMessageHandler.onNext(s"Unexpected error: $t")
           }
       }
       userName <- Handler.create[String]

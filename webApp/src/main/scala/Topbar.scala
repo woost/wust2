@@ -11,7 +11,6 @@ import scala.scalajs.js
 import rx._
 import wust.webApp.views._
 import wust.api.AuthUser
-import outwatch.ObserverSink
 import fontAwesome._
 import fontAwesome.freeSolid._
 import fontAwesome.freeRegular
@@ -176,7 +175,7 @@ object Topbar {
   }
 
   def undoRedo(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val historySink = ObserverSink(state.eventProcessor.history.action)
+    val historySink = state.eventProcessor.history.action
     div(
       state.eventProcessor.changesHistory
         .startWith(Seq(ChangesHistory.empty))

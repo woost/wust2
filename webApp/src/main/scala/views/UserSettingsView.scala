@@ -2,7 +2,6 @@ package wust.webApp.views
 
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.{ObserverSink, Sink}
 import rx._
 import wust.graph._
 import wust.ids._

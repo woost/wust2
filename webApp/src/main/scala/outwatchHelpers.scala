@@ -12,7 +12,7 @@ import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
 import outwatch.dom.{Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
-import outwatch.{AsVDomModifier, ObserverSink, Sink}
+import outwatch.{AsVDomModifier, Sink}
 import rx._
 import wust.util.Empty
 
@@ -59,8 +59,6 @@ package object outwatchHelpers {
   implicit def obsToCancelable(obs: Obs): Cancelable = {
     Cancelable(() => obs.kill())
   }
-  implicit def observerAsSink[T](observer: Observer[T]): Sink[T] =
-    ObserverSink(observer)
 
   implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
     (value: Rx[T]) => VDomModifier.stream(value.toLaterObservable.map(VDomModifier(_)), VDomModifier(value.now))
@@ -85,11 +83,11 @@ package object outwatchHelpers {
 
       val h = Handler.create[T](rxVar.now).unsafeRunSync()
       h.filter(_ != rxVar.now).subscribe(new VarObserver(rxVar))
-      rxVar.foreach(h.unsafeOnNext)
+      rxVar.foreach(h.onNext)
       h
     }
 
-    def toSink(implicit ctx: Ctx.Owner): Sink[T] = {
+    def toSink(implicit ctx: Ctx.Owner): Observer[T] = {
 
       Sink
         .create[T] { event =>
@@ -108,24 +106,24 @@ package object outwatchHelpers {
     }
   }
 
-  implicit class RichHandler[T](val o: Handler[T]) extends AnyVal {
+  implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
       o.subscribe(new VarObserver(rx))
-      rx.foreach(o.unsafeOnNext)
+      rx.foreach(o.onNext)
       rx
     }
   }
 
-  implicit class RichSink[T](val o: Sink[T]) extends AnyVal {
+  implicit class WustRichObserver[T](val o: Observer[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
-      rx.foreach(o.unsafeOnNext)
+      rx.foreach(o.onNext)
       rx
     }
   }
 
-  implicit class RichObservable[T](val o: Observable[T]) extends AnyVal {
+  implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
     def unsafeToRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {

@@ -1,7 +1,7 @@
 package wust.webApp
 
 import io.circe._, io.circe.generic.extras.semiauto._, io.circe.parser._, io.circe.syntax._
-import outwatch.dom.Handler
+import outwatch.dom._
 import outwatch.util.LocalStorage
 import rx._
 import wust.api.Authentication
@@ -26,7 +26,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     LocalStorage
       .handlerWithoutEvents(keys.auth)
       .unsafeRunSync()
-      .imap(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
+      .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
       .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
@@ -35,7 +35,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     LocalStorage
       .handlerWithoutEvents(keys.graphChanges)
       .unsafeRunSync()
-      .imap(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))(
+      .mapHandler(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))(
         changes => Option(toJson(changes))
       )
   }
@@ -44,7 +44,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     LocalStorage
       .handlerWithoutEvents(keys.sidebarOpen)
       .unsafeRunSync()
-      .imap(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
+      .mapHandler(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
       .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
   }
 }

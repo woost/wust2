@@ -78,7 +78,7 @@ object SelectedPostMenu {
         GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
       state.eventProcessor.enriched.changes.onNext(changes)
 
-      editMode.unsafeOnNext(false)
+      editMode.onNext(false)
     }
 
     val insertPostHandler = Handler.create[String].unsafeRunSync()
