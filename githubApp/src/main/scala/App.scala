@@ -737,7 +737,7 @@ object App extends scala.App {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
       //      val githubClient = GithubClient(config.oauth)
-      val oAuthClient = OAuthClient.create(config.oauth, config.server)
+      val oAuthClient = OAuthClient.apply(config.oauth, config.server)
       val githubClient = GithubClient(Some("token")) //TODO: get token
       val receiver = WustReceiver.run(config.wust, githubClient)
       AppServer.run(config, receiver, oAuthClient)

@@ -18,7 +18,7 @@ import scala.collection.concurrent.TrieMap
 import scala.concurrent.{ExecutionContext, Future}
 
 // Instantiate for each App
-case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
+class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
 
   val oAuthRequests: TrieMap[String, UserId] = TrieMap.empty[String, UserId]
 
@@ -98,8 +98,7 @@ object OAuthClient {
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mat: Materializer    = ActorMaterializer()
 
-  def create(oAuthConfig: OAuthConfig, server: ServerConfig): OAuthClient = {
+  def apply(oAuthConfig: OAuthConfig, server: ServerConfig): OAuthClient = {
     new OAuthClient(oAuthConfig, server)
   }
-
 }
