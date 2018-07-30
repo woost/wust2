@@ -16,13 +16,13 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
   }
 
   "can instanziate client" in {
-    val client = Config.load("wust.test").map(config => OAuthClient.create(config.oauth, config.server))
+    val client = Config.load("wust.test").map(config => OAuthClient.apply(config.oauth, config.server))
 
     client should be ('right)
   }
 
   "generate url" in {
-    val client = Config.load("wust.test").map(config => OAuthClient.create(config.oauth, config.server))
+    val client = Config.load("wust.test").map(config => OAuthClient.apply(config.oauth, config.server))
 
     val url = client.map(c => c.authorizeUrl(UserId.fresh, Map("state" -> "de4a77dc-373b-4aad-a1f0-5c165060de31")).map(_.toString))
 
@@ -34,7 +34,7 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
 
 class OAuthClientRoutingSpec extends WordSpec with EitherValues with Matchers with ScalatestRouteTest {
 
-  private val client = Config.load("wust.test").map(config => OAuthClient.create(config.oauth, config.server)).toOption.get
+  private val client = Config.load("wust.test").map(config => OAuthClient.apply(config.oauth, config.server)).toOption.get
   private val tokenObserver = PublishSubject[AccessToken]
   private val testRoute = client.route(tokenObserver)
 

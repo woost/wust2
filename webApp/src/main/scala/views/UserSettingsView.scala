@@ -65,7 +65,16 @@ object UserSettingsView extends View {
     }
 
     def linkWithSlack(userId: UserId) = {
-      println(s"Link Slack with userId: $userId")
+      Client.auth.issuePluginToken().foreach { auth =>
+        scribe.info(s"Generated plugin token: $auth")
+        val connUser = Client.slackApi.connectUser(auth.token)
+        connUser foreach {
+          case Some(url) =>
+            org.scalajs.dom.window.location.href = url
+          case None =>
+            scribe.info(s"Could not connect user: $auth")
+        }
+      }
     }
 
     // TODO: Show button if not linked, else show linked data
