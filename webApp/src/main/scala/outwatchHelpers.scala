@@ -189,4 +189,9 @@ package object outwatchHelpers {
     override def onError(ex: Throwable): Unit = throw ex
     override def onComplete(): Unit = ()
   }
+
+  //TODO: add to fontawesome
+  implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
+    def layered(layers: Icon*) = fa.layer(push => layers.foreach(push(_)))
+  }
 }

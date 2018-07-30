@@ -94,41 +94,36 @@ object Topbar {
   }
 
   def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val syncingIcon = fontawesome.layer(push => {
-      push(fontawesome.icon(freeSolid.faCircle, new Params {
+    val syncingIcon = fontawesome.layered(
+      fontawesome.icon(freeSolid.faCircle, new Params {
         styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
-      }))
-      push(
-        fontawesome.icon(
-          freeSolid.faSync,
-          new Params {
-            transform = new Transform { size = 10.0 }
-            classes = scalajs.js.Array("fa-spin")
-            styles = scalajs.js.Dictionary[String]("color" -> "white")
-          }
-        )
-      )
-    })
+      }),
+      fontawesome.icon(
+        freeSolid.faSync,
+        new Params {
+          transform = new Transform { size = 10.0 }
+          classes = scalajs.js.Array("fa-spin")
+          styles = scalajs.js.Dictionary[String]("color" -> "white")
+        }
+      ))
 
-    val syncedIcon = fontawesome.layer(push => {
-      push(fontawesome.icon(freeSolid.faCircle, new Params {
+    val syncedIcon = fontawesome.layered(
+      fontawesome.icon(freeSolid.faCircle, new Params {
         styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
-      }))
-      push(fontawesome.icon(freeSolid.faCheck, new Params {
+      }),
+      fontawesome.icon(freeSolid.faCheck, new Params {
         transform = new Transform { size = 10.0 }
         styles = scalajs.js.Dictionary[String]("color" -> "white")
       }))
-    })
 
-    val offlineIcon = fontawesome.layer(push => {
-      push(fontawesome.icon(freeSolid.faCircle, new Params {
+    val offlineIcon = fontawesome.layered(
+      fontawesome.icon(freeSolid.faCircle, new Params {
         styles = scalajs.js.Dictionary[String]("color" -> "tomato")
-      }))
-      push(fontawesome.icon(freeSolid.faBolt, new Params {
+      }),
+      fontawesome.icon(freeSolid.faBolt, new Params {
         transform = new Transform { size = 10.0 }
         styles = scalajs.js.Dictionary[String]("color" -> "white")
       }))
-    })
 
     val syncStatusIcon = Rx {
       (state.isOnline(), state.isSynced()) match {
