@@ -463,7 +463,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbancolumn .nodecardcompact" - (
     borderRadius(3 px),
     fontSize.medium,
-    minWidth(200 px),
+    width(200 px),
   )
 
   ".actionbutton" - (
