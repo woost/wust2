@@ -24,7 +24,7 @@ object Notifications {
   import Navigator._
 
   //TODO: this fallback code is difficult to read and we want to model this state as a rx var.
-  def permissionStateRx(implicit ec: ExecutionContext, ctx: Ctx.Owner) = {
+  def createPermissionStateRx()(implicit ec: ExecutionContext, ctx: Ctx.Owner) = {
     // TODO: we need to disbable permissiondescriptor for push-notifications, as firefox only supports normal notification as a permissiondescriptor when using permissions.query to get a change event.
     // As push notification contains permissions for normal notifications, this should be enough.
     //permissionStateRxOf(PushPermissionDescriptor(userVisibleOnly = true)).onErrorHandleWith { // push subscription permission contain notifications
@@ -74,9 +74,7 @@ object Notifications {
                 subject() = desc.state
               }
             case Failure(t) =>
-              scribe.warn(
-                s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t"
-              )
+              scribe.warn(s"Failed to query permission descriptor for '${permissionDescriptor.name}': $t")
           }
         }
         subject
@@ -84,6 +82,7 @@ object Notifications {
     }
   }
 
+  //TODO retry if failed with Task
   private lazy val serverPublicKey = Client.push.getPublicKey()
 
   //TODO send message to serviceworker to manage this stuff for us
@@ -97,9 +96,7 @@ object Notifications {
         }
         persistPushSubscription(_.subscribe(options))
       case None =>
-        scribe.warn(
-          "No public key of server available for web push subscriptions. Cannot subscribe to push notifications."
-        )
+        scribe.warn("No public key of server available for web push subscriptions. Cannot subscribe to push notifications.")
     }
 
   private def persistPushSubscription(
@@ -115,11 +112,10 @@ object Notifications {
                   //TODO rename p256dh attribute of WebPushSub to publicKey
                   val webpush = WebPushSubscription(
                     endpointUrl = sub.endpoint,
-                    p256dh = Base64Codec
-                      .encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))),
-                    auth = Base64Codec
-                      .encode(TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth)))
-                  )
+                    p256dh = Base64Codec.encode(
+                      TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.p256dh))),
+                    auth = Base64Codec.encode(
+                      TypedArrayBuffer.wrap(sub.getKey(PushEncryptionKeyName.auth))))
                   scribe.info(s"WebPush subscription: $webpush")
                   Client.push.subscribeWebPush(webpush)
                 case err =>
@@ -133,10 +129,10 @@ object Notifications {
       }
     case None =>
       scribe.info("Push notifications are not available in this browser")
-      Future.successful(false)
   }
 
   private def browserNotify(title: String, options: NotificationOptions): Unit = {
-    val n = new experimental.Notification(title, options)
+    new experimental.Notification(title, options)
+    ()
   }
 }
