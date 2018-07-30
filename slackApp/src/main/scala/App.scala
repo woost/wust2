@@ -47,13 +47,14 @@ object Constants {
 }
 
 
-class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient)(
+class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
   implicit ec: ExecutionContext
 ) extends PluginApi {
   def connectUser(auth: Authentication.Token): Future[Option[String]] = {
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
+        persistenceAdapter.storeUserToken(auth)
         oAuthClient.authorizeUrl(verifiedAuth.user.id).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
@@ -83,13 +84,13 @@ object AppServer {
 
   implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
 
-  def run(config: DefaultConfig, wustReceiver: WustReceiver, oAuthClient: OAuthClient)(
+  def run(config: Config, wustReceiver: WustReceiver, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
     implicit system: ActorSystem, scheduler: Scheduler
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
     val apiRouter = Router[ByteBuffer, Future]
-      .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient))
+      .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
 
     val corsSettings = CorsSettings.defaultSettings.copy(
       allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
@@ -141,37 +142,54 @@ object AppServer {
             //              "event_id":"EvBZDKMHNJ",
             //              "event_time":1532687658
             //            }
-
-//            val incomingEvents = entity(as[SlackEvent]) { event =>
-//              event match {
-//                case e: Hello => scribe.info("hello")
-//                //                case e: Message => scribe.info(s"message: ${e.toString}")
-//                case unknown => scribe.info(s"unmatched SlackEvent: ${unknown.toString}")
-//              }
-//              complete(StatusCodes.OK)
-//            }
-
             val incomingEvents = entity(as[SlackEventStructure]) { eventStructure =>
               eventStructure.event match {
                 case e: Hello =>
                   scribe.info("hello")
 
                 case e: Message =>
-                  val (wustUserId, wustUserToken) = PersistenceAdapter.getOrCreateUser(user)
-                  val wustChannelNodeId = PersistenceAdapter.getChannelNode(channel)
-
-                  val msgNode = Node.Content(NodeData.PlainText(e.text))
-
-                  val msgAuthorEdge = Edge.Member(wustUserId, EdgeData.Author(EpochMilli.from(ts)), msgNode.id)
-                  val msgMemberEdge = Edge.Member(wustUserId, EdgeData.Member(NodeAccess.Inherited), msgNode.id)
-                  val channelEdge = Edge.Parent(msgNode.id, wustChannelNodeId)
-
-                  wustReceiver.push(List(GraphChanges(addNodes = msgNode, addEdges = List(msgMemberEdge, channelEdge))))
                   scribe.info(s"message: ${e.toString}")
+
+                  val (wustUserId, wustUserToken) = persistenceAdapter.getOrCreateWustUser(e.user)
+                  val wustChannelNodeId = persistenceAdapter.getChannelNode(e.channel)
+
+                  val graphChanges = EventMapper.createMessageInWust(
+                    NodeData.PlainText(e.text),
+                    wustUserId,
+                    e.ts,
+                    wustChannelNodeId
+                  )
+
+                  wustReceiver.push(List(graphChanges), wustUserToken)
+
                 case e: MessageChanged =>
                   scribe.info(s"message: ${e.toString}")
+
+                  val nodeId = persistenceAdapter.getNodeByChannelAndTimestamp(e.channel, e.previous_message.ts)
+                  val (wustUserId, wustUserToken) = persistenceAdapter.getOrCreateWustUser(e.message.user)
+                  val wustChannelNodeId = persistenceAdapter.getChannelNode(e.channel)
+
+                  val graphChanges = EventMapper.createMessageInWust(
+                    NodeData.PlainText(e.message.text),
+                    wustUserId,
+                    e.ts,
+                    wustChannelNodeId
+                  )
+
+                  wustReceiver.push(List(graphChanges), wustUserToken)
+
                 case e: MessageDeleted =>
                   scribe.info(s"message: ${e.toString}")
+                  val nodeId = persistenceAdapter.getNodeByChannelAndTimestamp(e.channel, e.ts)
+
+                  val (_, wustUserToken) = persistenceAdapter.getOrCreateWustUser(e.)
+                  val wustChannelNodeId = persistenceAdapter.getChannelNode(e.channel)
+
+                  val graphChanges = EventMapper.deleteMessageInWust(nodeId, wustChannelNodeId)
+
+                  wustReceiver.push(List(graphChanges), wustUserToken)
+
+
                 case e: BotMessage =>
                   scribe.info(s"message: ${e.toString}")
                 case e: MessageWithSubtype =>
@@ -294,7 +312,7 @@ object AppServer {
 
                 case e: TeamPlanChanged =>
                   scribe.info(s"team: ${e.toString}")
-                case e: TeamPlanChanged =>
+                case e: TeamPrefChanged =>
                   scribe.info(s"team: ${e.toString}")
                 case e: TeamRename =>
                   scribe.info(s"team: ${e.toString}")
@@ -377,14 +395,14 @@ trait MessageReceiver {
 
 class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(graphChanges: List[GraphChanges]): Future[Either[String, List[GraphChanges]]] = {
+  def push(graphChanges: List[GraphChanges], auth: Authentication.Token): Future[Either[String, List[GraphChanges]]] = {
     scribe.info(s"pushing new graph change: $graphChanges")
-    //TODO use onBehalf with different token
-    // client.api.changeGraph(graphChanges, onBehalf = token).map{ success =>
-    client.api.changeGraph(graphChanges).map { success =>
+
+    client.api.changeGraph(graphChanges, onBehalf = auth).map { success =>
       if (success) Right(graphChanges)
       else Left(s"Failed to apply GraphChanges: $graphChanges")
     }
+
   }
 }
 
@@ -478,13 +496,14 @@ object App extends scala.App {
 
   implicit val system: ActorSystem = ActorSystem("slack")
 
-  Config.load("wust.slack") match {
+  Config.load match {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
-      val oAuthClient = OAuthClient.create(config.oauth, config.server)
-      val slackClient = SlackClient("bla")
+      val oAuthClient = OAuthClient(config.oauth, config.server)
+      val slackPersistenceAdapter = PostgresAdapter(config.postgres)
+      val slackClient = SlackClient(config.slack.token)
       val slackEventReceiver = WustReceiver.run(config.wust, slackClient)
       //      val client = SlackClient(config.oAuthConfig.accessToken.get)
-      AppServer.run(config, slackEventReceiver, oAuthClient)
+      AppServer.run(config, slackEventReceiver, oAuthClient, slackPersistenceAdapter)
   }
 }
