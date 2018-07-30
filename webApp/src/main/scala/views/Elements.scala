@@ -221,6 +221,7 @@ object Elements {
   }
 
   def registerDraggableContainer(state: GlobalState):VDomModifier = Seq(
+    key := cuid.Cuid(),
 //    border := "2px solid blue",
     outline := "none", // hides focus outline
     cls := "draggable-container",
@@ -237,6 +238,7 @@ object Elements {
     import io.circe.syntax._
     import DragContainer.encoder
     Seq(
+      key := cuid.Cuid(),
       //    border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",

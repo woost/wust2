@@ -75,7 +75,7 @@ object ChatView extends View {
         TagsList(state).apply(Styles.flexStatic)
       ),
       inputField(state).apply(Styles.flexStatic),
-      registerDraggableContainer(state)
+      registerDraggableContainer(state),
     )
   }
 

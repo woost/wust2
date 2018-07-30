@@ -66,8 +66,8 @@ object KanbanView extends View {
           dragTarget(DragItem.KanbanColumn(node.id)),
           key := s"draggablecolumn${node.id}parent${parentId}",
           div(
-            key := s"sortablecolumn${tree.node.id}parent${parentId}",
             registerSortableContainer(state, DragContainer.KanbanColumn(tree.node.id)),
+            //            key := s"sortablecolumn${tree.node.id}parent${parentId}",
 
             columnTitle,
             children.map(t => renderTree(state, t, parentId = Some(node.id))(ctx)(
@@ -128,8 +128,8 @@ object KanbanView extends View {
   private def renderIsolatedNodes(state:GlobalState, page:Page, nodes:Seq[Node])(implicit ctx: Ctx.Owner) =
     div(
       cls := "kanbanisolatednodes",
-      key := s"kanbanisolatednodes",
       registerSortableContainer(state, DragContainer.Page(page.parentIds)),
+      //      key := s"kanbanisolatednodes",
 
       minHeight := "30px",
 
