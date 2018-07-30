@@ -184,7 +184,7 @@ object Topbar {
             if (view.isContent)
               Seq(
                 display.flex,
-                style("justify-content") := "space-evenly",
+                style("justify-content") := "space-evenly", //TODO dom-types
                 button(
                   cls := "ui button",
                   faUndo,

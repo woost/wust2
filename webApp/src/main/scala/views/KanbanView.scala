@@ -27,6 +27,9 @@ object KanbanView extends View {
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     div(
+      overflow.auto,
+      Styles.growFull,
+
       Rx {
         val graph = state.graphContent()
         val forest = graph.filter{ nid =>
