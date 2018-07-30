@@ -57,23 +57,7 @@ object Notifications {
         icon = "favicon.ico"
       )
 
-      serviceWorker match {
-        case Some(serviceWorker) =>
-          serviceWorkerNotify(serviceWorker, title, options).foreach { success =>
-            if (success) scribe.info(s"Sent notification via ServiceWorker: $title")
-            else {
-              scribe.info(
-                s"Cannot send notification via ServiceWorker, falling back to browser notify: $title"
-              )
-              browserNotify(title, options)
-            }
-          }
-        case None =>
-          scribe.info(
-            s"ServiceWorker ist not supported by browser, falling back to browser notify: $title"
-          )
-          browserNotify(title, options)
-      }
+      browserNotify(title, options)
   }
 
   private def permissionStateRxOf(
@@ -150,28 +134,6 @@ object Notifications {
     case None =>
       scribe.info("Push notifications are not available in this browser")
       Future.successful(false)
-  }
-
-  private def serviceWorkerNotify(
-      serviceWorker: ServiceWorkerContainer,
-      title: String,
-      options: NotificationOptions
-  )(implicit ec: ExecutionContext): Future[Boolean] = {
-    serviceWorker
-      .getRegistration()
-      .toFuture
-      .flatMap {
-        case registration if registration.isDefined =>
-          registration.get
-            .showNotification(title, options)
-            .toFuture
-            .map { _ =>
-              true
-            }
-            .recover { case _ => false }
-        case _ => Future.successful(false)
-      }
-      .recover { case _ => false }
   }
 
   private def browserNotify(title: String, options: NotificationOptions): Unit = {
