@@ -6,7 +6,7 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.raw.{HTMLElement, VisibilityState}
 import org.scalajs.dom.{Event, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -74,6 +74,10 @@ class GlobalState private (
       graph().children(user().channelNodeId).contains
     )
   }
+
+
+  //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
+  val documentIsVisible: Rx[Boolean] = events.window.eventProp("visibilitychange").map(_ => dom.document.visibilityState == VisibilityState.visible).unsafeToRx(dom.document.visibilityState == VisibilityState.visible)
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
 
@@ -244,7 +248,7 @@ object GlobalState {
       val changes = events
         .collect { case ApiEvent.NewGraphChanges(changes) => changes }
         .foldLeft(GraphChanges.empty)(_ merge _)
-      if (changes.addNodes.nonEmpty) {
+      if (!state.documentIsVisible.now || changes.addNodes.nonEmpty) {
         val msg =
           if (changes.addNodes.size == 1) "New Node" else s"New Node (${changes.addNodes.size})"
         val body = changes.addNodes.map(_.data).mkString(", ")
