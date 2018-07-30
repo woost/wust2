@@ -451,6 +451,10 @@ object CommonStyles extends StyleSheet.Standalone {
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
   )
 
+  ".kanbancolumntitle" - (
+    maxWidth(200 px)
+  )
+
   ".kanbansubcolumn" - (
     padding(7 px),
     color(c"#FEFEFE"),

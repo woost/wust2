@@ -11,6 +11,7 @@ import wust.webApp.outwatchHelpers._
 import Elements._
 import Rendered._
 import colorado.RGB
+import fontAwesome.{freeRegular, freeSolid}
 import org.scalajs.dom.raw.HTMLInputElement
 import wust.ids.{NodeData, NodeId}
 import wust.sdk.BaseColors
@@ -48,9 +49,7 @@ object KanbanView extends View {
             alignItems.flexStart,
             flexWrap.wrap,
             overflow.auto,
-            forest.map(tree => renderTree(state, tree)(ctx)(
-              cls := "kanbancolumn",
-            )),
+            forest.map(tree => renderTree(state, tree, inject = cls := "kanbancolumn")),
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes)
         )
@@ -58,39 +57,60 @@ object KanbanView extends View {
     )
   }
 
-  private def renderTree(state: GlobalState, tree:Tree, parentId:Option[NodeId] = None)(implicit ctx: Ctx.Owner):VNode = {
+  private def renderTree(state: GlobalState, tree:Tree, parentId:Option[NodeId] = None, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) =>
-        val columnTitle = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))
-        div(
-          cls := "kanbansubcolumn",
-          backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(tree.node.id)).toHex,
-          borderRadius := "3px",
-          draggableAs(state, DragItem.KanbanColumn(node.id)), // sortable: draggable needs to be direct child of container
-          dragTarget(DragItem.KanbanColumn(node.id)),
-          key := s"draggablecolumn${node.id}parent${parentId}",
-          div(
-            registerSortableContainer(state, DragContainer.KanbanColumn(tree.node.id)),
-            //            key := s"sortablecolumn${tree.node.id}parent${parentId}",
-
-            columnTitle,
-            children.map(t => renderTree(state, t, parentId = Some(node.id))(ctx)(
-              marginTop := "8px",
-            )),
-          ),
-          addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom
-        )
+      case Tree.Parent(node, children) => renderColumn(state, node, children, parentId)(ctx)(inject)
       case Tree.Leaf(node) =>
-        val rendered = renderNodeCardCompact(
-          state, node,
-          injected = VDomModifier(renderNodeData(node.data, Some(maxLength)))
-        )
-        rendered(
-          draggableAs(state, DragItem.KanbanCard(tree.node.id)), // sortable: draggable needs to be direct child of container
-          dragTarget(DragItem.KanbanCard(node.id)),
-          key := s"node${node.id}parent${parentId}",
-        )
+        val promotedToColumn = Var(false)
+        Rx{
+          if(promotedToColumn())
+            renderColumn(state, node, Nil, parentId)(ctx)(inject)
+          else
+            renderCard(state, node, parentId, promotedToColumn)(ctx)(inject)
+        }
     }
+  }
+
+  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentId:Option[NodeId])(implicit ctx: Ctx.Owner):VNode = {
+    val columnTitle = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))(cls := "kanbancolumntitle")
+    div(
+      cls := "kanbansubcolumn",
+      backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
+      borderRadius := "3px",
+      draggableAs(state, DragItem.KanbanColumn(node.id)), // sortable: draggable needs to be direct child of container
+      dragTarget(DragItem.KanbanColumn(node.id)),
+      key := s"draggablecolumn${node.id}parent$parentId",
+      div(
+        registerSortableContainer(state, DragContainer.KanbanColumn(node.id)),
+        //            key := s"sortablecolumn${tree.node.id}parent${parentId}",
+
+        columnTitle,
+        children.map(t => renderTree(state, t, parentId = Some(node.id), inject = marginTop := "8px")),
+      ),
+      addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom
+    )
+  }
+
+  private def renderCard(state:GlobalState, node:Node, parentId:Option[NodeId], promotedToColumn: Var[Boolean])(implicit ctx: Ctx.Owner):VNode = {
+    val rendered = renderNodeCardCompact(
+      state, node,
+      injected = VDomModifier(renderNodeData(node.data, Some(maxLength)))
+    )
+    val buttonBar = div(
+        padding := "4px",
+        paddingLeft := "0px",
+        Styles.flexStatic,
+        div(freeRegular.faListAlt, onClick(true) --> promotedToColumn, cursor.pointer)
+      )
+    rendered(
+      draggableAs(state, DragItem.KanbanCard(node.id)), // sortable: draggable needs to be direct child of container
+      dragTarget(DragItem.KanbanCard(node.id)),
+      key := s"node${node.id}parent$parentId",
+
+      Styles.flex,
+      justifyContent.spaceBetween,
+      buttonBar
+    )
   }
 
   private def addNodeField(state: GlobalState, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
