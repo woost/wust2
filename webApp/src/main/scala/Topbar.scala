@@ -229,7 +229,7 @@ object Topbar {
             span(
               freeRegular.faBellSlash,
               color := "tomato",
-              title := "Notifications blocked by browser. Reconfigure your browser allow Notifications for this site."
+              title := "Notifications blocked by browser. Reconfigure your browser to allow Notifications for this site."
             )
           )
         else
