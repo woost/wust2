@@ -32,19 +32,17 @@ object ViewConfigParser {
       .flatMap {
         case Nil => ??? // cannot happen, because min of repetition is 1
         case view :: Nil =>
-          View.viewMap
-            .get(view)
-            .fold[Parser[View]](Fail)(v => Pass.map(_ => v))
+          View.viewMap.get(view).fold[Parser[View]](Fail)(v => Pass.map(_ => v))
         case view :: views =>
           optionSeq(NonEmptyList(view, views).map(View.viewMap.get))
             .fold[Parser[View]](Fail)(v => Pass.map(_ => new TiledView(operator, v)))
       }
 
   val view: P[View] = P(
-    (viewWithOps(ViewOperator.Row) | viewWithOps(ViewOperator.Column) | viewWithOps(
-      ViewOperator.Auto
-    ) | viewWithOps(ViewOperator.Optional))
-  )
+    viewWithOps(ViewOperator.Row) |
+      viewWithOps(ViewOperator.Column) |
+      viewWithOps(ViewOperator.Auto) |
+      viewWithOps(ViewOperator.Optional))
 
   val nodeIdList: Parser[Seq[NodeId]] =
     P(CharsWhile(c => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)).!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
