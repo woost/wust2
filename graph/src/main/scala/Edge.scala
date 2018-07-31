@@ -56,4 +56,15 @@ object Edge {
 
   //TODO should have constructor: label: String
   case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Content
+
+
+  def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
+    case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
+    case data: EdgeData.Member        => new Edge.Member(UserId(sourceId), data, targetId)
+    case EdgeData.Parent              => new Edge.Parent(sourceId, targetId)
+    case EdgeData.StaticParentIn      => new Edge.StaticParentIn(sourceId, targetId)
+    case data: EdgeData.DeletedParent => new Edge.DeletedParent(sourceId, data, targetId)
+    case data: EdgeData.Label         => new Edge.Label(sourceId, data, targetId)
+    case EdgeData.Notify              => new Edge.Notify(sourceId, UserId(targetId))
+  }
 }

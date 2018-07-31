@@ -38,15 +38,7 @@ object DbConversions {
 
   implicit def forClient(c: Data.MemberEdge): Edge = Edge.Member(c.sourceId, c.data, c.targetId)
 
-  implicit def forClient(c: Data.Edge): Edge = c.data match {
-    case data: EdgeData.Author        => new Edge.Author(UserId(c.sourceId), data, c.targetId)
-    case data: EdgeData.Member        => new Edge.Member(UserId(c.sourceId), data, c.targetId)
-    case EdgeData.Parent              => new Edge.Parent(c.sourceId, c.targetId)
-    case EdgeData.StaticParentIn      => new Edge.StaticParentIn(c.sourceId, c.targetId)
-    case data: EdgeData.DeletedParent => new Edge.DeletedParent(c.sourceId, data, c.targetId)
-    case data: EdgeData.Label         => new Edge.Label(c.sourceId, data, c.targetId)
-    case EdgeData.Notify              => new Edge.Notify(c.sourceId, UserId(c.targetId))
-  }
+  implicit def forClient(c: Data.Edge): Edge = Edge(c.sourceId, c.data, c.targetId)
 
   def forDb(u: UserId, s: WebPushSubscription): Data.WebPushSubscription =
     Data.WebPushSubscription(u, s.endpointUrl, s.p256dh, s.auth)
