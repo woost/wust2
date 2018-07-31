@@ -109,7 +109,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "single page" in {
-    val orig = ViewConfig.apply(View.default, Page(Seq(freshNodeId(1), freshNodeId(2)), Seq(freshNodeId(3), freshNodeId(4))), None)
+    val orig = ViewConfig.apply(ViewList.default, Page(Seq(freshNodeId(1), freshNodeId(2)), Seq(freshNodeId(3), freshNodeId(4))), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
