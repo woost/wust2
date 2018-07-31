@@ -18,7 +18,15 @@ object SafeDom {
 
     def permissions: Option[Permissions] = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
     def serviceWorker: Option[ServiceWorkerContainer] = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
-    def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.toOption
+
+    //TODO make it work with facade?
+    // def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.toOption
+    object share {
+      private val n = dom.window.navigator.asInstanceOf[js.Dynamic]
+
+      def isDefined = n.share != js.undefined
+      def apply(data: ShareData): js.Promise[Unit] = n.share(data).asInstanceOf[js.Promise[Unit]]
+    }
 
     // test share button: as navigator share is not defined on desktop browsers
     // DevOnly {
@@ -31,14 +39,14 @@ object SafeDom {
 }
 
 //TODO contribute to scala-js
-@js.native
-trait NavigatorWithShare extends js.Any {
-  val share: js.UndefOr[ShareFunction] = js.native
-}
-@js.native
-trait ShareFunction extends js.Any {
-  def apply(data: ShareData): js.Promise[Unit] = js.native
-}
+//@js.native
+//trait NavigatorWithShare extends js.Any {
+//  val share: js.UndefOr[ShareFunction] = js.native
+//}
+//@js.native
+//trait ShareFunction extends js.Any {
+//  def apply(data: ShareData): js.Promise[Unit] = js.native
+//}
 trait ShareData extends js.Object {
   var url: js.UndefOr[String] = js.undefined
   var text: js.UndefOr[String] = js.undefined

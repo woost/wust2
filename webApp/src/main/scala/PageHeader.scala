@@ -73,13 +73,13 @@ object PageHeader {
     )
   }
 
-  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): Option[VNode] = Navigator.share.map { share =>
+  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): Option[VNode] = Navigator.share.isDefined.ifTrueOption {
     div(
       freeSolid.faShareAlt,
       cursor.pointer,
       onClick --> sideEffect {
         scribe.info(s"sharing post: $channel")
-        share(new ShareData {
+        Navigator.share(new ShareData {
           title = channel.data.str
           text = channel.data.str
           url = dom.window.location.href
