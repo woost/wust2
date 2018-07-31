@@ -18,7 +18,7 @@ object SafeDom {
 
     def permissions: Option[Permissions] = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
     def serviceWorker: Option[ServiceWorkerContainer] = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
-    def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.asInstanceOf[js.UndefOr[ShareFunction]].toOption
+    def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.toOption
 
     // test share button: as navigator share is not defined on desktop browsers
     // DevOnly {
@@ -33,7 +33,7 @@ object SafeDom {
 //TODO contribute to scala-js
 @js.native
 trait NavigatorWithShare extends js.Any {
-  val share: ShareFunction = js.native
+  val share: js.UndefOr[ShareFunction] = js.native
 }
 @js.native
 trait ShareFunction extends js.Any {
