@@ -1,15 +1,18 @@
 package wust.webApp
 
-import acyclic.skipped // file is allowed in dependency cycle
+import acyclic.skipped
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
+import org.scalajs.dom
 import org.scalajs.dom.console
 import shopify.draggable._
 import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
 import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
 import wust.webApp.views.Elements._
+
+import scala.scalajs.js
 
 
 sealed trait DragStatus
@@ -25,6 +28,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
   private val dragOutEvent = PublishSubject[DragOutEvent]
   private val dragStopEvent = PublishSubject[DragEvent] //TODO type event
   private val sortableStopEvent = PublishSubject[SortableStopEvent]
+  private val sortableSortEvent = PublishSubject[SortableSortEvent]
   private val lastDragTarget = PublishSubject[Option[DragTarget]] //TODO: observable derived from other subjects
 
   val status: Observable[DragStatus] = Observable.merge(dragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
@@ -35,6 +39,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
   draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
   draggable.on[DragEvent]("drag:stop", dragStopEvent.onNext(_))
 
+  draggable.on[SortableSortEvent]("sortable:sort", sortableSortEvent.onNext(_))
   draggable.on[SortableStopEvent]("sortable:stop", sortableStopEvent.onNext(_))
 
   //  draggable.on[DroppableDroppedEvent]("droppable:dropped", droppableDroppedEvent.onNext(_))
@@ -94,8 +99,8 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
         import DragItem._
         println(s"Draggable stop: $payload -> $target")
         (payload,target) match {
-          case (dragging:KanbanCard, target:SingleNode) => moveInto(dragging.nodeId, target.nodeId)
-          case (dragging:KanbanColumn, target:SingleNode) => moveInto(dragging.nodeId, target.nodeId)
+          case (dragging:Kanban.Card, target:SingleNode) => moveInto(dragging.nodeId, target.nodeId)
+          case (dragging:Kanban.Column, target:SingleNode) => moveInto(dragging.nodeId, target.nodeId)
 
           case (dragging:AnyNodes, target:Channel) => addTag(dragging.nodeIds, target.nodeId)
 
@@ -113,47 +118,80 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
         lastDragTarget.onNext(None)
 
       case _ =>
-    }.subscribe(
-      _ => Ack.Continue,
-      e => scribe.error("Error in drag events", e)
-    )
+  }.subscribe(
+    _ => Ack.Continue,
+    { e =>
+      scribe.error("Error in dragStopEvent")
+      throw e
+    }
+  )
 
-  sortableStopEvent.foreach { e =>
+  val sortableActions:PartialFunction[(SortableEvent, DragPayload, DragContainer, DragContainer),Unit] = {
     import DragContainer._
+    {
+      case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column) =>
+        val alreadyInParent = state.graph.now.children(into.nodeId).contains(dragging.nodeId)
+        val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.parentIds)
+        val connect = if (alreadyInParent) GraphChanges.empty else GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.nodeId)
+        if (alreadyInParent) {
+          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
+          defer(removeDomElement(e.dragEvent.originalSource))
+        }
+        state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
+
+      case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.IsolatedNodes) =>
+        val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.parentIds)
+        val connect = GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.parentIds)
+        // will be reintroduced by change event, so we delete the original node:
+        state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
+        defer(removeDomElement(e.dragEvent.originalSource))
+    }
+  }
+
+  sortableSortEvent.map { e =>
+    console.log(e)
+    val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[dom.html.Element] // https://github.com/Shopify/draggable/issues/256
+    val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
+    val dragging = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
+    val overContainer = decodeFromAttr[DragContainer](overContainerWorkaround, DragContainer.attrName)
+    val sourceContainer = decodeFromAttr[DragContainer](sourceContainerWorkaround, DragContainer.attrName).orElse(overContainer)
+
+    // white listing allowed sortable actions
+    (dragging, sourceContainer, overContainer) match {
+      case (Some(dragging), Some(sourceContainer), Some(overContainer)) =>
+        if(!sortableActions.isDefinedAt((e, dragging, sourceContainer, overContainer)))
+          e.cancel()
+      //          case (dragging:DragItem.Kanban.Item, _, into:DragContainer.Kanban.Column) => // allowed
+      //          case (dragging:DragItem.Kanban.Card, from:DragContainer.Kanban.Column, into:DragContainer.Kanban.IsolatedNodes) => // allowed
+      //          case (dragging:DragItem.Kanban.Card, from:DragContainer.Kanban.IsolatedNodes, into:DragContainer.Kanban.IsolatedNodes) => // allowed
+      //          case _ => e.cancel()
+      case _ => e.cancel()
+    }
+  }.subscribe(
+    _ => Ack.Continue,
+    { e =>
+      scribe.error("Error in sortableSortEvent")
+      throw e
+    }
+  )
+
+  sortableStopEvent.map { e =>
+    console.log(e)
     if(e.newContainer != e.oldContainer) {
       val dragging = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
       val oldContainer = decodeFromAttr[DragContainer](e.oldContainer, DragContainer.attrName)
       val newContainer = decodeFromAttr[DragContainer](e.newContainer, DragContainer.attrName)
       (dragging, oldContainer, newContainer) match {
         case (Some(dragging), Some(oldContainer), Some(newContainer)) =>
-          (dragging, oldContainer, newContainer) match {
-            case (dragging:DragItem.KanbanItem, oldContainer:KanbanColumn, newContainer:KanbanColumn) =>
-              val alreadyInParent = state.graph.now.children(newContainer.nodeId).contains(dragging.nodeId)
-              val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, oldContainer.nodeId)
-              val connect = if(alreadyInParent) GraphChanges.empty else GraphChanges.connect(Edge.Parent)(dragging.nodeId, newContainer.nodeId)
-              if(alreadyInParent) {
-//                console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
-                defer(removeDomElement(e.dragEvent.originalSource))
-              }
-              state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
-
-            case (dragging:DragItem.KanbanItem, page:Page, newContainer:KanbanColumn) =>
-              val connect = GraphChanges.connect(Edge.Parent)(dragging.nodeId, newContainer.nodeId)
-              val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, page.parentIds)
-              state.eventProcessor.enriched.changes.onNext(connect merge disconnect)
-
-            case (dragging:DragItem.KanbanItem, oldContainer:KanbanColumn, page:Page) =>
-              val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, oldContainer.nodeId)
-              val connect = GraphChanges.connect(Edge.Parent)(dragging.nodeId, page.parentIds)
-              // will be reintroduced by change event, so we delete the original node:
-              defer(removeDomElement(e.dragEvent.originalSource))
-              state.eventProcessor.enriched.changes.onNext(disconnect merge connect)
-
-            case other => println(s"not handled: $other")
-          }
-
+          sortableActions.applyOrElse((e, dragging, oldContainer, newContainer), (other:(SortableEvent, DragPayload, DragContainer, DragContainer)) => println(s"not handled: $other"))
         case other => println(s"incomplete drag action: $other")
       }
     }
-  }
+  }.subscribe(
+    _ => Ack.Continue,
+    { e =>
+      scribe.error("Error in sortableStopEvent")
+      throw e
+    }
+  )
 }

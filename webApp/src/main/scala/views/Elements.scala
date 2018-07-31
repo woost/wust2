@@ -8,6 +8,8 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
 import wust.webApp.outwatchHelpers._
 
+import scala.scalajs.js
+
 object Elements {
   // Enter-behavior which is consistent across mobile and desktop:
   // - textarea: enter emits keyCode for Enter
@@ -40,6 +42,7 @@ object Elements {
   def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName:String):Option[T] = {
     import io.circe.parser.decode
     for {
+      elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
       attr <- Option(elem.attributes.getNamedItem(attrName))
       target <- decode[T](attr.value).toOption
     } yield target

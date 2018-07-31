@@ -44,12 +44,12 @@ object KanbanView extends View {
         VDomModifier(
           div(
             key := s"kanbancolumns",
-            registerSortableContainer(state, DragContainer.Page(state.page().parentIds)),
+            registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
             Styles.flex,
             alignItems.flexStart,
             flexWrap.wrap,
             overflow.auto,
-            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, inject = cls := "kanbancolumn")),
+            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, isTopLevel = true, inject = cls := "kanbancolumn")),
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes)
         )
@@ -57,30 +57,35 @@ object KanbanView extends View {
     )
   }
 
-  private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
+  private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], isTopLevel:Boolean = false, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
     tree match {
       case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds)(ctx)(inject)
       case Tree.Leaf(node) =>
         Rx{
           if(state.graph().isStaticParentIn(node.id, parentIds))
-            renderColumn(state, node, Nil, parentIds, isStaticParent = true)(ctx)(inject)
+            renderColumn(state, node, Nil, parentIds, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
           else
             renderCard(state, node, parentIds)(ctx)(inject)
         }
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
     val columnTitle = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))(cls := "kanbancolumntitle")
     div(
       cls := "kanbansubcolumn",
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       borderRadius := "3px",
-      draggableAs(state, DragItem.KanbanColumn(node.id)), // sortable: draggable needs to be direct child of container
-      dragTarget(DragItem.KanbanColumn(node.id)),
+      if(isTopLevel) VDomModifier(
+        draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)), // sortable: draggable needs to be direct child of container
+        dragTarget(DragItem.Kanban.ToplevelColumn(node.id)) ,
+      ) else VDomModifier(
+        draggableAs(state, DragItem.Kanban.SubColumn(node.id)), // sortable: draggable needs to be direct child of container
+        dragTarget(DragItem.Kanban.SubColumn(node.id))
+      ),
       key := s"draggablecolumn${node.id}parent${parentIds.mkString}",
       div(
-        registerSortableContainer(state, DragContainer.KanbanColumn(node.id)),
+        registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
         //            key := s"sortablecolumn${tree.node.id}parent${parentId}",
 
         div(
@@ -107,8 +112,8 @@ object KanbanView extends View {
         div(freeRegular.faListAlt, onClick(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer)
       )
     rendered(
-      draggableAs(state, DragItem.KanbanCard(node.id)), // sortable: draggable needs to be direct child of container
-      dragTarget(DragItem.KanbanCard(node.id)),
+      draggableAs(state, DragItem.Kanban.Card(node.id)), // sortable: draggable needs to be direct child of container
+      dragTarget(DragItem.Kanban.Card(node.id)),
       key := s"node${node.id}parent${parentIds.mkString}",
 
       Styles.flex,
@@ -158,7 +163,7 @@ object KanbanView extends View {
   private def renderIsolatedNodes(state:GlobalState, page:Page, nodes:Seq[Node])(implicit ctx: Ctx.Owner) =
     div(
       cls := "kanbanisolatednodes",
-      registerSortableContainer(state, DragContainer.Page(page.parentIds)),
+      registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
       //      key := s"kanbanisolatednodes",
 
       minHeight := "30px",
@@ -172,8 +177,8 @@ object KanbanView extends View {
           key := s"kanbanisolated${node.id}",
           marginRight := "3px",
           marginTop := "8px",
-          draggableAs(state, DragItem.KanbanCard(node.id)),
-          dragTarget(DragItem.KanbanCard(node.id)),
+          draggableAs(state, DragItem.Kanban.Card(node.id)),
+          dragTarget(DragItem.Kanban.Card(node.id)),
         )
       }
     )

@@ -74,10 +74,10 @@ trait MirrorOptions extends js.Object {
 @js.native
 @JSImport("@shopify/draggable", "AbstractEvent")
 class AbstractEvent(data: js.Object) extends js.Object {
-  def cancel(data: js.Object):Null = js.native
+  def `type`:String = js.native
+  def cancelable:String = js.native
+  def cancel():Unit = js.native
   def canceled():Boolean = js.native
-  val `type`:String = js.native
-  val cancelable:String = js.native
 }
 
 
@@ -134,4 +134,12 @@ class SortableStopEvent(data: js.Object) extends SortableEvent(data) {
   def newIndex:Int = js.native
   def oldContainer:html.Element = js.native
   def newContainer:html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "SortableSortEvent")
+class SortableSortEvent(data: js.Object) extends SortableEvent(data) {
+  def currentIndex:Int = js.native
+  def over:Int = js.native
+  def overContainer:html.Element = js.native
 }

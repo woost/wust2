@@ -18,9 +18,14 @@ object DragItem extends wust.ids.serialize.Circe {
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload
   case object SelectedNodesBar extends DragTarget
 
-  sealed trait KanbanItem { def nodeId:NodeId }
-  case class KanbanColumn(nodeId: NodeId) extends ParentNode with KanbanItem
-  case class KanbanCard(nodeId: NodeId) extends ChildNode with KanbanItem
+  object Kanban {
+    sealed trait Item { def nodeId: NodeId }
+    sealed trait Column extends ParentNode with Item
+    sealed trait SubItem extends Item
+    case class ToplevelColumn(nodeId: NodeId) extends Column
+    case class SubColumn(nodeId: NodeId) extends Column with SubItem
+    case class Card(nodeId: NodeId) extends ChildNode with SubItem
+  }
 
   val payloadAttrName = "data-dragpayload"
   val targetAttrName = "data-dragtarget"
@@ -34,8 +39,12 @@ object DragItem extends wust.ids.serialize.Circe {
 
 sealed trait DragContainer
 object DragContainer extends wust.ids.serialize.Circe {
-  case class KanbanColumn(nodeId:NodeId) extends DragContainer
-  case class Page(parentIds:Seq[NodeId]) extends DragContainer
+  object Kanban {
+    sealed trait Area extends DragContainer { def parentIds: Seq[NodeId] }
+    case class Column(nodeId:NodeId) extends Area { def parentIds = nodeId :: Nil }
+    case class ColumnArea(parentIds:Seq[NodeId]) extends Area
+    case class IsolatedNodes(parentIds:Seq[NodeId]) extends Area
+  }
 
   val attrName = "data-dragcontainer"
 

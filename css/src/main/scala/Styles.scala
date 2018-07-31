@@ -471,7 +471,9 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move,
   )
 
-  ".kanbancolumn .nodecardcompact" - (
+  ".kanbancolumn .nodecardcompact," +
+  ".kanbanisolatednodes .nodecardcompact" - (
+    width(200 px),
     borderRadius(3 px),
     fontSize.medium,
   )
