@@ -9,7 +9,7 @@ import collection.mutable
 import collection.breakOut
 
 object Graph {
-  def empty = new Graph(Set.empty, Set.empty)
+  val empty = new Graph(Set.empty, Set.empty)
 
   def apply(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
     new Graph(nodes.toSet, edges.toSet)
