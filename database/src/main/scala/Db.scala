@@ -131,21 +131,32 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
     def subscribeWebPush(
         subscription: WebPushSubscription
     )(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx
-        .run(query[WebPushSubscription].insert(lift(subscription)).returning(_.id))
+      val q = quote {
+        query[WebPushSubscription]
+          .insert(lift(subscription))
+          .onConflictUpdate(_.endpointUrl, _.p256dh, _.auth)(
+            (s, excluded) => s.userId -> excluded.userId
+          ).returning(_.id)
+      }
+
+      ctx.run(q)
         .map(_ => true)
         .recoverValue(false)
     }
 
-    def delete(
-        subscriptions: Set[WebPushSubscription]
-    )(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx
-        .run(
-          liftQuery(subscriptions.toList)
-            .foreach(s => query[WebPushSubscription].filter(_.id == s.id).delete)
-        )
-        .map(_.forall(_ == 1))
+    def cancelWebPush(endpointUrl: String, p256dh: String, auth: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(
+        query[WebPushSubscription]
+          .filter(s => s.endpointUrl == lift(endpointUrl) && s.p256dh == lift(p256dh) && s.auth == lift(auth)).delete
+      ).map(_ == 1)
+    }
+
+    def delete(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(subscription))
+    def delete(subscriptions: Set[WebPushSubscription])(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(
+        liftQuery(subscriptions.toList)
+          .foreach(s => query[WebPushSubscription].filter(_.id == s.id).delete)
+      ).map(_.forall(_ == 1))
     }
 
     def getSubscriptions(

@@ -103,7 +103,7 @@ object PageHeader {
           sharedMods,
           iconWithIndicator(icon, freeRegular.faQuestionCircle, "cornflowerblue")(cls := "fa-fw"),
           title := "Notifications are currently disabled. Click to enable.",
-          onClick --> sideEffect { Notifications.requestPermissions() }
+          onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
         )
         case PermissionState.denied => VDomModifier(
           sharedMods,

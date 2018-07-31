@@ -31,6 +31,7 @@ trait Api[Result[_]] {
 @PathName("Push")
 trait PushApi[Result[_]] {
   def subscribeWebPush(subscription: WebPushSubscription): Result[Boolean]
+  def cancelSubscription(subscription: WebPushSubscription): Result[Boolean]
   def getPublicKey(): Result[Option[String]]
 }
 

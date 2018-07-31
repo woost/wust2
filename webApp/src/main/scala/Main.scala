@@ -24,9 +24,9 @@ object Main {
     Logging.setup()
 
     val swUpdateIsAvailable =
-     if (!LinkingInfo.developmentMode)
+     // if (!LinkingInfo.developmentMode)
         ServiceWorker.register()
-     else Observable.empty
+     // else Observable.empty
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalState.create(swUpdateIsAvailable)
