@@ -141,10 +141,10 @@ object GraphChanges {
       toGraphChanges(sourceIds.flatMap(sourceId => targetIds.collect{case targetId if targetId != sourceId => edge(sourceId, data, targetId)})(breakOut))
   }
 
-  def connect[SOURCE, TARGET, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(addEdges = edges))
-  def connect[SOURCE, TARGET, DATA, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(addEdges = edges))
-  def disconnect[SOURCE, TARGET, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
-  def disconnect[SOURCE, TARGET, DATA, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
+  def connect[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(addEdges = edges))
+  def connect[SOURCE <: NodeId, TARGET <: NodeId, DATA <: EdgeData, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(addEdges = edges))
+  def disconnect[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
+  def disconnect[SOURCE <: NodeId, TARGET <: NodeId, DATA <: EdgeData, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
 
   def moveInto(graph: Graph, subject: NodeId, target: NodeId): GraphChanges = moveInto(graph, subject :: Nil, target)
   def moveInto(graph: Graph, subjects: Iterable[NodeId], target: NodeId): GraphChanges = {
