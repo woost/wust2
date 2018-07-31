@@ -64,7 +64,7 @@ class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        oAuthClient.authorizeUrl(verifiedAuth.user.id).map(_.toString())
+        oAuthClient.authorizeUrl(verifiedAuth).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
         None
@@ -143,7 +143,7 @@ object AppServer {
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
 
-    val tokenObserver = ConcurrentSubject.publish[AccessToken]
+    val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
     tokenObserver.foreach{ t =>
       scribe.info(s"persisting token: $t")
       //          // get user information
