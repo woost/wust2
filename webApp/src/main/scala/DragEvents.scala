@@ -128,22 +128,40 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
   val sortableActions:PartialFunction[(SortableEvent, DragPayload, DragContainer, DragContainer),Unit] = {
     import DragContainer._
+    def graph = state.graph.now
+
     {
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column) =>
-        val alreadyInParent = state.graph.now.children(into.nodeId).contains(dragging.nodeId)
-        val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.parentIds)
-        val connect = if (alreadyInParent) GraphChanges.empty else GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.nodeId)
+        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+
+        val moveStaticInParents = if(graph.isStaticParentIn(dragging.nodeId, from.parentIds)) {
+          GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        } else GraphChanges.empty
+
+        val alreadyInParent = graph.children(into.nodeId).contains(dragging.nodeId)
         if (alreadyInParent) {
-          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
+//          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
           defer(removeDomElement(e.dragEvent.originalSource))
         }
-        state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
+        state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
+
+      case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.ColumnArea) =>
+        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        // always make new columns static
+        val moveStaticInParents = GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+
+        val alreadyInParent = into.parentIds.exists(parentId => graph.children(parentId).contains(dragging.nodeId))
+        if (alreadyInParent) {
+//          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
+          defer(removeDomElement(e.dragEvent.originalSource))
+        }
+        state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.IsolatedNodes) =>
-        val disconnect = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.parentIds)
-        val connect = GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.parentIds)
+        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        val removeStatic = GraphChanges.disconnect(Edge.StaticParentIn)(dragging.nodeId, from.parentIds)
         // will be reintroduced by change event, so we delete the original node:
-        state.eventProcessor.enriched.changes.onNext(disconnect.merge(connect))
+        state.eventProcessor.enriched.changes.onNext(move merge removeStatic)
         defer(removeDomElement(e.dragEvent.originalSource))
     }
   }
@@ -158,14 +176,9 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
     // white listing allowed sortable actions
     (dragging, sourceContainer, overContainer) match {
-      case (Some(dragging), Some(sourceContainer), Some(overContainer)) =>
-        if(!sortableActions.isDefinedAt((e, dragging, sourceContainer, overContainer)))
-          e.cancel()
-      //          case (dragging:DragItem.Kanban.Item, _, into:DragContainer.Kanban.Column) => // allowed
-      //          case (dragging:DragItem.Kanban.Card, from:DragContainer.Kanban.Column, into:DragContainer.Kanban.IsolatedNodes) => // allowed
-      //          case (dragging:DragItem.Kanban.Card, from:DragContainer.Kanban.IsolatedNodes, into:DragContainer.Kanban.IsolatedNodes) => // allowed
-      //          case _ => e.cancel()
-      case _ => e.cancel()
+      case (Some(dragging), Some(sourceContainer), Some(overContainer))
+        if sortableActions.isDefinedAt((e, dragging, sourceContainer, overContainer)) => // allowed
+      case _ => e.cancel() // not allowed
     }
   }.subscribe(
     _ => Ack.Continue,

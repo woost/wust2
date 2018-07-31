@@ -146,14 +146,23 @@ object GraphChanges {
   def disconnect[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE) = new ConnectFactory(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
   def disconnect[SOURCE <: NodeId, TARGET <: NodeId, DATA <: EdgeData, EDGE <: Edge](edge:(SOURCE,DATA,TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges:collection.Set[Edge]) => GraphChanges(delEdges = edges))
 
+  def changeTarget[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge:(SOURCE,TARGET) => EDGE)(sourceIds:Iterable[SOURCE], oldTargetIds: Iterable[TARGET], newTargetIds: Iterable[TARGET]):GraphChanges = {
+    val disconnect:GraphChanges = GraphChanges.disconnect(edge)(sourceIds, oldTargetIds)
+    val connect:GraphChanges = GraphChanges.connect(edge)(sourceIds, newTargetIds)
+    disconnect merge connect
+  }
+
   def moveInto(graph: Graph, subject: NodeId, target: NodeId): GraphChanges = moveInto(graph, subject :: Nil, target)
   def moveInto(graph: Graph, subjects: Iterable[NodeId], target: NodeId): GraphChanges = {
     // TODO: only keep deepest parent in transitive chain
-    val newParentships:Set[Edge] = subjects.map(subject => Edge.Parent(subject, target))(breakOut)
+    val newParentships:collection.Set[Edge] = subjects.map(subject => Edge.Parent(subject, target))(breakOut)
     val cycleFreeSubjects: Iterable[NodeId] = subjects.filterNot(subject => subject == target || (graph.ancestors(target) contains subject)) // avoid self loops and cycles
-    val removeParentships: collection.Set[Edge] = (cycleFreeSubjects.flatMap(subject =>
-        graph.parents(subject) map (Edge.Parent(subject, _): Edge)
-    )(breakOut):collection.Set[Edge]) - newParentships.head
+    val removeParentships = ((
+      for {
+        subject <- cycleFreeSubjects
+        parent <- graph.parents(subject)
+      } yield Edge.Parent(subject, parent)
+      )(breakOut):collection.Set[Edge]) -- newParentships
 
     GraphChanges(addEdges = newParentships, delEdges = removeParentships)
   }

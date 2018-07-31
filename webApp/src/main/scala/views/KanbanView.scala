@@ -31,21 +31,28 @@ object KanbanView extends View {
       Styles.growFull,
 
       Rx {
-        val graph = state.graphContent()
         val page = state.page()
+        val graph = {
+          val g = state.graph()
+          val pageChildren = page.parentIds.flatMap(g.descendants)
+          g.filter(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(g.authorIds))
+        }
 
         val forest = graph.filter{ nid =>
           val isContent = graph.nodesById(nid).isInstanceOf[Node.Content]
-          val notIsolated = graph.hasChildren(nid) || graph.hasParents(nid)
-          isContent && notIsolated
+          val notIsolated = graph.hasChildren(nid) || !graph.parents(nid).forall(page.parentIdSet) || graph.isStaticParentIn(nid, page.parentIds)
+          val noPage = !page.parentIdSet.contains(nid)
+          isContent && notIsolated && noPage
         }.redundantForest
-        val isolatedNodes = graph.nodes.toSeq.filter(n => !graph.hasParents(n.id) && !graph.hasChildren(n.id) && n.isInstanceOf[Node.Content])
+        val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).forall(page.parentIdSet) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
+        println(isolatedNodes)
 
         VDomModifier(
           div(
-            key := s"kanbancolumns",
+            cls := s"kanbancolumnarea",
+            key := s"kanbancolumnarea",
             registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-            Styles.flex,
+            display.flex, // no Styles.flex, since we set a custom minWidth/Height
             alignItems.flexStart,
             flexWrap.wrap,
             overflow.auto,

@@ -19,8 +19,8 @@ class Draggable(
     options: js.UndefOr[Options] = js.undefined
 ) extends js.Object {
   def destroy(): Unit = js.native
-  def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
-  def on[E <: AbstractEvent](eventName: String, listener: js.Function1[E, Unit]): Draggable = js.native
+//  def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
+  def on[E <: AbstractEvent](eventName: String, listener: js.Function1[E, _]): Draggable = js.native
 //  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def off(eventName: String, listener: js.Function0[Unit]): Draggable =
     js.native

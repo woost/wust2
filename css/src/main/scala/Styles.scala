@@ -452,6 +452,11 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineBlock
   )
 
+  ".kanbancolumnarea" - (
+    minWidth(200 px),
+    minHeight(40 px)
+  )
+
   ".kanbancolumn" - (
     margin(5 px, 5 px, 20 px, 5 px),
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",

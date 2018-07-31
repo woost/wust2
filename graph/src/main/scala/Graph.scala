@@ -25,10 +25,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   override def toString: String = {
     def nodeStr(node: Node) =
-      s"${node.data.tpe}(${node.data.str}:${node.id.toCuidString.takeRight(4)})"
+      s"${node.data.tpe}(${node.data.str}:${node.id.toBase58.takeRight(3)})"
     s"Graph(${nodes.map(nodeStr).mkString(" ")}, " +
       s"${connectionsByType.values.flatten
-        .map(c => s"${c.sourceId.toCuidString.takeRight(4)}-${c.data}->${c.targetId.toCuidString.takeRight(4)}")
+        .map(c => s"${c.sourceId.toBase58.takeRight(3)}-${c.data}->${c.targetId.toBase58.takeRight(3)}")
         .mkString(", ")})"
   }
 
@@ -384,10 +384,17 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   )
 
   def filter(p: NodeId => Boolean): Graph = {
-    copy(
-      nodes = nodes.filter(n => p(n.id)),
-      edges = edges.filter(e => p(e.sourceId) && p(e.targetId))
-    )
+    // we only want to call p once for each node
+    // and not trigger the pre-caching machinery of nodeIds
+    val filteredNodes = nodes.filter(n => p(n.id))
+    if(filteredNodes.size == nodes.size) this
+    else {
+      val filteredNodeIds = filteredNodes.map(_.id)
+      copy(
+        nodes = filteredNodes,
+        edges = edges.filter(e => filteredNodeIds(e.sourceId) && filteredNodeIds(e.targetId))
+      )
+    }
   }
 
   def filterNot(p: NodeId => Boolean): Graph = filter(id => !p(id))
