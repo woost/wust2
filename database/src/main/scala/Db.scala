@@ -51,9 +51,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx
         .map(_.forall(_ <= 1))
     }
 
-    def get(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
+    private val canAccess = quote { (userId: UserId, nodeId: NodeId) =>
+      infix"""
+                can_access_node($userId, $nodeId)
+           """.as[Boolean]
+    }
+
+    def get(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
       ctx
-        .run(query[Node].filter(_.id == lift(nodeId)).take(1))
+        .run(query[Node].filter( accessedNode =>
+          accessedNode.id == lift(nodeId) &&
+            canAccess(lift(userId), lift(nodeId))
+        ).take(1))
         .map(_.headOption)
     }
 

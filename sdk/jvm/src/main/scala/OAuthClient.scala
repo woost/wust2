@@ -8,7 +8,7 @@ import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.{ActorMaterializer, Materializer}
-import com.github.dakatsuka.akka.http.oauth2.client.{AccessToken, GrantType, Client => AuthClient, Config => AuthConfig}
+import com.github.dakatsuka.akka.http.oauth2.client.{AccessToken => OAuthToken, GrantType, Client => AuthClient, Config => AuthConfig}
 import com.github.dakatsuka.akka.http.oauth2.client.Error.UnauthorizedException
 import com.github.dakatsuka.akka.http.oauth2.client.strategy._
 import monix.reactive.Observer
@@ -59,15 +59,15 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
     code.nonEmpty && currRequest
   }
 
-  //val newAccessToken: Future[Either[Throwable, AccessToken]] =
+  //val newAccessToken: Future[Either[Throwable, OAuthToken]] =
   //  client.getAccessToken(GrantType.RefreshToken, Map("refresh_token" -> "zzzzzzzz"))
 
-  def route(tokenObserver: Observer[AccessToken]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
+  def route(tokenObserver: Observer[OAuthToken]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
     get {
       parameters(('code, 'state)) { (code: String, state: String) =>
         if (confirmOAuthRequest(code, state)) {
 
-          val accessToken: Future[Either[Throwable, AccessToken]] = authClient.getAccessToken(
+          val accessToken: Future[Either[Throwable, OAuthToken]] = authClient.getAccessToken(
             grant = GrantType.AuthorizationCode,
             params = Map(
               "code" -> code,
