@@ -1,5 +1,6 @@
 package views.graphview
 
+import acyclic.skipped // file is allowed in dependency cycle
 import d3v4._
 import org.scalajs.dom.html
 import vectory.Vec2

@@ -18,7 +18,7 @@ import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 import wust.graph._
 import wust.ids._
-import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
+import wust.webApp.views.{LoginView, PageStyle, View, ViewList, ViewConfig}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor}
@@ -59,7 +59,7 @@ object Topbar {
             "Woost",
             color := "white",
             textDecoration := "none",
-            onClick(ViewConfig.default) --> state.viewConfig,
+            onClick(ViewList.defaultViewConfig) --> state.viewConfig,
             cursor.pointer
           )
       ),

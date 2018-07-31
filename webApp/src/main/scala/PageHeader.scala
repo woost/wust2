@@ -21,6 +21,7 @@ import wust.util._
 import wust.webApp.SafeDom.Navigator
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
+import wust.webApp.views.Components._
 import wust.webApp.views.Rendered._
 
 import scala.util.{Failure, Success}

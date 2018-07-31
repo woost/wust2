@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.skipped // file is allowed in dependency cycle
 import org.scalajs.dom.raw.Element
 import outwatch.dom._
 import outwatch.dom.dsl._

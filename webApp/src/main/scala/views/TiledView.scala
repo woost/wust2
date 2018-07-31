@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.skipped // file is allowed in dependency cycle
 import wust.webApp.outwatchHelpers._
 import cats.data.NonEmptyList
 import cats.Eval

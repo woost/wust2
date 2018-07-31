@@ -1,5 +1,6 @@
 package views.graphview
 
+import acyclic.skipped // file is allowed in dependency cycle
 import d3v4.{d3, d3polygon, _}
 import vectory.Algorithms.LineIntersection
 import vectory._

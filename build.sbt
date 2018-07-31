@@ -344,6 +344,7 @@ lazy val webApp = project
   .dependsOn(sdkJS, cssJS)
   .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
+//    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
     libraryDependencies ++=
       Deps.scalaJsDom.value ::
         Deps.scalarx.value ::

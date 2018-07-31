@@ -1,25 +1,20 @@
 package wust.webApp.views
 
+import fontAwesome.freeRegular
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.sdk.NodeColor._
-import wust.webApp._
-import wust.webApp.outwatchHelpers._
-import Elements._
-import Rendered._
-import colorado.RGB
-import fontAwesome.{freeRegular, freeSolid}
-import org.scalajs.dom.raw.HTMLInputElement
-import wust.ids.EdgeData.StaticParentIn
 import wust.ids.{NodeData, NodeId}
 import wust.sdk.BaseColors
-import wust.webApp.parsers.NodeDataParser
+import wust.sdk.NodeColor._
 import wust.util._
-
-import scala.collection.breakOut
+import wust.webApp._
+import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
+import wust.webApp.views.Rendered._
 
 object KanbanView extends View {
   override val viewKey = "kanban"

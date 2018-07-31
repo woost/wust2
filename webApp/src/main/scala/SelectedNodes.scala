@@ -1,26 +1,14 @@
 package wust.webApp
 
-import cats.data.{NonEmptyList, NonEmptySet}
-import fastparse.core.Parsed
-import cats.syntax._
 import fontAwesome._
-import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
-import wust.util._
-import wust.util.collection._
-import wust.webApp._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.NodeDataParser
-import wust.webApp.views.Elements._
-import wust.webApp.views.Rendered._
-
-import scala.collection.breakOut
+import wust.webApp.views.Components._
 
 object SelectedNodes {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {

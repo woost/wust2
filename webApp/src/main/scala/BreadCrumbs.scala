@@ -12,7 +12,7 @@ import wust.ids._
 import wust.sdk.ChangesHistory
 import wust.sdk.NodeColor._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Elements._
+import wust.webApp.views.Components._
 import wust.webApp.views._
 
 import scala.scalajs.js

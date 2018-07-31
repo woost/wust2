@@ -29,7 +29,7 @@ object Main {
      // else Observable.empty
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
-    val state = GlobalState.create(swUpdateIsAvailable)
+    val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
     // TODO: DevOnly {
     val styleTag = document.createElement("style")

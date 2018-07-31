@@ -1,28 +1,18 @@
 package wust.webApp
 
-import wust.css.Styles
-import org.scalajs.dom.experimental.permissions.PermissionState
-import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
-import org.scalajs.dom.{Event, window}
-import org.scalajs.dom
-import cats.effect.IO
-
-import scala.scalajs.js
 import rx._
-import fontAwesome.freeSolid._
-import fontAwesome.freeRegular
-import wust.webApp.outwatchHelpers._
-import wust.css.ZIndex
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
-import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
-import wust.webApp.views.Elements._
+import wust.sdk.{BaseColors, NodeColor}
 import wust.util.RichBoolean
-import wust.sdk.{BaseColors, ChangesHistory, NodeColor}
-import MainViewParts._
-import scala.concurrent.duration._
+import wust.webApp.MainViewParts._
+import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Elements._
+import wust.webApp.views.Components._
+import wust.webApp.views.{PageStyle, ViewList}
 
 object Sidebar {
 
@@ -188,7 +178,7 @@ object Sidebar {
           if (e.ctrlKey) page.copy(mode = newMode) else Page(Seq.empty, mode = newMode)
       }
     } --> sideEffect { page =>
-      val contentView = if (state.view.now.isContent) state.view.now else View.default
+      val contentView = if (state.view.now.isContent) state.view.now else ViewList.default
       state.viewConfig() = state.viewConfig.now.copy(page = page, view = contentView)
     }
 }

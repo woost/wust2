@@ -1,5 +1,6 @@
 package wust.webApp.views.graphview
 
+import acyclic.skipped // file is allowed in dependency cycle
 import scala.scalajs.js.JSConverters._
 import d3v4._
 import org.scalajs.dom

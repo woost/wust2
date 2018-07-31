@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.skipped // file is allowed in dependency cycle
 import fastparse.core.Parsed
 import wust.graph._
 import wust.webApp.parsers.{ViewConfigParser, ViewConfigWriter}
@@ -10,8 +11,6 @@ case class ViewConfig(view: View, page: Page, prevView: Option[View]) {
   def noOverlayView: ViewConfig = prevView.fold(this)(view => copy(view = view, prevView = None))
 }
 object ViewConfig {
-  val default = ViewConfig(View.default, Page.empty, None)
-
   def fromUrlHash(hash: String): ViewConfig = {
     ViewConfigParser.viewConfig.parse(hash) match {
       case Parsed.Success(url, _) => url

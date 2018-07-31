@@ -1,31 +1,22 @@
 package wust.webApp.views.graphview
 
-import scala.scalajs.js.JSConverters._
-import d3v4._
-import org.scalajs.dom
+import acyclic.skipped // file is allowed in dependency cycle
 import org.scalajs.dom.html.TextArea
-import org.scalajs.dom.raw.HTMLElement
-import org.scalajs.dom.{Element, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
 import wust.css.Styles
-import wust.sdk.NodeColor._
-import wust.webApp.views.{Placeholders, View}
-import wust.webApp.views.Rendered._
-import wust.webApp.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
-import wust.webApp.outwatchHelpers._
-import wust.util.time.time
 import wust.ids._
-
-import scala.concurrent.ExecutionContext
-import scala.scalajs.js
+import wust.webApp.GlobalState
+import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.webApp.views.Placeholders
 
-import collection.breakOut
+import scala.collection.breakOut
 
 object SelectedPostMenu {
   def apply(

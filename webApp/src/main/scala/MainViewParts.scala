@@ -1,5 +1,6 @@
 package wust.webApp
 
+import acyclic.skipped // file is allowed in dependency cycle
 import fontAwesome._
 import fontAwesome.freeSolid._
 import org.scalajs.dom
@@ -15,20 +16,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views._
 
-import scala.scalajs.js
-import scala.scalajs.js.Date
-
 object MainViewParts {
-
-  def newGroupTitle(state: GlobalState) = {
-    var today = new Date()
-    // January is 0!
-    val title =
-      s"Group ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
-    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
-    if (sameNamePosts.isEmpty) title
-    else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
-  }
 
   def newGroupButton(state: GlobalState, label: String = "New Group")(
       implicit ctx: Ctx.Owner
@@ -43,9 +31,9 @@ object MainViewParts {
         val nextPage = Page.NewGroup(NodeId.fresh)
         //TODO why does Var.set not work properly here with scalarx?
         // if (state.view.now.isContent) state.page() = nextPage
-        // else Var.set(, state.view -> View.default)
+        // else Var.set(, state.view -> ViewList.default)
         state.page() = nextPage
-        if (!state.view.now.isContent) state.view() = View.default
+        if (!state.view.now.isContent) state.view() = ViewList.default
       }
     )
   }

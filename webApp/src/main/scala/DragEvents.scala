@@ -1,9 +1,9 @@
 package wust.webApp
 
+import acyclic.skipped // file is allowed in dependency cycle
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
 import org.scalajs.dom.console
 import shopify.draggable._
 import wust.graph.{Edge, GraphChanges}

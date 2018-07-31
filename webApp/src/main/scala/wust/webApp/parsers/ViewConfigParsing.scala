@@ -1,9 +1,10 @@
 package wust.webApp.parsers
 
+import acyclic.skipped // file is allowed in dependency cycle
 import cats.data.NonEmptyList
 import wust.graph.{Page, PageMode}
 import wust.ids.{NodeId, Cuid}
-import wust.webApp.views.{TiledView, View, ViewConfig, ViewOperator}
+import wust.webApp.views.{TiledView, View, ViewList, ViewConfig, ViewOperator}
 
 private object ViewConfigConstants {
   val pageSeparator = ":"
@@ -32,9 +33,9 @@ object ViewConfigParser {
       .flatMap {
         case Nil => ??? // cannot happen, because min of repetition is 1
         case view :: Nil =>
-          View.viewMap.get(view).fold[Parser[View]](Fail)(v => Pass.map(_ => v))
+          ViewList.viewMap.get(view).fold[Parser[View]](Fail)(v => Pass.map(_ => v))
         case view :: views =>
-          optionSeq(NonEmptyList(view, views).map(View.viewMap.get))
+          optionSeq(NonEmptyList(view, views).map(ViewList.viewMap.get))
             .fold[Parser[View]](Fail)(v => Pass.map(_ => new TiledView(operator, v)))
       }
 

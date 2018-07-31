@@ -1,5 +1,6 @@
 package wust.webApp
 
+import acyclic.skipped // file is allowed in dependency cycle
 import monix.reactive.{Observable, Observer}
 import wust.webApp.outwatchHelpers._
 import org.scalajs.dom

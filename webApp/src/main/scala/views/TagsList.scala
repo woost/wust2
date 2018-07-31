@@ -8,7 +8,7 @@ import wust.css.Styles
 import wust.webApp._
 import wust.graph.Graph
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Elements._
+import wust.webApp.views.Components._
 import wust.util._
 
 object TagsList  {
@@ -16,7 +16,7 @@ object TagsList  {
 
     val sidebarVisible = Var[Boolean](false)
 
-    def tagSidebar(graph: Graph) = VDomModifier(
+    def tagsList(graph: Graph) = VDomModifier(
       overflow.auto,
       height := "100%",
       width := "150px",
@@ -40,7 +40,7 @@ object TagsList  {
       right := "0px"
     )
 
-    def sidebarToggleControl(graph: Graph, additional: VDomModifier = VDomModifier.empty) =
+    def tagsListToggleControl(graph: Graph, additional: VDomModifier = VDomModifier.empty) =
       graph.containments.nonEmpty.ifTrue[VDomModifier](div(
         freeSolid.faHashtag,
         onClick.map(_ => !sidebarVisible.now) --> sidebarVisible,
@@ -56,17 +56,17 @@ object TagsList  {
       Rx {
         val graph = state.graphContent()
         state.screenSize() match {
-          case ScreenSize.Large => tagSidebar(graph)
+          case ScreenSize.Large => tagsList(graph)
           case _ =>
             if (sidebarVisible()) VDomModifier(
               Styles.flex,
               flexDirection.row,
               alignItems.flexEnd,
               overflow.auto,
-              sidebarToggleControl(graph),
-              div(tagSidebar(graph)),
+              tagsListToggleControl(graph),
+              div(tagsList(graph)),
               overlay
-            ) else sidebarToggleControl(graph, overlay)
+            ) else tagsListToggleControl(graph, overlay)
         }
       }
     )

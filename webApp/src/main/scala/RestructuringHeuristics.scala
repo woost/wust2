@@ -1,5 +1,6 @@
 package wust.webApp
 
+import acyclic.skipped // file is allowed in dependency cycle
 import wust.api._
 import wust.ids._
 import wust.webApp.PostHeuristic._
