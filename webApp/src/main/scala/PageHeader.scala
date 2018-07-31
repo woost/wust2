@@ -24,6 +24,7 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Components._
 import wust.webApp.views.Rendered._
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
@@ -75,6 +76,7 @@ object PageHeader {
   private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): Option[VNode] = Navigator.share.map { share =>
     div(
       freeSolid.faShareAlt,
+      cursor.pointer,
       onClick --> sideEffect {
         scribe.info(s"sharing post: $channel")
         share(new ShareData {
