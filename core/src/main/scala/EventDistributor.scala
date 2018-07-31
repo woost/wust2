@@ -63,7 +63,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }
 
     db.notifications.getAllSubscriptions().onComplete {
-      case Success(subscriptions) => distributeNotifications(subscriptions, events, nodeIds)
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds)
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
