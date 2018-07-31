@@ -15,6 +15,7 @@ import colorado.HCL
 object AvatarView extends View {
   override val viewKey = "avatar"
   override val displayName = "Avatar"
+  override def isContent = true
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val n = 100

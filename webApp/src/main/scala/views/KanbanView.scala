@@ -24,6 +24,7 @@ import scala.collection.breakOut
 object KanbanView extends View {
   override val viewKey = "kanban"
   override val displayName = "Kanban"
+  override def isContent = true
 
   val maxLength = 100
   val columnWidth = "200px"

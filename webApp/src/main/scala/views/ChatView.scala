@@ -43,6 +43,7 @@ case class ChatGroup(nodes: Seq[Node]) extends ChatKind
 object ChatView extends View {
   override val viewKey = "chat"
   override val displayName = "Chat"
+  override def isContent = true
 
   // -- display options --
   val showAvatar: ShowOpts = ShowOpts.OtherOnly

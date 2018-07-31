@@ -13,6 +13,7 @@ import wust.webApp.views._
 object UserSettingsView extends View {
   override val viewKey = "usersettings"
   override val displayName = "User Settings"
+  override def isContent = false
 
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     import state._

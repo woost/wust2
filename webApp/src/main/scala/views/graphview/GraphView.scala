@@ -17,6 +17,7 @@ import scala.scalajs.LinkingInfo
 object GraphView extends View {
   override val viewKey = "graph"
   override val displayName = "Mindmap"
+  override def isContent = true
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode =
     GraphView(state, state.graph)

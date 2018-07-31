@@ -11,7 +11,7 @@ import rx._
 class TiledView(val operator: ViewOperator, views: NonEmptyList[View]) extends View {
   override val viewKey = views.map(_.viewKey).toList.mkString(operator.separator.toString)
   override val displayName = views.map(_.displayName).toList.mkString(operator.separator.toString)
-  override def innerViews: Seq[View] = views.toList.flatMap(_.innerViews)
+  override def isContent = views.exists(_.isContent)
 
   override def toString = s"TiledView($operator, ${views.map(_.toString)})"
 

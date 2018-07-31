@@ -11,6 +11,7 @@ class ErrorView(msg: String) extends View {
   override val viewKey = "error"
   override val displayName = "Error"
   override def toString = s"ErrorView($msg)"
+  override def isContent = false
 
   override final def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "50px",

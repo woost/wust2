@@ -107,6 +107,7 @@ object AuthView {
 object LoginView extends View {
   val viewKey = "login"
   val displayName = "Login"
+  override def isContent = false
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     AuthView(state)(
@@ -126,6 +127,7 @@ object LoginView extends View {
 object SignupView extends View {
   val viewKey = "signup"
   val displayName = "Signup"
+  override def isContent = false
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     AuthView(state)(

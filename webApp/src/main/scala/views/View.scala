@@ -15,22 +15,23 @@ trait View {
   val viewKey: String
   val displayName: String
 
-  //TODO this is needed for tracking content view and deciding whether to show the new group button in mainview
-  def innerViews: Seq[View] = Seq(this)
-  def isContent: Boolean = innerViews.exists(View.contentList.toList.contains)
+  def isContent: Boolean
 }
 
 object View {
-  val contentList: NonEmptyList[View] = NonEmptyList(ChatView, KanbanView :: GraphView :: Nil)
 
   val list: List[View] =
-    contentList.toList :::
+    ChatView ::
+      KanbanView ::
+      GraphView ::
       LoginView ::
       SignupView ::
       NewGroupView ::
       UserSettingsView ::
       // AvatarView ::
       Nil
+
+  val contentList: List[View] = list.filter(_.isContent)
 
   val viewMap: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
   def default = ChatView // new TiledView(ViewOperator.Optional, contentList)

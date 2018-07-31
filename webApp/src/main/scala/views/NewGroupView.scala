@@ -11,6 +11,7 @@ import wust.webApp.outwatchHelpers._
 object NewGroupView extends View {
   override val viewKey = "newgroup"
   override val displayName = "New Group"
+  override def isContent = false
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
