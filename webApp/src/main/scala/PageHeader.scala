@@ -76,11 +76,12 @@ object PageHeader {
     div(
       freeSolid.faShare,
       onClick --> sideEffect {
+        scribe.info(s"sharing post: $channel")
         share(new ShareData {
           title = channel.data.str
           url = dom.window.location.href
         }).toFuture.onComplete {
-          case Success(()) => ()
+          case Success(()) => scribe.info("Successfully shared post")
           case Failure(t) => scribe.warn("Cannot share url via share-api", t)
         }
       }
