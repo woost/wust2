@@ -79,6 +79,7 @@ object PageHeader {
         scribe.info(s"sharing post: $channel")
         share(new ShareData {
           title = channel.data.str
+          text = channel.data.str
           url = dom.window.location.href
         }).toFuture.onComplete {
           case Success(()) => scribe.info("Successfully shared post")
