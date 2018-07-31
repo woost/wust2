@@ -15,6 +15,7 @@ object ServiceWorker {
   // Use the window load event to keep the page load performant
   def register(): Observable[Unit] = {
     val subject = PublishSubject[Unit]()
+
     Navigator.serviceWorker.foreach { sw =>
       window.addEventListener(
         "load",
@@ -33,9 +34,9 @@ object ServiceWorker {
                       Navigator.serviceWorker.get.controller
                     )
                     if (installingWorker.state == "installed"
-                        && (Navigator.serviceWorker.get.controller
+                        && Navigator.serviceWorker.get.controller
                           .asInstanceOf[js.UndefOr[OriginalServiceWorker]]
-                          .isDefined)) {
+                          .isDefined) {
                       console.log("New SW installed, can update.")
                       subject.onNext(())
                     }
