@@ -74,7 +74,10 @@ class GlobalState (
 
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
-  val documentIsVisible: Rx[Boolean] = events.window.eventProp("visibilitychange").map(_ => dom.document.visibilityState == VisibilityState.visible).unsafeToRx(dom.document.visibilityState == VisibilityState.visible)
+  val documentIsVisible: Rx[Boolean] = {
+    def isVisible = dom.document.visibilityState == VisibilityState.visible
+    events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
+  }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
