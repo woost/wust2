@@ -1,5 +1,6 @@
 package wust.webApp
 
+import org.scalajs.dom
 import org.scalajs.dom.experimental
 import org.scalajs.dom.{experimental, window, _}
 import wust.webApp.outwatchHelpers._
@@ -18,6 +19,14 @@ object SafeDom {
     def permissions: Option[Permissions] = window.navigator.permissions.asInstanceOf[js.UndefOr[Permissions]].toOption
     def serviceWorker: Option[ServiceWorkerContainer] = window.navigator.serviceWorker.asInstanceOf[js.UndefOr[ServiceWorkerContainer]].toOption
     def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.asInstanceOf[js.UndefOr[ShareFunction]].toOption
+
+    // test share button: as navigator share is not defined on desktop browsers
+    // DevOnly {
+    //   dom.window.navigator.asInstanceOf[js.Dynamic].share = { (data: ShareData) =>
+    //     console.log("Share function called", data)
+    //     js.Promise.resolve[Unit](())
+    //   }: ShareData => js.Promise[Unit]
+    // }
   }
 }
 
