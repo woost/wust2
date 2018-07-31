@@ -137,10 +137,11 @@ object GlobalStateFactory {
       val changes = events
         .collect { case ApiEvent.NewGraphChanges(changes) => changes }
         .foldLeft(GraphChanges.empty)(_ merge _)
-      if (!state.documentIsVisible.now || changes.addNodes.nonEmpty) {
+      val nodes = changes.addNodes.collect { case n: Node.Content => n } // only notify for content changes
+      if (!state.documentIsVisible.now && nodes.nonEmpty) {
         val msg =
-          if (changes.addNodes.size == 1) "New Node" else s"New Node (${changes.addNodes.size})"
-        val body = changes.addNodes.map(_.data).mkString(", ")
+          if (nodes.size == 1) "New Node" else s"New Node (${nodes.size})"
+        val body = nodes.map(_.data).mkString(", ")
         Notifications.notify(msg, body = Some(body), tag = Some("new-node"))
       }
     }
