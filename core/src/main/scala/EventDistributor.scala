@@ -63,12 +63,12 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }
 
     db.notifications.getAllSubscriptions().onComplete {
-      case Success(subscriptions) => distributeNotifications(subscriptions, events, uncheckedNodeIds = uncheckedNodeIds, checkedNodeIds = checkedNodeIds)
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, nodeIds)
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
 
-  private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], uncheckedNodeIds: Set[UserId], checkedNodeIds: Set[NodeId]): Unit = pushService.foreach { pushService =>
+  private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], nodeIds: Set[NodeId]): Unit = pushService.foreach { pushService =>
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
     val expiryStatusCodes = Set(404, 410)
     val successStatusCode = 201
@@ -78,7 +78,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     parallelSubscriptions.tasksupport = new ExecutionContextTaskSupport(ec)
 
     val expiredSubscriptions = parallelSubscriptions.map { s =>
-      db.notifications.notifiedNodesForUser(s.userId, checkedNodeIds).transformWith {
+      db.notifications.notifiedNodesForUser(s.userId, nodeIds).transformWith {
         case Success(permittedNodeIds) =>
           val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet))
           val payload = filteredEvents.collect {
