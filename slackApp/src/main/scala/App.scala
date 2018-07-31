@@ -36,6 +36,7 @@ import scala.util.{Failure, Success, Try}
 import slack.SlackUtil
 import slack.api.SlackApiClient
 import slack.models._
+import wust.slack.Data.User_Mapping
 //import wust.test.events._
 import slack.rtm.SlackRtmClient
 
@@ -54,8 +55,7 @@ class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdap
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        persistenceAdapter.storeWustUserToken(auth)
-        oAuthClient.authorizeUrl(verifiedAuth.user.id).map(_.toString())
+        oAuthClient.authorizeUrl(verifiedAuth).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
         None
@@ -96,9 +96,15 @@ object AppServer {
       allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
-    val tokenObserver = ConcurrentSubject.publish[AccessToken]
-    tokenObserver.foreach{ t =>
-      scribe.info(s"persisting token: $t")
+    val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
+    tokenObserver.foreach{ authData =>
+
+      val userOAuthToken = authData.platformAuthToken
+      val slackUser = SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
+      slackUser.foreach { slackAuthId =>
+        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
+      }
+      scribe.info(s"persisting token: $authData")
       //          // get user information
       //          Platform(token).users.getAuth.exec[cats.Id, HttpResponse[String]]() match {
       //            case Right(r) =>
@@ -174,9 +180,11 @@ object AppServer {
                   val graphChanges: OptionT[Future, (GraphChanges, Authentication.Token)] = for {
                     nodeId <- OptionT[Future, NodeId](persistenceAdapter.getNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.message.user))
-                    node <- OptionT[Future, Node](wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken)).map {
-                      case n: Node.Content => n
-                    }
+                    node <- OptionT[Future, Node.Content](
+                      wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
+                        case Some(n: Node.Content) => Some(n)
+                        case _ => None
+                      })
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {
                     (EventMapper.editMessageContentInWust(
