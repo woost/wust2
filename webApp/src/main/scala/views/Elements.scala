@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import monix.reactive.Observer
+import monix.reactive.{Observer, Observable}
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
@@ -57,13 +57,14 @@ object Elements {
   }
 
 
-  def valueWithEnter: CustomEmitterBuilder[String, Modifier] = CustomEmitterBuilder {
+  def valueWithEnter: CustomEmitterBuilder[String, Modifier] = valueWithEnterWithInitial(Observable.empty)
+  def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, Modifier] = CustomEmitterBuilder {
     (sink: Observer[String]) =>
       for {
         userInput <- Handler.create[String]
-        clearHandler = userInput.map(_ => "")
+        writeValue = Observable.merge(userInput.map(_ => ""), overrideValue)
         modifiers <- Seq(
-          value <-- clearHandler,
+          value <-- writeValue,
           onEnter.value.filter(_.nonEmpty) --> userInput,
           managed(sink <-- userInput)
         )

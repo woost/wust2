@@ -366,12 +366,19 @@ object ChatView extends View {
       graphNotLoaded || pageModeOrphans
     }
 
+    val initialValue = Rx {
+      state.viewConfig().shareOptions.map { share =>
+        val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
+        elements.mkString(" - ")
+      }
+    }
+
     div(
       padding := "3px",
       cls := "ui form",
       textArea(
         cls := "field",
-        valueWithEnter --> sideEffect { str =>
+        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now
           val selectedNodeIds = state.selectedNodeIds.now
           val changes = if (selectedNodeIds.isEmpty) {

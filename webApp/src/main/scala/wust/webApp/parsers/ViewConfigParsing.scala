@@ -1,10 +1,9 @@
 package wust.webApp.parsers
 
-import acyclic.skipped // file is allowed in dependency cycle
 import cats.data.NonEmptyList
 import wust.graph.{Page, PageMode}
-import wust.ids.{NodeId, Cuid}
-import wust.webApp.views.{TiledView, View, ViewList, ViewConfig, ViewOperator}
+import wust.ids.{Cuid, NodeId}
+import wust.webApp.views.{TiledView, View, ViewConfig, ViewList, ViewOperator, ShareOptions}
 
 private object ViewConfigConstants {
   val pageSeparator = ":"
@@ -13,6 +12,7 @@ private object ViewConfigConstants {
   val viewKey = "view="
   val pageKey = "page="
   val prevViewKey = "prevView="
+  val shareKey = "share:"
 }
 import ViewConfigConstants._
 
@@ -26,9 +26,11 @@ object ViewConfigParser {
       case false => None
     }
 
+  private val wordPart = (c: Char) => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)
+
   //TODO: support nested views with different operators and brackets.
   def viewWithOps(operator: ViewOperator): P[View] =
-    P(CharsWhile(c => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)).!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End))
+    P(CharsWhile(wordPart).!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End))
       .map(_.toList)
       .flatMap {
         case Nil => ??? // cannot happen, because min of repetition is 1
@@ -46,7 +48,7 @@ object ViewConfigParser {
       viewWithOps(ViewOperator.Optional))
 
   val nodeIdList: Parser[Seq[NodeId]] =
-    P(CharsWhile(c => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)).!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
+    P(CharsWhile(wordPart).!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
   val pageMode: Parser[PageMode] =
     P((PageMode.Default.name | PageMode.Orphans.name).!)
       .map {
@@ -63,12 +65,17 @@ object ViewConfigParser {
       Page(parentIds = parentIds, childrenIds = childrenIds, mode = mode)
   }
 
+  val shareOptions: P[ShareOptions] = P( "title=" ~/ CharsWhile(wordPart, min = 0).! ~/ urlSeparator ~/ "text=" ~/ CharsWhile(wordPart, min = 0).! ~/ urlSeparator ~/ "url=" ~/ (url.!).? ~/ (urlSeparator | End) )
+      .map { case (title, text, url) =>
+          ShareOptions(title, text, url.getOrElse(""))
+      }
+
   // TODO: marke order of values flexible
   val viewConfig: P[ViewConfig] =
-    P(viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).?)
+    P(viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).? ~/ (shareKey ~/ shareOptions).?)
       .map {
-        case (view, page, prevView) =>
-          ViewConfig(view, page, prevView)
+        case (view, page, prevView, shareOptions) =>
+          ViewConfig(view, page, prevView, shareOptions)
       }
 }
 

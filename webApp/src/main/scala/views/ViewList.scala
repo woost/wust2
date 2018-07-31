@@ -26,5 +26,5 @@ object ViewList {
   val viewMap: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
   def default = ChatView // new TiledView(ViewOperator.Optional, contentList)
 
-  val defaultViewConfig = ViewConfig(default, Page.empty, None)
+  val defaultViewConfig = ViewConfig(default, Page.empty, None, None)
 }
