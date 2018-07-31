@@ -7,6 +7,7 @@ import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
+import wust.css.ZIndex
 import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders
 import wust.webApp.views.Rendered._
@@ -177,7 +178,7 @@ sealed trait RestructuringTask {
       ),
       display.block,
       position.fixed,
-      zIndex := 100,
+      zIndex := ZIndex.controls,
       left := "0",
       bottom := "0",
       width := "100%",

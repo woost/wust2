@@ -14,6 +14,7 @@ import rx._
 import fontAwesome.freeSolid._
 import fontAwesome.freeRegular
 import wust.webApp.outwatchHelpers._
+import wust.css.ZIndex
 import wust.graph._
 import wust.ids._
 import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig}
@@ -43,7 +44,7 @@ object Sidebar {
               width := "100%",
               height := "100%",
               position.absolute,
-              zIndex := 10,
+              zIndex := ZIndex.overlay,
               onClick(false) --> state.sidebarOpen
             )
             case _ => VDomModifier(

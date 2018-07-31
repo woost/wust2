@@ -4,6 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import views.graphview.ForceSimulation
+import wust.css.ZIndex
 import wust.graph._
 import wust.ids._
 import wust.util._
@@ -34,7 +35,7 @@ object GraphView extends View {
       controls.ifTrueOption {
         div(
           position := "absolute",
-          zIndex := 10,
+          zIndex := ZIndex.controls,
           button("start", onClick --> sideEffect {
             forceSimulation.startAnimated()
           }),

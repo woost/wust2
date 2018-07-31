@@ -7,6 +7,12 @@ import scalacss.internal.ValueT.{TypedAttrT1, ZeroLit, Len}
 // TODO: generate by sbt:
 // https://stackoverflow.com/questions/23409993/defining-sbt-task-that-invokes-method-from-project-code
 
+object ZIndex {
+  val controls = 10
+  val draggable = 100
+  val overlay = 1000
+}
+
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
   import CanIUse.Agent._
   import CanIUse.Support._
@@ -510,7 +516,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".draggable-mirror" - (
     opacity(1).important,
-    zIndex(100), // needs to overlap checkboxes, selectednodesbar
+    zIndex(ZIndex.draggable), // needs to overlap checkboxes, selectednodesbar
   )
 
 
