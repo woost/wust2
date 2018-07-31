@@ -4,11 +4,11 @@ import monix.reactive.Observable
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
-import wust.db.Db
+import wust.db.{Data, Db}
 import wust.graph._
 import wust.ids._
-import scala.collection.breakOut
 
+import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
@@ -19,16 +19,16 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       changes: List[GraphChanges],
       onBehalf: Authentication.Token
   ): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
-    onBehalfOfUser(onBehalf)(auth => changeGraph(changes, auth.user))
+    onBehalfOfUser(onBehalf)(auth => changeGraphInternal(changes, auth.user))
   }
   override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] =
     Effect.assureDbUser { (_, user) =>
-      changeGraph(changes, user)
+      changeGraphInternal(changes, user)
     }
 
   //TODO assure timestamps of posts are correct
   //TODO: only accept one GraphChanges object: we need an api for multiple.
-  private def changeGraph(
+  private def changeGraphInternal(
       changes: List[GraphChanges],
       user: AuthUser.Persisted
   ): Future[ApiData.Effect[Boolean]] = {
@@ -161,6 +161,22 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 //      }
 //    }
 //  }
+
+  override def getNode(
+                            nodeId: NodeId,
+                            onBehalf: Authentication.Token
+                          ): ApiFunction[Option[Node]] = Action { _ =>
+    onBehalfOfUser(onBehalf)(auth => getNodeInternal(auth.user, nodeId))
+  }
+
+  override def getNode(nodeId: NodeId): ApiFunction[Option[Node]] =
+    Action.requireUser { (_, user) =>
+      getNodeInternal(user, nodeId)
+    }
+
+  private def getNodeInternal(user: AuthUser, nodeId: NodeId): Future[Option[Node]] = db.node.get(user.id, nodeId).map(_.map(forClient(_)))
+
+
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
     getPage(user.id, page)
