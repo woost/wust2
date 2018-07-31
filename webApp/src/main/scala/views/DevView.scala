@@ -5,6 +5,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import wust.api._
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.GlobalState
@@ -84,7 +85,7 @@ object DevView {
   def apply(state: GlobalState, additions: Seq[VDomModifier])(implicit ctx: Ctx.Owner) = {
     span(
       div(
-        display.flex,
+        Styles.flex,
         flexDirection.column,
 //        Rx {
 //          val users = List("a", "b", "c", "d", "e", "f", "g")

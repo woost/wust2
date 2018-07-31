@@ -168,7 +168,7 @@ object KanbanView extends View {
       minHeight := "30px",
 
       margin := "0px 5px 20px 5px",
-      display.flex,
+      Styles.flex,
       flexWrap.wrap,
       alignItems.flexStart,
       nodes.map{ node =>

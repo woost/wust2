@@ -11,6 +11,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
+import wust.css.Styles
 import wust.sdk.NodeColor._
 import wust.webApp.views.{Placeholders, View}
 import wust.webApp.views.Rendered._
@@ -181,12 +182,12 @@ object SelectedPostMenu {
       border := "2px solid #111111",
       backgroundColor := "rgba(0,0,0,0.7)",
       color.white,
-      display.flex,
+      Styles.flex,
       justifyContent.spaceAround,
       alignItems.stretch,
       menuActions.filter(_.showIf(post, graphState)).map { action =>
         div(
-          display.flex,
+          Styles.flex,
           flexDirection.column,
           justifyContent.center,
           flexGrow := 1,

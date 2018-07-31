@@ -61,7 +61,7 @@
 //      }
 //    )
 
-//  val registerMask = div(display.flex, div(userField, br(), passwordField), registerButton)
+//  val registerMask = div(Styles.flex, div(userField, br(), passwordField), registerButton)
 
 //  def groupProfile(groups: Seq[Group])(implicit ctx: Ctx.Owner) = div(groups.map(groupInvite): _*)
 

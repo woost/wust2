@@ -3,8 +3,10 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
+import wust.css.Styles
 import wust.webApp.GlobalState
 import wust.webApp.MainViewParts.newGroupButton
+import wust.webApp.outwatchHelpers._
 
 object NewGroupView extends View {
   override val viewKey = "newgroup"
@@ -12,7 +14,7 @@ object NewGroupView extends View {
 
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
-      display.flex,
+      Styles.flex,
       justifyContent.spaceAround,
       flexDirection.column,
       alignItems.center,

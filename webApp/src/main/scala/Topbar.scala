@@ -14,6 +14,7 @@ import wust.api.AuthUser
 import fontAwesome._
 import fontAwesome.freeSolid._
 import fontAwesome.freeRegular
+import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 import wust.graph._
 import wust.ids._
@@ -30,7 +31,7 @@ object Topbar {
     backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
     color := "white",
     transition := "background-color 0.5s", // fades on page change
-    display.flex,
+    Styles.flex,
     flexDirection.row,
     justifyContent.spaceBetween,
     alignItems.center,
@@ -45,7 +46,7 @@ object Topbar {
 
   def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      display.flex,
+      Styles.flex,
       alignItems.center,
 
       hamburger(state),
@@ -176,8 +177,8 @@ object Topbar {
         .combineLatestMap(state.view.toObservable) { (history, view) =>
           div(
             if (view.isContent)
-              Seq(
-                display.flex,
+              VDomModifier(
+                Styles.flex,
                 style("justify-content") := "space-evenly", //TODO dom-types
                 button(
                   cls := "ui button",
@@ -207,7 +208,7 @@ object Topbar {
 
   def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VNode = {
     div(
-      display.flex,
+      Styles.flex,
       flexDirection.row,
       justifyContent.spaceBetween,
       alignItems.center,

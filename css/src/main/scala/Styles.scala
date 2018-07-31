@@ -112,7 +112,7 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- breadcrumb --
   ".breadcrumbs" - (
     padding(1 px, 3 px),
-    display.flex,
+    Styles.flex,
     overflowX.auto,
     fontSize(12 px),
     Styles.flexStatic,
@@ -133,7 +133,7 @@ object CommonStyles extends StyleSheet.Standalone {
     transition := "background-color 0.5s",
     Styles.flexStatic,
     height(100 %%),
-    display.flex,
+    Styles.flex,
     flexDirection.column,
     justifyContent.flexStart,
     alignItems.stretch,
@@ -161,7 +161,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".channel" - (
     paddingRight(3 px),
-    display.flex,
+    Styles.flex,
     alignItems.center,
     cursor.pointer,
     wordWrap.breakWord,
@@ -199,7 +199,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".viewgridRow" - (
     Styles.slim,
-    display.flex
+    Styles.flex
   )
 
   /* TODO: too many columns overlaps the content because it autofits the screen height */
@@ -272,7 +272,7 @@ object CommonStyles extends StyleSheet.Standalone {
       minWidth(0 px),
       /* fixes full page scrolling when messages are too long */
       minHeight(0 px),
-      display.flex,
+      Styles.flex,
     // )
   )
 
@@ -340,7 +340,7 @@ object CommonStyles extends StyleSheet.Standalone {
       display.none
     ),
     visibility.hidden,
-    display.flex,
+    Styles.flex,
     alignItems.center,
     paddingLeft(3 px),
     marginLeft.auto
@@ -408,7 +408,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".tags" - (
     padding( 0 px, 3 px, 0 px, 5 px ),
-    display.flex,
+    Styles.flex,
     flexWrap.wrap,
     alignItems.center
   )
@@ -595,7 +595,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".selectednodes.draggable-mirror > .nodelist" - (
-    display.flex,
+    Styles.flex,
   )
 
   ".selectednodes.draggable-mirror" - (

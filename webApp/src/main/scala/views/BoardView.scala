@@ -49,7 +49,7 @@
 
 //      columnsRx.map{ columns =>
 //        div(
-//          display.flex,
+//          Styles.flex,
 //          columns.map{
 //            case (column, items) =>
 //              val columnColor = mixColors(List(baseColor(column.id), d3.lab("#FFFFFF"), d3.lab("#FFFFFF"))).toString
