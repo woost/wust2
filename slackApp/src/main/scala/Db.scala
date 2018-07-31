@@ -16,10 +16,12 @@ object Db {
   }
 }
 
-case class Team_Mapping(slack_team_id: String, wust_id: NodeId)
-case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: AccessToken, wust_token: Authentication.Token)
-case class Conversation_Mapping(slack_conversation_id: String, wust_id: NodeId)
-case class Message_Mapping(slack_channel_id: String, slack_message_ts: String, wust_id: NodeId)
+object Data {
+  case class Team_Mapping(slack_team_id: String, wust_id: NodeId)
+  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: AccessToken, wust_token: Authentication.Verified)
+  case class Conversation_Mapping(slack_conversation_id: String, wust_id: NodeId)
+  case class Message_Mapping(slack_channel_id: String, slack_message_ts: String, wust_id: NodeId)
+}
 
 class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   import ctx._
@@ -35,6 +37,7 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
 
 class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx) {
   import ctx._
+  import Data._
 
   def getTeamMapping(teamId: String)(implicit ec: ExecutionContext): Future[Option[Team_Mapping]] = {
     ctx

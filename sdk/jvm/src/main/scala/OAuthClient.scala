@@ -8,19 +8,22 @@ import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.{ActorMaterializer, Materializer}
-import com.github.dakatsuka.akka.http.oauth2.client.{AccessToken => OAuthToken, GrantType, Client => AuthClient, Config => AuthConfig}
+import com.github.dakatsuka.akka.http.oauth2.client.{GrantType, AccessToken => OAuthToken, Client => AuthClient, Config => AuthConfig}
 import com.github.dakatsuka.akka.http.oauth2.client.Error.UnauthorizedException
 import com.github.dakatsuka.akka.http.oauth2.client.strategy._
 import monix.reactive.Observer
+import wust.api.Authentication
 import wust.ids.UserId
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.{ExecutionContext, Future}
 
+case class AuthenticationData(wustAuthData: Authentication.Verified, platformAuthToken: OAuthToken)
+
 // Instantiate for each App
 class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
 
-  val oAuthRequests: TrieMap[String, UserId] = TrieMap.empty[String, UserId]
+  val oAuthRequests: TrieMap[String, Authentication.Verified] = TrieMap.empty[String, Authentication.Verified]
 
   private val authConfig = AuthConfig(
     clientId     = oAuthConfig.clientId,
@@ -32,7 +35,7 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
 
   private val authClient = AuthClient(authConfig)
 
-  def authorizeUrl(userId: UserId, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
+  def authorizeUrl(auth: Authentication.Verified, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
 
     val randomState = UUID.randomUUID().toString
     val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, Map(
@@ -41,7 +44,7 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
       "scopes" -> List("read:org", "read:user", "repo", "write:discussion").mkString(",")
     ) ++ params)
 
-    oAuthRequests.putIfAbsent(randomState, userId) match {
+    oAuthRequests.putIfAbsent(randomState, auth) match {
       case None => uri
       case _ =>
         scribe.error("Duplicate state in url generation")
@@ -49,23 +52,24 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
     }
   }
 
-  private def confirmOAuthRequest(code: String, state: String): Boolean = {
-    val currRequest = oAuthRequests.get(state) match {
-      case Some(_) => true
+  private def confirmOAuthRequest(code: String, state: String): Option[Authentication.Verified] = {
+    val currRequest = oAuthRequests.get(state)
+    currRequest match {
+      case Some(v: Authentication.Verified) if code.nonEmpty => Some(v)
       case _ =>
         scribe.error(s"Could not confirm oAuthRequest. No such request in queue")
-        false
+        None
     }
-    code.nonEmpty && currRequest
   }
 
   //val newAccessToken: Future[Either[Throwable, OAuthToken]] =
   //  client.getAccessToken(GrantType.RefreshToken, Map("refresh_token" -> "zzzzzzzz"))
 
-  def route(tokenObserver: Observer[OAuthToken]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
+  def route(tokenObserver: Observer[AuthenticationData]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
     get {
       parameters(('code, 'state)) { (code: String, state: String) =>
-        if (confirmOAuthRequest(code, state)) {
+        val confirmedRequest = confirmOAuthRequest(code, state)
+        if (confirmedRequest.isDefined) {
 
           val accessToken: Future[Either[Throwable, OAuthToken]] = authClient.getAccessToken(
             grant = GrantType.AuthorizationCode,
@@ -78,10 +82,12 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
 
           accessToken.foreach {
             case Right(t) =>
-              tokenObserver.onNext(t)
+              tokenObserver.onNext(AuthenticationData(confirmedRequest.get, t))
               oAuthRequests.remove(state)
             case Left(ex: UnauthorizedException) =>
               scribe.error(s"unauthorized error receiving access token: $ex")
+            case ex =>
+              scribe.error(s"unknown error receiving access token: $ex")
           }
 
         } else {
