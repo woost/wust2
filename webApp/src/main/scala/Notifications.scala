@@ -36,7 +36,7 @@ object Notifications {
 
   def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(
       implicit ec: ExecutionContext
-  ): Unit = Notification.toOption match {
+  ): Unit = Notification match {
     case None =>
       scribe.info(s"Notifications are not supported in browser, cannot send notification: $title")
     case Some(n) if n.permission.asInstanceOf[PermissionState] != PermissionState.granted =>
@@ -65,7 +65,7 @@ object Notifications {
   private def permissionStateRxOf(
       permissionDescriptor: PermissionDescriptor
   )(implicit ec: ExecutionContext, ctx: Ctx.Owner): Rx[PermissionState] = {
-    Notification.toOption match {
+    Notification match {
       case Some(n) =>
         val subject = Var[PermissionState](n.permission.asInstanceOf[PermissionState])
         permissions.foreach { (permissions: Permissions) =>

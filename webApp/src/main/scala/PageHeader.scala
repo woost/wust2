@@ -18,9 +18,12 @@ import wust.sdk.{BaseColors, NodeColor}
 import NodeColor.hue
 import org.scalajs.dom.experimental.permissions.PermissionState
 import wust.util._
+import wust.webApp.SafeDom.Navigator
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
+
+import scala.util.{Failure, Success}
 
 
 object PageHeader {
@@ -59,10 +62,25 @@ object PageHeader {
         (channel.id != state.user().channelNodeId).ifTrue(
           VDomModifier(
             isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)),
-            notifyControl(state, state.graph(), state.user(),channel)(ctx)(marginLeft := "auto"),
-            settingsMenu(state, channel, isBookmarked)(ctx)(marginLeft := "10px")
+            notifyControl(state, state.graph(), state.user(),channel).apply(marginLeft := "auto"),
+            settingsMenu(state, channel, isBookmarked).apply(marginLeft := "10px"),
+            shareButton(channel).map(_(marginLeft := "10px"))
           )
         )
+      }
+    )
+  }
+
+  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): Option[VNode] = Navigator.share.map { share =>
+    div(
+      onClick --> sideEffect {
+        share(new ShareData {
+          title = channel.data.str
+          url = dom.window.location.href
+        }).toFuture.onComplete {
+          case Success(()) => ()
+          case Failure(t) => scribe.warn("Cannot share url via share-api", t)
+        }
       }
     )
   }

@@ -17,6 +17,7 @@ import wust.ids._
 import wust.sdk._
 import wust.util.Selector
 import wust.webApp.outwatchHelpers._
+import wust.webApp.SafeDom.Navigator
 import wust.webApp.views.{NewGroupView, PageStyle, View, ViewConfig}
 
 import scala.collection.breakOut
