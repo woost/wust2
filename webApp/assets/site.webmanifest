@@ -20,6 +20,12 @@
   ],
   "related_applications": [],
   "share_target": {
-    "url_template": "/#view=chat&page=default&share:title={title}&text={text}&url={url}"
+    "url_template": "/#view=chat&page=default&share?title={title}&text={text}&url={url}",
+    "action": "/#view=chat&page=default&share",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
   }
 }

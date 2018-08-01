@@ -12,7 +12,7 @@ private object ViewConfigConstants {
   val viewKey = "view="
   val pageKey = "page="
   val prevViewKey = "prevView="
-  val shareKey = "share:"
+  val shareKey = "share?"
 }
 import ViewConfigConstants._
 
