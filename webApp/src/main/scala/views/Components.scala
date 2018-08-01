@@ -124,7 +124,7 @@ object Components {
         injected
       ),
       onClick.stopPropagation --> sideEffect(()),
-      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
+//      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
     )
   }
   def nodeCard(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
