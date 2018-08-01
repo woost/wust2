@@ -8,7 +8,10 @@ import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import io.getquill._
 import wust.api.Authentication
+import wust.dbUtil.DbCommonCodecs
+import wust.graph.Node.User
 import wust.ids.NodeId
+import wust.util._
 
 object Db {
   def apply(config: TConfig) = {
@@ -17,27 +20,68 @@ object Db {
 }
 
 object Data {
+  //  case class WustUserData(wustUserId: UserId, wustUserToken: Authentication.Token)
+  //  case class SlackUserData(slackUserId: String, slackUserToken: AccessToken)
+  case class WustUserData(wustUserId: UserId, wustUserToken: String)
+  case class SlackUserData(slackUserId: String, slackUserToken: String)
+
   case class Team_Mapping(slack_team_id: String, wust_id: NodeId)
-  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: AccessToken, wust_token: Authentication.Verified)
+  //  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: AccessToken, wust_token: Authentication.Verified)
+  case class User_Mapping(slack_user_id: String, wust_id: UserId, slack_token: String, wust_token: String)
   case class Conversation_Mapping(slack_conversation_id: String, wust_id: NodeId)
   case class Message_Mapping(slack_channel_id: String, slack_message_ts: String, wust_id: NodeId)
 }
 
-class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
-  import ctx._
-
-  implicit val encodingNodeId: MappedEncoding[NodeId, UUID] = MappedEncoding(_.toUuid)
-  implicit val decodingNodeId: MappedEncoding[UUID, NodeId] =
-    MappedEncoding(uuid => NodeId(Cuid.fromUuid(uuid)))
-  implicit val encodingUserId: MappedEncoding[UserId, UUID] = MappedEncoding(_.toUuid)
-  implicit val decodingUserId: MappedEncoding[UUID, UserId] =
-    MappedEncoding(uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
-
+class DbSlackCodecs(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCommonCodecs(ctx) {
 }
 
-class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx) {
+class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodecs(ctx) {
   import ctx._
   import Data._
+
+  // schema meta: we can define how a type corresponds to a db table
+  private implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.
+  // enforce check of json-type for extra safety. additional this makes sure that partial indices on user.data are used.
+  private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
+
+  def storeUserMapping(userMapping: User_Mapping)(implicit ec: ExecutionContext): Future[Boolean] = {
+    val q = quote {
+      query[User_Mapping].insert(lift(userMapping))
+        .onConflictUpdate(_.slack_user_id, _.wust_id)(
+          (t, e) => t.slack_token -> e.slack_token,
+          (t, e) => t.wust_token -> e.wust_token
+        ).returning(_.wust_id)
+    }
+
+    ctx.run(q)
+      .map(_ => true)
+      .recoverValue(false)
+  }
+
+  def getWustUser(slackUserId: String)(implicit ec: ExecutionContext): Future[Option[WustUserData]] = {
+    ctx
+      .run(query[User_Mapping].filter(_.slack_user_id == lift(slackUserId)).take(1))
+      .map(_.headOption.map(u => WustUserData(u.wust_id, u.wust_token)))
+  }
+
+  def getSlackUser(wustUserId: UserId)(implicit ec: ExecutionContext): Future[Option[SlackUserData]] = {
+    ctx
+      .run(query[User_Mapping].filter(_.wust_id == lift(wustUserId)).take(1))
+      .map(_.headOption.map(u => SlackUserData(u.slack_user_id, u.slack_token)))
+  }
+
+  def storeTeamMapping(teamMapping: Team_Mapping)(implicit ec: ExecutionContext): Future[Boolean]  = {
+    val q = quote {
+      query[Team_Mapping].insert(lift(teamMapping))
+        .onConflictUpdate(_.slack_team_id, _.wust_id)(
+          (t, e) => t -> e
+        ).returning(_.wust_id)
+    }
+
+    ctx.run(q)
+      .map(_ => true)
+      .recoverValue(false)
+  }
 
   def getTeamMapping(teamId: String)(implicit ec: ExecutionContext): Future[Option[Team_Mapping]] = {
     ctx

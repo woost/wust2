@@ -36,7 +36,7 @@ object EventMapper {
   }
 
   def deleteMessageInWust(nodeId: NodeId, channelId: NodeId): GraphChanges = {
-    GraphChanges.disconnectParent(
+    GraphChanges.disconnect(Edge.Parent)(
       nodeId,
       channelId
     )

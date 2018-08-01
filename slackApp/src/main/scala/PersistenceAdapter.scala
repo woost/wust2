@@ -4,13 +4,11 @@ import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
 import wust.api.Authentication
 import wust.ids.{NodeId, UserId}
 import com.typesafe.config.{Config => TConfig}
-import wust.slack.Data.User_Mapping
+import wust.sdk.WustClient
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-
-case class WustUserData(wustUserId: UserId, wustUserToken: Authentication.Token)
-case class SlackUserData(slackUserId: String, slackUserToken: AccessToken)
+import wust.slack.Data._
 
 trait PersistenceAdapter {
   type SlackChannelId = String
@@ -19,7 +17,7 @@ trait PersistenceAdapter {
 
   def storeUserAuthData(userMapping: User_Mapping): Future[Boolean]
 
-  def getOrCreateWustUser(slackUser: SlackUserId): Future[Option[WustUserData]]
+  def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]]
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]]
 
   def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]]
@@ -34,10 +32,17 @@ object PostgresAdapter {
 case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContext) extends PersistenceAdapter {
 
   def storeUserAuthData(userMapping: User_Mapping): Future[Boolean] = {
+    db.storeUserMapping(userMapping)
+  }
+
+  def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = {
+//    db.getWustUser(slackUser).map(_.orElse {
+//      wustClient.auth.
+//
+//    })
     ???
   }
 
-  def getOrCreateWustUser(slackUser: SlackUserId): Future[Option[WustUserData]] = ???
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
 
   def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]] = {

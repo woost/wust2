@@ -36,7 +36,7 @@ import scala.util.{Failure, Success, Try}
 import slack.SlackUtil
 import slack.api.SlackApiClient
 import slack.models._
-import wust.slack.Data.User_Mapping
+import wust.slack.Data.{User_Mapping, WustUserData}
 //import wust.test.events._
 import slack.rtm.SlackRtmClient
 
@@ -102,7 +102,8 @@ object AppServer {
       val userOAuthToken = authData.platformAuthToken
       val slackUser = SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
       slackUser.foreach { slackAuthId =>
-        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
+//        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
+        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken.accessToken, authData.wustAuthData.token))
       }
       scribe.info(s"persisting token: $authData")
       //          // get user information
@@ -116,7 +117,7 @@ object AppServer {
       //              // Wust data
       //              PersistAdapter.addPlatformUser(wustUserId, platformUserId)
       //            //                  PersistAdapter.oAuthRequests.remove(state)
-      //            case Left(e) => println(s"Could not authenticate with OAuthToken: ${e.getMessage}")
+      //            case Left(e) => scribe.info(s"Could not authenticate with OAuthToken: ${e.getMessage}")
       //          }
     }
 
@@ -157,7 +158,7 @@ object AppServer {
                   scribe.info(s"message: ${e.toString}")
 
                   val graphChanges: OptionT[Future, (GraphChanges, Authentication.Token)] = for {
-                    wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.user))
+                    wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.user, wustReceiver.client))
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {
                     (EventMapper.createMessageInWust(
@@ -179,7 +180,7 @@ object AppServer {
 
                   val graphChanges: OptionT[Future, (GraphChanges, Authentication.Token)] = for {
                     nodeId <- OptionT[Future, NodeId](persistenceAdapter.getNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
-                    wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.message.user))
+                    wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.message.user, wustReceiver.client))
                     node <- OptionT[Future, Node.Content](
                       wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
                         case Some(n: Node.Content) => Some(n)
@@ -469,18 +470,18 @@ object WustReceiver {
     )
     client.api.changeGraph(List(changes))
 
-    println("Running WustReceiver")
+    scribe.info("Running WustReceiver")
 
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = wustClient.observable.event
       .map(e => {
-        println(s"triggering collect on $e");
-        e.collect { case ev: ApiEvent.GraphContent => println("received api event"); ev }
+        scribe.info(s"triggering collect on $e");
+        e.collect { case ev: ApiEvent.GraphContent => scribe.info("received api event"); ev }
       })
-      .collect { case list if list.nonEmpty => println("api event non-empty"); list }
+      .collect { case list if list.nonEmpty => scribe.info("api event non-empty"); list }
 
     val graphObs: Observable[GraphTransition] = graphEvents.scan(GraphTransition.empty) {
       (prevTrans, events) =>
-        println(s"Got events: $events")
+        scribe.info(s"Got events: $events")
         val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
         val nextGraph = events.foldLeft(prevTrans.resGraph)(EventUpdate.applyEventOnGraph)
         GraphTransition(prevTrans.resGraph, changes, nextGraph)
@@ -489,6 +490,12 @@ object WustReceiver {
 //    val slackApiCalls: Observable[Seq[SlackCall]] = graphObs.map { graphTransition =>
 //      createCalls(slackClient, graphTransition)
 //    }
+
+    graphObs.foreach { graphTransition =>
+
+      scribe.info(s"Received GraphChanges: ${graphTransition.changes}")
+
+    }
 
     new WustReceiver(client)
   }
@@ -528,7 +535,7 @@ object App extends scala.App {
   implicit val system: ActorSystem = ActorSystem("slack")
 
   Config.load match {
-    case Left(err) => println(s"Cannot load config: $err")
+    case Left(err) => scribe.info(s"Cannot load config: $err")
     case Right(config) =>
       val oAuthClient = OAuthClient(config.oauth, config.server)
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
