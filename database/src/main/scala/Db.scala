@@ -20,7 +20,7 @@ object Db {
 }
 
 // all database operations
-class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCodecs(ctx) {
+class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs(ctx) {
   import Data._
   import ctx._
 
