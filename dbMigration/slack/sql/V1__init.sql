@@ -6,10 +6,13 @@ CREATE TABLE team_mapping (
     PRIMARY KEY(slack_team_id, wust_id)
 );
 
+-- For all nodes in wust, an author is necessary (user). When we receive events like for the creation of a message,
+-- an implicit user is created. This user however is not registered in wust and therefore it is not possible to issue
+-- an oauth token for slack. Hence, the slack_token field is nullable
 CREATE TABLE user_mapping (
     slack_user_id text NOT NULL,
     wust_id uuid NOT NULL,
-    slack_token text NOT NULL,
+    slack_token text, -- Users that are only in slack
     wust_token text NOT NULL,
     PRIMARY KEY(slack_id, wust_id)
 );

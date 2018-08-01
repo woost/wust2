@@ -36,7 +36,7 @@ import scala.util.{Failure, Success, Try}
 import slack.SlackUtil
 import slack.api.SlackApiClient
 import slack.models._
-import wust.slack.Data.{User_Mapping, WustUserData}
+import wust.slack.Data.{Message_Mapping, User_Mapping, WustUserData}
 //import wust.test.events._
 import slack.rtm.SlackRtmClient
 
@@ -157,20 +157,26 @@ object AppServer {
                 case e: Message =>
                   scribe.info(s"message: ${e.toString}")
 
-                  val graphChanges: OptionT[Future, (GraphChanges, Authentication.Token)] = for {
+                  val graphChanges: OptionT[Future, (NodeId, GraphChanges, Authentication.Token)] = for {
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.user, wustReceiver.client))
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {
-                    (EventMapper.createMessageInWust(
+                    val changes: (NodeId, GraphChanges) = EventMapper.createMessageInWust(
                       NodeData.PlainText(e.text),
                       wustUserData.wustUserId,
                       e.ts,
                       wustChannelNodeId
-                    ), wustUserData.wustUserToken)
+                    )
+                    (changes._1, changes._2, wustUserData.wustUserToken)
                   }
 
                   val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create message").flatMapF { changes =>
-                    wustReceiver.push(List(changes._1), Some(changes._2))
+                    val res = wustReceiver.push(List(changes._2), Some(changes._3))
+                    res.foreach {
+                      case Right(_) => persistenceAdapter.storeMessageMapping(Message_Mapping(e.channel, e.ts, changes._1))
+                      case _ => scribe.error(s"Could not apply changes to wust: $changes")
+                    }
+                    res
                   }
 
                   applyChanges.value
@@ -178,8 +184,8 @@ object AppServer {
                 case e: MessageChanged =>
                   scribe.info(s"message: ${e.toString}")
 
-                  val graphChanges: OptionT[Future, (GraphChanges, Authentication.Token)] = for {
-                    nodeId <- OptionT[Future, NodeId](persistenceAdapter.getNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
+                  val graphChanges: OptionT[Future, (NodeId, GraphChanges, Authentication.Token)] = for {
+                    nodeId <- OptionT[Future, NodeId](persistenceAdapter.getMessageNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.message.user, wustReceiver.client))
                     node <- OptionT[Future, Node.Content](
                       wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
@@ -188,14 +194,19 @@ object AppServer {
                       })
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {
-                    (EventMapper.editMessageContentInWust(
+                    (node.id, EventMapper.editMessageContentInWust(
                       node,
                       NodeData.PlainText(e.message.text)
                     ), wustUserData.wustUserToken)
                   }
 
                   val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not change message").flatMapF { changes =>
-                    wustReceiver.push(List(changes._1), Some(changes._2))
+                    val res = wustReceiver.push(List(changes._2), Some(changes._3))
+                    res.foreach {
+                      case Right(_) => persistenceAdapter.storeMessageMapping(Message_Mapping(e.channel, e.ts, changes._1))
+                      case _ => scribe.error(s"Could not apply changes to wust: $changes")
+                    }
+                    res
                   }
 
                   applyChanges.value
@@ -203,7 +214,7 @@ object AppServer {
                 case e: MessageDeleted =>
                   scribe.info(s"message: ${e.toString}")
                   val graphChanges: OptionT[Future, GraphChanges] = for {
-                    nodeId <- OptionT(persistenceAdapter.getNodeByChannelAndTimestamp(e.channel, e.ts))
+                    nodeId <- OptionT(persistenceAdapter.getMessageNodeByChannelAndTimestamp(e.channel, e.ts))
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {
                     EventMapper.deleteMessageInWust(
