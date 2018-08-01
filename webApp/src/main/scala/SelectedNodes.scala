@@ -75,7 +75,7 @@ object SelectedNodes {
       margin := "5px",
 
       onClick --> sideEffect{_ =>
-        val changes = GraphChanges.delete(selectedNodeIds, state.graph.now, state.page.now)
+        val changes = GraphChanges.delete(selectedNodeIds, state.graph.now)
         state.eventProcessor.changes.onNext(changes)
         state.selectedNodeIds() = Set.empty[NodeId]
       }

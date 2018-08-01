@@ -179,7 +179,7 @@ object GlobalStateFactory {
     def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] =
       page.parentIds.map(Edge.Parent(nodeId, _))(breakOut)
 
-    val containedNodes = addEdges.collect { case Edge.Parent(source, _) => source }
+    val containedNodes = addEdges.collect { case Edge.Parent(source, _, _) => source }
     val toContain = addNodes
       .filterNot(p => containedNodes(p.id))
       .flatMap(p => toParentConnections(viewConfig.page, p.id))

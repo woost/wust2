@@ -122,7 +122,6 @@ object ChatView extends View {
   }
 
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state._
     val scrolledToBottom = PublishSubject[Boolean]
 
     div(
@@ -131,15 +130,16 @@ object ChatView extends View {
       Rx {
         val page = state.page()
         val fullGraph = state.graph()
-        val graph = graphContent()
+        val graph = state.graphContent()
+        val user = state.user()
         val nodes = graph.chronologicalNodesAscending.collect {
           case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) => n
         }
         if (nodes.isEmpty) VDomModifier(emptyChatNotice)
         else
           VDomModifier(
-            groupNodes(graph, nodes, state, user().id)
-              .map(chatMessage(state, _, graph, page, user().id)),
+            groupNodes(graph, nodes, state, user.id)
+              .map(chatMessage(state, _, graph, page, user.id)),
 
 
             draggableAs(state, DragItem.DisableDrag),
@@ -174,7 +174,7 @@ object ChatView extends View {
     div(
       cls := "actionbutton",
       freeRegular.faTrashAlt,
-      onClick.stopPropagation(GraphChanges.delete(node, deletedFromParentIds)) --> state.eventProcessor.changes,
+      onClick.stopPropagation(GraphChanges.delete(node.id, deletedFromParentIds)) --> state.eventProcessor.changes,
     )
   }
 
@@ -323,7 +323,7 @@ object ChatView extends View {
   private def chatMessageLine(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], node: Node, messageCardInjected:VDomModifier = VDomModifier.empty)(
       implicit ctx: Ctx.Owner
   ) = {
-    val isDeleted = graph.isDeletedNow(node.id, alreadyVisualizedParentIds)
+    val isDeleted = graph.isDeletedNow(node.id, directParentIds)
     val isSelected = state.selectedNodeIds.map(_ contains node.id)
     val editable = Var(false)
 
@@ -370,7 +370,7 @@ object ChatView extends View {
 
         // checkbox(Styles.flexStatic),
         messageCard,
-        isDeleted.ifFalseOption(messageTags(state, graph, node, alreadyVisualizedParentIds)),
+        messageTags(state, graph, node, alreadyVisualizedParentIds),
         msgControls(Styles.flexStatic)
       )
     )

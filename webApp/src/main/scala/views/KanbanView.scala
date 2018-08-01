@@ -141,7 +141,7 @@ object KanbanView extends View {
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
           isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", if(isTopLevel) freeSolid.faTimes else freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
-          div(div(cls := "fa-fw", freeRegular.faTrashAlt), onClick.stopPropagation(GraphChanges.delete(node, state.graph.now, state.page.now)) --> state.eventProcessor.changes, cursor.pointer, title := "Delete"),
+          div(div(cls := "fa-fw", freeRegular.faTrashAlt), onClick.stopPropagation(GraphChanges.delete(node.id, state.graph.now)) --> state.eventProcessor.changes, cursor.pointer, title := "Delete"),
           div(div(cls := "fa-fw", freeRegular.faArrowAltCircleRight), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
         )
       }
@@ -198,7 +198,7 @@ object KanbanView extends View {
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
           div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column"),
-          div(div(cls := "fa-fw", freeRegular.faTrashAlt), onClick.stopPropagation(GraphChanges.delete(node, state.graph.now, state.page.now)) --> state.eventProcessor.changes, cursor.pointer, title := "Delete"),
+          div(div(cls := "fa-fw", freeRegular.faTrashAlt), onClick.stopPropagation(GraphChanges.delete(node.id, state.graph.now)) --> state.eventProcessor.changes, cursor.pointer, title := "Delete"),
         )
       }
     )

@@ -44,6 +44,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     children: collection.Map[NodeId, collection.Set[NodeId]],
     parents: collection.Map[NodeId, collection.Set[NodeId]],
     deletedParents: collection.Map[NodeId, collection.Set[NodeId]],
+    deletedChildren: collection.Map[NodeId, collection.Set[NodeId]],
     staticParentIn: collection.Map[NodeId, collection.Set[NodeId]],
     authorshipsByNodeId: collection.Map[NodeId, List[Edge.Author]],
     membershipsByNodeId: collection.Map[NodeId, List[Edge.Member]],
@@ -74,6 +75,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val deletedParents = mutable
       .HashMap[NodeId, collection.Set[NodeId]]()
       .withDefaultValue(mutable.HashSet.empty[NodeId])
+    val deletedChildren = mutable
+      .HashMap[NodeId, collection.Set[NodeId]]()
+      .withDefaultValue(mutable.HashSet.empty[NodeId])
     val staticParentIn = mutable
       .HashMap[NodeId, collection.Set[NodeId]]()
       .withDefaultValue(mutable.HashSet.empty[NodeId])
@@ -86,6 +90,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val channelNodeIds = mutable.HashSet[NodeId]()
     val channelIds = mutable.HashSet[NodeId]()
 
+    val remorseTime = remorseTimeForDeletedParents
     // loop over edges once
     edges.foreach {
       case e @ Edge.Author(authorId, _, nodeId) =>
@@ -93,14 +98,21 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
         allAuthorIds += authorId
       case e @ Edge.Member(authorId, _, nodeId) =>
         membershipsByNodeId(nodeId) ::= e
-      case e @ Edge.Parent(childId, parentId) =>
-        children(parentId) += childId
-        parents(childId) += parentId
-        containments += e
+      case e @ Edge.Parent(childId, data, parentId) =>
+        data.deletedAt match {
+          case None =>
+          children(parentId) += childId
+          parents(childId) += parentId
+          containments += e
+          case Some(deletedAt) =>
+            //TODO should already be filtered in backend
+            if (deletedAt > remorseTime) {
+            deletedParents(childId) += parentId
+              deletedChildren(parentId) += childId
+          }
+        }
       case e @ Edge.StaticParentIn(childId, parentId) =>
         staticParentIn(childId) += parentId
-      case e @ Edge.DeletedParent(childId, _, parentId) =>
-        deletedParents(childId) += parentId
       case e: Edge.Label =>
         labeledEdges += e
       case _ =>
@@ -141,6 +153,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       children,
       parents,
       deletedParents,
+      deletedChildren,
       staticParentIn,
       authorshipsByNodeId,
       membershipsByNodeId,
@@ -191,9 +204,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
 
+  private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
   def pageContentWithAuthors(page: Page): Graph = {
     val pageChildren = page.parentIds.flatMap(descendants)
-    this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds))
+    this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds) ++ page.parentIds)
   }
 
   def pageContent(page: Page): Graph = {

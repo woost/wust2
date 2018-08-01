@@ -22,12 +22,12 @@ object EdgeData {
   case class Member(level: AccessLevel) extends Named with EdgeData
   object Member extends Named
 
-  case object Parent extends Named with EdgeData
-
-  case class DeletedParent(timestamp: EpochMilli) extends Named with EdgeData {
-    override def toString = s"DeletedParent(${timestamp.humanReadable})"
+  case class Parent(deletedAt: Option[EpochMilli]) extends Named with EdgeData {
+    override def toString: String = s"Parent${deletedAt.fold("")(t => s"(deletedAt = ${t.humanReadable})")}"
   }
-  object DeletedParent extends Named
+  object Parent extends Parent(None) {
+    def apply(timestamp: EpochMilli): Parent = Parent(Some(timestamp))
+  }
 
   case object Notify extends Named with EdgeData
 

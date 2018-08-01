@@ -157,8 +157,9 @@ class EventProcessor private (
     val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
-      scribe.info("[Events] Got graph and events: " + graph + ", " + events)
-      events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
+      val newGraph = events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
+      scribe.info("[Events] Got new graph: " + newGraph)
+      newGraph
     }
 
     graphWithChanges subscribe rawGraph

@@ -31,9 +31,8 @@ case class GraphChanges(
     ).consistent
 
   private val swapDeletedParent: Edge => Edge = {
-    case Edge.Parent(source, target) =>
-      Edge.DeletedParent(source, EdgeData.DeletedParent(EpochMilli.now), target)
-    case Edge.DeletedParent(source, _, target) => Edge.Parent(source, target)
+    case Edge.Parent(source, EdgeData.Parent(None), target) => Edge.Parent.delete(source, target)
+    case Edge.Parent(source, EdgeData.Parent(Some(_)), target) => Edge.Parent(source, target)
     case other                                    => other
   }
 
@@ -99,30 +98,27 @@ object GraphChanges {
     GraphChanges.addNodeWithParent(post, channelNodeId)
   }
 
-  def delete(nodeIds: Iterable[NodeId], graph: Graph, page: Page): GraphChanges = {
+  def undelete(nodeIds: Iterable[NodeId], parentIds: Iterable[NodeId]): GraphChanges = connect(Edge.Parent)(nodeIds, parentIds)
+  def undelete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = undelete(nodeId :: Nil, parentIds)
+
+  def delete(nodeIds: Iterable[NodeId], graph: Graph): GraphChanges = {
     if(nodeIds.isEmpty) empty
     else {
-      val directParents = graph.parents(nodeIds.head).toSet -- nodeIds // avoid creating self-loops
-      val pageParents = page.parentIdSet
-      val parentIds = directParents ++ pageParents
+      val parentIds = graph.parents(nodeIds.head).toSet
       delete(nodeIds, parentIds)
     }
   }
-  def delete(node: Node, graph: Graph, page: Page): GraphChanges = delete(node.id, graph, page)
-  def delete(nodeId: NodeId, graph: Graph, page: Page): GraphChanges = delete(nodeId :: Nil, graph, page)
-
+  def delete(nodeId: NodeId, graph: Graph): GraphChanges = delete(nodeId :: Nil, graph)
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
-  def delete(node: Node, parentIds: Iterable[NodeId]): GraphChanges = delete(node.id, parentIds)
-  def delete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = GraphChanges(
+  def delete(nodeId: NodeId, parentIds: Set[NodeId]): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
-      parentId => Edge.DeletedParent(nodeId, EdgeData.DeletedParent(EpochMilli.now), parentId)
-    )(breakOut),
-    delEdges = parentIds.map(parentId => Edge.Parent(nodeId, parentId))(breakOut)
+      parentId => Edge.Parent.delete(nodeId, parentId)
+    )(breakOut)
   )
 
   class ConnectFactory[SOURCEID, TARGETID, EDGE <: Edge](edge:(SOURCEID,TARGETID) => EDGE, toGraphChanges:collection.Set[EDGE] => GraphChanges) {
-    def apply(sourceId: SOURCEID, targetId: TARGETID): GraphChanges = 
+    def apply(sourceId: SOURCEID, targetId: TARGETID): GraphChanges =
       if(sourceId != targetId) toGraphChanges(Set(edge(sourceId, targetId))) else empty
     def apply(sourceId: SOURCEID, targetIds: Iterable[TARGETID]): GraphChanges =
       toGraphChanges(targetIds.collect{case targetId if targetId != sourceId => edge(sourceId, targetId)}(breakOut))

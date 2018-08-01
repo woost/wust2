@@ -29,16 +29,13 @@ object Edge {
     def targetId = nodeId
   }
 
-  case class Parent(childId: NodeId, parentId: NodeId) extends Content {
+  case class Parent(childId: NodeId, data: EdgeData.Parent, parentId: NodeId) extends Content {
     def sourceId = childId
     def targetId = parentId
-    def data = EdgeData.Parent
   }
-
-  case class DeletedParent(childId: NodeId, data: EdgeData.DeletedParent, parentId: NodeId)
-      extends Content {
-    def sourceId = childId
-    def targetId = parentId
+  object Parent extends ((NodeId, NodeId) => Parent) {
+    def delete(childId: NodeId, parentId: NodeId): Parent = Parent(childId, EdgeData.Parent(EpochMilli.now), parentId)
+    def apply(childId: NodeId, parentId: NodeId): Parent = Parent(childId, EdgeData.Parent, parentId)
   }
 
   case class StaticParentIn(childId: NodeId, parentId: NodeId) extends Content {
@@ -61,9 +58,8 @@ object Edge {
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
     case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
     case data: EdgeData.Member        => new Edge.Member(UserId(sourceId), data, targetId)
-    case EdgeData.Parent              => new Edge.Parent(sourceId, targetId)
+    case data: EdgeData.Parent              => new Edge.Parent(sourceId, data, targetId)
     case EdgeData.StaticParentIn      => new Edge.StaticParentIn(sourceId, targetId)
-    case data: EdgeData.DeletedParent => new Edge.DeletedParent(sourceId, data, targetId)
     case data: EdgeData.Label         => new Edge.Label(sourceId, data, targetId)
     case EdgeData.Notify              => new Edge.Notify(sourceId, UserId(targetId))
   }
