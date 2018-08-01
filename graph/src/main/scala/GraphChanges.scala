@@ -75,6 +75,8 @@ object GraphChanges {
   def addNode(node: Node) = GraphChanges(addNodes = Set(node))
   def addNodeWithParent(node: Node, parentId: NodeId) =
     GraphChanges(addNodes = Set(node), addEdges = Set(Edge.Parent(node.id, parentId)))
+  def addNodeWithParent(node: Node, parentIds: Iterable[NodeId]) =
+    GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, parentId))(breakOut))
 
   def addToParent(nodeIds: Iterable[NodeId], parentId: NodeId) = GraphChanges(
     addEdges = nodeIds.map { channelId =>

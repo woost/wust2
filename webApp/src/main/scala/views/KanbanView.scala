@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import fontAwesome.freeRegular
+import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -22,8 +22,6 @@ object KanbanView extends View {
   override def isContent = true
 
   val maxLength = 100
-  val columnWidth = "200px"
-
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     div(
@@ -49,14 +47,18 @@ object KanbanView extends View {
 
         VDomModifier(
           div(
-            cls := s"kanbancolumnarea",
-            key := s"kanbancolumnarea",
-            registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-            display.flex, // no Styles.flex, since we set a custom minWidth/Height
-            alignItems.flexStart,
-            flexWrap.wrap,
-            overflow.auto,
-            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, isTopLevel = true, inject = cls := "kanbancolumn")),
+            Styles.flex,
+            div(
+              cls := s"kanbancolumnarea",
+              key := s"kanbancolumnarea",
+              registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
+              display.flex, // no Styles.flex, since we set a custom minWidth/Height
+              alignItems.flexStart,
+              flexWrap.wrap,
+              overflow.auto,
+              forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+              newColumnArea(state, page)
+            ),
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes)
         )
@@ -64,9 +66,53 @@ object KanbanView extends View {
     )
   }
 
+  private def newColumnArea(state:GlobalState, page:Page)(implicit ctx: Ctx.Owner) = {
+    val fieldActive = Var(false)
+    div(
+      cls := s"kanbannewcolumnarea",
+      key := s"kanbannewcolumnarea",
+      registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
+      onClick(true) --> fieldActive,
+      Rx {
+        if(fieldActive())
+          div(
+            cls := "ui form",
+            padding := "7px",
+            textArea(
+              cls := "field fluid",
+              fontSize.larger,
+              fontWeight.bold,
+              rows := 2,
+              placeholder := "Press Enter to add.",
+              valueWithEnter --> sideEffect { str =>
+                val graph = state.graphContent.now
+                val selectedNodeIds = state.selectedNodeIds.now
+                val change = {
+                  val newColumnNode = Node.Content(NodeData.Markdown(str))
+                  val add = GraphChanges.addNode(newColumnNode)
+                  val makeStatic = GraphChanges.connect(Edge.StaticParentIn)(newColumnNode.id, page.parentIds)
+                  add merge makeStatic
+                }
+                fieldActive() = false
+                state.eventProcessor.enriched.changes.onNext(change)
+              },
+              key := cuid.Cuid(),
+              onInsert.asHtml --> sideEffect{elem => elem.focus()},
+              onBlur.value --> sideEffect{v => if(v.isEmpty) fieldActive() = false}
+            )
+          )
+        else
+          div(
+            cls := "kanbannewcolumnareacontent",
+            "+ Add Column"
+          )
+      }
+    )
+  }
+
   private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], isTopLevel:Boolean = false, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds)(ctx)(inject)
+      case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds, isTopLevel = isTopLevel)(ctx)(inject)
       case Tree.Leaf(node) =>
         Rx{
           if(state.graph().isStaticParentIn(node.id, parentIds))
@@ -80,9 +126,8 @@ object KanbanView extends View {
   private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
     val columnTitle = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))(cls := "kanbancolumntitle")
     div(
-      cls := "kanbansubcolumn",
+      cls := "kanbancolumn",
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
-      borderRadius := "3px",
       if(isTopLevel) VDomModifier(
         draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)), // sortable: draggable needs to be direct child of container
         dragTarget(DragItem.Kanban.ToplevelColumn(node.id)) ,
@@ -90,18 +135,19 @@ object KanbanView extends View {
         draggableAs(state, DragItem.Kanban.SubColumn(node.id)), // sortable: draggable needs to be direct child of container
         dragTarget(DragItem.Kanban.SubColumn(node.id))
       ),
-      key := s"draggablecolumn${node.id}parent${parentIds.mkString}",
       div(
+        cls := "kanbancolumnheader",
+        Styles.flex,
+        justifyContent.spaceBetween,
+        columnTitle,
+        isStaticParent.ifTrue[VDomModifier](div(freeSolid.faTimes, onClick(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer))
+      ),
+      div(
+        cls := "kanbancolumnchildren",
         registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
-        //            key := s"sortablecolumn${tree.node.id}parent${parentId}",
+        key := s"sortablecolumn${node.id}parent${parentIds.mkString}",
 
-        div(
-          Styles.flex,
-          justifyContent.spaceBetween,
-          columnTitle,
-          isStaticParent.ifTrue[VDomModifier](div(freeRegular.faMinusSquare, onClick(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer))
-        ),
-        children.map(t => renderTree(state, t, parentIds = node.id :: Nil, inject = marginTop := "8px")),
+        children.map(t => renderTree(state, t, parentIds = node.id :: Nil)),
       ),
       addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom
     )
@@ -132,10 +178,10 @@ object KanbanView extends View {
   private def addNodeField(state: GlobalState, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val active = Var(false)
     div(
+      cls := "kanbanaddnodefield",
       Rx {
         if(active())
           div(
-            marginTop := "10px",
             cls := "ui form",
             textArea(
               cls := "field fluid",
@@ -155,7 +201,6 @@ object KanbanView extends View {
           )
         else
           div(
-            marginTop := "10px",
             fontSize.medium,
             fontWeight.normal,
             cursor.pointer,
@@ -170,20 +215,15 @@ object KanbanView extends View {
   private def renderIsolatedNodes(state:GlobalState, page:Page, nodes:Seq[Node])(implicit ctx: Ctx.Owner) =
     div(
       cls := "kanbanisolatednodes",
+      key := s"kanbanisolatednodes",
       registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
-      //      key := s"kanbanisolatednodes",
 
-      minHeight := "30px",
-
-      margin := "0px 5px 20px 5px",
       Styles.flex,
       flexWrap.wrap,
       alignItems.flexStart,
       nodes.map{ node =>
         nodeCardCompact(state, node, maxLength = Some(maxLength))(ctx)(
           key := s"kanbanisolated${node.id}",
-          marginRight := "3px",
-          marginTop := "8px",
           draggableAs(state, DragItem.Kanban.Card(node.id)),
           dragTarget(DragItem.Kanban.Card(node.id)),
         )

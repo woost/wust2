@@ -452,36 +452,122 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineBlock
   )
 
+
+
+  val kanbanColumnPaddingPx = 7
+  val kanbanColumnPadding = (kanbanColumnPaddingPx px)
+  val kanbanRowSpacing = (8 px)
+  val kanbanPageSpacing = (5 px)
+  val kanbanCardWidthPx = 200
+  val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
+  val kanbanColumnBorderRadius = (3 px)
+
   ".kanbancolumnarea" - (
-    minWidth(200 px),
-    minHeight(40 px)
+    paddingLeft(kanbanPageSpacing),
+    paddingTop(kanbanPageSpacing)
   )
 
-  ".kanbancolumn" - (
-    margin(5 px, 5 px, 20 px, 5 px),
-    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)",
+  ".kanbannewcolumnarea" - (
+    width(kanbanColumnWidth),
+    height(200 px),
+    backgroundColor(c"rgba(158, 158, 158, 0.25)"),
+    borderRadius(kanbanColumnBorderRadius),
+    cursor.pointer,
+  )
+
+  ".kanbannewcolumnarea.draggable-container--over" - (
+    backgroundColor(transparent),
+  )
+
+  ".kanbannewcolumnareacontent" - (
+    paddingTop(30 px),
+    textAlign.center,
+    fontSize.larger,
+    color(c"rgba(0, 0, 0, 0.62)"),
+  )
+
+  ".kanbannewcolumnarea.draggable-container--over .kanbannewcolumnareacontent" - (
+    display.none
+  )
+
+  ".kanbannewcolumnarea > .nodecardcompact" - (
+    width(kanbanColumnWidth),
+    height(100 px),
+    margin(0 px).important
+  )
+
+  ".kanbannewcolumnarea .kanbancolumn" - (
+    margin(0 px).important
+  )
+
+  ".kanbannewcolumnarea, " +
+  ".kanbantoplevelcolumn" - (
+    marginRight(10 px),
+    marginBottom(20 px),
+  )
+
+
+  ".kanbantoplevelcolumn" - (
+    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)", // lighter shadow than on sub-columns
   )
 
   ".kanbancolumntitle" - (
     maxWidth(200 px)
   )
 
-  ".kanbansubcolumn" - (
-    minWidth(200 px),
-    padding(7 px),
+  ".kanbancolumn" - (
+    minWidth(kanbanColumnWidth),
     color(c"#FEFEFE"),
     fontWeight.bold,
     fontSize.large,
     boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
     cursor.move,
+    borderRadius(kanbanColumnBorderRadius)
   )
 
-  ".kanbancolumn .nodecardcompact," +
-  ".kanbanisolatednodes .nodecardcompact" - (
+  ".kanbancolumnchildren" - (
+    minHeight := "50px", // enough vertical area to drag cards in
+  )
+
+  // we want the sortable container to consume the full width of the column.
+  // So that dragging a card/subcolumn in from the side directly hovers the sortable area inside
+  // the column, instead of sorting the top-level-columns.
+  // therefore, instead setting a padding on the column, we set a margin/padding on the inner elements.
+  ".kanbancolumn > .kanbancolumnheader" - (
+    padding(kanbanColumnPadding, kanbanColumnPadding, 0 px, kanbanColumnPadding),
+  )
+
+  ".kanbancolumnchildren > .nodecardcompact," +
+  ".kanbancolumnchildren > .kanbancolumn" - (
+    marginTop(kanbanRowSpacing),
+    marginRight(kanbanColumnPadding),
+    marginLeft(kanbanColumnPadding),
+  )
+  ".kanbancolumn > .kanbanaddnodefield" - (
+    padding(kanbanRowSpacing, kanbanColumnPadding, kanbanColumnPadding, kanbanColumnPadding),
+  )
+
+  ".kanbanisolatednodes" - (
+    margin(0 px, 5 px, 20 px, 5 px),
+    minHeight(50 px),
+  )
+
+  ".kanbanisolatednodes > .nodecardcompact" - (
+    marginRight := "3px",
+    marginTop := "8px",
+  )
+
+  ".kanbancolumnchildren > .nodecardcompact," +
+  ".kanbanisolatednodes > .nodecardcompact" - (
     width(200 px),
     borderRadius(3 px),
     fontSize.medium,
   )
+
+
+
+
+
 
   ".actionbutton" - (
     cursor.pointer,
@@ -582,10 +668,6 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(102, 102, 102, 0.71)").important,
     color(transparent).important,
     borderColor(transparent).important,
-  )
-
-  ".kanbanisolatednodes .kanbancolumn.draggable-source--is-dragging" - (
-    minWidth(200 px)
   )
 
   ".sortable-container .draggable-source--is-dragging > *" - (

@@ -131,6 +131,10 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
     def graph = state.graph.now
 
     {
+      case (e, dragging: DragItem.Kanban.ToplevelColumn, from: Kanban.ColumnArea, into: Kanban.ColumnArea) =>
+        console.log("reordering columns")
+        // TODO: persist ordering
+
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
@@ -145,13 +149,13 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
         }
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
 
-      case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.ColumnArea) =>
+      case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         // always make new columns static
         val moveStaticInParents = GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
         val alreadyInParent = into.parentIds.exists(parentId => graph.children(parentId).contains(dragging.nodeId))
-        if (alreadyInParent) {
+        if (alreadyInParent || dragging.isInstanceOf[DragItem.Kanban.Card]) { // remove card, as it will be replaced by a column via graph events
 //          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
           defer(removeDomElement(e.dragEvent.originalSource))
         }
@@ -167,7 +171,6 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
   }
 
   sortableSortEvent.map { e =>
-    console.log(e)
     val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[dom.html.Element] // https://github.com/Shopify/draggable/issues/256
     val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
     val dragging = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
@@ -176,8 +179,8 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 
     // white listing allowed sortable actions
     (dragging, sourceContainer, overContainer) match {
-      case (Some(dragging), Some(sourceContainer), Some(overContainer))
-        if sortableActions.isDefinedAt((e, dragging, sourceContainer, overContainer)) => // allowed
+      case (Some(dragging), Some(sourceContainer), Some(overContainer)) if sortableActions.isDefinedAt((e, dragging, sourceContainer, overContainer)) => // allowed
+      case (Some(dragging), Some(sourceContainer), Some(overContainer)) => println(s"not handled ${(dragging, sourceContainer, overContainer)}"); e.cancel()
       case _ => e.cancel() // not allowed
     }
   }.subscribe(

@@ -174,7 +174,7 @@ object Components {
     import io.circe.syntax._
     Seq(
       key := cuid.Cuid(),
-      //    border := "2px solid violet",
+//          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
       attr(DragContainer.attrName) := container.asJson.noSpaces,
