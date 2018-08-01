@@ -132,21 +132,19 @@ class GlobalState (
 
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
-//    dropzone = ".dropzone"
-    delay = 300.0
+    delay = 150.0
     mirror = new MirrorOptions {
       constrainDimensions = true
     }
   })
   val sortable = new Sortable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
-    //    dropzone = ".dropzone"
-    delay = 100.0
+    delay = 150.0
     mirror = new MirrorOptions {
       constrainDimensions = true
     }
   })
-  val dragEvents = new DragEvents(this, draggable)
-  val dragSortableEvents = new DragEvents(this, sortable)
+  val draggableEvents = new DraggableEvents(this, draggable)
+  val sortableEvents = new SortableEvents(this, sortable)
 }
 

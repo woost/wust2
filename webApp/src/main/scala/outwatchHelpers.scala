@@ -4,7 +4,7 @@ import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
 import monix.execution.ExecutionModel.{AlwaysAsyncExecution, SynchronousExecution}
-import monix.execution.{Ack, Cancelable, Scheduler}
+import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
@@ -69,12 +69,12 @@ package object outwatchHelpers {
   }
   implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab: AttributeBuilder[T, A])
       extends AnyVal {
-    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) = ab <-- (valueStream.toLaterObservable, valueStream.now)
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner): IO[ModifierStreamReceiver] = ab <-- (valueStream.toLaterObservable, valueStream.now)
   }
   implicit class RichStyle[T](val ab: Style[T]) extends AnyVal {
     import outwatch.dom.StyleIsBuilder
     //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
-    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner) =
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner): IO[ModifierStreamReceiver] =
       StyleIsBuilder[T](ab) <-- (valueStream.toLaterObservable, valueStream.now)
   }
 
@@ -132,9 +132,18 @@ package object outwatchHelpers {
       rx
     }
 
+    def onErrorThrow: Cancelable = o.subscribe(_ => Ack.Continue, throw _)
+    def foreachTry(callback: T => Unit): CancelableFuture[Unit] = o.foreach { value =>
+      try {
+        callback(value)
+      } catch {
+        case e:Throwable => scribe.error(e.getMessage, e)
+      }
+    }
+
     def debug: Cancelable = debug()
-    def debug(name: String = "") = o.foreach(x => println(s"$name: $x"))
-    def debug(print: T => String) = o.foreach(x => println(print(x)))
+    def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => println(s"$name: $x"))
+    def debug(print: T => String): CancelableFuture[Unit] = o.foreach(x => println(print(x)))
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
@@ -164,12 +173,12 @@ package object outwatchHelpers {
   implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
   implicit object VDomModifierEmpty extends Empty[VDomModifier] {
-    def empty = VDomModifier.empty
+    def empty: VDomModifier = VDomModifier.empty
   }
 
 
   //TODO: put in outwatch?
-  val onDomElementChange = CustomEmitterBuilder[dom.Element, Modifier](sink => VDomModifier(
+  val onDomElementChange: CustomEmitterBuilder[Element, Modifier] = CustomEmitterBuilder[dom.Element, Modifier](sink => VDomModifier(
     outwatch.dom.dsl.onInsert --> sink,
     outwatch.dom.dsl.onPostPatch.map(_._2) --> sink
   ))
@@ -192,6 +201,6 @@ package object outwatchHelpers {
 
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
-    def layered(layers: Icon*) = fa.layer(push => layers.foreach(push(_)))
+    def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))
   }
 }

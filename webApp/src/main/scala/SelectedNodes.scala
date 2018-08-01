@@ -21,7 +21,7 @@ object SelectedNodes {
           dragTarget(DragItem.SelectedNodesBar),
 
           sortedNodeIds match {
-            case Nil => state.dragEvents.status.map {
+            case Nil => state.draggableEvents.status.map {
               case DragStatus.None =>
                 VDomModifier.empty
               case DragStatus.Dragging => VDomModifier(
