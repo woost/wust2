@@ -326,7 +326,7 @@ object CommonStyles extends StyleSheet.Standalone {
     whiteSpace.normal, // displaying tags as content should behave like normal nodes
   )
 
-  ".chatmsg-line > .nodecardcompact" - (
+  ".chatmsg-line > .nodecard" - (
     chatmsgIndent,
   )
 
@@ -370,26 +370,26 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val messageBackground = c"#FEFEFE"
 
-  val nodeCardCompactShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
-  val nodeCardCompactBackgroundColor = backgroundColor(messageBackground)
-  ".nodecardcompact" - (
+  val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
+  val nodeCardBackgroundColor = backgroundColor(messageBackground)
+  ".nodecard" - (
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
-    nodeCardCompactBackgroundColor,
+    nodeCardBackgroundColor,
     color(c"rgba(0, 0, 0, 0.87)"), // from semantic ui
     fontWeight.normal,
     overflowX.auto,
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
 //    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
-    nodeCardCompactShadow
+    nodeCardShadow
   )
 
-  ".nodecardcompact a" - (
+  ".nodecard a" - (
     cursor.pointer
   )
 
-  ".nodecardcompact-content" - (
+  ".nodecard-content" - (
     wordWrap.breakWord,
     wordBreak := "break-word",
     padding(2 px, 4 px),
@@ -397,11 +397,11 @@ object CommonStyles extends StyleSheet.Standalone {
     border(1 px, solid, transparent) /* placeholder for the dashed border when dragging */
   )
 
-  ".nodecardcompact-content pre" - (
+  ".nodecard-content pre" - (
     whiteSpace.preWrap
   )
 
-  ".node-deleted .nodecardcompact-content" - (
+  ".node-deleted .nodecard-content" - (
     textDecoration := "line-through",
     cursor.default
   )
@@ -490,7 +490,7 @@ object CommonStyles extends StyleSheet.Standalone {
     display.none
   )
 
-  ".kanbannewcolumnarea > .nodecardcompact" - (
+  ".kanbannewcolumnarea > .nodecard" - (
     width(kanbanColumnWidth),
     height(100 px),
     margin(0 px).important
@@ -537,7 +537,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(kanbanColumnPadding, kanbanColumnPadding, 0 px, kanbanColumnPadding),
   )
 
-  ".kanbancolumnchildren > .nodecardcompact," +
+  ".kanbancolumnchildren > .nodecard," +
   ".kanbancolumnchildren > .kanbancolumn" - (
     marginTop(kanbanRowSpacing),
     marginRight(kanbanColumnPadding),
@@ -552,13 +552,13 @@ object CommonStyles extends StyleSheet.Standalone {
     minHeight(50 px),
   )
 
-  ".kanbanisolatednodes > .nodecardcompact" - (
+  ".kanbanisolatednodes > .nodecard" - (
     marginRight := "3px",
     marginTop := "8px",
   )
 
-  ".kanbancolumnchildren > .nodecardcompact," +
-  ".kanbanisolatednodes > .nodecardcompact" - (
+  ".kanbancolumnchildren > .nodecard," +
+  ".kanbanisolatednodes > .nodecard" - (
     width(200 px),
     borderRadius(3 px),
     fontSize.medium,
@@ -586,7 +586,7 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move
   )
 
-  ".selectednodes .nodecardcompact" - (
+  ".selectednodes .nodecard" - (
     marginLeft(3 px)
   )
 
@@ -600,7 +600,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  ".draggable-container .node.draggable--over, .chatmsg-line.draggable--over .nodecardcompact" - (
+  ".draggable-container .node.draggable--over, .chatmsg-line.draggable--over .nodecard" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
     opacity(1).important,
@@ -613,16 +613,16 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  // -- draggable nodecardcompact
-  ".nodecardcompact.draggable--over," +
-  ".chatmsg-line.draggable--over .nodecardcompact" - (
+  // -- draggable nodecard
+  ".nodecard.draggable--over," +
+  ".chatmsg-line.draggable--over .nodecard" - (
     borderTop(1 px, solid, transparent).important,
     (boxShadow := "0px 1px 0px 1px rgba(93, 120, 158,0.45)").important
   )
 
-  ".chatmsg-line .nodecardcompact.draggable-mirror" - (
-    nodeCardCompactBackgroundColor.important,
-    nodeCardCompactShadow.important,
+  ".chatmsg-line .nodecard.draggable-mirror" - (
+    nodeCardBackgroundColor.important,
+    nodeCardShadow.important,
     color.inherit.important
   )
 
@@ -632,10 +632,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   val onDragNodeCardCompactColor = c"rgba(0,0,0,0.5)"
-  ".nodecardcompact.draggable-source--is-dragging," +
-  ".chatmsg-line.draggable-source--is-dragging .nodecardcompact,"+
-  ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecardcompact,"+
-  ".chatmsg-line.draggable--over .nodecardcompact.draggable-source--is-dragging" - (
+  ".nodecard.draggable-source--is-dragging," +
+  ".chatmsg-line.draggable-source--is-dragging .nodecard,"+
+  ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecard,"+
+  ".chatmsg-line.draggable--over .nodecard.draggable-source--is-dragging" - (
     backgroundColor(white).important,
     (boxShadow := none).important,
     border(1 px, dashed, onDragNodeCardCompactColor).important,

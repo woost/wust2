@@ -56,7 +56,7 @@ object SelectedNodes {
       flexWrap.wrap,
       selectedNodeIds.map { nodeId =>
           val node = graph.nodesById(nodeId)
-          nodeCard(state, node)
+          selectedNodeCard(state, node)
         }
     )
   }
@@ -87,8 +87,8 @@ object SelectedNodes {
     )
   }
 
-  private def nodeCard(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) = {
-    nodeCardCompact(state,node,injected = Seq[VDomModifier](
+  private def selectedNodeCard(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) = {
+    nodeCard(state,node,injected = Seq[VDomModifier](
       Styles.flex,
       alignItems.center,
       span(

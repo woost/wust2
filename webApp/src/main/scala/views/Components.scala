@@ -118,22 +118,22 @@ object Components {
 
   def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier)(implicit ctx: Ctx.Owner):VNode = {
     div(
-      cls := "node nodecardcompact",
+      cls := "node nodecard",
       div(
-        cls := "nodecardcompact-content",
+        cls := "nodecard-content",
         injected
       ),
       onClick.stopPropagation --> sideEffect(()),
       onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
     )
   }
-  def nodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
+  def nodeCard(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
     renderNodeCardCompact(
       state, node,
       injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
     )
   }
-  def nodeCardCompactEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
+  def nodeCardEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
     renderNodeCardCompact(
       state, node,
       injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)

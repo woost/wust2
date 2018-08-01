@@ -222,7 +222,7 @@ object KanbanView extends View {
       flexWrap.wrap,
       alignItems.flexStart,
       nodes.map{ node =>
-        nodeCardCompact(state, node, maxLength = Some(maxLength))(ctx)(
+        nodeCard(state, node, maxLength = Some(maxLength))(ctx)(
           key := s"kanbanisolated${node.id}",
           draggableAs(state, DragItem.Kanban.Card(node.id)),
           dragTarget(DragItem.Kanban.Card(node.id)),

@@ -319,7 +319,7 @@ object ChatView extends View {
         dragTarget(DragItem.ChatMsg(node.id)),
 
         // checkbox(Styles.flexStatic),
-        nodeCardCompactEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
+        nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
           isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
         ),
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
