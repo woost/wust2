@@ -27,6 +27,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
   private val dragOverEvent = PublishSubject[DragOverEvent]
   private val dragOutEvent = PublishSubject[DragOutEvent]
   private val dragStopEvent = PublishSubject[DragEvent] //TODO type event
+  private val sortableStartEvent = PublishSubject[SortableStartEvent]
   private val sortableStopEvent = PublishSubject[SortableStopEvent]
   private val sortableSortEvent = PublishSubject[SortableSortEvent]
   private val lastDragTarget = PublishSubject[Option[DragTarget]] //TODO: observable derived from other subjects
@@ -39,6 +40,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
   draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext(_))
   draggable.on[DragEvent]("drag:stop", dragStopEvent.onNext(_))
 
+  draggable.on[SortableStartEvent]("sortable:start", sortableStartEvent.onNext(_))
   draggable.on[SortableSortEvent]("sortable:sort", sortableSortEvent.onNext(_))
   draggable.on[SortableStopEvent]("sortable:stop", sortableStopEvent.onNext(_))
 
@@ -50,7 +52,7 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
 //  draggable.on("drag:out", () => console.log("drag:out"))
 //  draggable.on("drag:stop", () => console.log("drag:stop"))
 //
-//  draggable.on("sortable:start", () => console.log("sortable:start"))
+//  draggable.on("sortable:start", (e:SortableEvent) => console.log("sortable:start", e))
 //  draggable.on("sortable:sort", () => console.log("sortable:sort"))
 //  draggable.on("sortable:sorted", () => console.log("sortable:sorted"))
 //  draggable.on("sortable:stop", () => console.log("sortable:stop"))
@@ -169,6 +171,20 @@ class DragEvents(state: GlobalState, draggable: Draggable)(implicit scheduler: S
         defer(removeDomElement(e.dragEvent.originalSource))
     }
   }
+
+  sortableStartEvent.map { e =>
+    val source = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
+    source match {
+      case Some(DragItem.DisableDrag) => e.cancel()
+      case _ =>
+    }
+  }.subscribe(
+    _ => Ack.Continue,
+    { e =>
+      scribe.error("Error in sortableStartEvent")
+      throw e
+    }
+  )
 
   sortableSortEvent.map { e =>
     val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[dom.html.Element] // https://github.com/Shopify/draggable/issues/256

@@ -19,7 +19,7 @@ class Draggable(
     options: js.UndefOr[Options] = js.undefined
 ) extends js.Object {
   def destroy(): Unit = js.native
-//  def on(eventName: String, listener: js.Function0[Unit]): Draggable = js.native
+  def on[R](eventName: String, listener: js.Function0[_]): Draggable = js.native
   def on[E <: AbstractEvent](eventName: String, listener: js.Function1[E, _]): Draggable = js.native
 //  def on(eventName: String, listener: js.Function1[dom.Event, Unit]): Draggable = js.native
   def off(eventName: String, listener: js.Function0[Unit]): Draggable =
@@ -142,4 +142,11 @@ class SortableSortEvent(data: js.Object) extends SortableEvent(data) {
   def currentIndex:Int = js.native
   def over:Int = js.native
   def overContainer:html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "SortableStartEvent")
+class SortableStartEvent(data: js.Object) extends SortableEvent(data) {
+  def startIndex:Int = js.native
+  def startContainer:html.Element = js.native
 }

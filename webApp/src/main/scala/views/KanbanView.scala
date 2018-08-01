@@ -124,23 +124,40 @@ object KanbanView extends View {
   }
 
   private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
-    val columnTitle = Rendered.renderNodeData(node.data, maxLength = Some(maxLength))(cls := "kanbancolumntitle")
+
+    val editable = Var(false)
+    val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
+
+    val buttonBar = div(
+      cls := "kanbanbuttonbar",
+      Styles.flex,
+      Rx {
+        if(editable()) {
+          VDomModifier.empty
+        } else VDomModifier(
+          div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
+          isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", if(isTopLevel) freeSolid.faTimes else freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
+        )
+      }
+    )
+
     div(
+      // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
-        draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)), // sortable: draggable needs to be direct child of container
+        draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)),
         dragTarget(DragItem.Kanban.ToplevelColumn(node.id)) ,
       ) else VDomModifier(
-        draggableAs(state, DragItem.Kanban.SubColumn(node.id)), // sortable: draggable needs to be direct child of container
+        draggableAs(state, DragItem.Kanban.SubColumn(node.id)),
         dragTarget(DragItem.Kanban.SubColumn(node.id))
       ),
       div(
         cls := "kanbancolumnheader",
-        Styles.flex,
-        justifyContent.spaceBetween,
         columnTitle,
-        isStaticParent.ifTrue[VDomModifier](div(freeSolid.faTimes, onClick(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer))
+
+        position.relative,
+        buttonBar(position.absolute, top := "0", right := "0")
       ),
       div(
         cls := "kanbancolumnchildren",
@@ -149,29 +166,42 @@ object KanbanView extends View {
 
         children.map(t => renderTree(state, t, parentIds = node.id :: Nil)),
       ),
-      addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom
+      addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
     )
   }
 
   private def renderCard(state:GlobalState, node:Node, parentIds:Seq[NodeId])(implicit ctx: Ctx.Owner):VNode = {
-    val rendered = renderNodeCardCompact(
+    val editable = Var(false)
+    val rendered = nodeCardEditable(
       state, node,
-      injected = VDomModifier(renderNodeData(node.data, Some(maxLength)))
+      maxLength = Some(maxLength),
+      editable = editable,
+      submit = state.eventProcessor.enriched.changes
     )
+
+
     val buttonBar = div(
-        padding := "4px",
-        paddingLeft := "0px",
-        Styles.flexStatic,
-        div(freeRegular.faListAlt, onClick(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer)
-      )
+      cls := "kanbanbuttonbar",
+      Styles.flex,
+      Rx {
+        if(editable()) {
+//          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
+          VDomModifier.empty
+        } else VDomModifier(
+          div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
+          div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column")
+        )
+      }
+    )
+
     rendered(
-      draggableAs(state, DragItem.Kanban.Card(node.id)), // sortable: draggable needs to be direct child of container
+      // sortable: draggable needs to be direct child of container
+      editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
       key := s"node${node.id}parent${parentIds.mkString}",
 
-      Styles.flex,
-      justifyContent.spaceBetween,
-      buttonBar
+      position.relative,
+      buttonBar(position.absolute, top := "0", right := "0")
     )
   }
 

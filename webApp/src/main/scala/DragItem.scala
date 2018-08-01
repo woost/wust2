@@ -7,6 +7,8 @@ import wust.ids.NodeId
 sealed trait DragPayload
 sealed trait DragTarget
 object DragItem extends wust.ids.serialize.Circe {
+  case object DisableDrag extends DragPayload
+
   sealed trait AnyNodes extends DragPayload with DragTarget { def nodeIds: Seq[NodeId] }
   sealed trait SingleNode extends AnyNodes { def nodeId: NodeId; def nodeIds: Seq[NodeId] = nodeId :: Nil }
   sealed trait ChildNode extends SingleNode

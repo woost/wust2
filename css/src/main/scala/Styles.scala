@@ -368,10 +368,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  val messageBackground = c"#FEFEFE"
-
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
-  val nodeCardBackgroundColor = backgroundColor(messageBackground)
+  val nodeCardBackgroundColor = backgroundColor(c"#FEFEFE")
   ".nodecard" - (
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
@@ -459,6 +457,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanRowSpacing = (8 px)
   val kanbanPageSpacing = (5 px)
   val kanbanCardWidthPx = 200
+  val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
   val kanbanColumnBorderRadius = (3 px)
 
@@ -512,7 +511,62 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumntitle" - (
-    maxWidth(200 px)
+    maxWidth(kanbanCardWidth),
+    // TODO: separate style for word-breaking in nodes
+    wordWrap.breakWord,
+    wordBreak := "break-word",
+  )
+
+  ".kanbancolumnheader .kanbanbuttonbar" - (
+    padding(kanbanColumnPadding),
+    visibility.hidden,
+    fontSize.medium // same as in kanban card
+  )
+
+  ".nodecard .kanbanbuttonbar" - (
+    padding(2 px, 4 px),
+    visibility.hidden
+  )
+
+  ".nodecard:hover .kanbanbuttonbar," +
+  ".kanbancolumnheader:hover .kanbanbuttonbar" - (
+    visibility.visible
+  )
+
+  ".kanbancolumnheader .kanbanbuttonbar > div," +
+  ".nodecard .kanbanbuttonbar > div" - (
+    borderRadius(2 px),
+    marginLeft(2 px)
+  )
+
+  ".kanbancolumnheader .kanbanbuttonbar > div" - (
+    padding(2 px),
+    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+    color(c"rgba(255, 255, 255, 0.83)")
+  )
+
+  ".kanbancolumnheader .kanbanbuttonbar > div:hover" - (
+    backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
+    color(white)
+  )
+
+  ".nodecard .kanbanbuttonbar > div" - (
+    backgroundColor(c"rgba(254, 254, 254, 0.9)"), // nodeCardBackgroundColor, but transparent
+    color(c"rgb(157, 157, 157)"),
+    padding(2 px)
+  )
+
+  ".nodecard .kanbanbuttonbar > div:hover" - (
+    backgroundColor(c"rgba(215, 215, 215, 0.9)"),
+    color(c"rgb(71, 71, 71)")
+  )
+
+
+  ".kanbancolumnchildren > .nodecard," +
+  ".kanbanisolatednodes > .nodecard" - (
+    width(kanbanCardWidth),
+    borderRadius(3 px),
+    fontSize.medium,
   )
 
   ".kanbancolumn" - (
@@ -557,12 +611,6 @@ object CommonStyles extends StyleSheet.Standalone {
     marginTop := "8px",
   )
 
-  ".kanbancolumnchildren > .nodecard," +
-  ".kanbanisolatednodes > .nodecard" - (
-    width(200 px),
-    borderRadius(3 px),
-    fontSize.medium,
-  )
 
 
 
@@ -631,15 +679,15 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
-  val onDragNodeCardCompactColor = c"rgba(0,0,0,0.5)"
+  val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
   ".nodecard.draggable-source--is-dragging," +
   ".chatmsg-line.draggable-source--is-dragging .nodecard,"+
   ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecard,"+
   ".chatmsg-line.draggable--over .nodecard.draggable-source--is-dragging" - (
     backgroundColor(white).important,
     (boxShadow := none).important,
-    border(1 px, dashed, onDragNodeCardCompactColor).important,
-    color(onDragNodeCardCompactColor).important,
+    border(1 px, dashed, onDragNodeCardColor).important,
+    color(onDragNodeCardColor).important,
   )
 
   // -- draggable chanelicon

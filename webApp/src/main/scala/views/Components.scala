@@ -116,7 +116,7 @@ object Components {
     )
   }
 
-  def renderNodeCardCompact(state:GlobalState, node:Node, injected: VDomModifier)(implicit ctx: Ctx.Owner):VNode = {
+  def renderNodeCard(state:GlobalState, node:Node, injected: VDomModifier)(implicit ctx: Ctx.Owner):VNode = {
     div(
       cls := "node nodecard",
       div(
@@ -128,13 +128,13 @@ object Components {
     )
   }
   def nodeCard(state:GlobalState, node:Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
-    renderNodeCardCompact(
+    renderNodeCard(
       state, node,
       injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
     )
   }
   def nodeCardEditable(state:GlobalState, node:Node, editable:Var[Boolean], submit:Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner):VNode = {
-    renderNodeCardCompact(
+    renderNodeCard(
       state, node,
       injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)
     )
@@ -235,7 +235,7 @@ object Components {
       }
     }
 
-    div(
+    p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
       Rx {
         if(editable()) VDomModifier(
