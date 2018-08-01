@@ -73,6 +73,7 @@ object KanbanView extends View {
       key := s"kanbannewcolumnarea",
       registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
       onClick(true) --> fieldActive,
+      position.relative,
       Rx {
         if(fieldActive())
           div(
@@ -103,6 +104,10 @@ object KanbanView extends View {
           )
         else
           div(
+            position.absolute,
+            top := "0",
+            left := "0",
+            right := "0",
             cls := "kanbannewcolumnareacontent",
             "+ Add Column"
           )
@@ -248,9 +253,6 @@ object KanbanView extends View {
       key := s"kanbanisolatednodes",
       registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
 
-      Styles.flex,
-      flexWrap.wrap,
-      alignItems.flexStart,
       nodes.map{ node =>
         nodeCard(state, node, maxLength = Some(maxLength))(ctx)(
           key := s"kanbanisolated${node.id}",

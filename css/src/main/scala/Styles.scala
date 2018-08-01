@@ -468,7 +468,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbannewcolumnarea" - (
     width(kanbanColumnWidth),
-    height(200 px),
+    height(100 px),
     backgroundColor(c"rgba(158, 158, 158, 0.25)"),
     borderRadius(kanbanColumnBorderRadius),
     cursor.pointer,
@@ -479,14 +479,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbannewcolumnareacontent" - (
-    paddingTop(30 px),
+    paddingTop(35 px),
     textAlign.center,
     fontSize.larger,
     color(c"rgba(0, 0, 0, 0.62)"),
-  )
-
-  ".kanbannewcolumnarea.draggable-container--over .kanbannewcolumnareacontent" - (
-    display.none
   )
 
   ".kanbannewcolumnarea > .nodecard" - (
@@ -606,13 +602,16 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbanisolatednodes" - (
+    Styles.flex,
+    flexWrap.wrap,
+    alignItems.flexStart,
     margin(0 px, 5 px, 20 px, 5 px),
     minHeight(50 px),
   )
 
   ".kanbanisolatednodes > .nodecard" - (
     marginRight := "3px",
-    marginTop := "8px",
+    marginTop := kanbanRowSpacing,
   )
 
 
