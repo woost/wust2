@@ -101,5 +101,23 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       .map(_.headOption)
   }
 
+  def storeMessageMapping(messageMapping: Message_Mapping)(implicit ec: ExecutionContext): Future[Boolean] = {
+    val q = quote {
+      query[Message_Mapping].insert(lift(messageMapping))
+        .onConflictUpdate(_.wust_id)(
+          (t, e) => t.slack_message_ts -> e.slack_message_ts
+        ).returning(_.wust_id)
+    }
+
+    ctx.run(q)
+      .map(_ => true)
+      .recoverValue(false)
+  }
+
+  def getMessageFromSlackData(channel: String, timestamp: String)(implicit ec: ExecutionContext): Future[Option[NodeId]] = {
+    ctx
+      .run(query[Message_Mapping].filter(m => m.slack_channel_id == lift(channel) && m.slack_message_ts == lift(timestamp)).take(1).map(_.wust_id))
+      .map(_.headOption)
+  }
 
 }

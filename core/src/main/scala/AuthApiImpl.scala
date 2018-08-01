@@ -81,6 +81,10 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnAssumedAuth(newAuth)
   }
 
+  def createImplicitUserForApp(): ApiFunction[Authentication.Verified] = Action.assureDbUser { (_, user) =>
+    Future.successful(jwt.generateAuthentication(user))
+  }
+
   def issuePluginToken(): ApiFunction[Authentication.Verified] = Action.assureDbUser { (_, user) =>
     //TODO generate special token for plugins to allow onBehalf changes
     Future.successful(jwt.generateAuthentication(user))
