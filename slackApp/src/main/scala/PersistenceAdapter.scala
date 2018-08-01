@@ -16,12 +16,14 @@ trait PersistenceAdapter {
   type SlackUserId = String
 
   def storeUserAuthData(userMapping: User_Mapping): Future[Boolean]
+  def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
+  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]]
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]]
 
   def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]]
-  def getNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]]
+  def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]]
 
 }
 
@@ -34,13 +36,17 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
   def storeUserAuthData(userMapping: User_Mapping): Future[Boolean] = {
     db.storeUserMapping(userMapping)
   }
+  def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
+    db.storeMessageMapping(messageMapping)
+  }
+  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = ???
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = {
-//    db.getWustUser(slackUser).map(_.orElse {
-//      wustClient.auth.
-//
-//    })
-    ???
+    val existingUser = db.getWustUser(slackUser)
+    existingUser.flatMap {
+      case Some(u) => Future.successful(Some(u))
+      case None => wustClient.auth.createImplicitUserForApp().map(u => Some(WustUserData(u.user.id, u.token)))
+    }
   }
 
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
@@ -49,7 +55,9 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
       db.getChannelNode(channel)
   }
 
-  def getNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]] = ???
+  def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]] = {
+    db.getMessageFromSlackData(channel, timestamp)
+  }
 
 //  def method(): = ???
 }
