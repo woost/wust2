@@ -21,10 +21,11 @@ import scala.concurrent.{ExecutionContext, Future}
 case class AuthenticationData(wustAuthData: Authentication.Verified, platformAuthToken: OAuthToken)
 
 // Instantiate for each App
-class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
+class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
 
   val oAuthRequests: TrieMap[String, Authentication.Verified] = TrieMap.empty[String, Authentication.Verified]
 
+  scribe.info(s"${oAuthConfig.toString}")
   private val authConfig = AuthConfig(
     clientId     = oAuthConfig.clientId,
     clientSecret = oAuthConfig.clientSecret,
@@ -34,15 +35,20 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
   )
 
   private val authClient = AuthClient(authConfig)
+  private val oAuthPath = oAuthConfig.authPath.getOrElse("oauth/auth")
+  private val redirectUri = oAuthConfig.redirectUri.getOrElse(s"http://${serverConfig.host}:${serverConfig.port}/") + oAuthPath
 
-  def authorizeUrl(auth: Authentication.Verified, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
+
+  def authorizeUrl(auth: Authentication.Verified, scope: List[String], params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
 
     val randomState = UUID.randomUUID().toString
-    val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, Map(
-      "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
-      "state" -> randomState,
-      "scopes" -> List("read:org", "read:user", "repo", "write:discussion").mkString(",")
-    ) ++ params)
+    val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, params ++
+      Map(
+        "redirect_uri" -> redirectUri,
+        "state" -> randomState,
+        "scope" -> scope.mkString(",")
+      )
+    )
 
     oAuthRequests.putIfAbsent(randomState, auth) match {
       case None => uri
@@ -65,7 +71,7 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
   //val newAccessToken: Future[Either[Throwable, OAuthToken]] =
   //  client.getAccessToken(GrantType.RefreshToken, Map("refresh_token" -> "zzzzzzzz"))
 
-  def route(tokenObserver: Observer[AuthenticationData]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
+  def route(tokenObserver: Observer[AuthenticationData]): Route = path(separateOnSlashes(oAuthPath)) {
     get {
       parameters(('code, 'state)) { (code: String, state: String) =>
         val confirmedRequest = confirmOAuthRequest(code, state)
@@ -75,7 +81,7 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
             grant = GrantType.AuthorizationCode,
             params = Map(
               "code" -> code,
-              "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
+              "redirect_uri" -> redirectUri,
               "state" -> state
             )
           )
@@ -95,6 +101,7 @@ class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit
         }
         redirect(s"http://${serverConfig.host}:12345/#view=usersettings&page=default", StatusCodes.SeeOther) //TODO: necessary or is is sufficient to set redirect uri above?
       }
+      // TODO: handle user aborts
     }
   }
 }

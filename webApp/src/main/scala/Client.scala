@@ -39,22 +39,22 @@ object Client {
     import window.location
     s"${location.protocol}//${location.hostname}:8902/api"
   }
-  private val gitterUrl = {
+  private val slackUrl = {
     import window.location
     s"${location.protocol}//${location.hostname}:8903/api"
   }
-  private val slackUrl = {
+  private val gitterUrl = {
     import window.location
     s"${location.protocol}//${location.hostname}:8904/api"
   }
 
   private val githubClient = HttpClient[ByteBuffer](githubUrl)
-  private val gitterClient = HttpClient[ByteBuffer](gitterUrl)
   private val slackClient = HttpClient[ByteBuffer](slackUrl)
+  private val gitterClient = HttpClient[ByteBuffer](gitterUrl)
 
   val githubApi = githubClient.wire[PluginApi]
   val gitterApi = gitterClient.wire[PluginApi]
-  val slackApi = gitterClient.wire[PluginApi]
+  val slackApi = slackClient.wire[PluginApi]
 
   val factory: WustClientFactory = WustClient(wustUrl)
   val api = factory.defaultPriority.api
