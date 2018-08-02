@@ -461,17 +461,23 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
   val kanbanColumnBorderRadius = (3 px)
 
+  ".kanbanview" - (
+    padding(kanbanPageSpacing),
+  )
+
   ".kanbancolumnarea" - (
-    paddingLeft(kanbanPageSpacing),
-    paddingTop(kanbanPageSpacing)
+    height(100 %%),
+    paddingBottom(5 px)
   )
 
   ".kanbannewcolumnarea" - (
-    width(kanbanColumnWidth),
+    minWidth(kanbanColumnWidth),
+    maxWidth(kanbanColumnWidth), // prevents inner fluid textarea to exceed size
     height(100 px),
     backgroundColor(c"rgba(158, 158, 158, 0.25)"),
     borderRadius(kanbanColumnBorderRadius),
     cursor.pointer,
+    padding(7 px)
   )
 
   ".kanbannewcolumnarea.draggable-container--over" - (
@@ -479,13 +485,14 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbannewcolumnareacontent" - (
+    width(kanbanColumnWidth),
     paddingTop(35 px),
     textAlign.center,
     fontSize.larger,
     color(c"rgba(0, 0, 0, 0.62)"),
   )
 
-  ".kanbannewcolumnarea > .nodecard" - (
+  ".kanbannewcolumnarea > .nodecard" - ( // when dragging card over, to create new column
     width(kanbanColumnWidth),
     height(100 px),
     margin(0 px).important
@@ -506,6 +513,9 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbantoplevelcolumn" - (
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)", // lighter shadow than on sub-columns
+    Styles.flex,
+    flexDirection.column,
+    maxHeight(100 %%)
   )
 
   ".kanbancolumntitle" - (
@@ -572,17 +582,19 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumn" - (
-    minWidth(kanbanColumnWidth),
     color(c"#FEFEFE"),
     fontWeight.bold,
     fontSize.large,
     boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
     cursor.move,
-    borderRadius(kanbanColumnBorderRadius)
+    borderRadius(kanbanColumnBorderRadius),
+    Styles.flexStatic,
   )
 
   ".kanbancolumnchildren" - (
-    minHeight := "50px", // enough vertical area to drag cards in
+    minHeight(50 px), // enough vertical area to drag cards in
+    minWidth(kanbanColumnWidth), // enough horizontal area to not flicker when adding cards
+    overflowY.auto,
   )
 
   // we want the sortable container to consume the full width of the column.
@@ -609,7 +621,7 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flex,
     flexWrap.wrap,
     alignItems.flexStart,
-    margin(0 px, 5 px, 20 px, 5 px),
+    marginBottom(20 px),
     minHeight(50 px),
   )
 

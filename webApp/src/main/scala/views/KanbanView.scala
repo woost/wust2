@@ -25,7 +25,7 @@ object KanbanView extends View {
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     div(
-      overflow.auto,
+      cls := "kanbanview",
       Styles.growFull,
 
       Rx {
@@ -45,21 +45,20 @@ object KanbanView extends View {
         val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).forall(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
 
         VDomModifier(
+          Styles.flex,
+          flexDirection.column,
           div(
-            Styles.flex,
-            div(
-              cls := s"kanbancolumnarea",
-              key := s"kanbancolumnarea",
-              registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-              display.flex, // no Styles.flex, since we set a custom minWidth/Height
-              alignItems.flexStart,
-              flexWrap.wrap,
-              overflow.auto,
-              forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
-              newColumnArea(state, page)
-            ),
+            cls := s"kanbancolumnarea",
+            key := s"kanbancolumnarea",
+            registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
+            Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
+            alignItems.flexStart,
+            overflowX.auto,
+            overflowY.hidden,
+            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+            newColumnArea(state, page)
           ),
-          renderIsolatedNodes(state, state.page(), isolatedNodes)
+          renderIsolatedNodes(state, state.page(), isolatedNodes)(ctx)(Styles.flexStatic)
         )
       }
     )
@@ -77,7 +76,6 @@ object KanbanView extends View {
         if(fieldActive())
           div(
             cls := "ui form",
-            padding := "7px",
             textArea(
               cls := "field fluid",
               fontSize.larger,

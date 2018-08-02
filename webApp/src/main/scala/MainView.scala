@@ -22,6 +22,7 @@ object MainView {
         backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
           width := "100%",
+          overflow.auto, // nobody knows why we need this here, but else overflow in the content does not work
           Rx {
             // don't show non-bookmarked border for:
             val noChannelNodeInGraph = state.graph().channelNodeIds.isEmpty // happens when assumed user clicks on "new group"
