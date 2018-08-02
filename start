@@ -79,7 +79,9 @@ env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=w
 
 env_redis_github="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6379"
 
-env_postgres_slack="SLACK_POSTGRES_HOSTNAME=localhost SLACK_POSTGRES_USER=slack SLACK_POSTGRES_DB=slack SLACK_POSTGRES_PORT_CORE=15433 SLACK_POSTGRES_PASSWORD=test"
+env_slack_postgres="SLACK_POSTGRES_HOSTNAME=localhost SLACK_POSTGRES_USER=slack SLACK_POSTGRES_DB=slack SLACK_POSTGRES_PORT=15432 SLACK_POSTGRES_PASSWORD=test"
+env_slack_app="WUST_SLACK_REDIRECT_URI=https://6c15252f.ngrok.io/"
+env_slack="$env_slack_postgres $env_slack_app"
 
 env_wust_local_connectivity="WUST_PORT=${WUST_PORT:-12345} WUST_WEB_PORT=${WUST_WEB_PORT:-8900}  WUST_CORE_PORT=${WUST_CORE_PORT:-8901} WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-8902} WUST_SLACK_PORT=${WUST_SLACK_PORT:-8903} DEV_SERVER_COMPRESS=${DEV_SERVER_COMPRESS:-false} SOURCEMAPS=${SOURCEMAPS:-false}"
 
@@ -99,7 +101,7 @@ function self() {
 
         case "$2" in
         all)
-            export $env_postgres_slack
+            export $env_slack
             ;;
         core)
             PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT_CORE } ${@:3}
@@ -109,8 +111,8 @@ function self() {
         gitterApp)
             ;;
         slackApp)
-            export $env_postgres_slack
-            PGPASSWORD=$SLACK_POSTGRES_PASSWORD pgcli -h $SLACK_POSTGRES_HOSTNAME -U $SLACK_POSTGRES_USER -p $SLACK_POSTGRES_PORT_CORE ${@:3}
+            export $env_slack
+            PGPASSWORD=$SLACK_POSTGRES_PASSWORD pgcli -h $SLACK_POSTGRES_HOSTNAME -U $SLACK_POSTGRES_USER -p $SLACK_POSTGRES_PORT ${@:3}
             ;;
         *)
             PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT_CORE } ${@:3}
@@ -139,7 +141,7 @@ function self() {
         nix-shell production.nix --run "./start sbt ${@:2}"
         ;;
     sbt)
-        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_postgres_slack"
+        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_slack"
         echo -e "\e[1m\e[32m$env\e[0m"
         export $env
 
@@ -173,7 +175,7 @@ function self() {
         docker_compose core dev down
         ;;
     apps)
-        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_postgres_slack"
+        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_slack"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
         export $env
 
@@ -188,7 +190,7 @@ function self() {
         fi
         ;;
     env)
-        echo "export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_postgres_slack"
+        echo "export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_slack"
         ;;
     migrate)
         export $env_wust_version $env_postgres_secret $env_wust_local_connectivity
@@ -200,7 +202,7 @@ function self() {
     prodlocal)
         echo "to open production: (slash in the end is important)"
         echo "http://localhost:12345/apps/web/"
-        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_postgres_slack"
+        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local $env_wust_local_connectivity $env_slack"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
         export $env
         sbt webApp/clean docker
@@ -223,7 +225,7 @@ function self() {
         docker_compose core test.postgres down -v
         ;;
     test.integration)
-        export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local_connectivity $env_postgres_slack
+        export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_redis_github $env_wust_local_connectivity $env_slack
         docker_compose core dev up -d
         docker_compose webApp dev up -d
         docker_compose core dev run db-migration

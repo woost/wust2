@@ -64,7 +64,10 @@ class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        oAuthClient.authorizeUrl(verifiedAuth).map(_.toString())
+        oAuthClient.authorizeUrl(
+          verifiedAuth,
+          List("read:org", "read:user", "repo", "write:discussion")
+        ).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
         None

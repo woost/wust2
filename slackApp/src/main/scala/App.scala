@@ -55,7 +55,10 @@ class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdap
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        oAuthClient.authorizeUrl(verifiedAuth).map(_.toString())
+        oAuthClient.authorizeUrl(
+          verifiedAuth,
+          List("users:read", "mpim:history", "mpim:read", "mpim:write", "im:history", "im:read", "im:write", "groups:history", "groups:read", "groups:write", "channels:history", "channels:read", "channels:write")
+        ).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
         None
@@ -101,9 +104,12 @@ object AppServer {
 
       val userOAuthToken = authData.platformAuthToken
       val slackUser = SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
-      slackUser.foreach { slackAuthId =>
-//        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
-        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken.accessToken, authData.wustAuthData.token))
+      slackUser.flatMap { slackAuthId =>
+        //        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
+        persistenceAdapter.storeOrUpdateUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, Some(userOAuthToken.accessToken), authData.wustAuthData.token))
+      }.onComplete {
+        case Success(p) => if(p) scribe.info("persisted oauth token") else scribe.error("could not persist oauth token")
+        case Failure(ex) => scribe.error("failed to persist oauth token: ", ex)
       }
       scribe.info(s"persisting token: $authData")
       //          // get user information
@@ -190,7 +196,9 @@ object AppServer {
                     node <- OptionT[Future, Node.Content](
                       wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
                         case Some(n: Node.Content) => Some(n)
-                        case _ => None
+                        case _ =>
+                          scribe.error(s"Failed getting slack node in wust: ${e.previous_message}")
+                          None
                       })
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {

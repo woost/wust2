@@ -10,7 +10,7 @@ case class ServerConfig(
                          allowedOrigins: List[String]
                        )
 
-case class OAuthConfig(authPath: String, clientId: String, clientSecret: String, siteUri: String, authorizeUrl: Option[String], tokenUrl: Option[String])
+case class OAuthConfig(clientId: String, clientSecret: String, siteUri: String, authPath: Option[String], redirectUri: Option[String], authorizeUrl: Option[String], tokenUrl: Option[String])
 
 case class DefaultConfig(server: ServerConfig, wust: WustConfig, oauth: OAuthConfig)
 

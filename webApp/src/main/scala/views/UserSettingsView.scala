@@ -36,7 +36,6 @@ object UserSettingsView extends View {
   def listSettings(user: UserInfo): VNode = {
     val linkGithub = Handler.create[String].unsafeRunSync()
 
-    // TODO: Api calls
     def linkWithGithub() = {
       Client.auth.issuePluginToken().foreach { auth =>
         scribe.info(s"Generated plugin token: $auth")
@@ -50,7 +49,7 @@ object UserSettingsView extends View {
       }
     }
 
-    def linkWithGitter(userId: UserId) = {
+    def linkWithGitter() = {
       Client.auth.issuePluginToken().foreach { auth =>
         scribe.info(s"Generated plugin token: $auth")
         val connUser = Client.gitterApi.connectUser(auth.token)
@@ -61,15 +60,15 @@ object UserSettingsView extends View {
             scribe.info(s"Could not connect user: $auth")
         }
       }
-      println(s"Link Gitter with userId: $userId")
     }
 
-    def linkWithSlack(userId: UserId) = {
+    def linkWithSlack() = {
       Client.auth.issuePluginToken().foreach { auth =>
         scribe.info(s"Generated plugin token: $auth")
         val connUser = Client.slackApi.connectUser(auth.token)
         connUser foreach {
           case Some(url) =>
+            scribe.info(s"Received url: $url")
             org.scalajs.dom.window.location.href = url
           case None =>
             scribe.info(s"Could not connect user: $auth")
@@ -84,18 +83,20 @@ object UserSettingsView extends View {
       div(
         p("Connect Woost with a Service"),
 
-        button("Link with GitHub", onClick --> sideEffect(linkWithGithub())),
+        button(
+          "Link with GitHub",
+          onClick --> sideEffect(linkWithGithub())),
         br(),
 
         button(
           "Link with Gitter",
-          onClick(user.id) --> sideEffect((userId: UserId) => linkWithGitter(userId))
+          onClick --> sideEffect(linkWithGitter())
         ),
         br(),
 
         button(
           "Link with Slack",
-          onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))
+          onClick --> sideEffect(linkWithSlack())
         ),
 
       )
