@@ -23,11 +23,11 @@ object Data {
   //  case class WustUserData(wustUserId: UserId, wustUserToken: Authentication.Token)
   //  case class SlackUserData(slackUserId: String, slackUserToken: AccessToken)
   case class WustUserData(wustUserId: UserId, wustUserToken: String)
-  case class SlackUserData(slackUserId: String, slackUserToken: String)
+  case class SlackUserData(slackUserId: String, slackUserToken: Option[String])
 
   case class Team_Mapping(slack_team_id: String, wust_id: NodeId)
-  //  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: AccessToken, wust_token: Authentication.Verified)
-  case class User_Mapping(slack_user_id: String, wust_id: UserId, slack_token: String, wust_token: String)
+  //  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: Option[AccessToken], wust_token: Authentication.Verified)
+  case class User_Mapping(slack_user_id: String, wust_id: UserId, slack_token: Option[String], wust_token: String)
   case class Conversation_Mapping(slack_conversation_id: String, wust_id: NodeId)
   case class Message_Mapping(slack_channel_id: String, slack_message_ts: String, wust_id: NodeId)
 }
@@ -44,7 +44,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
   // enforce check of json-type for extra safety. additional this makes sure that partial indices on user.data are used.
   private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
 
-  def storeUserMapping(userMapping: User_Mapping)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def storeOrUpdateUserMapping(userMapping: User_Mapping)(implicit ec: ExecutionContext): Future[Boolean] = {
     val q = quote {
       query[User_Mapping].insert(lift(userMapping))
         .onConflictUpdate(_.slack_user_id, _.wust_id)(
@@ -104,7 +104,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
   def storeMessageMapping(messageMapping: Message_Mapping)(implicit ec: ExecutionContext): Future[Boolean] = {
     val q = quote {
       query[Message_Mapping].insert(lift(messageMapping))
-        .onConflictUpdate(_.wust_id)(
+        .onConflictUpdate(_.slack_channel_id, _.slack_message_ts, _.wust_id)(
           (t, e) => t.slack_message_ts -> e.slack_message_ts
         ).returning(_.wust_id)
     }

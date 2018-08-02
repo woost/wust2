@@ -4,8 +4,8 @@ services:
   postgres:
     command: postgres -c "log_statement=all"
     ports:
-      - "127.0.0.1:${SLACK_POSTGRES_PORT_CORE-5432}:15432"
+      - "127.0.0.1:${SLACK_POSTGRES_PORT-15432}:5432"
 
   slack:
     extra_hosts:
-      - "core.${WUST_HOSTNAME}:${DEV_DOCKERHOST_IP}"
+      - "slack.${WUST_HOSTNAME}:${DEV_DOCKERHOST_IP}"

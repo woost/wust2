@@ -15,7 +15,7 @@ trait PersistenceAdapter {
   type SlackTimestamp = String
   type SlackUserId = String
 
-  def storeUserAuthData(userMapping: User_Mapping): Future[Boolean]
+  def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean]
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
   def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
 
@@ -33,8 +33,8 @@ object PostgresAdapter {
 
 case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContext) extends PersistenceAdapter {
 
-  def storeUserAuthData(userMapping: User_Mapping): Future[Boolean] = {
-    db.storeUserMapping(userMapping)
+  def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = {
+    db.storeOrUpdateUserMapping(userMapping)
   }
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
     db.storeMessageMapping(messageMapping)
@@ -43,10 +43,27 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = {
     val existingUser = db.getWustUser(slackUser)
-    existingUser.flatMap {
+    val user = existingUser.flatMap {
       case Some(u) => Future.successful(Some(u))
-      case None => wustClient.auth.createImplicitUserForApp().map(u => Some(WustUserData(u.user.id, u.token)))
+      case None => wustClient.auth.createImplicitUserForApp().map{
+        case Some(implicitUser) => Some(WustUserData(implicitUser.user.id, implicitUser.token))
+        case _ => None
+      }
     }
+    user.onComplete {
+      case Success(userOpt) => userOpt match {
+        case Some(u) =>
+          storeOrUpdateUserAuthData(User_Mapping(slackUser, u.wustUserId, None, u.wustUserToken)).onComplete{
+            case Success(userMap) =>
+              if(userMap) scribe.info("Created new user mapping")
+              else scribe.error(s"DB error when creating user: $u")
+            case Failure(_) => scribe.error("Error creating user mapping during creation of a wust user")
+          }
+        case _ => scribe.error("Could not get or create user")
+      }
+      case Failure(userOpt) => scribe.error(s"Could not communicate with backend to get or create user $userOpt")
+    }
+    user
   }
 
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
