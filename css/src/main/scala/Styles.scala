@@ -496,11 +496,13 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbannewcolumnarea, " +
+  ".kanbancolumn," + // when dragging sub-column to top-level area
   ".kanbantoplevelcolumn" - (
+    marginTop(0 px),
+    marginLeft(0 px),
     marginRight(10 px),
     marginBottom(20 px),
   )
-
 
   ".kanbantoplevelcolumn" - (
     boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)", // lighter shadow than on sub-columns
@@ -592,10 +594,12 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumnchildren > .nodecard," +
+  ".kanbancolumnchildren > .kanbantoplevelcolumn," + // when dragging top-level column into column
   ".kanbancolumnchildren > .kanbancolumn" - (
     marginTop(kanbanRowSpacing),
     marginRight(kanbanColumnPadding),
     marginLeft(kanbanColumnPadding),
+    marginBottom(0 px)
   )
   ".kanbancolumn > .kanbanaddnodefield" - (
     padding(kanbanRowSpacing, kanbanColumnPadding, kanbanColumnPadding, kanbanColumnPadding),

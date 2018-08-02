@@ -39,6 +39,20 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         console.log("reordering columns")
         // TODO: persist ordering
 
+      case (e, dragging: DragItem.Kanban.SubColumn, from: Kanban.Column, into: Kanban.ColumnArea) =>
+        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+
+        val moveStaticInParents = if(graph.isStaticParentIn(dragging.nodeId, from.parentIds)) {
+          GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        } else GraphChanges.empty
+
+        val alreadyInParent = into.parentIds.exists(parentId => graph.children(parentId).contains(dragging.nodeId))
+        if (alreadyInParent) {
+          //          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
+          defer(removeDomElement(e.dragEvent.originalSource))
+        }
+        state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
+
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
