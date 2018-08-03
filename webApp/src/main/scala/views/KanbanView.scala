@@ -76,6 +76,7 @@ object KanbanView extends View {
       Rx {
         if(fieldActive())
           div(
+            cls := "kanbannewcolumnareaform",
             cls := "ui form",
             textArea(
               cls := "field fluid",
@@ -239,9 +240,6 @@ object KanbanView extends View {
           )
         else
           div(
-            fontSize.medium,
-            fontWeight.normal,
-            cursor.pointer,
             "+ Add Node",
             onClick(true) --> active
           )

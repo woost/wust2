@@ -484,6 +484,9 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(158, 158, 158, 0.25)"),
     borderRadius(kanbanColumnBorderRadius),
     cursor.pointer,
+  )
+
+  ".kanbannewcolumnareaform" - (
     padding(7 px)
   )
 
@@ -631,6 +634,9 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbanaddnodefield > div" - (
     color(c"rgba(255,255,255,0.5)"),
+    fontSize.medium,
+    fontWeight.normal,
+    cursor.pointer,
   )
 
   ".kanbanaddnodefield:hover > div" - (
