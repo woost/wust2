@@ -202,7 +202,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   val transitiveNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
     { ( nodeId: NodeId, page: Page ) =>
       val transitivePageParents = page.parentIds.flatMap(ancestors)
-      (ancestors(nodeId).toSet -- page.parentIds -- transitivePageParents -- channelNodeIds -- parents(nodeId))
+      (ancestors(nodeId).toSet -- page.parentIds -- transitivePageParents -- parents(nodeId))
         .map(nodesById)
     }.tupled
   }
