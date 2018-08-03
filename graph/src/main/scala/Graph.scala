@@ -438,9 +438,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   def applyChanges(c: GraphChanges): Graph = {
     val addNodeIds = c.addNodes.map(_.id)
+    val addEdgeIds = c.addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))
     copy(
       nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ c.addNodes,
-      edges = edges ++ c.addEdges -- c.delEdges
+      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ c.addEdges -- c.delEdges
     )
   }
 
