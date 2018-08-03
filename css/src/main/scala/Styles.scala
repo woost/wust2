@@ -763,10 +763,9 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(102, 102, 102, 0.71)").important,
     color(transparent).important,
     borderColor(transparent).important,
-    pointerEvents := "none" // avoid hover effects, like buttonbar in kanban
   )
 
-  ".sortable-container .draggable-source--is-dragging > *" - (
+  ".sortable-container .draggable-source--is-dragging *" - (
     visibility.hidden
   )
 
