@@ -25,7 +25,8 @@ object TagsList  {
       {
         val sortedContainments = graph.containments.toSeq.sortBy { containment =>
           val authorships = graph.authorshipsByNodeId(containment.sourceId)
-          authorships.sortBy(_.data.timestamp: Long).last.data.timestamp: Long
+          if(authorships.isEmpty) 0
+          else authorships.maxBy(_.data.timestamp: Long).data.timestamp: Long
         }
 
         sortedContainments.map(_.targetId).reverse.distinct.map { id =>
