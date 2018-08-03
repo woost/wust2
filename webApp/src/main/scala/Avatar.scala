@@ -116,6 +116,7 @@ object Avatar {
 
     svg(
       viewBox := s"0 0 $n $n",
+      dsl.style("shape-rendering") := "optimizeSpeed",
       pixels
     )
   }
@@ -173,6 +174,7 @@ object Avatar {
 
     svg(
       viewBox := s"0 0 $n $n",
+      dsl.style("shape-rendering") := "optimizeSpeed",
       pixels
     )
   }
