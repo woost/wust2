@@ -1,8 +1,8 @@
 package wust.css
 
 import scalacss.DevDefaults._
-import scalacss.internal.{Attr, Literal, Transform, CanIUse}
-import scalacss.internal.ValueT.{TypedAttrT1, ZeroLit, Len}
+import scalacss.internal.{Attr, CanIUse, Literal, Transform}
+import scalacss.internal.ValueT.{Len, TypedAttrBase, TypedAttrT1, ZeroLit}
 
 // TODO: generate by sbt:
 // https://stackoverflow.com/questions/23409993/defining-sbt-task-that-invokes-method-from-project-code
@@ -43,8 +43,15 @@ object userDrag extends TypedAttrT1[Len] with ZeroLit {
 
 object gridGap extends TypedAttrT1[Len] with ZeroLit {
   override val attr = Attr.real("grid-gap")
-  // def normal = av(L.normal)
 }
+
+object overflowBehavior extends TypedAttrBase {
+  override val attr = Attr.real("overflow-behavior")
+  def auto = av("auto")
+  def contain = av("contain")
+  def none = av("none")
+}
+
 
 object Styles extends StyleSheet.Inline {
   import dsl._
@@ -165,7 +172,7 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.center,
     cursor.pointer,
     wordWrap.breakWord,
-    wordBreak := "break-word",
+    wordBreak :=! "break-word",
   )
 
   ".channelIcons" - (
@@ -332,7 +339,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chatmsg-line > .tag *" - (
     wordWrap.breakWord,
-    wordBreak := "break-word",
+    wordBreak :=! "break-word",
   )
 
   ".chatmsg-controls" - (
@@ -389,7 +396,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content" - (
     wordWrap.breakWord,
-    wordBreak := "break-word",
+    wordBreak :=! "break-word",
     padding(2 px, 4 px),
     /* display.inlineBlock, */
     border(1 px, solid, transparent) /* placeholder for the dashed border when dragging */
@@ -522,7 +529,7 @@ object CommonStyles extends StyleSheet.Standalone {
     maxWidth(kanbanCardWidth),
     // TODO: separate style for word-breaking in nodes
     wordWrap.breakWord,
-    wordBreak := "break-word",
+    wordBreak :=! "break-word",
   )
 
   ".kanbancolumnheader .kanbanbuttonbar" - (
@@ -590,7 +597,6 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold,
     fontSize.large,
     boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
-    cursor.move,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
   )
@@ -620,6 +626,9 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".kanbancolumn > .kanbanaddnodefield" - (
     padding(kanbanRowSpacing, kanbanColumnPadding, kanbanColumnPadding, kanbanColumnPadding),
+    overflowBehavior.contain
+  )
+
   ".kanbanaddnodefield > div" - (
     color(c"rgba(255,255,255,0.5)"),
   )
@@ -669,6 +678,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".selectednodes .nodecard" - (
     marginLeft(3 px)
+  )
+
+
+  ".draghandle" - (
+    cursor.move,
   )
 
   ".draggable" - (

@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome.{freeRegular, freeSolid}
+import org.scalajs.dom.console
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -157,6 +158,7 @@ object KanbanView extends View {
       ),
       div(
         cls := "kanbancolumnheader",
+        cls := "draghandle",
         columnTitle,
 
         position.relative,
@@ -202,6 +204,7 @@ object KanbanView extends View {
       editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
       key := s"node${node.id}parent${parentIds.mkString}",
+      cls := "draghandle",
 
       position.relative,
       buttonBar(position.absolute, top := "0", right := "0")
@@ -255,6 +258,7 @@ object KanbanView extends View {
           key := s"kanbanisolated${node.id}",
           draggableAs(state, DragItem.Kanban.Card(node.id)),
           dragTarget(DragItem.Kanban.Card(node.id)),
+          cls := "draghandle"
         )
       }
     )
