@@ -623,11 +623,14 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.flexStart,
     marginBottom(20 px),
     minHeight(50 px),
+    maxHeight(200 px),
+    overflowY.auto,
+    paddingBottom(10 px) // prevents card shadow from being cut off by scrolling
   )
 
   ".kanbanisolatednodes > .nodecard" - (
-    marginRight := "3px",
-    marginTop := kanbanRowSpacing,
+    marginRight(5 px),
+    marginTop(5 px),
   )
 
 
