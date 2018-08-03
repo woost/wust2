@@ -23,6 +23,7 @@ services:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/slack:${WUST_VERSION-latest}
     environment:
+      POSTGRES_HOSTNAME: "postgres"
       WUST_SLACK_APP_TOKEN: ${WUST_SLACK_APP_TOKEN} # TODO: do not use static token in production
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
@@ -31,7 +32,7 @@ services:
     depends_on:
       - postgres
     ports:
-      - "127.0.0.1:${WUST_SLACK_PORT-8080}:8080"
+      - "127.0.0.1:${WUST_SLACK_PORT-8083}:8080"
 
 volumes:
     slack_postgres_data:
