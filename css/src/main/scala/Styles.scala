@@ -861,14 +861,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".non-bookmarked-page-frame > *" - (
     boxShadow := nonBookmarkShadowOpts
   )
-
-  ".feedbackhint" - (
-    opacity(0.5)
-    )
-
-  ".feedbackhint:hover" - (
-    opacity(1)
-  )
 }
 
 object StyleRendering {

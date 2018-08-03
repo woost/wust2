@@ -228,10 +228,11 @@ object PageHeader {
         ))
       ),
       // https://semantic-ui.com/modules/dropdown.html#/usage
-      onDomElementChange.asHtml --> sideEffect { elem =>
+      onInsert.asHtml --> sideEffect { elem =>
         import semanticUi.JQuery._
         $(elem).dropdown()
-      }
+      },
+      key := s"dropdown${channel.id}"
     )
   }
 }

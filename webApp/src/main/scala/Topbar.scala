@@ -41,6 +41,7 @@ object Topbar {
     beforeInstallPrompt().apply(marginRight := "10px"),
 //    undoRedo(state)(ctx)(marginRight.auto),
     viewSwitcher(state).apply(marginRight := "auto"),
+    FeedbackForm(state)(ctx)(marginRight := "10px"),
     authentication(state)
   )
 

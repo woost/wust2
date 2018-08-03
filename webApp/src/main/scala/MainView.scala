@@ -57,7 +57,6 @@ object MainView {
           )
         )
       ),
-      FeedbackForm(state),
     )
   }
 }

@@ -4,13 +4,13 @@ import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
-import org.scalajs.dom.window.{setTimeout,clearTimeout}
+import org.scalajs.dom.window.{clearTimeout, setTimeout}
 
 object FeedbackForm {
 
@@ -19,7 +19,6 @@ object FeedbackForm {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
-    val inactiveDisplay = Rx { display := (if(show()) "none" else "block") }
 
     val initialStatus = "(Press Enter to submit)"
     val statusText = Var(initialStatus)
@@ -47,31 +46,24 @@ object FeedbackForm {
     )
 
     div(
-      div(
-        cls := "feedbackhint",
-        inactiveDisplay,
-        position.fixed, top := "150px", right := "20px",
-        padding := "2px", background := "#F8F8F8", border := "1px solid #888",
-        fontSize.xxSmall,
-        lineHeight.normal,
-        freeRegular.faLightbulb,
-        " Give short feedback ",
-        style("transform") := "rotate(-90deg) translate(0,-100%)",
-        style("transform-origin") := "100% 0",
-        cursor.pointer,
-        onClick(true) --> show
+      button(
+        "Feedback ",
+        freeSolid.faCaretDown,
+        cls := "ui positive tiny compact button",
+        onClick --> sideEffect{show.update(!_)},
+        onGlobalEscape(false) --> show
       ),
       div(
         activeDisplay,
-        position.fixed, top := "150px", right := "20px",
+        position.fixed, top := "35px", right := "100px",
+        zIndex := ZIndex.overlay,
         padding := "10px", background := "#F8F8F8", border := "1px solid #888",
         div(
           Styles.flex,
           justifyContent.spaceBetween,
           alignItems.center,
 
-          div("Feedback"),
-          div("×", padding := "3px", marginLeft := "5px", cursor.pointer, onClick(false) --> show),
+          color := "#666",
         ),
         feedbackForm,
         div(
