@@ -265,6 +265,7 @@ lazy val graph = crossProject(JSPlatform, JVMPlatform)
   .jsSettings(commonWebSettings)
   .settings(
     libraryDependencies ++=
+      Deps.monocleCore.value ::
       Nil
   )
 lazy val graphJS = graph.js

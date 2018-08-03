@@ -56,6 +56,7 @@ object Deps {
   val scribe = dep("com.outr" %%% "scribe" % "2.5.0")
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.1")
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.5.1-cats")
+  val monocleCore = dep("com.github.julien-truffaut" %% "monocle-core" % "1.5.1-cats")
   val sourcecode = dep("com.lihaoyi" %%% "sourcecode" % "0.1.4")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
