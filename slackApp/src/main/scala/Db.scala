@@ -50,11 +50,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
         .onConflictUpdate(_.slack_user_id, _.wust_id)(
           (t, e) => t.slack_token -> e.slack_token,
           (t, e) => t.wust_token -> e.wust_token
-        ).returning(_.wust_id)
+        )
     }
 
     ctx.run(q)
-      .map(_ => true)
+      .map(_ >= 1)
       .recoverValue(false)
   }
 
@@ -75,11 +75,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       query[Team_Mapping].insert(lift(teamMapping))
         .onConflictUpdate(_.slack_team_id, _.wust_id)(
           (t, e) => t -> e
-        ).returning(_.wust_id)
+        )
     }
 
     ctx.run(q)
-      .map(_ => true)
+      .map(_ >= 1)
       .recoverValue(false)
   }
 
@@ -106,11 +106,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       query[Message_Mapping].insert(lift(messageMapping))
         .onConflictUpdate(_.slack_channel_id, _.slack_message_ts, _.wust_id)(
           (t, e) => t.slack_message_ts -> e.slack_message_ts
-        ).returning(_.wust_id)
+        )
     }
 
     ctx.run(q)
-      .map(_ => true)
+      .map(_ >= 1)
       .recoverValue(false)
   }
 

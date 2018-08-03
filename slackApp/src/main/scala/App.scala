@@ -43,7 +43,7 @@ import slack.rtm.SlackRtmClient
 object Constants {
   //TODO
   val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
-  val slackNode = Node.Content(NodeData.PlainText("wust-slack"))
+  val slackNode = Node.Content(NodeData.Markdown("wust-slack"))
   val slackId: NodeId = slackNode.id
 }
 
@@ -215,10 +215,10 @@ object AppServer {
 
                   val graphChanges: OptionT[Future, (NodeId, GraphChanges, Authentication.Token)] = for {
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.user, wustReceiver.client))
-                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
+                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, wustReceiver.client))
                   } yield {
                     val changes: (NodeId, GraphChanges) = EventMapper.createMessageInWust(
-                      NodeData.PlainText(e.text),
+                      NodeData.Markdown(e.text),
                       wustUserData.wustUserId,
                       e.ts,
                       wustChannelNodeId
@@ -254,7 +254,7 @@ object AppServer {
                   } yield {
                     (node.id, EventMapper.editMessageContentInWust(
                       node,
-                      NodeData.PlainText(e.message.text)
+                      NodeData.Markdown(e.message.text)
                     ), wustUserData.wustUserToken)
                   }
 
