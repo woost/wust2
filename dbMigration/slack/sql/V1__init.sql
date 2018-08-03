@@ -14,7 +14,7 @@ CREATE TABLE user_mapping (
     wust_id uuid NOT NULL,
     slack_token text, -- Users that are only in slack
     wust_token text NOT NULL,
-    PRIMARY KEY(slack_id, wust_id)
+    PRIMARY KEY(slack_user_id, wust_id)
 );
 
  -- channels
