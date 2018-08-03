@@ -3,6 +3,7 @@ package wust.css
 import scalacss.DevDefaults._
 import scalacss.internal.{Attr, CanIUse, Literal, Transform}
 import scalacss.internal.ValueT.{Len, TypedAttrBase, TypedAttrT1, ZeroLit}
+import scala.concurrent.duration._
 
 // TODO: generate by sbt:
 // https://stackoverflow.com/questions/23409993/defining-sbt-task-that-invokes-method-from-project-code
@@ -86,6 +87,12 @@ object Styles extends StyleSheet.Inline {
     gridTemplateColumns := "repeat(1, 1fr)",
     gridAutoRows := "minmax(50px, 1fr)"
   )
+
+  val dragFeedBackKf = keyframes(
+    (0 %%) -> style(boxShadow := "0px 0px 0px 0px rgba(133,213,255,1)"),
+    (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(133,213,255,0)")
+  )
+
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -568,7 +575,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbancolumnheader .kanbanbuttonbar > div," +
   ".nodecard .kanbanbuttonbar > div" - (
-    borderRadius(2 px),
+    borderRadius(3 px),
     marginLeft(2 px)
   )
 
@@ -701,6 +708,12 @@ object CommonStyles extends StyleSheet.Standalone {
   ".draggable" - (
     outline.none, // hides focus outline
 //    border(2 px, solid, green)
+  )
+
+  ".draggable-mirror.drag-feedback," +
+  ".draggable-mirror .drag-feedback" - (
+    animationName(Styles.dragFeedBackKf),
+    animationDuration(500 milliseconds)
   )
 
   ".dropzone" - (

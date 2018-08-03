@@ -66,7 +66,8 @@ object Components {
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       draggableAs(state, DragItem.Tag(tag.id)),
-      dragTarget(DragItem.Tag(tag.id))
+      dragTarget(DragItem.Tag(tag.id)),
+      cls := "drag-feedback"
     )
   }
 
@@ -79,7 +80,8 @@ object Components {
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       draggableAs(state, DragItem.Tag(tag.id)),
-      dragTarget(DragItem.Tag(tag.id))
+      dragTarget(DragItem.Tag(tag.id)),
+      cls := "drag-feedback"
     )
   }
 

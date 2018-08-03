@@ -78,7 +78,7 @@ object Sidebar {
             p =>
               val selected = page.parentIds.contains(p.id)
               channelDiv(selected, state.pageStyle())(
-                cls := "node",
+                cls := "node drag-feedback",
                 draggableAs(state, DragItem.Channel(p.id)),
                 dragTarget(DragItem.Channel(p.id)),
                 paddingRight := "5px",
@@ -122,7 +122,7 @@ object Sidebar {
               onChannelClick(ChannelAction.Post(p.id))(state),
               draggableAs(state, DragItem.Channel(p.id)),
               dragTarget(DragItem.Channel(p.id)),
-              cls := "node"
+              cls := "node drag-feedback"
             )
           },
           noChannelIcon(page.mode == PageMode.Orphans)(ctx)(

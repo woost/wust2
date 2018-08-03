@@ -306,6 +306,11 @@ object ChatView extends View {
       ))
     )
 
+    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
+      isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
+      cls := "drag-feedback"
+    )
+
 
     div(
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
@@ -319,9 +324,7 @@ object ChatView extends View {
         dragTarget(DragItem.ChatMsg(node.id)),
 
         // checkbox(Styles.flexStatic),
-        nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
-          isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
-        ),
+        messageCard,
         isDeleted.ifFalseOption(messageTags(state, graph, node)),
         msgControls(Styles.flexStatic)
       )
