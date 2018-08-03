@@ -70,6 +70,7 @@ object BreadCrumbs {
           intersperse(elements.toList.flatten, span("/", cls := "divider"))
         }.flatten
       },
+      registerDraggableContainer(state)
       )
   }
 }
