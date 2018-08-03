@@ -40,9 +40,7 @@ object PageHeader {
 
   private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
-      fontSize := "20px",
-      wordWrap.breakWord,
-      style("word-break") := "break-word",
+      cls := "pageheader-channeltitle",
     )
 
     div(

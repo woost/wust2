@@ -134,6 +134,13 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold
   )
 
+  ".pageheader-channeltitle" - (
+    fontSize(20 px),
+    wordWrap.breakWord,
+    wordBreak :=! "break-word",
+    marginBottom(0 px) // remove margin when title is in <p> (rendered my markdown)
+  )
+
   // -- sidebar --
   ".sidebar" - (
     color.white,
