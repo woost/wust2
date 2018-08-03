@@ -531,6 +531,10 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.medium // same as in kanban card
   )
 
+  ".kanbancolumnheader > p" - (
+    marginBottom(0 em) // default was 1 em
+  )
+
   ".kanbancolumn.draggable--over .kanbanbuttonbar" - (
     visibility.hidden.important // hide buttons when dragging over column
   )
@@ -593,8 +597,9 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbancolumnchildren" - (
     minHeight(50 px), // enough vertical area to drag cards in
-    minWidth(kanbanColumnWidth), // enough horizontal area to not flicker when adding cards
+    minWidth(kanbanColumnWidth), // enough horizontal area to not flicker width when adding cards
     overflowY.auto,
+    paddingBottom(5 px) // prevents column shadow from being cut off by scrolling
   )
 
   // we want the sortable container to consume the full width of the column.
