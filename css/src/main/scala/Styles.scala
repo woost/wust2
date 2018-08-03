@@ -696,18 +696,51 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"rgba(255,255,255,0.5)")
     )
 
+
+
+
+  val selectedNodesBgColor = c"#85D5FF"
   ".selectednodes" - (
-    backgroundColor(c"#85D5FF"),
-    padding(5 px, 5 px, 2 px, 5 px),
-    cursor.move
+    backgroundColor(selectedNodesBgColor),
+    paddingRight(5 px),
+  )
+
+  ".selectednodes > .nodelist" - (
+    padding(2 px, 2 px, 0 px, 5 px),
+    flexGrow(1),
+
+    borderRadius(5 px),
+    border(3 px, solid, transparent) // will be replaced when dragging
   )
 
   ".selectednodes .nodecard" - (
-    marginLeft(3 px)
+    marginLeft(3 px),
+    marginBottom(3 px)
+  )
+
+  // -- draggable selectednodes
+  ".selectednodes .nodelist.draggable--over," +
+  ".selectednodes.draggable--over" - (
+    backgroundColor(c"rgba(65,184,255, 1)").important,
+    )
+
+  ".selectednodes .nodelist.draggable-source--is-dragging" - (
+    backgroundColor(selectedNodesBgColor).important,
+    border(3 px, dashed, c"#48A4D4")
+  )
+
+  ".selectednodes.draggable-mirror .actionbutton" - (
+    display.none
+    )
+
+
+  ".selectednodes .nodelist.draggable-mirror" - (
+    backgroundColor(selectedNodesBgColor),
   )
 
 
-  ".draghandle" - (
+
+  ".draggable, .draghandle" - (
     cursor.move,
   )
 
@@ -760,6 +793,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
   ".nodecard.draggable-source--is-dragging," +
+  ".nodecard.draggable--over.draggable-source--is-dragging," +
   ".chatmsg-line.draggable-source--is-dragging .nodecard,"+
   ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecard,"+
   ".chatmsg-line.draggable--over .nodecard.draggable-source--is-dragging" - (
@@ -799,23 +833,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".sortable-container .draggable-source--is-dragging *" - (
     visibility.hidden
-  )
-
-  // -- draggable selectednodes
-  ".selectednodes.draggable--over" - (
-    backgroundColor(c"rgba(65,184,255, 1)").important,
-  )
-
-  ".selectednodes.draggable-mirror > *" - (
-    display.none
-  )
-
-  ".selectednodes.draggable-mirror > .nodelist" - (
-    Styles.flex,
-  )
-
-  ".selectednodes.draggable-mirror" - (
-    borderRadius(3 px)
   )
 
   // -- draggable actionbutton, transitivetag

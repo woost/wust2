@@ -17,6 +17,7 @@ object DragItem extends wust.ids.serialize.Circe {
   case class ChatMsg(nodeId: NodeId) extends ChildNode
   case class Tag(nodeId: NodeId) extends ParentNode
   case class Channel(nodeId: NodeId) extends ParentNode
+  case class SelectedNode(nodeId: NodeId) extends SingleNode
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload
   case object SelectedNodesBar extends DragTarget
 

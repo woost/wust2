@@ -69,6 +69,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: ChildNode, target: ChildNode) => addTag(dragging.nodeId, target.nodeId)
       case (dragging: ParentNode, target: SingleNode) => addTag(target.nodeId, dragging.nodeId)
 
+      case (dragging: SelectedNode, target: SingleNode) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, target: SingleNode) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, SelectedNodesBar) => // do nothing, since already selected
       case (dragging: AnyNodes, SelectedNodesBar) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)

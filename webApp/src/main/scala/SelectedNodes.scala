@@ -17,40 +17,45 @@ object SelectedNodes {
         val graph = state.graph()
         val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)
         VDomModifier(
-          draggableAs(state, DragItem.SelectedNodes(sortedNodeIds)),
-          dragTarget(DragItem.SelectedNodesBar),
-
           sortedNodeIds match {
             case Nil => state.draggableEvents.status.map {
               case DragStatus.None =>
                 VDomModifier.empty
               case DragStatus.Dragging => VDomModifier(
+                "drag here to select",
                 cls := "selectednodes",
                 position := "absolute",
                 bottom := "0px",
                 height := "37px",
                 width := "100%",
-//                textAlign.center,
-                "drag here to select"
+                paddingTop := "5px",
+                textAlign.center,
+                draggableAs(state, DragItem.DisableDrag),
+                dragTarget(DragItem.SelectedNodesBar),
               )
-            }
+            }:VDomModifier
             case nonEmptyNodeIds => VDomModifier(
               cls := "selectednodes",
               Styles.flex,
-//              alignItems.center,
-              nodeList(state, nonEmptyNodeIds, state.graph())(ctx)(marginRight.auto, cls := "nodelist"),
-              deleteAllButton(state, nonEmptyNodeIds),
+              alignItems.center,
+              nodeList(state, nonEmptyNodeIds, state.graph()), // grow, so it can be grabbed
+              deleteAllButton(state, nonEmptyNodeIds)(ctx)(marginLeft.auto),
               clearSelectionButton(state)
             )
           }
         )
       },
-      registerDraggableContainer(state)
+      registerDraggableContainer(state),
+      key := "selectednodes"
     )
   }
 
   private def nodeList(state:GlobalState, selectedNodeIds:List[NodeId], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
+      cls := "nodelist drag-feedback",
+      draggableAs(state, DragItem.SelectedNodes(selectedNodeIds)),
+      dragTarget(DragItem.SelectedNodesBar),
+
       Styles.flex,
 //      alignItems.center,
       flexWrap.wrap,
@@ -97,7 +102,13 @@ object SelectedNodes {
         onClick.stopPropagation --> sideEffect {
           state.selectedNodeIds.update(_ - node.id)
         }
-      )
-    ), maxLength = Some(20))(ctx)(marginBottom := "3px")
+      ),
+    ),
+      maxLength = Some(20)
+    )(ctx)(
+      draggableAs(state, DragItem.SelectedNode(node.id)),
+      dragTarget(DragItem.SelectedNode(node.id)),
+      cls := "draggable drag-feedback"
+    )
   }
 }
