@@ -237,7 +237,6 @@ object KanbanView extends View {
             fontSize.medium,
             fontWeight.normal,
             cursor.pointer,
-            color := "rgba(255,255,255,0.5)",
             "+ Add Node",
             onClick(true) --> active
           )

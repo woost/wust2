@@ -620,6 +620,12 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".kanbancolumn > .kanbanaddnodefield" - (
     padding(kanbanRowSpacing, kanbanColumnPadding, kanbanColumnPadding, kanbanColumnPadding),
+  ".kanbanaddnodefield > div" - (
+    color(c"rgba(255,255,255,0.5)"),
+  )
+
+  ".kanbanaddnodefield:hover > div" - (
+    color(white)
   )
 
   ".kanbanisolatednodes" - (
