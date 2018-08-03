@@ -6,7 +6,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import scala.collection.immutable.ListMap
+import scala.collection.immutable.{ ListMap, SortedMap }
 import wust.api.AuthUser
 import wust.graph._
 import wust.ids._
@@ -22,20 +22,54 @@ import scala.scalajs.js.Date
 object BreadCrumbs {
   import MainViewParts._
 
+  /** options */
+  val showOwn = false
+  val channelsAlwaysFirst = true ///< whether "Channels" should always come first
+
+  def intersperse[T](list: List[T], co: T): List[T] = list match {
+    case one :: two :: rest => one :: co :: intersperse(two :: rest, co)
+    case short              => short
+  }
+
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "breadcrumbs",
-      state.nodeAncestorsHierarchyMinCycles.map {hierarchyMap =>
-        val sortedHierarchy = ListMap(hierarchyMap.toSeq.sortBy(_._1).reverse:_*)
-        sortedHierarchy.map {
-          case (level, nodeSeq) =>
-            span(
-              cls := "breadcrumb",
-              span(level),
-              nodeSeq.map(n => nodeTag(state, n)(cursor.pointer)): Seq[VNode],
-              span("/", cls := "divider"),
-              )
-        }.toSeq.reverse },
-    )
+      Rx {
+        val page = state.page()
+        val graph = state.graph()
+        val parentIds = page.parentIds
+        parentIds.map { (parentId : NodeId) =>
+          val parentDepths = graph.parentDepths(parentId)
+          val distanceToNodes = parentDepths.toSeq.sortBy(_._1).reverse
+          val elements = distanceToNodes.map { case (distance, gIdToNodeIds) =>
+            // when distance is 0, we are either showing ourselves (i.e. id) or
+            // a cycle that contains ourselves. The latter case we want to draw, the prior not.
+            if(!showOwn && distance == 0 && gIdToNodeIds.size == 1 && gIdToNodeIds.toSeq.head._2.size == 1)
+              None
+            else {
+              val sortedByGroupId = gIdToNodeIds.toSeq.sortBy(_._1)
+              Some(span(
+                     // "D:" + distance + " ",
+                     sortedByGroupId.map { case (gId, nodes) =>
+                       span(
+                         cls := "breadcrumb",
+                         // "G:" + gId + " ",
+                         if (gId != -1) "\u21ba" else "",
+                         nodes.map{ (n : NodeId) =>
+                           graph.nodesById.get(n) match {
+                             case Some(node) if (showOwn || n != parentId) => nodeTag(state, node)(cursor.pointer)
+                             case _ => span()
+                           }
+                         } : Seq[VNode],
+                         if (gId != -1) "\u21ba" else "",
+                         )
+                     }.toSeq
+                   ))
+            }
+          }
+          intersperse(elements.toList.flatten, span("/", cls := "divider"))
+        }.flatten
+      },
+      )
   }
 }
