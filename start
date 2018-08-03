@@ -199,7 +199,35 @@ function self() {
 
         assure_db_migration
 
-        docker_compose core dev run db-migration
+        case "$2" in
+        all)
+            docker_compose core dev run db-migration
+            export $env_github_postgres
+            docker_compose github dev run db-migration
+            export $env_gitter_postgres
+            docker_compose gitter dev run db-migration
+            export $env_slack_postgres
+            docker_compose slack dev run db-migration
+            ;;
+        core)
+            docker_compose core dev run db-migration
+            ;;
+        githubApp)
+            export $env_github_postgres
+            docker_compose githubApp dev run db-migration
+            ;;
+        gitterApp)
+            export $env_gitter_postgres
+            docker_compose gitterApp dev run db-migration
+            ;;
+        slackApp)
+            export $env_slack_postgres
+            docker_compose slackApp dev run db-migration
+            ;;
+        *)
+            docker_compose core dev run db-migration
+            ;;
+        esac
         ;;
     prodlocal)
         echo "to open production: (slash in the end is important)"
