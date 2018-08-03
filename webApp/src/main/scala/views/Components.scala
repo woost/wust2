@@ -16,6 +16,8 @@ import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Rendered._
 import wust.webApp.views.Elements._
 
+import scala.scalajs.js
+
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
   val newTag = placeholder := "Create new tag. Press Enter to submit."
@@ -241,6 +243,7 @@ object Components {
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
+          whiteSpace.preWrap, // preserve white space in Markdown code
           backgroundColor := "#FFF",
           color := "#000",
           cursor.auto,
