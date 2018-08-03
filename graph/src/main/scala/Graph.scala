@@ -172,6 +172,15 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
   def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
 
+  val authorsIn: NodeId => List[Node.User] = Memo.mutableHashMapMemo { parentId =>
+    (parentId :: descendants(parentId).toList).flatMap(authors)
+  }
+
+  def members(node: Node): List[Node.User] = members(node.id)
+  val members: NodeId => List[Node.User] = Memo.mutableHashMapMemo { nodeId =>
+    membershipsByNodeId(nodeId).map(a => nodesById(a.userId).asInstanceOf[Node.User])
+  }
+
   def isDeletedNow(node: Node, parentIds: Set[NodeId]): Boolean = isDeletedNow(node.id, parentIds)
   def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]): Boolean = {
     parentIds subsetOf deletedParents(nodeId)

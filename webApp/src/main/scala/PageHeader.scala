@@ -53,20 +53,46 @@ object PageHeader {
 
       channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
       channelTitle(marginRight := "10px"),
-      Rx {
-        val isBookmarked = state
-          .graph()
-          .children(state.user().channelNodeId)
-          .contains(channel.id)
+      channelMembers(state, channel),
+      menu(state, channel)
+    )
+  }
 
-        (channel.id != state.user().channelNodeId).ifTrue(
-          VDomModifier(
-            isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)),
-            notifyControl(state, state.graph(), state.user(),channel).apply(marginLeft := "auto"),
-            settingsMenu(state, channel, isBookmarked).apply(marginLeft := "10px"),
-            shareButton(channel).map(_(marginLeft := "10px"))
-          )
+  private def menu(state:GlobalState, channel: Node)(implicit ctx: Ctx.Owner):VDomModifier = {
+    Rx {
+      val isBookmarked = state
+        .graph()
+        .children(state.user().channelNodeId)
+        .contains(channel.id)
+
+      (channel.id != state.user().channelNodeId).ifTrue(
+        VDomModifier(
+          isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)(ctx)(marginLeft := "10px")),
+          notifyControl(state, state.graph(), state.user(),channel).apply(marginLeft := "auto"),
+          settingsMenu(state, channel, isBookmarked).apply(marginLeft := "10px"),
+          shareButton(channel).map(_(marginLeft := "10px"))
         )
+      )
+    }
+  }
+
+  private def channelMembers(state: GlobalState, channel:Node)(implicit ctx: Ctx.Owner) = {
+    div(
+      height := "20px",
+      Styles.flex,
+      Rx {
+        val graph = state.graph()
+        val members = graph.members(channel.id)
+        val authors = graph.authorsIn(channel.id)
+        val users = (members ++ authors).distinct
+
+        users.map(user => Avatar.user(user.id)(
+          title := user.name,
+          marginLeft:= "2px",
+          width := "22px",
+          height := "22px",
+          cls := "avatar",
+        ))
       }
     )
   }

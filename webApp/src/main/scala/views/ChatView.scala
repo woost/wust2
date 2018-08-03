@@ -184,6 +184,8 @@ object ChatView extends View {
           div(
             cls := "chatmsg-avatar",
             Avatar.user(user)(
+              cls := "avatar",
+              padding := "3px",
               // width := size.value,
             ),
           )

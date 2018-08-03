@@ -223,7 +223,7 @@ object Topbar {
       case user: AuthUser.Assumed  => login(state)
       case user: AuthUser.Implicit => login(state)
       case user: AuthUser.Real => VDomModifier(
-        Avatar.user(user.id)(height := "20px"),
+        Avatar.user(user.id)(height := "20px", cls := "avatar"),
         span(user.name, padding := "0 5px"),
         logout(state))
     }

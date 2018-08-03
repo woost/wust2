@@ -20,11 +20,16 @@ sealed trait Node {
   def id: NodeId
   def data: NodeData
   def meta: NodeMeta
+
+  def str:String = data.str
+  def tpe:String = data.tpe
 }
 
 object Node {
   // TODO: we cannot set the nodemeta here, but there is changeable data in the db class
-  case class User(id: UserId, data: NodeData.User, meta: NodeMeta) extends Node
+  case class User(id: UserId, data: NodeData.User, meta: NodeMeta) extends Node {
+    def name: String = data.name
+  }
   case class Content(id: NodeId, data: NodeData.Content, meta: NodeMeta) extends Node
   object Content {
     private val defaultMeta = NodeMeta(NodeAccess.Inherited)

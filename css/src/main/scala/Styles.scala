@@ -148,6 +148,12 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(0 px) // remove margin when title is in <p> (rendered my markdown)
   )
 
+  ".avatar" - (
+    backgroundColor(c"rgba(255, 255, 255, 0.90)"),
+    borderRadius(2 px),
+    padding(2 px)
+  )
+
   // -- sidebar --
   ".sidebar" - (
     color.white,
