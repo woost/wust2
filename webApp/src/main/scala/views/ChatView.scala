@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -169,14 +170,27 @@ object ChatView extends View {
       onClick.stopPropagation(!editable.now) --> editable
     )
 
-  private def deleteButton(state: GlobalState, node: Node, graph: Graph, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
-    def deletedFromParentIds = directParentIds
+  private def deleteButton(state: GlobalState, node: Node, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
     div(
       cls := "actionbutton",
       freeRegular.faTrashAlt,
-      onClick.stopPropagation(GraphChanges.delete(node.id, deletedFromParentIds)) --> state.eventProcessor.changes,
+      onClick.stopPropagation(GraphChanges.delete(node.id, directParentIds)) --> state.eventProcessor.changes,
     )
-  }
+
+  private def undeleteButton(state: GlobalState, node: Node, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+    div(
+      cls := "actionbutton",
+      fontawesome.layered(
+        fontawesome.icon(freeRegular.faTrashAlt),
+        fontawesome.icon(freeSolid.faMinus, new Params {
+          transform = new Transform {
+            rotate = 45.0
+          }
+
+        })
+      ),
+      onClick.stopPropagation(GraphChanges.undelete(node.id, directParentIds)) --> state.eventProcessor.changes
+    )
 
   private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
     div(
@@ -343,11 +357,12 @@ object ChatView extends View {
 
     val msgControls = div(
       cls := "chatmsg-controls",
-      isDeleted.ifFalseSeq(Seq[VDomModifier](
+      if (isDeleted) undeleteButton(state, node, directParentIds)
+      else VDomModifier(
         editButton(state, node, editable),
-        deleteButton(state, node, graph, directParentIds),
-        nodeLink(state, node)
-      ))
+        deleteButton(state, node, directParentIds)
+      ),
+      nodeLink(state, node)
     )
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
