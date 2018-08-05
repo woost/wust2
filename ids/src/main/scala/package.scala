@@ -39,7 +39,8 @@ package object ids {
         val day = d.getDate
         val hour = d.getHours
         val minute = d.getMinutes
-        f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d"
+        val second = d.getSeconds
+        f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d:$second%02d"
       }
     }
 
