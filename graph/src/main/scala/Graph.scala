@@ -203,7 +203,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   val directNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
     ( ( nodeId: NodeId, page: Page ) =>
-          (parents(nodeId).toSet -- page.parentIds)
+          (parents(nodeId).toSet -- (page.parentIdSet - nodeId)) // "- nodeId" reveals self-loops with page-parent
             .map(nodesById)
       ).tupled
   }
