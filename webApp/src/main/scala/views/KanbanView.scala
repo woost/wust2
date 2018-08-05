@@ -150,6 +150,7 @@ object KanbanView extends View {
     div(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
+      isTopLevel.ifFalse[VDomModifier](cls := "kanbansubcolumn"),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
         draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)),

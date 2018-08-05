@@ -542,10 +542,14 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbantoplevelcolumn" - (
-    boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)", // lighter shadow than on sub-columns
+    border(1 px, solid, white),
     Styles.flex,
     flexDirection.column,
     maxHeight(100 %%)
+  )
+
+  ".kanbansubcolumn" - (
+    border(1 px, solid, white)
   )
 
   ".kanbancolumntitle" - (
@@ -619,7 +623,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#FEFEFE"),
     fontWeight.bold,
     fontSize.large,
-    boxShadow := "0px 1px 0px 1px rgba(99,99,99,0.45)",
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
   )
