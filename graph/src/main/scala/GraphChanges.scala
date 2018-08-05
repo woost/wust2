@@ -102,7 +102,7 @@ object GraphChanges {
   def delete(nodeIds: Iterable[NodeId], graph: Graph, page: Page): GraphChanges = {
     if(nodeIds.isEmpty) empty
     else {
-      val directParents = graph.parents(nodeIds.head).toSet
+      val directParents = graph.parents(nodeIds.head).toSet -- nodeIds // avoid creating self-loops
       val pageParents = page.parentIdSet
       val parentIds = directParents ++ pageParents
       delete(nodeIds, parentIds)
