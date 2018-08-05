@@ -129,7 +129,7 @@ object ChatView extends View {
       Rx {
         val graph = graphContent()
         val nodes = graph.chronologicalNodesAscending.collect {
-          case n: Node.Content if !graph.hasChildren(n.id) => n
+          case n: Node.Content /* if !graph.hasChildren(n.id) */ => n
         }
         if (nodes.isEmpty) Seq(emptyChatNotice)
         else
