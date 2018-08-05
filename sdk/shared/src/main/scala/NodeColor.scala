@@ -15,9 +15,9 @@ object BaseColors {
   val pageBgLight = RGB("#e2f8f2").hcl
   val pageBorder = RGB("#95CCDF").hcl
 
-  val tag = RGB("#F45793").hcl
+  val tag = RGB("#dfa597").hcl
   val eulerBg = RGB("#89B8FF").hcl
-  val kanbanColumnBg = RGB("#ff7a8e").hcl
+  val kanbanColumnBg = RGB("#dfa597").hcl
 }
 
 object NodeColor {
