@@ -477,19 +477,19 @@ class GraphSpec extends FreeSpec with MustMatchers {
         )
         assert(access(g, "A", "B") == false)
       }
-      "use shortest depth of cycled nodes" in {
-        val g = Graph(
-          nodes = List(1, 2, 3, 4, 5, 10),
-          // Containment(X, Y) == X <- Y
-          edges = List(Containment(1, 2), Containment(2, 3), Containment(3, 4), Containment(4, 5),
-                       Containment(50, 5),
-                       Containment(4, 2) /* circle */)
-        )
-        assert(g.involvedInContainmentCycle(1) == false)
-        assert(g.involvedInContainmentCycle(2) == true)
-        assert(g.involvedInContainmentCycle(5) == false)
-        assert(g.parentDepths(1:NodeId) == g.parentDepths(5:NodeId))
-      }
+      // "use shortest depth of cycled nodes" in {
+      //   val g = Graph(
+      //     nodes = List(1, 2, 3, 4, 5, 10),
+      //     // Containment(X, Y) == X <- Y
+      //     edges = List(Containment(1, 2), Containment(2, 3), Containment(3, 4), Containment(4, 5),
+      //                  Containment(50, 5),
+      //                  Containment(4, 2) /* circle */)
+      //   )
+      //   assert(g.involvedInContainmentCycle(1) == false)
+      //   assert(g.involvedInContainmentCycle(2) == true)
+      //   assert(g.involvedInContainmentCycle(5) == false)
+      //   assert(g.parentDepths(1:NodeId) == g.parentDepths(5:NodeId))
+      // }
     }
   }
 }
