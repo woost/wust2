@@ -24,6 +24,7 @@ object EventMapper {
         ++ parentEdges
     )
   }
+
   def createMessageInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: String, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): (NodeId, GraphChanges) = {
     val node = Node.Content(nodeData)
     val message = createNodeInWust(node, wustAuthorUserId, EpochMilli.from(timestamp), additionalParents + channel, additionalMembers)

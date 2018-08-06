@@ -11,30 +11,14 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import wust.slack.Data._
 
-trait PersistenceAdapter {
-  type SlackChannelId = String
-  type SlackTimestamp = String
-  type SlackUserId = String
-
-  def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean]
-  def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
-  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
-
-  def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]]
-  def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]]
-
-  def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]]
-  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient): Future[Option[NodeId]]
-
-  def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]]
-
-}
-
 object PostgresAdapter {
   def apply(config: TConfig)(implicit ec: scala.concurrent.ExecutionContext) = new PostgresAdapter( Db(config) )
 }
 
 case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContext) extends PersistenceAdapter {
+  type SlackChannelId = String
+  type SlackTimestamp = String
+  type SlackUserId = String
 
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = {
     db.storeOrUpdateUserMapping(userMapping)
@@ -73,16 +57,15 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
 
-  // TODO: Move API calls to EventMapper
+  // TODO: Move API calls to EventComposer?
+  // 1. Get channel name by id (Slack API call)
+  // 2. Create with NodeData = name (Wust API call)
+  // 3. Create channel mapping (DB)
   def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient): Future[Option[NodeId]] = {
     val existingChannelNode = db.getChannelNode(channel)
     existingChannelNode.flatMap{
       case Some(c) => Future.successful(Some(c))
       case None =>
-        // TODO:
-        // 1. Get channel name by id (Slack API call)
-        // 2. Create with NodeData = name (Wust API call)
-        // 3. Create channel mapping (DB)
 
         val newChannelNode = Node.Content(NodeData.Markdown())
         ,
