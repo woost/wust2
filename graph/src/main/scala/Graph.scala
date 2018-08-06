@@ -201,17 +201,18 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     this.filter(pageChildren.toSet)
   }
 
-  val directNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
-    ( ( nodeId: NodeId, page: Page ) =>
-          (parents(nodeId).toSet -- (page.parentIdSet - nodeId)) // "- nodeId" reveals self-loops with page-parent
+  val directNodeTags: ((NodeId, Set[NodeId])) => Set[Node] = Memo.mutableHashMapMemo {
+    ( ( nodeId: NodeId, parentIds: Set[NodeId] ) =>
+          (parents(nodeId).toSet -- (parentIds - nodeId)) // "- nodeId" reveals self-loops with page-parent
             .map(nodesById)
       ).tupled
   }
 
-  val transitiveNodeTags: ((NodeId, Page)) => Set[Node] = Memo.mutableHashMapMemo {
-    { ( nodeId: NodeId, page: Page ) =>
-      val transitivePageParents = page.parentIds.flatMap(ancestors)
-      (ancestors(nodeId).toSet -- page.parentIds -- transitivePageParents -- parents(nodeId))
+  val transitiveNodeTags: ((NodeId, Set[NodeId])) => Set[Node] = Memo.mutableHashMapMemo {
+    // TODO: sort by depth
+    { ( nodeId: NodeId, parentIds: Set[NodeId] ) =>
+      val transitivePageParents = parentIds.flatMap(ancestors)
+      (ancestors(nodeId).toSet -- parentIds -- transitivePageParents -- parents(nodeId))
         .map(nodesById)
     }.tupled
   }
@@ -271,6 +272,12 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     if (hasChildren(nodeId)) Some(children(nodeId)) else None
   def getParentsOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
     if (hasParents(nodeId)) Some(parents(nodeId)) else None
+
+  def isChildOf(childId:NodeId, parentId: NodeId): Boolean = parents(childId) contains parentId
+  def isChildOfAny(childId:NodeId, parentIds: Iterable[NodeId]): Boolean = {
+    val p = parents(childId)
+    parentIds.exists(p.contains)
+  }
 
   private lazy val connectionDefaultNeighbourhood: collection.Map[NodeId, collection.Set[Edge]] =
     defaultNeighbourhood(nodeIds, Set.empty[Edge])

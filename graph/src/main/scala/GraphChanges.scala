@@ -113,12 +113,12 @@ object GraphChanges {
 
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
-  def delete(node: Node, parentIds: Set[NodeId]): GraphChanges = delete(node.id, parentIds)
-  def delete(nodeId: NodeId, parentIds: Set[NodeId]): GraphChanges = GraphChanges(
+  def delete(node: Node, parentIds: Iterable[NodeId]): GraphChanges = delete(node.id, parentIds)
+  def delete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
       parentId => Edge.DeletedParent(nodeId, EdgeData.DeletedParent(EpochMilli.now), parentId)
-    ),
-    delEdges = parentIds.map(parentId => Edge.Parent(nodeId, parentId))
+    )(breakOut),
+    delEdges = parentIds.map(parentId => Edge.Parent(nodeId, parentId))(breakOut)
   )
 
   class ConnectFactory[SOURCEID, TARGETID, EDGE <: Edge](edge:(SOURCEID,TARGETID) => EDGE, toGraphChanges:collection.Set[EDGE] => GraphChanges) {
@@ -154,10 +154,12 @@ object GraphChanges {
     disconnect merge connect
   }
 
+  def moveInto(graph: Graph, subjectIds: Iterable[NodeId], targetIds: Iterable[NodeId]): GraphChanges =
+    targetIds.foldLeft(GraphChanges.empty) { (changes, targetId) => changes merge GraphChanges.moveInto(graph, subjectIds, targetId) }
   def moveInto(graph: Graph, subject: NodeId, target: NodeId): GraphChanges = moveInto(graph, subject :: Nil, target)
   def moveInto(graph: Graph, subjects: Iterable[NodeId], target: NodeId): GraphChanges = {
     // TODO: only keep deepest parent in transitive chain
-    val newParentships:collection.Set[Edge] = subjects.map(subject => Edge.Parent(subject, target))(breakOut)
+    val newParentships:collection.Set[Edge] = subjects.filterNot(_ == target).map(subject => Edge.Parent(subject, target))(breakOut) // avoid creating self-loops
     val cycleFreeSubjects: Iterable[NodeId] = subjects.filterNot(subject => subject == target || (graph.ancestors(target) contains subject)) // avoid self loops and cycles
     val removeParentships = ((
       for {

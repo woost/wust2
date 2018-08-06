@@ -15,6 +15,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.sdk.NodeColor._
 
 import scala.collection.breakOut
 
@@ -124,17 +125,26 @@ object ChatView extends View {
     val scrolledToBottom = PublishSubject[Boolean]
 
     div(
-      cls := "chathistory",
+      cls := "chat-history",
       padding := "20px 0 20px 20px",
       Rx {
+        val page = state.page()
+        val fullGraph = state.graph()
         val graph = graphContent()
         val nodes = graph.chronologicalNodesAscending.collect {
-          case n: Node.Content /* if !graph.hasChildren(n.id) */ => n
+          case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) => n
         }
-        if (nodes.isEmpty) Seq(emptyChatNotice)
+        if (nodes.isEmpty) VDomModifier(emptyChatNotice)
         else
-          groupNodes(graph, nodes, state, user().id)
-            .map(chatMessage(state, _, graph, page(), user().id))
+          VDomModifier(
+            groupNodes(graph, nodes, state, user().id)
+              .map(chatMessage(state, _, graph, page, user().id)),
+
+
+            draggableAs(state, DragItem.DisableDrag),
+            dragTarget(DragItem.Chat.Page(page.parentIds)),
+            key := s"chathistory${page.parentIds.mkString}",
+          )
       },
       onUpdate --> sideEffect { (prev, _) =>
         scrolledToBottom
@@ -158,12 +168,14 @@ object ChatView extends View {
       onClick.stopPropagation(!editable.now) --> editable
     )
 
-  private def deleteButton(state: GlobalState, node: Node, graph: Graph, page: Page)(implicit ctx: Ctx.Owner) =
+  private def deleteButton(state: GlobalState, node: Node, graph: Graph, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
+    def deletedFromParentIds = directParentIds
     div(
       cls := "actionbutton",
       freeRegular.faTrashAlt,
-      onClick.stopPropagation(GraphChanges.delete(node, graph, page)) --> state.eventProcessor.changes
+      onClick.stopPropagation(GraphChanges.delete(node, deletedFromParentIds)) --> state.eventProcessor.changes,
     )
+  }
 
   private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
     div(
@@ -253,10 +265,43 @@ object ChatView extends View {
       avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
       div(
         chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodes.map(chatMessageLine(state, graph, page, _)),
+        nodes.map(renderThread(state, graph, alreadyVisualizedParentIds = page.parentIdSet, directParentIds = page.parentIdSet, _)),
         cls := "chatmsg-group-inner-frame",
       ),
     )
+  }
+
+  private def renderThread(state:GlobalState, graph:Graph, alreadyVisualizedParentIds:Set[NodeId], directParentIds:Set[NodeId], node:Node)(implicit ctx: Ctx.Owner): VNode = {
+    val inCycle = alreadyVisualizedParentIds.contains(node.id)
+      if (graph.hasChildren(node.id) && !inCycle) {
+        val children = graph.children(node).toSeq.sortBy(nid => graph.nodeModified(nid):Long)
+        div(
+          chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, node, messageCardInjected = VDomModifier(
+            boxShadow := s"0px 1px 0px 1px ${tagColor(node.id).toHex}",
+          )),
+          div(
+            cls := "chat-thread",
+            borderLeft := s"3px solid ${tagColor(node.id).toHex}",
+            children.map[VDomModifier,Seq[VDomModifier]]{child => renderThread(state, graph, alreadyVisualizedParentIds + node.id, directParentIds = Set(node.id), graph.nodesById(child))}(breakOut),
+
+            draggableAs(state, DragItem.DisableDrag),
+            dragTarget(DragItem.Chat.Thread(node.id)),
+            key := s"thread${node.id}",
+          )
+        )
+      }
+      else if(inCycle)
+        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, node, messageCardInjected = VDomModifier(
+          Styles.flex,
+          alignItems.center,
+          freeSolid.faSyncAlt,
+          paddingRight := "3px",
+          backgroundColor := "#CCC",
+          color := "#666",
+          boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+        ))
+      else
+        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, node)
   }
 
   /// @return a vnode containing a chat header with optional name, date and avatar
@@ -275,15 +320,12 @@ object ChatView extends View {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def chatMessageLine(state: GlobalState, graph: Graph, page: Page, node: Node)(
+  private def chatMessageLine(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], node: Node, messageCardInjected:VDomModifier = VDomModifier.empty)(
       implicit ctx: Ctx.Owner
   ) = {
-    val isDeleted = graph.isDeletedNow(node.id, page.parentIdSet)
+    val isDeleted = graph.isDeletedNow(node.id, alreadyVisualizedParentIds)
     val isSelected = state.selectedNodeIds.map(_ contains node.id)
     val editable = Var(false)
-    // if (graph.children(node).isEmpty)
-    //   renderNodeData(node.data)
-    // else nodeTag(state, node)(ctx)(fontSize := "14px")
 
     val checkbox = div(
       cls := "ui checkbox fitted",
@@ -303,14 +345,15 @@ object ChatView extends View {
       cls := "chatmsg-controls",
       isDeleted.ifFalseSeq(Seq[VDomModifier](
         editButton(state, node, editable),
-        deleteButton(state, node, graph, page),
+        deleteButton(state, node, graph, directParentIds),
         nodeLink(state, node)
       ))
     )
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
-      cls := "drag-feedback"
+      cls := "drag-feedback",
+      messageCardInjected
     )
 
 
@@ -322,20 +365,20 @@ object ChatView extends View {
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
 
-        editable.map(_.ifFalseOption(draggableAs(state, DragItem.ChatMsg(node.id)))), // prevents dragging when selecting text
-        dragTarget(DragItem.ChatMsg(node.id)),
+        editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Chat.Message(node.id))), // prevents dragging when selecting text
+        dragTarget(DragItem.Chat.Message(node.id)),
 
         // checkbox(Styles.flexStatic),
         messageCard,
-        isDeleted.ifFalseOption(messageTags(state, graph, node)),
+        isDeleted.ifFalseOption(messageTags(state, graph, node, alreadyVisualizedParentIds)),
         msgControls(Styles.flexStatic)
       )
     )
   }
 
-  private def messageTags(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
-    val directNodeTags = graph.directNodeTags((node.id, state.page.now))
-    val transitiveNodeTags = graph.transitiveNodeTags((node.id, state.page.now))
+  private def messageTags(state: GlobalState, graph: Graph, node: Node, directParentIds:Set[NodeId])(implicit ctx: Ctx.Owner) = {
+    val directNodeTags = graph.directNodeTags((node.id, directParentIds))
+    val transitiveNodeTags = graph.transitiveNodeTags((node.id, directParentIds))
 
     Rx {
       state.screenSize() match {

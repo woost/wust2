@@ -51,28 +51,32 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagId))
   }
 
-  private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId)
-  private def moveInto(nodeIds:Seq[NodeId], parentId:NodeId):Unit = {
-    submit(GraphChanges.moveInto(state.graph.now, nodeIds, parentId))
+  private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId :: Nil)
+  private def moveInto(nodeId:NodeId, parentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, parentIds)
+  private def moveInto(nodeIds:Iterable[NodeId], parentIds:Iterable[NodeId]):Unit = {
+    submit(GraphChanges.moveInto(state.graph.now, nodeIds, parentIds))
   }
 
 
   val dragActions:PartialFunction[(DragPayload, DragTarget),Unit] = {
     import DragItem._
     {
+      case (dragging: Chat.Message, target: Chat.Thread) => moveInto(dragging.nodeId, target.nodeId)
+
       case (dragging: Kanban.Card, target: SingleNode) => moveInto(dragging.nodeId, target.nodeId)
       case (dragging: Kanban.Column, target: SingleNode) => moveInto(dragging.nodeId, target.nodeId)
-
-      case (dragging: AnyNodes, target: Channel) => addTag(dragging.nodeIds, target.nodeId)
-
-      case (dragging: ChildNode, target: ParentNode) => addTag(dragging.nodeId, target.nodeId)
-      case (dragging: ChildNode, target: ChildNode) => addTag(dragging.nodeId, target.nodeId)
-      case (dragging: ParentNode, target: SingleNode) => addTag(target.nodeId, dragging.nodeId)
 
       case (dragging: SelectedNode, target: SingleNode) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, target: SingleNode) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, SelectedNodesBar) => // do nothing, since already selected
       case (dragging: AnyNodes, SelectedNodesBar) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
+
+      case (dragging: AnyNodes, target: Channel) => addTag(dragging.nodeIds, target.nodeId)
+
+      case (dragging: ChildNode, target: ParentNode) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: ChildNode, target: MultiParentNodes) => moveInto(dragging.nodeId, target.nodeIds)
+      case (dragging: ChildNode, target: ChildNode) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: ParentNode, target: SingleNode) => addTag(target.nodeId, dragging.nodeId)
     }
   }
 

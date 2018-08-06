@@ -101,6 +101,7 @@ object Components {
         cls := "actionbutton",
         onClick.stopPropagation --> sideEffect {
           // when removing last parent, fall one level lower into the still existing grandparents
+          //TODO: move to GraphChange factory
           val removingLastParent = graph.parents(taggedNodeId).size == 1
           val addedGrandParents: scala.collection.Set[Edge] =
             if (removingLastParent)

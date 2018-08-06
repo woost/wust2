@@ -394,6 +394,13 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.visible
   )
 
+  ".chat-thread" - (
+    marginLeft := "5px",
+    paddingLeft := "5px",
+    paddingBottom := "5px",
+    marginBottom := "5px",
+  )
+
 
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   val nodeCardBackgroundColor = backgroundColor(c"#FEFEFE")
@@ -763,7 +770,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  ".draggable-container .node.draggable--over, .chatmsg-line.draggable--over .nodecard" - (
+  ".draggable-container .node.draggable--over," +
+  ".chat-thread.draggable--over," +
+  ".chat-history.draggable--over," +
+  ".chatmsg-line.draggable--over .nodecard" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
     opacity(1).important,
