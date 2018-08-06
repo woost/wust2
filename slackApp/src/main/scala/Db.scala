@@ -74,8 +74,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
     val q = quote {
       query[Team_Mapping].insert(lift(teamMapping))
         .onConflictUpdate(_.slack_team_id, _.wust_id)(
-          (t, e) => t -> e
+          (t, e) => t.slack_team_id -> e.slack_team_id,
+          (t, e) => t.wust_id -> e.wust_id
         )
+
     }
 
     ctx.run(q)

@@ -19,10 +19,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       changes: List[GraphChanges],
       onBehalf: Authentication.Token
   ): ApiFunction[Boolean] = Effect.assureDbUser { (_, _) =>
+    scribe.info(s"0000000000 called changeGraph onBehalf")
     onBehalfOfUser(onBehalf)(auth => changeGraphInternal(changes, auth.user))
   }
   override def changeGraph(changes: List[GraphChanges]): ApiFunction[Boolean] =
     Effect.assureDbUser { (_, user) =>
+      scribe.info(s"0000000000 called changeGraph")
       changeGraphInternal(changes, user)
     }
 
@@ -32,6 +34,10 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       changes: List[GraphChanges],
       user: AuthUser.Persisted
   ): Future[ApiData.Effect[Boolean]] = {
+
+
+    scribe.info(s"0000000000 changes: $changes")
+    scribe.info(s"0000000000 user: $user")
 
     //  addNodes // none of the ids can already exist
     //  addEdges // needs permissions on all involved nodeids, or nodeids are in addNodes
@@ -57,11 +63,13 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         val allPostsWithAuthor = changes.addEdges.collect {
           case Edge.Author(_, _, postId) => postId
         }
+        scribe.info(s"all posts with author: $allPostsWithAuthor")
         changes.addNodes.forall {
           case Node.Content(id, _, _) => allPostsWithAuthor.contains(id)
           case _                      => false
         }
       }
+
 
       validAddEdges && validNodes
     }

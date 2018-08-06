@@ -1,9 +1,12 @@
 package wust.slack
 
+import akka.actor.ActorSystem
+import cats.data.OptionT
 import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
 import wust.api.Authentication
 import wust.ids.{NodeData, NodeId, UserId}
 import com.typesafe.config.{Config => TConfig}
+import slack.api.SlackApiClient
 import wust.graph.{GraphChanges, Node}
 import wust.sdk.WustClient
 
@@ -24,7 +27,8 @@ trait PersistenceAdapter {
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]]
 
   def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]]
-  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient): Future[Option[NodeId]]
+//  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
+  def getOrCreateChannelNode(channel: SlackChannelId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
 
   def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]]
 
@@ -42,25 +46,41 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
     db.storeMessageMapping(messageMapping)
   }
-  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = ???
+  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = {
+    db.storeTeamMapping(teamMapping)
+  }
 
+  // TODO: Move API calls and composition to separate event composer
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = {
     val existingUser = db.getWustUser(slackUser)
-    val user = existingUser.flatMap {
+    val user: Future[Option[WustUserData]] = existingUser.flatMap {
       case Some(u) => Future.successful(Some(u))
       case None =>
-        wustClient.auth.createImplicitUserForApp().map {
-          case Some(implicitUser) =>
-            val newUser = WustUserData(implicitUser.user.id, implicitUser.token)
-            storeOrUpdateUserAuthData(User_Mapping(slackUser, newUser.wustUserId, None, newUser.wustUserToken)).onComplete{
-              case Success(userMap) =>
-                if(userMap) scribe.info("Created new user mapping")
-                else scribe.error(s"DB error when creating user: $newUser")
-              case Failure(_) => scribe.error("Error creating user mapping during creation of a wust user")
-            }
-            Some(newUser)
-          case _ => None
+        // 1. Create new implicit user
+        // 2. Store user mapping
+
+        import cats.implicits._
+        val wustUser = OptionT[Future, Authentication.Verified](wustClient.auth.createImplicitUserForApp()).map { implicitUser =>
+          WustUserData(implicitUser.user.id, implicitUser.token)
         }
+
+        val userMap = wustUser.map { newUser =>
+          storeOrUpdateUserAuthData(User_Mapping(slackUser, newUser.wustUserId, None, newUser.wustUserToken))
+        }
+
+        wustUser.value.onComplete {
+          case Failure(ex) =>
+            scribe.error("Error creating user mapping during creation of a wust user: ", ex)
+          case _ =>
+        }
+
+        userMap.value.onComplete {
+          case Failure(ex) =>
+            scribe.error("DB error when creating user: ", ex)
+          case _ =>
+        }
+
+        wustUser.value
     }
 
     user.onComplete {
@@ -73,10 +93,9 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
 
-  // TODO: Move API calls to EventMapper
-  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient): Future[Option[NodeId]] = {
+  def getOrCreateChannelNode(channel: SlackChannelId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]] = {
     val existingChannelNode = db.getChannelNode(channel)
-    existingChannelNode.flatMap{
+    existingChannelNode.flatMap {
       case Some(c) => Future.successful(Some(c))
       case None =>
         // TODO:
@@ -84,11 +103,25 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
         // 2. Create with NodeData = name (Wust API call)
         // 3. Create channel mapping (DB)
 
-        val newChannelNode = Node.Content(NodeData.Markdown())
-        ,
-        GraphChanges.addNode()
-        wustClient.api.changeGraph()
-        db.storeTeamMapping(Team_Mapping())
+        val channelName = slackClient.getChannelInfo(channel).map(ci => ci.name)
+        val newChannelNode = channelName.map(name => Node.Content(NodeData.Markdown(name)))
+
+        newChannelNode.onComplete {
+          case Success(node) =>
+            wustReceiver.push(List(GraphChanges.addNode(node)), None)
+//            wustClient.api.changeGraph(GraphChanges.addNode(node)).onComplete {
+//              case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
+//              case _ =>
+//            }
+            db.storeTeamMapping(Team_Mapping(channel, node.id)).onComplete {
+              case Failure(ex) => scribe.error("Could not create team mapping in slack app: ", ex)
+              case _ =>
+            }
+          case Failure(ex) =>
+            scribe.error("Could not request channel info: ", ex)
+        }
+
+        newChannelNode.map(n => Some(n.id))
     }
   }
 

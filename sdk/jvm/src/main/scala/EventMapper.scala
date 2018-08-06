@@ -30,12 +30,13 @@ object EventMapper {
     (node.id, message)
   }
 
-  def editMessageContentInWust(contentNode: Node.Content, newContent: NodeData.Content): GraphChanges = {
-    GraphChanges(
+  def editMessageContentInWust(contentNode: Node.Content, newContent: NodeData.Content): (NodeId, GraphChanges) = {
+    val editedMessage = GraphChanges(
       addNodes = Set(
         contentNode.copy(data = newContent)
       )
     )
+    (contentNode.id, editedMessage)
   }
 
   def deleteMessageInWust(nodeId: NodeId, channelId: NodeId): GraphChanges = {
