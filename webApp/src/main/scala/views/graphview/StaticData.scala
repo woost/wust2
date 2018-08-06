@@ -11,6 +11,8 @@ import wust.graph.{Node, _}
 import wust.ids._
 import wust.util.time.time
 import Math._
+import scala.scalajs.js
+
 
 import scala.Double.NaN
 import scala.collection.mutable.ArrayBuffer
@@ -35,7 +37,7 @@ class StaticData(
     val containmentRadius: Array[Double], // TODO: still needed?
     val nodeParentCount: Array[Int],
     val bgColor: Array[String],
-    //                  val border: Array[String],
+    val nodeCssClass: Array[String],
     val nodeReservedArea: Array[Double], //TODO: rename to reservedArea
     var reservedArea: Double, //TODO: rename to totalReservedArea
 
@@ -72,7 +74,7 @@ class StaticData(
     containmentRadius = new Array(nodeCount),
     nodeParentCount = new Array(nodeCount),
     bgColor = new Array(nodeCount),
-//    border = new Array(nodeCount),
+    nodeCssClass = new Array(nodeCount),
     nodeReservedArea = new Array(nodeCount),
     reservedArea = NaN,
     source = new Array(edgeCount),
@@ -140,13 +142,20 @@ object StaticData {
       var maxRadius = 0.0
       var reservedArea = 0.0
       selection.each[html.Element] { (node: html.Element, post: Node, i: Int) =>
-        staticData.bgColor(i) = nodeColorWithContext(graph, post.id).toCSS
-//        staticData.border(i) = if(graph.hasChildren(post.id)) s"10px solid ${baseColor(post.id)}" else "1px solid #DFDFDF"
+        if(graph.hasChildren(post.id)) {
+          staticData.bgColor(i) = nodeColorWithContext(graph, post.id).toCSS
+          staticData.nodeCssClass(i) = "tag"
+        } else {
+          staticData.bgColor(i) = "#FEFEFE" // bgcolor of nodecard
+          staticData.nodeCssClass(i) = "nodecard"
+        }
+
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size
         d3.select(node)
           .style("background-color", staticData.bgColor(i))
-//          .style("border", staticData.border(i))
+          .asInstanceOf[js.Dynamic].classed("tag nodecard", false)
+          .classed(staticData.nodeCssClass(i), true)
 
         val rect = node.getBoundingClientRect
         val width = rect.width / scale
