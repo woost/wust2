@@ -401,7 +401,7 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
     nodeCardBackgroundColor,
-    color(c"rgba(0, 0, 0, 0.87)"), // from semantic ui
+    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
     fontWeight.normal,
     overflowX.auto,
 
