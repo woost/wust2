@@ -9,6 +9,7 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
 
 object SelectedNodes {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
@@ -46,7 +47,8 @@ object SelectedNodes {
         )
       },
       registerDraggableContainer(state),
-      key := "selectednodes"
+      key := "selectednodes",
+      onGlobalEscape(Set.empty[NodeId]) --> state.selectedNodeIds
     )
   }
 
