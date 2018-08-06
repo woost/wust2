@@ -42,8 +42,11 @@ import slack.rtm.SlackRtmClient
 
 object Constants {
   //TODO
-  val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
-  val slackNode = Node.Content(NodeData.Markdown("wust-slack"))
+//  val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
+//  val wustUser = AuthUser.Assumed(UserId(Cuid.fromCuidString("5R1xejdFpxQiauAZtMVqpS")): UserId, NodeId(Cuid.fromCuidString("5R1xejdFpxQiauAZtMVqpS")))
+  val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"), NodeId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"))
+//  val slackNode = Node.Content(NodeData.Markdown("wust-slack"))
+  val slackNode = Node.Content(NodeId.fresh, NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.ReadWrite))
   val slackId: NodeId = slackNode.id
 }
 
@@ -145,6 +148,12 @@ object AppServer {
       allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
+     // TODO: author
+    val changes = GraphChanges(
+      addNodes = Set(Constants.slackNode),
+    )
+    wustReceiver.push(List(changes), None)
+
     val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
     tokenObserver.foreach{ authData =>
 
@@ -213,9 +222,9 @@ object AppServer {
                 case e: Message =>
                   scribe.info(s"message: ${e.toString}")
 
-                  val graphChanges: OptionT[Future, (NodeId, GraphChanges, Authentication.Token)] = for {
+                  val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.user, wustReceiver.client))
-                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, wustReceiver.client))
+                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, wustReceiver, slackClient.client))
                   } yield {
                     val changes: (NodeId, GraphChanges) = EventMapper.createMessageInWust(
                       NodeData.Markdown(e.text),
@@ -223,7 +232,7 @@ object AppServer {
                       e.ts,
                       wustChannelNodeId
                     )
-                    (changes._1, changes._2, wustUserData.wustUserToken)
+                    (changes._1, changes._2, wustUserData)
                   }
 
                   val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create message").flatMapF { changes =>
@@ -235,27 +244,39 @@ object AppServer {
                     res
                   }
 
+                  applyChanges.value.onComplete {
+                    case Success(request) =>
+                    case Failure(ex) => scribe.error("Error creating message: ", ex)
+                  }
+
                   applyChanges.value
 
                 case e: MessageChanged =>
                   scribe.info(s"message: ${e.toString}")
 
-                  val graphChanges: OptionT[Future, (NodeId, GraphChanges, Authentication.Token)] = for {
+                  val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
                     nodeId <- OptionT[Future, NodeId](persistenceAdapter.getMessageNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.message.user, wustReceiver.client))
-                    node <- OptionT[Future, Node.Content](
-                      wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
-                        case Some(n: Node.Content) => Some(n)
-                        case _ =>
-                          scribe.error(s"Failed getting slack node in wust: ${e.previous_message}")
-                          None
-                      })
-                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
+                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, wustReceiver, slackClient.client))
+                    changes <- OptionT[Future, (NodeId, GraphChanges)](wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
+                      case Some(existingNode: Node.Content) =>
+                        Some(EventMapper.editMessageContentInWust(
+                          existingNode,
+                          NodeData.Markdown(e.message.text)
+                        ))
+                      case None =>
+                        Some(EventMapper.createMessageInWust(
+                          NodeData.Markdown(e.message.text),
+                          wustUserData.wustUserId,
+                          e.ts,
+                          wustChannelNodeId
+                        ))
+                      case n =>
+                        scribe.error(s"The node id does not corresponds to a content node: $n")
+                        None
+                    })
                   } yield {
-                    (node.id, EventMapper.editMessageContentInWust(
-                      node,
-                      NodeData.Markdown(e.message.text)
-                    ), wustUserData.wustUserToken)
+                    (changes._1, changes._2, wustUserData)
                   }
 
                   val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not change message").flatMapF { changes =>
@@ -265,6 +286,11 @@ object AppServer {
                       case _ => scribe.error(s"Could not apply changes to wust: $changes")
                     }
                     res
+                  }
+
+                  applyChanges.value.onComplete {
+                    case Success(request) =>
+                    case Failure(ex) => scribe.error("Error changing message: ", ex)
                   }
 
                   applyChanges.value
@@ -283,6 +309,11 @@ object AppServer {
 
                   val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not change message").flatMapF { changes =>
                     wustReceiver.push(List(changes), None)
+                  }
+
+                  applyChanges.value.onComplete {
+                    case Success(request) =>
+                    case Failure(ex) => scribe.error("Error deleting message: ", ex)
                   }
 
                   applyChanges.value
@@ -466,7 +497,7 @@ object AppServer {
 
             //            incomingEvents orElse challengeEvent
            incomingEvents
-            // challengeEvent
+//             challengeEvent
 
           }
         }
@@ -488,17 +519,25 @@ object AppServer {
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
 
-  def push(graphChanges: List[GraphChanges], auth: Option[Authentication.Token]): Result[List[GraphChanges]]
+  def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]]
 }
 
 class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(graphChanges: List[GraphChanges], auth: Option[Authentication.Token]): Result[List[GraphChanges]] = {
+  def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]] = {
     scribe.info(s"pushing new graph change: $graphChanges")
+    val enrichedWithAppMembership = graphChanges.map { gc =>
+      val appMemberEdges: GraphChanges = GraphChanges.connect((u: UserId, n: NodeId) => Edge.Member(u, EdgeData.Member(AccessLevel.ReadWrite), n))(Constants.wustUser.id, gc.addNodes.map(_.id))
+      gc.merge(appMemberEdges)
+    }
 
     (auth match {
-      case None => client.api.changeGraph(graphChanges)
-      case Some(t) => client.api.changeGraph(graphChanges, t)
+      case None =>
+        val withAppUser = enrichedWithAppMembership.map(_.withAuthor(Constants.wustUser.id))
+        client.api.changeGraph(withAppUser)
+      case Some(u) =>
+        val withSlackUser = enrichedWithAppMembership.map(_.withAuthor(u.wustUserId))
+        client.api.changeGraph(withSlackUser, u.wustUserToken)
     }).map { success =>
       if (success) Right(graphChanges)
       else Left(s"Failed to apply GraphChanges: $graphChanges")
@@ -526,18 +565,11 @@ object WustReceiver {
     val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
     val highPriorityClient = wustClient.sendWith(SendType.WhenConnected.highPriority, 30 seconds)
 
-    highPriorityClient.auth.assumeLogin(Constants.wustUser)
-    highPriorityClient.auth.register(config.user, config.password)
+//    highPriorityClient.auth.assumeLogin(Constants.wustUser)
+//    highPriorityClient.auth.register(config.user, config.password)
     wustClient.observable.connected.foreach { _ =>
       highPriorityClient.auth.login(config.user, config.password)
     }
-
-    //    val changes = GraphChanges(addPosts = Set(Post(Constants.slackId, PostData.Text("wust-slack"), Constants.wustUser.id)))
-    // TODO: author
-    val changes = GraphChanges(
-      addNodes = Set(Constants.slackNode: Node)
-    )
-    client.api.changeGraph(List(changes))
 
     scribe.info("Running WustReceiver")
 
