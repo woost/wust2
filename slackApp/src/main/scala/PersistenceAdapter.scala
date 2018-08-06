@@ -4,10 +4,10 @@ import akka.actor.ActorSystem
 import cats.data.OptionT
 import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
 import wust.api.Authentication
-import wust.ids.{NodeData, NodeId, UserId}
+import wust.ids.{NodeAccess, NodeData, NodeId, UserId}
 import com.typesafe.config.{Config => TConfig}
 import slack.api.SlackApiClient
-import wust.graph.{GraphChanges, Node}
+import wust.graph.{GraphChanges, Node, NodeMeta}
 import wust.sdk.WustClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -28,7 +28,7 @@ trait PersistenceAdapter {
 
   def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]]
 //  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
-  def getOrCreateChannelNode(channel: SlackChannelId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
+  def getOrCreateChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
 
   def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]]
 
@@ -93,7 +93,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
 
-  def getOrCreateChannelNode(channel: SlackChannelId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]] = {
+  def getOrCreateChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]] = {
     val existingChannelNode = db.getChannelNode(channel)
     existingChannelNode.flatMap {
       case Some(c) => Future.successful(Some(c))
@@ -104,11 +104,13 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
         // 3. Create channel mapping (DB)
 
         val channelName = slackClient.getChannelInfo(channel).map(ci => ci.name)
-        val newChannelNode = channelName.map(name => Node.Content(NodeData.Markdown(name)))
+        val newChannelNode = channelName.map(name =>
+          Node.Content(NodeId.fresh, NodeData.Markdown(name), NodeMeta(NodeAccess.ReadWrite))
+        )
 
         newChannelNode.onComplete {
           case Success(node) =>
-            wustReceiver.push(List(GraphChanges.addNode(node)), None)
+            wustReceiver.push(List(GraphChanges.addNodeWithParent(node, slackNode)), None)
 //            wustClient.api.changeGraph(GraphChanges.addNode(node)).onComplete {
 //              case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
 //              case _ =>

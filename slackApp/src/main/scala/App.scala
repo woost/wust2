@@ -46,7 +46,7 @@ object Constants {
 //  val wustUser = AuthUser.Assumed(UserId(Cuid.fromCuidString("5R1xejdFpxQiauAZtMVqpS")): UserId, NodeId(Cuid.fromCuidString("5R1xejdFpxQiauAZtMVqpS")))
   val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"), NodeId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"))
 //  val slackNode = Node.Content(NodeData.Markdown("wust-slack"))
-  val slackNode = Node.Content(NodeId.fresh, NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.ReadWrite))
+  val slackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.ReadWrite))
   val slackId: NodeId = slackNode.id
 }
 
@@ -133,14 +133,14 @@ object AppServer {
 
   import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
 
-
-  implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.from(s)
+  def toEpochMilli(str: String) = EpochMilli(((str.toDouble) * 1000).toLong)
 
   def run(config: Config, wustReceiver: WustReceiver, slackClient: SlackClient, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
     implicit system: ActorSystem, scheduler: Scheduler
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
+    scribe.info(s"slackNode: ${Constants.slackNode.id.toString}")
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
 
@@ -216,6 +216,7 @@ object AppServer {
             //            }
             val incomingEvents = entity(as[SlackEventStructure]) { eventStructure =>
               eventStructure.event match {
+
                 case e: Hello =>
                   scribe.info("hello")
 
@@ -224,12 +225,12 @@ object AppServer {
 
                   val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.user, wustReceiver.client))
-                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, wustReceiver, slackClient.client))
+                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, Constants.slackNode.id, wustReceiver, slackClient.client))
                   } yield {
                     val changes: (NodeId, GraphChanges) = EventMapper.createMessageInWust(
                       NodeData.Markdown(e.text),
                       wustUserData.wustUserId,
-                      e.ts,
+                      toEpochMilli(e.ts),
                       wustChannelNodeId
                     )
                     (changes._1, changes._2, wustUserData)
@@ -257,7 +258,7 @@ object AppServer {
                   val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
                     nodeId <- OptionT[Future, NodeId](persistenceAdapter.getMessageNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
                     wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(e.message.user, wustReceiver.client))
-                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, wustReceiver, slackClient.client))
+                    wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(e.channel, Constants.slackNode.id, wustReceiver, slackClient.client))
                     changes <- OptionT[Future, (NodeId, GraphChanges)](wustReceiver.client.api.getNode(nodeId, wustUserData.wustUserToken).map {
                       case Some(existingNode: Node.Content) =>
                         Some(EventMapper.editMessageContentInWust(
@@ -268,7 +269,7 @@ object AppServer {
                         Some(EventMapper.createMessageInWust(
                           NodeData.Markdown(e.message.text),
                           wustUserData.wustUserId,
-                          e.ts,
+                          toEpochMilli(e.ts),
                           wustChannelNodeId
                         ))
                       case n =>
@@ -533,10 +534,19 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
 
     (auth match {
       case None =>
-        val withAppUser = enrichedWithAppMembership.map(_.withAuthor(Constants.wustUser.id))
-        client.api.changeGraph(withAppUser)
+        val withAppUser = graphChanges.map(_.withAuthor(Constants.wustUser.id))
+        for {
+          true <- client.api.changeGraph(withAppUser)
+          l: Future[List[Boolean]] = Future.sequence{
+            graphChanges.flatMap { gc =>
+              val a: List[Future[Boolean]] = gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
+              a
+            }
+          }
+          true <- l.map(_.forall(_ == true))
+        } yield true
       case Some(u) =>
-        val withSlackUser = enrichedWithAppMembership.map(_.withAuthor(u.wustUserId))
+        val withSlackUser = graphChanges.map(_.withAuthor(u.wustUserId))
         client.api.changeGraph(withSlackUser, u.wustUserToken)
     }).map { success =>
       if (success) Right(graphChanges)
