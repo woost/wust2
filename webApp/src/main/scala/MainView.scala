@@ -46,7 +46,7 @@ object MainView {
                   .isContent
                   .ifTrueSeq(
                     Seq(
-                      BreadCrumbs(state)(ctx)(Styles.flexStatic),
+                      (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(ctx)(Styles.flexStatic)),
                       PageHeader(state)(ctx)(Styles.flexStatic)
                     )),
 

@@ -75,7 +75,7 @@ object ChatView extends View {
           overflow.auto,
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
-        TagsList(state).apply(Styles.flexStatic)
+//        TagsList(state).apply(Styles.flexStatic)
       ),
       inputField(state).apply(Styles.flexStatic),
       registerDraggableContainer(state),

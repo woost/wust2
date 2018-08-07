@@ -153,7 +153,8 @@ object CommonStyles extends StyleSheet.Standalone {
   ".avatar" - (
     backgroundColor(c"rgba(255, 255, 255, 0.90)"),
     borderRadius(2 px),
-    padding(2 px)
+    padding(2 px),
+    Styles.flexStatic,
   )
 
   // -- sidebar --

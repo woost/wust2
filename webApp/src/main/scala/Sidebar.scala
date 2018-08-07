@@ -25,11 +25,14 @@ object Sidebar {
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
 //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
       sidebarOpen.map {
-        case true => VDomModifier(
+        case true => VDomModifier( // sidebar open
           channels(state)(ctx),
           newChannelButton(state)(ctx)(
             cls := "newChannelButton-large " + buttonStyles,
           ),
+          Rx{ (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
+            div(Topbar.authentication(state))(alignSelf.center, marginTop := "30px")
+          )},
           state.screenSize.map {
             case ScreenSize.Small => VDomModifier(
               width := "100%",
@@ -44,7 +47,7 @@ object Sidebar {
             )
           }
         )
-        case false => VDomModifier(
+        case false => VDomModifier( // sidebar closed
           channelIcons(state, 40)(ctx),
           newChannelButton(state, "+")(ctx)(
             cls := "newChannelButton-small " + buttonStyles,
@@ -92,12 +95,12 @@ object Sidebar {
                 title := p.id.toCuidString
               )
           },
-          channelDiv(page.mode == PageMode.Orphans, state.pageStyle())(
-            //TODO: inner state.page obs again
-            noChannelIcon(page.mode == PageMode.Orphans)(ctx)(marginRight := "5px"),
-            PageMode.Orphans.toString,
-            onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
-          )
+//          channelDiv(page.mode == PageMode.Orphans, state.pageStyle())(
+//            //TODO: inner state.page obs again
+//            noChannelIcon(page.mode == PageMode.Orphans)(ctx)(marginRight := "5px"),
+//            PageMode.Orphans.toString,
+//            onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
+//          )
         )
       }
     )

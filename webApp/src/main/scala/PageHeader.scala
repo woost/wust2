@@ -90,7 +90,6 @@ object PageHeader {
 
         users.map(user => Avatar.user(user.id)(
           title := user.name,
-          Styles.flexStatic,
           marginLeft:= "2px",
           width := "22px",
           height := "22px",

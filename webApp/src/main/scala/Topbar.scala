@@ -42,7 +42,30 @@ object Topbar {
 //    undoRedo(state)(ctx)(marginRight.auto),
     viewSwitcher(state).apply(marginLeft.auto, marginRight.auto),
     FeedbackForm(state)(ctx)(marginRight := "10px"),
-    authentication(state)
+    Rx{ (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](authentication(state))}
+  )
+
+  def banner(state:GlobalState)(implicit ctx: Ctx.Owner) = div(
+      padding := "5px 5px",
+      fontSize := "14px",
+      fontWeight.bold,
+      "Woost",
+      color := "white",
+      textDecoration := "none",
+      onClick(ViewList.defaultViewConfig) --> state.viewConfig,
+      cursor.pointer
+    )
+
+  val betaSign = div(
+    "beta",
+    backgroundColor := "#F2711C",
+    color := "white",
+    borderRadius := "3px",
+    padding := "0px 5px",
+    fontWeight.bold,
+    style("transform") := "rotate(-7deg)",
+
+    marginRight := "5px"
   )
 
   def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
@@ -51,30 +74,10 @@ object Topbar {
       alignItems.center,
 
       hamburger(state),
-      state.user.map(
-        user =>
-          div(
-            padding := "5px 5px",
-            fontSize := "14px",
-            fontWeight.bold,
-            "Woost",
-            color := "white",
-            textDecoration := "none",
-            onClick(ViewList.defaultViewConfig) --> state.viewConfig,
-            cursor.pointer
-          )
-      ),
-      div(
-        "beta",
-        backgroundColor := "#F2711C",
-        color := "white",
-        borderRadius := "3px",
-        padding := "0px 5px",
-        fontWeight.bold,
-        style("transform") := "rotate(-7deg)",
-
-        marginRight := "5px"
-      ),
+      Rx{ (state.screenSize() != ScreenSize.Small).ifTrueSeq[VDomModifier](Seq(
+        banner(state),
+        betaSign,
+      ))},
       syncStatus(state)(ctx)(fontSize := "12px"),
     )
   }
@@ -214,8 +217,8 @@ object Topbar {
       justifyContent.spaceBetween,
       alignItems.center,
       div(freeRegular.faComments, onClick(ChatView:View) --> state.view, cursor.pointer),
-      div(freeSolid.faColumns, onClick(KanbanView:View) --> state.view, cursor.pointer, marginLeft := "5px"),
-      div(freeBrands.faCloudsmith, onClick(GraphView:View) --> state.view, cursor.pointer, marginLeft := "5px"),
+      div(freeSolid.faColumns, onClick(KanbanView:View) --> state.view, cursor.pointer, marginLeft := "10px"),
+      div(freeBrands.faCloudsmith, onClick(GraphView:View) --> state.view, cursor.pointer, marginLeft := "10px"),
     )
   }
 
@@ -223,7 +226,9 @@ object Topbar {
     state.user.map {
       case user: AuthUser.Assumed  => login(state)
       case user: AuthUser.Implicit => login(state)
-      case user: AuthUser.Real => VDomModifier(
+      case user: AuthUser.Real => div(
+        Styles.flex,
+        alignItems.center,
         Avatar.user(user.id)(height := "20px", cls := "avatar"),
         span(user.name, padding := "0 5px"),
         logout(state))
