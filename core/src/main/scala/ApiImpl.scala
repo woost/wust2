@@ -36,7 +36,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   ): Future[ApiData.Effect[Boolean]] = {
 
 
-    scribe.info(s"0000000000 changes: $changes, nodeId = ${changes.head.addNodes.head.id.toUuid}")
+    scribe.info(s"0000000000 changes: $changes, nodeId = ${changes.head.addNodes.headOption.map(_.id.toUuid)}")
     scribe.info(s"0000000000 user: $user, userId = ${user.id.toUuid}")
 
     //  addNodes // none of the ids can already exist

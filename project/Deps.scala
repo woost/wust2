@@ -94,7 +94,7 @@ object Deps {
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
 //  val slackClient = dep("com.github.gilbertw1" %% "slack-scala-client" % "0.2.3")
-  val slackClient = dep("com.github.GRBurst" %% "slack-scala-client" % "fdfa58e")
+  val slackClient = dep("com.github.GRBurst" %% "slack-scala-client" % "87dbb74")
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.1")
   val webPush = dep("nl.martijndwars" % "web-push" % "3.1.0")
 

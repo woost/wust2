@@ -299,7 +299,7 @@ object AppServer {
                 case e: MessageDeleted =>
                   scribe.info(s"message: ${e.toString}")
                   val graphChanges: OptionT[Future, GraphChanges] = for {
-                    nodeId <- OptionT(persistenceAdapter.getMessageNodeByChannelAndTimestamp(e.channel, e.ts))
+                    nodeId <- OptionT(persistenceAdapter.getMessageNodeByChannelAndTimestamp(e.channel, e.previous_message.ts))
                     wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNode(e.channel))
                   } yield {
                     EventMapper.deleteMessageInWust(
@@ -496,10 +496,25 @@ object AppServer {
               }
             }
 
-            //            incomingEvents orElse challengeEvent
+//            incomingEvents.orElse(challengeEvent)
            incomingEvents
 //             challengeEvent
 
+          }
+        }
+      } ~ path(config.server.webhookPath) {
+        post {
+          decodeRequest {
+            val challengeEvent = entity(as[EventServerChallenge]) { eventChallenge =>
+              complete {
+                HttpResponse(
+                  status = StatusCodes.OK,
+                  headers = Nil,
+                  entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`, eventChallenge.challenge)
+                )
+              }
+            }
+            challengeEvent
           }
         }
       } ~ {
@@ -537,17 +552,22 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
         val withAppUser = graphChanges.map(_.withAuthor(Constants.wustUser.id))
         for {
           true <- client.api.changeGraph(withAppUser)
-          l: Future[List[Boolean]] = Future.sequence{
+          true <- Future.sequence {
             graphChanges.flatMap { gc =>
-              val a: List[Future[Boolean]] = gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
-              a
+              gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
             }
-          }
-          true <- l.map(_.forall(_ == true))
+          }.map(_.forall(_ == true))
         } yield true
       case Some(u) =>
         val withSlackUser = graphChanges.map(_.withAuthor(u.wustUserId))
-        client.api.changeGraph(withSlackUser, u.wustUserToken)
+        for {
+          true <- client.api.changeGraph(withSlackUser, u.wustUserToken)
+          true <- Future.sequence {
+            graphChanges.flatMap { gc =>
+              gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
+            }
+          }.map(_.forall(_ == true))
+        } yield true
     }).map { success =>
       if (success) Right(graphChanges)
       else Left(s"Failed to apply GraphChanges: $graphChanges")
