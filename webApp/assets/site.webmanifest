@@ -2,7 +2,7 @@
   "name": "Woost",
   "short_name": "Woost",
   "start_url": "./",
-  "display": "minimal-ui",
+  "display": "standalone",
   "theme_color": "#6636b7",
   "background_color": "#fff",
   "description": "Collaborative Communication",
