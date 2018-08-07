@@ -106,7 +106,7 @@ object Deps {
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
     val marked = "marked" -> "0.3.12"
-    val dateFns = "date-fns" -> "v2.0.0-alpha.10"
+    val dateFns = "date-fns" -> "v2.0.0-alpha.16"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.7"
 
     //TODO open PR at snabbdom for checking-parent-exists branch

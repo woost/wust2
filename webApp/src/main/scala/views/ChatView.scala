@@ -18,6 +18,7 @@ import wust.webApp.views.Elements._
 import wust.sdk.NodeColor._
 
 import scala.collection.breakOut
+import scala.scalajs.js
 
 /** hide size behind a semantic */
 class AvatarSize(val value: String)
@@ -211,8 +212,7 @@ object ChatView extends View {
         || (showDate == ShowOpts.OtherOnly && !isOwn)
         || (showDate == ShowOpts.OwnOnly && isOwn))
       span(
-        (new java.text.SimpleDateFormat(chatMessageDateFormat))
-          .format(new java.util.Date(graph.nodeCreated(node))),
+        dateFns.formatDistance(new js.Date(graph.nodeCreated(node)), new js.Date), " ago",
         cls := "chatmsg-date"
       )
     else
