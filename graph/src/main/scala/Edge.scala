@@ -19,9 +19,9 @@ object Edge {
   sealed trait Content extends Edge
 
   //TODO should have constructor: level: AccessLevel // or not: this makes it less extensible if you add fields to EdgeData
-  case class Member(userId: UserId, data: EdgeData.Member, groupId: NodeId) extends Edge {
+  case class Member(userId: UserId, data: EdgeData.Member, channelId: NodeId) extends Edge {
     def sourceId = userId
-    def targetId = groupId
+    def targetId = channelId
   }
   //TODO should have constructor: timestamp: Timestamp // or not: this makes it less extensible if you add fields to EdgeData
   case class Author(userId: UserId, data: EdgeData.Author, nodeId: NodeId) extends Edge {

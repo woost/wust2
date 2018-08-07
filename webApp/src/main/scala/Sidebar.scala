@@ -27,8 +27,8 @@ object Sidebar {
       sidebarOpen.map {
         case true => VDomModifier(
           channels(state)(ctx),
-          newGroupButton(state)(ctx)(
-            cls := "newGroupButton-large " + buttonStyles,
+          newChannelButton(state)(ctx)(
+            cls := "newChannelButton-large " + buttonStyles,
           ),
           state.screenSize.map {
             case ScreenSize.Small => VDomModifier(
@@ -46,8 +46,8 @@ object Sidebar {
         )
         case false => VDomModifier(
           channelIcons(state, 40)(ctx),
-          newGroupButton(state, "+")(ctx)(
-            cls := "newGroupButton-small " + buttonStyles,
+          newChannelButton(state, "+")(ctx)(
+            cls := "newChannelButton-small " + buttonStyles,
           )
         )
       },

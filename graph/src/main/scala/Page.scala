@@ -20,7 +20,7 @@ sealed trait Page {
 }
 object Page {
   case class Selection(parentIds: Seq[NodeId], childrenIds: Seq[NodeId], mode: PageMode) extends Page
-  case class NewGroup(nodeId: NodeId) extends Page {
+  case class NewChannel(nodeId: NodeId) extends Page {
     override def parentIds = nodeId :: Nil
     override def childrenIds = Nil
     override def mode = PageMode.Default

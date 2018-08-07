@@ -16,7 +16,7 @@ object ViewList {
       GraphView ::
       LoginView ::
       SignupView ::
-      NewGroupView ::
+      NewChannelView ::
       UserSettingsView ::
       // AvatarView ::
       Nil

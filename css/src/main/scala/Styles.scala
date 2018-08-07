@@ -202,14 +202,14 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   /* must be more specific than .ui.button */
-  ".ui.button.newGroupButton-large" - (
+  ".ui.button.newChannelButton-large" - (
     marginRight(0 px),
     marginTop(5 px),
     alignSelf.center,
     Styles.flexStatic
   )
 
-  ".ui.button.newGroupButton-small" - (
+  ".ui.button.newChannelButton-small" - (
     marginRight(0 px),
     marginTop(3 px),
     paddingLeft(12 px),

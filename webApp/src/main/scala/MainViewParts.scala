@@ -18,7 +18,7 @@ import wust.webApp.views._
 
 object MainViewParts {
 
-  def newGroupButton(state: GlobalState, label: String = "New Group")(
+  def newChannelButton(state: GlobalState, label: String = "New Channel")(
       implicit ctx: Ctx.Owner
   ): VNode = {
     button(
@@ -28,7 +28,7 @@ object MainViewParts {
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
 
-        val nextPage = Page.NewGroup(NodeId.fresh)
+        val nextPage = Page.NewChannel(NodeId.fresh)
         //TODO why does Var.set not work properly here with scalarx?
         // if (state.view.now.isContent) state.page() = nextPage
         // else Var.set(, state.view -> ViewList.default)

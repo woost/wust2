@@ -55,11 +55,11 @@ object GlobalStateFactory {
       }
     }
 
-  def newGroupTitle(state: GlobalState) = {
+  def newChannelTitle(state: GlobalState) = {
     var today = new Date()
     // January is 0!
     val title =
-      s"Group ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
+      s"Channel ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
     val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
     if (sameNamePosts.isEmpty) title
     else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
@@ -77,8 +77,8 @@ object GlobalStateFactory {
             case Page.Selection(parentIds, childrenIds, mode) =>
               val newGraph = Client.api.getGraph(page)
               Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
-            case Page.NewGroup(nodeId) =>
-              val changes = GraphChanges.newChannel(nodeId, newGroupTitle(state), user.channelNodeId)
+            case Page.NewChannel(nodeId) =>
+              val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.channelNodeId)
               eventProcessor.enriched.changes.onNext(changes)
               Observable.empty
           }

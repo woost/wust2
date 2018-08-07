@@ -25,7 +25,7 @@ object MainView {
           overflow.auto, // nobody knows why we need this here, but else overflow in the content does not work
           Rx {
             // don't show non-bookmarked border for:
-            val noChannelNodeInGraph = state.graph().channelNodeIds.isEmpty // happens when assumed user clicks on "new group"
+            val noChannelNodeInGraph = state.graph().channelNodeIds.isEmpty // happens when assumed user clicks on "new channel"
             val bookmarked = state.pageIsBookmarked()
             val viewingChannelNode = state.page().parentIdSet.contains(state.user().channelNodeId)
             val noContent = !state.view().isContent
