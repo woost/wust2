@@ -137,7 +137,7 @@ object PageHeader {
       fontawesome.icon(
         indicator,
         new Params {
-          transform = new Transform { size = 5.0; x = 4; y = 7; }
+          transform = new Transform { size = 13.0; x = 7; y = -7; }
           styles = scalajs.js.Dictionary[String]("color" -> color)
         }
       )
@@ -153,7 +153,7 @@ object PageHeader {
         )
         case PermissionState.prompt => VDomModifier(
       sharedMods,
-          iconWithIndicator(icon, freeRegular.faQuestionCircle, "cornflowerblue")(cls := "fa-fw"),
+          iconWithIndicator(icon, freeRegular.faQuestionCircle, "steelblue")(cls := "fa-fw"),
           title := "Notifications are currently disabled. Click to enable.",
           onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
         )
