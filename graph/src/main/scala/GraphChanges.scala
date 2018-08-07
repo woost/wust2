@@ -4,6 +4,8 @@ import wust.ids._
 
 import scala.collection.breakOut
 
+sealed trait GraphChangeEvent
+
 case class GraphChanges(
     addNodes: collection.Set[Node] = Set.empty,
     addEdges: collection.Set[Edge] = Set.empty,
@@ -56,6 +58,7 @@ case class GraphChanges(
   def nonEmpty: Boolean = !isEmpty
   lazy val size: Int = allProps.foldLeft(0)(_ + _.size)
 }
+
 object GraphChanges {
   val empty = new GraphChanges()
 

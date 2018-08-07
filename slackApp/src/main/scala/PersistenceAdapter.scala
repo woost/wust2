@@ -30,6 +30,10 @@ trait PersistenceAdapter {
 //  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
   def getOrCreateChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
 
+  def getSlackChannel(nodeId: NodeId): Future[Option[SlackChannelId]]
+  def getSlackMessage(nodeId: NodeId): Future[Option[SlackMessageId]]
+  def getSlackUser(userId: UserId): Future[Option[SlackUserData]]
+
   def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]]
 
 }
@@ -129,6 +133,19 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   def getChannelNode(channel: SlackChannelId): Future[Option[NodeId]] = {
       db.getChannelNode(channel)
+  }
+
+
+  def getSlackChannel(nodeId: NodeId): Future[Option[SlackChannelId]] = {
+    db.getSlackChannel(nodeId)
+  }
+
+  def getSlackMessage(nodeId: NodeId): Future[Option[SlackMessageId]] = {
+    db.getSlackMessage(nodeId)
+  }
+
+  def getSlackUser(userId: UserId): Future[Option[SlackUserData]] = {
+    db.getSlackUser(userId)
   }
 
   def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]] = {

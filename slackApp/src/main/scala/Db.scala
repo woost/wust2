@@ -25,6 +25,8 @@ object Data {
   case class WustUserData(wustUserId: UserId, wustUserToken: String)
   case class SlackUserData(slackUserId: String, slackUserToken: Option[String])
 
+  case class SlackMessageId(slackChannelId: String, slackTimestamp: String)
+
   case class Team_Mapping(slack_team_id: String, wust_id: NodeId)
   //  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: Option[AccessToken], wust_token: Authentication.Verified)
   case class User_Mapping(slack_user_id: String, wust_id: UserId, slack_token: Option[String], wust_token: String)
@@ -120,6 +122,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
     ctx
       .run(query[Message_Mapping].filter(m => m.slack_channel_id == lift(channel) && m.slack_message_ts == lift(timestamp)).take(1).map(_.wust_id))
       .map(_.headOption)
+  }
+
+  def getSlackMessage(wustId: NodeId)(implicit ec: ExecutionContext): Future[Option[SlackMessageId]] = {
+    ctx
+      .run(query[Message_Mapping].filter(_.wust_id == lift(wustId)).take(1))
+      .map(_.headOption.map(m => SlackMessageId(m.slack_channel_id, m.slack_message_ts)))
   }
 
 }

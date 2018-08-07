@@ -36,7 +36,8 @@ import scala.util.{Failure, Success, Try}
 import slack.SlackUtil
 import slack.api.SlackApiClient
 import slack.models._
-import wust.slack.Data.{Message_Mapping, User_Mapping, WustUserData}
+import wust.api.ApiEvent.NewGraphChanges
+import wust.slack.Data.{Message_Mapping, SlackUserData, User_Mapping, WustUserData}
 //import wust.test.events._
 import slack.rtm.SlackRtmClient
 
@@ -486,19 +487,7 @@ object AppServer {
               complete(StatusCodes.OK)
             }
 
-            val challengeEvent = entity(as[EventServerChallenge]) { eventChallenge =>
-              complete {
-                HttpResponse(
-                  status = StatusCodes.OK,
-                  headers = Nil,
-                  entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`, eventChallenge.challenge)
-                )
-              }
-            }
-
-//            incomingEvents.orElse(challengeEvent)
            incomingEvents
-//             challengeEvent
 
           }
         }
@@ -514,7 +503,9 @@ object AppServer {
                 )
               }
             }
+
             challengeEvent
+
           }
         }
       } ~ {
@@ -584,7 +575,7 @@ object WustReceiver {
   }
   case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
 
-  def run(config: WustConfig, slackClient: SlackClient)(implicit system: ActorSystem): WustReceiver = {
+  def run(config: WustConfig, slackClient: SlackClient, persistenceAdapter: PersistenceAdapter, slackAppToken: String)(implicit system: ActorSystem): WustReceiver = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
@@ -603,29 +594,117 @@ object WustReceiver {
 
     scribe.info("Running WustReceiver")
 
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = wustClient.observable.event
-      .map(e => {
-        scribe.info(s"triggering collect on $e");
-        e.collect { case ev: ApiEvent.GraphContent => scribe.info("received api event"); ev }
-      })
-      .collect { case list if list.nonEmpty => scribe.info("api event non-empty"); list }
+    val graphChanges: Observable[Seq[GraphChanges]] = wustClient.observable.event.map({ e =>
+        scribe.info(s"triggering collect on $e")
+        e.collect {
+          case ev: ApiEvent.GraphContent =>
+            scribe.info("received api event")
+            ev
+        }
+    }).collect({
+      case list if list.nonEmpty =>
+        scribe.info("api event non-empty")
+        list
+    }).map(_.map {
+      case NewGraphChanges(gc) => gc
+    })
 
-    val graphObs: Observable[GraphTransition] = graphEvents.scan(GraphTransition.empty) {
-      (prevTrans, events) =>
-        scribe.info(s"Got events: $events")
-        val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
-        val nextGraph = events.foldLeft(prevTrans.resGraph)(EventUpdate.applyEventOnGraph)
-        GraphTransition(prevTrans.resGraph, changes, nextGraph)
-    }
+    graphChanges.foreach { graphChangeSeq =>
+      graphChangeSeq.foreach { gc =>
 
-//    val slackApiCalls: Observable[Seq[SlackCall]] = graphObs.map { graphTransition =>
-//      createCalls(slackClient, graphTransition)
-//    }
+        scribe.info(s"Received GraphChanges: $gc")
 
-    graphObs.foreach { graphTransition =>
+        /**************/
+        /* Meta stuff */
+        /**************/
 
-      scribe.info(s"Received GraphChanges: ${graphTransition.changes}")
+        val nodesToAdd = gc.addNodes
+        val edgesToAdd = gc.addEdges
+        val edgesToDelete = gc.delEdges
 
+
+        // TODO: Not possible to tell who created / deleted edges
+        val wustEventUser = edgesToAdd.flatMap {
+          case Edge.Author(userId, _, _) => Some(userId)
+          case _ => None
+        }.headOption
+
+        val slackEventUser = OptionT[Future, SlackUserData](wustEventUser match {
+          case Some(u) => persistenceAdapter.getSlackUser(u)
+          case _ => Future.successful(None)
+        })
+
+        val slackUserToken = slackEventUser.map(_.slackUserToken).value.map(_.flatten).map(_.getOrElse(slackAppToken))
+
+        val eventSlackClient = slackUserToken.map(SlackApiClient(_))
+
+        /*****************************/
+        /* Delete channel or message */
+        /*****************************/
+        val deleteEvents = Future.sequence(edgesToDelete.map {
+          case Edge.Parent(childId, parentId) =>
+            val slackMessage = persistenceAdapter.getSlackMessage(childId)
+
+            slackMessage.flatMap {
+              case Some(message) =>
+                eventSlackClient.flatMap(_.deleteChat(message.slackChannelId, message.slackTimestamp, Some(true)))
+
+              case None =>
+                val slackChannel = persistenceAdapter.getSlackChannel(childId)
+                slackChannel.flatMap {
+                  case Some(channelId) =>
+                    eventSlackClient.flatMap(_.archiveChannel(channelId)) //TODO: delete channel - not possible during time of writing
+                  case None => Future.successful(None)
+                }
+
+            }
+          case _ => Future.successful(None)
+        })
+
+        deleteEvents.onComplete{
+          case Success(deleteChanges) => scribe.info(s"Successfully applied delete events: $deleteChanges")
+          case Failure(ex) => scribe.error("Could not apply delete events: ", ex)
+        }
+
+
+        /**************************/
+        /* Add channel or message */
+        /**************************/
+
+        val addMessageEvents = Future.sequence(gc.addEdges.map {
+          case Edge.Parent(childId, parentId) =>
+            persistenceAdapter.getSlackChannel(parentId).map {
+              case Some(slackChannelId) => Some((childId, slackChannelId))
+              case _ => None
+            }
+          case _ => Future.successful(None)
+        })
+
+        val applyMessageEvents = addMessageEvents.map (_.map {
+          case Some((nodeId, slackChannelId)) =>
+            val messageNodes = nodesToAdd.filter(_.id == nodeId)
+            messageNodes.map(node => eventSlackClient.flatMap(_.postChatMessage(slackChannelId, node.str)))
+        })
+
+//        applyMessageEvents.onComplete()
+
+//        val addChannelEvents = gc.addEdges.map {
+//        }
+
+        gc.addNodes.map { node =>
+          val slackMessage = persistenceAdapter.getSlackMessage(node.id)
+
+          slackMessage.flatMap {
+            case Some(message) =>
+              eventSlackClient.flatMap(_.updateChatMessage(message.slackChannelId, message.slackTimestamp, node.str, Some(true)))
+
+//            case None =>
+//              eventSlackClient.flatMap(_.postChatMessage(message.slackChannelId, node.str))
+          }
+
+        }
+
+      }
     }
 
     new WustReceiver(client)
@@ -671,7 +750,7 @@ object App extends scala.App {
       val oAuthClient = OAuthClient(config.oauth, config.server)
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
       val slackClient = SlackClient(config.slack.token)
-      val slackEventReceiver = WustReceiver.run(config.wust, slackClient)
+      val slackEventReceiver = WustReceiver.run(config.wust, slackClient, slackPersistenceAdapter, config.slack.token)
       //      val client = SlackClient(config.oAuthConfig.accessToken.get)
       AppServer.run(config, slackEventReceiver, slackClient, oAuthClient, slackPersistenceAdapter)
   }
