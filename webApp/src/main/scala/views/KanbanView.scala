@@ -241,7 +241,7 @@ object KanbanView extends View {
           )
         else
           div(
-            "+ Add Node",
+            "+ Add Card",
             onClick(true) --> active
           )
       }
