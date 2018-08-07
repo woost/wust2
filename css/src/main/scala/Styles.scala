@@ -145,7 +145,9 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize(20 px),
     wordWrap.breakWord,
     wordBreak :=! "break-word",
-    marginBottom(0 px) // remove margin when title is in <p> (rendered my markdown)
+    marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
+    minWidth(30 px), // min-width and height help to edit if channel name is empty
+    minHeight(1 em),
   )
 
   ".avatar" - (
@@ -414,7 +416,8 @@ object CommonStyles extends StyleSheet.Standalone {
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
 //    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
-    nodeCardShadow
+    nodeCardShadow,
+    minHeight(2 em), // height when card is empty
   )
 
   ".nodecard a" - (
@@ -564,6 +567,7 @@ object CommonStyles extends StyleSheet.Standalone {
     // TODO: separate style for word-breaking in nodes
     wordWrap.breakWord,
     wordBreak :=! "break-word",
+    minHeight(2 em), // if title is empty
   )
 
   ".kanbancolumnheader .kanbanbuttonbar" - (
