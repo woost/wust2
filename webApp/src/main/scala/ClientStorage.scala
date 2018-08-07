@@ -21,10 +21,16 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
-  //TODO: howto handle with events from other tabs?
   val auth: Var[Option[Authentication]] = {
     LocalStorage
-      .handlerWithoutEvents(keys.auth)
+      .handler(keys.auth)
+      .unsafeRunSync()
+      .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
+      .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
+  }
+  val authFromOtherTab: Var[Option[Authentication]] = {
+    LocalStorage
+      .handlerWithEventsOnly(keys.auth)
       .unsafeRunSync()
       .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
       .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))

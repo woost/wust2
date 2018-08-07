@@ -54,9 +54,6 @@ object Client {
   val auth = factory.defaultPriority.auth
   val push = factory.defaultPriority.push
   val observable = factory.observable
-  observable.connected.foreach { _ =>
-    doLoginWithRetry()
-  }
 
   val storage = new ClientStorage
   def currentAuth = storage.auth.now getOrElse initialAssumedAuth
@@ -65,7 +62,9 @@ object Client {
     case auth: Authentication.Assumed  => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
-  private def doLoginWithRetry(): Unit = loginStorageAuth(currentAuth).onComplete {
+
+  //TODO backoff?
+  private def doLoginWithRetry(auth: Option[Authentication]): Unit = loginStorageAuth(auth getOrElse initialAssumedAuth).onComplete {
     case Success(true) => ()
     case Success(false) =>
       scribe.warn("Login failed, token is not valid. Will switch to new assumed auth.")
@@ -73,9 +72,13 @@ object Client {
       // get a new initialAssumedAuth, as the old one might have already be used to become a real user.
       // TODO: is that enough?
       initialAssumedAuth = Authentication.Assumed.fresh
-      doLoginWithRetry()
+      doLoginWithRetry(Some(initialAssumedAuth))
     case Failure(t) =>
       scribe.warn("Login request failed, will retry", t)
-      doLoginWithRetry()
+      doLoginWithRetry(auth)
   }
+
+  // relogin when reconnecting or when localstorage-auth changes
+  observable.connected.foreach { _ => doLoginWithRetry(storage.auth.now) }
+  storage.authFromOtherTab.foreach { doLoginWithRetry }
 }
