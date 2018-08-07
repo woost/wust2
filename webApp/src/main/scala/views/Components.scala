@@ -102,18 +102,15 @@ object Components {
         onClick.stopPropagation --> sideEffect {
           // when removing last parent, fall one level lower into the still existing grandparents
           //TODO: move to GraphChange factory
-          val removingLastParent = graph.parents(taggedNodeId).size == 1
-          val addedGrandParents: scala.collection.Set[Edge] =
-            if (removingLastParent)
-              graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
-            else
-              Set.empty
+          // val removingLastParent = graph.parents(taggedNodeId).size == 1
+          // val addedGrandParents: scala.collection.Set[Edge] =
+          //   if (removingLastParent)
+          //     graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
+          //   else
+          //     Set.empty
 
           state.eventProcessor.changes.onNext(
-            GraphChanges(
-              delEdges = Set(Edge.Parent(taggedNodeId, tag.id)),
-              addEdges = addedGrandParents
-            )
+            GraphChanges.delete(taggedNodeId, Set(tag.id))
           )
           ()
         },
