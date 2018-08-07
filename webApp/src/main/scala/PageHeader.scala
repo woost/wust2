@@ -67,10 +67,10 @@ object PageHeader {
 
       (channel.id != state.user().channelNodeId).ifTrue(
         VDomModifier(
-          isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)(ctx)(marginLeft := "10px")),
-          notifyControl(state, state.graph(), state.user(),channel).apply(marginLeft := "auto"),
-          settingsMenu(state, channel, isBookmarked).apply(marginLeft := "10px"),
-          shareButton(channel).map(_(marginLeft := "10px"))
+          isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
+          notifyControl(state, state.graph(), state.user(),channel).apply(Styles.flexStatic, marginLeft := "auto"),
+          settingsMenu(state, channel, isBookmarked).apply(Styles.flexStatic, marginLeft := "10px"),
+          shareButton(channel).map(_(Styles.flexStatic, marginLeft := "10px"))
         )
       )
     }
@@ -78,20 +78,24 @@ object PageHeader {
 
   private def channelMembers(state: GlobalState, channel:Node)(implicit ctx: Ctx.Owner) = {
     div(
-      height := "20px",
       Styles.flex,
+      flexWrap.wrap,
       Rx {
         val graph = state.graph()
         val members = graph.members(channel.id)
         val authors = graph.authorsIn(channel.id)
-        val users = (members ++ authors).distinct
+        //TODO: possibility to show more
+        //TODO: ensure that if I am member, my avatar is in the visible list
+        val users = (members ++ authors).distinct.take(10)
 
         users.map(user => Avatar.user(user.id)(
           title := user.name,
+          Styles.flexStatic,
           marginLeft:= "2px",
           width := "22px",
           height := "22px",
           cls := "avatar",
+          marginBottom := "2px",
         ))
       }
     )
