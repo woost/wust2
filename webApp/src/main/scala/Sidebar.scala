@@ -11,6 +11,7 @@ import wust.util.RichBoolean
 import wust.webApp.MainViewParts._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
+import wust.webApp.views.Rendered._
 import wust.webApp.views.Components._
 import wust.webApp.views.{PageStyle, ViewList}
 
@@ -84,9 +85,9 @@ object Sidebar {
                 paddingRight := "5px",
                 //TODO: inner state.page obs again
                 channelIcon(state, p, page.parentIds.contains(p.id), 30)(ctx)(
-                  marginRight := "5px"
+//                  marginRight := "5px" //TODO: outwatch bug? first channelicon does not have a margin
                 ),
-                p.data.str,
+                renderNodeData(p.data)(marginLeft := "5px"),
                 onChannelClick(ChannelAction.Post(p.id))(state),
                 title := p.id.toCuidString
               )
