@@ -20,7 +20,7 @@ package object ids {
   object EpochMilli extends TaggedType[Long] {
     def now: EpochMilli =
       EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
-    def from(time: String) = {
+    def from(time: String) = { // TODO this should not exist here, we cannot use instant in frontend!!
       import java.time.Instant
       EpochMilli(Instant.parse(time).toEpochMilli)
     }

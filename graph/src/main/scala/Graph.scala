@@ -276,6 +276,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   }
 
   // There are cases where the key is not present and cases where the set is empty
+  //TODO these maps have default values? can we remove these hasChildren and just use children(node).nonEmpty?
   def hasChildren(node: NodeId): Boolean = children.contains(node) && children(node).nonEmpty
   def hasParents(node: NodeId): Boolean = parents.contains(node) && parents(node).nonEmpty
   def getChildren(nodeId: NodeId): collection.Set[NodeId] =
