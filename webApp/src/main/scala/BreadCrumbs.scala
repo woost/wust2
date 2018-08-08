@@ -23,7 +23,7 @@ object BreadCrumbs {
   import MainViewParts._
 
   /** options */
-  val showOwn = false
+  val showOwn = true
   val channelsAlwaysFirst = true ///< whether "Channels" should always come first
 
   def intersperse[T](list: List[T], co: T): List[T] = list match {
