@@ -114,7 +114,6 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
 //  shiftDown.foreach(down => println(s"shift down: $down"))
 
   dragStopEvent.map { e =>
-    console.log(e)
     decodeFromAttr[DragPayload](e.source, DragItem.payloadAttrName)
   }.withLatestFrom3(lastDragTarget, ctrlDown, shiftDown)((p,t,ctrl,shift) => (p,t, ctrl, shift)).foreachTry { pt =>
     pt match {
