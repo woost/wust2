@@ -6,12 +6,14 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.console
+import org.scalajs.dom.ext.KeyCode
 import shopify.draggable._
 import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
 import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
 import wust.webApp.views.Elements._
 import wust.webApp.outwatchHelpers._
+import wust.util._
 
 import scala.scalajs.js
 
@@ -50,6 +52,9 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
     submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagId))
   }
+  private def addTag(nodeIds:Seq[NodeId], tagIds:Iterable[NodeId]):Unit = {
+    submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagIds))
+  }
 
   private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId :: Nil)
   private def moveInto(nodeId:NodeId, parentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, parentIds)
@@ -58,25 +63,29 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   }
 
 
-  val dragActions:PartialFunction[(DragPayload, DragTarget),Unit] = {
+  val dragActions:PartialFunction[(DragPayload, DragTarget, Boolean, Boolean),Unit] = {
+    // The booleans: Ctrl is dow, Shift is down
     import DragItem._
     {
-      case (dragging: Chat.Message, target: Chat.Thread) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: Chat.Message, target: Chat.Thread, false, false) => moveInto(dragging.nodeId, target.nodeId)
 
-      case (dragging: Kanban.Card, target: SingleNode) => moveInto(dragging.nodeId, target.nodeId)
-      case (dragging: Kanban.Column, target: SingleNode) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: Kanban.Card, target: SingleNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: Kanban.Column, target: SingleNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
 
-      case (dragging: SelectedNode, target: SingleNode) => addTag(dragging.nodeIds, target.nodeId)
-      case (dragging: SelectedNodes, target: SingleNode) => addTag(dragging.nodeIds, target.nodeId)
-      case (dragging: SelectedNodes, SelectedNodesBar) => // do nothing, since already selected
-      case (dragging: AnyNodes, SelectedNodesBar) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
+      case (dragging: SelectedNode, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
+      case (dragging: SelectedNodes, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
+      case (dragging: SelectedNodes, SelectedNodesBar, false, false) => // do nothing, since already selected
+      case (dragging: AnyNodes, SelectedNodesBar, false, false) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
 
-      case (dragging: AnyNodes, target: Channel) => addTag(dragging.nodeIds, target.nodeId)
+      case (dragging: AnyNodes, target: Channel, false, false) => addTag(dragging.nodeIds, target.nodeId)
 
-      case (dragging: ChildNode, target: ParentNode) => moveInto(dragging.nodeId, target.nodeId)
-      case (dragging: ChildNode, target: MultiParentNodes) => moveInto(dragging.nodeId, target.nodeIds)
-      case (dragging: ChildNode, target: ChildNode) => moveInto(dragging.nodeId, target.nodeId)
-      case (dragging: ParentNode, target: SingleNode) => addTag(target.nodeId, dragging.nodeId)
+      case (dragging: ChildNode, target: ParentNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: ChildNode, target: MultiParentNodes, false, false) => moveInto(dragging.nodeId, target.nodeIds)
+      case (dragging: ChildNode, target: ChildNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: ParentNode, target: SingleNode, false, false) => addTag(target.nodeId, dragging.nodeId)
+
+      case (dragging: AnyNodes, target: AnyNodes, true, _) => addTag(dragging.nodeIds, target.nodeIds)
+      case (dragging: AnyNodes, target: AnyNodes, false, true) => moveInto(dragging.nodeIds, target.nodeIds)
     }
   }
 
@@ -96,13 +105,22 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
 
   dragOutEvent.map(_ => None).subscribe(lastDragTarget)
 
+  val ctrlDown = keyDown(KeyCode.Ctrl)
+//  ctrlDown.foreach(down => println(s"ctrl down: $down"))
+
+  //TODO: keyup-event for Shift does not work in chrome. It reports Capslock.
+  val shiftDown = Observable(false)
+//  val shiftDown = keyDown(KeyCode.Shift)
+//  shiftDown.foreach(down => println(s"shift down: $down"))
+
   dragStopEvent.map { e =>
+    console.log(e)
     decodeFromAttr[DragPayload](e.source, DragItem.payloadAttrName)
-  }.withLatestFrom(lastDragTarget)((p,t) => (p,t)).foreachTry { pt =>
+  }.withLatestFrom3(lastDragTarget, ctrlDown, shiftDown)((p,t,ctrl,shift) => (p,t, ctrl, shift)).foreachTry { pt =>
     pt match {
-      case (Some(payload), Some(target)) =>
-        println(s"Dropped: $payload -> $target")
-        dragActions.applyOrElse((payload, target), (other:(DragPayload, DragTarget)) => println(s"drag combination not handled."))
+      case (Some(payload), Some(target), ctrl, shift) =>
+        println(s"Dropped: $payload -> $target${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+        dragActions.applyOrElse((payload, target, ctrl, shift), (other:(DragPayload, DragTarget, Boolean, Boolean)) => println(s"drag combination not handled."))
       case other => println(s"incomplete drag action: $other")
     }
     lastDragTarget.onNext(None)

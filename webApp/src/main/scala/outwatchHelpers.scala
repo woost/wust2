@@ -148,9 +148,9 @@ package object outwatchHelpers {
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
   def keyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
-    outwatch.dom.dsl.events.window.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dom.dsl.events.window.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
-  )
+    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
+  ).startWith(false :: Nil)
 
   private def abstractTreeToVNode(tree: AbstractElement): VNode = {
     import outwatch.dom.dsl.{attr, tag}
