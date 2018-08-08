@@ -519,6 +519,8 @@ object AppServer {
         val separator = "\n############################################################"
         val readyMsg = s"\n##### Slack App Server online at ${binding.localAddress} #####"
         scribe.info(s"$separator$readyMsg$separator")
+        scribe.info(s"SlackApp node uuid:${Constants.slackNodeId.toUuid}, base58: ${Constants.slackNodeId.toBase58}")
+
       case Failure(err) => scribe.error(s"Cannot start Slack App Server: $err")
     }
   }
@@ -626,20 +628,34 @@ object WustReceiver {
           case _ => None
         }.headOption
 
-        val slackEventUser = OptionT[Future, SlackUserData](wustEventUser match {
+        val slackEventUser = wustEventUser match {
           case Some(u) => persistenceAdapter.getSlackUser(u)
           case _ => Future.successful(None)
-        })
+        }
 
-        val slackUserToken = slackEventUser.map(_.slackUserToken).value.map(_.flatten).map(_.getOrElse(slackAppToken))
+        slackEventUser.onComplete{
+          case Success(user) => scribe.info(s"event user = $user")
+          case Failure(ex) => scribe.error("Error getting user: ", ex)
+        }
+//        val slackUserToken = slackEventUser.map(_.slackUserToken).value.map(_.flatten).map(_.getOrElse(slackAppToken))
+        val slackUserToken: Future[String] = slackEventUser.map({
+          case Some(u) => u.slackUserToken
+          case _ => None
+        }).map(_.getOrElse(slackAppToken))
+
+        slackUserToken.foreach{ t =>
+            val isSlackAppUser = if(t == slackAppToken) true else false
+            scribe.info(s"using token: $t, isSlackApp = $isSlackAppUser")
+        }
 
         val eventSlackClient = slackUserToken.map(SlackApiClient(_))
+
 
         /** ***************************/
         /* Delete channel or message */
         /** ***************************/
-        val deleteEvents = Future.sequence(gc.delEdges.map {
-          case Edge.Parent(childId, _, parentId) =>
+        val deleteEvents = Future.sequence(gc.addEdges.map {
+          case Edge.Parent(childId, EdgeData.Parent(Some(_)), parentId) =>
             val slackMessage = persistenceAdapter.getSlackMessage(childId)
 
             slackMessage.flatMap {
@@ -669,13 +685,13 @@ object WustReceiver {
         /** ************************/
 
         val addChannelEvents = gc.addEdges.flatMap {
-          case Edge.Parent(childId, _, Constants.slackNode.id) =>
+          case Edge.Parent(childId, EdgeData.Parent(None), Constants.slackNode.id) =>
             Some(childId -> Constants.slackNode.id)
           case _ => None
         }
 
         val addMessageEvents = Future.sequence(gc.addEdges.map {
-          case Edge.Parent(childId, _, parentId) =>
+          case Edge.Parent(childId, EdgeData.Parent(None), parentId) =>
             persistenceAdapter.getSlackChannel(parentId).map {
               case Some(slackChannelId) => Some(childId -> slackChannelId)
               case _ => None
@@ -684,20 +700,35 @@ object WustReceiver {
         }).map(_.flatten)
 
 
-        def applyCreateChannelEvents() = Future.sequence(addChannelEvents.flatMap { channel =>
-          gc.addNodes.filter(_.id == channel._1).map { channelNode =>
-            eventSlackClient.flatMap(_.createChannel(channelNode.str))
-          }
+//        def applyCreateChannelEvents() = Future.sequence(addChannelEvents.flatMap { channel =>
+//          gc.addNodes.filter(_.id == channel._1).map { channelNode =>
+//            eventSlackClient.flatMap(_.createChannel(channelNode.str))
+//          }
+//        })
+
+        //        def applyCreateMessageEvents() = addMessageEvents.map { events =>
+        //          Future.sequence(events.flatMap { message =>
+        //            gc.addNodes.filter(_.id == message._1).map { messageNode =>
+        //              eventSlackClient.flatMap(_.postChatMessage(message._2, messageNode.str))
+        //            }
+        //          })
+        //        }.flatten
+
+//        def applyCreateMessageEvents() = addMessageEvents.map { events =>
+//          Future.sequence(events.flatMap { message =>
+//            gc.addNodes.filter(_.id == message._1).map { messageNode =>
+//              eventSlackClient.flatMap(_.postChatMessage(message._2, messageNode.str))
+//            }
+//          })
+//        }.flatten
+
+        def applyCreateChannelEvents(channelId: NodeId) = Future.sequence(gc.addNodes.filter(_.id == channelId).map { channelNode =>
+          eventSlackClient.flatMap(_.createChannel(channelNode.str))
         })
 
-        def applyCreateMessageEvents() = addMessageEvents.map { events =>
-          Future.sequence(events.flatMap { message =>
-            gc.addNodes.filter(_.id == message._1).map { messageNode =>
-              eventSlackClient.flatMap(_.postChatMessage(message._2, messageNode.str))
-            }
-          })
-        }.flatten
-
+        def applyCreateMessageEvents(message: (NodeId, String)) = Future.sequence(gc.addNodes.filter(_.id == message._1).map { messageNode =>
+          eventSlackClient.flatMap(_.postChatMessage(channelId = message._2, text = messageNode.str, asUser = Some(true)))
+        })
 
         def applyChangeChannelEvents(channel: (NodeId, String)) = Future.sequence(gc.addNodes.filter(_.id == channel._1).map { channelNode =>
           eventSlackClient.flatMap(_.renameChannel(channel._2, channelNode.str))
@@ -710,24 +741,76 @@ object WustReceiver {
 
         val changeOrAddChannelEvents = Future.sequence(addChannelEvents.map { channel =>
           persistenceAdapter.getSlackChannel(channel._1).flatMap {
-            case Some(slackChannelId) => applyChangeChannelEvents(channel._1 -> slackChannelId)
-            case _ => applyCreateChannelEvents().map(_.map(_ => true))
+            case Some(slackChannelId) =>  // Update existing channel
+              applyChangeChannelEvents(channel._1 -> slackChannelId).map(_.map(_ =>
+                Team_Mapping(slackChannelId, channel._1)
+              ))
+            case _ =>  // Create new channel
+              applyCreateChannelEvents(channel._1).map(_.map(c =>
+                Team_Mapping(c.id, channel._1)
+              ))
           }
-        }).map(_.flatten).onComplete {
-          case Success(_) => scribe.info("Successfully created or updated slack channel")
+        }).map(_.flatten)
+
+        val changeOrAddMessageEvents = addMessageEvents.flatMap( events =>
+          Future.sequence(events.map { message =>
+            persistenceAdapter.getSlackMessage(message._1).flatMap {
+              case Some(slackMessageId) => // Update message
+                applyChangeMessageEvents(message._1 -> slackMessageId).map(_.map(u =>
+                  Message_Mapping(u.channel, u.ts, message._1)
+                ))
+              case _ => // Create message
+                applyCreateMessageEvents(message).map(_.map(m =>
+                  Message_Mapping(message._2, m, message._1)
+                ))
+            }
+          })
+        ).map(_.flatten)
+
+        changeOrAddChannelEvents.map(_.map(t =>
+          persistenceAdapter.storeTeamMapping(t)
+        )).onComplete {
+          case Success(mapping) => scribe.info(s"Successfully added or updated team mapping: $mapping")
+          case Failure(ex) => scribe.error("Could not add or update team mapping: ", ex)
+        }
+
+        changeOrAddMessageEvents.map(_.map(m =>
+          persistenceAdapter.storeMessageMapping(m)
+        )).onComplete {
+          case Success(mapping) => scribe.info(s"Successfully added or updated message mapping: $mapping")
+          case Failure(ex) => scribe.error("Could not add or update message mapping: ", ex)
+        }
+
+        changeOrAddChannelEvents.onComplete {
+          case Success(changes) => scribe.info(s"Successfully created or updated slack channel: $changes")
           case Failure(ex) => scribe.error("Could not create or update slack channel: ", ex)
         }
 
-        val changeOrAddMessageEvents = addMessageEvents.flatMap(events =>
-          Future.sequence(events.map { message =>
-            persistenceAdapter.getSlackMessage(message._1).flatMap {
-              case Some(slackMessageId) => applyChangeMessageEvents(message._1 -> slackMessageId).map(_.map(_ => true))
-              case _ => applyCreateMessageEvents().map(_.map(_ => true))
-            }
-          })).map(_.flatten).onComplete {
-          case Success(_) => scribe.info("Successfully created or updated slack message")
+        changeOrAddMessageEvents.onComplete {
+          case Success(changes) => scribe.info(s"Successfully created or updated slack message: $changes")
           case Failure(ex) => scribe.error("Could not create or update slack message: ", ex)
         }
+
+//        val changeOrAddChannelEvents = Future.sequence(addChannelEvents.map { channel =>
+//          persistenceAdapter.getSlackChannel(channel._1).flatMap {
+//            case Some(slackChannelId) => applyChangeChannelEvents(channel._1 -> slackChannelId)
+//            case _ => applyCreateChannelEvents().map(_.map(_ => true))
+//          }
+//        }).map(_.flatten).onComplete {
+//          case Success(_) => scribe.info("Successfully created or updated slack channel")
+//          case Failure(ex) => scribe.error("Could not create or update slack channel: ", ex)
+//        }
+
+//        val changeOrAddMessageEvents = addMessageEvents.flatMap(events =>
+//          Future.sequence(events.map { message =>
+//            persistenceAdapter.getSlackMessage(message._1).flatMap {
+//              case Some(slackMessageId) => applyChangeMessageEvents(message._1 -> slackMessageId).map(_.map(_ => true))
+//              case _ => applyCreateMessageEvents().map(_.map(_ => true))
+//            }
+//          })).map(_.flatten).onComplete {
+//          case Success(_) => scribe.info("Successfully created or updated slack message")
+//          case Failure(ex) => scribe.error("Could not create or update slack message: ", ex)
+//        }
 
 
         /** ************************/
