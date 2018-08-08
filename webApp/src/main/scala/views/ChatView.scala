@@ -174,7 +174,10 @@ object ChatView extends View {
     div(
       cls := "actionbutton",
       freeRegular.faTrashAlt,
-      onClick.stopPropagation(GraphChanges.delete(node.id, directParentIds)) --> state.eventProcessor.changes,
+      onClick.stopPropagation --> sideEffect {
+        state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, directParentIds))
+        state.selectedNodeIds.update(_ - node.id)
+      },
     )
 
   private def undeleteButton(state: GlobalState, node: Node, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
