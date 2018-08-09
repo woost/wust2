@@ -295,38 +295,31 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- chatview --
   ".chatmsg-group-outer-frame" - (
-    marginTop(10 px),
-    // media.only.screen.minWidth(500 px) - (
-      //TODO: how to use Styles.flex ?
-      /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
+    paddingTop(10 px),
       minWidth(0 px),
-      /* fixes full page scrolling when messages are too long */
       minHeight(0 px),
       Styles.flex,
-    // )
   )
 
-  ".chatmsg-avatar" - (
-    marginRight(10 px),
-    width(40 px),
-    media.only.screen.maxWidth(500 px) - (
-      width(20 px)
-    ),
+  ".chat-thread .chatmsg-group-outer-frame" - (
+    paddingTop(5 px)
   )
 
   ".chatmsg-group-inner-frame" - (
-    width(100 %%),
-    display.block,
-    media.only.screen.maxWidth(500 px) - (
-      marginLeft(-2 px)
-    )
+    width(100 %%), // expands selection highlight to the whole line
   )
 
   ".chatmsg-header" - (
     fontSize(0.8 em),
     lineHeight(100 %%),
+    Styles.flex,
+    alignItems.center,
+
     paddingBottom(3 px),
-    paddingLeft(2 px)
+    paddingLeft(2 px),
+    media.only.screen.maxWidth(640 px) - (
+      paddingBottom(1 px),
+    ),
   )
 
   ".chatmsg-author" - (
@@ -366,7 +359,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-controls" - (
-    media.only.screen.maxWidth(500 px) - (
+    media.only.screen.maxWidth(640 px) - (
       display.none
     ),
     visibility.hidden,
@@ -871,7 +864,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val nonBookmarkShadowOpts = "0px 2px 10px 0px rgba(0,0,0,0.75)"
   ".non-bookmarked-page-frame" - (
     padding(20 px),
-    media.only.screen.maxWidth(500 px) - (
+    media.only.screen.maxWidth(640 px) - (
       padding(7 px)
     ),
     boxShadow := "inset " + nonBookmarkShadowOpts

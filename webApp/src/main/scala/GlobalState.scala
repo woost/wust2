@@ -137,9 +137,10 @@ class GlobalState (
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
   val screenSize: Rx[ScreenSize] = events.window.onResize
-    .debounce(0.3 second)
+    .debounce(0.2 second)
     .map(_ => ScreenSize.calculate())
     .unsafeToRx(ScreenSize.calculate())
+  screenSize.debug("Screensize")
 
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"

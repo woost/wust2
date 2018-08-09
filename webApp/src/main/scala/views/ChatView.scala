@@ -22,15 +22,27 @@ import scala.collection.breakOut
 import scala.scalajs.js
 
 /** hide size behind a semantic */
-class AvatarSize(val value: String)
+sealed trait AvatarSize {
+  def width: String
+  def padding: String
+}
 object AvatarSize {
-  case object Small extends AvatarSize("10px")
-  case object Normal extends AvatarSize("20px")
-  case object Large extends AvatarSize("40px")
+  case object Small extends AvatarSize {
+    def width = "15px"
+    def padding = "2px"
+  }
+  case object Normal extends AvatarSize {
+    def width = "20px"
+    def padding = "3px"
+  }
+  case object Large extends AvatarSize {
+    def width = "40px"
+    def padding = "3px"
+  }
 }
 
 /** when to show something */
-class ShowOpts
+sealed trait ShowOpts
 object ShowOpts {
   case object Never extends ShowOpts
   case object OtherOnly extends ShowOpts
@@ -38,9 +50,11 @@ object ShowOpts {
   case object Always extends ShowOpts
 }
 
-sealed trait ChatKind
-case class ChatSingle(node: Node) extends ChatKind
-case class ChatGroup(nodes: Seq[Node]) extends ChatKind
+sealed trait ChatKind {
+  def nodeIds: Seq[NodeId]
+}
+case class ChatSingle(nodeId: NodeId) extends ChatKind {def nodeIds = nodeId :: Nil }
+case class ChatGroup(nodeIds: Seq[NodeId]) extends ChatKind
 
 object ChatView extends View {
   override val viewKey = "chat"
@@ -52,7 +66,7 @@ object ChatView extends View {
   val showAuthor: ShowOpts = ShowOpts.OtherOnly
   val showDate: ShowOpts = ShowOpts.Always
   val grouping = true
-  val avatarSize = AvatarSize.Large
+  val avatarSizeThread = AvatarSize.Small
   val avatarBorder = true
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
@@ -75,7 +89,7 @@ object ChatView extends View {
           overflow.auto,
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
-//        TagsList(state).apply(Styles.flexStatic)
+        //        TagsList(state).apply(Styles.flexStatic)
       ),
       inputField(state).apply(Styles.flexStatic),
       registerDraggableContainer(state),
@@ -84,36 +98,36 @@ object ChatView extends View {
 
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
   private def groupNodes(
-      graph: Graph,
-      nodes: Seq[Node],
-      state: GlobalState,
-      currentUserId: UserId
+    graph: Graph,
+    nodes: Seq[NodeId],
+    state: GlobalState,
+    currentUserId: UserId
   ) = {
-    def shouldGroup(nodes: Node*) = {
+    def shouldGroup(nodes: NodeId*) = {
       grouping && // grouping enabled
-      // && (nodes
-      //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
-      //   .distinct
-      //   .size == 1) // tags must match
-      // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
-      // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
-      graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
-        nodes.forall(node => graph.authorIds(node).head == authorId)
-      }
+        // && (nodes
+        //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
+        //   .distinct
+        //   .size == 1) // tags must match
+        // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
+        // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
+        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.authorIds(node).head == authorId)
+        }
       // TODO: within a specific timespan && nodes.last.
     }
 
     nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
       kinds.lastOption match {
         case Some(ChatSingle(lastNode)) =>
-          if (shouldGroup(lastNode, node))
-            kinds.dropRight(1) :+ ChatGroup(Seq[Node](lastNode, node))
+          if(shouldGroup(lastNode, node))
+            kinds.dropRight(1) :+ ChatGroup(Seq(lastNode, node))
           else
             kinds :+ ChatSingle(node)
 
         case Some(ChatGroup(lastNodes)) =>
-          if (shouldGroup(lastNodes.last, node))
-            kinds.dropRight(1) :+ ChatGroup(nodes = lastNodes :+ node)
+          if(shouldGroup(lastNodes.last, node))
+            kinds.dropRight(1) :+ ChatGroup(nodeIds = lastNodes :+ node)
           else
             kinds :+ ChatSingle(node)
 
@@ -134,18 +148,19 @@ object ChatView extends View {
         val graph = state.graphContent()
         val user = state.user()
         val nodes = graph.chronologicalNodesAscending.collect {
-          case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) => n
+          case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) => n.id
         }
-        if (nodes.isEmpty) VDomModifier(emptyChatNotice)
+        val avatarSizeToplevel = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
+        if(nodes.isEmpty) VDomModifier(emptyChatNotice)
         else
           VDomModifier(
             groupNodes(graph, nodes, state, user.id)
-              .map(chatMessage(state, _, graph, page, user.id)),
+              .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, page.parentIdSet, user.id, avatarSizeToplevel)),
 
 
             draggableAs(state, DragItem.DisableDrag),
             dragTarget(DragItem.Chat.Page(page.parentIds)),
-            key := s"chathistory${page.parentIds.mkString}",
+            key := s"chathistory${ page.parentIds.mkString }",
           )
       },
       onUpdate --> sideEffect { (prev, _) =>
@@ -155,7 +170,7 @@ object ChatView extends View {
       onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
         case ((_, elem), atBottom) => (elem, atBottom)
       }) --> sideEffect { (elem, atBottom) =>
-        if (atBottom) scrollToBottom(elem)
+        if(atBottom) scrollToBottom(elem)
       }
     )
   }
@@ -163,24 +178,24 @@ object ChatView extends View {
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  private def editButton(state: GlobalState, node: Node, editable:Var[Boolean])(implicit ctx: Ctx.Owner) =
+  private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
     div(
       cls := "actionbutton",
       freeRegular.faEdit,
       onClick.stopPropagation(!editable.now) --> editable
     )
 
-  private def deleteButton(state: GlobalState, node: Node, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+  private def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
     div(
       cls := "actionbutton",
       freeRegular.faTrashAlt,
       onClick.stopPropagation --> sideEffect {
-        state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, directParentIds))
-        state.selectedNodeIds.update(_ - node.id)
+        state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+        state.selectedNodeIds.update(_ - nodeId)
       },
     )
 
-  private def undeleteButton(state: GlobalState, node: Node, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+  private def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
     div(
       cls := "actionbutton",
       fontawesome.layered(
@@ -192,31 +207,29 @@ object ChatView extends View {
 
         })
       ),
-      onClick.stopPropagation(GraphChanges.undelete(node.id, directParentIds)) --> state.eventProcessor.changes
+      onClick.stopPropagation(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes
     )
 
-  private def nodeLink(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner) =
+  private def nodeLink(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
     div(
       cls := "actionbutton",
       freeRegular.faArrowAltCircleRight,
-      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig
+      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig
     )
 
 
-
   /// @return an avatar vnode or empty depending on the showAvatar setting
-  private def avatarDiv(isOwn: Boolean, user: Option[UserId], size: AvatarSize) = {
-    if (showAvatar == ShowOpts.Always
-        || (showAvatar == ShowOpts.OtherOnly && !isOwn)
-        || (showAvatar == ShowOpts.OwnOnly && isOwn)) {
+  private def avatarDiv(isOwn: Boolean, user: Option[UserId], avatarSize: AvatarSize) = {
+    if(showAvatar == ShowOpts.Always
+      || (showAvatar == ShowOpts.OtherOnly && !isOwn)
+      || (showAvatar == ShowOpts.OwnOnly && isOwn)) {
       user.fold(div())(
         user =>
           div(
-            cls := "chatmsg-avatar",
             Avatar.user(user)(
               cls := "avatar",
-              padding := "3px",
-              // width := size.value,
+              padding := avatarSize.padding,
+              width := avatarSize.width,
             ),
           )
       )
@@ -224,124 +237,118 @@ object ChatView extends View {
   }
 
   /// @return a date vnode or empty based on showDate setting
-  private def optDateDiv(isOwn: Boolean, node: Node, graph: Graph) = {
-    if (showDate == ShowOpts.Always
-        || (showDate == ShowOpts.OtherOnly && !isOwn)
-        || (showDate == ShowOpts.OwnOnly && isOwn))
-      span(
-        dateFns.formatDistance(new js.Date(graph.nodeCreated(node)), new js.Date), " ago",
+  private def optDateDiv(isOwn: Boolean, nodeId: NodeId, graph: Graph) = {
+    if(showDate == ShowOpts.Always
+      || (showDate == ShowOpts.OtherOnly && !isOwn)
+      || (showDate == ShowOpts.OwnOnly && isOwn))
+      div(
+        dateFns.formatDistance(new js.Date(graph.nodeCreated(nodeId)), new js.Date), " ago",
         cls := "chatmsg-date"
       )
     else
-      span()
+      div()
   }
 
   /// @return an author vnode or empty based on showAuthor setting
-  private def optAuthorDiv(isOwn: Boolean, node: Node, graph: Graph) = {
-    if (showAuthor == ShowOpts.Always
-        || (showAuthor == ShowOpts.OtherOnly && !isOwn)
-        || (showAuthor == ShowOpts.OwnOnly && isOwn))
+  private def optAuthorDiv(isOwn: Boolean, nodeId: NodeId, graph: Graph) = {
+    if(showAuthor == ShowOpts.Always
+      || (showAuthor == ShowOpts.OtherOnly && !isOwn)
+      || (showAuthor == ShowOpts.OwnOnly && isOwn))
       graph
-        .authors(node)
+        .authors(nodeId)
         .headOption
-        .fold(span())(author => span(author.name, cls := "chatmsg-author"))
-    else span()
+        .fold(div())(author => div(author.name, cls := "chatmsg-author"))
+    else div()
   }
 
-  private def chatMessage(
-      state: GlobalState,
-      chat: ChatKind,
-      graph: Graph,
-      page: Page,
-      currentUser: UserId
+  private def renderGroupedMessages(
+    state: GlobalState,
+    nodeIds: Seq[NodeId],
+    graph: Graph,
+    alreadyVisualizedParentIds: Set[NodeId],
+    directParentIds: Set[NodeId],
+    currentUserId: UserId,
+    avatarSize: AvatarSize
   )(
-      implicit ctx: Ctx.Owner
+    implicit ctx: Ctx.Owner
   ): VNode = {
-    chat match {
-      case ChatSingle(node) =>
-        chatMessageRenderer(state, Seq(node), graph, page, currentUser)
-      case ChatGroup(nodes) =>
-        chatMessageRenderer(state, nodes, graph, page, currentUser)
-    }
-  }
 
-  private def chatMessageRenderer(
-      state: GlobalState,
-      nodes: Seq[Node],
-      graph: Graph,
-      page: Page,
-      currentUser: UserId
-  )(implicit ctx: Ctx.Owner): VNode = {
-
-    val currNode = nodes.last
-    val headNode = nodes.head
-    val isMine = graph.authors(currNode).contains(currentUser)
+    val currNode = nodeIds.last
+    val headNode = nodeIds.head
+    val isMine = graph.authors(currNode).contains(currentUserId)
 
     div(
       cls := "chatmsg-group-outer-frame",
-      avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize),
+      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize)(marginRight := "5px")),
       div(
-        chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodes.map(renderThread(state, graph, alreadyVisualizedParentIds = page.parentIdSet, directParentIds = page.parentIdSet, _)),
         cls := "chatmsg-group-inner-frame",
+        chatMessageHeader(isMine, headNode, graph, avatarSize),
+        nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, directParentIds = directParentIds, nid, currentUserId)
+        ),
       ),
     )
   }
 
-  private def renderThread(state:GlobalState, graph:Graph, alreadyVisualizedParentIds:Set[NodeId], directParentIds:Set[NodeId], node:Node)(implicit ctx: Ctx.Owner): VNode = {
-    val inCycle = alreadyVisualizedParentIds.contains(node.id)
-      if (graph.hasChildren(node.id) && !inCycle) {
-        val children = graph.children(node).toSeq.sortBy(nid => graph.nodeModified(nid):Long)
+  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId)(implicit ctx: Ctx.Owner): VNode = {
+    val inCycle = alreadyVisualizedParentIds.contains(nodeId)
+    if(graph.hasChildren(nodeId) && !inCycle) {
+      val children = graph.children(nodeId).toSeq.sortBy(nid => graph.nodeModified(nid): Long)
+      div(
+        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
+          boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
+        )),
         div(
-          chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, node, messageCardInjected = VDomModifier(
-            boxShadow := s"0px 1px 0px 1px ${tagColor(node.id).toHex}",
-          )),
-          div(
-            cls := "chat-thread",
-            borderLeft := s"3px solid ${tagColor(node.id).toHex}",
-            children.map[VDomModifier,Seq[VDomModifier]]{child => renderThread(state, graph, alreadyVisualizedParentIds + node.id, directParentIds = Set(node.id), graph.nodesById(child))}(breakOut),
+          cls := "chat-thread",
+          borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
 
-            draggableAs(state, DragItem.DisableDrag),
-            dragTarget(DragItem.Chat.Thread(node.id)),
-            key := s"thread${node.id}",
-          )
+          groupNodes(graph, children, state, currentUserId)
+            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, directParentIds, currentUserId, avatarSizeThread)),
+
+          draggableAs(state, DragItem.DisableDrag),
+          dragTarget(DragItem.Chat.Thread(nodeId)),
+          key := s"thread${ nodeId }",
         )
-      }
-      else if(inCycle)
-        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, node, messageCardInjected = VDomModifier(
-          Styles.flex,
-          alignItems.center,
-          freeSolid.faSyncAlt,
-          paddingRight := "3px",
-          backgroundColor := "#CCC",
-          color := "#666",
-          boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-        ))
-      else
-        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, node)
+      )
+    }
+    else if(inCycle)
+           chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
+             Styles.flex,
+             alignItems.center,
+             freeSolid.faSyncAlt,
+             paddingRight := "3px",
+             backgroundColor := "#CCC",
+             color := "#666",
+             boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+           ))
+    else
+      chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId)
   }
 
   /// @return a vnode containing a chat header with optional name, date and avatar
   private def chatMessageHeader(
-      isMine: Boolean,
-      node: Node,
-      graph: Graph,
-      avatarSize: AvatarSize
+    isMine: Boolean,
+    nodeId: NodeId,
+    graph: Graph,
+    avatarSize: AvatarSize
   ) = {
+    val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
-      optAuthorDiv(isMine, node, graph),
-      optDateDiv(isMine, node, graph),
-      cls := "chatmsg-header"
+      cls := "chatmsg-header",
+      (avatarSize == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize)(marginRight := "3px")),
+      optAuthorDiv(isMine, nodeId, graph),
+      optDateDiv(isMine, nodeId, graph),
     )
   }
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def chatMessageLine(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], node: Node, messageCardInjected:VDomModifier = VDomModifier.empty)(
-      implicit ctx: Ctx.Owner
+  private def chatMessageLine(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, messageCardInjected: VDomModifier = VDomModifier.empty)(
+    implicit ctx: Ctx.Owner
   ) = {
-    val isDeleted = graph.isDeletedNow(node.id, directParentIds)
-    val isSelected = state.selectedNodeIds.map(_ contains node.id)
+    val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
+    val isSelected = state.selectedNodeIds.map(_ contains nodeId)
+    val node = graph.nodesById(nodeId)
+
     val editable = Var(false)
 
     val checkbox = div(
@@ -351,8 +358,8 @@ object ChatView extends View {
         tpe := "checkbox",
         checked <-- isSelected,
         onChange.checked --> sideEffect { checked =>
-          if (checked) state.selectedNodeIds.update(_ + node.id)
-          else state.selectedNodeIds.update(_ - node.id)
+          if(checked) state.selectedNodeIds.update(_ + nodeId)
+          else state.selectedNodeIds.update(_ - nodeId)
         }
       ),
       label()
@@ -360,12 +367,12 @@ object ChatView extends View {
 
     val msgControls = div(
       cls := "chatmsg-controls",
-      if (isDeleted) undeleteButton(state, node, directParentIds)
+      if(isDeleted) undeleteButton(state, nodeId, directParentIds)
       else VDomModifier(
-        editButton(state, node, editable),
-        deleteButton(state, node, directParentIds)
+        editButton(state, editable),
+        deleteButton(state, nodeId, directParentIds)
       ),
-      nodeLink(state, node)
+      nodeLink(state, nodeId)
     )
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
@@ -381,22 +388,22 @@ object ChatView extends View {
         cls := "chatmsg-line",
         Styles.flex,
         isDeleted.ifTrueOption(opacity := 0.5),
-        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(node.id)) },
+        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
-        editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Chat.Message(node.id))), // prevents dragging when selecting text
-        dragTarget(DragItem.Chat.Message(node.id)),
+        editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Chat.Message(nodeId))), // prevents dragging when selecting text
+        dragTarget(DragItem.Chat.Message(nodeId)),
 
         // checkbox(Styles.flexStatic),
         messageCard,
-        messageTags(state, graph, node, alreadyVisualizedParentIds),
+        messageTags(state, graph, nodeId, alreadyVisualizedParentIds),
         msgControls(Styles.flexStatic)
       )
     )
   }
 
-  private def messageTags(state: GlobalState, graph: Graph, node: Node, directParentIds:Set[NodeId])(implicit ctx: Ctx.Owner) = {
-    val directNodeTags = graph.directNodeTags((node.id, directParentIds))
-    val transitiveNodeTags = graph.transitiveNodeTags((node.id, directParentIds))
+  private def messageTags(state: GlobalState, graph: Graph, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
+    val directNodeTags = graph.directNodeTags((nodeId, directParentIds))
+    val transitiveNodeTags = graph.transitiveNodeTags((nodeId, directParentIds))
 
     Rx {
       state.screenSize() match {
@@ -405,20 +412,20 @@ object ChatView extends View {
             cls := "tags",
             directNodeTags.map { tag =>
               nodeTagDot(state, tag)
-            }(breakOut):Seq[VDomModifier],
+            }(breakOut): Seq[VDomModifier],
             transitiveNodeTags.map { tag =>
               nodeTagDot(state, tag)(cls := "transitivetag", opacity := 0.4)
-            }(breakOut):Seq[VDomModifier]
+            }(breakOut): Seq[VDomModifier]
           )
-        case _ =>
+        case _                =>
           div(
             cls := "tags",
             directNodeTags.map { tag =>
-              removableNodeTag(state, tag, node.id, graph)
-            }(breakOut):Seq[VDomModifier],
+              removableNodeTag(state, tag, nodeId, graph)
+            }(breakOut): Seq[VDomModifier],
             transitiveNodeTags.map { tag =>
               nodeTag(state, tag)(cls := "transitivetag", opacity := 0.4)
-            }(breakOut):Seq[VDomModifier]
+            }(breakOut): Seq[VDomModifier]
           )
       }
     }
@@ -447,7 +454,7 @@ object ChatView extends View {
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now
           val selectedNodeIds = state.selectedNodeIds.now
-          val changes = if (selectedNodeIds.isEmpty) {
+          val changes = if(selectedNodeIds.isEmpty) {
             NodeDataParser.addNode(str, contextNodes = graph.nodes)
           } else {
             val newNode = Node.Content.empty
