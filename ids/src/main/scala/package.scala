@@ -22,7 +22,7 @@ package object ids {
       EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
     def now: EpochMilli =
       EpochMilli(localNow + delta)
-    def from(time: String) = { // TODO this should not exist here, we cannot use instant in frontend!!
+    def from(time: String): EpochMilli = { // TODO this should not exist here, we cannot use instant in frontend!!
       import java.time.Instant
       EpochMilli(Instant.parse(time).toEpochMilli)
     }

@@ -11,10 +11,11 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 import concurrent.Promise
 import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.{PublishSubject}
+import monix.reactive.subjects.PublishSubject
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
+
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
 
@@ -134,9 +135,10 @@ class EventProcessor private (
     val allChanges = Observable.merge(enrichedChanges, changes)
 
     val rawLocalChanges: Observable[GraphChanges] =
-      allChanges.withLatestFrom(currentUser.startWith(Seq(initialUser)))((a, b) => (a, b)).collect {
-        case (changes, user) if changes.nonEmpty =>
-          scribe.info("[Events] Got raw local changes: " + changes)
+      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialUser)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
+        case (changes, user, graph) if changes.nonEmpty =>
+          scribe.info("[Events] Got raw local changes:")
+          GraphChanges.log(changes, Some(graph))
           changes.consistent.withAuthor(user.id)
       }
 
