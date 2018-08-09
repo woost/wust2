@@ -391,10 +391,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-thread" - (
-    marginLeft := "5px",
-    paddingLeft := "5px",
-    paddingBottom := "5px",
-    marginBottom := "5px",
+    marginLeft(5 px),
+    paddingLeft(5 px),
+    paddingBottom(5 px),
+    marginBottom(5 px),
   )
 
 
