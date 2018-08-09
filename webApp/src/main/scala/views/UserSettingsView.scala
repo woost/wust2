@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import fontAwesome.{freeBrands, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -16,24 +17,56 @@ object UserSettingsView extends View {
   override def isContent = false
 
   override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
-    import state._
     div(
       height := "100%",
-      div(
-        user.map(u => listSettings(u)),
-        margin := "0 auto",
-        maxWidth := "48rem",
-        height := "100%",
-        Styles.flex,
-        flexDirection.column,
-        justifyContent.flexStart,
-        alignItems.stretch,
-        alignContent.stretch
-      )
+      padding := "20px",
+      Rx {
+        val user = state.user()
+        VDomModifier(
+          header(user)(marginBottom := "50px"),
+          slackButton(user)
+        )
+      }
     )
   }
 
-  def listSettings(user: UserInfo): VNode = {
+  private def header(user: UserInfo): VNode = {
+    div(
+      Styles.flex,
+      alignItems.center,
+      Avatar.user(user.id)(
+        cls := "avatar",
+        Styles.flexStatic,
+        width := "50px",
+        height := "50px",
+        padding := "4px",
+      ),
+      div(marginLeft := "20px", user.name, fontSize := "30px")
+    )
+  }
+
+  private def slackButton(user: UserInfo): VNode = {
+
+    def linkWithSlack(userId: UserId) = {
+      println(s"Link Slack with userId: $userId")
+    }
+
+    button(
+      cls := "ui button",
+      div(
+        Styles.flex,
+        fontSize := "25px",
+        img(src := "safari-pinned-tab.svg", width := "1em", height := "100%")(marginRight := "10px"),
+        (freeSolid.faExchangeAlt:VNode)(marginRight := "10px"),
+        (freeBrands.faSlack:VNode),
+        marginBottom := "5px",
+      ),
+      div("Sync with Slack"),
+      onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))
+    )
+  }
+
+  private def listSettings(user: UserInfo): VNode = {
     val linkGithub = Handler.create[String].unsafeRunSync()
 
     // TODO: Api calls
@@ -44,7 +77,7 @@ object UserSettingsView extends View {
         connUser foreach {
           case Some(url) =>
             org.scalajs.dom.window.location.href = url
-          case None =>
+          case None      =>
             scribe.info(s"Could not connect user: $auth")
         }
       }
@@ -57,7 +90,7 @@ object UserSettingsView extends View {
         connUser foreach {
           case Some(url) =>
             org.scalajs.dom.window.location.href = url
-          case None =>
+          case None      =>
             scribe.info(s"Could not connect user: $auth")
         }
       }
@@ -70,8 +103,8 @@ object UserSettingsView extends View {
 
     // TODO: Show button if not linked, else show linked data
     div(
-      p(s"UserId: ${user.id.toString}"),
-      p(s"Username: ${user.name}"),
+      p(s"UserId: ${ user.id.toString }"),
+      p(s"Username: ${ user.name }"),
       div(
         p("Connect Woost with a Service"),
 
