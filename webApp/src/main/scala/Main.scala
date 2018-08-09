@@ -4,7 +4,9 @@ import monix.reactive.Observable
 import outwatch.dom._
 import rx._
 import wust.webApp.outwatchHelpers._
-import org.scalajs.dom.{console, document}
+import org.scalajs.dom.{console, document, window}
+import wust.webApp.parsers.NodeDataParser
+import wust.webApp.views.Elements._
 
 import scala.scalajs.{LinkingInfo, js}
 
@@ -38,5 +40,13 @@ object Main {
     // }
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
+
+
+    // warming up fastparse parser for faster initial user input
+    defer{
+      wust.util.time.time("parser warmup") {
+        NodeDataParser.addNode("x", Nil)
+      }
+    }
   }
 }
