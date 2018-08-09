@@ -1,7 +1,6 @@
 package wust
 
 
-
 import supertagged._
 
 package object ids {
@@ -18,8 +17,11 @@ package object ids {
   type UserId = UserId.Type
 
   object EpochMilli extends TaggedType[Long] {
-    def now: EpochMilli =
+    var delta: Long = 0
+    def localNow: EpochMilli =
       EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
+    def now: EpochMilli =
+      EpochMilli(localNow + delta)
     def from(time: String) = { // TODO this should not exist here, we cannot use instant in frontend!!
       import java.time.Instant
       EpochMilli(Instant.parse(time).toEpochMilli)
@@ -29,7 +31,7 @@ package object ids {
       @inline def >(that: EpochMilli) = t > that
       @inline def isBefore(that: EpochMilli) = t < that
       @inline def isAfter(that: EpochMilli) = t > that
-      def humanReadable:String = {
+      def humanReadable: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
         import java.util.Date

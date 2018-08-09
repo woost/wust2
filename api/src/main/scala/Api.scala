@@ -24,6 +24,8 @@ trait Api[Result[_]] {
       num: Option[Int]
   ): Result[List[Heuristic.ApiResult]]
 
+  def currentTime(i:Int):Result[EpochMilli] // TODO: bug: API calls without parameters is not possible
+
   //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
 }

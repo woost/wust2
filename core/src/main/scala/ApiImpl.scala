@@ -7,8 +7,8 @@ import wust.backend.Dsl._
 import wust.db.Db
 import wust.graph._
 import wust.ids._
-import scala.collection.breakOut
 
+import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
@@ -211,6 +211,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   ): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
     getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
+
+  override def currentTime(i:Int): Dsl.ApiFunction[EpochMilli] = Action { Future.successful(EpochMilli.now) }
 
   override def log(message: String): ApiFunction[Boolean] = Action { state =>
     val msgId = state.auth.fold("anonymous")(_.user.id.toCuidString)

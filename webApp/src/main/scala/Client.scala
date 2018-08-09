@@ -62,6 +62,11 @@ object Client {
     case auth: Authentication.Assumed  => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
+  storage.backendTimeDelta.foreach { delta =>
+    println(s"backend time delta: ${ delta }ms")
+    EpochMilli.delta = delta
+  }
+
 
   //TODO backoff?
   private def doLoginWithRetry(auth: Option[Authentication]): Unit = loginStorageAuth(auth getOrElse initialAssumedAuth).onComplete {
@@ -78,7 +83,11 @@ object Client {
       doLoginWithRetry(auth)
   }
 
+  private def timeSync(): Unit = {
+    Client.api.currentTime(0).foreach(backendNow => Client.storage.backendTimeDelta() = backendNow - EpochMilli.localNow)
+  }
+
   // relogin when reconnecting or when localstorage-auth changes
-  observable.connected.foreach { _ => doLoginWithRetry(storage.auth.now) }
+  observable.connected.foreach { _ => timeSync(); doLoginWithRetry(storage.auth.now) }
   storage.authFromOtherTab.foreach { doLoginWithRetry }
 }
