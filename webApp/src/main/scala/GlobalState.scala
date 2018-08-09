@@ -140,7 +140,6 @@ class GlobalState (
     .debounce(0.2 second)
     .map(_ => ScreenSize.calculate())
     .unsafeToRx(ScreenSize.calculate())
-  screenSize.debug("Screensize")
 
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
