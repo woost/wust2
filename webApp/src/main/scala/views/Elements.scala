@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import monix.reactive.{Observer, Observable}
+import cats.implicits._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
@@ -66,7 +67,7 @@ object Elements {
         modifiers <- Seq(
           value <-- writeValue,
           onEnter.value.filter(_.nonEmpty) --> userInput,
-          managed(sink <-- userInput)
+          managed(sink <-- userInput.distinctUntilChanged) // distinct, because Enter can be pressed multiple times before writeValue clears the field
         )
       } yield modifiers
   }
