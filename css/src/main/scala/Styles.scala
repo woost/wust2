@@ -440,6 +440,11 @@ object CommonStyles extends StyleSheet.Standalone {
     whiteSpace.preWrap
   )
 
+  ".nodecard-content > p," +
+  ".nodecard-content > p > div > div > p" - (
+    margin(0 px)
+  )
+
   ".node-deleted .nodecard-content" - (
     textDecoration := "line-through",
     cursor.default
