@@ -9,6 +9,7 @@ import wust.graph._
 import wust.ids._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Components._
 import wust.webApp.views._
 
 object UserSettingsView extends View {
@@ -56,9 +57,9 @@ object UserSettingsView extends View {
       div(
         Styles.flex,
         fontSize := "25px",
-        img(src := "safari-pinned-tab.svg", width := "1em", height := "100%")(marginRight := "10px"),
-        (freeSolid.faExchangeAlt:VNode)(marginRight := "10px"),
-        (freeBrands.faSlack:VNode),
+        woostIcon( marginRight := "10px" ),
+        (freeSolid.faExchangeAlt: VNode) (marginRight := "10px"),
+        (freeBrands.faSlack: VNode),
         marginBottom := "5px",
       ),
       div("Sync with Slack"),
