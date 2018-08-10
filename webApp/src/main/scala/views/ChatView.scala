@@ -91,7 +91,7 @@ object ChatView extends View {
         ),
         //        TagsList(state).apply(Styles.flexStatic)
       ),
-      inputField(state).apply(Styles.flexStatic),
+      Rx { inputField(state, state.page().parentIdSet).apply(key := "chatinput", Styles.flexStatic, padding := "3px") },
       registerDraggableContainer(state),
     )
   }
@@ -138,6 +138,7 @@ object ChatView extends View {
 
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val scrolledToBottom = PublishSubject[Boolean]
+    val activeReplyFields = Var(Set.empty[NodeId])
 
     div(
       cls := "chat-history",
@@ -155,7 +156,7 @@ object ChatView extends View {
         else
           VDomModifier(
             groupNodes(graph, nodes, state, user.id)
-              .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, page.parentIdSet, user.id, avatarSizeToplevel)),
+              .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, page.parentIdSet, user.id, avatarSizeToplevel, activeReplyFields)),
 
 
             draggableAs(state, DragItem.DisableDrag),
@@ -268,7 +269,8 @@ object ChatView extends View {
     alreadyVisualizedParentIds: Set[NodeId],
     directParentIds: Set[NodeId],
     currentUserId: UserId,
-    avatarSize: AvatarSize
+    avatarSize: AvatarSize,
+    activeReplyFields: Var[Set[NodeId]]
   )(
     implicit ctx: Ctx.Owner
   ): VNode = {
@@ -283,13 +285,13 @@ object ChatView extends View {
       div(
         cls := "chatmsg-group-inner-frame",
         chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, directParentIds = directParentIds, nid, currentUserId)
+        nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, directParentIds = directParentIds, nid, currentUserId, activeReplyFields)
         ),
       ),
     )
   }
 
-  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     if(graph.hasChildren(nodeId) && !inCycle) {
       val children = graph.children(nodeId).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
@@ -302,7 +304,9 @@ object ChatView extends View {
           borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
 
           groupNodes(graph, children, state, currentUserId)
-            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, directParentIds, currentUserId, avatarSizeThread)),
+            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, Set(nodeId), currentUserId, avatarSizeThread, activeReplyFields)),
+
+          replyField(state, nodeId, activeReplyFields),
 
           draggableAs(state, DragItem.DisableDrag),
           dragTarget(DragItem.Chat.Thread(nodeId)),
@@ -322,6 +326,40 @@ object ChatView extends View {
            ))
     else
       chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId)
+  }
+
+  def replyField(state: GlobalState, nodeId: NodeId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+    div(
+      Rx {
+        val active = activeReplyFields() contains nodeId
+        if(active)
+          div(
+            Styles.flex,
+            alignItems.center,
+            inputField( state, directParentIds = Set(nodeId))(ctx)(
+              key := s"chatreplyfield$nodeId",
+              padding := "3px",
+              width := "100%"
+            ),
+            div(
+              freeSolid.faTimes,
+              padding := "10px",
+              Styles.flexStatic,
+              cursor.pointer,
+              onClick --> sideEffect { activeReplyFields.update(_ - nodeId) },
+            )
+          )
+        else
+          div(
+            cls := "chat-replybutton",
+            freeSolid.faReply,
+            " reply",
+            marginTop := "3px",
+            marginLeft := "8px",
+            onClick --> sideEffect { activeReplyFields.update(_ + nodeId) }
+          )
+      }
+    )
   }
 
   /// @return a vnode containing a chat header with optional name, date and avatar
@@ -375,7 +413,7 @@ object ChatView extends View {
       nodeLink(state, nodeId)
     )
 
-    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.enriched.changes)(ctx)(
+    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
       messageCardInjected
@@ -432,7 +470,7 @@ object ChatView extends View {
 
   }
 
-  private def inputField(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  private def inputField(state: GlobalState, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
       val pageModeOrphans = state.page().mode == PageMode.Orphans
@@ -447,22 +485,20 @@ object ChatView extends View {
     }
 
     div(
-      padding := "3px",
       cls := "ui form",
       textArea(
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now
           val selectedNodeIds = state.selectedNodeIds.now
-          val changes = if(selectedNodeIds.isEmpty) {
-            NodeDataParser.addNode(str, contextNodes = graph.nodes)
-          } else {
+          val changes = {
             val newNode = Node.Content.empty
-            val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes, baseNode = newNode)
-            val parentChanges = GraphChanges.addToParents(newNode.id, selectedNodeIds)
-            nodeChanges merge parentChanges
+            val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes, directParentIds ++ selectedNodeIds, baseNode = newNode)
+            val newNodeParentships = GraphChanges.connect(Edge.Parent)(newNode.id, directParentIds)
+            nodeChanges merge newNodeParentships
           }
-          state.eventProcessor.enriched.changes.onNext(changes)
+
+          state.eventProcessor.changes.onNext(changes)
         },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD

@@ -33,13 +33,13 @@ object PageHeader {
     import state._
     div(
       Rx {
-        pageParentNodes().map { channel => channelRow(state, channel) },
+        pageParentNodes().map { channel => channelRow(state, channel, state.user().channelNodeId) },
       }
     )
   }
 
-  private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
+  private def channelRow(state: GlobalState, channel: Node, channelNodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes, newTagParentIds = Set(channelNodeId))(ctx)(
       cls := "pageheader-channeltitle",
     )
 

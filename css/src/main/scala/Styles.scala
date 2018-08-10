@@ -374,6 +374,16 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
+  ".chat-replybutton" - (
+    color(c"rgba(0,0,0,0.5)"),
+    cursor.pointer,
+  )
+
+  ".chat-replybutton:hover" - (
+    color(black)
+  )
+
+
   // -- controls on hover --
   // TODO: Focus is only used as a quick hack in order to use controls on mobile browser
   ".chatmsg-line:hover, .chatmsg-line:focus" - (

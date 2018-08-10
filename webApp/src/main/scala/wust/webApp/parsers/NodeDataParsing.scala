@@ -28,7 +28,8 @@ object NodeDataParser {
     (contentWithTags | anyContent.map((_, Seq.empty))) ~ End
   )
 
-  def addNode(str:String, contextNodes: Iterable[Node], baseNode:Node.Content = Node.Content.empty): GraphChanges = {
+  def addNode(str:String, contextNodes: Iterable[Node], newTagParentIds:Iterable[NodeId], baseNode:Node.Content = Node.Content.empty): GraphChanges = {
+    println(newTagParentIds)
     val parser = taggedContent.map {
         case (data, tags) =>
           val tagNodesEither = tags.map(
@@ -38,10 +39,11 @@ object NodeDataParser {
           val newTagNodes = tagNodesEither.collect { case Left(p) => p }
           val tagNodes = tagNodesEither.map(_.fold(_.id, _.id))
           val newNode = baseNode.copy(data = data)
-          GraphChanges.from(
-            addEdges = tagNodes.map(Edge.Parent(newNode.id, _)),
-            addNodes = newNode +: newTagNodes
-          )
+
+          val add = GraphChanges.from(addNodes = newNode +: newTagNodes)
+          val insertNewTagNodes = GraphChanges.connect(Edge.Parent)(newTagNodes.map(_.id), newTagParentIds)
+          val addTags = GraphChanges.connect(Edge.Parent)(newNode.id, tagNodes)
+        add merge insertNewTagNodes merge addTags
       }
     parser.parse(str) match {
       case Parsed.Success(changes, _) => changes

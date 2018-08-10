@@ -45,7 +45,7 @@ object Main {
     // warming up fastparse parser for faster initial user input
     defer{
       wust.util.time.time("parser warmup") {
-        NodeDataParser.addNode("x", Nil)
+        NodeDataParser.addNode("x", Nil, Set.empty)
       }
     }
   }

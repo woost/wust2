@@ -130,7 +130,7 @@ object KanbanView extends View {
   private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
 
     val editable = Var(false)
-    val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
+    val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, newTagParentIds = parentIds, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
 
     val buttonBar = div(
       cls := "kanbanbuttonbar",
@@ -190,7 +190,8 @@ object KanbanView extends View {
       state, node,
       maxLength = Some(maxLength),
       editable = editable,
-      submit = state.eventProcessor.enriched.changes
+      submit = state.eventProcessor.enriched.changes,
+      newTagParentIds = parentIds
     )
 
 
