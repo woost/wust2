@@ -1,0 +1,17 @@
+<svg width="14" height="20" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Define the color to use -->
+    <linearGradient id="color">
+      <stop offset="0" stop-color="#888888" stop-opacity="1"/>
+    </linearGradient>
+
+    <!-- Define the arrow-head -->
+    <marker id="arrow" markerHeight="10" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto" refX="6" refY="4">
+    <path d="m0,0l0,7l9,-4l-9,-3z" fill="url(#color)" id="svg_2"/>
+   </marker>
+  </defs>
+
+  <!-- Define the half-circle shape -->
+  <path d="m12,0 c-16,0 -16,18 0,18" stroke-width="1" fill="transparent"
+        id="svg_1" marker-end="url(#arrow)" stroke="url(#color)"/>
+</svg>

@@ -31,6 +31,15 @@ object BreadCrumbs {
     case short              => short
   }
 
+  def cycleIndicator(rotate : Boolean) = {
+    //"\u21ba"
+    img(
+      cls := "cycle-indicator",
+      if(rotate) style := "transform: rotate(180deg)" else style := "",
+      src:="halfCircle.svg",
+    )
+  }
+
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "breadcrumbs",
@@ -53,15 +62,14 @@ object BreadCrumbs {
                      sortedByGroupId.map { case (gId, nodes) =>
                        span(
                          cls := "breadcrumb",
-                         // "G:" + gId + " ",
-                         if (gId != -1) "\u21ba" else "",
+                         if (gId != -1) cycleIndicator(false) else "",
                          nodes.map{ (n : NodeId) =>
                            graph.nodesById.get(n) match {
                              case Some(node) if (showOwn || n != parentId) => nodeTag(state, node)(cursor.pointer)
                              case _ => span()
                            }
                          } : Seq[VNode],
-                         if (gId != -1) "\u21ba" else "",
+                         if (gId != -1) cycleIndicator(true) else "",
                          )
                      }.toSeq
                    ))

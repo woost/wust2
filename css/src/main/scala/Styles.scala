@@ -130,9 +130,27 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowX.auto,
     fontSize(12 px),
     Styles.flexStatic,
+
+    &(".cycle-indicator") - (
+      verticalAlign.middle,
+      margin(1.px),
+      width(0.8.em)
+    )
   )
 
-  ".breadcrumb" - ()
+  ".breadcrumb .tag" - (
+    marginLeft(1 px),
+    marginRight(2 px)
+  )
+
+  // first/last breadcrumb should not have any margin.
+  // this way e.g. the cycle shape is closer to the cycle
+  ".breadcrumb .tag:first-of-type" - (
+    marginLeft(0 px),
+    )
+  ".breadcrumb .tag:last-of-type" - (
+    marginRight(0 px),
+    )
 
   ".breadcrumbs .divider" - (
     marginLeft(1 px),
