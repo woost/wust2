@@ -9,6 +9,7 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 import rx._
+import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.views._
 import wust.api.AuthUser
 import fontAwesome._
@@ -31,6 +32,7 @@ object Topbar {
     backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
     color := "white",
     transition := "background-color 0.5s", // fades on page change
+    cls := "topbar",
     Styles.flex,
     flexDirection.row,
     justifyContent.spaceBetween,
@@ -211,15 +213,45 @@ object Topbar {
   }
 
   def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VNode = {
+    import scala.reflect.{ClassTag, classTag}
+    def MkLabel[T : ClassTag](theId : String, view : View, targetView : View,
+                              pS : PageStyle, icon : IconDefinition) = {
+      label(`for` := theId, icon, onClick(targetView) --> state.view, cursor.pointer,
+            view match {
+              case v if classTag[T].runtimeClass.isInstance(v) =>
+                Seq(
+                  color := "#111111",
+                  //borderTop(2 px, solid, pS.bgLightColor)
+                  backgroundColor := pS.bgColor)
+              case _ => Seq[VNode]()
+            }
+      )
+    }
+    def MkInput[T : ClassTag](theId : String, view : View, pS : PageStyle) = {
+      input(display.none, id := theId, `type` := "radio", name := "viewbar",
+            view match {
+              case v if classTag[T].runtimeClass.isInstance(v) => Seq(checked := true)
+              case _ => Seq[VNode]()
+            }
+      )
+    }
     div(
-      Styles.flex,
-      flexDirection.row,
-      justifyContent.spaceBetween,
-      alignItems.center,
-      div(freeRegular.faComments, onClick(ChatView:View) --> state.view, cursor.pointer),
-      div(freeSolid.faColumns, onClick(KanbanView:View) --> state.view, cursor.pointer, marginLeft := "10px"),
-      div(freeBrands.faCloudsmith, onClick(GraphView:View) --> state.view, cursor.pointer, marginLeft := "10px"),
-    )
+        cls := "viewbar",
+        Styles.flex,
+        flexDirection.row,
+        justifyContent.spaceBetween,
+        alignItems.center,
+
+        Rx {
+          Seq(MkInput[ChatView.type]("v1", state.view(), state.pageStyle()),
+              MkLabel[ChatView.type]("v1", state.view(), ChatView, state.pageStyle(), freeRegular.faComments),
+              MkInput[KanbanView.type]("v2", state.view(), state.pageStyle()),
+              MkLabel[KanbanView.type]("v2", state.view(), KanbanView, state.pageStyle(), freeSolid.faColumns),
+              MkInput[GraphView.type]("v3", state.view(), state.pageStyle()),
+              MkLabel[GraphView.type]("v3", state.view(), GraphView, state.pageStyle(), freeBrands.faCloudsmith) )
+        }
+        )
+
   }
 
   def authentication(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =

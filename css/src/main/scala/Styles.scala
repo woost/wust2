@@ -915,6 +915,35 @@ object CommonStyles extends StyleSheet.Standalone {
   ".non-bookmarked-page-frame > *" - (
     boxShadow := nonBookmarkShadowOpts
   )
+
+  ".topbar" - (
+    //borderBottom(solid, 1 px, c"#FFFFFF")
+  )
+
+  ".viewbar" - (
+    height(100 %%),
+  )
+
+  ".viewbar label" - (
+    height(100 %%),
+    paddingTop(2 px),
+    paddingLeft(5 px),
+    paddingRight(5 px),
+    marginTop(2 px),
+    marginBottom(-2 px),
+    border(1 px, solid, transparent),
+    borderRadius(2 px),
+    &("svg") - (
+      verticalAlign.middle
+    )
+  )
+
+  ".viewbar input:checked + label" - (
+    // backgroundColor(rgb(48, 99, 69)),
+    border(1 px, solid, white),
+    borderTop(2 px, solid, white),
+    borderBottom(1 px, solid, transparent)
+  )
 }
 
 object StyleRendering {
