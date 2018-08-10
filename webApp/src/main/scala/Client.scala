@@ -84,7 +84,7 @@ object Client {
   }
 
   private def timeSync(): Unit = {
-    Client.api.currentTime(0).foreach(backendNow => Client.storage.backendTimeDelta() = backendNow - EpochMilli.localNow)
+    Client.api.currentTime.foreach(backendNow => Client.storage.backendTimeDelta() = backendNow - EpochMilli.localNow)
   }
 
   // relogin when reconnecting or when localstorage-auth changes
