@@ -17,7 +17,7 @@ package object ids {
   type UserId = UserId.Type
 
   object EpochMilli extends TaggedType[Long] {
-    var delta: Long = 0
+    var delta: Long = 0 //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
     def localNow: EpochMilli =
       EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
     def now: EpochMilli =
