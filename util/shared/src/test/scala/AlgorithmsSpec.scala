@@ -304,23 +304,4 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       assert(depths == Map(4 -> 0, 3 -> 1, 2 -> 2, 1 -> 3, 0 -> 4))
     }
   }
-
-  "shortest paths to parents" - {
-    "simple case" - {
-      val edges = Map(
-        0 -> Seq(10, 20),
-        10 -> Seq(30),
-        20 -> Seq(21),
-        21 -> Seq(30)
-      )
-      // assert(
-      //   shortestPaths(edges, 0) == Map(
-      //     10 -> Seq(),
-      //     20 -> Seq(),
-      //     21 -> Seq(20),
-      //     30 -> Seq(10, 30),
-      //   )
-      // )
-    }
-  }
 }

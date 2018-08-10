@@ -467,7 +467,6 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   lazy val childDepth: collection.Map[NodeId, Int] = depth(children)
   lazy val parentDepth: collection.Map[NodeId, Int] = depth(parents)
-  lazy val parentDepthMinCycles: collection.Map[NodeId, Int] = depthMinCycles(parents)
 
   def depth(next: NodeId => Iterable[NodeId]): collection.Map[NodeId, Int] = {
     val tmpDepths = mutable.HashMap[NodeId, Int]()
@@ -501,59 +500,6 @@ def redundantForest:List[Tree] = {
     val roots = nodes.filterNot(n => hasParents(n.id))
     roots.map(n => redundantTree(n))(breakOut)
 }
-  def depthMinCycles(next: NodeId => Iterable[NodeId]): collection.Map[NodeId, Int] = {
-    // inside sbt:
-    // project graphJVM
-    // test
-    val tmpDepths = mutable.HashMap[NodeId, Int]()
-    val visited = mutable.HashSet[NodeId]() // to handle cycles
-    def getDepth(id: NodeId): Option[Int] = {
-      tmpDepths.get(id) match {
-        case Some(d) => Some(d)
-        case None => {
-          if (!visited(id)) {
-            visited += id
-            val nodeParents = next(id)
-            val d : Option[Int] = if (nodeParents.isEmpty)
-                      Some(0)
-                    else {
-                      val depths = nodeParents.map(getDepth).zip(nodeParents)
-                      // e.g. [(Some(D), NodeId), (None, NodeId)]
-                      val depthsWithNoneForCircles = depths.map(_ match {
-                                   case (Some(d), _) => Some(d + 1)
-                                   case (None, node) => None /* return none */
-                                 }  )
-                      if(depths.size == 0)
-                        Some(0)
-                      else if(depthsWithNoneForCircles.exists(_ == None)) {
-                        val idsWithCycles = depths.filter(_._1 == None).map(_._2)
-                        val idsWithCyclesParents = idsWithCycles.flatMap(k => parents.get(k).map((k, _))).toMap
-                        println("=========================")
-                        println(idsWithCyclesParents)
-                        val depthMap = depth(idsWithCyclesParents)
-                        // depthsWithNoneForCircles.max
-                          // ++ cycledDepths
-                        Some(10) // depthsWithNoneForCircles.min
-                      }
-                      else
-                        depthsWithNoneForCircles.max
-                    }
-            d match {
-              case Some(d) => tmpDepths(id) = d
-              case None => tmpDepths(id) = 0
-            }
-            d
-          }
-          else
-            None // cycle
-        }
-      }
-    }
-      for (id <- nodeIds if !tmpDepths.isDefinedAt(id)) {
-          getDepth(id)
-      }
-      tmpDepths
-  }
 
   trait Grouping
   case class Cycle(node : NodeId) extends Grouping

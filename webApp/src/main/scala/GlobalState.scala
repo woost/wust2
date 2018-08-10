@@ -107,15 +107,6 @@ class GlobalState (
                    }.distinct)
     )
 
-  val nodeAncestorsHierarchyMinCycles: Rx[Map[Int, Seq[Node]]] =
-    pageAncestorsIds.map(
-      _.map(node => (graph().parentDepthMinCycles(node), graph().nodesById(node)))
-        .groupBy(_._1)
-        .mapValues(_.map {
-                     case (depth, node) => node
-                   }.distinct)
-    )
-
   val pageStyle = Rx {
     PageStyle(view(), page())
   }
