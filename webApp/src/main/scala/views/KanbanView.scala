@@ -25,6 +25,9 @@ object KanbanView extends View {
   val maxLength = 100
   override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
+    val activeReplyFields = Var(Set.empty[NodeId])
+    val newColumnFieldActive = Var(false)
+
     div(
       cls := "kanbanview",
       Styles.growFull,
@@ -56,8 +59,8 @@ object KanbanView extends View {
             alignItems.flexStart,
             overflowX.auto,
             overflowY.hidden,
-            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
-            newColumnArea(state, page)
+            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, activeReplyFields, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+            newColumnArea(state, page, newColumnFieldActive)
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes)(ctx)(Styles.flexStatic)
         )
@@ -65,8 +68,7 @@ object KanbanView extends View {
     )
   }
 
-  private def newColumnArea(state:GlobalState, page:Page)(implicit ctx: Ctx.Owner) = {
-    val fieldActive = Var(false)
+  private def newColumnArea(state:GlobalState, page:Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     div(
       cls := s"kanbannewcolumnarea",
       key := s"kanbannewcolumnarea",
@@ -76,9 +78,11 @@ object KanbanView extends View {
       Rx {
         if(fieldActive())
           div(
+            key := "kanban-newcolumnform",
             cls := "kanbannewcolumnareaform",
             cls := "ui form",
             textArea(
+              key := "kanban-newcolumnfield",
               cls := "field fluid",
               fontSize.larger,
               fontWeight.bold,
@@ -93,10 +97,8 @@ object KanbanView extends View {
                   val makeStatic = GraphChanges.connect(Edge.StaticParentIn)(newColumnNode.id, page.parentIds)
                   add merge makeStatic
                 }
-                fieldActive() = false
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              key := cuid.Cuid(),
               onInsert.asHtml --> sideEffect{elem => elem.focus()},
               onBlur.value --> sideEffect{v => if(v.isEmpty) fieldActive() = false}
             )
@@ -114,20 +116,20 @@ object KanbanView extends View {
     )
   }
 
-  private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], isTopLevel:Boolean = false, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
+  private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel:Boolean = false, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds, isTopLevel = isTopLevel)(ctx)(inject)
+      case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds, activeReplyFields, isTopLevel = isTopLevel)(ctx)(inject)
       case Tree.Leaf(node) =>
         Rx{
           if(state.graph().isStaticParentIn(node.id, parentIds))
-            renderColumn(state, node, Nil, parentIds, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
+            renderColumn(state, node, Nil, parentIds, activeReplyFields, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
           else
             renderCard(state, node, parentIds)(ctx)(inject)
         }
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, newTagParentIds = parentIds, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -178,9 +180,9 @@ object KanbanView extends View {
         registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
         key := s"sortablecolumn${node.id}parent${parentIds.mkString}",
 
-        children.map(t => renderTree(state, t, parentIds = node.id :: Nil)),
+        children.map(t => renderTree(state, t, parentIds = node.id :: Nil, activeReplyFields)),
       ),
-      addNodeField(state, node.id) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
+      addNodeField(state, node.id, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
     )
   }
 
@@ -228,15 +230,16 @@ object KanbanView extends View {
     )
   }
 
-  private def addNodeField(state: GlobalState, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    val active = Var(false)
+  private def addNodeField(state: GlobalState, parentId: NodeId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "kanbanaddnodefield",
       Rx {
-        if(active())
+        val active = activeReplyFields() contains parentId
+        if(active)
           div(
             cls := "ui form",
             textArea(
+              key := s"kanban-nodefield$parentId",
               cls := "field fluid",
               rows := 2,
               placeholder := "Press Enter to add.",
@@ -244,18 +247,16 @@ object KanbanView extends View {
                 val graph = state.graphContent.now
                 val selectedNodeIds = state.selectedNodeIds.now
                 val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
-                active() = false
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              key := cuid.Cuid(),
               onInsert.asHtml --> sideEffect{elem => elem.focus()},
-              onBlur.value --> sideEffect{v => if(v.isEmpty) active() = false}
+              onBlur.value --> sideEffect{v => if(v.isEmpty) activeReplyFields.update(_ - parentId)}
             )
           )
         else
           div(
             "+ Add Card",
-            onClick(true) --> active
+            onClick --> sideEffect {activeReplyFields.update(_ + parentId)}
           )
       }
     )

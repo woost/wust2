@@ -107,9 +107,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
           case Some(deletedAt) =>
             //TODO should already be filtered in backend
             if (deletedAt > remorseTime) {
-            deletedParents(childId) += parentId
+              deletedParents(childId) += parentId
               deletedChildren(parentId) += childId
-          }
+            }
         }
       case e @ Edge.StaticParentIn(childId, parentId) =>
         staticParentIn(childId) += parentId
