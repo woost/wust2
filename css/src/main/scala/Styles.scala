@@ -940,6 +940,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".viewbar input:checked + label" - (
     // backgroundColor(rgb(48, 99, 69)),
+    color(c"#111111"),
     border(1 px, solid, white),
     borderTop(2 px, solid, white),
     borderBottom(1 px, solid, transparent)
