@@ -338,7 +338,7 @@ object ChatView extends View {
           div(
             Styles.flex,
             alignItems.center,
-            inputField( state, directParentIds = Set(nodeId))(ctx)(
+            inputField(state, directParentIds = Set(nodeId))(ctx)(
               key := s"chatreplyfield$nodeId",
               padding := "3px",
               width := "100%"
@@ -430,13 +430,13 @@ object ChatView extends View {
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
-        editable.map{editable =>
+        editable.map { editable =>
           if(editable)
             draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
           else {
             val payload = () => {
               val selection = state.selectedNodeIds.now
-              if( selection contains nodeId)
+              if(selection contains nodeId)
                 DragItem.Chat.Messages(selection.toSeq)
               else
                 DragItem.Chat.Message(nodeId)
@@ -517,6 +517,7 @@ object ChatView extends View {
 
           state.eventProcessor.changes.onNext(changes)
         },
+        onInsert.asHtml --> sideEffect { e => e.focus() },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         style("resize") := "none", //TODO: add resize style to scala-dom-types
