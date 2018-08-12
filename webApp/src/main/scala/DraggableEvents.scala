@@ -78,7 +78,8 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: SelectedNodes, SelectedNodesBar, false, false) => // do nothing, since already selected
       case (dragging: AnyNodes, SelectedNodesBar, false, false) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
 
-      case (dragging: AnyNodes, target: Channel, false, false) => addTag(dragging.nodeIds, target.nodeId)
+      case (dragging: AnyNodes, target: Channel, false, false) => moveInto(dragging.nodeIds, target.nodeId :: Nil)
+      case (dragging: Channel, target: SingleNode, false, false) => addTag(dragging.nodeId, target.nodeId)
 
       case (dragging: ChildNode, target: ParentNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
       case (dragging: ChildNode, target: MultiParentNodes, false, false) => moveInto(dragging.nodeId, target.nodeIds)
