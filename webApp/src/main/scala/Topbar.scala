@@ -42,8 +42,8 @@ object Topbar {
     appUpdatePrompt(state).apply(marginRight := "10px"),
     beforeInstallPrompt().apply(marginRight := "10px"),
 //    undoRedo(state)(ctx)(marginRight.auto),
-    viewSwitcher(state).apply(marginLeft.auto, marginRight.auto),
-    FeedbackForm(state)(ctx)(marginRight := "10px"),
+    Rx{ (state.page().parentIds.nonEmpty).ifTrue[VDomModifier](viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)) },
+    FeedbackForm(state)(ctx)(marginLeft.auto),
     Rx{ (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](authentication(state))}
   )
 
