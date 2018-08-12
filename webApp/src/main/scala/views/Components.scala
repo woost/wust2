@@ -150,19 +150,43 @@ object Components {
     )
   }
 
+  def readDragTarget(elem: dom.html.Element):Option[DragTarget] = {
+    readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
+  }
+
+  def writeDragTarget(elem: dom.html.Element, dragTarget: DragTarget): Unit = {
+    writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
+  }
+
+  def readDragPayload(elem: dom.html.Element):Option[DragPayload] = {
+    readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
+  }
+
+  def writeDragPayload(elem: dom.html.Element, dragPayload: DragPayload): Unit = {
+    writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
+  }
+
+  def readDragContainer(elem: dom.html.Element):Option[DragContainer] = {
+    readPropertyFromElement[DragContainer](elem, DragContainer.propName)
+  }
+
+  def writeDragContainer(elem: dom.html.Element, dragContainer: DragContainer): Unit = {
+    writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
+  }
+
   def draggableAs(state: GlobalState, payload: DragPayload): VDomModifier = {
-    import DragItem.payloadEncoder
-    import io.circe.syntax._
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      attr(DragItem.payloadAttrName) := payload.asJson.noSpaces,
+      onDomElementChange.asHtml --> sideEffect{ elem =>
+        writeDragPayload(elem, payload)
+      }
     )
   }
 
   def dragTarget(dragTarget: DragTarget) = {
-    import DragItem.targetEncoder
-    import io.circe.syntax._
-    attr(DragItem.targetAttrName) := dragTarget.asJson.noSpaces
+    onDomElementChange.asHtml --> sideEffect{ elem =>
+      writeDragTarget(elem, dragTarget)
+    }
   }
 
   def registerDraggableContainer(state: GlobalState): VDomModifier = Seq(
@@ -180,14 +204,14 @@ object Components {
   )
 
   def registerSortableContainer(state: GlobalState, container: DragContainer): VDomModifier = {
-    import DragContainer.encoder
-    import io.circe.syntax._
     Seq(
       key := cuid.Cuid(),
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
-      attr(DragContainer.attrName) := container.asJson.noSpaces,
+      onDomElementChange.asHtml --> sideEffect { elem =>
+        writeDragContainer(elem, container)
+      },
       onInsert.asHtml --> sideEffect { elem =>
         //        console.log("Adding Sortable Container:", elem)
         state.sortable.addContainer(elem)

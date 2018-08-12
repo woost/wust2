@@ -13,6 +13,7 @@ import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
 import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
 import wust.webApp.views.Elements._
+import wust.webApp.views.Components._
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
@@ -101,8 +102,11 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
 
   sortableStartEvent.foreachTry { e =>
-    val source = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
-    source match {
+    // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
+    val payload:Option[DragPayload] = readDragPayload(e.dragEvent.originalSource)
+    payload.foreach ( writeDragPayload(e.dragEvent.source, _) )
+
+    payload match {
       case Some(DragItem.DisableDrag) => e.cancel()
       case _ =>
     }
@@ -111,24 +115,25 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   sortableSortEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
     val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[dom.html.Element] // https://github.com/Shopify/draggable/issues/256
     val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
-    val dragging = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
-    val overContainer = decodeFromAttr[DragContainer](overContainerWorkaround, DragContainer.attrName)
-    val sourceContainer = decodeFromAttr[DragContainer](sourceContainerWorkaround, DragContainer.attrName).orElse(overContainer)
+    val dragging = readDragPayload(e.dragEvent.source)
+    val overContainer = readDragContainer(overContainerWorkaround)
+    val sourceContainer = readDragContainer(sourceContainerWorkaround)
 
     // white listing allowed sortable actions
     (dragging, sourceContainer, overContainer) match {
       case (Some(dragging), Some(sourceContainer), Some(overContainer)) if sortableActions.isDefinedAt((e, dragging, sourceContainer, overContainer, ctrl, shift)) => // allowed
 //      case (Some(dragging), Some(sourceContainer), Some(overContainer)) => println(s"not allowed: $sourceContainer -> $dragging -> $overContainer"); e.cancel()
-      case _ => e.cancel() // not allowed
+      case a => e.cancel() // not allowed
     }
   }
 
 
   sortableStopEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
     if(e.newContainer != e.oldContainer) {
-      val dragging = decodeFromAttr[DragPayload](e.dragEvent.source, DragItem.payloadAttrName)
-      val oldContainer = decodeFromAttr[DragContainer](e.oldContainer, DragContainer.attrName)
-      val newContainer = decodeFromAttr[DragContainer](e.newContainer, DragContainer.attrName)
+      val dragging = readDragPayload(e.dragEvent.source)
+      val oldContainer = readDragContainer(e.oldContainer)
+      val newContainer = readDragContainer(e.newContainer)
+
       (dragging, oldContainer, newContainer) match {
         case (Some(dragging), Some(oldContainer), Some(newContainer)) =>
           println(s"Sorting: $oldContainer -> $dragging -> $newContainer${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")

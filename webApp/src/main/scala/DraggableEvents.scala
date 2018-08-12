@@ -12,6 +12,7 @@ import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
 import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
 import wust.webApp.views.Elements._
+import wust.webApp.views.Components._
 import wust.webApp.outwatchHelpers._
 import wust.util._
 
@@ -26,7 +27,7 @@ object DragStatus {
 
 
 class DraggableEvents(state: GlobalState, draggable: Draggable) {
-  private val dragStartEvent = PublishSubject[DragEvent] //TODO type event
+  private val dragStartEvent = PublishSubject[DragStartEvent]
   private val dragOverEvent = PublishSubject[DragOverEvent]
   private val dragOutEvent = PublishSubject[DragOutEvent]
   private val dragStopEvent = PublishSubject[DragEvent] //TODO type event
@@ -35,7 +36,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   val status: Observable[DragStatus] = Observable.merge(dragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
 
 
-  draggable.on[DragEvent]("drag:start", dragStartEvent.onNext _)
+  draggable.on[DragStartEvent]("drag:start", dragStartEvent.onNext _)
   draggable.on[DragOverEvent]("drag:over", dragOverEvent.onNext _)
   draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext _)
   draggable.on[DragEvent]("drag:stop", dragStopEvent.onNext _)
@@ -90,16 +91,19 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   }
 
   dragStartEvent.foreachTry { e =>
-    val source = decodeFromAttr[DragPayload](e.source, DragItem.payloadAttrName)
-    source match {
+    // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
+    val payload:Option[DragPayload] = readDragPayload(e.originalSource)
+    payload.foreach ( writeDragPayload(e.mirror, _) )
+
+    payload match {
       case Some(DragItem.DisableDrag) => e.cancel()
       case _ =>
     }
   }
 
-  dragOverEvent.map(_.over).map { elem =>
-    val target = decodeFromAttr[DragTarget](elem,DragItem.targetAttrName)
-//    target.foreach{target => scribe.info(s"Dragging over: $target")}
+  dragOverEvent.map(_.over).map { over =>
+    val target = readDragTarget(over)
+    target.foreach{target => scribe.info(s"Dragging over: $target")}
     target
   }.subscribe(lastDragTarget)
 
@@ -114,7 +118,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
 //  shiftDown.foreach(down => println(s"shift down: $down"))
 
   dragStopEvent.map { e =>
-    decodeFromAttr[DragPayload](e.source, DragItem.payloadAttrName)
+    readDragPayload(e.originalSource)
   }.withLatestFrom3(lastDragTarget, ctrlDown, shiftDown)((p,t,ctrl,shift) => (p,t, ctrl, shift)).foreachTry { pt =>
     pt match {
       case (Some(payload), Some(target), ctrl, shift) =>

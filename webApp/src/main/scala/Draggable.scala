@@ -87,6 +87,14 @@ class AbstractEvent(data: js.Object) extends js.Object {
 class DragEvent(data: js.Object) extends AbstractEvent(data) {
   def source: html.Element = js.native
   def originalSource: html.Element = js.native
+  def mirror: html.Element = js.native
+  def sourceContainer: html.Element = js.native
+  // def sensorEvent: SensorEvent = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragStartEvent")
+class DragStartEvent(data: js.Object) extends DragEvent(data) {
 }
 
 @js.native

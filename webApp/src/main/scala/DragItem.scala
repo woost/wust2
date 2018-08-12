@@ -36,8 +36,8 @@ object DragItem extends wust.ids.serialize.Circe {
     case class Card(nodeId: NodeId) extends ChildNode with SubItem
   }
 
-  val payloadAttrName = "data-dragpayload"
-  val targetAttrName = "data-dragtarget"
+  val payloadPropName = "_wust_dragpayload"
+  val targetPropName = "_wust_dragtarget"
 
   implicit val payloadDecoder: Decoder[DragPayload] = deriveDecoder[DragPayload]
   implicit val payloadEncoder: Encoder[DragPayload] = deriveEncoder[DragPayload]
@@ -56,7 +56,7 @@ object DragContainer extends wust.ids.serialize.Circe {
     case class IsolatedNodes(parentIds:Seq[NodeId]) extends Area
   }
 
-  val attrName = "data-dragcontainer"
+  val propName = "_wust_dragcontainer"
 
   implicit val decoder: Decoder[DragContainer] = deriveDecoder[DragContainer]
   implicit val encoder: Encoder[DragContainer] = deriveEncoder[DragContainer]

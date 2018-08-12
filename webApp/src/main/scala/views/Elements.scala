@@ -3,6 +3,7 @@ package wust.webApp.views
 import monix.reactive.{Observer, Observable}
 import cats.implicits._
 import org.scalajs.dom
+import org.scalajs.dom.console
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -45,8 +46,19 @@ object Elements {
     for {
       elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
       attr <- Option(elem.attributes.getNamedItem(attrName))
-      target <- decode[T](attr.value).toOption
-    } yield target
+      decoded <- decode[T](attr.value).toOption
+    } yield decoded
+  }
+
+  def readPropertyFromElement[T](elem: dom.html.Element, propName:String):Option[T] = {
+    for {
+      elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
+      value <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[T]].toOption
+    } yield value
+  }
+
+  def writePropertyIntoElement(elem: dom.html.Element, propName:String, value: Any): Unit = {
+    elem.asInstanceOf[js.Dynamic].updateDynamic(propName)(value.asInstanceOf[js.Any])
   }
 
   def removeDomElement(elem:dom.Element):Unit = {
