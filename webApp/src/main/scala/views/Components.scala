@@ -154,7 +154,7 @@ object Components {
     readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
   }
 
-  def writeDragTarget(elem: dom.html.Element, dragTarget: DragTarget): Unit = {
+  def writeDragTarget(elem: dom.html.Element, dragTarget: => DragTarget): Unit = {
     writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
   }
 
@@ -162,7 +162,7 @@ object Components {
     readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
   }
 
-  def writeDragPayload(elem: dom.html.Element, dragPayload: DragPayload): Unit = {
+  def writeDragPayload(elem: dom.html.Element, dragPayload: => DragPayload): Unit = {
     writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
   }
 
@@ -170,11 +170,11 @@ object Components {
     readPropertyFromElement[DragContainer](elem, DragContainer.propName)
   }
 
-  def writeDragContainer(elem: dom.html.Element, dragContainer: DragContainer): Unit = {
+  def writeDragContainer(elem: dom.html.Element, dragContainer: => DragContainer): Unit = {
     writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
   }
 
-  def draggableAs(state: GlobalState, payload: DragPayload): VDomModifier = {
+  def draggableAs(state: GlobalState, payload: => DragPayload): VDomModifier = {
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
       onDomElementChange.asHtml --> sideEffect{ elem =>

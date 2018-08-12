@@ -87,7 +87,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: ParentNode, target: SingleNode, false, false) => addTag(target.nodeId, dragging.nodeId)
 
       case (dragging: AnyNodes, target: AnyNodes, true, _) => addTag(dragging.nodeIds, target.nodeIds)
-      case (dragging: AnyNodes, target: AnyNodes, false, true) => moveInto(dragging.nodeIds, target.nodeIds)
+      case (dragging: AnyNodes, target: AnyNodes, false, _) => moveInto(dragging.nodeIds, target.nodeIds)
     }
   }
 

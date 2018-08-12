@@ -53,12 +53,12 @@ object Elements {
   def readPropertyFromElement[T](elem: dom.html.Element, propName:String):Option[T] = {
     for {
       elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
-      value <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[T]].toOption
-    } yield value
+      valueProvider <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[() => T]].toOption
+    } yield valueProvider()
   }
 
-  def writePropertyIntoElement(elem: dom.html.Element, propName:String, value: Any): Unit = {
-    elem.asInstanceOf[js.Dynamic].updateDynamic(propName)(value.asInstanceOf[js.Any])
+  def writePropertyIntoElement(elem: dom.html.Element, propName:String, value: => Any): Unit = {
+    elem.asInstanceOf[js.Dynamic].updateDynamic(propName)((() => value).asInstanceOf[js.Any])
   }
 
   def removeDomElement(elem:dom.Element):Unit = {

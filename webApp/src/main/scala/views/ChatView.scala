@@ -428,7 +428,22 @@ object ChatView extends View {
         isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
-        editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Chat.Message(nodeId))), // prevents dragging when selecting text
+        editable.map{editable =>
+          if(editable)
+            draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
+          else {
+            val payload = () => {
+              val selection = state.selectedNodeIds.now
+              if( selection contains nodeId)
+                DragItem.Chat.Messages(selection.toSeq)
+              else
+                DragItem.Chat.Message(nodeId)
+            }
+            // payload is call by name, so it's always the current selectedNodeIds
+            draggableAs(state, payload())
+          }
+        },
+
         dragTarget(DragItem.Chat.Message(nodeId)),
 
         // checkbox(Styles.flexStatic),
