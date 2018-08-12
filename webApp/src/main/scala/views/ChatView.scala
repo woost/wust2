@@ -295,7 +295,7 @@ object ChatView extends View {
 
   private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
-    if((graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
+    if(!graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
       val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
       div(
         chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
