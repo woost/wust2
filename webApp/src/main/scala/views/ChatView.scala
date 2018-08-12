@@ -149,8 +149,10 @@ object ChatView extends View {
         val graph = state.graphContent()
         val user = state.user()
         val nodes = graph.chronologicalNodesAscending.collect {
-          case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) => n.id
+          case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
         }
+        println(graph.nodes)
+        println(nodes)
         val avatarSizeToplevel = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
         if(nodes.isEmpty) VDomModifier(emptyChatNotice)
         else
@@ -293,8 +295,8 @@ object ChatView extends View {
 
   private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
-    if(graph.hasChildren(nodeId) && !inCycle) {
-      val children = graph.children(nodeId).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
+    if((graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
+      val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
       div(
         chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
           boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",

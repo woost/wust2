@@ -186,7 +186,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
 
   val authorsIn: NodeId => List[Node.User] = Memo.mutableHashMapMemo { parentId =>
-    (parentId :: descendants(parentId).toList).flatMap(authors)
+    (parentId :: descendantsWithDeleted(parentId).toList).flatMap(authors)
   }
 
   def members(node: Node): List[Node.User] = members(node.id)
@@ -206,7 +206,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
   def pageContentWithAuthors(page: Page): Graph = {
-    val pageChildren = page.parentIds.flatMap(descendants)
+    val pageChildren = page.parentIds.flatMap(descendantsWithDeleted)
     this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds) ++ page.parentIds)
   }
 
@@ -278,6 +278,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   // There are cases where the key is not present and cases where the set is empty
   //TODO these maps have default values? can we remove these hasChildren and just use children(node).nonEmpty?
   def hasChildren(node: NodeId): Boolean = children.contains(node) && children(node).nonEmpty
+  def hasDeletedChildren(node: NodeId): Boolean = deletedChildren.contains(node) && deletedChildren(node).nonEmpty
   def hasParents(node: NodeId): Boolean = parents.contains(node) && parents(node).nonEmpty
   def getChildren(nodeId: NodeId): collection.Set[NodeId] =
     if (children.contains(nodeId)) children(nodeId) else Set.empty[NodeId]
@@ -291,6 +292,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def isChildOf(childId:NodeId, parentId: NodeId): Boolean = parents(childId) contains parentId
   def isChildOfAny(childId:NodeId, parentIds: Iterable[NodeId]): Boolean = {
     val p = parents(childId)
+    parentIds.exists(p.contains)
+  }
+  def isDeletedChildOfAny(childId:NodeId, parentIds: Iterable[NodeId]): Boolean = {
+    val p = deletedParents(childId)
     parentIds.exists(p.contains)
   }
 
@@ -350,6 +355,17 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       case false => Seq.empty
     }
   }
+
+  def descendantsWithDeleted(nodeId: NodeId) = _descendantsWithDeleted(nodeId)
+  private val _descendantsWithDeleted: NodeId => Iterable[NodeId] = Memo.mutableHashMapMemo { nodeId =>
+    nodesById.isDefinedAt(nodeId) match {
+      case true =>
+        val cs = depthFirstSearch(nodeId, (id:NodeId) => children(id) ++ deletedChildren(id))
+        if (cs.startInvolvedInCycle) cs else cs.drop(1)
+      case false => Seq.empty
+    }
+  }
+
   //TODO: rename to transitiveParentIds:Iterable[NodeId]
   def ancestors(nodeId: NodeId) = _ancestors(nodeId)
   private val _ancestors: NodeId => Seq[NodeId] = Memo.mutableHashMapMemo { nodeId =>
