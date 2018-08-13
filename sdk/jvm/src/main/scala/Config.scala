@@ -10,13 +10,14 @@ case class ServerConfig(
                          allowedOrigins: List[String]
                        )
 
-case class OAuthConfig(authPath: String, clientId: String, clientSecret: String, siteUri: String, authorizeUrl: Option[String], tokenUrl: Option[String])
+case class OAuthConfig(clientId: String, clientSecret: String, siteUri: String, authPath: Option[String], redirectUri: Option[String], authorizeUrl: Option[String], tokenUrl: Option[String])
 
 case class DefaultConfig(server: ServerConfig, wust: WustConfig, oauth: OAuthConfig)
 
 object Config {
   import pureconfig._
+  import pureconfig.error.ConfigReaderFailures
   import wust.util.Config._
 
-  def load(str: String) = loadConfig[DefaultConfig](str)
+  def load(str: String): Either[ConfigReaderFailures, DefaultConfig] = loadConfig[DefaultConfig](str)
 }
