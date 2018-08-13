@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
 import wust.css.Styles
-import wust.webApp.GlobalState
+import wust.webApp.{Analytics, GlobalState}
 import wust.webApp.MainViewParts.newChannelButton
 import wust.webApp.outwatchHelpers._
 
@@ -20,7 +20,9 @@ object NewChannelView extends View {
       justifyContent.spaceAround,
       flexDirection.column,
       alignItems.center,
-      newChannelButton(state)(ctx)(padding := "20px", marginBottom := "10%")
+      newChannelButton(state)(ctx)(padding := "20px", marginBottom := "10%")(
+        onClick --> sideEffect { Analytics.sendEvent("view:newchannel", "newchannel") }
+      )
     )
   }
 }

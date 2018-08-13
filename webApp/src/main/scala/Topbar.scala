@@ -41,22 +41,25 @@ object Topbar {
     header(state).apply(marginRight := "10px"),
     appUpdatePrompt(state).apply(marginRight := "10px"),
     beforeInstallPrompt().apply(marginRight := "10px"),
-//    undoRedo(state)(ctx)(marginRight.auto),
-    Rx{ (state.page().parentIds.nonEmpty).ifTrue[VDomModifier](viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)) },
+    //    undoRedo(state)(ctx)(marginRight.auto),
+    Rx { (state.page().parentIds.nonEmpty).ifTrue[VDomModifier](viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)) },
     FeedbackForm(state)(ctx)(marginLeft.auto),
-    Rx{ (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](authentication(state))}
+    Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](authentication(state)) }
   )
 
-  def banner(state:GlobalState)(implicit ctx: Ctx.Owner) = div(
-      padding := "5px 5px",
-      fontSize := "14px",
-      fontWeight.bold,
-      "Woost",
-      color := "white",
-      textDecoration := "none",
-      onClick(ViewList.defaultViewConfig) --> state.viewConfig,
-      cursor.pointer
-    )
+  def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
+    padding := "5px 5px",
+    fontSize := "14px",
+    fontWeight.bold,
+    "Woost",
+    color := "white",
+    textDecoration := "none",
+    onClick(ViewList.defaultViewConfig) --> state.viewConfig,
+    onClick --> sideEffect {
+      Analytics.sendEvent("logo", "clicked")
+    },
+    cursor.pointer
+  )
 
   val betaSign = div(
     "beta",
@@ -76,10 +79,12 @@ object Topbar {
       alignItems.center,
 
       hamburger(state),
-      Rx{ (state.screenSize() != ScreenSize.Small).ifTrueSeq[VDomModifier](Seq(
-        banner(state),
-        betaSign,
-      ))},
+      Rx {
+        (state.screenSize() != ScreenSize.Small).ifTrueSeq[VDomModifier](Seq(
+          banner(state),
+          betaSign,
+        ))
+      },
       syncStatus(state)(ctx)(fontSize := "12px"),
     )
   }
@@ -95,7 +100,9 @@ object Topbar {
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick --> sideEffect { ev =>
-        sidebarOpen() = !sidebarOpen.now; ev.stopPropagation()
+        Analytics.sendEvent("hamburger", if(sidebarOpen.now) "close" else "open")
+        sidebarOpen() = !sidebarOpen.now;
+        ev.stopPropagation()
       }
     )
   }
@@ -108,7 +115,7 @@ object Topbar {
       fontawesome.icon(
         freeSolid.faSync,
         new Params {
-          transform = new Transform { size = 10.0 }
+          transform = new Transform {size = 10.0 }
           classes = scalajs.js.Array("fa-spin")
           styles = scalajs.js.Dictionary[String]("color" -> "white")
         }
@@ -119,7 +126,7 @@ object Topbar {
         styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
       }),
       fontawesome.icon(freeSolid.faCheck, new Params {
-        transform = new Transform { size = 10.0 }
+        transform = new Transform {size = 10.0 }
         styles = scalajs.js.Dictionary[String]("color" -> "white")
       }))
 
@@ -128,7 +135,7 @@ object Topbar {
         styles = scalajs.js.Dictionary[String]("color" -> "tomato")
       }),
       fontawesome.icon(freeSolid.faBolt, new Params {
-        transform = new Transform { size = 10.0 }
+        transform = new Transform {size = 10.0 }
         styles = scalajs.js.Dictionary[String]("color" -> "white")
       }))
 
@@ -168,7 +175,8 @@ object Topbar {
       Rx {
         prompt().map { e =>
           button(cls := "tiny ui primary button", "install", onClick --> sideEffect {
-            e.asInstanceOf[js.Dynamic].prompt(); ()
+            e.asInstanceOf[js.Dynamic].prompt();
+            ()
           })
         }
       }
@@ -182,7 +190,7 @@ object Topbar {
         .startWith(Seq(ChangesHistory.empty))
         .combineLatestMap(state.view.toObservable) { (history, view) =>
           div(
-            if (view.isContent)
+            if(view.isContent)
               VDomModifier(
                 Styles.flex,
                 style("justify-content") := "space-evenly", //TODO dom-types
@@ -212,45 +220,50 @@ object Topbar {
     )
   }
 
-  def viewSwitcher(state:GlobalState)(implicit ctx:Ctx.Owner):VNode = {
+  def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import scala.reflect.{ClassTag, classTag}
-    def MkLabel[T : ClassTag](theId : String, view : View, targetView : View,
-                              pS : PageStyle, icon : IconDefinition) = {
+    def MkLabel[T: ClassTag](theId: String, view: View, targetView: View,
+      pS: PageStyle, icon: IconDefinition) = {
       label(`for` := theId, icon, onClick(targetView) --> state.view, cursor.pointer,
-            view match {
-              case v if classTag[T].runtimeClass.isInstance(v) =>
-                Seq(
-                  color := "#111111",
-                  //borderTop(2 px, solid, pS.bgLightColor)
-                  backgroundColor := pS.bgColor)
-              case _ => Seq[VNode]()
-            }
-      )
-    }
-    def MkInput[T : ClassTag](theId : String, view : View, pS : PageStyle) = {
-      input(display.none, id := theId, `type` := "radio", name := "viewbar",
-            view match {
-              case v if classTag[T].runtimeClass.isInstance(v) => Seq(checked := true)
-              case _ => Seq[VNode]()
-            }
-      )
-    }
-    div(
-        cls := "viewbar",
-        Styles.flex,
-        flexDirection.row,
-        justifyContent.spaceBetween,
-        alignItems.center,
-
-        Rx {
-          Seq(MkInput[ChatView.type]("v1", state.view(), state.pageStyle()),
-              MkLabel[ChatView.type]("v1", state.view(), ChatView, state.pageStyle(), freeRegular.faComments),
-              MkInput[KanbanView.type]("v2", state.view(), state.pageStyle()),
-              MkLabel[KanbanView.type]("v2", state.view(), KanbanView, state.pageStyle(), freeSolid.faColumns),
-              MkInput[GraphView.type]("v3", state.view(), state.pageStyle()),
-              MkLabel[GraphView.type]("v3", state.view(), GraphView, state.pageStyle(), freeBrands.faCloudsmith) )
+        view match {
+          case v if classTag[T].runtimeClass.isInstance(v) =>
+            Seq(
+              color := "#111111",
+              //borderTop(2 px, solid, pS.bgLightColor)
+              backgroundColor := pS.bgColor)
+          case _                                           => Seq[VNode]()
         }
-        )
+      )
+    }
+
+    def MkInput[T: ClassTag](theId: String, view: View, pS: PageStyle) = {
+      input(display.none, id := theId, `type` := "radio", name := "viewbar",
+        view match {
+          case v if classTag[T].runtimeClass.isInstance(v) => Seq(checked := true)
+          case _                                           => Seq[VNode]()
+        },
+        onInput --> sideEffect {
+          Analytics.sendEvent("viewswitcher", "switch", view.viewKey)
+        }
+      )
+    }
+
+    div(
+      cls := "viewbar",
+      Styles.flex,
+      flexDirection.row,
+      justifyContent.spaceBetween,
+      alignItems.center,
+
+      Rx {
+        Seq(MkInput[ChatView.type]("v1", state.view(), state.pageStyle()),
+          MkLabel[ChatView.type]("v1", state.view(), ChatView, state.pageStyle(), freeRegular.faComments),
+          MkInput[KanbanView.type]("v2", state.view(), state.pageStyle()),
+          MkLabel[KanbanView.type]("v2", state.view(), KanbanView, state.pageStyle(), freeSolid.faColumns),
+          MkInput[GraphView.type]("v3", state.view(), state.pageStyle()),
+          MkLabel[GraphView.type]("v3", state.view(), GraphView, state.pageStyle(), freeBrands.faCloudsmith))
+      }
+    )
 
   }
 
@@ -258,10 +271,17 @@ object Topbar {
     state.user.map {
       case user: AuthUser.Assumed  => login(state)
       case user: AuthUser.Implicit => login(state)
-      case user: AuthUser.Real => div(
+      case user: AuthUser.Real     => div(
         Styles.flex,
         alignItems.center,
-        Avatar.user(user.id)(height := "20px", cls := "avatar", onClick(UserSettingsView: View) --> state.view, cursor.pointer),
+        Avatar.user(user.id)(
+          height := "20px", cls := "avatar",
+          onClick(UserSettingsView: View) --> state.view,
+          onClick --> sideEffect{
+            Analytics.sendEvent("topbar", "avatar")
+          },
+          cursor.pointer
+        ),
         span(user.name, padding := "0 5px"),
         logout(state))
     }
@@ -270,6 +290,9 @@ object Topbar {
     div(
       span(
         onClick(state.viewConfig.now.overlayView(SignupView)) --> state.viewConfig,
+        onClick --> sideEffect {
+          Analytics.sendEvent("topbar", "signup")
+        },
         "Signup",
         color := "white",
         cursor.pointer
@@ -277,6 +300,9 @@ object Topbar {
       " or ",
       span(
         onClick(state.viewConfig.now.overlayView(LoginView)) --> state.viewConfig,
+        onClick --> sideEffect {
+          Analytics.sendEvent("topbar", "login")
+        },
         "Login",
         color := "white",
         cursor.pointer
@@ -291,7 +317,7 @@ object Topbar {
         Client.auth.logout().foreach { _ =>
           state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).overlayView(LoginView)
         }
-        ()
+        Analytics.sendEvent("topbar", "logout")
       }
     )
 

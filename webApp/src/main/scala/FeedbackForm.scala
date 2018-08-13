@@ -50,7 +50,10 @@ object FeedbackForm {
         "Feedback ",
         freeSolid.faCaretDown,
         cls := "ui positive tiny compact button",
-        onClick --> sideEffect{show.update(!_)},
+        onClick --> sideEffect{
+          Analytics.sendEvent("feedback", if(show.now) "close" else "open")
+          show.update(!_)
+        },
         onGlobalEscape(false) --> show
       ),
       div(
@@ -75,7 +78,10 @@ object FeedbackForm {
             "Show all Feedback",
             (freeRegular.faArrowAltCircleRight:VNode)(marginLeft := "5px"),
             onClick(Page(feedbackNodeId)) --> state.page.toSink,
-            onClick(false) --> show
+            onClick(false) --> show,
+            onClick --> sideEffect {
+              Analytics.sendEvent("feedback", "show")
+            }
           )
         )
       )

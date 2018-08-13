@@ -29,6 +29,7 @@ object Sidebar {
           channels(state)(ctx),
           newChannelButton(state)(ctx)(
             cls := "newChannelButton-large " + buttonStyles,
+            onClick --> sideEffect{Analytics.sendEvent("sidebar_open", "newchannel")}
           ),
           Rx {
             (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
