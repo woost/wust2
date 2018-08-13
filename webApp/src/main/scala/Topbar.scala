@@ -261,7 +261,7 @@ object Topbar {
       case user: AuthUser.Real => div(
         Styles.flex,
         alignItems.center,
-        Avatar.user(user.id)(height := "20px", cls := "avatar"),
+        Avatar.user(user.id)(height := "20px", cls := "avatar", onClick(UserSettingsView: View) --> state.view, cursor.pointer),
         span(user.name, padding := "0 5px"),
         logout(state))
     }
