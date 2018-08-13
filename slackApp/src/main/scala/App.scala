@@ -1,162 +1,435 @@
 package wust.slack
 
-import slack.SlackUtil
-import slack.models._
-import slack.rtm.SlackRtmClient
+import covenant.http._
+import ByteBufferImplicits._
+import sloth._
+import java.nio.ByteBuffer
+
+import boopickle.Default._
+import chameleon.ext.boopickle._
 import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import mycelium.client.SendType
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import monix.execution.Scheduler
+import akka.util.ByteStringBuilder
+import cats.data.{EitherT, OptionT}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import monix.execution.Scheduler
 import monix.reactive.Observable
+import cats.implicits._
+import monix.reactive.subjects.ConcurrentSubject
+
+import scala.util.{Failure, Success, Try}
+import slack.api.SlackApiClient
+import wust.api.ApiEvent.NewGraphChanges
+import wust.slack.Data._
 
 object Constants {
   //TODO
-  val slackId: NodeId = ???
+  val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"), NodeId.fromBase58String("5R1xejdFpxQiauAZtMVqpT"))
+  val slackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.ReadWrite))
 }
 
-case class ExchangeMessage(content: String)
+
+class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
+  implicit ec: ExecutionContext
+) extends PluginApi {
+  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
+    client.auth.verifyToken(auth).map {
+      case Some(verifiedAuth) =>
+        scribe.info(s"User has valid auth: ${ verifiedAuth.user.name }")
+        oAuthClient.authorizeUrl(
+          verifiedAuth,
+          List(
+            //            "admin",
+            // "auditlogs:read",
+            //            "bot",
+            "channels:history", "channels:read", "channels:write",
+            "chat:write:bot", "chat:write:user",
+            // "client",
+            //            "commands",
+            "dnd:read", "dnd:write",
+            "emoji:read",
+            "files:read", "files:write:user",
+            "groups:history", "groups:read", "groups:write",
+            // "identify", "identity.avatar", "identity.basic", "identity.email", "identity.team",
+            "im:history", "im:read", "im:write",
+            //            "incoming-webhook",
+            "links:read", "links:write",
+            "mpim:history", "mpim:read", "mpim:write",
+            "pins:read", "pins:write",
+            //            "post",
+            "reactions:read", "reactions:write",
+            "reminders:read", "reminders:write",
+            "search:read",
+            "stars:read", "stars:write",
+            "team:read",
+            "usergroups:read", "usergroups:write",
+            "users.profile:read", "users.profile:write", "users:read", "users:read.email", "users:write",
+
+            // Workspace Tokens
+            //            "channels:history", "channels:read", "channels:write",
+            //            "chat:write",
+            //            "commands",
+            //            "conversations:history", "conversations:read", "conversations:write",
+            //            "dnd:read", "dnd:write:user",
+            //            "emoji:read",
+            //            "files:read", "files:write",
+            //            "groups:history", "groups:read", "groups:write",
+            //            "identity.avatar:read:user", "identity.email:read:user", "identity.team:read:user", "identity:read:user",
+            //            "im:history", "im:read", "im:write",
+            //            "links:read", "links:write",
+            //            "mpim:history", "mpim:read", "mpim:write",
+            //            "pins:read", "pins:write",
+            //            "reactions:read", "reactions:write",
+            //            "reminders:read:user", "reminders:write:user",
+            //            "team:read",
+            //            "usergroups:read", "usergroups:write",
+            //            "users:read", "users:read.email", "users.profile:read", "users.profile:write", "users.profile:write:user",
+          )
+        ).map(_.toString())
+      case None               =>
+        scribe.info(s"Invalid auth")
+        None
+    }
+  }
+
+  override def importContent(identifier: String): Future[Boolean] = {
+    // TODO: Seeding
+    Future.successful(true)
+  }
+}
+
+object AppServer {
+  import akka.http.scaladsl.server.RouteResult._
+  import akka.http.scaladsl.server.Directives._
+  import akka.http.scaladsl.Http
+  //  import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
+
+  //  implicit val genericConfiguration: Configuration = Configuration(transformMemberNames = identity, transformConstructorNames = _.toLowerCase, useDefaults = true, discriminator = Some("event"))
+  //  import io.circe.generic.extras.auto._ // TODO: extras does not seem to work with heiko seeberger
+  //  import cats.implicits._
+  //  import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
+
+  import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
+
+  def run(config: Config, wustReceiver: WustReceiver, slackClient: SlackClient, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter, slackRequestVerifier: SlackRequestVerifier)(
+    implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
+  ): Unit = {
+    implicit val materializer: ActorMaterializer = ActorMaterializer()
+
+    scribe.info(s"slackNode: ${ Constants.slackNode.id.toString }")
+    val apiRouter = Router[ByteBuffer, Future]
+      .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
+
+    val corsSettings = CorsSettings.defaultSettings.copy(
+      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
+    )
+
+    // TODO: author
+    val changes = GraphChanges(
+      addNodes = Set(Constants.slackNode),
+    )
+    wustReceiver.push(List(changes), None)
+
+    val slackEventMapper = SlackEventMapper(persistenceAdapter, wustReceiver, slackClient.client)
+
+    val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
+    tokenObserver.foreach { authData =>
+
+      scribe.info(s"received oauth token: $authData")
+      val userOAuthToken = authData.platformAuthToken
+      val slackUser = SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
+      scribe.info(s"slackTestAuth: $slackUser")
+      slackUser.flatMap { slackAuthId =>
+        scribe.info(s"persisting token: $authData")
+
+        scribe.info(s"slackTestAuth: $slackAuthId")
+        //        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
+        persistenceAdapter.storeOrUpdateUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, Some(userOAuthToken.accessToken), authData.wustAuthData.token))
+
+      }.onComplete {
+        case Success(p)  => if(p) scribe.info("persisted oauth token") else scribe.error("could not persist oauth token")
+        case Failure(ex) => scribe.error("failed to persist oauth token: ", ex)
+      }
+
+      wustReceiver.client.api.addMember(Constants.slackNode.id, authData.wustAuthData.user.id, AccessLevel.ReadWrite).onComplete {
+        case Success(_)  => scribe.info("successfully added slack membership")
+        case Failure(ex) => scribe.error("failed to add slack membership", ex)
+      }
+
+      wustReceiver.push(
+        List(
+          GraphChanges.connect(Edge.Parent)(Constants.slackNode.id, authData.wustAuthData.user.channelNodeId)
+        ),
+        Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
+      ).onComplete {
+        case Success(_)  => scribe.info("successfully connected slack channel to user profile")
+        case Failure(ex) => scribe.error("failed to connect slack channel to user profile", ex)
+      }
+
+      //          // get user information
+      //          Platform(token).users.getAuth.exec[cats.Id, HttpResponse[String]]() match {
+      //            case Right(r) =>
+      //              val wustUserId = oAuthRequests(state)
+      //              val platformUserId = r.result.id
+      //              // Platform data
+      //              PersistAdapter.addPlatformToken(platformUserId, token.get)
+      //              PersistAdapter.addWustUser(platformUserId, wustUserId)
+      //              // Wust data
+      //              PersistAdapter.addPlatformUser(wustUserId, platformUserId)
+      //            //                  PersistAdapter.oAuthRequests.remove(state)
+      //            case Left(e) => scribe.info(s"Could not authenticate with OAuthToken: ${e.getMessage}")
+      //          }
+    }
+
+    import slack.models._
+    val route = {
+      pathPrefix("api") {
+        cors(corsSettings) {
+          AkkaHttpRoute.fromFutureRouter(apiRouter)
+        }
+      } ~ path(config.server.webhookPath) {
+        post {
+          decodeRequest {
+            val challengeEvent = entity(as[EventServerChallenge]) { eventChallenge =>
+              complete {
+                HttpResponse(
+                  status = StatusCodes.OK,
+                  headers = Nil,
+                  entity = HttpEntity(ContentTypes.`text/plain(UTF-8)`, eventChallenge.challenge)
+                )
+              }
+            }
+
+            challengeEvent
+          }
+        }
+      } ~ path(config.server.webhookPath) {
+        headerValueByName("X-Slack-Request-Timestamp") { slackRequestTimestamp =>
+          headerValueByName("X-Slack-Signature") { slackSignature =>
+            post {
+              decodeRequest {
+                extractRequest { request =>
+                  onComplete[Route](request.entity.dataBytes.runFold(new ByteStringBuilder)(_ append _).map { bytes =>
+                    val stringBody = bytes.result().utf8String
+                    if(slackRequestVerifier.verify(slackRequestTimestamp, stringBody, slackSignature)) {
+                      entity(as[SlackEventStructure]) { eventStructure =>
+
+
+                        slackEventMapper.matchSlackEventStructureEvent(eventStructure)
+
+                        complete(StatusCodes.OK)
+                      }
+                    } else {
+                      complete(StatusCodes.Unauthorized)
+                    }
+                  }) {
+                  case Success(r) => r
+                  case Failure(f) =>
+                    scribe.warn("Failed to get entity bytes", f)
+                    complete(StatusCodes.InternalServerError)
+                }}
+              }
+            }
+          }
+        }
+      } ~ {
+        oAuthClient.route(tokenObserver)
+      }
+    }
+
+    Http().bindAndHandle(route, interface = config.server.host, port = config.server.port).onComplete {
+      case Success(binding) =>
+        val separator = "\n############################################################"
+        val readyMsg = s"\n##### Slack App Server online at ${ binding.localAddress } #####"
+        scribe.info(s"$separator$readyMsg$separator")
+        scribe.info(s"SlackApp node uuid:${ Constants.slackNode.id.toUuid }, base58: ${ Constants.slackNode.id.toBase58 }")
+
+      case Failure(err) => scribe.error(s"Cannot start Slack App Server: $err")
+    }
+  }
+}
 
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]
 
-  def push(msg: ExchangeMessage, author: UserId): Result[Node]
+  def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]]
 }
 
-class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
+class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
 
-  def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Node]] = {
-    println(s"new message: msg")
-    // TODO: author
-    val post = Node.Content(NodeData.PlainText(msg.content))
-    val connection = Edge.Parent(post.id, Constants.slackId)
-
-    val changes = List(GraphChanges(addNodes = Set(post), addEdges = Set(connection)))
-    client.api.changeGraph(changes).map { success =>
-      if (success) Right(post)
-      else Left("Failed to create post")
+  def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]] = {
+    scribe.info(s"pushing new graph change: $graphChanges")
+    val enrichedWithAppMembership = graphChanges.map { gc =>
+      val appMemberEdges: GraphChanges = GraphChanges.connect((u: UserId, n: NodeId) => Edge.Member(u, EdgeData.Member(AccessLevel.ReadWrite), n))(Constants.wustUser.id, gc.addNodes.map(_.id))
+      gc.merge(appMemberEdges)
     }
+
+    (auth match {
+      case None    =>
+        val withAppUser = graphChanges.map(_.withAuthor(Constants.wustUser.id))
+        for {
+          true <- client.api.changeGraph(withAppUser)
+          true <- Future.sequence {
+            graphChanges.flatMap { gc =>
+              gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
+            }
+          }.map(_.forall(_ == true))
+        } yield true
+      case Some(u) =>
+        val withSlackUser = graphChanges.map(_.withAuthor(u.wustUserId))
+        for {
+          true <- client.api.changeGraph(withSlackUser, u.wustUserToken)
+          true <- Future.sequence {
+            graphChanges.flatMap { gc =>
+              gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
+            }
+          }.map(_.forall(_ == true))
+        } yield true
+    }).map { success =>
+      if(success) Right(graphChanges)
+      else Left(s"Failed to apply GraphChanges: $graphChanges")
+    }
+
   }
 }
 
 object WustReceiver {
-  type Result[T] = Either[String, T]
 
-  val wustUser = ("wust-slack").asInstanceOf[UserId]
+  object GraphTransition {
+    def empty: GraphTransition =
+      new GraphTransition(Graph.empty, Seq.empty[GraphChanges], Graph.empty)
+  }
+  case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
 
-  def run(
-      config: WustConfig,
-      slack: SlackClient
-  )(implicit ec: ExecutionContext, system: ActorSystem): Future[Result[WustReceiver]] = {
+  def run(config: WustConfig, slackClient: SlackClient, persistenceAdapter: PersistenceAdapter, slackAppToken: String)(implicit system: ActorSystem): WustReceiver = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val scheduler: Scheduler = Scheduler(system.dispatcher)
 
-    val location = s"ws://${config.host}:${config.port}/ws"
+    //TODO: service discovery or some better configuration for the wust host
+    val protocol = if(config.port == 443) "wss" else "ws"
+    val location = s"$protocol://core.${ config.host }:${ config.port }/ws"
     val wustClient = WustClient(location)
+    val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
+    val highPriorityClient = wustClient.sendWith(SendType.WhenConnected.highPriority, 30 seconds)
 
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = wustClient.observable.event
-      .map(e => e.collect { case ev: ApiEvent.GraphContent => ev })
-      .collect { case list if list.nonEmpty => list }
+//    highPriorityClient.auth.assumeLogin(Constants.wustUser)
+//    highPriorityClient.auth.register(config.user, config.password)
+    wustClient.observable.connected.foreach { _ =>
+      highPriorityClient.auth.login(config.user, config.password)
+    }
 
-    graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
-      println(s"Got events in Slack: $events")
-      val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
-      val posts = changes.flatMap(_.addNodes)
-      posts.map(p => ExchangeMessage(p.data.str)).foreach { msg =>
-        slack.send(msg).foreach { success =>
-          println(s"Send message success: $success")
-        }
+    scribe.info("Running WustReceiver")
+
+    val graphChanges: Observable[Seq[GraphChanges]] = wustClient.observable.event.map({ e =>
+      scribe.info(s"triggering collect on $e")
+      e.collect {
+        case ev: ApiEvent.GraphContent =>
+          scribe.info("received api event")
+          ev
+      }
+    }).collect({
+      case list if list.nonEmpty =>
+        scribe.info("api event non-empty")
+        list
+    }).map(_.map {
+      case NewGraphChanges(gc) => gc
+    })
+
+    graphChanges.foreach { graphChangeSeq =>
+      graphChangeSeq.foreach { gc =>
+
+        scribe.info(s"Received GraphChanges: $gc")
+        WustEventMapper(slackAppToken, persistenceAdapter).computeMapping(gc)
       }
     }
 
-    val client = wustClient.sendWith(SendType.NowOrFail, 30 seconds)
-
-    val res = for {
-      loggedIn <- client.auth.login(config.user, config.password)
-      if loggedIn == AuthResult.Success
-      // TODO: author
-      changed <- client.api.changeGraph(
-        List(
-          GraphChanges(
-            addNodes = Set(Node.Content(Constants.slackId, NodeData.PlainText("wust-slack")))
-          )
-        )
-      )
-      if changed
-      graph <- client.api.getGraph(Page.empty)
-    } yield Right(new WustReceiver(client))
-
-    res recover {
-      case e =>
-        system.terminate()
-        Left(e.getMessage)
-    }
-  }
-}
-
-class SlackClient(client: SlackRtmClient)(implicit ec: ExecutionContext) {
-
-  def send(msg: ExchangeMessage): Future[Boolean] = {
-    val channelId = client.state.getChannelIdForName("general").get //TODO
-    val text = msg.content
-
-    client
-      .sendMessage(channelId, text)
-      .map(_ => true)
-      .recover { case NonFatal(_) => false }
+    new WustReceiver(client)
   }
 
-  def run(receiver: MessageReceiver): Unit = {
-    val selfId = client.state.self.id
-    client.onEvent {
-      case e: Message =>
-        println(s"Got message from '${e.user}' in channel '${e.channel}': ${e.text}")
 
-        def respond(msg: String) = client.sendMessage(e.channel, s"<@${e.user}>: $msg")
-
-        val mentionedIds = SlackUtil.extractMentionedIds(e.text)
-        if (mentionedIds.contains(selfId)) {
-          val message = ExchangeMessage(e.text)
-          receiver.push(message, WustReceiver.wustUser) foreach {
-            case Left(error) => respond(s"Failed to sync with wust: $error")
-            case Right(post) => respond(s"Created post: $post")
-          }
-        }
-
-      case e => println(s"ignored event: $e")
-    }
+  private def validRecover[T]: PartialFunction[Throwable, Either[String, T]] = {
+    case NonFatal(t) => Left(s"Exception was thrown: $t")
   }
+  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) =
+    EitherT(fut.map(Either.cond(_, (), errorMsg)).recover(validRecover))
+  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) =
+    EitherT(fut.map(Right(_): Either[String, T]).recover(validRecover))
 }
 
 object SlackClient {
-  def apply(
-      accessToken: String
-  )(implicit ec: ExecutionContext, actorSystem: ActorSystem): SlackClient = {
-    val client = SlackRtmClient(accessToken)
-    new SlackClient(client)
+  def apply(accessToken: String)(implicit ec: ExecutionContext): SlackClient = {
+    new SlackClient(SlackApiClient(accessToken))
   }
 }
 
+class SlackClient(val client: SlackApiClient)(implicit ec: ExecutionContext) {
+
+  case class Error(desc: String)
+
+  def run(receiver: MessageReceiver): Unit = {
+    // TODO: Get events from slack
+    //    private def toJson[T: Encoder](value: T): String = value.asJson.noSpaces
+    //    private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
+
+  }
+}
+
+case class SlackRequestVerifier(key: String) {
+  import javax.crypto.Mac
+  import javax.crypto.spec.SecretKeySpec
+
+  private val secret = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256")
+  private val hmac = Mac.getInstance("HmacSHA256")
+  hmac.init(secret)
+
+  def generateHmac(data: String): String = {
+    val hashString: Array[Byte] = hmac.doFinal(data.getBytes)
+    hashString.map("%02x".format(_)).mkString
+  }
+
+  def verify(timestamp: String, body: String, signature: String, versionNumber: String = "v0"): Boolean = {
+    val base = s"$versionNumber:$timestamp:$body"
+    val res = generateHmac(base)
+    val equal = signature == s"$versionNumber=$res"
+    if(!equal) {
+      scribe.error(s"Received event does not match signature")
+      scribe.error(s"signature: $signature")
+      scribe.error(s"computed: $versionNumber=$res")
+    }
+
+    equal
+  }
+
+}
+
 object App extends scala.App {
-  import scala.concurrent.ExecutionContext.Implicits.global
+
+  import monix.execution.Scheduler.Implicits.global
+
   implicit val system: ActorSystem = ActorSystem("slack")
 
-  Config.load("wust.slack") match {
-    case Left(err) => println(s"Cannot load config: $err")
+  Config.load() match {
+    case Left(err)     => scribe.info(s"Cannot load config: $err")
     case Right(config) =>
-//      val client = SlackClient(config.oAuthConfig.accessToken.get)
-      // TODO: get token for user or get a new one
-      val client = SlackClient("bla")
-      WustReceiver.run(config.wust, client).foreach {
-        case Right(receiver) => client.run(receiver)
-        case Left(err)       => println(s"Cannot connect to Wust: $err")
-      }
+      val oAuthClient = OAuthClient(config.oauth, config.server)
+      val slackPersistenceAdapter = PostgresAdapter(config.postgres)
+      val slackClient = SlackClient(config.slack.token)
+      val slackEventReceiver = WustReceiver.run(config.wust, slackClient, slackPersistenceAdapter, config.slack.token)
+      val slackRequestVerifier = new SlackRequestVerifier(config.slack.signingSecret)
+      //      val client = SlackClient(config.oAuthConfig.accessToken.get)
+      AppServer.run(config, slackEventReceiver, slackClient, oAuthClient, slackPersistenceAdapter, slackRequestVerifier)
   }
 }
