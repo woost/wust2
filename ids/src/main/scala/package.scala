@@ -8,11 +8,13 @@ package object ids {
 
   object NodeId extends TaggedType[Cuid] {
     def fresh: NodeId = apply(Cuid.fromCuidString(cuid.Cuid()))
+    def fromBase58String(str: String): NodeId = apply(Cuid.fromBase58(str))
   }
   type NodeId = NodeId.Type
 
   object UserId extends OverTagged(NodeId) {
     def fresh: UserId = apply(NodeId.fresh)
+    def fromBase58String(str: String): UserId = apply(NodeId.fromBase58String(str))
   }
   type UserId = UserId.Type
 
