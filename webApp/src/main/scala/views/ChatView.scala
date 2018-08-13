@@ -338,7 +338,7 @@ object ChatView extends View {
           div(
             Styles.flex,
             alignItems.center,
-            inputField(state, directParentIds = Set(nodeId))(ctx)(
+            inputField(state, directParentIds = Set(nodeId), blurAction = {value => if(value.isEmpty) activeReplyFields.update(_ - nodeId) })(ctx)(
               key := s"chatreplyfield$nodeId",
               padding := "3px",
               width := "100%"
@@ -487,7 +487,7 @@ object ChatView extends View {
 
   }
 
-  private def inputField(state: GlobalState, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def inputField(state: GlobalState, directParentIds: Set[NodeId], blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
       val pageModeOrphans = state.page().mode == PageMode.Orphans
@@ -504,6 +504,7 @@ object ChatView extends View {
     div(
       cls := "ui form",
       textArea(
+        key := s"chat-replyfield${directParentIds.mkString}",
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now
@@ -518,6 +519,7 @@ object ChatView extends View {
           state.eventProcessor.changes.onNext(changes)
         },
         onInsert.asHtml --> sideEffect { e => e.focus() },
+        onBlur.value --> sideEffect{value => blurAction(value)},
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         style("resize") := "none", //TODO: add resize style to scala-dom-types
