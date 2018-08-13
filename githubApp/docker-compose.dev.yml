@@ -7,4 +7,4 @@ services:
 
   github:
     extra_hosts:
-      - "core.${WUST_HOSTNAME}:${DEV_DOCKERHOST_IP}"
+      - "github.${WUST_HOSTNAME}:${DEV_DOCKERHOST_IP}"

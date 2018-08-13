@@ -64,7 +64,10 @@ class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${verifiedAuth.user.name}")
-        oAuthClient.authorizeUrl(verifiedAuth.user.id).map(_.toString())
+        oAuthClient.authorizeUrl(
+          verifiedAuth,
+          List("read:org", "read:user", "repo", "write:discussion")
+        ).map(_.toString())
       case None =>
         scribe.info(s"Invalid auth")
         None
@@ -126,7 +129,7 @@ object AppServer {
 
   //  def run(server: ServerConfig, github: OAuthConfig, redis: RedisConfig, wustReceiver: WustReceiver)(
   def run(config: Config, wustReceiver: WustReceiver, oAuthClient: OAuthClient)(
-      implicit system: ActorSystem, sheduler: Scheduler
+      implicit system: ActorSystem, scheduler: Scheduler
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
@@ -143,7 +146,7 @@ object AppServer {
     case class IssueEvent(action: String, issue: Issue)
     case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
 
-    val tokenObserver = ConcurrentSubject.publish[AccessToken]
+    val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
     tokenObserver.foreach{ t =>
       scribe.info(s"persisting token: $t")
       //          // get user information
@@ -167,56 +170,56 @@ object AppServer {
       pathPrefix("api") {
         cors(corsSettings) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
-        } ~ path(config.server.webhookPath) {
-          post {
-            decodeRequest {
-              headerValueByName("X-GitHub-Event") {
-                case "issues" =>
-                  entity(as[IssueEvent]) { issueEvent =>
-                    issueEvent.action match {
-                      case "created" =>
-                        scribe.info("Received Webhook: created issue")
-                        //                    if(EventCoordinator.createOrIgnore(issueEvent.issue))
-                        wustReceiver.push(List(createIssue(issueEvent.issue)))
-                      case "edited" =>
-                        scribe.info("Received Webhook: edited issue")
-                        wustReceiver.push(List(editIssue(issueEvent.issue)))
-                      case "deleted" =>
-                        scribe.info("Received Webhook: deleted issue")
-                        wustReceiver.push(List(deleteIssue(issueEvent.issue)))
-                      case a => scribe.error(s"Received unknown IssueEvent action: $a")
-                    }
-                    complete(StatusCodes.Success)
+        }
+      } ~ path(config.server.webhookPath) {
+        post {
+          decodeRequest {
+            headerValueByName("X-GitHub-Event") {
+              case "issues" =>
+                entity(as[IssueEvent]) { issueEvent =>
+                  issueEvent.action match {
+                    case "created" =>
+                      scribe.info("Received Webhook: created issue")
+                      //                    if(EventCoordinator.createOrIgnore(issueEvent.issue))
+                      wustReceiver.push(List(createIssue(issueEvent.issue)))
+                    case "edited" =>
+                      scribe.info("Received Webhook: edited issue")
+                      wustReceiver.push(List(editIssue(issueEvent.issue)))
+                    case "deleted" =>
+                      scribe.info("Received Webhook: deleted issue")
+                      wustReceiver.push(List(deleteIssue(issueEvent.issue)))
+                    case a => scribe.error(s"Received unknown IssueEvent action: $a")
                   }
-                case "issue_comment" =>
-                  entity(as[IssueCommentEvent]) { issueCommentEvent =>
-                    issueCommentEvent.action match {
-                      case "created" =>
-                        scribe.info("Received Webhook: created comment")
-                        wustReceiver.push(
-                          List(createComment(issueCommentEvent.issue, issueCommentEvent.comment))
-                        )
-                      case "edited" =>
-                        scribe.info("Received Webhook: edited comment")
-                        wustReceiver.push(
-                          List(editComment(issueCommentEvent.issue, issueCommentEvent.comment))
-                        )
-                      case "deleted" =>
-                        scribe.info("Received Webhook: deleted comment")
-                        wustReceiver.push(
-                          List(deleteComment(issueCommentEvent.issue, issueCommentEvent.comment))
-                        )
-                      case a => scribe.error(s"Received unknown IssueCommentEvent: $a")
-                    }
-                    complete(StatusCodes.Success)
+                  complete(StatusCodes.Success)
+                }
+              case "issue_comment" =>
+                entity(as[IssueCommentEvent]) { issueCommentEvent =>
+                  issueCommentEvent.action match {
+                    case "created" =>
+                      scribe.info("Received Webhook: created comment")
+                      wustReceiver.push(
+                        List(createComment(issueCommentEvent.issue, issueCommentEvent.comment))
+                      )
+                    case "edited" =>
+                      scribe.info("Received Webhook: edited comment")
+                      wustReceiver.push(
+                        List(editComment(issueCommentEvent.issue, issueCommentEvent.comment))
+                      )
+                    case "deleted" =>
+                      scribe.info("Received Webhook: deleted comment")
+                      wustReceiver.push(
+                        List(deleteComment(issueCommentEvent.issue, issueCommentEvent.comment))
+                      )
+                    case a => scribe.error(s"Received unknown IssueCommentEvent: $a")
                   }
-                case "ping" =>
-                  scribe.info("Received ping")
-                  complete(StatusCodes.Accepted)
-                case e =>
-                  scribe.error(s"Received unknown GitHub Event Header: $e")
-                  complete(StatusCodes.Accepted)
-              }
+                  complete(StatusCodes.Success)
+                }
+              case "ping" =>
+                scribe.info("Received ping")
+                complete(StatusCodes.Accepted)
+              case e =>
+                scribe.error(s"Received unknown GitHub Event Header: $e")
+                complete(StatusCodes.Accepted)
             }
           }
         }
@@ -287,7 +290,7 @@ class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extend
     // client.api.changeGraph(graphChanges, onBehalf = token).map{ success =>
     client.api.changeGraph(graphChanges).map { success =>
       if (success) Right(graphChanges)
-      else Left("Failed to create post")
+      else Left(s"Failed to apply GraphChanges: $graphChanges")
     }
   }
 }
@@ -737,9 +740,9 @@ object App extends scala.App {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
       //      val githubClient = GithubClient(config.oauth)
-      val oAuthClient = OAuthClient.create(config.oauth, config.server)
+      val oAuthClient = OAuthClient.apply(config.oauth, config.server)
       val githubClient = GithubClient(Some("token")) //TODO: get token
-    val receiver = WustReceiver.run(config.wust, githubClient)
+      val receiver = WustReceiver.run(config.wust, githubClient)
       AppServer.run(config, receiver, oAuthClient)
   }
 }
