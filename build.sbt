@@ -302,7 +302,7 @@ lazy val apiJS = api.js
 lazy val apiJVM = api.jvm
 
 lazy val database = project
-  .dependsOn(idsJVM, utilJVM)
+  .dependsOn(idsJVM, utilJVM, dbUtil)
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
@@ -317,8 +317,20 @@ lazy val database = project
     // parallelExecution in IntegrationTest := false
   )
 
+lazy val dbUtil = project
+  .dependsOn(idsJVM, utilJVM)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++=
+        Deps.quill.value ::
+          Deps.circe.core.value ::
+          Deps.circe.parser.value ::
+          Deps.circe.genericExtras.value ::
+          Nil
+  )
+
 lazy val core = project
-  .dependsOn(utilJVM, apiJVM, database)
+  .dependsOn(apiJVM, database)
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
@@ -413,7 +425,7 @@ lazy val webApp = project
 //   )
 
 lazy val slackApp = project
-  .dependsOn(utilJVM, sdkJVM)
+  .dependsOn(sdkJVM, dbUtil)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=

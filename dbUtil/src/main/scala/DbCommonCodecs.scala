@@ -1,4 +1,4 @@
-package wust.db
+package wust.dbUtil
 
 import io.getquill._
 import io.circe.parser._
@@ -7,21 +7,10 @@ import supertagged._
 import wust.ids._
 import wust.ids.serialize.Circe._
 import wust.util._
-
 import java.util.{Date, UUID}
 
-// Converters between scala classes and database entities
-// Quill needs an implicit encoder/decoder for each occuring type.
-// encoder/decoders for primitives and case classes are provided by quill.
-class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
-  import Data._
+abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   import ctx._
-
-  private def encodeJson[T: io.circe.Encoder](json: T): String = json.asJson.noSpaces
-  private def decodeJson[T: io.circe.Decoder](json: String): T = decode[T](json) match {
-    case Right(v) => v
-    case Left(e)  => throw new Exception(s"Failed to decode json: '$json': $e")
-  }
 
   implicit val encodingNodeId: MappedEncoding[NodeId, UUID] = MappedEncoding(_.toUuid)
   implicit val decodingNodeId: MappedEncoding[UUID, NodeId] =
@@ -29,6 +18,12 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val encodingUserId: MappedEncoding[UserId, UUID] = MappedEncoding(_.toUuid)
   implicit val decodingUserId: MappedEncoding[UUID, UserId] =
     MappedEncoding(uuid => UserId(NodeId(Cuid.fromUuid(uuid))))
+
+  private def encodeJson[T: io.circe.Encoder](json: T): String = json.asJson.noSpaces
+  private def decodeJson[T: io.circe.Decoder](json: String): T = decode[T](json) match {
+    case Right(v) => v
+    case Left(e)  => throw new Exception(s"Failed to decode json: '$json': $e")
+  }
 
   //TODO: quill PR: add these seq[UUID] encoder/decoder
   //TODO: quill PR: rename arrayRawEncoder To ...Decoder
@@ -88,6 +83,11 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
     def < = ctx.quote((date: EpochMilli) => infix"$ldt < $date".as[Boolean])
     def <= = ctx.quote((date: EpochMilli) => infix"$ldt <= $date".as[Boolean])
   }
+  implicit class IngoreDuplicateKey[T](q: Insert[T]) {
+    //TODO: https://github.com/getquill/quill#postgres
+    def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
+  }
+
   implicit class JsonPostDataQuillOps(json: NodeData) {
     val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
     val jsonType = ctx.quote(infix"$json->>'type'".as[NodeData.Type])
@@ -96,8 +96,5 @@ class DbCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
     val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
     val jsonType = ctx.quote(infix"$json->>'type'".as[EdgeData.Type])
   }
-  implicit class IngoreDuplicateKey[T](q: Insert[T]) {
-    //TODO: https://github.com/getquill/quill#postgres
-    def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
-  }
 }
+
