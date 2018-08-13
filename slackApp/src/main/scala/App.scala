@@ -325,8 +325,9 @@ object WustReceiver {
     val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
     val highPriorityClient = wustClient.sendWith(SendType.WhenConnected.highPriority, 30 seconds)
 
-//    highPriorityClient.auth.assumeLogin(Constants.wustUser)
-//    highPriorityClient.auth.register(config.user, config.password)
+    // TODO: failsave and only initially assume
+    highPriorityClient.auth.assumeLogin(Constants.wustUser)
+    highPriorityClient.auth.register(config.user, config.password)
     wustClient.observable.connected.foreach { _ =>
       highPriorityClient.auth.login(config.user, config.password)
     }
@@ -340,23 +341,23 @@ object WustReceiver {
           scribe.info("received api event")
           ev
       }
-    }).collect({
-      case list if list.nonEmpty =>
-        scribe.info("api event non-empty")
-        list
-    }).map(_.map {
-      case NewGraphChanges(gc) => gc
-    })
+      }).collect({
+        case list if list.nonEmpty =>
+          scribe.info("api event non-empty")
+          list
+          }).map(_.map {
+            case NewGraphChanges(gc) => gc
+          })
 
-    graphChanges.foreach { graphChangeSeq =>
-      graphChangeSeq.foreach { gc =>
+          graphChanges.foreach { graphChangeSeq =>
+            graphChangeSeq.foreach { gc =>
 
-        scribe.info(s"Received GraphChanges: $gc")
-        WustEventMapper(slackAppToken, persistenceAdapter).computeMapping(gc)
-      }
-    }
+              scribe.info(s"Received GraphChanges: $gc")
+              WustEventMapper(slackAppToken, persistenceAdapter).computeMapping(gc)
+            }
+          }
 
-    new WustReceiver(client)
+          new WustReceiver(client)
   }
 
 
