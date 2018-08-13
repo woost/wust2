@@ -332,6 +332,9 @@ object WustReceiver {
       highPriorityClient.auth.login(config.user, config.password)
     }
 
+    val separator = "\n#############################################################"
+    val readyMsg = s"\n##### Slack App WustReceiver connecting at ${location} #####"
+    scribe.info(s"$separator$readyMsg$separator")
     scribe.info("Running WustReceiver")
 
     val graphChanges: Observable[Seq[GraphChanges]] = wustClient.observable.event.map({ e =>
