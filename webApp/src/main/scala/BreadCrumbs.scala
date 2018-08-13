@@ -15,6 +15,7 @@ import wust.sdk.NodeColor._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Components._
 import wust.webApp.views._
+import wust.util._
 
 import scala.scalajs.js
 import scala.scalajs.js.Date
@@ -35,7 +36,7 @@ object BreadCrumbs {
     //"\u21ba"
     img(
       cls := "cycle-indicator",
-      if(rotate) style := "transform: rotate(180deg)" else style := "",
+      rotate.ifTrue[VDomModifier](style("transform") := "rotate(180deg)"),
       src:="halfCircle.svg",
     )
   }
