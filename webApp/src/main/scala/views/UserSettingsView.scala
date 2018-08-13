@@ -47,60 +47,62 @@ object UserSettingsView extends View {
   }
 
   private def slackButton(user: UserInfo): VNode = {
-
-    def linkWithSlack(userId: UserId) = {
-      println(s"Link Slack with userId: $userId")
-    }
-
     button(
       cls := "ui button",
       div(
         Styles.flex,
         fontSize := "25px",
         woostIcon( marginRight := "10px" ),
-        (freeSolid.faExchangeAlt: VNode) (marginRight := "10px"),
-        (freeBrands.faSlack: VNode),
+        (freeSolid.faExchangeAlt:VNode)(marginRight := "10px"),
+        (freeBrands.faSlack:VNode),
         marginBottom := "5px",
       ),
       div("Sync with Slack"),
-      onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))
+      onClick --> sideEffect(linkWithSlack())
     )
   }
 
+  def linkWithGithub() = {
+    Client.auth.issuePluginToken().foreach { auth =>
+      scribe.info(s"Generated plugin token: $auth")
+      val connUser = Client.githubApi.connectUser(auth.token)
+      connUser foreach {
+        case Some(url) =>
+          org.scalajs.dom.window.location.href = url
+        case None      =>
+          scribe.info(s"Could not connect user: $auth")
+      }
+    }
+  }
+
+  def linkWithGitter() = {
+    Client.auth.issuePluginToken().foreach { auth =>
+      scribe.info(s"Generated plugin token: $auth")
+      val connUser = Client.gitterApi.connectUser(auth.token)
+      connUser foreach {
+        case Some(url) =>
+          org.scalajs.dom.window.location.href = url
+        case None      =>
+          scribe.info(s"Could not connect user: $auth")
+      }
+    }
+  }
+
+  def linkWithSlack() = {
+    Client.auth.issuePluginToken().foreach { auth =>
+      scribe.info(s"Generated plugin token: $auth")
+      val connUser = Client.slackApi.connectUser(auth.token)
+      connUser foreach {
+        case Some(url) =>
+          scribe.info(s"Received url: $url")
+          org.scalajs.dom.window.location.href = url
+        case None      =>
+          scribe.info(s"Could not connect user: $auth")
+      }
+    }
+  }
+
   private def listSettings(user: UserInfo): VNode = {
-    val linkGithub = Handler.create[String].unsafeRunSync()
-
-    // TODO: Api calls
-    def linkWithGithub() = {
-      Client.auth.issuePluginToken().foreach { auth =>
-        scribe.info(s"Generated plugin token: $auth")
-        val connUser = Client.githubApi.connectUser(auth.token)
-        connUser foreach {
-          case Some(url) =>
-            org.scalajs.dom.window.location.href = url
-          case None      =>
-            scribe.info(s"Could not connect user: $auth")
-        }
-      }
-    }
-
-    def linkWithGitter(userId: UserId) = {
-      Client.auth.issuePluginToken().foreach { auth =>
-        scribe.info(s"Generated plugin token: $auth")
-        val connUser = Client.gitterApi.connectUser(auth.token)
-        connUser foreach {
-          case Some(url) =>
-            org.scalajs.dom.window.location.href = url
-          case None      =>
-            scribe.info(s"Could not connect user: $auth")
-        }
-      }
-      println(s"Link Gitter with userId: $userId")
-    }
-
-    def linkWithSlack(userId: UserId) = {
-      println(s"Link Slack with userId: $userId")
-    }
 
     // TODO: Show button if not linked, else show linked data
     div(
@@ -109,22 +111,23 @@ object UserSettingsView extends View {
       div(
         p("Connect Woost with a Service"),
 
-        button("Link with GitHub", onClick --> sideEffect(linkWithGithub())),
+        button(
+          "Link with GitHub",
+          onClick --> sideEffect(linkWithGithub())),
         br(),
 
         button(
           "Link with Gitter",
-          onClick(user.id) --> sideEffect((userId: UserId) => linkWithGitter(userId))
+          onClick --> sideEffect(linkWithGitter())
         ),
         br(),
 
         button(
           "Link with Slack",
-          onClick(user.id) --> sideEffect((userId: UserId) => linkWithSlack(userId))
+          onClick --> sideEffect(linkWithSlack())
         ),
 
       )
     )
   }
-
 }
