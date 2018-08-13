@@ -65,6 +65,7 @@ module.exports.devServer = {
         setupProxy({ /*subdomain: "core", */path: "api", port: process.env.WUST_CORE_PORT }),
         setupProxy({ subdomain: "core", port: process.env.WUST_CORE_PORT }),
         setupProxy({ subdomain: "github", port: process.env.WUST_GITHUB_PORT, pathRewrite: true }),
+        setupProxy({ subdomain: "slack", port: process.env.WUST_SLACK_PORT, pathRewrite: true }),
         setupProxy({ path: "apps/web", port: process.env.WUST_WEB_PORT, pathRewrite: true })
     ],
     compress: (process.env.DEV_SERVER_COMPRESS == 'true')
