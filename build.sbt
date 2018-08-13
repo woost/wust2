@@ -429,12 +429,16 @@ lazy val slackApp = project
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
-      Deps.slackClient.value ::
+      Deps.akka.httpCors.value ::
+        Deps.akka.httpCirce.value ::
+        Deps.akka.httpPlay.value ::
+        Deps.slackClient.value ::
+        Deps.quill.value ::
         Nil
   )
 
 lazy val gitterApp = project
-  .dependsOn(utilJVM, sdkJVM)
+  .dependsOn(sdkJVM)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
@@ -444,15 +448,15 @@ lazy val gitterApp = project
   )
 
 lazy val githubApp = project
-  .dependsOn(utilJVM, sdkJVM)
+  .dependsOn(sdkJVM)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
       Deps.akka.httpCors.value ::
-        Deps.github4s.value ::
-        Deps.graphQl.value ::
         Deps.akka.httpCirce.value ::
         Deps.redis.value ::
+        Deps.github4s.value ::
+        Deps.graphQl.value ::
         Nil
   )
 
