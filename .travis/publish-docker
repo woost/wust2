@@ -17,3 +17,4 @@ docker push woost/slack
 [[ "$TRAVIS_BRANCH" == "master" ]] && [[ -n "$STAGING_URL" ]] || exit 0
 
 curl $STAGING_URL 2> /dev/null
+curl $STAGING_URL2 2> /dev/null
