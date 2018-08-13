@@ -8,20 +8,24 @@ import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.{ActorMaterializer, Materializer}
-import com.github.dakatsuka.akka.http.oauth2.client.{AccessToken, GrantType, Client => AuthClient, Config => AuthConfig}
+import com.github.dakatsuka.akka.http.oauth2.client.{GrantType, AccessToken => OAuthToken, Client => AuthClient, Config => AuthConfig}
 import com.github.dakatsuka.akka.http.oauth2.client.Error.UnauthorizedException
 import com.github.dakatsuka.akka.http.oauth2.client.strategy._
 import monix.reactive.Observer
+import wust.api.Authentication
 import wust.ids.UserId
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.{ExecutionContext, Future}
 
+case class AuthenticationData(wustAuthData: Authentication.Verified, platformAuthToken: OAuthToken)
+
 // Instantiate for each App
-case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
+class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
 
-  val oAuthRequests: TrieMap[String, UserId] = TrieMap.empty[String, UserId]
+  val oAuthRequests: TrieMap[String, Authentication.Verified] = TrieMap.empty[String, Authentication.Verified]
 
+  scribe.info(s"${oAuthConfig.toString}")
   private val authConfig = AuthConfig(
     clientId     = oAuthConfig.clientId,
     clientSecret = oAuthConfig.clientSecret,
@@ -31,17 +35,19 @@ case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(imp
   )
 
   private val authClient = AuthClient(authConfig)
+  private val oAuthPath = oAuthConfig.authPath.getOrElse("oauth/auth")
+  private val redirectUri = oAuthConfig.redirectUri.getOrElse(s"http://${serverConfig.host}:${serverConfig.port}/") + oAuthPath
 
-  def authorizeUrl(userId: UserId, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
+  def authorizeUrlWithState(auth: Authentication.Verified, scope: List[String], randomState: String, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
+    val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, params ++
+      Map(
+        "redirect_uri" -> redirectUri,
+        "state" -> randomState,
+        "scope" -> scope.mkString(",")
+      )
+    )
 
-    val randomState = UUID.randomUUID().toString
-    val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, Map(
-      "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
-      "state" -> randomState,
-      "scopes" -> List("read:org", "read:user", "repo", "write:discussion").mkString(",")
-    ) ++ params)
-
-    oAuthRequests.putIfAbsent(randomState, userId) match {
+    oAuthRequests.putIfAbsent(randomState, auth) match {
       case None => uri
       case _ =>
         scribe.error("Duplicate state in url generation")
@@ -49,39 +55,47 @@ case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(imp
     }
   }
 
-  private def confirmOAuthRequest(code: String, state: String): Boolean = {
-    val currRequest = oAuthRequests.get(state) match {
-      case Some(_) => true
-      case _ =>
-        scribe.error(s"Could not confirm oAuthRequest. No such request in queue")
-        false
-    }
-    code.nonEmpty && currRequest
+  def authorizeUrl(auth: Authentication.Verified, scope: List[String], params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
+    val randomState = UUID.randomUUID().toString
+    authorizeUrlWithState(auth, scope, randomState, params)
   }
 
-  //val newAccessToken: Future[Either[Throwable, AccessToken]] =
+  private def confirmOAuthRequest(code: String, state: String): Option[Authentication.Verified] = {
+    val currRequest = oAuthRequests.get(state)
+    currRequest match {
+      case Some(v: Authentication.Verified) if code.nonEmpty => Some(v)
+      case _ =>
+        scribe.error(s"Could not confirm oAuthRequest. No such request in queue")
+        None
+    }
+  }
+
+  //val newAccessToken: Future[Either[Throwable, OAuthToken]] =
   //  client.getAccessToken(GrantType.RefreshToken, Map("refresh_token" -> "zzzzzzzz"))
 
-  def route(tokenObserver: Observer[AccessToken]): Route = path(separateOnSlashes(oAuthConfig.authPath)) {
+  def route(tokenObserver: Observer[AuthenticationData]): Route = path(separateOnSlashes(oAuthPath)) {
     get {
       parameters(('code, 'state)) { (code: String, state: String) =>
-        if (confirmOAuthRequest(code, state)) {
+        val confirmedRequest = confirmOAuthRequest(code, state)
+        if (confirmedRequest.isDefined) {
 
-          val accessToken: Future[Either[Throwable, AccessToken]] = authClient.getAccessToken(
+          val accessToken: Future[Either[Throwable, OAuthToken]] = authClient.getAccessToken(
             grant = GrantType.AuthorizationCode,
             params = Map(
               "code" -> code,
-              "redirect_uri" -> s"http://${serverConfig.host}:${serverConfig.port}/${oAuthConfig.authPath}",
+              "redirect_uri" -> redirectUri,
               "state" -> state
             )
           )
 
           accessToken.foreach {
             case Right(t) =>
-              tokenObserver.onNext(t)
+              tokenObserver.onNext(AuthenticationData(confirmedRequest.get, t))
               oAuthRequests.remove(state)
             case Left(ex: UnauthorizedException) =>
               scribe.error(s"unauthorized error receiving access token: $ex")
+            case ex =>
+              scribe.error(s"unknown error receiving access token: $ex")
           }
 
         } else {
@@ -89,6 +103,7 @@ case class OAuthClient(oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(imp
         }
         redirect(s"http://${serverConfig.host}:12345/#view=usersettings&page=default", StatusCodes.SeeOther) //TODO: necessary or is is sufficient to set redirect uri above?
       }
+      // TODO: handle user aborts
     }
   }
 }
@@ -98,8 +113,7 @@ object OAuthClient {
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mat: Materializer    = ActorMaterializer()
 
-  def create(oAuthConfig: OAuthConfig, server: ServerConfig): OAuthClient = {
+  def apply(oAuthConfig: OAuthConfig, server: ServerConfig): OAuthClient = {
     new OAuthClient(oAuthConfig, server)
   }
-
 }
