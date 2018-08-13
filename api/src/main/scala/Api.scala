@@ -14,6 +14,10 @@ trait Api[Result[_]] {
 
   def getGraph(selection: Page): Result[Graph]
   def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
+
+  def getNode(nodeId: NodeId): Result[Option[Node]]
+  @PathName("getNodeOnBehalf")
+  def getNode(nodeId: NodeId, onBehalf: Authentication.Token): Result[Option[Node]]
 //  def addMemberByName(nodeId: NodeId, userName: String): Result[Boolean]
 
 //  def importGithubUrl(url: String): Result[Boolean]
@@ -46,6 +50,7 @@ trait AuthApi[Result[_]] {
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
   def issuePluginToken(): Result[Authentication.Verified]
+  def createImplicitUserForApp(): Result[Option[Authentication.Verified]]
 }
 
 sealed trait AuthResult

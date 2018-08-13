@@ -81,6 +81,15 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnAssumedAuth(newAuth)
   }
 
+  def createImplicitUserForApp(): ApiFunction[Option[Authentication.Verified]] = Action { _ =>
+    val userId = UserId.fresh
+    val implUser = db.user.createImplicitUser(userId, userId.toBase58, NodeId.fresh)
+    implUser.map {
+      case Some(auth) => Some(jwt.generateAuthentication(auth))
+      case None => None
+    }
+  }
+
   def issuePluginToken(): ApiFunction[Authentication.Verified] = Action.assureDbUser { (_, user) =>
     //TODO generate special token for plugins to allow onBehalf changes
     Future.successful(jwt.generateAuthentication(user))
