@@ -23,13 +23,19 @@ services:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: woost/slack:${WUST_VERSION-latest}
     environment:
-      <<: *pg_env
-      POSTGRES_HOSTNAME: "postgres"
+      SLACK_POSTGRES_USER: 'wust-slack'
+      SLACK_POSTGRES_PASSWORD: ${SLACK_POSTGRES_PASSWORD}
+      SLACK_POSTGRES_DB: 'wust-slack'
+      SLACK_POSTGRES_HOSTNAME: "postgres"
+      SLACK_POSTGRES_PORT: 5432
       WUST_SLACK_TOKEN: ${WUST_SLACK_TOKEN} # TODO: do not use static token in production
+      WUST_SLACK_USER: ${WUST_SLACK_USER}
+      WUST_SLACK_PORT: 443
       WUST_USER: ${WUST_USER}
       WUST_PASSWORD: ${WUST_PASSWORD}
       WUST_HOSTNAME: ${WUST_HOSTNAME}
       WUST_PORT: ${WUST_PORT}
+      WUST_CORE_PORT: 443 # TODO
       WUST_SLACK_PASSWORD: ${WUST_SLACK_PASSWORD}
       WUST_SLACK_CLIENT_ID: ${WUST_SLACK_CLIENT_ID}
       WUST_SLACK_CLIENT_SECRET: ${WUST_SLACK_CLIENT_SECRET}
@@ -37,10 +43,10 @@ services:
       WUST_SLACK_BOT_ID: ${WUST_SLACK_BOT_ID}
       WUST_SLACK_SIGNING_SECRET: ${WUST_SLACK_SIGNING_SECRET}
 
-	  depends_on:
-		  - postgres
-	  ports:
-		  - "127.0.0.1:${WUST_SLACK_PORT-8083}:8080"
+    depends_on:
+      - postgres
+    ports:
+      - "127.0.0.1:${WUST_SLACK_PORT-8083}:8080"
 
-	  volumes:
-		  slack_postgres_data:
+volumes:
+  slack_postgres_data:
