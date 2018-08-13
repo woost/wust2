@@ -896,7 +896,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
 
     state.eventProcessor.changes.redirectMap { (tag: String) =>
       val graph = getGraphFromState(state)
-      val tagPostWithParents: GraphChanges = graph.nodes.find(_.data == tag) match {
+      val tagPostWithParents: GraphChanges = graph.nodes.find(_.data.str == tag) match {
         case None =>
           //TODO: author = state.user.now.id
           val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag))
