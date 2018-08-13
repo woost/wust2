@@ -23,7 +23,7 @@ def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
 
 lazy val dbMigration = project
   .in(file("."))
-  .aggregate(dbMigrationCore, dbMigrationGithub)
+  .aggregate(dbMigrationCore, dbMigrationGithub, dbMigrationSlack)
 lazy val dbMigrationCore = project
   .in(file("core"))
   .enablePlugins(DockerPlugin)
@@ -32,3 +32,7 @@ lazy val dbMigrationGithub = project
   .in(file("github"))
   .enablePlugins(DockerPlugin)
   .settings(dockerDbMigration("github"))
+lazy val dbMigrationSlack = project
+  .in(file("slack"))
+  .enablePlugins(DockerPlugin)
+  .settings(dockerDbMigration("slack"))
