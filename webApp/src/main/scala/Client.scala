@@ -95,6 +95,10 @@ object Client {
   }
 
   // relogin when reconnecting or when localstorage-auth changes
-  observable.connected.foreach { _ => timeSync(); doLoginWithRetry(storage.auth.now) }
+  observable.connected.foreach { _ =>
+    scribe.info("Websocket connected")
+    timeSync()
+    doLoginWithRetry(storage.auth.now)
+  }
   storage.authFromOtherTab.foreach { doLoginWithRetry }
 }
