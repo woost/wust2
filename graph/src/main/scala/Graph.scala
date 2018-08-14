@@ -426,9 +426,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   }
 
   def -(nodeId: NodeId): Graph = removeNodes(nodeId :: Nil)
-  def -(edge: Edge): Graph = copy(
-    edges = edges - edge
-  )
+  def -(edge: Edge): Graph = copy(edges = edges - edge)
 
   def filter(p: NodeId => Boolean): Graph = {
     // we only want to call p once for each node
@@ -447,30 +445,23 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def filterNot(p: NodeId => Boolean): Graph = filter(id => !p(id))
 
   def removeNodes(nids: Iterable[NodeId]): Graph = filterNot(nids.toSet)
-
   def removeConnections(es: Iterable[Edge]): Graph = copy(edges = edges -- es)
-  def addNodes(ns: Iterable[Node]): Graph = copy(nodes = nodes ++ ns)
-  def addConnections(es: Iterable[Edge]): Graph =
-    copy(edges = edges ++ es.filter(e => nodeIds(e.sourceId) && nodeIds(e.targetId)))
+  def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
+  def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet)
 
-  def applyChanges(c: GraphChanges): Graph = {
-    val addNodeIds = c.addNodes.map(_.id)
-    val addEdgeIds = c.addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))
+  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
+  def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
+  def +(edge: Edge): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = Set(edge))
+  def +(that: Graph): Graph = changeGraphInternal(addNodes = that.nodes, addEdges = that.edges)
+
+  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty): Graph = {
+    val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
+    val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))(breakOut)
     copy(
-      nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ c.addNodes,
-      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ c.addEdges -- c.delEdges
+      nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ addNodes,
+      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges
     )
   }
-
-  def +(node: Node): Graph = copy(nodes = nodes + node)
-  def +(edge: Edge): Graph = copy(
-    edges = edges + edge
-  )
-
-  def +(that: Graph): Graph = copy(
-    nodes = this.nodes ++ that.nodes,
-    edges = this.edges ++ that.edges
-  )
 
   lazy val consistent: Graph = {
     val filteredEdges = edges.filter(e => nodeIds(e.sourceId) && nodeIds(e.targetId))
