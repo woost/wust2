@@ -141,6 +141,10 @@ object ChatView extends View {
     val activeReplyFields = Var(Set.empty[NodeId])
 
     div(
+      // this wrapping of chat history is currently needed,
+      // to allow dragging the scrollbar without triggering a drag event.
+      // see https://github.com/Shopify/draggable/issues/262
+    div(
       cls := "chat-history",
       padding := "20px 0 20px 20px",
       Rx {
@@ -175,6 +179,7 @@ object ChatView extends View {
       }) --> sideEffect { (elem, atBottom) =>
         if(atBottom) scrollToBottom(elem)
       }
+    )
     )
   }
 
