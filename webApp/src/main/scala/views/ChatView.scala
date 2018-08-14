@@ -466,20 +466,20 @@ object ChatView extends View {
           div(
             cls := "tags",
             directNodeTags.map { tag =>
-              nodeTagDot(state, tag)
+              nodeTagDot(state, tag)(Styles.flexStatic)
             }(breakOut): Seq[VDomModifier],
             transitiveNodeTags.map { tag =>
-              nodeTagDot(state, tag)(cls := "transitivetag", opacity := 0.4)
+              nodeTagDot(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
             }(breakOut): Seq[VDomModifier]
           )
         case _                =>
           div(
             cls := "tags",
             directNodeTags.map { tag =>
-              removableNodeTag(state, tag, nodeId, graph)
+              removableNodeTag(state, tag, nodeId, graph)(Styles.flexStatic)
             }(breakOut): Seq[VDomModifier],
             transitiveNodeTags.map { tag =>
-              nodeTag(state, tag)(cls := "transitivetag", opacity := 0.4)
+              nodeTag(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
             }(breakOut): Seq[VDomModifier]
           )
       }
