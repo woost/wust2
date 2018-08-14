@@ -142,7 +142,7 @@ object KanbanView extends View {
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
-          isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", if(isTopLevel) freeSolid.faTimes else freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
+          isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
           div(div(cls := "fa-fw", freeRegular.faTrashAlt),
             onClick.stopPropagation --> sideEffect {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, state.graph.now))
