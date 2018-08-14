@@ -155,8 +155,6 @@ object ChatView extends View {
           val nodes = graph.chronologicalNodesAscending.collect {
             case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
           }
-        println(graph.nodes)
-        println(nodes)
           val avatarSizeToplevel = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
           if(nodes.isEmpty) VDomModifier(emptyChatNotice)
           else
