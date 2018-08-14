@@ -48,5 +48,8 @@ object Main {
         NodeDataParser.addNode("x", Nil, Set.empty)
       }
     }
+
+    if(js.Dynamic.global.ga.isInstanceOf[js.Function])
+      console.log("Loaded Google Analytics:", js.Dynamic.global.ga.asInstanceOf[js.Any])
   }
 }
