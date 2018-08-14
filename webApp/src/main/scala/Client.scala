@@ -37,15 +37,16 @@ object Client {
   }
   private val githubUrl = {
     import window.location
-    s"${location.protocol}//${location.hostname}:8902/api"
+    s"${location.protocol}//github.${location.hostname}:8902/api"
   }
   private val slackUrl = {
     import window.location
-    s"${location.protocol}//${location.hostname}:8903/api"
+    // s"${location.protocol}//slack.${location.hostname}:9103/api"
+    s"${location.protocol}//slack.${location.hostname}/api"
   }
   private val gitterUrl = {
     import window.location
-    s"${location.protocol}//${location.hostname}:8904/api"
+    s"${location.protocol}//gitter.${location.hostname}:8904/api"
   }
 
   private val githubClient = HttpClient[ByteBuffer](githubUrl)

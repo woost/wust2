@@ -250,7 +250,7 @@ object AppServer {
       }
     }
 
-    Http().bindAndHandle(route, interface = config.server.host, port = config.server.port).onComplete {
+    Http().bindAndHandle(route, interface = "0.0.0.0", port = config.server.port).onComplete {
       case Success(binding) =>
         val separator = "\n############################################################"
         val readyMsg = s"\n##### Slack App Server online at ${ binding.localAddress } #####"

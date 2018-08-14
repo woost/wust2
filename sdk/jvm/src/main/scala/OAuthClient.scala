@@ -36,7 +36,7 @@ class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(impl
 
   private val authClient = AuthClient(authConfig)
   private val oAuthPath = oAuthConfig.authPath.getOrElse("oauth/auth")
-  private val redirectUri = oAuthConfig.redirectUri.getOrElse(s"http://${serverConfig.host}:${serverConfig.port}/") + oAuthPath
+  private val redirectUri = oAuthConfig.redirectUri.getOrElse(s"https://${serverConfig.host}:${serverConfig.port}/") + oAuthPath
 
   def authorizeUrlWithState(auth: Authentication.Verified, scope: List[String], randomState: String, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
     val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, params ++
@@ -101,7 +101,10 @@ class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(impl
         } else {
           scribe.error(s"Could not verify request(code, state): ($code, $state)")
         }
-        redirect(s"http://${serverConfig.host}:12345/#view=usersettings&page=default", StatusCodes.SeeOther) //TODO: necessary or is is sufficient to set redirect uri above?
+
+        //TODO env varibles
+        // val protocol = if(wustServerConfig.port == 443) "https" else "http"
+        redirect(s"https://${serverConfig.host}/#view=usersettings&page=default", StatusCodes.SeeOther)
       }
       // TODO: handle user aborts
     }

@@ -82,7 +82,7 @@ env_github_app="WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-8902} "
 env_github="$env_github_redis $env_github_app"
 
 env_slack_postgres="SLACK_POSTGRES_HOSTNAME=localhost SLACK_POSTGRES_USER=slack SLACK_POSTGRES_DB=slack SLACK_POSTGRES_PORT=15432 SLACK_POSTGRES_PASSWORD=test"
-env_slack_app="WUST_SLACK_PORT=${WUST_SLACK_PORT:-8903} WUST_SLACK_USER=wust-slack WUST_SLACK_PASSWORD=wust-slack"
+env_slack_app="WUST_SLACK_PORT=${WUST_SLACK_PORT:-9103} WUST_SLACK_USER=wust-slack WUST_SLACK_PASSWORD=wust-slack"
 env_slack="$env_slack_postgres $env_slack_app"
 
 env_wust_local_connectivity="WUST_PORT=${WUST_PORT:-12345} WUST_WEB_PORT=${WUST_WEB_PORT:-8900}  WUST_CORE_PORT=${WUST_CORE_PORT:-8901} DEV_SERVER_COMPRESS=${DEV_SERVER_COMPRESS:-false} SOURCEMAPS=${SOURCEMAPS:-false} $env_github_app $env_slack_app"
