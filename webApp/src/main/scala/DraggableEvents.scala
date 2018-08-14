@@ -33,7 +33,20 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   private val dragStopEvent = PublishSubject[DragEvent] //TODO type event
   private val lastDragTarget = PublishSubject[Option[DragTarget]] //TODO: observable derived from other subjects
 
-  val status: Observable[DragStatus] = Observable.merge(dragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
+
+  val filteredDragStartEvent = dragStartEvent.filter { e =>
+    // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
+    val payload:Option[DragPayload] = readDragPayload(e.originalSource)
+    payload.foreach ( writeDragPayload(e.mirror, _) )
+
+    payload match {
+      case Some(DragItem.DisableDrag) => e.cancel(); false
+      case _ => true
+    }
+  }
+
+
+  val status: Observable[DragStatus] = Observable.merge(filteredDragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
 
 
   draggable.on[DragStartEvent]("drag:start", dragStartEvent.onNext _)
@@ -88,17 +101,6 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
 
       case (dragging: AnyNodes, target: AnyNodes, true, _) => addTag(dragging.nodeIds, target.nodeIds)
       case (dragging: AnyNodes, target: AnyNodes, false, _) => moveInto(dragging.nodeIds, target.nodeIds)
-    }
-  }
-
-  dragStartEvent.foreachTry { e =>
-    // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
-    val payload:Option[DragPayload] = readDragPayload(e.originalSource)
-    payload.foreach ( writeDragPayload(e.mirror, _) )
-
-    payload match {
-      case Some(DragItem.DisableDrag) => e.cancel()
-      case _ =>
     }
   }
 
