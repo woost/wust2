@@ -87,7 +87,15 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val posts: List[Node] = List(1, 2, 3)
       val newPost: Node = 99
       val graph = Graph(posts, List[Edge](1 -> 2, 2 -> 3) ++ List(1 cont 2, 2 cont 3))
-      (graph + newPost) mustEqual Graph(posts :+ newPost, graph.labeledEdges ++ graph.containments)
+      (graph + newPost) mustEqual Graph(posts :+ newPost, graph.edges)
+    }
+
+    "add node with same hashcode (update)" in {
+      val oldPost: Node = Node.Content(id = 99, data = NodeData.PlainText("old content"))
+      val newPost: Node = Node.Content(id = 99, data = NodeData.PlainText("updated content"))
+      val postsWithOld: List[Node] = List(1, 2, 3, oldPost)
+      val postsWithNew: List[Node] = List(1, 2, 3, newPost)
+      (Graph(postsWithOld) + newPost) mustEqual Graph(postsWithNew)
     }
 
     "add connection" in {
