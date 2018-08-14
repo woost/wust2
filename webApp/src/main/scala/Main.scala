@@ -51,5 +51,8 @@ object Main {
 
     if(js.Dynamic.global.ga.isInstanceOf[js.Function])
       console.log("Loaded Google Analytics:", js.Dynamic.global.ga.asInstanceOf[js.Any])
+
+    if(js.Dynamic.global.gtag.isInstanceOf[js.Function])
+      console.log("Loaded Google Tag Manager:", js.Dynamic.global.gtag.asInstanceOf[js.Any])
   }
 }
