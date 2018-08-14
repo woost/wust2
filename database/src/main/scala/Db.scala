@@ -194,6 +194,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
   }
 
   object edge {
+
     private val insert = quote { c: Edge =>
       val q = query[Edge].insert(c)
       // if there is unique conflict, we update the data which might contain new values
@@ -203,10 +204,25 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def create(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = create(List(edge))
     def create(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx
-        .run(liftQuery(edges.toList).foreach(insert(_)))
-        .map(_.forall(_ <= 1))
-        .recoverValue(false)
+      val (authorEdges, otherEdges) = edges.partition(e => e.data.isInstanceOf[EdgeData.Author])
+
+      ctx.transaction( implicit ec =>
+        for {
+          numAuthors <- if(authorEdges.nonEmpty) {
+            ctx.run {
+              liftQuery(authorEdges.toList).foreach( e =>
+                query[Edge].insert(e)
+                  .onConflictIgnore
+              )
+            }
+          } else Future.successful(Nil)
+          numOthers <- if(otherEdges.nonEmpty) {
+            ctx.run {
+                liftQuery(otherEdges.toList).foreach(insert(_))
+            }
+          } else Future.successful(Nil)
+        } yield numAuthors.forall(_ <= 1) && numOthers.forall(_ <= 1)
+      ).recoverValue(false)
     }
 
     def delete(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(edge))
