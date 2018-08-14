@@ -24,11 +24,12 @@ class ClientStorage(implicit owner: Ctx.Owner) {
 
   val auth: Var[Option[Authentication]] = {
     LocalStorage
-      .handler(keys.auth)
+      .handlerWithoutEvents(keys.auth)
       .unsafeRunSync()
       .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
       .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
+
   val authFromOtherTab: Var[Option[Authentication]] = {
     LocalStorage
       .handlerWithEventsOnly(keys.auth)
@@ -57,9 +58,9 @@ class ClientStorage(implicit owner: Ctx.Owner) {
 
   val backendTimeDelta: Var[Long] = {
     LocalStorage
-      .handler(keys.backendTimeDelta)
+      .handlerWithoutEvents(keys.backendTimeDelta)
       .unsafeRunSync()
       .mapHandler(_.flatMap(fromJson[Long]).getOrElse(0L))(delta => Option(toJson(delta)))
-      .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Long]).getOrElse(0L))
+      .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))
   }
 }
