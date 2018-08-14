@@ -134,7 +134,7 @@ object AppServer {
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
 
     val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
+      allowedOrigins = HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
     // TODO: author
@@ -200,7 +200,7 @@ object AppServer {
         cors(corsSettings) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
         }
-      } ~ path(config.server.webhookPath) {
+      } ~ path(config.appServer.webhookPath) {
         post {
           decodeRequest {
             val challengeEvent = entity(as[EventServerChallenge]) { eventChallenge =>
@@ -216,7 +216,7 @@ object AppServer {
             challengeEvent
           }
         }
-      } ~ path(config.server.webhookPath) {
+      } ~ path(config.appServer.webhookPath) {
         headerValueByName("X-Slack-Request-Timestamp") { slackRequestTimestamp =>
           headerValueByName("X-Slack-Signature") { slackSignature =>
             post {
@@ -250,7 +250,7 @@ object AppServer {
       }
     }
 
-    Http().bindAndHandle(route, interface = "0.0.0.0", port = config.server.port).onComplete {
+    Http().bindAndHandle(route, interface = "0.0.0.0", port = config.appServer.port).onComplete {
       case Success(binding) =>
         val separator = "\n############################################################"
         val readyMsg = s"\n##### Slack App Server online at ${ binding.localAddress } #####"
@@ -428,10 +428,10 @@ object App extends scala.App {
   Config.load() match {
     case Left(err)     => scribe.info(s"Cannot load config: $err")
     case Right(config) =>
-      val oAuthClient = OAuthClient(config.oauth, config.server)
+      val oAuthClient = OAuthClient(config.oAuth, config.appServer, config.wustServer)
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
       val slackClient = SlackClient(config.slack.token)
-      val slackEventReceiver = WustReceiver.run(config.wust, slackClient, slackPersistenceAdapter, config.slack.token)
+      val slackEventReceiver = WustReceiver.run(config.wustServer, slackClient, slackPersistenceAdapter, config.slack.token)
       val slackRequestVerifier = new SlackRequestVerifier(config.slack.signingSecret)
       //      val client = SlackClient(config.oAuthConfig.accessToken.get)
       AppServer.run(config, slackEventReceiver, slackClient, oAuthClient, slackPersistenceAdapter, slackRequestVerifier)

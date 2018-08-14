@@ -1,10 +1,10 @@
 package wust.gitter
 
 //@derive((host, user) => toString)
-case class WustConfig(host: String, port: String, user: String, password: String) { //TODO put in sdk or util?
+case class WustConfig(host: String, port: Int, user: String, password: String) { //TODO put in sdk or util?
   override def toString = s"WustConfig($host, $port, $user, ***)"
 }
-case class Config(accessToken: String, wust: WustConfig)
+case class Config(accessToken: String, wustServer: WustConfig)
 
 object Config {
   import pureconfig._

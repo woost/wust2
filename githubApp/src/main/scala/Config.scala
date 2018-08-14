@@ -3,7 +3,7 @@ package wust.github
 import wust.sdk.{OAuthConfig, ServerConfig, WustConfig}
 
 case class RedisConfig(host: String, port: Int)
-case class Config(wust: WustConfig, server: ServerConfig, oauth: OAuthConfig, redis: RedisConfig)
+case class Config(wustServer: WustConfig, appServer: ServerConfig, oAuth: OAuthConfig, redis: RedisConfig)
 
 object Config {
   import pureconfig._

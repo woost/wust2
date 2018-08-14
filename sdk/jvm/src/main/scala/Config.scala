@@ -7,12 +7,19 @@ case class ServerConfig(
                          host: String,
                          port: Int,
                          webhookPath: String,
-                         allowedOrigins: List[String]
+                         allowedOrigins: List[String],
                        )
 
-case class OAuthConfig(clientId: String, clientSecret: String, siteUri: String, authPath: Option[String], redirectUri: Option[String], authorizeUrl: Option[String], tokenUrl: Option[String])
+case class OAuthConfig(clientId: String,
+  clientSecret: String,
+  siteUri: String,
+  authPath: Option[String],
+  redirectUri: Option[String],
+  authorizeUrl: Option[String],
+  tokenUrl: Option[String],
+)
 
-case class DefaultConfig(server: ServerConfig, wust: WustConfig, oauth: OAuthConfig)
+case class DefaultConfig(appServer: ServerConfig, wustServer: WustConfig, oAuth: OAuthConfig)
 
 object Config {
   import pureconfig._

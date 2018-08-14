@@ -140,7 +140,7 @@ object AppServer {
       .route[PluginApi](new GithubApiImpl(wustReceiver.client, oAuthClient))
 
     val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
+      allowedOrigins = HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
     case class IssueEvent(action: String, issue: Issue)
@@ -171,7 +171,7 @@ object AppServer {
         cors(corsSettings) {
           AkkaHttpRoute.fromFutureRouter(apiRouter)
         }
-      } ~ path(config.server.webhookPath) {
+      } ~ path(config.appServer.webhookPath) {
         post {
           decodeRequest {
             headerValueByName("X-GitHub-Event") {
@@ -228,7 +228,7 @@ object AppServer {
       }
     }
 
-    Http().bindAndHandle(route, interface = config.server.host, port = config.server.port).onComplete {
+    Http().bindAndHandle(route, interface = config.appServer.host, port = config.appServer.port).onComplete {
       case Success(binding) =>
         val separator = "\n############################################################"
         val readyMsg = s"\n##### GitHub App Server online at ${binding.localAddress} #####"
@@ -740,9 +740,9 @@ object App extends scala.App {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
       //      val githubClient = GithubClient(config.oauth)
-      val oAuthClient = OAuthClient.apply(config.oauth, config.server)
+      val oAuthClient = OAuthClient.apply(config.oAuth, config.appServer, config.wustServer)
       val githubClient = GithubClient(Some("token")) //TODO: get token
-      val receiver = WustReceiver.run(config.wust, githubClient)
+      val receiver = WustReceiver.run(config.wustServer, githubClient)
       AppServer.run(config, receiver, oAuthClient)
   }
 }

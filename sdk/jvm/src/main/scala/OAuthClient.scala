@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, Future}
 case class AuthenticationData(wustAuthData: Authentication.Verified, platformAuthToken: OAuthToken)
 
 // Instantiate for each App
-class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
+class OAuthClient(val oAuthConfig: OAuthConfig, appServerConfig: ServerConfig, wustServerConfig: WustConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {
 
   val oAuthRequests: TrieMap[String, Authentication.Verified] = TrieMap.empty[String, Authentication.Verified]
 
@@ -36,7 +36,8 @@ class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(impl
 
   private val authClient = AuthClient(authConfig)
   private val oAuthPath = oAuthConfig.authPath.getOrElse("oauth/auth")
-  private val redirectUri = oAuthConfig.redirectUri.getOrElse(s"https://${serverConfig.host}:${serverConfig.port}/") + oAuthPath
+  private val appProtocol = if(appServerConfig.port == 443) "https" else "http"
+  private val redirectUri = oAuthConfig.redirectUri.getOrElse(s"$appProtocol://${appServerConfig.host}:${appServerConfig.port}/") + oAuthPath
 
   def authorizeUrlWithState(auth: Authentication.Verified, scope: List[String], randomState: String, params: Map[String, String] = Map.empty[String, String]): Option[Uri] = {
     val uri = authClient.getAuthorizeUrl(GrantType.AuthorizationCode, params ++
@@ -103,8 +104,8 @@ class OAuthClient(val oAuthConfig: OAuthConfig, serverConfig: ServerConfig)(impl
         }
 
         //TODO env varibles
-        // val protocol = if(wustServerConfig.port == 443) "https" else "http"
-        redirect(s"https://${serverConfig.host}/#view=usersettings&page=default", StatusCodes.SeeOther)
+         val wustProtocol = if(wustServerConfig.port == 443) "https" else "http"
+        redirect(s"$wustProtocol://${wustServerConfig.host}/#view=usersettings&page=default", StatusCodes.SeeOther)
       }
       // TODO: handle user aborts
     }
@@ -116,7 +117,7 @@ object OAuthClient {
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val mat: Materializer    = ActorMaterializer()
 
-  def apply(oAuthConfig: OAuthConfig, server: ServerConfig): OAuthClient = {
-    new OAuthClient(oAuthConfig, server)
+  def apply(oAuth: OAuthConfig, appServer: ServerConfig, wustServer: WustConfig): OAuthClient = {
+    new OAuthClient(oAuth, appServer, wustServer)
   }
 }

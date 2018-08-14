@@ -208,7 +208,7 @@ object App extends scala.App {
     case Left(err) => println(s"Cannot load config: $err")
     case Right(config) =>
       val client = GitterClient(config.accessToken)
-      WustReceiver.run(config.wust, client).foreach {
+      WustReceiver.run(config.wustServer, client).foreach {
         case Right(receiver) => client.run(receiver)
         case Left(err)       => println(s"Cannot connect to Wust: $err")
       }

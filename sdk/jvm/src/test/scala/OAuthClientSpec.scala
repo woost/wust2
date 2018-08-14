@@ -14,7 +14,7 @@ import wust.ids.{NodeId, UserId}
 class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
 
   def getClient(path: String = "wust.test") = {
-    Config.load(path).map(config => OAuthClient.apply(config.oauth, config.server))
+    Config.load(path).map(config => OAuthClient.apply(config.oAuth, config.appServer, config.wustServer))
   }
 
   "load config" in {
@@ -53,7 +53,7 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
 
 class OAuthClientRoutingSpec extends WordSpec with EitherValues with Matchers with ScalatestRouteTest {
 
-  private val client = Config.load("wust.test").map(config => OAuthClient.apply(config.oauth, config.server)).toOption.get
+  private val client = Config.load("wust.test").map(config => OAuthClient.apply(config.oAuth, config.appServer, config.wustServer)).toOption.get
   private val tokenObserver = PublishSubject[AuthenticationData]
   private val testRoute = client.route(tokenObserver)
 
