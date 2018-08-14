@@ -137,23 +137,32 @@ object SelectedPostMenu {
         backgroundColor := "#EEE",
         borderRadius := "5px",
         tagList,
-        textArea(valueWithEnter --> insertPostHandler, Placeholders.newNode, marginTop := "20px")
+        div(
+          cls := "ui form",
+          textArea(
+            cls := "fluid field",
+            rows := 2,
+            valueWithEnter --> insertPostHandler,
+            Placeholders.newNode,
+            marginTop := "20px"
+          )
+        )
       ),
-      div(
-        cls := "shadow",
-        width := "4px",
-        height := "60px",
-        margin := s"0 ${(300 - 4) / 2}px",
-        backgroundColor := "#8F8F8F"
-      ),
-      div(
-        cls := "shadow",
-        backgroundColor := "#F8F8F8",
-        border := "2px solid #DDDDDD",
-        borderRadius := "5px",
-        padding := "5px",
-        textArea(valueWithEnter --> connectPostHandler, Placeholders.newNode)
-      )
+      // div(
+      //   cls := "shadow",
+      //   width := "4px",
+      //   height := "60px",
+      //   margin := s"0 ${(300 - 4) / 2}px",
+      //   backgroundColor := "#8F8F8F"
+      // ),
+      // div(
+      //   cls := "shadow",
+      //   backgroundColor := "#F8F8F8",
+      //   border := "2px solid #DDDDDD",
+      //   borderRadius := "5px",
+      //   padding := "5px",
+      //   textArea(valueWithEnter --> connectPostHandler, Placeholders.newNode)
+      // )
     )
   }
 

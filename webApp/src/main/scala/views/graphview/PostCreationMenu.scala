@@ -66,15 +66,18 @@ object PostCreationMenu {
       transform <-- transformStyle,
       width := "300px",
       div(
+        cls := "ui form",
         textArea(
+          cls := "fluid field",
           valueWithEnter --> inputHandler,
           Placeholders.newNode,
           onInsert.asHtml --> sideEffect(_.focus()),
           style("resize") := "none", //TODO: outwatch resize?
-          margin := "0px"
+          margin := "0px",
+          rows := 2,
         ),
         cls := "shadow",
-        padding := "3px 5px 0px 5px",
+        padding := "5px",
         border := "2px solid #DDDDDD",
         borderRadius := "5px",
         backgroundColor := "#F8F8F8"
