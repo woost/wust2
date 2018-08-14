@@ -144,42 +144,43 @@ object ChatView extends View {
       // this wrapping of chat history is currently needed,
       // to allow dragging the scrollbar without triggering a drag event.
       // see https://github.com/Shopify/draggable/issues/262
-    div(
-      cls := "chat-history",
-      padding := "20px 0 20px 20px",
-      Rx {
-        val page = state.page()
-        val fullGraph = state.graph()
-        val graph = state.graphContent()
-        val user = state.user()
-        val nodes = graph.chronologicalNodesAscending.collect {
-          case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
-        }
+      div(
+        cls := "chat-history",
+        padding := "20px 0 20px 20px",
+        Rx {
+          val page = state.page()
+          val fullGraph = state.graph()
+          val graph = state.graphContent()
+          val user = state.user()
+          val nodes = graph.chronologicalNodesAscending.collect {
+            case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
+          }
         println(graph.nodes)
         println(nodes)
-        val avatarSizeToplevel = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
-        if(nodes.isEmpty) VDomModifier(emptyChatNotice)
-        else
-          VDomModifier(
-            groupNodes(graph, nodes, state, user.id)
-              .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, page.parentIdSet, user.id, avatarSizeToplevel, activeReplyFields)),
+          val avatarSizeToplevel = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
+          if(nodes.isEmpty) VDomModifier(emptyChatNotice)
+          else
+            VDomModifier(
+              groupNodes(graph, nodes, state, user.id)
+                .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, page.parentIdSet, user.id, avatarSizeToplevel, activeReplyFields)),
 
 
-            draggableAs(state, DragItem.DisableDrag),
-            dragTarget(DragItem.Chat.Page(page.parentIds)),
-            key := s"chathistory${ page.parentIds.mkString }",
-          )
-      },
-      onUpdate --> sideEffect { (prev, _) =>
-        scrolledToBottom
-          .onNext(prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11) // at bottom + 10 px tolerance
-      },
-      onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
-        case ((_, elem), atBottom) => (elem, atBottom)
-      }) --> sideEffect { (elem, atBottom) =>
-        if(atBottom) scrollToBottom(elem)
-      }
-    )
+              draggableAs(state, DragItem.DisableDrag),
+              cursor.default, // draggable sets cursor.move, but drag is disabled on page background
+              dragTarget(DragItem.Chat.Page(page.parentIds)),
+              key := s"chathistory${ page.parentIds.mkString }",
+            )
+        },
+        onUpdate --> sideEffect { (prev, _) =>
+          scrolledToBottom
+            .onNext(prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11) // at bottom + 10 px tolerance
+        },
+        onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
+          case ((_, elem), atBottom) => (elem, atBottom)
+        }) --> sideEffect { (elem, atBottom) =>
+          if(atBottom) scrollToBottom(elem)
+        }
+      )
     )
   }
 
@@ -317,6 +318,7 @@ object ChatView extends View {
 
           draggableAs(state, DragItem.DisableDrag),
           dragTarget(DragItem.Chat.Thread(nodeId)),
+          cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
           key := s"thread${ nodeId }",
         )
       )
@@ -343,7 +345,7 @@ object ChatView extends View {
           div(
             Styles.flex,
             alignItems.center,
-            inputField(state, directParentIds = Set(nodeId), blurAction = {value => if(value.isEmpty) activeReplyFields.update(_ - nodeId) })(ctx)(
+            inputField(state, directParentIds = Set(nodeId), blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - nodeId) })(ctx)(
               key := s"chatreplyfield$nodeId",
               padding := "3px",
               width := "100%"
@@ -509,7 +511,7 @@ object ChatView extends View {
     div(
       cls := "ui form",
       textArea(
-        key := s"chat-replyfield${directParentIds.mkString}",
+        key := s"chat-replyfield${ directParentIds.mkString }",
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now
@@ -524,7 +526,7 @@ object ChatView extends View {
           state.eventProcessor.changes.onNext(changes)
         },
         onInsert.asHtml --> sideEffect { e => e.focus() },
-        onBlur.value --> sideEffect{value => blurAction(value)},
+        onBlur.value --> sideEffect { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         style("resize") := "none", //TODO: add resize style to scala-dom-types
