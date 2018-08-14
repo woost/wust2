@@ -66,24 +66,33 @@ object GlobalStateFactory {
   }
 
     val pageObservable = page.toObservable
+    val userObservable = user.toObservable
 
     //TODO: better build up state from server events?
-    // when the viewconfig or user changes, we get a new graph for the current page
+    // only adding a new channel would normally get a new graph. but we can
+    // avoid this here and do nothing. Optimistic UI. We just integrate this
+    // change into our local state without asking the backend. when the page
+    // changes, we get a new graph. except when it is just a Page.NewChannel.
+    // There we want to issue the new-channel change.
     pageObservable
-      .combineLatest(user.toObservable)
-      .switchMap {
-        case (page, user) =>
-          page match {
-            case Page.Selection(parentIds, childrenIds, mode) =>
-              val newGraph = Client.api.getGraph(page)
-              Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
-            case Page.NewChannel(nodeId) =>
-              val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.channelNodeId)
-              eventProcessor.enriched.changes.onNext(changes)
-              Observable.empty
-          }
-      }
-      .subscribe(additionalManualEvents)
+      .withLatestFrom(userObservable)((_,_))
+      .switchMap { case (page, user) =>
+        page match {
+          case Page.Selection(parentIds, childrenIds, mode) =>
+            val newGraph = Client.api.getGraph(page)
+            Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
+          case Page.NewChannel(nodeId) =>
+            val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.channelNodeId)
+            eventProcessor.enriched.changes.onNext(changes)
+            Observable.empty
+        }
+      }.subscribe(additionalManualEvents)
+
+      // when the user change, we definitly need a new graph, regardless of the page
+      userObservable.withLatestFrom(pageObservable)((_,_)).switchMap { case (user, page) =>
+        val newGraph = Client.api.getGraph(page)
+        Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
+      }.subscribe(additionalManualEvents)
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
     // update of page was changed manually AFTER initial page

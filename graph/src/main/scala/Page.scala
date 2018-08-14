@@ -30,11 +30,11 @@ object Page {
     parentIds: Seq[NodeId],
     childrenIds: Seq[NodeId] = Nil,
     mode: PageMode = PageMode.Default
-  ): Selection = Selection(parentIds, childrenIds, mode)
+  ): Page = Selection(parentIds, childrenIds, mode)
 
   def unapply(page: Page): Option[(Seq[NodeId], Seq[NodeId], PageMode)] = Some((page.parentIds, page.childrenIds, page.mode))
 
-  val empty: Selection = Page(Seq.empty)
-  def ofUser(user: UserInfo): Selection = apply(Seq(user.channelNodeId))
-  def apply(parentId: NodeId): Selection = apply(Seq(parentId))
+  val empty: Page = Page(Seq.empty)
+  def ofUser(user: UserInfo): Page = apply(Seq(user.channelNodeId))
+  def apply(parentId: NodeId): Page = apply(Seq(parentId))
 }
