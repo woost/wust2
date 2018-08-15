@@ -287,9 +287,11 @@ object ChatView extends View {
 
     div(
       cls := "chatmsg-group-outer-frame",
+      key := s"chatmsg-group-outer-frame${nodeIds.mkString}${directParentIds.mkString}",
       (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize)(marginRight := "5px")),
       div(
         cls := "chatmsg-group-inner-frame",
+        key := s"chatmsg-group-inner-frame${nodeIds.mkString}${directParentIds.mkString}",
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, directParentIds = directParentIds, nid, currentUserId, activeReplyFields)
         ),
@@ -302,6 +304,7 @@ object ChatView extends View {
     if(!graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
       val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
       div(
+        key := s"threadheader${ nodeId }${directParentIds.mkString}",
         chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
           boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
         )),
@@ -312,12 +315,12 @@ object ChatView extends View {
           groupNodes(graph, children, state, currentUserId)
             .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, Set(nodeId), currentUserId, avatarSizeThread, activeReplyFields)),
 
-          replyField(state, nodeId, activeReplyFields),
+          replyField(state, nodeId, directParentIds, activeReplyFields),
 
           draggableAs(state, DragItem.DisableDrag),
           dragTarget(DragItem.Chat.Thread(nodeId)),
           cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
-          key := s"thread${ nodeId }",
+          key := s"thread${ nodeId }${directParentIds.mkString}",
         )
       )
     }
@@ -335,16 +338,18 @@ object ChatView extends View {
       chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId)
   }
 
-  def replyField(state: GlobalState, nodeId: NodeId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
     div(
+      key := s"chatreplyfieldouterframe$nodeId${directParentIds.mkString}",
       Rx {
         val active = activeReplyFields() contains nodeId
         if(active)
           div(
+            key := s"chatreplyfieldinnerframe$nodeId${directParentIds.mkString}",
             Styles.flex,
             alignItems.center,
             inputField(state, directParentIds = Set(nodeId), blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - nodeId) })(ctx)(
-              key := s"chatreplyfield$nodeId",
+              key := s"chatreplyfield$nodeId${directParentIds.mkString}",
               padding := "3px",
               width := "100%"
             ),

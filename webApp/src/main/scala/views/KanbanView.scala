@@ -73,10 +73,10 @@ object KanbanView extends View {
       cls := s"kanbannewcolumnarea",
       key := s"kanbannewcolumnarea",
       registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
-      onClick(true) --> fieldActive,
+      onClick.stopPropagation(true) --> fieldActive,
       position.relative,
       Rx {
-        if(fieldActive())
+        if(fieldActive()) {
           div(
             key := "kanban-newcolumnform",
             cls := "kanbannewcolumnareaform",
@@ -103,8 +103,10 @@ object KanbanView extends View {
               onBlur.value --> sideEffect{v => if(v.isEmpty) fieldActive() = false}
             )
           )
+        }
         else
           div(
+            // key := "kanban-newcolumnarea-addcolumnbutton",
             position.absolute,
             top := "0",
             left := "0",
@@ -158,6 +160,7 @@ object KanbanView extends View {
     div(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
+      key := s"kanbancolumn${node.id}parent${parentIds.mkString}",
       isTopLevel.ifFalse[VDomModifier](cls := "kanbansubcolumn"),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
@@ -169,6 +172,7 @@ object KanbanView extends View {
       ),
       div(
         cls := "kanbancolumnheader",
+        key := s"kanbancolumnheader${node.id}parent${parentIds.mkString}",
         cls := "draghandle",
         columnTitle,
 
@@ -233,13 +237,16 @@ object KanbanView extends View {
   private def addNodeField(state: GlobalState, parentId: NodeId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "kanbanaddnodefield",
+      key := s"kanban-nodefield-outer$parentId",
       Rx {
         val active = activeReplyFields() contains parentId
         if(active)
           div(
+            key := s"kanban-nodefield-form$parentId",
             cls := "ui form",
             textArea(
               key := s"kanban-nodefield$parentId",
+              data.key := s"kanban-nodefield$parentId",
               cls := "field fluid",
               rows := 2,
               placeholder := "Press Enter to add.",
@@ -255,6 +262,7 @@ object KanbanView extends View {
           )
         else
           div(
+            key := s"kanban-nodefield-button$parentId",
             "+ Add Card",
             onClick --> sideEffect {activeReplyFields.update(_ + parentId)}
           )

@@ -190,7 +190,6 @@ object Components {
   }
 
   def registerDraggableContainer(state: GlobalState): VDomModifier = Seq(
-    key := cuid.Cuid(),
     //    border := "2px solid blue",
     outline := "none", // hides focus outline
     cls := "draggable-container",
@@ -205,7 +204,6 @@ object Components {
 
   def registerSortableContainer(state: GlobalState, container: DragContainer): VDomModifier = {
     Seq(
-      key := cuid.Cuid(),
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
