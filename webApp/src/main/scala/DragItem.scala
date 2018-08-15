@@ -4,8 +4,8 @@ import io.circe._
 import io.circe.generic.semiauto._
 import wust.ids.NodeId
 
-sealed trait DragPayload
-sealed trait DragTarget
+sealed trait DragPayload extends Product
+sealed trait DragTarget extends Product
 object DragItem extends wust.ids.serialize.Circe {
   case object DisableDrag extends DragPayload
 

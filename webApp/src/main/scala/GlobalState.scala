@@ -80,7 +80,8 @@ class GlobalState (
     events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
   }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
-  permissionState.triggerLater{ state =>
+  permissionState.triggerLater { state =>
+    if(state == PermissionState.granted || state == PermissionState.denied)
     Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
 

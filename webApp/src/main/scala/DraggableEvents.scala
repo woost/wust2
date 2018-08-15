@@ -1,6 +1,7 @@
 package wust.webApp
 
 import acyclic.skipped
+import googleAnalytics.Analytics
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -126,7 +127,13 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     pt match {
       case (Some(payload), Some(target), ctrl, shift) =>
         println(s"Dropped: $payload -> $target${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
-        dragActions.applyOrElse((payload, target, ctrl, shift), (other:(DragPayload, DragTarget, Boolean, Boolean)) => println(s"drag combination not handled."))
+        dragActions.andThen{ _ =>
+          Analytics.sendEvent("drag", "dropped", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+        }.applyOrElse((payload, target, ctrl, shift), { case (payload:DragPayload, target:DragTarget, ctrl:Boolean, shift:Boolean) =>
+          Analytics.sendEvent("drag", "nothandled", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+          println(s"drag combination not handled.")
+        }:PartialFunction[(DragPayload, DragTarget, Boolean, Boolean),Unit]
+        )
       case other => println(s"incomplete drag action: $other")
     }
     lastDragTarget.onNext(None)

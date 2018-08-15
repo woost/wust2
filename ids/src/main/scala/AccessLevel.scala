@@ -19,13 +19,19 @@ object AccessLevel {
   }
 }
 
-sealed trait NodeAccess
+sealed trait NodeAccess {
+  def str: String
+}
 
 object NodeAccess {
 
-  case object Inherited extends NodeAccess
+  case object Inherited extends NodeAccess {
+    val str = "inherited"
+  }
 
-  case class Level(level: AccessLevel) extends NodeAccess
+  case class Level(level: AccessLevel) extends NodeAccess {
+    def str: String = level.str
+  }
 
   val Restricted = Level(AccessLevel.Restricted)
   val ReadWrite = Level(AccessLevel.ReadWrite)

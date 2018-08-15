@@ -12,7 +12,7 @@ object Analytics {
   lazy val tracker = GoogleAnalytics.ga.map(_.getAll().apply(0))
 
   def sendEvent(category: String, action: String, label: js.UndefOr[String] = js.undefined, value: js.UndefOr[Int] = js.undefined): Unit = {
-    console.log(s"trying to send event: $category $action $label $value, tracker:", tracker)
+//    console.log(s"trying to send event: $category $action $label $value, tracker:", tracker)
     tracker.foreach { tracker =>
       tracker.send("event", new EventOptions {
         var eventCategory = category

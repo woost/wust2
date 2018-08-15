@@ -16,6 +16,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import NodeColor.hue
+import googleAnalytics.Analytics
 import org.scalajs.dom.experimental.permissions.PermissionState
 import wust.util._
 import wust.webApp.SafeDom.Navigator
@@ -33,7 +34,8 @@ object PageHeader {
     import state._
     div(
       Rx {
-        pageParentNodes().map { channel => channelRow(state, channel, state.user().channelNodeId) },
+        pageParentNodes().map { channel => channelRow(state, channel, state.user().channelNodeId) }
+        ,
       }
     )
   }
@@ -41,6 +43,7 @@ object PageHeader {
   private def channelRow(state: GlobalState, channel: Node, channelNodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes, newTagParentIds = Set(channelNodeId))(ctx)(
       cls := "pageheader-channeltitle",
+      onClick --> sideEffect { Analytics.sendEvent("pageheader", "editchanneltitle") }
     )
 
     div(
@@ -58,7 +61,7 @@ object PageHeader {
     )
   }
 
-  private def menu(state:GlobalState, channel: Node)(implicit ctx: Ctx.Owner):VDomModifier = {
+  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
       val isBookmarked = state
         .graph()
@@ -68,15 +71,15 @@ object PageHeader {
       (channel.id != state.user().channelNodeId).ifTrue(
         VDomModifier(
           isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
-          notifyControl(state, state.graph(), state.user(),channel).apply(Styles.flexStatic, marginLeft := "auto"),
+          notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto"),
           settingsMenu(state, channel, isBookmarked).apply(Styles.flexStatic, marginLeft := "10px"),
-          shareButton(channel).map(_(Styles.flexStatic, marginLeft := "10px"))
+          shareButton(channel).map(_ (Styles.flexStatic, marginLeft := "10px"))
         )
       )
     }
   }
 
-  private def channelMembers(state: GlobalState, channel:Node)(implicit ctx: Ctx.Owner) = {
+  private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       flexWrap.wrap,
@@ -90,7 +93,7 @@ object PageHeader {
 
         users.map(user => Avatar.user(user.id)(
           title := user.name,
-          marginLeft:= "2px",
+          marginLeft := "2px",
           width := "22px",
           height := "22px",
           cls := "avatar",
@@ -112,16 +115,17 @@ object PageHeader {
           url = dom.window.location.href
         }).toFuture.onComplete {
           case Success(()) => scribe.info("Successfully shared post")
-          case Failure(t) => scribe.warn("Cannot share url via share-api", t)
+          case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
         }
-      }
+      },
+      onClick --> sideEffect { Analytics.sendEvent("pageheader", "share") }
     )
   }
 
-  private def channelAvatar(nodeId:NodeId, size:Int) = {
+  private def channelAvatar(nodeId: NodeId, size: Int) = {
     Avatar.node(nodeId)(
-      width := s"${size}px",
-      height := s"${size}px"
+      width := s"${ size }px",
+      height := s"${ size }px"
     )
   }
 
@@ -136,7 +140,7 @@ object PageHeader {
       fontawesome.icon(
         indicator,
         new Params {
-          transform = new Transform { size = 13.0; x = 7; y = -7; }
+          transform = new Transform {size = 13.0; x = 7; y = -7; }
           styles = scalajs.js.Dictionary[String]("color" -> color)
         }
       )
@@ -145,18 +149,18 @@ object PageHeader {
     def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String): VDomModifier = div(
       permissionState match {
         case PermissionState.granted => VDomModifier(
-      sharedMods,
-          (icon: VNode)(cls := "fa-fw"),
+          sharedMods,
+          (icon: VNode) (cls := "fa-fw"),
           title := description,
           action
         )
-        case PermissionState.prompt => VDomModifier(
-      sharedMods,
+        case PermissionState.prompt  => VDomModifier(
+          sharedMods,
           iconWithIndicator(icon, freeRegular.faQuestionCircle, "steelblue")(cls := "fa-fw"),
           title := "Notifications are currently disabled. Click to enable.",
           onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
         )
-        case PermissionState.denied => VDomModifier(
+        case PermissionState.denied  => VDomModifier(
           sharedMods,
           iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
           title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
@@ -169,7 +173,7 @@ object PageHeader {
       Rx {
         val permissionState = state.permissionState()
         val hasNotifyEdge = graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)
-        if (hasNotifyEdge) decorateIcon(permissionState)(
+        if(hasNotifyEdge) decorateIcon(permissionState)(
           freeRegular.faBell,
           action = onClick(GraphChanges.disconnect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
           description = "You are watching this node and will be notified about changes. Click to stop watching."
@@ -186,17 +190,18 @@ object PageHeader {
     button(
       cls := "ui compact primary button",
       "Join",
-      onClick(GraphChanges.connect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+      onClick(GraphChanges.connect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes,
+      onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
     )
 
-  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean)(implicit ctx: Ctx.Owner):VNode = {
+  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean)(implicit ctx: Ctx.Owner): VNode = {
     // https://semantic-ui.com/modules/dropdown.html#pointing
     div(
       cls := "ui icon top left pointing dropdown",
-      (freeSolid.faCog:VNode)(fontSize := "20px"),
+      (freeSolid.faCog: VNode) (fontSize := "20px"),
       div(
         cls := "menu",
-        div( cls := "header", "Settings", cursor.default),
+        div(cls := "header", "Settings", cursor.default),
         div(
           cls := "item",
           i(cls := "dropdown icon"),
@@ -211,13 +216,16 @@ object PageHeader {
                 Rx {
                   selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
                 },
-                onClick{
+                onClick {
                   val nextNode = channel match {
                     case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = selection.access))
                     case _               => ??? //FIXME
                   }
                   GraphChanges.addNode(nextNode)
-                } --> state.eventProcessor.changes
+                } --> state.eventProcessor.changes,
+                onClick --> sideEffect {
+                  Analytics.sendEvent("pageheader", "changepermission", selection.access.str)
+                }
               )
             }
           )
@@ -235,17 +243,17 @@ object PageHeader {
         import semanticUi.JQuery._
         $(elem).dropdown()
       },
-      key := s"dropdown${channel.id}"
+      key := s"dropdown${ channel.id }"
     )
   }
 }
 
 case class PermissionSelection(
-    access: NodeAccess,
-    value: String,
-    name: (NodeId, Graph) => String,
-    description: String,
-    icon: IconLookup
+  access: NodeAccess,
+  value: String,
+  name: (NodeId, Graph) => String,
+  description: String,
+  icon: IconLookup
 )
 object PermissionSelection {
   val all =
@@ -256,7 +264,7 @@ object PermissionSelection {
           .parents(nodeId)
           .exists(nid => graph.nodesById(nid).meta.accessLevel == NodeAccess.ReadWrite)
         console.log(graph.parents(nodeId).map(nid => graph.nodesById(nid)).mkString(", "))
-        val inheritedLevel = if (canAccess) "Public" else "Private"
+        val inheritedLevel = if(canAccess) "Public" else "Private"
         s"Inherited ($inheritedLevel)"
       },
       value = "Inherited",
