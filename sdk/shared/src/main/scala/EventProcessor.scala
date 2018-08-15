@@ -15,6 +15,7 @@ import monix.reactive.subjects.PublishSubject
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack.Continue
+import wust.ids.EdgeData
 
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
@@ -139,7 +140,17 @@ class EventProcessor private (
         case (changes, user, graph) if changes.nonEmpty =>
           scribe.info("[Events] Got raw local changes:")
           GraphChanges.log(changes, Some(graph))
-          changes.consistent.withAuthor(user.id)
+
+          val changesCandidate = changes.consistent.withAuthor(user.id)
+
+          // Workaround - quick fix: This prevents that changing a nodes content breaks ordering
+          val authorEdgesToRemove = for {
+            changedNode <- changesCandidate.addNodes.collect{case Node.Content(id, _, _) if graph.nodeIds.contains(id) => id}
+            authorEdge <- changesCandidate.addEdges.collect{case e @ Edge.Author(userId, EdgeData.Author(_), nodeId) if userId == user.id && nodeId == changedNode => e}
+            graphAuthorEdge <- graph.edges.collect{case e @ Edge.Author(userId, EdgeData.Author(_), nodeId) if userId == user.id && nodeId == changedNode => e}
+          } yield (authorEdge, graphAuthorEdge)
+
+          changesCandidate.copy(addEdges = changesCandidate.addEdges -- authorEdgesToRemove.map(_._1) ++ authorEdgesToRemove.map(_._2))
       }
 
     val changesHistory = Observable
