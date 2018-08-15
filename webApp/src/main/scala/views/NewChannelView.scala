@@ -1,11 +1,12 @@
 package wust.webApp.views
 
-import acyclic.skipped // file is allowed in dependency cycle
+import acyclic.skipped
+import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
 import wust.css.Styles
-import wust.webApp.{Analytics, GlobalState}
+import wust.webApp.GlobalState
 import wust.webApp.MainViewParts.newChannelButton
 import wust.webApp.outwatchHelpers._
 

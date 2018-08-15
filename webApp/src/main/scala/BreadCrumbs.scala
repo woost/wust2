@@ -2,11 +2,13 @@ package wust.webApp
 
 import fontAwesome._
 import fontAwesome.freeSolid._
+import googleAnalytics.Analytics
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import scala.collection.immutable.{ ListMap, SortedMap }
+
+import scala.collection.immutable.{ListMap, SortedMap}
 import wust.api.AuthUser
 import wust.graph._
 import wust.ids._
@@ -79,7 +81,8 @@ object BreadCrumbs {
           intersperse(elements.toList.flatten, span("/", cls := "divider"))
         }.flatten
       },
-      registerDraggableContainer(state)
-      )
+      registerDraggableContainer(state),
+      onClick --> sideEffect{Analytics.sendEvent("breadcrumbs", "click")},
+    )
   }
 }

@@ -1,5 +1,6 @@
 package wust.webApp
 
+import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -54,6 +55,7 @@ object Sidebar {
           channelIcons(state, 40)(ctx),
           newChannelButton(state, "+")(ctx)(
             cls := "newChannelButton-small " + buttonStyles,
+            onClick --> sideEffect{Analytics.sendEvent("sidebar_closed", "newchannel")}
           )
         )
       },
@@ -95,6 +97,7 @@ object Sidebar {
                 ),
                 renderNodeData(p.data)(marginLeft := "5px"),
                 onChannelClick(ChannelAction.Post(p.id))(state),
+                onClick --> sideEffect{Analytics.sendEvent("sidebar_open", "clickchannel")},
                 title := p.id.toCuidString
               )
           },
@@ -127,6 +130,7 @@ object Sidebar {
           allChannels.map { p =>
             channelIcon(state, p, page.parentIds.contains(p.id), size)(ctx)(
               onChannelClick(ChannelAction.Post(p.id))(state),
+              onClick --> sideEffect{Analytics.sendEvent("sidebar_closed", "clickchannel")},
               draggableAs(state, DragItem.Channel(p.id)),
               dragTarget(DragItem.Channel(p.id)),
               cls := "node drag-feedback"

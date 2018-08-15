@@ -1,6 +1,7 @@
 package wust.webApp
 
 import fontAwesome._
+import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._

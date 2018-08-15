@@ -15,11 +15,12 @@ import wust.api.AuthUser
 import fontAwesome._
 import fontAwesome.freeSolid._
 import fontAwesome.freeRegular
+import googleAnalytics.Analytics
 import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 import wust.graph._
 import wust.ids._
-import wust.webApp.views.{LoginView, PageStyle, View, ViewList, ViewConfig}
+import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig, ViewList}
 import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor}

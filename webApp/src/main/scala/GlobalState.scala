@@ -1,6 +1,7 @@
 package wust.webApp
 
-import acyclic.skipped // file is allowed in dependency cycle
+import acyclic.skipped
+import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monocle.macros.GenLens
 import org.scalajs.dom
@@ -79,6 +80,9 @@ class GlobalState (
     events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
   }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
+  permissionState.triggerLater{ state =>
+    Analytics.sendEvent("notification", state.asInstanceOf[String])
+  }
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
 
