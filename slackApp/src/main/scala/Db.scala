@@ -28,7 +28,8 @@ object Data {
   //  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: Option[AccessToken], wust_token: Authentication.Verified)
   case class User_Mapping(slack_user_id: String, wust_id: UserId, slack_token: Option[String], wust_token: String)
 
-  case class Team_Mapping(slack_team_id: Option[String], slack_team_name: String, slack_deleted_flag: Boolean, wust_id: NodeId)
+  case class Team_Mapping(slack_team_id: Option[String], slack_team_name: String, wust_id: NodeId)
+  case class Channel_Mapping(slack_channel_id: Option[String], slack_channel_name: String, slack_deleted_flag: Boolean, wust_id: NodeId)
   case class Conversation_Mapping(slack_conversation_id: Option[String], wust_id: NodeId)
   case class Message_Mapping(slack_channel_id: Option[String], slack_message_ts: Option[String], slack_deleted_flag: Boolean, slack_message_text: String, wust_id: NodeId)
 }
@@ -71,11 +72,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       .map(_.headOption.map(u => SlackUserData(u.slack_user_id, u.slack_token)))
   }
 
-  def storeTeamMapping(teamMapping: Team_Mapping)(implicit ec: ExecutionContext): Future[Boolean]  = {
+  def storeTeamMapping(teamMapping: Channel_Mapping)(implicit ec: ExecutionContext): Future[Boolean]  = {
     val q = quote {
-      query[Team_Mapping].insert(lift(teamMapping))
-        .onConflictUpdate(_.slack_team_id, _.wust_id)(
-          (t, e) => t.slack_team_name -> e.slack_team_name,
+      query[Channel_Mapping].insert(lift(teamMapping))
+        .onConflictUpdate(_.slack_channel_id, _.wust_id)(
+          (t, e) => t.slack_channel_name -> e.slack_channel_name,
           (t, e) => t.slack_deleted_flag -> e.slack_deleted_flag,
         )
 
@@ -86,9 +87,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       .recoverValue(false)
   }
 
-  def updateTeamMapping(teamMapping: Team_Mapping)(implicit ec: ExecutionContext): Future[Boolean]  = {
+  def updateTeamMapping(teamMapping: Channel_Mapping)(implicit ec: ExecutionContext): Future[Boolean]  = {
     val q = quote {
-      query[Team_Mapping].filter(_.wust_id == lift(teamMapping.wust_id)).update(lift(teamMapping))
+      query[Channel_Mapping].filter(_.wust_id == lift(teamMapping.wust_id)).update(lift(teamMapping))
     }
 
     ctx.run(q)
@@ -96,27 +97,27 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       .recoverValue(false)
   }
 
-  def getTeamMapping(teamId: String)(implicit ec: ExecutionContext): Future[Option[Team_Mapping]] = {
+  def getTeamMapping(teamId: String)(implicit ec: ExecutionContext): Future[Option[Channel_Mapping]] = {
     ctx
-      .run(query[Team_Mapping].filter(_.slack_team_id.getOrElse("") == lift(teamId)).take(1))
+      .run(query[Channel_Mapping].filter(_.slack_channel_id.getOrElse("") == lift(teamId)).take(1))
       .map(_.headOption)
   }
 
   def getChannelNodeById(teamId: String)(implicit ec: ExecutionContext): Future[Option[NodeId]] = {
     ctx
-      .run(query[Team_Mapping].filter(_.slack_team_id.getOrElse("") == lift(teamId)).take(1).map(_.wust_id))
+      .run(query[Channel_Mapping].filter(_.slack_channel_id.getOrElse("") == lift(teamId)).take(1).map(_.wust_id))
       .map(_.headOption)
   }
 
   def getChannelNodeByName(teamName: String)(implicit ec: ExecutionContext): Future[Option[NodeId]] = {
     ctx
-      .run(query[Team_Mapping].filter(_.slack_team_name == lift(teamName)).take(1).map(_.wust_id))
+      .run(query[Channel_Mapping].filter(_.slack_channel_name == lift(teamName)).take(1).map(_.wust_id))
       .map(_.headOption)
   }
 
   def getSlackChannelId(wustNodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[String]] = {
     ctx
-      .run(query[Team_Mapping].filter(_.wust_id == lift(wustNodeId)).take(1).map(_.slack_team_id))
+      .run(query[Channel_Mapping].filter(_.wust_id == lift(wustNodeId)).take(1).map(_.slack_channel_id))
       .map(_.headOption.flatten)
   }
 
@@ -126,16 +127,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
 //      .map(_.headOption.flatten)
 //  }
 
-  def getTeamMappingBySlackName(channelName: String)(implicit ec: ExecutionContext): Future[Option[Team_Mapping]] = {
+  def getTeamMappingBySlackName(channelName: String)(implicit ec: ExecutionContext): Future[Option[Channel_Mapping]] = {
     ctx
-      .run(query[Team_Mapping].filter(_.slack_team_name == lift(channelName)).take(1))
+      .run(query[Channel_Mapping].filter(_.slack_channel_name == lift(channelName)).take(1))
       .map(_.headOption)
   }
 
 
-  def getTeamMappingByWustId(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Team_Mapping]] = {
+  def getTeamMappingByWustId(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Channel_Mapping]] = {
     ctx
-      .run(query[Team_Mapping].filter(_.wust_id == lift(nodeId)).take(1))
+      .run(query[Channel_Mapping].filter(_.wust_id == lift(nodeId)).take(1))
       .map(_.headOption)
   }
 
@@ -204,7 +205,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
   def deleteChannel(teamId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     ctx
       .run(
-        query[Team_Mapping].filter(_.slack_team_id.getOrElse("") == lift(teamId)).update(_.slack_deleted_flag -> true)
+        query[Channel_Mapping].filter(_.slack_channel_id.getOrElse("") == lift(teamId)).update(_.slack_deleted_flag -> true)
       )
       .map(_ >= 1)
       .recoverValue(false)
@@ -213,7 +214,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
   def unDeleteChannel(teamId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     ctx
       .run(
-        query[Team_Mapping].filter(_.slack_team_id.getOrElse("") == lift(teamId)).update(_.slack_deleted_flag -> false)
+        query[Channel_Mapping].filter(_.slack_channel_id.getOrElse("") == lift(teamId)).update(_.slack_deleted_flag -> false)
       )
       .map(_ >= 1)
       .recoverValue(false)
@@ -238,19 +239,19 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
 
   def isSlackChannelDeleted(teamId: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     ctx
-      .run(query[Team_Mapping].filter(t => t.slack_team_id.getOrElse("") == lift(teamId) && t.slack_deleted_flag).nonEmpty)
+      .run(query[Channel_Mapping].filter(t => t.slack_channel_id.getOrElse("") == lift(teamId) && t.slack_deleted_flag).nonEmpty)
   }
 
   def isSlackChannelUpToDate(teamId: String, name: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     ctx
-      .run(query[Team_Mapping].filter(t => t.slack_team_id.getOrElse("") == lift(teamId) && t.slack_team_name == lift(name)).nonEmpty)
+      .run(query[Channel_Mapping].filter(t => t.slack_channel_id.getOrElse("") == lift(teamId) && t.slack_channel_name == lift(name)).nonEmpty)
   }
 
   def isSlackChannelUpToDateElseGetNode(teamId: String, name: String)(implicit ec: ExecutionContext): Future[Option[NodeId]] = {
     isSlackChannelUpToDate(teamId, name).flatMap {
       case true => Future.successful(None)
       case false =>
-        ctx.run(query[Team_Mapping].filter(t => t.slack_team_id.getOrElse("") == lift(teamId)).take(1).map(_.wust_id))
+        ctx.run(query[Channel_Mapping].filter(t => t.slack_channel_id.getOrElse("") == lift(teamId)).take(1).map(_.wust_id))
           .map(_.headOption)
     }
   }

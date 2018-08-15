@@ -7,7 +7,7 @@ import slack.models._
 import wust.graph.GraphChanges
 import wust.ids.{EpochMilli, NodeData, NodeId}
 import wust.sdk.EventMapper
-import wust.slack.Data.{Message_Mapping, Team_Mapping, WustUserData}
+import wust.slack.Data.{Message_Mapping, Channel_Mapping, WustUserData}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -152,7 +152,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.updateTeamMapping(Team_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, nodeId))
+          case Some(gc) => persistenceAdapter.updateTeamMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, nodeId))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Could not store team mapping")
@@ -200,7 +200,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.storeTeamMapping(Team_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc._1))
+          case Some(gc) => persistenceAdapter.storeTeamMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc._1))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Created new team mapping for channel")

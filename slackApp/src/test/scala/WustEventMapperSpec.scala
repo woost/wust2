@@ -17,13 +17,13 @@ case object MockAdapter extends PersistenceAdapter {
 
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = ???
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
-  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = ???
+  def storeTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = ???
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
-  def updateTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = ???
+  def updateTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = ???
 
-  def getTeamMappingBySlackName(channelName: String): Future[Option[Team_Mapping]] = ???
-  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Team_Mapping]] = ???
+  def getTeamMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = ???
+  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = ???
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = ???
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???

@@ -21,13 +21,13 @@ trait PersistenceAdapter {
 
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean]
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
-  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
+  def storeTeamMapping(teamMapping: Channel_Mapping): Future[Boolean]
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
-  def updateTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
+  def updateTeamMapping(teamMapping: Channel_Mapping): Future[Boolean]
 
-  def getTeamMappingBySlackName(channelName: String): Future[Option[Team_Mapping]]
-  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Team_Mapping]]
+  def getTeamMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]]
+  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]]
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]]
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]]
@@ -73,7 +73,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
     db.storeMessageMapping(messageMapping)
   }
-  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = {
+  def storeTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = {
     db.storeTeamMapping(teamMapping)
   }
 
@@ -81,7 +81,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
     db.updateMessageMapping(messageMapping)
   }
 
-  def updateTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = {
+  def updateTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = {
     db.updateTeamMapping(teamMapping)
   }
 
@@ -150,7 +150,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 //              case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
 //              case _ =>
 //            }
-            db.storeTeamMapping(Team_Mapping(Some(channel), node.str, slack_deleted_flag = false, node.id)).onComplete {
+            db.storeTeamMapping(Channel_Mapping(Some(channel), node.str, slack_deleted_flag = false, node.id)).onComplete {
               case Failure(ex) => scribe.error("Could not create team mapping in slack app: ", ex)
               case _ =>
             }
@@ -175,11 +175,11 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
     db.getSlackChannelId(nodeId)
   }
 
-  def getTeamMappingBySlackName(channelName: String): Future[Option[Team_Mapping]] = {
+  def getTeamMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = {
     db.getTeamMappingBySlackName(channelName)
   }
 
-  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Team_Mapping]] = {
+  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = {
     db.getTeamMappingByWustId(nodeId)
   }
 

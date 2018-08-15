@@ -206,7 +206,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     case class SlackCreateChannel(channelName: String) extends GraphChangeEvent
 
     def generateSlackCreateChannel(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
-      val teamMapping = Team_Mapping(None, node.str, slack_deleted_flag = false, node.id)
+      val teamMapping = Channel_Mapping(None, node.str, slack_deleted_flag = false, node.id)
       for{
         true <- persistenceAdapter.storeTeamMapping(teamMapping)
       } yield {
@@ -217,7 +217,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     // TODO: normalization
     def applyCreateChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, channel: SlackCreateChannel, wustId: NodeId) = {
       for{
-        t <- client.apiClient.createChannel(channel.channelName).map(c => Team_Mapping(Some(c.id), c.name, slack_deleted_flag = false, wustId))
+        t <- client.apiClient.createChannel(channel.channelName).map(c => Channel_Mapping(Some(c.id), c.name, slack_deleted_flag = false, wustId))
         true <- persistenceAdapter.updateTeamMapping(t)
       } yield {
         true
@@ -309,7 +309,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     def generateSlackRenameChannel(persistenceAdapter: PersistenceAdapter, channelNode: Node) = {
       for {
         slackChannelId <- OptionT[Future, String](persistenceAdapter.getSlackChannelId(channelNode.id))
-        true <- OptionT[Future, Boolean](persistenceAdapter.updateTeamMapping(Team_Mapping(Some(slackChannelId), channelNode.str, slack_deleted_flag = false, channelNode.id)).map(Some(_)))
+        true <- OptionT[Future, Boolean](persistenceAdapter.updateTeamMapping(Channel_Mapping(Some(slackChannelId), channelNode.str, slack_deleted_flag = false, channelNode.id)).map(Some(_)))
       } yield SlackRenameChannel(slackChannelId, channelNode.str)
 
     }
