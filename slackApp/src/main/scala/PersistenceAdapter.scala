@@ -150,7 +150,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 //              case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
 //              case _ =>
 //            }
-            db.storeTeamMapping(Team_Mapping(Some(channel), node.str, false, node.id)).onComplete {
+            db.storeTeamMapping(Team_Mapping(Some(channel), node.str, slack_deleted_flag = false, node.id)).onComplete {
               case Failure(ex) => scribe.error("Could not create team mapping in slack app: ", ex)
               case _ =>
             }

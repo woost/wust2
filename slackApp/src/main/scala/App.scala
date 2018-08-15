@@ -143,7 +143,7 @@ object AppServer {
     )
     wustReceiver.push(List(changes), None)
 
-    val slackEventMapper = SlackEventMapper(persistenceAdapter, wustReceiver, slackClient.client)
+    val slackEventMapper = SlackEventMapper(persistenceAdapter, wustReceiver, slackClient.apiClient)
 
     val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
     tokenObserver.foreach { authData =>
@@ -375,12 +375,12 @@ object WustReceiver {
 }
 
 object SlackClient {
-  def apply(accessToken: String)(implicit ec: ExecutionContext): SlackClient = {
-    new SlackClient(SlackApiClient(accessToken))
+  def apply(accessToken: String, isUser: Boolean)(implicit ec: ExecutionContext): SlackClient = {
+    new SlackClient(SlackApiClient(accessToken), if(isUser) Some(true) else None)
   }
 }
 
-class SlackClient(val client: SlackApiClient)(implicit ec: ExecutionContext) {
+class SlackClient(val apiClient: SlackApiClient, val isUser: Option[Boolean])(implicit ec: ExecutionContext) {
 
   case class Error(desc: String)
 
@@ -431,7 +431,7 @@ object App extends scala.App {
     case Right(config) =>
       val oAuthClient = OAuthClient(config.oAuth, config.appServer, config.wustServer)
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
-      val slackClient = SlackClient(config.slack.token)
+      val slackClient = SlackClient(config.slack.token, isUser = false)
       val slackEventReceiver = WustReceiver.run(config.wustServer, slackClient, slackPersistenceAdapter, config.slack.token)
       val slackRequestVerifier = new SlackRequestVerifier(config.slack.signingSecret)
       //      val client = SlackClient(config.oAuthConfig.accessToken.get)

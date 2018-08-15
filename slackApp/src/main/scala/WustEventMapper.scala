@@ -94,18 +94,22 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       case Success(user) => scribe.info(s"event user = $user")
       case Failure(ex)   => scribe.error("Error getting user: ", ex)
     }
-    //        val slackUserToken = slackEventUser.map(_.slackUserToken).value.map(_.flatten).map(_.getOrElse(slackAppToken))
+
     val slackUserToken: Future[String] = slackEventUser.map({
       case Some(u) => u.slackUserToken
       case _       => None
     }).map(_.getOrElse(slackAppToken))
 
-    slackUserToken.foreach { t =>
-      val isSlackAppUser = if(t == slackAppToken) true else false
+    val isSlackAppUser = slackUserToken.map(t => if(t == slackAppToken) true else false)
+
+    slackUserToken.foreach { _ =>
       scribe.info(s"using token of SlackApp = $isSlackAppUser")
     }
 
-    slackUserToken.map(SlackApiClient(_))
+    for {
+      isBot <- isSlackAppUser
+      token <- slackUserToken
+    } yield SlackClient(token, isBot)
   }
 
   def computeMapping(gc: GraphChanges) = {
@@ -137,7 +141,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 //        slackChannel <- OptionT[Future, String](persistenceAdapter.getSlackChannelId(parentId))
       } yield {
         if(slackMessage.slack_channel_id.isDefined && slackMessage.slack_message_ts.isDefined) {
-          Some(SlackDeleteMessage(slackMessage.slack_channel_id.get, slackMessage.slack_message_ts.get, Some(true)))
+          Some(SlackDeleteMessage(slackMessage.slack_channel_id.get, slackMessage.slack_message_ts.get))
         } else {
           scribe.error(s"Can not delete message with insufficient data (missing slack ids)")
           None
@@ -148,20 +152,20 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       deletes.collect{case Some(d) => d}
     }
 
-    def applyDeleteChannel(persistenceAdapter: PersistenceAdapter, client: SlackApiClient, message: SlackDeleteChannel) = {
+    def applyDeleteChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackDeleteChannel) = {
        //TODO: delete channel - not possible during time of writing
       persistenceAdapter.deleteChannel(message.channelId).flatMap(_ =>
-        client.archiveChannel(message.channelId)
+        client.apiClient.archiveChannel(message.channelId)
       )
     }
 
-    def applyDeleteMessage(persistenceAdapter: PersistenceAdapter, client: SlackApiClient, message: SlackDeleteMessage) = {
+    def applyDeleteMessage(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackDeleteMessage) = {
       persistenceAdapter.deleteMessage(message.channelId, message.ts).flatMap(_ =>
-        client.deleteChat(message.channelId, message.ts, message.asUser)
+        client.apiClient.deleteChat(message.channelId, message.ts, client.isUser)
       )
     }
 
-    def deleteEvents(persistenceAdapter: PersistenceAdapter, client: SlackApiClient) = Future.sequence(filterDeleteEvents(gc).map { e =>
+    def deleteEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = Future.sequence(filterDeleteEvents(gc).map { e =>
 
       if(e.targetId == Constants.slackNode.id) {
         generateSlackDeleteChannel(persistenceAdapter, e.sourceId).value.flatMap {
@@ -192,7 +196,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     case class SlackCreateChannel(channelName: String) extends GraphChangeEvent
 
     def generateSlackCreateChannel(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
-      val teamMapping = Team_Mapping(None, node.str, false, node.id)
+      val teamMapping = Team_Mapping(None, node.str, slack_deleted_flag = false, node.id)
       for{
         true <- persistenceAdapter.storeTeamMapping(teamMapping)
       } yield {
@@ -201,16 +205,16 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     }
 
     // TODO: normalization
-    def applyCreateChannel(persistenceAdapter: PersistenceAdapter, client: SlackApiClient, channel: SlackCreateChannel, wustId: NodeId) = {
+    def applyCreateChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, channel: SlackCreateChannel, wustId: NodeId) = {
       for{
-        t <- client.createChannel(channel.channelName).map(c => Team_Mapping(Some(c.id), c.name, false, wustId))
+        t <- client.apiClient.createChannel(channel.channelName).map(c => Team_Mapping(Some(c.id), c.name, slack_deleted_flag = false, wustId))
         true <- persistenceAdapter.updateTeamMapping(t)
       } yield {
         true
       }
     }
 
-    def createChannelEvents(persistenceAdapter: PersistenceAdapter, client: SlackApiClient) = Future.sequence(filterCreateChannelEvents(gc).map { t =>
+    def createChannelEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = Future.sequence(filterCreateChannelEvents(gc).map { t =>
       val node = t._1
       val edge = t._2
       generateSlackCreateChannel(persistenceAdapter, node, edge).flatMap(c =>
@@ -237,32 +241,32 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     def generateSlackCreateMessage(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
 
       val channelNodeId = edge.targetId
-      val messageMapping = Message_Mapping(None, None, false, node.str, node.id)
+      val messageMapping = Message_Mapping(None, None, slack_deleted_flag = false, node.str, node.id)
       for {
         true <- OptionT[Future, Boolean](persistenceAdapter.storeMessageMapping(messageMapping).map(Some(_)))
         slackChannelId <- OptionT[Future, String](persistenceAdapter.getSlackChannelId(channelNodeId))
-      } yield SlackCreateMessage(channelId = slackChannelId, text = node.str, asUser = Some(true))
+      } yield SlackCreateMessage(channelId = slackChannelId, text = node.str)
     }
 
-    def applyCreateMessage(persistenceAdapter: PersistenceAdapter, client: SlackApiClient, message: SlackCreateMessage, wustId: NodeId, retryNumber: Int = 0): Future[Boolean] = {
+    def applyCreateMessage(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackCreateMessage, wustId: NodeId, retryNumber: Int = 0): Future[Boolean] = {
 
         val f = for {
-          m <- client.postChatMessage(channelId = message.channelId, text = message.text, asUser = message.asUser).map(ts =>
-            Message_Mapping(Some(message.channelId), Some(ts), false, message.text, wustId))
+          m <- client.apiClient.postChatMessage(channelId = message.channelId, text = message.text, asUser = client.isUser).map(ts =>
+            Message_Mapping(Some(message.channelId), Some(ts), slack_deleted_flag = false, message.text, wustId))
           true <- persistenceAdapter.updateMessageMapping(m)
         } yield {
           true
         }
       f.recoverWith {
         case ApiError(e) if e == "not_in_channel" && retryNumber < 1 =>
-          def a = client.joinChannel(message.channelId).flatMap(_ => applyCreateMessage(persistenceAdapter, client, message, wustId, 1): Future[Boolean])
+          def a = client.apiClient.joinChannel(message.channelId).flatMap(_ => applyCreateMessage(persistenceAdapter, client, message, wustId, 1): Future[Boolean])
           a
         case e: Throwable                                            => Future.failed(e)
       }
 
     }
     // Nodes with matching edge whose parent is not the workspace node
-    def createMessageEvents(persistenceAdapter: PersistenceAdapter, client: SlackApiClient) = {
+    def createMessageEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = {
       val res = filterCreateMessageEvents(gc).map { t =>
         val node = t._1
         val edge = t._2
@@ -295,13 +299,13 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     def generateSlackRenameChannel(persistenceAdapter: PersistenceAdapter, channelNode: Node) = {
       for {
         slackChannelId <- OptionT[Future, String](persistenceAdapter.getSlackChannelId(channelNode.id))
-        true <- OptionT[Future, Boolean](persistenceAdapter.updateTeamMapping(Team_Mapping(Some(slackChannelId), channelNode.str, false, channelNode.id)).map(Some(_)))
+        true <- OptionT[Future, Boolean](persistenceAdapter.updateTeamMapping(Team_Mapping(Some(slackChannelId), channelNode.str, slack_deleted_flag = false, channelNode.id)).map(Some(_)))
       } yield SlackRenameChannel(slackChannelId, channelNode.str)
 
     }
 
-    def applyRenameChannel(persistenceAdapter: PersistenceAdapter, client: SlackApiClient, channel: SlackRenameChannel) = {
-        client.renameChannel(channel.channelId, channel.channelName)
+    def applyRenameChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, channel: SlackRenameChannel) = {
+        client.apiClient.renameChannel(channel.channelId, channel.channelName)
     }
 
     def generateSlackUpdateMessage(persistenceAdapter: PersistenceAdapter, messageNode: Node) = {
@@ -310,7 +314,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
         true <- OptionT[Future, Boolean](persistenceAdapter.updateMessageMapping(m.copy(slack_message_text = messageNode.str)).map(Some(_)))
       } yield {
         if(m.slack_message_ts.isDefined && m.slack_channel_id.isDefined)
-          Some(SlackUpdateMessage(m.slack_channel_id.get, m.slack_message_ts.get, messageNode.str, Some(true)))
+          Some(SlackUpdateMessage(m.slack_channel_id.get, m.slack_message_ts.get, messageNode.str))
         else
           None
       }
@@ -318,11 +322,11 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       updates.collect{case Some(c) => c}
     }
 
-    def applyUpdateMessage(persistenceAdapter: PersistenceAdapter, client: SlackApiClient, message: SlackUpdateMessage) = {
-      client.updateChatMessage(message.channelId, message.ts, message.text, message.asUser).map(_ => true)
+    def applyUpdateMessage(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackUpdateMessage) = {
+      client.apiClient.updateChatMessage(message.channelId, message.ts, message.text, client.isUser).map(_ => true)
     }
 
-    def updateEvents(persistenceAdapter: PersistenceAdapter, client: SlackApiClient) = {
+    def updateEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = {
       def res = filterUpdateEvents(gc).map { node =>
         def update = persistenceAdapter.getSlackChannelId(node.id).map {
           case Some(_) => // slack channel

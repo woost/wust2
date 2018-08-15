@@ -37,7 +37,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
       val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create message").flatMapF { changes =>
         val res = wustReceiver.push(List(changes._2), Some(changes._3))
         res.foreach {
-          case Right(_) => persistenceAdapter.storeMessageMapping(Message_Mapping(Some(createdMessage.channel), Some(createdMessage.ts), false, createdMessage.text, changes._1))
+          case Right(_) => persistenceAdapter.storeMessageMapping(Message_Mapping(Some(createdMessage.channel), Some(createdMessage.ts), slack_deleted_flag = false, createdMessage.text, changes._1))
           case _        => scribe.error(s"Could not apply changes to wust: $changes")
         }
         res
@@ -87,7 +87,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not change message").flatMapF { changes =>
           val res = wustReceiver.push(List(changes._2), Some(changes._3))
           res.foreach {
-            case Right(_) => persistenceAdapter.updateMessageMapping(Message_Mapping(Some(changedMessage.channel), Some(changedMessage.previous_message.ts), false, changedMessage.message.text, changes._1))
+            case Right(_) => persistenceAdapter.updateMessageMapping(Message_Mapping(Some(changedMessage.channel), Some(changedMessage.previous_message.ts), slack_deleted_flag = false, changedMessage.message.text, changes._1))
             case _        => scribe.error(s"Could not apply changes to wust: $changes")
           }
           res
@@ -152,7 +152,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.updateTeamMapping(Team_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, false, nodeId))
+          case Some(gc) => persistenceAdapter.updateTeamMapping(Team_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, nodeId))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Could not store team mapping")
@@ -200,7 +200,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.storeTeamMapping(Team_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, false, gc._1))
+          case Some(gc) => persistenceAdapter.storeTeamMapping(Team_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc._1))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Created new team mapping for channel")
