@@ -102,7 +102,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
     slackUserToken.foreach { t =>
       val isSlackAppUser = if(t == slackAppToken) true else false
-      scribe.info(s"using token: $t, isSlackApp = $isSlackAppUser")
+      scribe.info(s"using token of SlackApp = $isSlackAppUser")
     }
 
     slackUserToken.map(SlackApiClient(_))
