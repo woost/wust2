@@ -54,7 +54,7 @@ class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdap
           List(
             //            "admin",
             // "auditlogs:read",
-            //            "bot",
+            "bot",
             "channels:history", "channels:read", "channels:write",
             "chat:write:bot", "chat:write:user",
             // "client",
@@ -77,26 +77,6 @@ class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdap
             "team:read",
             "usergroups:read", "usergroups:write",
             "users.profile:read", "users.profile:write", "users:read", "users:read.email", "users:write",
-
-            // Workspace Tokens
-            //            "channels:history", "channels:read", "channels:write",
-            //            "chat:write",
-            //            "commands",
-            //            "conversations:history", "conversations:read", "conversations:write",
-            //            "dnd:read", "dnd:write:user",
-            //            "emoji:read",
-            //            "files:read", "files:write",
-            //            "groups:history", "groups:read", "groups:write",
-            //            "identity.avatar:read:user", "identity.email:read:user", "identity.team:read:user", "identity:read:user",
-            //            "im:history", "im:read", "im:write",
-            //            "links:read", "links:write",
-            //            "mpim:history", "mpim:read", "mpim:write",
-            //            "pins:read", "pins:write",
-            //            "reactions:read", "reactions:write",
-            //            "reminders:read:user", "reminders:write:user",
-            //            "team:read",
-            //            "usergroups:read", "usergroups:write",
-            //            "users:read", "users:read.email", "users.profile:read", "users.profile:write", "users.profile:write:user",
           )
         ).map(_.toString())
       case None               =>
@@ -148,14 +128,11 @@ object AppServer {
     val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
     tokenObserver.foreach { authData =>
 
-      scribe.info(s"received oauth token: $authData")
+      scribe.info(s"received oauth token")
       val userOAuthToken = authData.platformAuthToken
       val slackUser = SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
-      scribe.info(s"slackTestAuth: $slackUser")
       slackUser.flatMap { slackAuthId =>
-        scribe.info(s"persisting token: $authData")
 
-        scribe.info(s"slackTestAuth: $slackAuthId")
         //        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
         persistenceAdapter.storeOrUpdateUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, Some(userOAuthToken.accessToken), authData.wustAuthData.token))
 
