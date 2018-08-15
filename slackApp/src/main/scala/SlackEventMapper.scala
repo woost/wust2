@@ -230,38 +230,8 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
   }
 
-  def deleteChannel(deletedChannel: ChannelDeleted): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.isSlackChannelDeleted(deletedChannel.channel).flatMap { deleted =>
-      if(!deleted) {
-        val graphChanges: OptionT[Future, GraphChanges] = for {
-          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeById(deletedChannel.channel))
-          true <- OptionT[Future, Boolean](persistenceAdapter.deleteChannel(deletedChannel.channel).map(Some(_)))
-        } yield {
-          EventMapper.deleteChannelInWust(
-            wustChannelNodeId,
-            Constants.slackNode.id
-          )
-        }
-
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not deleting channel").flatMapF { changes =>
-          wustReceiver.push(List(changes), None)
-        }
-
-        applyChanges.value.onComplete {
-          case Success(request) => scribe.info("Deleted channel")
-          case Failure(ex)      => scribe.error("Error deleting channel: ", ex)
-        }
-
-        applyChanges.value
-      } else {
-        Future.successful(Right(List.empty[GraphChanges]))
-      }
-    }
-
-  }
 
   def archiveChannel(archivedChannel: ChannelArchive): Future[Either[String, List[GraphChanges]]] = {
-    // Currently same as delete, c&p
     persistenceAdapter.isSlackChannelDeleted(archivedChannel.channel).flatMap { deleted =>
       if(!deleted) {
         val graphChanges: OptionT[Future, GraphChanges] = for {
@@ -289,6 +259,11 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
       }
     }
 
+  }
+
+  // Currently same as delete, c&p
+  def deleteChannel(deletedChannel: ChannelDeleted): Future[Either[String, List[GraphChanges]]] = {
+    archiveChannel(ChannelArchive(deletedChannel.channel, "unknown")) //TODO: get user somehow if possible
   }
 
   def unarchiveChannel(unarchivedChannel: ChannelUnarchive): Future[Either[String, List[GraphChanges]]] = {

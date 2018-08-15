@@ -324,6 +324,7 @@ object WustReceiver {
     val wustClient = WustClient(location)
     val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
     val highPriorityClient = wustClient.sendWith(SendType.WhenConnected.highPriority, 30 seconds)
+    val wustEventMapper = WustEventMapper(slackAppToken, persistenceAdapter)
 
     // TODO: failsave and only initially assume
     highPriorityClient.auth.assumeLogin(Constants.wustUser)
@@ -356,7 +357,7 @@ object WustReceiver {
             graphChangeSeq.foreach { gc =>
 
               scribe.info(s"Received GraphChanges: $gc")
-              WustEventMapper(slackAppToken, persistenceAdapter).computeMapping(gc)
+              wustEventMapper.computeMapping(gc)
             }
           }
 
