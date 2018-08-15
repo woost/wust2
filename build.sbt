@@ -1,5 +1,5 @@
 // shadow sbt-scalajs' crossProject and CrossType until Scala.js 1.0.0 is released
-import sbtcrossproject.{crossProject, CrossType}
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 name := "wust"
 
@@ -98,7 +98,8 @@ lazy val commonWebSettings = Seq(
         s"-P:scalajs:mapSourceURI:$local->$remote"
       }
     }
-  }
+  },
+  scalaJSModuleKind := ModuleKind.CommonJSModule
 )
 
 val withSourceMaps: Boolean = sys.env.get("SOURCEMAPS").fold(false)(_ == "true")
