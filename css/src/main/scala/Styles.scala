@@ -455,13 +455,15 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard-content > p," +
-  ".nodecard-content > p > div > div > p" - (
-    margin(0 px)
+  ".nodecard-content > p > div > div > p" - ( 
+    margin(0 px) // avoid default p margin. p usually comes from markdown rendering
   )
 
-  ".node-deleted .nodecard-content" - (
+  ".nodecard.node-deleted" - (
+    opacity(0.5),
+  )
+  ".nodecard.node-deleted .nodecard-content" - (
     textDecoration := "line-through",
-    cursor.default
   )
 
   ".tags" - (
@@ -634,6 +636,10 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(2 px, 4 px),
     visibility.hidden
   )
+
+  ".nodecard.draggable--over .buttonbar" - (
+    backgroundColor(transparent),
+    )
 
   ".nodecard .buttonbar > div" - (
     color(c"rgb(157, 157, 157)"),

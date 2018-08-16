@@ -437,7 +437,6 @@ object ChatView extends View {
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
         Styles.flex,
-        isDeleted.ifTrueOption(opacity := 0.5),
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
         editable.map { editable =>
