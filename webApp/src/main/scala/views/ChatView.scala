@@ -344,6 +344,7 @@ object ChatView extends View {
     val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
       cls := "chatmsg-header",
+      keyed(nodeId),
       Rx{(avatarSize() == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize())(marginRight := "3px"))},
       optAuthorDiv(isMine, nodeId, graph),
       optDateDiv(isMine, nodeId, graph),
@@ -394,6 +395,7 @@ object ChatView extends View {
 
 
     div(
+      keyed(nodeId),
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
