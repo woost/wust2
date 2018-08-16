@@ -130,45 +130,58 @@ object AppServer {
 
       scribe.info(s"received oauth token")
       val userOAuthToken = authData.platformAuthToken
-      val slackUser = SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
-      slackUser.flatMap { slackAuthId =>
 
-        //        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
-        persistenceAdapter.storeOrUpdateUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, Some(userOAuthToken.accessToken), authData.wustAuthData.token))
+      //        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
 
-      }.onComplete {
-        case Success(p)  => if(p) scribe.info("persisted oauth token") else scribe.error("could not persist oauth token")
-        case Failure(ex) => scribe.error("failed to persist oauth token: ", ex)
+      val slackUpdate = for {
+
+        // get user information
+        slackAuthId <- SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
+        true <- persistenceAdapter.storeOrUpdateUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, Some(userOAuthToken.accessToken), authData.wustAuthData.token))
+
+        // Create workspace node and store team mapping
+        workspaceNodeId <- persistenceAdapter.getTeamNodeBySlackId(slackAuthId.team_id).flatMap {
+          case Some(nodeId) => Future.successful(nodeId)
+          case None =>
+            val createdWorkspaceNode = EventMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), authData.wustAuthData.user.id, EpochMilli.now, Constants.globalSlackNode.id)
+            wustReceiver.push(List(createdWorkspaceNode.graphChanges), None).map(_ => createdWorkspaceNode.nodeId)
+        }
+        true <- persistenceAdapter.storeTeamMapping(Team_Mapping(Some(slackAuthId.team_id), slackAuthId.team, workspaceNodeId))
+
+        // Add membership for user to workspace node
+        true <- wustReceiver.client.api.addMember(workspaceNodeId, authData.wustAuthData.user.id, AccessLevel.ReadWrite)
+        true <- wustReceiver.push(
+          List(
+            GraphChanges.connect(Edge.Parent)(workspaceNodeId, authData.wustAuthData.user.channelNodeId)
+          ),
+          Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
+        ).map(_.isRight)
+      } yield true
+
+      slackUpdate.onComplete {
+        case Success(p)  => if(p) scribe.info("persisted user data") else scribe.error("could not persist user data")
+        case Failure(ex) => scribe.error("failed to persist user data: ", ex)
       }
 
-      wustReceiver.client.api.addMember(Constants.slackNode.id, authData.wustAuthData.user.id, AccessLevel.ReadWrite).onComplete {
-        case Success(_)  => scribe.info("successfully added slack membership")
-        case Failure(ex) => scribe.error("failed to add slack membership", ex)
-      }
+//      slackUpdate.onComplete {
+//        case Success(p)  => if(p) scribe.info("persisted oauth token") else scribe.error("could not persist oauth token")
+//        case Failure(ex) => scribe.error("failed to persist oauth token: ", ex)
+//      }
+//      wustReceiver.client.api.addMember(workspaceNode._1, authData.wustAuthData.user.id, AccessLevel.ReadWrite).onComplete {
+//        case Success(_)  => scribe.info("successfully added slack membership")
+//        case Failure(ex) => scribe.error("failed to add slack membership", ex)
+//      }
 
-      wustReceiver.push(
-        List(
-          GraphChanges.connect(Edge.Parent)(Constants.slackNode.id, authData.wustAuthData.user.channelNodeId)
-        ),
-        Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
-      ).onComplete {
-        case Success(_)  => scribe.info("successfully connected slack channel to user profile")
-        case Failure(ex) => scribe.error("failed to connect slack channel to user profile", ex)
-      }
+//      wustReceiver.push(
+//        List(
+//          GraphChanges.connect(Edge.Parent)(Constants.slackNode.id, authData.wustAuthData.user.channelNodeId)
+//        ),
+//        Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
+//      ).onComplete {
+//        case Success(_)  => scribe.info("successfully connected slack channel to user profile")
+//        case Failure(ex) => scribe.error("failed to connect slack channel to user profile", ex)
+//      }
 
-      //          // get user information
-      //          Platform(token).users.getAuth.exec[cats.Id, HttpResponse[String]]() match {
-      //            case Right(r) =>
-      //              val wustUserId = oAuthRequests(state)
-      //              val platformUserId = r.result.id
-      //              // Platform data
-      //              PersistAdapter.addPlatformToken(platformUserId, token.get)
-      //              PersistAdapter.addWustUser(platformUserId, wustUserId)
-      //              // Wust data
-      //              PersistAdapter.addPlatformUser(wustUserId, platformUserId)
-      //            //                  PersistAdapter.oAuthRequests.remove(state)
-      //            case Left(e) => scribe.info(s"Could not authenticate with OAuthToken: ${e.getMessage}")
-      //          }
     }
 
     import slack.models._
