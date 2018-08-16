@@ -24,7 +24,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
     if(createdMessage.bot_id.isEmpty && (createdMessage.user != "USLACKBOT" || createdMessage.channel_type != "channel")) {
       val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
         wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(createdMessage.user, wustReceiver.client))
-        wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(createdMessage.channel, Constants.slackNode.id, wustReceiver, slackClient))
+        wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(createdMessage.channel, wustReceiver, slackClient)) // teamId node unknown , Constants.slackNode.id
       } yield {
         val changes: CreationResult = EventMapper.createMessageInWust(
           NodeData.Markdown(createdMessage.text),
@@ -190,6 +190,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
         val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
           wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(createdChannel.channel.creator.get, wustReceiver.client))
+          teamId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(createdChannel.channel))
         } yield {
           val changes: (NodeId, GraphChanges) = EventMapper.createChannelInWust(
             NodeData.Markdown(createdChannel.channel.name),

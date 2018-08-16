@@ -30,7 +30,7 @@ case object MockAdapter extends PersistenceAdapter {
 
   def getChannelNodeById(channelId: SlackChannelId): Future[Option[NodeId]] = ???
   def getChannelNodeByName(channelName: String): Future[Option[NodeId]] = ???
-  def getOrCreateChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = ???
+  def getOrCreateKnowChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = ???
 
   def getSlackChannelId(nodeId: NodeId): Future[Option[SlackChannelId]] = ???
   def getSlackMessage(nodeId: NodeId): Future[Option[Message_Mapping]] = ???

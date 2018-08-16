@@ -15,6 +15,7 @@ import scala.util.{Failure, Success}
 import wust.slack.Data._
 
 trait PersistenceAdapter {
+  type SlackTeamId = String
   type SlackChannelId = String
   type SlackTimestamp = String
   type SlackUserId = String
@@ -22,9 +23,13 @@ trait PersistenceAdapter {
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean]
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
   def storeChannelMapping(channelMapping: Channel_Mapping): Future[Boolean]
+  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
   def updateChannelMapping(channelMapping: Channel_Mapping): Future[Boolean]
+//  def updateTeamMapping(teamMapping: Team_Mapping): Future[Boolean]
+
+  def getTeamNodeBySlackId(teamId: SlackTeamId): Future[Option[NodeId]]
 
   def getChannelMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]]
   def getChannelMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]]
@@ -34,8 +39,8 @@ trait PersistenceAdapter {
 
   def getChannelNodeById(channelId: SlackChannelId): Future[Option[NodeId]]
   def getChannelNodeByName(channelName: String): Future[Option[NodeId]]
-//  def getOrCreateChannelNode(channel: SlackChannelId, wustClient: WustClient, slackClient: SlackApiClient)(implicit system: ActorSystem): Future[Option[NodeId]]
-  def getOrCreateChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]]
+  def getOrCreateChannelNode(channel: SlackChannelId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]]
+  def getOrCreateKnowChannelNode(channel: SlackChannelId, slackWorkspaceNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]]
 
   def getSlackChannelId(nodeId: NodeId): Future[Option[SlackChannelId]]
   def getSlackMessage(nodeId: NodeId): Future[Option[Message_Mapping]]
@@ -75,6 +80,10 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
   }
   def storeChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = {
     db.storeChannelMapping(channelMapping)
+  }
+
+  def storeTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = {
+    db.storeTeamMapping(teamMapping)
   }
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
@@ -128,7 +137,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
 
-  def getOrCreateChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = {
+  def getOrCreateKnowChannelNode(channel: SlackChannelId, slackWorkspaceNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = {
     val existingChannelNode = db.getChannelNodeById(channel)
     existingChannelNode.flatMap {
       case Some(c) => Future.successful(Some(c))
@@ -145,7 +154,7 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
         newChannelNode.onComplete {
           case Success(node) =>
-            wustReceiver.push(List(GraphChanges.addNodeWithParent(node, slackNode)), None)
+            wustReceiver.push(List(GraphChanges.addNodeWithParent(node, slackWorkspaceNode)), None)
 //            wustClient.api.changeGraph(GraphChanges.addNode(node)).onComplete {
 //              case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
 //              case _ =>
@@ -162,9 +171,28 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
     }
   }
 
+  def getOrCreateChannelNode(channel: SlackChannelId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = {
+    for {
+      t <- slackClient.getTeamInfo()
+      workspaceNodeId <- db.getTeamNodeById(t.id).flatMap {
+        case Some(wustId) => getOrCreateKnowChannelNode(channel, wustId, wustReceiver, slackClient)
+        case _            => Future.successful(None)
+      }
+    } yield {
+      workspaceNodeId
+    }
+  }
+
+
   def getChannelNodeById(channelId: SlackChannelId): Future[Option[NodeId]] = {
       db.getChannelNodeById(channelId)
   }
+
+
+  def getTeamNodeBySlackId(teamId: SlackTeamId): Future[Option[NodeId]] = {
+    db.getTeamNodeById(teamId)
+  }
+
 
   def getChannelNodeByName(channelName: String): Future[Option[NodeId]] = {
     db.getChannelNodeByName(channelName)
