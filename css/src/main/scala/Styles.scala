@@ -435,7 +435,6 @@ object CommonStyles extends StyleSheet.Standalone {
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
 //    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     nodeCardShadow,
-    minHeight(2 em), // height when card is empty
   )
 
   ".nodecard a" - (
@@ -447,7 +446,8 @@ object CommonStyles extends StyleSheet.Standalone {
     wordBreak :=! "break-word",
     padding(2 px, 4 px),
     /* display.inlineBlock, */
-    border(1 px, solid, transparent) /* placeholder for the dashed border when dragging */
+    border(1 px, solid, transparent), /* placeholder for the dashed border when dragging */
+    minHeight(2 em), // height when card is empty
   )
 
   ".nodecard-content pre" - (
