@@ -99,6 +99,8 @@ object ChatView extends View {
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val scrolledToBottom = PublishSubject[Boolean]
     val activeReplyFields = Var(Set.empty[NodeId])
+    val avatarSizeToplevel:Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
+
 
     div(
       // this wrapping of chat history is currently needed,
@@ -115,7 +117,6 @@ object ChatView extends View {
           val nodes = graph.chronologicalNodesAscending.collect {
             case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
           }
-          val avatarSizeToplevel = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
           if(nodes.isEmpty) VDomModifier(emptyChatNotice)
           else
             VDomModifier(
@@ -235,12 +236,11 @@ object ChatView extends View {
     alreadyVisualizedParentIds: Set[NodeId],
     directParentIds: Set[NodeId],
     currentUserId: UserId,
-    avatarSize: AvatarSize,
+    avatarSize: Rx[AvatarSize],
     activeReplyFields: Var[Set[NodeId]]
   )(
     implicit ctx: Ctx.Owner
   ): VNode = {
-
     val currNode = nodeIds.last
     val headNode = nodeIds.head
     val isMine = graph.authors(currNode).contains(currentUserId)
@@ -248,7 +248,7 @@ object ChatView extends View {
     div(
       cls := "chatmsg-group-outer-frame",
       keyed(nodeIds, directParentIds),
-      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize)(marginRight := "5px")),
+      Rx{(avatarSize() != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize())(marginRight := "5px"))},
       div(
         cls := "chatmsg-group-inner-frame",
         keyed(nodeIds, directParentIds),
@@ -273,7 +273,7 @@ object ChatView extends View {
           borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
 
           groupNodes(graph, children, state, currentUserId)
-            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, Set(nodeId), currentUserId, avatarSizeThread, activeReplyFields)),
+            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, Set(nodeId), currentUserId, Rx(avatarSizeThread), activeReplyFields)),
 
           replyField(state, nodeId, directParentIds, activeReplyFields),
 
@@ -339,12 +339,12 @@ object ChatView extends View {
     isMine: Boolean,
     nodeId: NodeId,
     graph: Graph,
-    avatarSize: AvatarSize
-  ) = {
+    avatarSize: Rx[AvatarSize]
+  )(implicit ctx: Ctx.Owner) = {
     val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
       cls := "chatmsg-header",
-      (avatarSize == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize)(marginRight := "3px")),
+      Rx{(avatarSize() == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize())(marginRight := "3px"))},
       optAuthorDiv(isMine, nodeId, graph),
       optDateDiv(isMine, nodeId, graph),
     )
