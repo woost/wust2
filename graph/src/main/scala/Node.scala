@@ -36,6 +36,9 @@ object Node {
 
     def empty = new Content(NodeId.fresh, NodeData.Markdown(""), defaultMeta)
 
+    def apply(data: NodeData.Content, meta: NodeMeta): Content = {
+      new Content(NodeId.fresh, data, meta)
+    }
     def apply(id: NodeId, data: NodeData.Content): Content = {
       new Content(id, data, defaultMeta)
     }
