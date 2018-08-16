@@ -21,13 +21,13 @@ trait PersistenceAdapter {
 
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean]
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
-  def storeTeamMapping(teamMapping: Channel_Mapping): Future[Boolean]
+  def storeChannelMapping(channelMapping: Channel_Mapping): Future[Boolean]
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean]
-  def updateTeamMapping(teamMapping: Channel_Mapping): Future[Boolean]
+  def updateChannelMapping(channelMapping: Channel_Mapping): Future[Boolean]
 
-  def getTeamMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]]
-  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]]
+  def getChannelMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]]
+  def getChannelMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]]
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]]
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]]
@@ -48,17 +48,17 @@ trait PersistenceAdapter {
 
 
   def deleteMessage(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean]
-  def deleteChannel(teamId: SlackChannelId): Future[Boolean]
-  def unDeleteChannel(teamId: SlackChannelId): Future[Boolean]
+  def deleteChannel(channelId: SlackChannelId): Future[Boolean]
+  def unDeleteChannel(channelId: SlackChannelId): Future[Boolean]
 
 
 
   // Guards
   def isSlackMessageDeleted(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean]
   def isSlackMessageUpToDate(channel: String, timestamp: String, text: String): Future[Boolean]
-  def isSlackChannelDeleted(teamId: String): Future[Boolean]
-  def isSlackChannelUpToDate(teamId: String, name: String): Future[Boolean]
-  def isSlackChannelUpToDateElseGetNode(teamId: String, name: String): Future[Option[NodeId]]
+  def isSlackChannelDeleted(channelId: String): Future[Boolean]
+  def isSlackChannelUpToDate(channelId: String, name: String): Future[Boolean]
+  def isSlackChannelUpToDateElseGetNode(channelId: String, name: String): Future[Option[NodeId]]
 }
 
 object PostgresAdapter {
@@ -73,16 +73,16 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
     db.storeMessageMapping(messageMapping)
   }
-  def storeTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = {
-    db.storeTeamMapping(teamMapping)
+  def storeChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = {
+    db.storeChannelMapping(channelMapping)
   }
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = {
     db.updateMessageMapping(messageMapping)
   }
 
-  def updateTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = {
-    db.updateTeamMapping(teamMapping)
+  def updateChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = {
+    db.updateChannelMapping(channelMapping)
   }
 
   // TODO: Move API calls and composition to separate event composer
@@ -150,8 +150,8 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 //              case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
 //              case _ =>
 //            }
-            db.storeTeamMapping(Channel_Mapping(Some(channel), node.str, slack_deleted_flag = false, node.id)).onComplete {
-              case Failure(ex) => scribe.error("Could not create team mapping in slack app: ", ex)
+            db.storeChannelMapping(Channel_Mapping(Some(channel), node.str, slack_deleted_flag = false, node.id)).onComplete {
+              case Failure(ex) => scribe.error("Could not create channel mapping in slack app: ", ex)
               case _ =>
             }
           case Failure(ex) =>
@@ -175,12 +175,12 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
     db.getSlackChannelId(nodeId)
   }
 
-  def getTeamMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = {
-    db.getTeamMappingBySlackName(channelName)
+  def getChannelMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = {
+    db.getChannelMappingBySlackName(channelName)
   }
 
-  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = {
-    db.getTeamMappingByWustId(nodeId)
+  def getChannelMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = {
+    db.getChannelMappingByWustId(nodeId)
   }
 
   def getSlackMessage(nodeId: NodeId): Future[Option[Message_Mapping]] = {
@@ -218,12 +218,12 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
     db.deleteMessage(channelId, timestamp)
   }
 
-  def deleteChannel(teamId: SlackChannelId): Future[Boolean] = {
-    db.deleteChannel(teamId)
+  def deleteChannel(channelId: SlackChannelId): Future[Boolean] = {
+    db.deleteChannel(channelId)
   }
 
-  def unDeleteChannel(teamId: SlackChannelId): Future[Boolean] = {
-    db.unDeleteChannel(teamId)
+  def unDeleteChannel(channelId: SlackChannelId): Future[Boolean] = {
+    db.unDeleteChannel(channelId)
   }
 
 
@@ -241,16 +241,16 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
     db.isSlackMessageUpToDate(channel, timestamp, text)
   }
 
-  def isSlackChannelDeleted(teamId: String): Future[Boolean] = {
-    db.isSlackChannelDeleted(teamId)
+  def isSlackChannelDeleted(channelId: String): Future[Boolean] = {
+    db.isSlackChannelDeleted(channelId)
   }
 
-  def isSlackChannelUpToDate(teamId: String, name: String): Future[Boolean] = {
-    db.isSlackChannelUpToDate(teamId, name)
+  def isSlackChannelUpToDate(channelId: String, name: String): Future[Boolean] = {
+    db.isSlackChannelUpToDate(channelId, name)
   }
 
-  def isSlackChannelUpToDateElseGetNode(teamId: String, name: String): Future[Option[NodeId]] = {
-    db.isSlackChannelUpToDateElseGetNode(teamId, name)
+  def isSlackChannelUpToDateElseGetNode(channelId: String, name: String): Future[Option[NodeId]] = {
+    db.isSlackChannelUpToDateElseGetNode(channelId, name)
   }
 
 //  def method(): = ???

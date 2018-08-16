@@ -17,13 +17,13 @@ case object MockAdapter extends PersistenceAdapter {
 
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = ???
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
-  def storeTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = ???
+  def storeChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = ???
 
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
-  def updateTeamMapping(teamMapping: Channel_Mapping): Future[Boolean] = ???
+  def updateChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = ???
 
-  def getTeamMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = ???
-  def getTeamMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = ???
+  def getChannelMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = ???
+  def getChannelMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = ???
 
   def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = ???
   def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
@@ -43,17 +43,17 @@ case object MockAdapter extends PersistenceAdapter {
 
 
   def deleteMessage(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
-  def deleteChannel(teamId: SlackChannelId): Future[Boolean] = ???
-  def unDeleteChannel(teamId: SlackChannelId): Future[Boolean] = ???
+  def deleteChannel(channelId: SlackChannelId): Future[Boolean] = ???
+  def unDeleteChannel(channelId: SlackChannelId): Future[Boolean] = ???
 
 
 
   // Guards
   def isSlackMessageDeleted(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
   def isSlackMessageUpToDate(channel: String, timestamp: String, text: String): Future[Boolean] = ???
-  def isSlackChannelDeleted(teamId: String): Future[Boolean] = ???
-  def isSlackChannelUpToDate(teamId: String, name: String): Future[Boolean] = ???
-  def isSlackChannelUpToDateElseGetNode(teamId: String, name: String): Future[Option[NodeId]] = ???
+  def isSlackChannelDeleted(channelId: String): Future[Boolean] = ???
+  def isSlackChannelUpToDate(channelId: String, name: String): Future[Boolean] = ???
+  def isSlackChannelUpToDateElseGetNode(channelId: String, name: String): Future[Option[NodeId]] = ???
 }
 
 object TestConstants {

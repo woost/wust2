@@ -152,11 +152,11 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.updateTeamMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, nodeId))
+          case Some(gc) => persistenceAdapter.updateChannelMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, nodeId))
           case None     => Future.successful(false)
         }.onComplete {
-          case Success(_)  => scribe.info("Could not store team mapping")
-          case Failure(ex) => scribe.error("Could not create channel in team mapping", ex)
+          case Success(_)  => scribe.info("Could not store channel mapping")
+          case Failure(ex) => scribe.error("Could not create channel in channel mapping", ex)
         }
 
         val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not rename channel").flatMapF {
@@ -200,11 +200,11 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.storeTeamMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc._1))
+          case Some(gc) => persistenceAdapter.storeChannelMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc._1))
           case None     => Future.successful(false)
         }.onComplete {
-          case Success(_)  => scribe.info("Created new team mapping for channel")
-          case Failure(ex) => scribe.error("Could not create channel in team mapping", ex)
+          case Success(_)  => scribe.info("Created new channel mapping for channel")
+          case Failure(ex) => scribe.error("Could not create channel in channel mapping", ex)
         }
 
         val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create channel").flatMapF { changes =>
