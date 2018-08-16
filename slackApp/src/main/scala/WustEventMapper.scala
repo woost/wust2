@@ -79,11 +79,23 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
   def getAuthorClient(gc: GraphChanges) = {
 
+    def getUserNode(nodes: Set[Node]) = {
+      nodes.flatMap {
+        case Node.User(id, _, _) => Some(id)
+        case _ => None
+      }.headOption
+    }
+
     // TODO: Not possible to tell who created / deleted edges
-    val wustEventUser = gc.addEdges.flatMap {
+    val authorUser = gc.addEdges.flatMap {
       case Edge.Author(userId, _, _) => Some(userId)
       case _                         => None
     }.headOption
+
+    val wustEventUser = authorUser match {
+      case Some(u) => Some(u)
+      case _       => getUserNode(gc.addNodes)
+    }
 
     val slackEventUser = wustEventUser match {
       case Some(u) => persistenceAdapter.getSlackUser(u)
