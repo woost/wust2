@@ -711,11 +711,11 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flex,
     flexWrap.wrap,
     alignItems.flexStart,
-    marginBottom(20 px),
-    minHeight(50 px),
+    marginBottom(5 px),
+    minHeight(2 em),
     maxHeight(200 px),
     overflowY.auto,
-    paddingBottom(10 px) // prevents card shadow from being cut off by scrolling
+    padding(2 px) // prevents card shadow from being cut off by scrolling
   )
 
   ".kanbanisolatednodes > .nodecard" - (
