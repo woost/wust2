@@ -53,7 +53,7 @@ object KanbanView extends View {
           flexDirection.column,
           div(
             cls := s"kanbancolumnarea",
-            key := s"kanbancolumnarea",
+            keyed,
             registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
             Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
             alignItems.flexStart,
@@ -71,18 +71,18 @@ object KanbanView extends View {
   private def newColumnArea(state:GlobalState, page:Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     div(
       cls := s"kanbannewcolumnarea",
-      key := s"kanbannewcolumnarea",
+      keyed,
       registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
       onClick.stopPropagation(true) --> fieldActive,
       position.relative,
       Rx {
         if(fieldActive()) {
           div(
-            key := "kanban-newcolumnform",
+            keyed,
             cls := "kanbannewcolumnareaform",
             cls := "ui form",
             textArea(
-              key := "kanban-newcolumnfield",
+              keyed,
               cls := "field fluid",
               fontSize.larger,
               fontWeight.bold,
@@ -106,7 +106,7 @@ object KanbanView extends View {
         }
         else
           div(
-            // key := "kanban-newcolumnarea-addcolumnbutton",
+            keyed,
             position.absolute,
             top := "0",
             left := "0",
@@ -160,7 +160,7 @@ object KanbanView extends View {
     div(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
-      key := s"kanbancolumn${node.id}parent${parentIds.mkString}",
+      keyed(node.id, parentIds),
       isTopLevel.ifFalse[VDomModifier](cls := "kanbansubcolumn"),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
@@ -172,7 +172,7 @@ object KanbanView extends View {
       ),
       div(
         cls := "kanbancolumnheader",
-        key := s"kanbancolumnheader${node.id}parent${parentIds.mkString}",
+        keyed(node.id, parentIds),
         cls := "draghandle",
         columnTitle,
 
@@ -182,8 +182,7 @@ object KanbanView extends View {
       div(
         cls := "kanbancolumnchildren",
         registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
-        key := s"sortablecolumn${node.id}parent${parentIds.mkString}",
-
+        keyed(node.id, parentIds),
         children.map(t => renderTree(state, t, parentIds = node.id :: Nil, activeReplyFields)),
       ),
       addNodeField(state, node.id, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
@@ -226,7 +225,7 @@ object KanbanView extends View {
       // sortable: draggable needs to be direct child of container
       editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
-      key := s"node${node.id}parent${parentIds.mkString}",
+      keyed(node.id, parentIds),
       cls := "draghandle",
 
       position.relative,
@@ -237,16 +236,14 @@ object KanbanView extends View {
   private def addNodeField(state: GlobalState, parentId: NodeId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "kanbanaddnodefield",
-      key := s"kanban-nodefield-outer$parentId",
+      keyed(parentId),
       Rx {
         val active = activeReplyFields() contains parentId
         if(active)
           div(
-            key := s"kanban-nodefield-form$parentId",
-            cls := "ui form",
+            keyed(parentId),
             textArea(
-              key := s"kanban-nodefield$parentId",
-              data.key := s"kanban-nodefield$parentId",
+              keyed(parentId),
               cls := "field fluid",
               rows := 2,
               placeholder := "Press Enter to add.",
@@ -262,7 +259,7 @@ object KanbanView extends View {
           )
         else
           div(
-            key := s"kanban-nodefield-button$parentId",
+            keyed(parentId),
             "+ Add Card",
             onClick --> sideEffect {activeReplyFields.update(_ + parentId)}
           )
@@ -273,7 +270,7 @@ object KanbanView extends View {
   private def renderIsolatedNodes(state:GlobalState, page:Page, nodes:Seq[Node])(implicit ctx: Ctx.Owner) =
     div(
       cls := "kanbanisolatednodes",
-      key := s"kanbanisolatednodes",
+      keyed,
       registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
 
       nodes.map{ node => renderCard(state, node, page.parentIds) }

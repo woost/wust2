@@ -91,7 +91,7 @@ object ChatView extends View {
         ),
         //        TagsList(state).apply(Styles.flexStatic)
       ),
-      Rx { inputField(state, state.page().parentIdSet).apply(key := "chatinput", Styles.flexStatic, padding := "3px") },
+      Rx { inputField(state, state.page().parentIdSet).apply(keyed, Styles.flexStatic, padding := "3px") },
       registerDraggableContainer(state),
     )
   }
@@ -166,7 +166,7 @@ object ChatView extends View {
               draggableAs(state, DragItem.DisableDrag),
               cursor.default, // draggable sets cursor.move, but drag is disabled on page background
               dragTarget(DragItem.Chat.Page(page.parentIds)),
-              key := s"chathistory${ page.parentIds.mkString }",
+              keyed(page.parentIds)
             )
         },
         onUpdate --> sideEffect { (prev, _) =>
@@ -287,11 +287,11 @@ object ChatView extends View {
 
     div(
       cls := "chatmsg-group-outer-frame",
-      key := s"chatmsg-group-outer-frame${nodeIds.mkString}${directParentIds.mkString}",
+      keyed(nodeIds, directParentIds),
       (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize)(marginRight := "5px")),
       div(
         cls := "chatmsg-group-inner-frame",
-        key := s"chatmsg-group-inner-frame${nodeIds.mkString}${directParentIds.mkString}",
+        keyed(nodeIds, directParentIds),
         chatMessageHeader(isMine, headNode, graph, avatarSize),
         nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, directParentIds = directParentIds, nid, currentUserId, activeReplyFields)
         ),
@@ -304,7 +304,7 @@ object ChatView extends View {
     if(!graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
       val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
       div(
-        key := s"threadheader${ nodeId }${directParentIds.mkString}",
+        keyed(nodeId, directParentIds),
         chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
           boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
         )),
@@ -320,7 +320,7 @@ object ChatView extends View {
           draggableAs(state, DragItem.DisableDrag),
           dragTarget(DragItem.Chat.Thread(nodeId)),
           cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
-          key := s"thread${ nodeId }${directParentIds.mkString}",
+          keyed(nodeId, directParentIds.mkString)
         )
       )
     }
@@ -340,16 +340,16 @@ object ChatView extends View {
 
   def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
     div(
-      key := s"chatreplyfieldouterframe$nodeId${directParentIds.mkString}",
+      keyed(nodeId, directParentIds),
       Rx {
         val active = activeReplyFields() contains nodeId
         if(active)
           div(
-            key := s"chatreplyfieldinnerframe$nodeId${directParentIds.mkString}",
+            keyed(nodeId, directParentIds),
             Styles.flex,
             alignItems.center,
             inputField(state, directParentIds = Set(nodeId), blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - nodeId) })(ctx)(
-              key := s"chatreplyfield$nodeId${directParentIds.mkString}",
+              keyed(nodeId, directParentIds),
               padding := "3px",
               width := "100%"
             ),
@@ -514,7 +514,7 @@ object ChatView extends View {
     div(
       cls := "ui form",
       textArea(
-        key := s"chat-replyfield${ directParentIds.mkString }",
+        keyed(directParentIds),
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now

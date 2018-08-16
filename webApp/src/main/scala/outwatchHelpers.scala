@@ -11,10 +11,12 @@ import monix.reactive.OverflowStrategy.Unbounded
 import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
-import outwatch.dom.{Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
+import outwatch.dom.{Attribute, Handler, Key, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
 import outwatch.{AsVDomModifier, Sink}
 import rx._
+import wust.ids.NodeId
 import wust.util.Empty
+import supertagged._
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -202,5 +204,14 @@ package object outwatchHelpers {
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
     def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))
+  }
+
+  def keyed(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = keyed(Nil)
+  def keyed(keys: Any*)(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = {
+    val parts = s"${file.value}:${line.value}:${column.value}" +: keys
+    val keyNumber = parts.mkString.hashCode
+    val keyModifier = dsl.key := keyNumber
+    if (DevOnly.isTrue) VDomModifier(keyModifier, dsl.data.key := keyNumber)
+    else keyModifier
   }
 }

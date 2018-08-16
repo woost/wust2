@@ -243,7 +243,7 @@ object PageHeader {
         import semanticUi.JQuery._
         $(elem).dropdown()
       },
-      key := s"dropdown${ channel.id }"
+      keyed(channel.id)
     )
   }
 }

@@ -47,7 +47,7 @@ object SelectedNodes {
         )
       },
       registerDraggableContainer(state),
-      key := "selectednodes",
+      keyed,
       onGlobalEscape(Set.empty[NodeId]) --> state.selectedNodeIds
     )
   }
