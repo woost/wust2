@@ -185,45 +185,6 @@ object ChatView extends View {
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
-    div(
-      cls := "actionbutton",
-      freeRegular.faEdit,
-      onClick.stopPropagation(!editable.now) --> editable
-    )
-
-  private def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
-    div(
-      cls := "actionbutton",
-      freeRegular.faTrashAlt,
-      onClick.stopPropagation --> sideEffect {
-        state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-        state.selectedNodeIds.update(_ - nodeId)
-      },
-    )
-
-  private def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
-    div(
-      cls := "actionbutton",
-      fontawesome.layered(
-        fontawesome.icon(freeRegular.faTrashAlt),
-        fontawesome.icon(freeSolid.faMinus, new Params {
-          transform = new Transform {
-            rotate = 45.0
-          }
-
-        })
-      ),
-      onClick.stopPropagation(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes
-    )
-
-  private def nodeLink(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
-    div(
-      cls := "actionbutton",
-      freeRegular.faArrowAltCircleRight,
-      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig
-    )
-
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
   private def avatarDiv(isOwn: Boolean, user: Option[UserId], avatarSize: AvatarSize) = {
@@ -422,13 +383,14 @@ object ChatView extends View {
         editButton(state, editable),
         deleteButton(state, nodeId, directParentIds)
       ),
-      nodeLink(state, nodeId)
+      zoomButton(state, nodeId)
     )
+
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
-      messageCardInjected
+      messageCardInjected,
     )
 
 
@@ -464,6 +426,45 @@ object ChatView extends View {
       )
     )
   }
+
+  private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
+    div(
+      div(cls := "fa-fw", freeRegular.faEdit),
+      onClick.stopPropagation(!editable.now) --> editable,
+      cursor.pointer,
+    )
+
+  private def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+    div(
+      div(cls := "fa-fw", freeRegular.faTrashAlt),
+      onClick.stopPropagation --> sideEffect {
+        state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+        state.selectedNodeIds.update(_ - nodeId)
+      },
+      cursor.pointer,
+    )
+
+  private def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+    div(
+      div(cls := "fa-fw", fontawesome.layered(
+        fontawesome.icon(freeRegular.faTrashAlt),
+        fontawesome.icon(freeSolid.faMinus, new Params {
+          transform = new Transform {
+            rotate = 45.0
+          }
+
+        })
+      )),
+      onClick.stopPropagation(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+      cursor.pointer,
+    )
+
+  private def zoomButton(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
+    div(
+      div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
+      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+      cursor.pointer,
+    )
 
   private def messageTags(state: GlobalState, graph: Graph, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
     val directNodeTags = graph.directNodeTags((nodeId, directParentIds))
