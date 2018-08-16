@@ -96,46 +96,6 @@ object ChatView extends View {
     )
   }
 
-  /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
-  private def groupNodes(
-    graph: Graph,
-    nodes: Seq[NodeId],
-    state: GlobalState,
-    currentUserId: UserId
-  ) = {
-    def shouldGroup(nodes: NodeId*) = {
-      grouping && // grouping enabled
-        // && (nodes
-        //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
-        //   .distinct
-        //   .size == 1) // tags must match
-        // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
-        // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
-        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.authorIds(node).head == authorId)
-        }
-      // TODO: within a specific timespan && nodes.last.
-    }
-
-    nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
-      kinds.lastOption match {
-        case Some(ChatSingle(lastNode)) =>
-          if(shouldGroup(lastNode, node))
-            kinds.dropRight(1) :+ ChatGroup(Seq(lastNode, node))
-          else
-            kinds :+ ChatSingle(node)
-
-        case Some(ChatGroup(lastNodes)) =>
-          if(shouldGroup(lastNodes.last, node))
-            kinds.dropRight(1) :+ ChatGroup(nodeIds = lastNodes :+ node)
-          else
-            kinds :+ ChatSingle(node)
-
-        case None => kinds :+ ChatSingle(node)
-      }
-    }
-  }
-
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val scrolledToBottom = PublishSubject[Boolean]
     val activeReplyFields = Var(Set.empty[NodeId])
@@ -185,6 +145,45 @@ object ChatView extends View {
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
+  /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
+  private def groupNodes(
+    graph: Graph,
+    nodes: Seq[NodeId],
+    state: GlobalState,
+    currentUserId: UserId
+  ) = {
+    def shouldGroup(nodes: NodeId*) = {
+      grouping && // grouping enabled
+        // && (nodes
+        //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
+        //   .distinct
+        //   .size == 1) // tags must match
+        // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
+        // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
+        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.authorIds(node).head == authorId)
+        }
+      // TODO: within a specific timespan && nodes.last.
+    }
+
+    nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
+      kinds.lastOption match {
+        case Some(ChatSingle(lastNode)) =>
+          if(shouldGroup(lastNode, node))
+            kinds.dropRight(1) :+ ChatGroup(Seq(lastNode, node))
+          else
+            kinds :+ ChatSingle(node)
+
+        case Some(ChatGroup(lastNodes)) =>
+          if(shouldGroup(lastNodes.last, node))
+            kinds.dropRight(1) :+ ChatGroup(nodeIds = lastNodes :+ node)
+          else
+            kinds :+ ChatSingle(node)
+
+        case None => kinds :+ ChatSingle(node)
+      }
+    }
+  }
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
   private def avatarDiv(isOwn: Boolean, user: Option[UserId], avatarSize: AvatarSize) = {
