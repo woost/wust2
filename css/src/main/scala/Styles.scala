@@ -423,11 +423,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
-  val nodeCardBackgroundColor = backgroundColor(c"#FEFEFE")
+  val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
     cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
-    nodeCardBackgroundColor,
+    backgroundColor(nodeCardBackgroundColor),
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
     fontWeight.normal,
     overflowX.auto,
@@ -593,7 +593,7 @@ object CommonStyles extends StyleSheet.Standalone {
     minHeight(2 em), // if title is empty
   )
 
-  ".kanbancolumnheader .kanbanbuttonbar" - (
+  ".kanbancolumnheader .buttonbar" - (
     padding(kanbanColumnPadding),
     visibility.hidden,
     fontSize.medium // same as in kanban card
@@ -603,44 +603,44 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(0 em) // default was 1 em
   )
 
-  ".kanbancolumn.draggable--over .kanbanbuttonbar" - (
+  ".kanbancolumn.draggable--over .buttonbar" - (
     visibility.hidden.important // hide buttons when dragging over column
   )
 
-  ".nodecard .kanbanbuttonbar" - (
-    padding(2 px, 4 px),
-    visibility.hidden
-  )
-
-  ".nodecard:hover .kanbanbuttonbar," +
-  ".kanbancolumnheader:hover .kanbanbuttonbar" - (
+  ".nodecard:hover .buttonbar," +
+  ".kanbancolumnheader:hover .buttonbar" - (
     visibility.visible
   )
 
-  ".kanbancolumnheader .kanbanbuttonbar > div," +
-  ".nodecard .kanbanbuttonbar > div" - (
+  ".kanbancolumnheader .buttonbar > div," +
+  ".nodecard .buttonbar > div" - (
     borderRadius(3 px),
     marginLeft(2 px)
   )
 
-  ".kanbancolumnheader .kanbanbuttonbar > div" - (
+  ".kanbancolumnheader .buttonbar > div" - (
     padding(2 px),
     backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
     color(c"rgba(255, 255, 255, 0.83)")
   )
 
-  ".kanbancolumnheader .kanbanbuttonbar > div:hover" - (
+  ".kanbancolumnheader .buttonbar > div:hover" - (
     backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
     color(white)
   )
 
-  ".nodecard .kanbanbuttonbar > div" - (
-    backgroundColor(c"rgba(254, 254, 254, 0.9)"), // nodeCardBackgroundColor, but transparent
+  ".nodecard .buttonbar" - (
+    backgroundColor(nodeCardBackgroundColor),
+    padding(2 px, 4 px),
+    visibility.hidden
+  )
+
+  ".nodecard .buttonbar > div" - (
     color(c"rgb(157, 157, 157)"),
     padding(2 px)
   )
 
-  ".nodecard .kanbanbuttonbar > div:hover" - (
+  ".nodecard .buttonbar > div:hover" - (
     backgroundColor(c"rgba(215, 215, 215, 0.9)"),
     color(c"rgb(71, 71, 71)")
   )
@@ -822,7 +822,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-line .nodecard.draggable-mirror" - (
-    nodeCardBackgroundColor.important,
+    backgroundColor(nodeCardBackgroundColor).important,
     nodeCardShadow.important,
     color.inherit.important
   )

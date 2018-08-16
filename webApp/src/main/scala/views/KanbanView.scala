@@ -137,7 +137,7 @@ object KanbanView extends View {
     val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, newTagParentIds = parentIds, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
 
     val buttonBar = div(
-      cls := "kanbanbuttonbar",
+      cls := "buttonbar",
       Styles.flex,
       Rx {
         if(editable()) {
@@ -201,7 +201,7 @@ object KanbanView extends View {
 
 
     val buttonBar = div(
-      cls := "kanbanbuttonbar",
+      cls := "buttonbar",
       Styles.flex,
       Rx {
         if(editable()) {
