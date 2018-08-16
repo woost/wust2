@@ -377,23 +377,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-controls" - (
-    media.only.screen.maxWidth(640 px) - (
-      display.none
-    ),
-    media.only.screen.minWidth(1300 px) - (
-      marginRight(900 px)
-    ),
-    media.only.screen.minWidth(1000 px) - (
-      marginRight(600 px)
-    ),
-    media.only.screen.minWidth(700 px) - (
-      marginRight(300 px)
-    ),
     visibility.hidden,
     Styles.flex,
     alignItems.center,
     paddingLeft(3 px),
-    marginLeft.auto
   )
 
   ".chatmsg-controls > *" - (

@@ -461,7 +461,7 @@ object ChatView extends View {
         // checkbox(Styles.flexStatic),
         messageCard,
         messageTags(state, graph, nodeId, alreadyVisualizedParentIds),
-        msgControls(Styles.flexStatic)
+        Rx{ (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](msgControls(Styles.flexStatic)) }
       )
     )
   }
