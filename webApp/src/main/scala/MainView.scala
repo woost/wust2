@@ -40,7 +40,7 @@ object MainView {
             flexDirection.column,
             position.relative,
             Rx {
-              val view = state.view() //TODO: fix Rx bug, where you have to assign a value before using it
+              val view = state.view()
               VDomModifier(
                 view
                   .isContent
@@ -49,9 +49,11 @@ object MainView {
                       (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(ctx)(Styles.flexStatic)),
                       PageHeader(state)(ctx)(Styles.flexStatic)
                     )),
-
-                view.apply(state)(ctx)(Styles.growFull, flexGrow := 1)
-              )
+                )
+            },
+            Rx {
+              val view = state.view() //TODO: fix Rx bug, where you have to assign a value before using it
+              view.apply(state)(ctx)(Styles.growFull, flexGrow := 1)
             },
             SelectedNodes(state)(ctx)(Styles.flexStatic)
           )
