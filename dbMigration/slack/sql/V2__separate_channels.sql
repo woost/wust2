@@ -1,9 +1,8 @@
 -- Rename team_mapping to channel_mapping including indexes
 ALTER TABLE team_mapping RENAME TO channel_mapping;
 
-ALTER TABLE channel_mapping
-RENAME slack_team_id TO slack_channel_id,
-RENAME slack_team_name TO slack_channel_name;
+ALTER TABLE channel_mapping RENAME column slack_team_id TO slack_channel_id,
+ALTER TABLE channel_mapping RENAME column slack_team_name TO slack_channel_name;
 
 ALTER INDEX team_mapping_pkey RENAME TO channel_mapping_pkey;
 ALTER INDEX team_mapping_slack_team_id_wust_id_idx RENAME TO channel_mapping_slack_channel_id_wust_id_idx;
@@ -17,3 +16,7 @@ CREATE TABLE team_mapping (
     PRIMARY KEY(wust_id)
 );
 create unique index on team_mapping using btree(slack_team_id, wust_id);
+
+
+ALTER TABLE channel_mapping add column team_wust_id uuid references team_mapping(wust_id);
+ALTER TABLE message_mapping add column channel_wust_id uuid references channel_mapping(wust_id);
