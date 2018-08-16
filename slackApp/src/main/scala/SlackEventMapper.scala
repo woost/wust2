@@ -7,7 +7,8 @@ import slack.models._
 import wust.graph.GraphChanges
 import wust.ids.{EpochMilli, NodeData, NodeId}
 import wust.sdk.EventMapper
-import wust.slack.Data.{Message_Mapping, Channel_Mapping, WustUserData}
+import wust.sdk.EventMapper.CreationResult
+import wust.slack.Data.{Channel_Mapping, Message_Mapping, WustUserData}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -25,13 +26,13 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(createdMessage.user, wustReceiver.client))
         wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(createdMessage.channel, Constants.slackNode.id, wustReceiver, slackClient))
       } yield {
-        val changes: (NodeId, GraphChanges) = EventMapper.createMessageInWust(
+        val changes: CreationResult = EventMapper.createMessageInWust(
           NodeData.Markdown(createdMessage.text),
           wustUserData.wustUserId,
           toEpochMilli(createdMessage.ts),
           wustChannelNodeId
         )
-        (changes._1, changes._2, wustUserData)
+        (changes.nodeId, changes.graphChanges, wustUserData)
       }
 
       val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create message").flatMapF { changes =>
@@ -62,10 +63,10 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
       if(!upToDate) {
         val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
           wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(changedMessage.message.user, wustReceiver.client))
-          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(changedMessage.channel, Constants.slackNode.id, wustReceiver, slackClient))
-          changes <- OptionT[Future, (NodeId, GraphChanges)](persistenceAdapter.getMessageNodeByChannelAndTimestamp(changedMessage.channel, changedMessage.previous_message.ts).map {
+          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(changedMessage.channel, wustReceiver, slackClient))
+          changes <- OptionT[Future, CreationResult](persistenceAdapter.getMessageNodeByChannelAndTimestamp(changedMessage.channel, changedMessage.previous_message.ts).map {
             case Some(existingNodeId: NodeId) =>
-              Some((existingNodeId, EventMapper.editMessageContentInWust(
+              Some(CreationResult(existingNodeId, EventMapper.editMessageContentInWust(
                 existingNodeId,
                 NodeData.Markdown(changedMessage.message.text),
               )))
@@ -81,7 +82,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
               None
           })
         } yield {
-          (changes._1, changes._2, wustUserData)
+          (changes.nodeId, changes.graphChanges, wustUserData)
         }
 
         val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not change message").flatMapF { changes =>

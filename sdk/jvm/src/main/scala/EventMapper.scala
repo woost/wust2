@@ -5,6 +5,8 @@ import wust.ids._
 
 object EventMapper {
 
+  case class CreationResult(nodeId: NodeId, graphChanges: GraphChanges)
+
   def createNodeInWust(nodeContent: Node.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, parents: Set[NodeId], additionalMembers: Set[UserId]): GraphChanges = {
 
     //    val nodeAuthorEdge = Edge.Author(wustAuthorUserId, EdgeData.Author(timestamp), nodeContent.id)
@@ -32,16 +34,16 @@ object EventMapper {
     )
   }
 
-  def createMessageInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): (NodeId, GraphChanges) = {
+  def createMessageInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): CreationResult = {
     val node = Node.Content(nodeData)
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + channel, additionalMembers)
-    (node.id, message)
+    CreationResult(node.id, message)
   }
 
-  def editMessageInWust(nodeId: NodeId, nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): (NodeId, GraphChanges) = {
+  def editMessageInWust(nodeId: NodeId, nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): GraphChanges = {
     val node = Node.Content(nodeId, nodeData)
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + channel, additionalMembers)
-    (node.id, message)
+    message
   }
 
   def editMessageContentInWust(nodeId: NodeId, newContent: NodeData.Content): GraphChanges = {
@@ -62,10 +64,16 @@ object EventMapper {
     )
   }
 
-  def createChannelInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, workspaceNodeId: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): (NodeId, GraphChanges) = {
-    val node = Node.Content(nodeData)
+  def createChannelInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channelNodeId: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): CreationResult = {
+    val node = Node.Content(nodeData, NodeMeta(NodeAccess.Restricted))
+    val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + channelNodeId, additionalMembers)
+    CreationResult(node.id, message)
+  }
+
+  def createWorkspaceInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, workspaceNodeId: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[UserId] = Set.empty): CreationResult = {
+    val node = Node.Content(nodeData, NodeMeta(NodeAccess.Restricted))
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + workspaceNodeId, additionalMembers)
-    (node.id, message)
+    CreationResult(node.id, message)
   }
 
   def editChannelInWust(nodeId: NodeId, newName: NodeData.Content): GraphChanges = {
