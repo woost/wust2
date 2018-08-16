@@ -38,7 +38,7 @@ import wust.slack.Data._
 object Constants {
   //TODO
   val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"), NodeId.fromBase58String("5R1xejdFpxQiauAZtMVqpT"))
-  val slackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.ReadWrite))
+  val globalSlackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.Restricted))
 }
 
 
@@ -109,7 +109,7 @@ object AppServer {
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-    scribe.info(s"slackNode: ${ Constants.slackNode.id.toString }")
+    scribe.info(s"slackNode: ${ Constants.globalSlackNode.id.toString }")
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
 
@@ -119,7 +119,7 @@ object AppServer {
 
     // TODO: author
     val changes = GraphChanges(
-      addNodes = Set(Constants.slackNode),
+      addNodes = Set(Constants.globalSlackNode),
     )
     wustReceiver.push(List(changes), None)
 
