@@ -40,7 +40,7 @@ object KanbanView extends View {
           g.filter(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(g.authorIds))
         }
 
-        val forest = graph.filter{ nid =>
+        val forest = graph.filter { nid =>
           val isContent = graph.nodesById(nid).isInstanceOf[Node.Content]
           val notIsolated = graph.hasChildren(nid) || !graph.parents(nid).forall(page.parentIdSet) || graph.isStaticParentIn(nid, page.parentIds)
           val noPage = !page.parentIdSet.contains(nid)
@@ -68,7 +68,7 @@ object KanbanView extends View {
     )
   }
 
-  private def newColumnArea(state:GlobalState, page:Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def newColumnArea(state: GlobalState, page: Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     div(
       cls := s"kanbannewcolumnarea",
       keyed,
@@ -99,8 +99,8 @@ object KanbanView extends View {
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onInsert.asHtml --> sideEffect{elem => elem.focus()},
-              onBlur.value --> sideEffect{v => if(v.isEmpty) fieldActive() = false}
+              onInsert.asHtml --> sideEffect { elem => elem.focus() },
+              onBlur.value --> sideEffect { v => if(v.isEmpty) fieldActive() = false }
             )
           )
         }
@@ -118,11 +118,11 @@ object KanbanView extends View {
     )
   }
 
-  private def renderTree(state: GlobalState, tree:Tree, parentIds:Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel:Boolean = false, inject:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):VDomModifier = {
+  private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds, activeReplyFields, isTopLevel = isTopLevel)(ctx)(inject)
-      case Tree.Leaf(node) =>
-        Rx{
+      case Tree.Leaf(node)             =>
+        Rx {
           if(state.graph().isStaticParentIn(node.id, parentIds))
             renderColumn(state, node, Nil, parentIds, activeReplyFields, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
           else
@@ -131,7 +131,7 @@ object KanbanView extends View {
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds:Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel:Boolean = false, isStaticParent:Boolean = false)(implicit ctx: Ctx.Owner):VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, isStaticParent: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, newTagParentIds = parentIds, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -165,7 +165,7 @@ object KanbanView extends View {
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
         draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)),
-        dragTarget(DragItem.Kanban.ToplevelColumn(node.id)) ,
+        dragTarget(DragItem.Kanban.ToplevelColumn(node.id)),
       ) else VDomModifier(
         draggableAs(state, DragItem.Kanban.SubColumn(node.id)),
         dragTarget(DragItem.Kanban.SubColumn(node.id))
@@ -190,7 +190,7 @@ object KanbanView extends View {
     )
   }
 
-  private def renderCard(state:GlobalState, node:Node, parentIds:Seq[NodeId])(implicit ctx: Ctx.Owner):VNode = {
+  private def renderCard(state: GlobalState, node: Node, parentIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
     val rendered = nodeCardEditable(
       state, node,
@@ -206,7 +206,7 @@ object KanbanView extends View {
       Styles.flex,
       Rx {
         if(editable()) {
-//          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
+          //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
@@ -257,27 +257,31 @@ object KanbanView extends View {
                 val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onInsert.asHtml --> sideEffect{elem => elem.focus()},
-              onBlur.value --> sideEffect{v => if(v.isEmpty) activeReplyFields.update(_ - parentId)}
+              onInsert.asHtml --> sideEffect { elem => elem.focus() },
+              onBlur.value --> sideEffect { v => if(v.isEmpty) activeReplyFields.update(_ - parentId) }
             )
           )
         else
           div(
             keyed(parentId),
             "+ Add Card",
-            onClick --> sideEffect {activeReplyFields.update(_ + parentId)}
+            onClick --> sideEffect { activeReplyFields.update(_ + parentId) }
           )
       }
     )
   }
 
-  private def renderIsolatedNodes(state:GlobalState, page:Page, nodes:Seq[Node])(implicit ctx: Ctx.Owner) =
+  private def renderIsolatedNodes(state: GlobalState, page: Page, nodes: Seq[Node])(implicit ctx: Ctx.Owner) =
     div(
-      cls := "kanbanisolatednodes",
       keyed,
-      registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
+      "Unused Nodes",
+      div(
+        cls := "kanbanisolatednodes",
+        keyed,
+        registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
 
-      nodes.map{ node => renderCard(state, node, page.parentIds) }
+        nodes.map { node => renderCard(state, node, page.parentIds) }
+      )
     )
 
 }
