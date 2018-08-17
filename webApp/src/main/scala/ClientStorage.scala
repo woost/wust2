@@ -30,12 +30,11 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
-  val authFromOtherTab: Var[Option[Authentication]] = {
+  val authFromOtherTab: Handler[Option[Authentication]] = {
     LocalStorage
       .handlerWithEventsOnly(keys.auth)
       .unsafeRunSync()
       .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
-      .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
   //TODO: howto handle with events from other tabs?

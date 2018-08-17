@@ -70,11 +70,6 @@ object Client {
     case auth: Authentication.Assumed  => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
-  storage.backendTimeDelta.foreach { delta =>
-    println(s"backend time delta: ${ delta }ms")
-    EpochMilli.delta = delta
-  }
-
 
   //TODO backoff?
   private def doLoginWithRetry(auth: Option[Authentication]): Unit = loginStorageAuth(auth getOrElse initialAssumedAuth).onComplete {
@@ -92,14 +87,26 @@ object Client {
   }
 
   private def timeSync(): Unit = {
-    Client.api.currentTime.foreach(backendNow => Client.storage.backendTimeDelta() = backendNow - EpochMilli.localNow)
+    Client.api.currentTime.foreach { backendNow =>
+      Client.storage.backendTimeDelta() = backendNow - EpochMilli.localNow
+    }
   }
 
-  // relogin when reconnecting or when localstorage-auth changes
+  storage.backendTimeDelta.foreach { delta =>
+    println(s"backend time delta: ${ delta }ms")
+    EpochMilli.delta = delta
+  }
+
+  // relogin when reconnecting
   observable.connected.foreach { _ =>
     scribe.info("Websocket connected")
     timeSync()
     doLoginWithRetry(storage.auth.now)
   }
-  storage.authFromOtherTab.foreach { doLoginWithRetry }
+
+  // new login if auth changed in other tab. ignore the initial events which comes directly.
+  storage.authFromOtherTab.drop(1).foreach { auth =>
+    scribe.info("Authentication changed in other tab")
+    doLoginWithRetry(auth)
+  }
 }
