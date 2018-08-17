@@ -244,6 +244,7 @@ object KanbanView extends View {
         val active = activeReplyFields() contains parentId
         if(active)
           div(
+            cls := "ui form",
             keyed(parentId),
             textArea(
               keyed(parentId),
