@@ -112,16 +112,14 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       case _       => None
     }).map(_.getOrElse(slackAppToken))
 
-    val isSlackAppUser = slackUserToken.map(t => if(t == slackAppToken) true else false)
-
     slackUserToken.foreach { _ =>
-      scribe.info(s"using token of SlackApp = $isSlackAppUser")
+      scribe.info(s"using token of SlackApp")
     }
 
     for {
-      isBot <- isSlackAppUser
+      isUser <- slackUserToken.map(_ != slackAppToken)
       token <- slackUserToken
-    } yield SlackClient(token, isBot)
+    } yield SlackClient(token, isUser)
   }
 
   def computeMapping(gc: GraphChanges) = {
