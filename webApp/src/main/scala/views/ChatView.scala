@@ -98,7 +98,7 @@ object ChatView extends View {
 
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val scrolledToBottom = PublishSubject[Boolean]
-    val activeReplyFields = Var(Set.empty[NodeId])
+    val activeReplyFields = Var(Set.empty[List[NodeId]])
     val avatarSizeToplevel:Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
 
@@ -121,13 +121,13 @@ object ChatView extends View {
           else
             VDomModifier(
               groupNodes(graph, nodes, state, user.id)
-                .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, page.parentIdSet, user.id, avatarSizeToplevel, activeReplyFields)),
+                .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, avatarSizeToplevel, activeReplyFields)),
 
 
               draggableAs(state, DragItem.DisableDrag),
               cursor.default, // draggable sets cursor.move, but drag is disabled on page background
               dragTarget(DragItem.Chat.Page(page.parentIds)),
-              keyed(page.parentIds)
+              keyed
             )
         },
         onUpdate --> sideEffect { (prev, _) =>
@@ -234,10 +234,11 @@ object ChatView extends View {
     nodeIds: Seq[NodeId],
     graph: Graph,
     alreadyVisualizedParentIds: Set[NodeId],
+    path: List[NodeId],
     directParentIds: Set[NodeId],
     currentUserId: UserId,
     avatarSize: Rx[AvatarSize],
-    activeReplyFields: Var[Set[NodeId]]
+    activeReplyFields: Var[Set[List[NodeId]]]
   )(
     implicit ctx: Ctx.Owner
   ): VNode = {
@@ -247,24 +248,24 @@ object ChatView extends View {
 
     div(
       cls := "chatmsg-group-outer-frame",
-      keyed(nodeIds, directParentIds),
+      keyed(headNode), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
       Rx{(avatarSize() != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize())(marginRight := "5px"))},
       div(
+        keyed,
         cls := "chatmsg-group-inner-frame",
-        keyed(nodeIds, directParentIds),
         chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, directParentIds = directParentIds, nid, currentUserId, activeReplyFields)
+        nodeIds.map(nid => renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds, path = path, directParentIds = directParentIds, nid, currentUserId, activeReplyFields)
         ),
       ),
     )
   }
 
-  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], path: List[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     if(!graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
       val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
       div(
-        keyed(nodeId, directParentIds),
+        keyed(nodeId),
         chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
           boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
         )),
@@ -273,14 +274,14 @@ object ChatView extends View {
           borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
 
           groupNodes(graph, children, state, currentUserId)
-            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, Set(nodeId), currentUserId, Rx(avatarSizeThread), activeReplyFields)),
+            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, nodeId :: path, Set(nodeId), currentUserId, Rx(avatarSizeThread), activeReplyFields)),
 
-          replyField(state, nodeId, directParentIds, activeReplyFields),
+          replyField(state, nodeId, directParentIds, path, activeReplyFields),
 
           draggableAs(state, DragItem.DisableDrag),
           dragTarget(DragItem.Chat.Thread(nodeId)),
           cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
-          keyed(nodeId, directParentIds.mkString)
+          keyed(nodeId)
         )
       )
     }
@@ -298,27 +299,32 @@ object ChatView extends View {
       chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId)
   }
 
-  def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner) = {
+    val fullPath = nodeId :: path
+
     div(
-      keyed(nodeId, directParentIds),
+      keyed(nodeId),
       Rx {
-        val active = activeReplyFields() contains nodeId
+        val active = activeReplyFields() contains fullPath
         if(active)
           div(
-            keyed(nodeId, directParentIds),
+            keyed(nodeId),
             Styles.flex,
             alignItems.center,
-            inputField(state, directParentIds = Set(nodeId), blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - nodeId) })(ctx)(
-              keyed(nodeId, directParentIds),
+            inputField(state, directParentIds = Set(nodeId),
+              blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - fullPath) }
+            )(ctx)(
+              keyed(nodeId),
               padding := "3px",
               width := "100%"
             ),
             div(
+              keyed,
               freeSolid.faTimes,
               padding := "10px",
               Styles.flexStatic,
               cursor.pointer,
-              onClick --> sideEffect { activeReplyFields.update(_ - nodeId) },
+              onClick --> sideEffect { activeReplyFields.update(_ - fullPath) },
             )
           )
         else
@@ -328,7 +334,10 @@ object ChatView extends View {
             " reply",
             marginTop := "3px",
             marginLeft := "8px",
-            onClick --> sideEffect { activeReplyFields.update(_ + nodeId) }
+            // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
+            // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
+            // before the click was finished. This does not happen with onMouseDown.
+            onMouseDown.stopPropagation --> sideEffect { activeReplyFields.update(_ + fullPath) }
           )
       }
     )
@@ -345,7 +354,7 @@ object ChatView extends View {
     div(
       cls := "chatmsg-header",
       keyed(nodeId),
-      Rx{(avatarSize() == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize())(marginRight := "3px"))},
+      Rx { (avatarSize() == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize())(marginRight := "3px")) },
       optAuthorDiv(isMine, nodeId, graph),
       optDateDiv(isMine, nodeId, graph),
     )
@@ -424,7 +433,7 @@ object ChatView extends View {
         // checkbox(Styles.flexStatic),
         messageCard,
         messageTags(state, graph, nodeId, alreadyVisualizedParentIds),
-        Rx{ (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](msgControls(Styles.flexStatic)) }
+        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](msgControls(Styles.flexStatic)) }
       )
     )
   }
@@ -468,9 +477,9 @@ object ChatView extends View {
       cursor.pointer,
     )
 
-  private def messageTags(state: GlobalState, graph: Graph, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
-    val directNodeTags = graph.directNodeTags((nodeId, directParentIds))
-    val transitiveNodeTags = graph.transitiveNodeTags((nodeId, directParentIds))
+  private def messageTags(state: GlobalState, graph: Graph, nodeId: NodeId, alreadyVisualizedParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
+    val directNodeTags = graph.directNodeTags((nodeId, alreadyVisualizedParentIds))
+    val transitiveNodeTags = graph.transitiveNodeTags((nodeId, alreadyVisualizedParentIds))
 
     Rx {
       state.screenSize() match {
@@ -515,8 +524,9 @@ object ChatView extends View {
 
     div(
       cls := "ui form",
+      keyed(directParentIds),
       textArea(
-        keyed(directParentIds),
+        keyed,
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
           val graph = state.graphContent.now
