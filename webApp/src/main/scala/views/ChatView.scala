@@ -391,6 +391,7 @@ object ChatView extends View {
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
       messageCardInjected,
+      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
     )
 
 

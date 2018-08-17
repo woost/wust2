@@ -177,7 +177,8 @@ object KanbanView extends View {
         columnTitle,
 
         position.relative,
-        buttonBar(position.absolute, top := "0", right := "0")
+        buttonBar(position.absolute, top := "0", right := "0"),
+        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       ),
       div(
         cls := "kanbancolumnchildren",
@@ -230,7 +231,8 @@ object KanbanView extends View {
       cls := "draghandle",
 
       position.relative,
-      buttonBar(position.absolute, top := "0", right := "0")
+      buttonBar(position.absolute, top := "0", right := "0"),
+      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
     )
   }
 
