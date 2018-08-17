@@ -70,7 +70,7 @@ object PageHeader {
 
       (channel.id != state.user().channelNodeId).ifTrue(
         VDomModifier(
-          isBookmarked.ifFalse[VDomModifier](joinButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
+          isBookmarked.ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
           notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto"),
           settingsMenu(state, channel, isBookmarked).apply(Styles.flexStatic, marginLeft := "10px"),
           shareButton(channel).map(_ (Styles.flexStatic, marginLeft := "10px"))
@@ -186,10 +186,10 @@ object PageHeader {
     )
   }
 
-  private def joinButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
+  private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
     button(
       cls := "ui compact primary button",
-      "Join",
+      "Add to Channels",
       onClick(GraphChanges.connect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes,
       onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
     )
