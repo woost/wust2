@@ -46,11 +46,17 @@ function docker_compose() {
         exit 1
     fi
 }
-function postgres_nottycommand() {
+function postgres_core_nottycommand() {
     docker exec -i "devcore_postgres_1" "$@"
 }
-function postgres_command() {
+function postgres_core_command() {
     docker exec -it "devcore_postgres_1" "$@"
+}
+function postgres_slack_nottycommand() {
+    docker exec -i "devslackapp_postgres_1" "$@"
+}
+function postgres_slack_command() {
+    docker exec -it "devslackapp_postgres_1" "$@"
 }
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
@@ -81,7 +87,7 @@ env_github_redis="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6379"
 env_github_app="WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-8902} "
 env_github="$env_github_redis $env_github_app"
 
-env_slack_postgres="SLACK_POSTGRES_HOSTNAME=localhost SLACK_POSTGRES_USER=slack SLACK_POSTGRES_DB=slack SLACK_POSTGRES_PORT=15432 SLACK_POSTGRES_PASSWORD=test"
+env_slack_postgres="SLACK_POSTGRES_HOSTNAME=localhost SLACK_POSTGRES_USER=wust-slack SLACK_POSTGRES_DB=slack SLACK_POSTGRES_PORT=15432 SLACK_POSTGRES_PASSWORD=test"
 env_slack_app="WUST_SLACK_PORT=${WUST_SLACK_PORT:-9103} WUST_SLACK_USER=wust-slack WUST_SLACK_PASSWORD=wust-slack"
 env_slack="$env_slack_postgres $env_slack_app"
 
@@ -96,7 +102,7 @@ function self() {
     psql)
         export $env_postgres_secret $env_postgres_local
         PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
-        # postgres_command psql -h localhost -U $POSTGRES_USER ${@:2}
+        # postgres_core_command psql -h localhost -U $POSTGRES_USER ${@:2}
         ;;
     pgcli)
         export $env_postgres_secret $env_postgres_local
@@ -122,18 +128,20 @@ function self() {
         esac
         ;;
     pgdump)
-        postgres_command pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
+        postgres_core_command pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
     pgrestore)
-        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+        postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgrestorefromprod)
-        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        ssh -C woost.space docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        ssh -C woost.space docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        postgres_slack_command psql -h localhost -U wust-slack -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        ssh -C woost.space docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U wust-slack | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust-slack --file=-
         ;;
     pgclean)
-        postgres_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         ;;
     sbtWithPoll)
         # Only exports polling parameter and then falls through!
@@ -259,8 +267,8 @@ function self() {
         docker_compose core dev up -d
         docker_compose webApp dev up -d
         docker_compose core dev run db-migration
-        postgres_command psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
-        postgres_command psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+        postgres_core_command psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
+        postgres_core_command psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
         # sbt_with_args coverage it:test coverageReport
         sbt_with_args it:test
         docker_compose core dev down -v
