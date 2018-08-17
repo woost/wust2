@@ -9,10 +9,14 @@ import org.scalajs.dom.console
 
 object Analytics {
   // https://stackoverflow.com/questions/15744042/events-not-being-tracked-in-new-google-analytics-analytics-js-setup/40761709#40761709
-  lazy val tracker = GoogleAnalytics.ga.map(_.getAll().apply(0))
+  lazy val tracker: js.UndefOr[Tracker] = GoogleAnalytics.ga.flatMap { ga =>
+    if(ga.asInstanceOf[js.Dynamic].getAll.asInstanceOf[js.UndefOr[js.Any]] != js.undefined) {
+      ga.getAll().apply(0)
+    } else js.undefined
+  }
 
   def sendEvent(category: String, action: String, label: js.UndefOr[String] = js.undefined, value: js.UndefOr[Int] = js.undefined): Unit = {
-//    console.log(s"trying to send event: $category $action $label $value, tracker:", tracker)
+    //    console.log(s"trying to send event: $category $action $label $value, tracker:", tracker)
     tracker.foreach { tracker =>
       tracker.send("event", new EventOptions {
         var eventCategory = category
