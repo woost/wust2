@@ -275,15 +275,15 @@ object Topbar {
       case user: AuthUser.Real     => div(
         Styles.flex,
         alignItems.center,
-        Avatar.user(user.id)(
-          height := "20px", cls := "avatar",
+        div(
+          Styles.flex,
+          alignItems.center,
+          Avatar.user(user.id)(height := "20px", cls := "avatar"),
+          span(user.name, Styles.flexStatic, padding := "0 5px"),
+          cursor.pointer,
           onClick(UserSettingsView: View) --> state.view,
-          onClick --> sideEffect{
-            Analytics.sendEvent("topbar", "avatar")
-          },
-          cursor.pointer
+          onClick --> sideEffect { Analytics.sendEvent("topbar", "avatar") },
         ),
-        span(user.name, padding := "0 5px"),
         logout(state))
     }
 
