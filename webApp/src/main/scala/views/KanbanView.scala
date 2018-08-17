@@ -217,6 +217,7 @@ object KanbanView extends View {
             },
             cursor.pointer, title := "Delete"
           ),
+          div(div(cls := "fa-fw", freeRegular.faArrowAltCircleRight), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
         )
       }
     )
