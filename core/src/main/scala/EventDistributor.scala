@@ -20,9 +20,6 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 ) extends EventDistributor[ApiEvent, State] {
 
   private val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent, State]]
-
-  private def base64UrlSafe(s: String) = s.replace("/", "_").replace("+", "-")
-
   private val pushService = pushConfig.map(PushService.apply)
 
   def subscribe(client: NotifiableClient[ApiEvent, State]): Unit = {
