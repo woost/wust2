@@ -270,7 +270,7 @@ object KanbanView {
   private def renderIsolatedNodes(state: GlobalState, page: Page, nodes: Seq[Node])(implicit ctx: Ctx.Owner) =
     div(
       keyed,
-      "Unused Nodes",
+      if (nodes.isEmpty) VDomModifier.empty else "Unused Nodes",
       div(
         cls := "kanbanisolatednodes",
         keyed,
