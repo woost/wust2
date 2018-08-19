@@ -503,10 +503,10 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     else
       Tree.Leaf(root)
   }
-def redundantForest:List[Tree] = {
+  def redundantForest:List[Tree] = {
     val roots = nodes.filterNot(n => hasParents(n.id))
     roots.map(n => redundantTree(n))(breakOut)
-}
+  }
 
   trait Grouping
   case class Cycle(node : NodeId) extends Grouping
