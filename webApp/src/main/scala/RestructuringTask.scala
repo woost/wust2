@@ -1,26 +1,23 @@
 package wust.webApp
 
 import monix.reactive.{Observable, Observer}
-import wust.webApp.outwatchHelpers._
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{MouseEvent, console, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.css.ZIndex
-import wust.webApp.views.Elements._
-import wust.webApp.views.Placeholders
-import wust.webApp.views.Rendered._
-import wust.webApp._
-import wust.webApp.PostHeuristic._
-import wust.webApp.Restructure._
 import wust.graph._
 import wust.ids._
-import wust.webApp._
+import wust.webApp.PostHeuristic._
+import wust.webApp.Restructure._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
+import wust.webApp.views.Placeholders
+import wust.webApp.views.Rendered._
 
 import scala.collection.breakOut
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
 
 object Restructure {
   type Posts = List[Node.Content]

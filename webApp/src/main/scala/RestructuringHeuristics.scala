@@ -1,15 +1,13 @@
 package wust.webApp
 
 import wust.api._
+import wust.graph.{Graph, Node}
 import wust.ids._
 import wust.webApp.PostHeuristic._
 import wust.webApp.Restructure._
-import wust.graph.{Graph, Node}
-import wust.webApp._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import wust.ids.EpochMilli._
 
 case object ChooseTaskHeuristic {
   type HeuristicType = List[RestructuringTaskObject] => RestructuringTaskObject

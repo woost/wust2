@@ -4,8 +4,8 @@ import wust.graph._
 import wust.ids._
 
 object NodeDataParser {
-  import fastparse.all._
   import ParserElements._
+  import fastparse.all._
 
   val linkContent: P[NodeData.Link] = P(url.map(NodeData.Link(_)))
 

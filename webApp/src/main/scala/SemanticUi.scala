@@ -1,15 +1,9 @@
 package semanticUi
 
-import org.scalajs.dom.NodeList
 import org.scalajs.dom.raw.HTMLElement
 
 import scala.scalajs.js
-import scala.scalajs.js.`|`
 import scala.scalajs.js.annotation._
-
-import org.scalajs.dom
-import org.scalajs.dom.raw.{NodeList}
-import org.scalajs.dom.html
 
 @js.native
 @JSGlobalScope

@@ -1,21 +1,21 @@
 package views.graphview
 
+import java.lang.Math._
+
 import d3v4._
 import org.scalajs.dom.html
 import vectory.Vec2
+import views.graphview.ForceSimulationConstants._
 import views.graphview.VisualizationType.{Containment, Edge, Tag}
-import wust.sdk.NodeColor._
-import ForceSimulationConstants._
 import wust.graph.{Node, _}
 import wust.ids._
+import wust.sdk.NodeColor._
 import wust.util.time.time
-import Math._
-import scala.scalajs.js
-
 
 import scala.Double.NaN
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{breakOut, mutable}
+import scala.scalajs.js
 
 /*
  * Data, which is only recalculated once per graph update and stays the same during the simulation

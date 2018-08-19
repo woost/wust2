@@ -1,24 +1,23 @@
 package wust.webApp.views
 
+import fontAwesome.{freeRegular, _}
+import fontAwesome.freeSolid._
+import googleAnalytics.Analytics
+import org.scalajs.dom
+import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
-import org.scalajs.dom.{Event, window}
-import org.scalajs.dom
-
-import scala.scalajs.js
 import rx._
 import wust.api.AuthUser
-import fontAwesome._
-import fontAwesome.freeSolid._
-import fontAwesome.freeRegular
-import googleAnalytics.Analytics
 import wust.css.Styles
-import wust.webApp.outwatchHelpers._
 import wust.graph._
+import wust.sdk.ChangesHistory
 import wust.util.RichBoolean
-import wust.sdk.{ChangesHistory, NodeColor}
 import wust.webApp.Client
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
+
+import scala.scalajs.js
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(

@@ -1,7 +1,5 @@
 package wust.webApp.jsdom
 
-import wust.ids.EpochMilli
-
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 

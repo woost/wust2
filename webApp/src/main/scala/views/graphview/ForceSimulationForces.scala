@@ -3,7 +3,7 @@ package views.graphview
 import d3v4.{d3, d3polygon, _}
 import vectory.Algorithms.LineIntersection
 import vectory._
-import ForceSimulationConstants._
+import views.graphview.ForceSimulationConstants._
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -11,6 +11,7 @@ import scala.scalajs.js.JSConverters._
 
 object ForceSimulationForces {
   import Math._
+
   import wust.webApp.views.graphview.ForceUtil._
 
   @inline private def sq(x: Double): Double = x * x
@@ -299,8 +300,8 @@ object ForceSimulationForces {
       strength: Double
   ): Unit = {
     // If a node is too far away from the geometric center of its euler set, push it towards it
-    import staticData._
     import simData._
+    import staticData._
 
     var ci = 0
     val cn = eulerSetCount
@@ -335,8 +336,8 @@ object ForceSimulationForces {
   }
 
   def edgeLength(simData: SimulationData, staticData: StaticData): Unit = {
-    import staticData._
     import simData._
+    import staticData._
 
     var i = 0
     val cn = edgeCount
@@ -365,8 +366,8 @@ object ForceSimulationForces {
   }
 
   def pushOutOfWrongEulerSet(simData: SimulationData, staticData: StaticData): Unit = {
-    import staticData._
     import simData._
+    import staticData._
 
     var ci = 0
     val cn = eulerSetCount

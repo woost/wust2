@@ -7,13 +7,10 @@ import org.scalajs.dom.ext.KeyCode
 import shopify.draggable._
 import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
-import wust.webApp.dragdrop.DragItem.{payloadDecoder, targetDecoder}
-import wust.webApp.views.Components._
-import wust.webApp.outwatchHelpers._
 import wust.util._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-
-import scala.scalajs.js
+import wust.webApp.views.Components._
 
 
 sealed trait DragStatus

@@ -3,7 +3,6 @@ package wust.webApp
 import scribe._
 import scribe.format._
 import scribe.writer.ConsoleWriter
-import wust.graph.GraphChanges
 
 object Logging {
   val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)

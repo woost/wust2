@@ -1,20 +1,14 @@
 package wust.webApp.views
 
-import org.scalajs.dom.raw.Element
+import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.api.AuthResult
-import wust.graph._
-import wust.sdk.NodeColor._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Elements._
-import wust.webApp.views.Rendered._
-import cats.effect.IO
-import monix.reactive.Observer
-import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import wust.webApp.state.{GlobalState, View}
+import wust.webApp.views.Elements._
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

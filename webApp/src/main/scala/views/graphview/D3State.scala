@@ -2,15 +2,8 @@ package wust.webApp.views.graphview
 
 import d3v4._
 import vectory._
-import wust.ids._
 
-import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
-import scala.scalajs.js.annotation._
-import rx._
-import wust.webApp.DevPrintln
-import wust.util.time.time
 
 abstract class CustomForce[N <: SimulationNode] extends js.Object {
   def initialize(nodes: js.Array[N]): Unit = {}

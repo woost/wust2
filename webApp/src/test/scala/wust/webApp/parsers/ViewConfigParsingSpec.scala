@@ -4,9 +4,6 @@ import cats.data.NonEmptyList
 import org.scalatest._
 import wust.graph.Page
 import wust.ids.{Cuid, NodeId}
-import java.util.UUID
-
-import wust.webApp._
 import wust.webApp.state.{View, ViewConfig, ViewOperator}
 
 class ViewConfigParsingSpec extends FreeSpec with MustMatchers {

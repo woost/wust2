@@ -5,13 +5,11 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.graph._
 import wust.ids._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import wust.webApp.views._
 
 object UserSettingsView {
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {

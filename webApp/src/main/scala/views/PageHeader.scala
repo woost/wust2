@@ -1,32 +1,25 @@
 package wust.webApp.views
 
 import fontAwesome._
+import googleAnalytics.Analytics
 import org.scalajs.dom
-import org.scalajs.dom.{Element, console}
+import org.scalajs.dom.console
+import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
 import rx._
 import wust.api.AuthUser
-
-import scala.scalajs.js
 import wust.css.Styles
-import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
+import wust.sdk.NodeColor.hue
 import wust.sdk.{BaseColors, NodeColor}
-import NodeColor.hue
-import googleAnalytics.Analytics
-import org.scalajs.dom.experimental.permissions.PermissionState
 import wust.util._
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Elements._
 import wust.webApp.views.Components._
-import wust.webApp.views.Rendered._
 
-import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 

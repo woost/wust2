@@ -1,9 +1,8 @@
 package wust.webApp.views
 
-import monix.reactive.{Observer, Observable}
 import cats.implicits._
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
-import org.scalajs.dom.console
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 import outwatch.dom.dsl._

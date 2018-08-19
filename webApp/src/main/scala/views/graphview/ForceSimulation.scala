@@ -1,24 +1,19 @@
 package views.graphview
 
 import d3v4._
-import org.scalajs.dom.ext.KeyCode
-import io.circe.Decoder.state
 import org.scalajs.dom
-import org.scalajs.dom.console
-import org.scalajs.dom.CanvasRenderingContext2D
-import org.scalajs.dom.html
-import org.scalajs.dom.raw.{MutationObserver, MutationRecord}
+import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.{CanvasRenderingContext2D, html}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
-import wust.sdk.NodeColor._
-import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
 import wust.ids.{EdgeData, NodeId}
-import wust.webApp.outwatchHelpers._
+import wust.sdk.NodeColor._
 import wust.util.time.time
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Rendered._
 

@@ -3,7 +3,7 @@ package wust.webApp.parsers
 import cats.data.NonEmptyList
 import wust.graph.{Page, PageMode}
 import wust.ids.{Cuid, NodeId}
-import wust.webApp.state.{View, ViewConfig, ViewOperator, ShareOptions}
+import wust.webApp.state.{ShareOptions, View, ViewConfig, ViewOperator}
 
 private object ViewConfigConstants {
   val pageSeparator = ":"
@@ -14,11 +14,11 @@ private object ViewConfigConstants {
   val prevViewKey = "prevView="
   val shareKey = "share?"
 }
-import ViewConfigConstants._
+import wust.webApp.parsers.ViewConfigConstants._
 
 object ViewConfigParser {
-  import fastparse.all._
   import ParserElements._
+  import fastparse.all._
 
   private def optionSeq[A](list: NonEmptyList[Option[A]]): Option[NonEmptyList[A]] =
     list.forall(_.isDefined) match {

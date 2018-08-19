@@ -4,7 +4,6 @@ import cats.data.OptionT
 import cats.implicits._
 import org.scalajs.dom.raw.{IDBDatabase, IDBFactory, IDBObjectStore, IDBRequest}
 import org.scalajs.dom.window
-import outwatch.dom.dsl.events
 import wust.api._
 
 import scala.concurrent.{ExecutionContext, Future, Promise}

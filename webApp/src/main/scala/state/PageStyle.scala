@@ -1,14 +1,9 @@
 package wust.webApp.state
 
-import cats.data.NonEmptyList
-import colorado.{Color, HCL, LAB, RGB}
-import rx.{Ctx, Rx}
-import wust.graph.{Node, Page}
+import colorado.{Color, HCL, LAB}
+import rx.Ctx
+import wust.graph.Page
 import wust.sdk.{BaseColors, NodeColor}
-import wust.sdk.NodeColor._
-import wust.util._
-
-import scala.collection.breakOut
 
 object PageStyle {
 

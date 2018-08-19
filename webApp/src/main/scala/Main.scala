@@ -1,17 +1,17 @@
 package wust.webApp
 
 import monix.reactive.Observable
+import org.scalajs.dom.document
 import outwatch.dom._
 import rx._
-import wust.webApp.outwatchHelpers._
-import org.scalajs.dom.{console, document, window}
 import wust.webApp.jsdom.ServiceWorker
+import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalStateFactory
 import wust.webApp.views.Elements._
 import wust.webApp.views.MainView
 
-import scala.scalajs.{LinkingInfo, js}
+import scala.scalajs.LinkingInfo
 
 object Main {
 

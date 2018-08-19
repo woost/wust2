@@ -1,6 +1,8 @@
 package wust.webApp
 
-import io.circe._, io.circe.generic.extras.semiauto._, io.circe.parser._, io.circe.syntax._
+import io.circe._
+import io.circe.parser._
+import io.circe.syntax._
 import outwatch.dom._
 import outwatch.util.LocalStorage
 import rx._

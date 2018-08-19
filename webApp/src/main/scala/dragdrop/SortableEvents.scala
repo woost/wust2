@@ -1,17 +1,16 @@
 package wust.webApp.dragdrop
 
-import wust.util._
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.console
 import shopify.draggable._
 import wust.graph.{Edge, GraphChanges}
-import wust.webApp.dragdrop.DragItem.{payloadDecoder, targetDecoder}
-import wust.webApp.views.Elements._
-import wust.webApp.views.Components._
+import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
+import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
 
 import scala.scalajs.js
 

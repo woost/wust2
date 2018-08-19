@@ -6,8 +6,8 @@ import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
 import wust.graph._
-import wust.webApp.outwatchHelpers._
 import wust.ids._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders

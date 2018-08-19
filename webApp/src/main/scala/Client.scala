@@ -1,25 +1,20 @@
 package wust.webApp
 
-import covenant.http._
 import java.nio.ByteBuffer
 
 import boopickle.Default._
 import chameleon.ext.boopickle._
+import covenant.http._
+import org.scalajs.dom.window
+import rx._
 import wust.api._
 import wust.ids._
 import wust.sdk._
-import wust.util.RichFuture
-import outwatch.Handler
 import wust.webApp.outwatchHelpers._
-import rx._
 
-import scala.scalajs.{LinkingInfo, js}
-import scala.scalajs.js.annotation._
-import org.scalajs.dom.window
-
-import scala.util.{Success, Failure}
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.scalajs.LinkingInfo
+import scala.util.{Failure, Success}
 
 object Client {
   import window.location

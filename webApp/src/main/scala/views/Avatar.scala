@@ -1,12 +1,12 @@
 package wust.webApp.views
 
 import java.lang.Math._
-import wust.util.Memo
 
 import colorado.HCL
 import outwatch.dom.{VNode, _}
 import wust.ids._
 import wust.sdk.NodeColor.genericHue
+import wust.util.Memo
 
 import scala.collection.mutable
 

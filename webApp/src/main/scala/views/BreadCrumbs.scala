@@ -1,30 +1,16 @@
 package wust.webApp.views
 
-import fontAwesome._
-import fontAwesome.freeSolid._
 import googleAnalytics.Analytics
-import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-
-import scala.collection.immutable.{ListMap, SortedMap}
-import wust.api.AuthUser
-import wust.graph._
 import wust.ids._
-import wust.sdk.ChangesHistory
-import wust.sdk.NodeColor._
-import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Components._
-import wust.webApp.views._
 import wust.util._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-
-import scala.scalajs.js
-import scala.scalajs.js.Date
+import wust.webApp.views.Components._
 
 object BreadCrumbs {
-  import MainViewParts._
 
   /** options */
   val showOwn = true

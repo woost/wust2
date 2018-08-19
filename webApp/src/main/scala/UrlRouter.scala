@@ -1,10 +1,10 @@
 package wust.webApp
 
+import monix.execution.Scheduler
 import org.scalajs.dom.raw.HashChangeEvent
 import org.scalajs.dom.window
 import outwatch.dom.dsl._
 import rx._
-import monix.execution.Scheduler
 
 object UrlRouter {
   private def locationHash = Option(window.location.hash).map(_.drop(1)).filterNot(_.isEmpty)

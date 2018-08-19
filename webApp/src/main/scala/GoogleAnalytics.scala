@@ -2,7 +2,6 @@ package googleAnalytics
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobalScope
-import org.scalajs.dom.console
 
 // Google Analytics Event Tracking documentation:
 // https://developers.google.com/analytics/devguides/collection/analyticsjs/field-reference

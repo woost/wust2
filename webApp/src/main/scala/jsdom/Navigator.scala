@@ -1,12 +1,9 @@
 package wust.webApp.jsdom
 
 import org.scalajs.dom
-import org.scalajs.dom.experimental
-import org.scalajs.dom.{experimental, window, _}
-import wust.webApp.outwatchHelpers._
+import org.scalajs.dom.window
 
 import scala.scalajs.js
-import scala.util.{Failure, Success}
 
 object Navigator {
   import org.scalajs.dom.experimental.permissions._
@@ -19,9 +16,9 @@ object Navigator {
   // def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.toOption
   object share {
     private val n = dom.window.navigator.asInstanceOf[js.Dynamic]
-
-    def isDefined = n.share != js.undefined
-    def apply(data: ShareData): js.Promise[Unit] = n.share(data).asInstanceOf[js.Promise[Unit]]
+    private val share = n.share.asInstanceOf[js.UndefOr[js.Dynamic]]
+    def isDefined = share.isDefined
+    def apply(data: ShareData): js.Promise[Unit] = share.get(data).asInstanceOf[js.Promise[Unit]]
   }
 
   // test share button: as navigator share is not defined on desktop browsers

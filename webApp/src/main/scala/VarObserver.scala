@@ -1,8 +1,8 @@
 package wust.webApp
 
 import monix.execution.Ack
-import rx._
 import monix.reactive.Observer
+import rx._
 
 class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
   override def onNext(elem: T): Ack = {

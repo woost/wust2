@@ -5,12 +5,11 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.webApp._
 import wust.graph.Graph
-import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Components._
 import wust.util._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.views.Components._
 
 object TagsList  {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {

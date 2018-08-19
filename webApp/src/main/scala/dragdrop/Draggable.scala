@@ -1,15 +1,12 @@
 package shopify.draggable
 
-import org.scalajs.dom.NodeList
-import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom
+import org.scalajs.dom.html
+import org.scalajs.dom.raw.NodeList
 
 import scala.scalajs.js
 import scala.scalajs.js.`|`
 import scala.scalajs.js.annotation._
-
-import org.scalajs.dom
-import org.scalajs.dom.raw.{NodeList}
-import org.scalajs.dom.html
 
 // https://github.com/Shopify/draggable/tree/master/src/Draggable#api
 @js.native

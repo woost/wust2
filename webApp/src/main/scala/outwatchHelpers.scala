@@ -3,23 +3,18 @@ package wust.webApp
 import cats.effect.IO
 import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
-import monix.execution.ExecutionModel.{AlwaysAsyncExecution, SynchronousExecution}
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
-import monix.reactive.Observable
-import monix.reactive.{Observable, Observer}
 import monix.reactive.OverflowStrategy.Unbounded
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
-import outwatch.dom.{Attribute, Handler, Key, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
+import outwatch.dom.{Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
 import outwatch.{AsVDomModifier, Sink}
 import rx._
-import wust.ids.NodeId
 import wust.util.Empty
-import supertagged._
 
 import scala.collection.breakOut
-import scala.concurrent.Future
 // Outwatch TODOs:
 // when writing: sink <-- obs; obs(action)
 // action is always triggered first, even though it is registered after subscribe(<--)

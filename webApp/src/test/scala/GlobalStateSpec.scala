@@ -1,9 +1,4 @@
-package wust.webApp
-
-import org.scalatest._
-import rx.Ctx.Owner.Unsafe._
-import wust.graph._
-import wust.ids._
+//package wust.webApp
 
 //TODO
 // class GlobalStateSpec extends FreeSpec with MustMatchers with LocalStorageMock {

@@ -1,9 +1,8 @@
 package wust.webApp.views
 
-import rx.Ctx
-import outwatch.dom.dsl._
 import outwatch.dom._
-
+import outwatch.dom.dsl._
+import rx.Ctx
 import wust.webApp.state.GlobalState
 
 object AvatarView {

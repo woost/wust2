@@ -1,9 +1,9 @@
 package wust.webApp.state
 
+import cats.data.NonEmptyList
 import wust.util.macros.SubObjects
 
-import collection.breakOut
-import cats.data.NonEmptyList
+import scala.collection.breakOut
 
 sealed trait View {
   def viewKey: String

@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import fontAwesome._
 import googleAnalytics.Analytics
+import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -10,9 +11,8 @@ import wust.graph._
 import wust.ids
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Elements._
-import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import wust.webApp.state.GlobalState
+import wust.webApp.views.Elements._
 
 object FeedbackForm {
 

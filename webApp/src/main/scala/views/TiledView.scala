@@ -1,11 +1,10 @@
 package wust.webApp.views
 
-import wust.webApp.outwatchHelpers._
 import cats.data.NonEmptyList
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp._
 import rx._
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize, ViewOperator}
 
 object TiledView {

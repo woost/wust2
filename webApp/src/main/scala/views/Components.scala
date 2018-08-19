@@ -14,8 +14,8 @@ import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Rendered._
 import wust.webApp.views.Elements._
+import wust.webApp.views.Rendered._
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."

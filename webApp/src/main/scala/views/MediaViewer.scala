@@ -1,9 +1,7 @@
 package wust.webApp.views
 
-import com.raquo.domtypes.generic.codecs.BooleanAsAttrPresenceCodec
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.BasicAttrBuilder
 import wust.ids.NodeData
 
 import scala.util.matching.Regex

@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import fontAwesome._
-import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -9,17 +8,16 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.NodeColor._
 import wust.util._
 import wust.util.collection._
-import wust.webApp._
-import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.NodeDataParser
-import wust.webApp.views.Components._
-import wust.webApp.views.Elements._
-import wust.sdk.NodeColor._
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
+import wust.webApp.outwatchHelpers._
+import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
 import scala.scalajs.js
