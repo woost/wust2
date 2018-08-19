@@ -2,7 +2,7 @@ package wust.webApp
 
 import scala.scalajs.LinkingInfo
 object DevOnly {
-  val enabled = true
+  var enabled = true
   def apply[T](code: => T): Option[T] = {
     if (isTrue) Option(code) else None
   }
