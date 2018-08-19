@@ -1,7 +1,5 @@
 package wust.webApp
 
-import org.scalajs.dom.experimental.permissions.PermissionState
-import outwatch.AsVDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
 import org.scalajs.dom.{Event, window}
@@ -9,8 +7,6 @@ import org.scalajs.dom
 
 import scala.scalajs.js
 import rx._
-import wust.sdk.{BaseColors, NodeColor}
-import wust.webApp.views._
 import wust.api.AuthUser
 import fontAwesome._
 import fontAwesome.freeSolid._
@@ -19,12 +15,8 @@ import googleAnalytics.Analytics
 import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 import wust.graph._
-import wust.ids._
-import wust.webApp.views.{LoginView, PageStyle, View, ViewConfig, ViewList}
-import wust.webApp.views.Elements._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor}
-import wust.webApp.views.graphview.GraphView
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
@@ -55,7 +47,7 @@ object Topbar {
     "Woost",
     color := "white",
     textDecoration := "none",
-    onClick(ViewList.defaultViewConfig) --> state.viewConfig,
+    onClick(ViewConfig.default) --> state.viewConfig,
     onClick --> sideEffect {
       Analytics.sendEvent("logo", "clicked")
     },
@@ -257,12 +249,12 @@ object Topbar {
       alignItems.center,
 
       Rx {
-        Seq(MkInput[ChatView.type]("v1", state.view(), state.pageStyle()),
-          MkLabel[ChatView.type]("v1", state.view(), ChatView, state.pageStyle(), freeRegular.faComments),
-          MkInput[KanbanView.type]("v2", state.view(), state.pageStyle()),
-          MkLabel[KanbanView.type]("v2", state.view(), KanbanView, state.pageStyle(), freeSolid.faColumns),
-          MkInput[GraphView.type]("v3", state.view(), state.pageStyle()),
-          MkLabel[GraphView.type]("v3", state.view(), GraphView, state.pageStyle(), freeBrands.faCloudsmith))
+        Seq(MkInput[View.Chat.type]("v1", state.view(), state.pageStyle()),
+          MkLabel[View.Chat.type]("v1", state.view(), View.Chat, state.pageStyle(), freeRegular.faComments),
+          MkInput[View.Kanban.type]("v2", state.view(), state.pageStyle()),
+          MkLabel[View.Kanban.type]("v2", state.view(), View.Kanban, state.pageStyle(), freeSolid.faColumns),
+          MkInput[View.Graph.type]("v3", state.view(), state.pageStyle()),
+          MkLabel[View.Graph.type]("v3", state.view(), View.Graph, state.pageStyle(), freeBrands.faCloudsmith))
       }
     )
 
@@ -281,7 +273,7 @@ object Topbar {
           Avatar.user(user.id)(height := "20px", cls := "avatar"),
           span(user.name, Styles.flexStatic, padding := "0 5px"),
           cursor.pointer,
-          onClick(UserSettingsView: View) --> state.view,
+          onClick[View](View.UserSettings) --> state.view,
           onClick --> sideEffect { Analytics.sendEvent("topbar", "avatar") },
         ),
         logout(state))
@@ -290,7 +282,7 @@ object Topbar {
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(
       span(
-        onClick(state.viewConfig.now.overlayView(SignupView)) --> state.viewConfig,
+        onClick(state.viewConfig.now.overlayView(View.Signup)) --> state.viewConfig,
         onClick --> sideEffect {
           Analytics.sendEvent("topbar", "signup")
         },
@@ -300,7 +292,7 @@ object Topbar {
       ),
       " or ",
       span(
-        onClick(state.viewConfig.now.overlayView(LoginView)) --> state.viewConfig,
+        onClick(state.viewConfig.now.overlayView(View.Login)) --> state.viewConfig,
         onClick --> sideEffect {
           Analytics.sendEvent("topbar", "login")
         },
@@ -316,7 +308,7 @@ object Topbar {
       "Logout",
       onClick --> sideEffect {
         Client.auth.logout().foreach { _ =>
-          state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).overlayView(LoginView)
+          state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).overlayView(View.Login)
         }
         Analytics.sendEvent("topbar", "logout")
       }

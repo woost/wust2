@@ -1,6 +1,5 @@
 package wust.webApp
 
-import acyclic.skipped
 import monix.execution.{Ack, Scheduler}
 import wust.util._
 import monix.reactive.Observable

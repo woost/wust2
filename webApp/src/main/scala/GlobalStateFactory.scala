@@ -11,7 +11,6 @@ import wust.ids._
 import wust.sdk._
 import wust.webApp.SafeDom.Navigator
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{ViewConfig, ViewList}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -20,7 +19,7 @@ import scala.scalajs.js.Date
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
     val sidebarOpen = Client.storage.sidebarOpen
-    val viewConfig = UrlRouter.variable.imap(_.fold(ViewList.defaultViewConfig)(ViewConfig.fromUrlHash))(
+    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(
       x => Option(ViewConfig.toUrlHash(x))
     )
 

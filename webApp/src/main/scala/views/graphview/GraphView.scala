@@ -1,6 +1,5 @@
 package wust.webApp.views.graphview
 
-import acyclic.skipped // file is allowed in dependency cycle
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -11,23 +10,15 @@ import wust.ids._
 import wust.util._
 import wust.webApp.GlobalState
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.View
 
 import scala.scalajs.LinkingInfo
 
-object GraphView extends View {
-  override val viewKey = "graph"
-  override val displayName = "Mindmap"
-  override def isContent = true
-
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode =
-    GraphView(state, state.graph)
-
-  def apply(state: GlobalState, graph: Rx[Graph], controls: Boolean = LinkingInfo.developmentMode)(
+object GraphView {
+  def apply(state: GlobalState, controls: Boolean = LinkingInfo.developmentMode)(
       implicit owner: Ctx.Owner
   ) = {
     val forceSimulation =
-      new ForceSimulation(state, graph, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
+      new ForceSimulation(state, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
     state.jsErrors.foreach { _ =>
       forceSimulation.stop()
     }

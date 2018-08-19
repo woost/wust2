@@ -1,6 +1,5 @@
 package wust.webApp
 
-import acyclic.skipped
 import googleAnalytics.Analytics
 import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable

@@ -12,12 +12,8 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Components._
 import wust.webApp.views._
 
-object UserSettingsView extends View {
-  override val viewKey = "usersettings"
-  override val displayName = "User Settings"
-  override def isContent = false
-
-  override def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
+object UserSettingsView {
+  def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div(
       height := "100%",
       padding := "20px",

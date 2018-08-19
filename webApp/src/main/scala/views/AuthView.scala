@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import acyclic.skipped // file is allowed in dependency cycle
 import org.scalajs.dom.raw.Element
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -105,12 +104,8 @@ object AuthView {
     } yield elem
 }
 
-object LoginView extends View {
-  val viewKey = "login"
-  val displayName = "Login"
-  override def isContent = false
-
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
+object LoginView {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     AuthView(state)(
       header = "Login with existing account",
       submitText = "Login",
@@ -121,16 +116,12 @@ object LoginView extends View {
           case AuthResult.Success     => None
         },
       alternativeHeader = "New to Woost?",
-      alternativeView = SignupView,
+      alternativeView = View.Signup,
       alternativeText = "Create an account"
     )
 }
-object SignupView extends View {
-  val viewKey = "signup"
-  val displayName = "Signup"
-  override def isContent = false
-
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
+object SignupView {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
     AuthView(state)(
       header = "Create an account",
       submitText = "Signup",
@@ -141,7 +132,7 @@ object SignupView extends View {
           case AuthResult.Success     => None
         },
       alternativeHeader = "Already have an account?",
-      alternativeView = LoginView,
+      alternativeView = View.Login,
       alternativeText = "Login with existing account"
     )
 }

@@ -47,15 +47,14 @@ object MainView {
                   .ifTrueSeq(
                     Seq(
                       (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(ctx)(Styles.flexStatic)),
-                      PageHeader(state)(ctx)(Styles.flexStatic)
+                      PageHeader(state).apply(Styles.flexStatic)
                     )),
                 )
             },
             Rx {
-              val view = state.view() //TODO: fix Rx bug, where you have to assign a value before using it
-              view.apply(state)(ctx)(Styles.growFull, flexGrow := 1)
+              ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1)
             },
-            SelectedNodes(state)(ctx)(Styles.flexStatic)
+            SelectedNodes(state).apply(Styles.flexStatic)
           )
         )
       ),

@@ -56,11 +56,7 @@ sealed trait ChatKind {
 case class ChatSingle(nodeId: NodeId) extends ChatKind {def nodeIds = nodeId :: Nil }
 case class ChatGroup(nodeIds: Seq[NodeId]) extends ChatKind
 
-object ChatView extends View {
-  override val viewKey = "chat"
-  override val displayName = "Chat"
-  override def isContent = true
-
+object ChatView {
   // -- display options --
   val showAvatar: ShowOpts = ShowOpts.OtherOnly
   val showAuthor: ShowOpts = ShowOpts.OtherOnly
@@ -70,8 +66,7 @@ object ChatView extends View {
   val avatarBorder = true
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexDirection.column,

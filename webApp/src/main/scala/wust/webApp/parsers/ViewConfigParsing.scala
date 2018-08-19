@@ -3,7 +3,7 @@ package wust.webApp.parsers
 import cats.data.NonEmptyList
 import wust.graph.{Page, PageMode}
 import wust.ids.{Cuid, NodeId}
-import wust.webApp.views.{TiledView, View, ViewConfig, ViewList, ViewOperator, ShareOptions}
+import wust.webApp.{View, ViewConfig, ViewOperator, ShareOptions}
 
 private object ViewConfigConstants {
   val pageSeparator = ":"
@@ -35,10 +35,10 @@ object ViewConfigParser {
       .flatMap {
         case Nil => ??? // cannot happen, because min of repetition is 1
         case view :: Nil =>
-          ViewList.viewMap.get(view).fold[Parser[View]](Fail)(v => Pass.map(_ => v))
+          View.map.get(view).fold[Parser[View]](Fail)(v => Pass.map(_ => v))
         case view :: views =>
-          optionSeq(NonEmptyList(view, views).map(ViewList.viewMap.get))
-            .fold[Parser[View]](Fail)(v => Pass.map(_ => new TiledView(operator, v)))
+          optionSeq(NonEmptyList(view, views).map(View.map.get))
+            .fold[Parser[View]](Fail)(v => Pass.map(_ => View.Tiled(operator, v)))
       }
 
   val view: P[View] = P(

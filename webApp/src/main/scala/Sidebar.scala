@@ -14,7 +14,6 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import wust.webApp.views.Components._
-import wust.webApp.views.{PageStyle, ViewList}
 
 object Sidebar {
 
@@ -189,7 +188,7 @@ object Sidebar {
           if(e.ctrlKey) page.copy(mode = newMode) else Page(Seq.empty, mode = newMode)
       }
     } --> sideEffect { page =>
-      val contentView = if(state.view.now.isContent) state.view.now else ViewList.default
+      val contentView = if(state.view.now.isContent) state.view.now else View.default
       state.viewConfig() = state.viewConfig.now.copy(page = page, view = contentView)
     }
 }

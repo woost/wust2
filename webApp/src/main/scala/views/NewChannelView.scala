@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import acyclic.skipped
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -10,12 +9,8 @@ import wust.webApp.GlobalState
 import wust.webApp.MainViewParts.newChannelButton
 import wust.webApp.outwatchHelpers._
 
-object NewChannelView extends View {
-  override val viewKey = "newchannel"
-  override val displayName = "New Channel"
-  override def isContent = false
-
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+object NewChannelView {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       justifyContent.spaceAround,

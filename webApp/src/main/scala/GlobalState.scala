@@ -1,6 +1,5 @@
 package wust.webApp
 
-import acyclic.skipped
 import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monocle.macros.GenLens
@@ -17,7 +16,6 @@ import wust.sdk._
 import wust.util.Selector
 import wust.webApp.outwatchHelpers._
 import wust.webApp.SafeDom.Navigator
-import wust.webApp.views.{NewChannelView, PageStyle, View, ViewConfig}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -91,7 +89,7 @@ class GlobalState (
     if (!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
       view()
     else
-      NewChannelView
+      View.NewChannel
   }
 
   val pageParentNodes: Rx[Seq[Node]] = Rx {

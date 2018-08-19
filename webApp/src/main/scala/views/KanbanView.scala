@@ -17,13 +17,10 @@ import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 
-object KanbanView extends View {
-  override val viewKey = "kanban"
-  override val displayName = "Kanban"
-  override def isContent = true
+object KanbanView {
 
-  val maxLength = 100
-  override def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  private val maxLength = 100
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     val activeReplyFields = Var(Set.empty[NodeId])
     val newColumnFieldActive = Var(false)

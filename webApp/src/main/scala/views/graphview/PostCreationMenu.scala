@@ -1,26 +1,15 @@
 package wust.webApp.views.graphview
 
-import acyclic.skipped // file is allowed in dependency cycle
-import scala.scalajs.js.JSConverters._
-import d3v4._
-import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
-import org.scalajs.dom.{Element, window, console}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import vectory._
-import wust.sdk.NodeColor._
-import wust.webApp.views.View
 import wust.webApp.{DevOnly, DevPrintln, GlobalState}
 import wust.graph._
 import wust.webApp.outwatchHelpers._
-import wust.util.time.time
 import wust.ids._
 
-import scala.concurrent.ExecutionContext
-import scala.scalajs.js
 import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders
 

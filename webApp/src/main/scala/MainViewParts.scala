@@ -1,6 +1,5 @@
 package wust.webApp
 
-import acyclic.skipped // file is allowed in dependency cycle
 import fontAwesome._
 import fontAwesome.freeSolid._
 import org.scalajs.dom
@@ -31,9 +30,9 @@ object MainViewParts {
         val nextPage = Page.NewChannel(NodeId.fresh)
         //TODO why does Var.set not work properly here with scalarx?
         // if (state.view.now.isContent) state.page() = nextPage
-        // else Var.set(, state.view -> ViewList.default)
+        // else Var.set(, state.view -> View.default)
         state.page() = nextPage
-        if (!state.view.now.isContent) state.view() = ViewList.default
+        if (!state.view.now.isContent) state.view() = View.default
       }
     )
   }
@@ -42,7 +41,7 @@ object MainViewParts {
     button(
       "Settings",
       width := "100%",
-      onClick(wust.webApp.views.UserSettingsView: View) --> state.view
+      onClick[View](View.UserSettings) --> state.view
     )
   }
 

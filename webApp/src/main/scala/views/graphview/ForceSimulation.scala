@@ -1,6 +1,5 @@
 package views.graphview
 
-import acyclic.skipped // file is allowed in dependency cycle
 import d3v4._
 import org.scalajs.dom.ext.KeyCode
 import io.circe.Decoder.state
@@ -51,8 +50,7 @@ object ForceSimulationConstants {
 }
 
 class ForceSimulation(
-    val state: GlobalState,
-    val graph: Rx[Graph],
+    state: GlobalState,
     onDrop: (NodeId, NodeId) => Unit,
     onDropWithCtrl: (NodeId, NodeId) => Unit
 )(implicit ctx: Ctx.Owner) {
@@ -130,9 +128,9 @@ class ForceSimulation(
 
     val graphTopology: Rx[GraphTopology] = Rx {
       //val rawGraph = state.rawGraph().consistent
-      println(log("\n") + log(s"---- graph update[${graph().nodes.size}] ----"))
+      println(log("\n") + log(s"---- graph update[${state.graph().nodes.size}] ----"))
       time(log("graph to wrapper arrays")) {
-        val onlyContentGraph = graph().pageContent(state.page())
+        val onlyContentGraph = state.graph().pageContent(state.page())
         println(onlyContentGraph)
         new GraphTopology(onlyContentGraph, posts = onlyContentGraph.nodes.toArray)
       }

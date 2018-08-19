@@ -1,6 +1,5 @@
 package wust.webApp.views.graphview
 
-import acyclic.skipped // file is allowed in dependency cycle
 import org.scalajs.dom.html.TextArea
 import outwatch.dom._
 import outwatch.dom.dsl._

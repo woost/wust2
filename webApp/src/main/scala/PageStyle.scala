@@ -1,6 +1,5 @@
-package wust.webApp.views
+package wust.webApp
 
-import acyclic.skipped // file is allowed in dependency cycle
 import cats.data.NonEmptyList
 import colorado.{Color, HCL, LAB, RGB}
 import rx.{Ctx, Rx}

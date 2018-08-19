@@ -1,0 +1,73 @@
+package wust.webApp
+
+import wust.util.macros.SubObjects
+
+import collection.breakOut
+import cats.data.NonEmptyList
+
+sealed trait View {
+  def viewKey: String
+  def isContent: Boolean
+}
+object View {
+  case object Chat extends View {
+    def viewKey = "chat"
+    def isContent = true
+  }
+  case object Kanban extends View {
+    def viewKey = "kanban"
+    def isContent = true
+  }
+  case object Graph extends View {
+    def viewKey = "graph"
+    def isContent = true
+  }
+  case object Login extends View {
+    def viewKey = "login"
+    def isContent = true
+  }
+  case object Signup extends View {
+    def viewKey = "signup"
+    def isContent = true
+  }
+  case object NewChannel extends View {
+    def viewKey = "newchannel"
+    def isContent = false
+  }
+  case object UserSettings extends View {
+    def viewKey = "usersettings"
+    def isContent = false
+  }
+  case class Error(msg: String) extends View {
+    def viewKey = "error"
+    def isContent = false
+  }
+  case class Tiled(operator: ViewOperator, views: NonEmptyList[View]) extends View {
+    def viewKey = views.map(_.viewKey).toList.mkString(operator.separator.toString)
+    def isContent = views.exists(_.isContent)
+  }
+
+  def list: List[View] = macro SubObjects.list[View]
+  def contentList: List[View] = list.filter(_.isContent)
+
+  val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
+
+  def default = Chat
+}
+
+sealed trait ViewOperator {
+  val separator: String
+}
+object ViewOperator {
+  case object Row extends ViewOperator { override val separator = "|" }
+  case object Column extends ViewOperator { override val separator = "/" }
+  case object Auto extends ViewOperator { override val separator = "," }
+  case object Optional extends ViewOperator { override val separator = "?" }
+
+  val fromString: PartialFunction[String, ViewOperator] = {
+    case Row.separator      => Row
+    case Column.separator   => Column
+    case Auto.separator     => Auto
+    case Optional.separator => Optional
+  }
+}
