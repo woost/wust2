@@ -97,11 +97,9 @@ object AuthView {
         )
       )
     } yield elem
-}
 
-object LoginView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    AuthView(state)(
+  def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
+    apply(state)(
       header = "Login with existing account",
       submitText = "Login",
       submitAction = (user, pw) =>
@@ -114,10 +112,9 @@ object LoginView {
       alternativeView = View.Signup,
       alternativeText = "Create an account"
     )
-}
-object SignupView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    AuthView(state)(
+
+  def signup(state: GlobalState)(implicit ctx: Ctx.Owner) =
+    apply(state)(
       header = "Create an account",
       submitText = "Signup",
       submitAction = (user, pw) =>
