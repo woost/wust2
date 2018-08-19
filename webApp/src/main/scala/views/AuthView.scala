@@ -14,6 +14,7 @@ import wust.webApp.views.Rendered._
 import cats.effect.IO
 import monix.reactive.Observer
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
+import wust.webApp.state.{GlobalState, View}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -6,7 +6,7 @@ import rx._
 import wust.webApp.outwatchHelpers._
 import wust.util._
 import wust.css.Styles
-import wust.webApp.views.Elements._
+import wust.webApp.state.{GlobalState, ScreenSize}
 
 object MainView {
 

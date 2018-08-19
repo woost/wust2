@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import java.lang.Math._
 import wust.util.Memo

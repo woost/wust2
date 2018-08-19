@@ -17,6 +17,7 @@ import wust.webApp.Restructure._
 import wust.graph._
 import wust.ids._
 import wust.webApp._
+import wust.webApp.state.GlobalState
 
 import scala.collection.breakOut
 import scala.concurrent.{Future, Promise}

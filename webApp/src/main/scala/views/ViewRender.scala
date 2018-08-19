@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import outwatch.dom.VNode
 import cats.Eval
@@ -9,6 +9,7 @@ import rx._
 import wust.webApp.views._
 import wust.webApp.views.graphview.GraphView
 import wust.graph.Page
+import wust.webApp.state.{GlobalState, View}
 
 object ViewRender {
   def apply(view: View, state: GlobalState)(implicit ctx: Ctx.Owner): VNode = view match {

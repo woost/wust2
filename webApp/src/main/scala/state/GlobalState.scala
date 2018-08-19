@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.state
 
 import googleAnalytics.Analytics
 import monix.reactive.Observable
@@ -14,8 +14,9 @@ import wust.graph._
 import wust.ids._
 import wust.sdk._
 import wust.util.Selector
+import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
+import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
-import wust.webApp.SafeDom.Navigator
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -25,10 +26,12 @@ class GlobalState (
     val appUpdateIsAvailable: Observable[Unit],
     val eventProcessor: EventProcessor,
     val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
-    val viewConfig: Var[ViewConfig]
+    val viewConfig: Var[ViewConfig],
+    val isOnline: Rx[Boolean],
+    authSeed: Authentication
 )(implicit ctx: Ctx.Owner) {
 
-  val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = Client.currentAuth)
+  val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = authSeed)
   val user: Rx[AuthUser] = auth.map(_.user)
 
   val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty).map { graph =>
@@ -48,11 +51,6 @@ class GlobalState (
   val channels: Rx[Seq[Node]] = Rx {
     graph().channels.toSeq.sortBy(_.data.str)
   }
-
-  val isOnline = Observable.merge(
-    Client.observable.connected.map(_ => true),
-    Client.observable.closed.map(_ => false)
-  ).unsafeToRx(true)
 
   val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
@@ -74,7 +72,7 @@ class GlobalState (
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
   val documentIsVisible: Rx[Boolean] = {
-    def isVisible = dom.document.visibilityState == VisibilityState.visible
+    def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
     events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
   }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()

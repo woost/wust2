@@ -192,15 +192,6 @@ package object outwatchHelpers {
     def asSvg: EmitterBuilder[E, dom.svg.Element, H] = builder.map(_.asInstanceOf[dom.svg.Element])
   }
 
-  class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
-    override def onNext(elem: T): Ack = {
-      rx() = elem
-      Ack.Continue
-    }
-    override def onError(ex: Throwable): Unit = throw ex
-    override def onComplete(): Unit = ()
-  }
-
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
     def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))

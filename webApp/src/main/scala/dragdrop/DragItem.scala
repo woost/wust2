@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.dragdrop
 
 import io.circe._
 import io.circe.generic.semiauto._

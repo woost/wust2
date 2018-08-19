@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -12,6 +12,7 @@ import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Elements._
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
+import wust.webApp.state.GlobalState
 
 object FeedbackForm {
 

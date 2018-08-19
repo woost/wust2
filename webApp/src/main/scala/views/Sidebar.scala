@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import googleAnalytics.Analytics
 import outwatch.dom._
@@ -9,22 +9,20 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util.RichBoolean
-import wust.webApp.MainViewParts._
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Elements._
-import wust.webApp.views.Rendered._
-import wust.webApp.views.Components._
+import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
 
 object Sidebar {
+  import MainViewParts._, Rendered._, Components._
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state.sidebarOpen
 
     div(
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
       //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
-      sidebarOpen.map {
+      state.sidebarOpen.map {
         case true  => VDomModifier( // sidebar open
           channels(state)(ctx),
           newChannelButton(state)(ctx)(

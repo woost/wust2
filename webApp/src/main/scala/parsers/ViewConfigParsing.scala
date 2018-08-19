@@ -3,7 +3,7 @@ package wust.webApp.parsers
 import cats.data.NonEmptyList
 import wust.graph.{Page, PageMode}
 import wust.ids.{Cuid, NodeId}
-import wust.webApp.{View, ViewConfig, ViewOperator, ShareOptions}
+import wust.webApp.state.{View, ViewConfig, ViewOperator, ShareOptions}
 
 private object ViewConfigConstants {
   val pageSeparator = ":"

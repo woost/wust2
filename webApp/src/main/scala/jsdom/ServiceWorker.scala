@@ -1,10 +1,9 @@
-package wust.webApp
+package wust.webApp.jsdom
 
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.experimental.serviceworkers.{ServiceWorker => OriginalServiceWorker}
 import org.scalajs.dom.{experimental, window, _}
-import wust.webApp.SafeDom.Navigator
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js

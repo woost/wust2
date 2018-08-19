@@ -6,17 +6,16 @@ import org.scalajs.dom.{document, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import views.MediaViewer
 import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.webApp._
+import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Rendered._
 import wust.webApp.views.Elements._
-
-import scala.scalajs.js
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."

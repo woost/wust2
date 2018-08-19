@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.jsdom
 
 import java.nio.ByteBuffer
 

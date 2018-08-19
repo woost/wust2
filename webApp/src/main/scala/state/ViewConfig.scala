@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.state
 
 import fastparse.core.Parsed
 import wust.graph._

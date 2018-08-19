@@ -10,6 +10,7 @@ import wust.graph.Graph
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Components._
 import wust.util._
+import wust.webApp.state.{GlobalState, ScreenSize}
 
 object TagsList  {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {

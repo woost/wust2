@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import fontAwesome._
 import org.scalajs.dom
@@ -19,8 +19,9 @@ import NodeColor.hue
 import googleAnalytics.Analytics
 import org.scalajs.dom.experimental.permissions.PermissionState
 import wust.util._
-import wust.webApp.SafeDom.Navigator
+import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Components._
 import wust.webApp.views.Rendered._

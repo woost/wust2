@@ -8,8 +8,8 @@ import wust.api._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.webApp.GlobalState
 import wust.webApp.outwatchHelpers._
+import wust.webApp.state.GlobalState
 
 import scala.collection.mutable
 import scala.concurrent.duration.{span => _}

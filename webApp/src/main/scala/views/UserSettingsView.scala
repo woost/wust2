@@ -9,6 +9,7 @@ import wust.graph._
 import wust.ids._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webApp.views._
 

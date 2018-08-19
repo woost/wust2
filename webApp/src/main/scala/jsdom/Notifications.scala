@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.jsdom
 
 import org.scalajs.dom.experimental
 import org.scalajs.dom.experimental.NotificationOptions
@@ -6,7 +6,7 @@ import org.scalajs.dom.experimental.permissions._
 import org.scalajs.dom.experimental.push._
 import rx._
 import wust.api._
-import wust.webApp.SafeDom._
+import wust.webApp.Client
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -16,6 +16,9 @@ import scala.scalajs.js.typedarray._
 import scala.util.{Failure, Success}
 
 object Notifications {
+  def Notification: Option[experimental.Notification.type] =
+    experimental.Notification.asInstanceOf[js.UndefOr[experimental.Notification.type]].toOption
+
   import Navigator._
 
   def cancelSubscription()(implicit ec: ExecutionContext): Unit = {

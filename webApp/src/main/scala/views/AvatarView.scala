@@ -1,16 +1,10 @@
 package wust.webApp.views
 
-import wust.webApp.Avatar
-import outwatch.dom.VNode
 import rx.Ctx
-import wust.webApp.GlobalState
 import outwatch.dom.dsl._
 import outwatch.dom._
-import outwatch._
-import Math._
-import collection.mutable
 
-import colorado.HCL
+import wust.webApp.state.GlobalState
 
 object AvatarView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {

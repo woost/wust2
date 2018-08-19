@@ -14,12 +14,12 @@ import rx._
 import vectory.Vec2
 import views.graphview.VisualizationType.{Containment, Edge}
 import wust.sdk.NodeColor._
-import wust.webApp.GlobalState
 import wust.webApp.views.graphview.PostCreationMenu
 import wust.graph._
 import wust.ids.{EdgeData, NodeId}
 import wust.webApp.outwatchHelpers._
 import wust.util.time.time
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Rendered._
 
 import scala.concurrent.Promise

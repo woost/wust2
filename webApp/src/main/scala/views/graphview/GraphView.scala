@@ -8,8 +8,8 @@ import wust.css.ZIndex
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.webApp.GlobalState
 import wust.webApp.outwatchHelpers._
+import wust.webApp.state.GlobalState
 
 import scala.scalajs.LinkingInfo
 

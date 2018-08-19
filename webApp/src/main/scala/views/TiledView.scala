@@ -6,6 +6,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp._
 import rx._
+import wust.webApp.state.{GlobalState, ScreenSize, ViewOperator}
 
 object TiledView {
   //TODO: inline styles from viewgrid* css classes. better support in scala-dom-types for viewgrid?

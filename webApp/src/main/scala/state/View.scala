@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.state
 
 import wust.util.macros.SubObjects
 

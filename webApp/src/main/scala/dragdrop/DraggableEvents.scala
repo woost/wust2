@@ -1,20 +1,17 @@
-package wust.webApp
+package wust.webApp.dragdrop
 
 import googleAnalytics.Analytics
-import monix.execution.{Ack, Scheduler}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
-import org.scalajs.dom.console
 import org.scalajs.dom.ext.KeyCode
 import shopify.draggable._
 import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
-import wust.webApp.DragItem.{payloadDecoder, targetDecoder}
-import wust.webApp.views.Elements._
+import wust.webApp.dragdrop.DragItem.{payloadDecoder, targetDecoder}
 import wust.webApp.views.Components._
 import wust.webApp.outwatchHelpers._
 import wust.util._
+import wust.webApp.state.GlobalState
 
 import scala.scalajs.js
 

@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import fontAwesome._
 import fontAwesome.freeSolid._
@@ -18,6 +18,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Components._
 import wust.webApp.views._
 import wust.util._
+import wust.webApp.state.GlobalState
 
 import scala.scalajs.js
 import scala.scalajs.js.Date

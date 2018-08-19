@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.state
 
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -9,8 +9,9 @@ import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.SafeDom.Navigator
+import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
+import wust.webApp.{Client, DevOnly, UrlRouter}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -31,7 +32,12 @@ object GlobalStateFactory {
       Client.currentAuth.user
     )
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig)
+    val isOnline = Observable.merge(
+      Client.observable.connected.map(_ => true),
+      Client.observable.closed.map(_ => false)
+    ).unsafeToRx(true)
+
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, Client.currentAuth)
     import state._
 
     //TODO: better in rx/obs operations

@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import fontAwesome._
 import fontAwesome.freeSolid._
@@ -9,9 +9,11 @@ import rx._
 import wust.api.AuthUser
 import wust.graph._
 import wust.ids._
-import wust.sdk.{ChangesHistory}
+import wust.sdk.ChangesHistory
 import wust.sdk.NodeColor._
+import wust.webApp.Client
 import wust.webApp.outwatchHelpers._
+import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.Elements._
 import wust.webApp.views._
 

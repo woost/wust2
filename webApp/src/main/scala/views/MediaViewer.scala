@@ -1,4 +1,4 @@
-package views
+package wust.webApp.views
 
 import com.raquo.domtypes.generic.codecs.BooleanAsAttrPresenceCodec
 import outwatch.dom._

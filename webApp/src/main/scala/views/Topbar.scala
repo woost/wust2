@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.views
 
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -17,6 +17,8 @@ import wust.webApp.outwatchHelpers._
 import wust.graph._
 import wust.util.RichBoolean
 import wust.sdk.{ChangesHistory, NodeColor}
+import wust.webApp.Client
+import wust.webApp.state._
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
