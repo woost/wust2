@@ -29,7 +29,7 @@ object GlobalStateFactory {
       Observable.merge(additionalManualEvents.map(Seq(_)), Client.observable.event),
       (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
       Client.api.changeGraph _,
-      Client.currentAuth.user
+      Client.currentAuth
     )
 
     val isOnline = Observable.merge(
@@ -37,7 +37,7 @@ object GlobalStateFactory {
       Client.observable.closed.map(_ => false)
     ).unsafeToRx(true)
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, Client.currentAuth)
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline)
     import state._
 
     //TODO: better in rx/obs operations

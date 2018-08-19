@@ -27,11 +27,10 @@ class GlobalState (
     val eventProcessor: EventProcessor,
     val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
     val viewConfig: Var[ViewConfig],
-    val isOnline: Rx[Boolean],
-    authSeed: Authentication
+    val isOnline: Rx[Boolean]
 )(implicit ctx: Ctx.Owner) {
 
-  val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = authSeed)
+  val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
   val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty).map { graph =>

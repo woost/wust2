@@ -72,7 +72,7 @@ object EventProcessor {
       eventStream: Observable[Seq[ApiEvent]],
       enrichChanges: (GraphChanges, Graph) => GraphChanges,
       sendChange: List[GraphChanges] => Future[Boolean],
-      initialUser: AuthUser
+      initialAuth: Authentication
   )(implicit scheduler: Scheduler): EventProcessor = {
     val graphEvents = eventStream
       .map(_.collect { case e: ApiEvent.GraphContent => e })
@@ -87,7 +87,7 @@ object EventProcessor {
       authEvents,
       enrichChanges,
       sendChange,
-      initialUser
+      initialAuth
     )
   }
 }
@@ -97,7 +97,7 @@ class EventProcessor private (
     authEventStream: Observable[Seq[ApiEvent.AuthContent]],
     enrichChanges: (GraphChanges, Graph) => GraphChanges,
     sendChange: List[GraphChanges] => Future[Boolean],
-    initialUser: AuthUser
+    val initialAuth: Authentication
 )(implicit scheduler: Scheduler) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
@@ -136,7 +136,7 @@ class EventProcessor private (
     val allChanges = Observable.merge(enrichedChanges, changes)
 
     val rawLocalChanges: Observable[GraphChanges] =
-      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialUser)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
+      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
         case (changes, user, graph) if changes.nonEmpty =>
           scribe.info("[Events] Got raw local changes:")
           GraphChanges.log(changes, Some(graph))
