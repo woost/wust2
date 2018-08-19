@@ -87,20 +87,16 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
           }.flatten
 
           if (payload.isEmpty) {
-            scribe.info("No events for subscription")
             Future.successful(None)
           } else {
             pushService.send(s, payload.mkString(" | ")).transform {
               case Success(response) =>
                 response.getStatusLine.getStatusCode match {
                   case `successStatusCode` =>
-                    scribe.info(s"Successfully sent push notification")
                     Success(None)
                   case statusCode if expiryStatusCodes.contains(statusCode) =>
-                    scribe.info(s"Cannot send push notification, is expired: $response")
                     Success(Some(s))
                   case _ =>
-                    scribe.info(s"Cannot send push notification: $response")
                     Success(None)
                 }
               case Failure(t) =>
