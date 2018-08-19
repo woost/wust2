@@ -105,7 +105,7 @@ object Client {
   }
 
   // new login if auth changed in other tab. ignore the initial events which comes directly.
-  storage.authFromOtherTab.drop(1).foreach { auth =>
+  storage.authFromOtherTab.triggerLater { auth =>
     scribe.info("Authentication changed in other tab")
     doLoginWithRetry(auth)
   }
