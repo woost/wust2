@@ -18,7 +18,6 @@ object Dsl extends ApiDsl[ApiEvent, ApiError, State] {
 
 class ApiConfiguration(
     guardDsl: GuardDsl,
-    stateInterpreter: StateInterpreter,
     val eventDistributor: EventDistributor[ApiEvent, State]
 )(implicit ec: ExecutionContext)
     extends WsApiConfiguration[ApiEvent, ApiError, State]
@@ -37,7 +36,7 @@ class ApiConfiguration(
     ScopedEvents(privateEvents = privateEvents, publicEvents = publicEvents)
   }
   override def adjustIncomingEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =
-    stateInterpreter.triggeredEvents(state, events)
+    Future.successful(events)
 
   //TODO should be option?
   override def requestToState(request: HttpRequest): Future[State] = {

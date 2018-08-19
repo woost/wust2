@@ -60,7 +60,6 @@ object Server {
     import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
-    val stateInterpreter = new StateInterpreter(jwt, db)
     val guardDsl = new GuardDsl(jwt, db)
 
     val apiImpl = new ApiImpl(guardDsl, db)
@@ -76,7 +75,7 @@ object Server {
       .route[PushApi[ApiFunction]](pushImpl)
 
     val eventDistributor = new HashSetEventDistributorWithPush(db, config.pushNotification)
-    val apiConfig = new ApiConfiguration(guardDsl, stateInterpreter, eventDistributor)
+    val apiConfig = new ApiConfiguration(guardDsl, eventDistributor)
     val serverConfig = WebsocketServerConfig(
       bufferSize = config.server.clientBufferSize,
       overflowStrategy = OverflowStrategy.fail

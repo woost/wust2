@@ -3,18 +3,7 @@ package wust.graph
 import org.scalatest._
 
 class HierarchicalTopologicalSortSpec extends FreeSpec with MustMatchers {
-  // implicit def intToUuidType(id: Int): UuidType = id.toString
-  // implicit def intToNodeId(id: Int): NodeId = NodeId(id.toString)
-  // implicit def intToPost(id: Int): Post = Post(id.toString, "title")
-  // implicit def intTupleToConnection(ts: (Int, Int)): Connection = Connection(ts)
-  // implicit def intTupleToContainment(ts: (Int, Int)): Containment = Containment(ts)
-  // implicit def intSetToSelectorIdSet(set: Set[Int]): Selector.IdSet = Selector.IdSet(set.map(id => NodeId(id.toString)))
-  // def NodeIds(ids: Int*): Set[NodeId] = ids.map(id => NodeId(id.toString))(breakOut)
-  // implicit class RichContainment(con: Containment) {
-  //   def toLocal = LocalContainment(con.parentId, con.childId)
-  // }
-  // def Containment(ts: (Int, Int)): Containment = new Containment(ts._1.toString, ts._2.toString)
-  // def Connection(ts: (Int, Int)): Connection = new Connection(ts._1.toString, ts._2.toString)
+
   def tsort(vs: List[Int], succ: Int => Iterable[Int] = _ => Nil, children: Int => Iterable[Int] = _ => Nil) = HierarchicalTopologicalSort(vs, succ, children)
   implicit def edgeSetToAdjacencyList(es: Set[(Int, Int)]): Map[Int, Set[Int]] = es.groupBy(_._1).mapValues(_.map(_._2)).withDefaultValue(Set.empty)
 
