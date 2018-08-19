@@ -15,15 +15,12 @@ sealed trait Edge {
 }
 
 object Edge {
-  //TODO: should Edge have a equals and hashcode depending only on sourceid, targetid and data.str?
   sealed trait Content extends Edge
 
-  //TODO should have constructor: level: AccessLevel // or not: this makes it less extensible if you add fields to EdgeData
   case class Member(userId: UserId, data: EdgeData.Member, channelId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = channelId
   }
-  //TODO should have constructor: timestamp: Timestamp // or not: this makes it less extensible if you add fields to EdgeData
   case class Author(userId: UserId, data: EdgeData.Author, nodeId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = nodeId
@@ -51,9 +48,7 @@ object Edge {
     def data = EdgeData.Notify
   }
 
-  //TODO should have constructor: label: String
   case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Content
-
 
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
     case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
