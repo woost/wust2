@@ -107,6 +107,7 @@ lazy val isDevRun = TaskKey[Boolean]("isDevRun", "is full opt") //TODO derive fr
 lazy val copyFastOptJS = TaskKey[Unit]("copyFastOptJS", "Copy javascript files to target directory")
 lazy val webSettings = Seq(
   requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
+  version in installJsdom := "11.12.0", // TODO: update jsdom to v12 when resolved in scala-js: https://github.com/scala-js/scala-js/issues/3432
   scalaJSUseMainModuleInitializer := true,
   //TODO ?: scalaJSStage in Test := FullOptStage,
   scalaJSLinkerConfig in (Compile, fastOptJS) ~= {
