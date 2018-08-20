@@ -5,6 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.{Styles, ZIndex}
+import wust.graph.Tree.Leaf
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -12,6 +13,7 @@ import wust.util.RichBoolean
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
+import collection.breakOut
 
 object Sidebar {
   import MainViewParts._, Rendered._, Components._
@@ -61,40 +63,54 @@ object Sidebar {
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    def channelDiv(selected: Boolean, pageStyle: PageStyle) = div(
-      cls := "channel",
-      selected.ifTrueSeq(
-        Seq(
-          color := pageStyle.sidebarBgColor,
-          backgroundColor := pageStyle.sidebarBgHighlightColor
-        )
+    def channelLine(node: Node, pageParentIds: Set[NodeId], pageStyle: PageStyle): VNode = {
+      val selected = pageParentIds contains node.id
+      div(
+        cls := "channel-line",
+        selected.ifTrueSeq(
+          Seq(
+            color := pageStyle.sidebarBgColor,
+            backgroundColor := pageStyle.sidebarBgHighlightColor
+          )
+        ),
+
+        channelIcon(state, node, selected, 30)(ctx)(
+          marginRight := "5px",
+          borderRadius := "2px",
+        ),
+        renderNodeData(node.data)(
+          cls := "channel-name",
+          paddingLeft := "3px",
+          paddingRight := "3px",
+        ),
+        onChannelClick(ChannelAction.Post(node.id))(state),
+        onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "clickchannel") },
+        cls := "node drag-feedback",
+        draggableAs(state, DragItem.Channel(node.id)),
+        dragTarget(DragItem.Channel(node.id)),
+      ),
+    }
+
+    def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle): VNode = {
+      div(
+        channelLine(channels.node, pageParentIds, pageStyle),
+        channels match {
+          case Tree.Parent(_, children) => div(
+            paddingLeft := "10px",
+            children.map { child => channelList(child, pageParentIds, pageStyle) }(breakOut): Seq[VDomModifier]
+          )
+          case Tree.Leaf(_)             => VDomModifier.empty
+        }
       )
-    )
+    }
 
     div(
       cls := "channels",
       Rx {
-        val allChannels = state.graph().nodesById.get(state.user().channelNodeId).toSeq ++ state.channels()
-        val page = state.page()
+        val channelTree: Tree = state.channelTree()
+        val pageParentIds = state.page().parentIdSet
         VDomModifier(
-          allChannels.map {
-            p =>
-              val selected = page.parentIds.contains(p.id)
-              channelDiv(selected, state.pageStyle())(
-                cls := "node drag-feedback",
-                draggableAs(state, DragItem.Channel(p.id)),
-                dragTarget(DragItem.Channel(p.id)),
-                paddingRight := "5px",
-                //TODO: inner state.page obs again
-                channelIcon(state, p, page.parentIds.contains(p.id), 30)(ctx)(
-                  //                  marginRight := "5px" //TODO: outwatch bug? first channelicon does not have a margin
-                ),
-                renderNodeData(p.data)(marginLeft := "5px"),
-                onChannelClick(ChannelAction.Post(p.id))(state),
-                onClick --> sideEffect{Analytics.sendEvent("sidebar_open", "clickchannel")},
-                title := p.id.toCuidString
-              )
-          },
+          channelList(channelTree, pageParentIds, state.pageStyle())
           //          channelDiv(page.mode == PageMode.Orphans, state.pageStyle())(
           //            //TODO: inner state.page obs again
           //            noChannelIcon(page.mode == PageMode.Orphans)(ctx)(marginRight := "5px"),
@@ -118,15 +134,15 @@ object Sidebar {
     div(
       cls := "channelIcons",
       Rx {
-        val allChannels = state.graph().nodesById.get(state.user().channelNodeId).toSeq ++ state.channels()
+        val allChannels = state.channels()
         val page = state.page()
         VDomModifier(
-          allChannels.map { p =>
-            channelIcon(state, p, page.parentIds.contains(p.id), size)(ctx)(
-              onChannelClick(ChannelAction.Post(p.id))(state),
+          allChannels.map { node =>
+            channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
+              onChannelClick(ChannelAction.Post(node.id))(state),
               onClick --> sideEffect{Analytics.sendEvent("sidebar_closed", "clickchannel")},
-              draggableAs(state, DragItem.Channel(p.id)),
-              dragTarget(DragItem.Channel(p.id)),
+              draggableAs(state, DragItem.Channel(node.id)),
+              dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
             )
           },
@@ -138,24 +154,18 @@ object Sidebar {
     )
   }
 
-  def channelIcon(state: GlobalState, post: Node, selected: Boolean, size: Int)(
+  def channelIcon(state: GlobalState, post: Node, selected: Boolean, size: Int, selectedBorderColor: String = "transparent")(
     implicit ctx: Ctx.Owner
   ): VNode = {
     div(
       cls := "channelicon",
-      Styles.flexStatic,
-      margin := "0",
       width := s"${ size }px",
       height := s"${ size }px",
-      title := post.data.str,
-      cursor.pointer,
       backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(post.id)).toHex,
       opacity := (if(selected) 1.0 else 0.75),
-      padding := (if(selected) "2px" else "4px"),
-      border := (
-        if(selected) s"2px solid ${ BaseColors.sidebarBg.copy(h = NodeColor.hue(post.id)).toHex }"
-        else "none"),
-      Avatar.node(post.id)
+      selected.ifTrueOption(borderColor := selectedBorderColor),
+      Avatar.node(post.id),
+      title := post.data.str,
     )
   }
 

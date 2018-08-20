@@ -61,13 +61,14 @@ object GlobalStateFactory {
     }
 
   def newChannelTitle(state: GlobalState) = {
-    var today = new Date()
-    // January is 0!
-    val title =
-      s"Channel ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
-    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
-    if (sameNamePosts.isEmpty) title
-    else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
+//    var today = new Date()
+//    // January is 0!
+//    val title =
+//      s"Channel ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
+//    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
+//    if (sameNamePosts.isEmpty) title
+//    else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
+    "New Channel"
   }
 
     val pageObservable = page.toObservable

@@ -41,7 +41,7 @@ object KanbanView {
           val notIsolated = graph.hasChildren(nid) || !graph.parents(nid).forall(page.parentIdSet) || graph.isStaticParentIn(nid, page.parentIds)
           val noPage = !page.parentIdSet.contains(nid)
           isContent && notIsolated && noPage
-        }.redundantForest
+        }.redundantForestIncludingCycleLeafs
         val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).exists(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
 
         VDomModifier(
@@ -116,7 +116,7 @@ object KanbanView {
 
   private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) => renderColumn(state, node, children, parentIds, activeReplyFields, isTopLevel = isTopLevel)(ctx)(inject)
+      case Tree.Parent(node, children) => renderColumn(state, node, children.toSeq, parentIds, activeReplyFields, isTopLevel = isTopLevel)(ctx)(inject)
       case Tree.Leaf(node)             =>
         Rx {
           if(state.graph().isStaticParentIn(node.id, parentIds))
@@ -127,7 +127,7 @@ object KanbanView {
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: List[Tree], parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, isStaticParent: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, isStaticParent: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, newTagParentIds = parentIds, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")

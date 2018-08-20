@@ -204,21 +204,33 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".channels" - (
     minWidth(200 px),
+    maxWidth(200 px),
     overflowY.auto,
     color(c"#C4C4CA"),
   )
 
-  ".channel" - (
-    paddingRight(3 px),
+  ".channel-line" - (
     Styles.flex,
     alignItems.center,
     cursor.pointer,
+    marginBottom(2 px),
+  )
+
+  ".channel-line .channel-name *" - (
     wordWrap.breakWord,
     wordBreak :=! "break-word",
   )
 
   ".channelIcons" - (
     overflowY.auto
+  )
+
+  ".channelicon" - (
+    border(2 px, solid, transparent),
+    padding(2 px),
+    Styles.flexStatic,
+    margin(0 px),
+    cursor.pointer,
   )
 
   /* must be more specific than .ui.button */

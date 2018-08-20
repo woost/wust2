@@ -499,5 +499,217 @@ class GraphSpec extends FreeSpec with MustMatchers {
       //   assert(g.parentDepths(1:NodeId) == g.parentDepths(5:NodeId))
       // }
     }
+
+    "root nodes" - {
+      implicit def node(id: String): Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+
+      def parent(childId: Cuid, parentId: Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+
+      "empty" in {
+        val g = Graph.empty
+        assert(g.rootNodes == Set.empty)
+      }
+
+      "single node" in {
+        val g = Graph(
+          nodes = Set[Node]("A"),
+        )
+        assert(g.rootNodes == Set[Node]("A"))
+      }
+
+      "parent and child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B"),
+          edges = Set(parent("B", "A"))
+        )
+        assert(g.rootNodes == Set[Node]("A"))
+      }
+
+      "parent and child cycle" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("B", "C"))
+        )
+        assert(g.rootNodes == Set[Node]("A"))
+      }
+
+      "parents involved in cycle with child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("A", "B"), parent("C", "B"))
+        )
+        assert(g.rootNodes == Set[Node]("A", "B"))
+      }
+
+      "parent with child cycle with child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C", "D"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("B", "C"), parent("D", "C"))
+        )
+        assert(g.rootNodes == Set[Node]("A"))
+      }
+    }
+
+    "redundant tree - including cycle leafs" - {
+      import Tree._
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+
+      "root only" in {
+        val g = Graph(
+          nodes = Set[Node]("A"),
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Leaf("A"))
+      }
+
+      "single child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B"),
+          edges = Set(parent("B", "A"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Leaf("B"))))
+      }
+
+      "two children" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "A"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Leaf("B"), Leaf("C"))))
+      }
+
+      "diamond" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Parent("B", Set(Leaf("C"))), Leaf("C"))))
+      }
+
+      "cycle" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("A", "C"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Parent("B", Set(Parent("C", Set(Leaf("A"))))))))
+      }
+    }
+
+    "redundant tree - excluding cycle leafs" - {
+      import Tree._
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+
+      "root only" in {
+        val g = Graph(
+          nodes = Set[Node]("A"),
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Leaf("A"))
+      }
+
+      "single child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B"),
+          edges = Set(parent("B", "A"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Leaf("B"))))
+      }
+
+      "two children" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "A"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Leaf("B"), Leaf("C"))))
+      }
+
+      "diamond" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Parent("B", Set(Leaf("C"))), Leaf("C"))))
+      }
+
+      "cycle" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("A", "C"))
+        )
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Parent("B", Set(Leaf("C"))))))
+      }
+    }
+
+    "channel tree" - {
+      import Tree._
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+
+      "root only" in {
+        val g = Graph(
+          nodes = Set[Node]("A"),
+        )
+        assert(g.channelTree("A") == Parent("A", Set.empty))
+      }
+
+      "single child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B"),
+          edges = Set(parent("B", "A"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Leaf("B"))))
+      }
+
+      "two children" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "A"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Leaf("B"), Leaf("C"))))
+      }
+
+      "diamond on root level" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("C"))))))
+      }
+
+      "diamond on deeper level" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C", "D"),
+          edges = Set(
+            parent("B", "A"), parent("C", "A"), parent("D", "A"),
+            parent("D", "B"), parent("D", "C"), parent("C","B")
+          )
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Parent("C", Set(Leaf("D"))), Leaf("D"))))))
+      }
+
+      "cycle involving root" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "A"), parent("C", "B"), parent("A", "C"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("C"))))))
+      }
+
+      "cycle" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C"),
+          edges = Set(parent("B", "A"), parent("C", "A"), parent("C", "B"), parent("B", "C"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("C"))), Parent("C", Set(Leaf("B"))))))
+      }
+
+      "topological Minor" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C", "D"),
+          edges = Set(parent("B", "A"), parent("C","B"), parent("D", "C"), parent("D","A"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("D"))))))
+      }
+    }
   }
 }

@@ -51,7 +51,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     allUserIds: collection.Set[UserId], //TODO: List?
     allAuthorIds: collection.Set[UserId], //TODO: List?
     channelNodeIds: collection.Set[NodeId], //TODO: List?
-    channelIds: collection.Set[NodeId], //TODO: List?
+    allChannelIds: collection.Set[NodeId], //TODO: List?
     nodeCreated: collection.Map[NodeId, EpochMilli],
     nodeModified: collection.Map[NodeId, EpochMilli]
   ) = {
@@ -199,8 +199,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     parentIds subsetOf deletedParents(nodeId)
   }
 
-  lazy val channels: collection.Set[Node] = channelIds.map(nodesById)
-  lazy val withoutChannels: Graph = this.filterNot(channelIds ++ channelNodeIds)
+  lazy val withoutChannels: Graph = this.filterNot(allChannelIds ++ channelNodeIds)
   lazy val onlyAuthors: Graph =
     this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
 
@@ -497,15 +496,50 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     tmpDepths
   }
 
-  def redundantTree(root:Node, visited:Set[Node] = Set.empty):Tree = {
-    if(!visited(root) && hasChildren(root.id))
-      Tree.Parent(root, children(root).map(n => redundantTree(nodesById(n), visited + root))(breakOut))
+  lazy val rootNodes:collection.Set[Node] = {
+    val candidates = nodes.filter(n => !hasParents(n.id) || involvedInContainmentCycle(n.id))
+    val coveredChildren: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))
+    candidates.filterNot(n => coveredChildren(n.id))
+  }
+
+  def redundantTree(root:Node, visited:Set[Node] = Set.empty, excludeCycleLeafs:Boolean):Tree = {
+    if(!visited(root) && hasChildren(root.id)) {
+      if(excludeCycleLeafs) {
+        val nonCycleChildren = children(root).map(nodesById).filterNot(visited)
+        if(nonCycleChildren.nonEmpty)
+          Tree.Parent(root, nonCycleChildren.map(n => redundantTree(n, visited + root, excludeCycleLeafs))(breakOut))
+        else
+          Tree.Leaf(root)
+      } else
+      Tree.Parent(root, children(root).map(n => redundantTree(nodesById(n), visited + root, excludeCycleLeafs))(breakOut))
+    }
     else
       Tree.Leaf(root)
   }
-  def redundantForest:List[Tree] = {
-    val roots = nodes.filterNot(n => hasParents(n.id))
-    roots.map(n => redundantTree(n))(breakOut)
+
+  lazy val redundantForestExcludingCycleLeafs:List[Tree] = {
+    rootNodes.map(n => redundantTree(n, excludeCycleLeafs = true))(breakOut)
+  }
+  lazy val redundantForestIncludingCycleLeafs:List[Tree] = {
+    rootNodes.map(n => redundantTree(n, excludeCycleLeafs = false))(breakOut)
+  }
+
+  def channelTree(channelNode:Node):Tree = {
+    //TODO: more efficient algorithm? https://en.wikipedia.org/wiki/Reachability#Algorithms
+    val channels = children(channelNode.id).flatMap(nodesById.get)
+    val graphWithoutChannelNode = removeNodes(channelNode.id :: Nil)
+    val topologicalParents = for{
+      child <- channels
+      parent <- channels
+      if child != parent
+      if graphWithoutChannelNode.ancestors(child.id) contains parent.id // child --> ... --> parent
+    } yield Edge.Parent(child.id, parent.id)
+
+    val topologicalMinor = Graph(channels, topologicalParents)
+    Tree.Parent(
+      channelNode,
+      topologicalMinor.redundantForestExcludingCycleLeafs.toSet
+    )
   }
 
   trait Grouping
@@ -549,8 +583,16 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
   }
 }
-sealed trait Tree {def node:Node}
+
+sealed trait Tree {
+  def node:Node
+  def flatten:List[Node]
+}
 object Tree {
-  case class Parent(node:Node, children:List[Tree]) extends Tree
-  case class Leaf(node:Node) extends Tree
+  case class Parent(node:Node, children:Set[Tree]) extends Tree {
+    override def flatten = node :: (children.flatMap(_.flatten)(breakOut):List[Node])
+  }
+  case class Leaf(node:Node) extends Tree {
+    override def flatten = node :: Nil
+  }
 }

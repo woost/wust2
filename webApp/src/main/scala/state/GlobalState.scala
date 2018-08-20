@@ -47,8 +47,14 @@ class GlobalState (
     newGraph.consistent
   }
 
+  val channelTree: Rx[Tree] = Rx {
+    val channelNode = graph().nodesById(user().channelNodeId)
+    graph().channelTree(channelNode)
+  }
+  channelTree.debug("channeltree")
+
   val channels: Rx[Seq[Node]] = Rx {
-    graph().channels.toSeq.sortBy(_.data.str)
+    channelTree().flatten.distinct
   }
 
   val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
