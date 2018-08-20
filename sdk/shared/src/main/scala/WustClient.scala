@@ -18,7 +18,7 @@ class WustClient(client: Client[ByteBuffer, Future, ClientException]) {
   val push = client.wire[PushApi[Future]]
 }
 object WustClient extends NativeWustClient {
-  val config = WebsocketClientConfig(pingInterval = 100 seconds) // needs to be in sync with idle timeout of backend
+  val config = WebsocketClientConfig(pingInterval = 50 seconds) // needs to be in sync with idle timeout of backend
 }
 
 class WustClientFactory(
