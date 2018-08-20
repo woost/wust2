@@ -114,9 +114,29 @@ function sendSubscriptionToBackend(subscription) {
     }));
 }
 
+function subscribeWebPushAndPersist() {
+    getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
+        logToBackend("publicKey: " + publicKey);
+        log("publicKey: " + publicKey);
+        if (publicKey) {
+            return self.registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
+            }).flatMap(sendSubscriptionToBackend);
+        } else {
+            logToBackend("no public key...");
+            log("no public key...");
+            return Promise.empty;
+        }
+    }));
+}
+
 // startup
 log("ServiceWorker starting!");
 const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
+
+// subscribe to webpush on startup
+subscribeWebPushAndPersist();
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
@@ -176,23 +196,7 @@ self.addEventListener('pushsubscriptionchange', e => {
     logToBackend("ServiceWorker received pushsubscriptionchange event: " + JSON.stringify(e));
     log("ServiceWorker received pushsubscriptionchange event", e);
     // resubscribe and send new subscription to backend
-    e.waitUntil(
-        getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
-            logToBackend("publicKey: " + publicKey);
-            log("publicKey: " + publicKey);
-            if (publicKey) {
-                return self.registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
-                }).flatMap(sendSubscriptionToBackend);
-            } else {
-                logToBackend("no public key...");
-                log("no public key...");
-                return Promise.empty;
-            }
-        }
-        ))
-    );
+    e.waitUntil(subscribeWebPushAndPersist());
 });
 
 // to test push renewal, trigger event manually:
