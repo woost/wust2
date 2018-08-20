@@ -201,3 +201,12 @@ package object outwatchHelpers {
     else keyModifier
   }
 }
+
+class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
+  override def onNext(elem: T): Ack = {
+    rx() = elem
+    Ack.Continue
+  }
+  override def onError(ex: Throwable): Unit = throw ex
+  override def onComplete(): Unit = ()
+}

@@ -1,10 +1,12 @@
-package wust.webApp
+package wust.webApp.restructuring
 
 import wust.api._
 import wust.graph.{Graph, Node}
 import wust.ids._
-import wust.webApp.PostHeuristic._
-import wust.webApp.Restructure._
+import wust.webApp.{Client, DevPrintln}
+
+import PostHeuristic._
+import Restructure._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

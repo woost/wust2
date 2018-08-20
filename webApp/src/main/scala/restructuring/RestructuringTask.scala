@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.restructuring
 
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
@@ -9,12 +9,14 @@ import outwatch.dom.dsl._
 import wust.css.ZIndex
 import wust.graph._
 import wust.ids._
-import wust.webApp.PostHeuristic._
-import wust.webApp.Restructure._
+import wust.webApp.Client
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Placeholders
 import wust.webApp.views.Rendered._
+
+import PostHeuristic._
+import Restructure._
 
 import scala.collection.breakOut
 import scala.concurrent.Future
