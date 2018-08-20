@@ -9,7 +9,7 @@ import rx._
 import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
-import wust.webApp._
+import marked.Marked
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
@@ -51,8 +51,8 @@ object Rendered {
     case user: NodeData.User         => div(s"User: ${ user.name }")
   }
 
-  def mdHtml(str: String) = div(div(prop("innerHTML") := marked(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def mdString(str: String): String = marked(str)
+  def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def mdString(str: String): String = Marked(str)
 }
 
 object Components {

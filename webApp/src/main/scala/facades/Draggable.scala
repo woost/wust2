@@ -1,4 +1,4 @@
-package shopify.draggable
+package draggable
 
 import org.scalajs.dom
 import org.scalajs.dom.html

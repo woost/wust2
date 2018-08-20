@@ -1,11 +1,11 @@
-package wust.webApp
+package marked
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 
 @js.native
 @JSImport("marked", JSImport.Default)
-object marked extends js.Object {
+object Marked extends js.Object {
   def apply(src: String): String = js.native
   def apply(src: String, callback: js.Function): String = js.native
   def apply(src: String, options: MarkedOptions = ???, callback: js.Function = ???): String =

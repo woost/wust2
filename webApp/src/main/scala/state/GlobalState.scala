@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import draggable._
 import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monocle.macros.GenLens
@@ -8,7 +9,6 @@ import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.raw.{HTMLElement, VisibilityState}
 import outwatch.dom.dsl._
 import rx._
-import shopify.draggable._
 import wust.api._
 import wust.graph._
 import wust.ids._

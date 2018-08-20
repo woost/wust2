@@ -4,7 +4,7 @@ import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.ext.KeyCode
-import shopify.draggable._
+import draggable._
 import wust.graph.{Edge, GraphChanges}
 import wust.ids.NodeId
 import wust.util._
