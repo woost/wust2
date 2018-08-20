@@ -9,7 +9,6 @@ import wust.webApp.state.{GlobalState, ScreenSize, ViewOperator}
 
 object TiledView {
   //TODO: inline styles from viewgrid* css classes. better support in scala-dom-types for viewgrid?
-  //TODO: outwach: Observable[Seq[VDomModifier]] should work, otherwise cannot share code proberly...muliple div.
   def apply(operator: ViewOperator, views: NonEmptyList[VNode], state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val appliedViews = views.map(_(height := "100%", width := "100%"))
 

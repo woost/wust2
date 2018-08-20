@@ -38,7 +38,6 @@ class ApiConfiguration(
   override def adjustIncomingEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =
     Future.successful(events)
 
-  //TODO should be option?
   override def requestToState(request: HttpRequest): Future[State] = {
     request.headers.find(_.is("authorization")) match {
       case Some(authHeader) =>

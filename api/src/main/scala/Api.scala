@@ -60,7 +60,6 @@ object AuthResult {
   case object Success extends AuthResult
 }
 
-//TODO: anyval those hierarchies!
 sealed trait AuthUser {
   def id: UserId
   def name: String

@@ -43,7 +43,7 @@ object View {
     def isContent = false
   }
   case class Tiled(operator: ViewOperator, views: NonEmptyList[View]) extends View {
-    def viewKey = views.map(_.viewKey).toList.mkString(operator.separator.toString)
+    def viewKey = views.map(_.viewKey).toList.mkString(operator.separator)
     def isContent = views.exists(_.isContent)
   }
 
@@ -52,7 +52,7 @@ object View {
 
   val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
 
-  def default = Chat
+  def default: View = Chat
 }
 
 sealed trait ViewOperator {
