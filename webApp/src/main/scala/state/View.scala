@@ -24,11 +24,11 @@ object View {
   }
   case object Login extends View {
     def viewKey = "login"
-    def isContent = true
+    def isContent = false
   }
   case object Signup extends View {
     def viewKey = "signup"
-    def isContent = true
+    def isContent = false
   }
   case object NewChannel extends View {
     def viewKey = "newchannel"
