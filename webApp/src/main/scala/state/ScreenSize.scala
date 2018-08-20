@@ -1,6 +1,7 @@
 package wust.webApp.state
 
 import org.scalajs.dom
+import scala.scalajs.js
 
 sealed trait ScreenSize {
   def minWidth:Int
@@ -16,8 +17,14 @@ object ScreenSize {
     case _ => Small
   }
 
+  // In tests matchMedia function is undefined, we need to catch this here.
+  private val matchMediaIsUndefined =
+    dom.window.asInstanceOf[js.Dynamic].matchMedia.asInstanceOf[js.UndefOr[js.Dynamic]] == js.undefined
+
   def calculate(): ScreenSize =
-    if (dom.window.matchMedia(s"only screen and (min-width : ${Large.minWidth}px)").matches)
+    if (matchMediaIsUndefined)
+      ScreenSize.Large
+    else if (dom.window.matchMedia(s"only screen and (min-width : ${Large.minWidth}px)").matches)
       ScreenSize.Large
     else if (dom.window.matchMedia(s"only screen and (min-width : ${Middle.minWidth}px)").matches)
       ScreenSize.Middle
