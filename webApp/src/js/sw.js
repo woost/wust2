@@ -81,21 +81,19 @@ const logToBackend = s => fetch(baseUrl + '/Api/log', {
     body: JSON.stringify({ message: s })
 });
 
-function sendSubscriptionToBackend(subscription) {
-    logToBackend("sendSubscriptionToBackend: " + subscription);
+function sendSubscriptionToBackend(subscription, currentAuth) {
     log("sendSubscriptionToBackend: " + subscription);
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
-        logToBackend("sendSubscriptionToBackend failed.");
         log("sendSubscriptionToBackend failed.");
-        return Promise.empty;
+        return null;
     }
 
     let key = subscription.getKey('p256dh');
     let auth = subscription.getKey('auth');
     if (!key || !auth) {
         warn("Subscription without key/auth, ignoring.", key, auth);
-        return Promise.empty;
+        return null;
     }
 
     let subscriptionObj = {
@@ -105,38 +103,52 @@ function sendSubscriptionToBackend(subscription) {
     };
 
     log("Sending subscription to backend", subscriptionObj);
-    return currentAuth().flatMap(currentAuth => fetch(baseUrl + '/Push/subscribeWebPush', {
+    return fetch(baseUrl + '/Push/subscribeWebPush', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscriptionObj }),
         headers: {
             'Authorization': currentAuth
         }
-    }));
+    });
 }
 
+// TODO: check if permissions granted, otherwise we don't need this. in this
+// case the app will do this when request notification permissions.
 function subscribeWebPushAndPersist() {
-    getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
-        logToBackend("publicKey: " + publicKey);
-        log("publicKey: " + publicKey);
-        if (publicKey) {
-            return self.registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
-            }).flatMap(sendSubscriptionToBackend);
+    log("Subscribing to web push");
+    currentAuth().flatMap(currentAuth => {
+        if (currentAuth) {
+            getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
+                if (publicKey) {
+                    log("publicKey: " + publicKey);
+                    return self.registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
+                    }).map(sub => sendSubscriptionToBackend(sub, currentAuth));
+                } else {
+                    log("Cannot subscribe, no public key...");
+                    return Promise.empty;
+                }
+            }));
         } else {
-            logToBackend("no public key...");
-            log("no public key...");
+            log("Cannot subscribe, no authentication...");
             return Promise.empty;
         }
-    }));
+    });
 }
 
 // startup
 log("ServiceWorker starting!");
-const baseUrl = location.protocol + '//core.' + location.hostname + ':' + location.port + '/api';
+port = location.port ? ":" + location.port : '';
+const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
+log("BaseUrl: " + baseUrl);
 
 // subscribe to webpush on startup
-subscribeWebPushAndPersist();
+self.addEventListener('activate', e => {
+    e.waitUntil(
+        subscribeWebPushAndPersist()
+    );
+});
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
@@ -193,7 +205,6 @@ self.addEventListener('notificationclick', e => {
 //TODO: integration test!
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('pushsubscriptionchange', e => {
-    logToBackend("ServiceWorker received pushsubscriptionchange event: " + JSON.stringify(e));
     log("ServiceWorker received pushsubscriptionchange event", e);
     // resubscribe and send new subscription to backend
     e.waitUntil(subscribeWebPushAndPersist());
