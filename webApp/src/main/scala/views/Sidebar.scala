@@ -42,10 +42,7 @@ object Sidebar {
               zIndex := ZIndex.overlay,
               onClick(false) --> state.sidebarOpen
             )
-            case _                => VDomModifier(
-              minWidth := "40px",
-              maxWidth := "250px"
-            )
+            case _                => VDomModifier.empty
           }
         )
         case false => VDomModifier( // sidebar closed

@@ -203,6 +203,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".channels" - (
+    minWidth(200 px),
     overflowY.auto,
     color(c"#C4C4CA"),
   )
