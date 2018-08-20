@@ -11,7 +11,7 @@ import wust.ids._
 import wust.sdk._
 import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.{Client, DevOnly, UrlRouter}
+import wust.webApp.{Client, DevOnly}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._

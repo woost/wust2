@@ -1,4 +1,4 @@
-package wust.webApp
+package wust.webApp.state
 
 import monix.execution.Scheduler
 import org.scalajs.dom.raw.HashChangeEvent
