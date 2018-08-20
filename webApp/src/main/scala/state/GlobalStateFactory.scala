@@ -55,7 +55,7 @@ object GlobalStateFactory {
       if (prev.user.id != auth.user.id) {
         auth.user match {
           case u: AuthUser.Assumed => Notifications.cancelSubscription()
-          case u: AuthUser.Persisted => Notifications.refreshSubscription()
+          case u: AuthUser.Persisted => Notifications.subscribe()
         }
       }
     }

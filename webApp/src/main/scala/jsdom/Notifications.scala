@@ -27,14 +27,16 @@ object Notifications {
   def refreshSubscription()(implicit ec: ExecutionContext): Unit = {
     WebPush.getSubscriptionAndPersist()
   }
-  def requestPermissionsAndSubscribe()(implicit ec: ExecutionContext): Unit = {
+  def subscribe()(implicit ec: ExecutionContext): Unit = {
     WebPush.subscribeAndPersist()
-
-    // request notifications permissions as fallback if push permissions did not work in the browser.
+  }
+  def requestPermissionsAndSubscribe()(implicit ec: ExecutionContext): Unit = {
     // if it worked, the notification permission are already granted, and will not really request.
     Notification.foreach(_.requestPermission { (state: String) =>
       scribe.info(s"Requested notification permission: $state")
     })
+
+    subscribe()
   }
 
   def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(
@@ -98,7 +100,7 @@ object Notifications {
     private lazy val serverPublicKey = Client.push.getPublicKey()
 
     def cancelAndPerist()(implicit ec: ExecutionContext): Unit =
-      persistPushSubscription(_.getSubscription(), Client.push.cancelSubscription)
+      persistPushSubscription(_.getSubscription(), Client.push.cancelSubscription, unsubscribe = true)
 
     def getSubscriptionAndPersist()(implicit ec: ExecutionContext): Unit =
       persistPushSubscription(_.getSubscription(), Client.push.subscribeWebPush)
@@ -116,14 +118,18 @@ object Notifications {
     }
 
     private def persistPushSubscription(
-                                         getSubscription: PushManager => js.Promise[PushSubscription],
-                                         sendSubscription: WebPushSubscription => Future[Boolean]
-                                       )(implicit ec: ExecutionContext): Unit = serviceWorker match {
+      getSubscription: PushManager => js.Promise[PushSubscription],
+      sendSubscription: WebPushSubscription => Future[Boolean],
+      unsubscribe: Boolean = false
+    )(implicit ec: ExecutionContext): Unit = serviceWorker match {
       case Some(serviceWorker) => serviceWorker.getRegistration().toFuture.onComplete {
         case Success(reg) => reg.toOption match {
           case Some(reg) =>
             getSubscription(reg.pushManager).toFuture.onComplete {
               case Success(sub) if sub != null =>
+
+                if (unsubscribe) sub.unsubscribe()
+
                 //TODO rename p256dh attribute of WebPushSub to publicKey
                 val webpush = WebPushSubscription(
                   endpointUrl = sub.endpoint,
