@@ -243,36 +243,6 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
     }
   }
 
-  "redundant spanning tree" - {
-    "one vertex" - {
-      val tree = redundantSpanningTree(1, (_: Int) => List.empty)
-      assert(tree == Tree(1, List.empty))
-    }
-
-    "same children" in {
-      val tree = redundantSpanningTree(1, (_: Int) => List(2, 3))
-      assert(
-        tree ==
-          Tree(1,
-               List(Tree(2, List(Tree(3, List.empty))),
-                    Tree(3, List(Tree(2, List.empty))))))
-    }
-
-    "directed cycle" in {
-      val edges = Map(
-        0 -> Seq(1),
-        1 -> Seq(2),
-        2 -> Seq(1, 3),
-        3 -> Seq.empty
-      )
-
-      val tree = redundantSpanningTree(0, edges)
-      assert(
-        tree ==
-          Tree(0, List(Tree(1, List(Tree(2, List(Tree(3, List.empty))))))))
-    }
-  }
-
   "dijkstra" - {
     "for simple case" in {
       val (depths, predecessors) = dijkstra(Map(0 -> Seq(1),
