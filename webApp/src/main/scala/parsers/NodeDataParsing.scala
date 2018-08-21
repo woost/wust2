@@ -29,7 +29,6 @@ object NodeDataParser {
   )
 
   def addNode(str:String, contextNodes: Iterable[Node], newTagParentIds:Iterable[NodeId], baseNode:Node.Content = Node.Content.empty): GraphChanges = {
-    println(newTagParentIds)
     val parser = taggedContent.map {
         case (data, tags) =>
           val tagNodesEither = tags.map(
