@@ -710,6 +710,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
         )
         assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("D"))))))
       }
+
+      "topological Minor - skip redundant edges" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C", "D"),
+          edges = Set(parent("B", "A"), parent("C","B"), parent("D", "C"), parent("C","A"), parent("D","A"))
+        )
+        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Parent("C", Set(Leaf("D"))))))))
+      }
     }
   }
 }

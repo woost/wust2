@@ -526,13 +526,19 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   def channelTree(channelNode:Node):Tree = {
     //TODO: more efficient algorithm? https://en.wikipedia.org/wiki/Reachability#Algorithms
-    val channels = children(channelNode.id).flatMap(nodesById.get)
+    val channelIds = children(channelNode.id)
+    val channels = channelIds.flatMap(nodesById.get)
     val graphWithoutChannelNode = removeNodes(channelNode.id :: Nil)
+    def reachable(childId:NodeId, parentId:NodeId) = {
+      // child --> ... --> parent
+      depthFirstSearch[NodeId](childId, nid => graphWithoutChannelNode.parents(nid).filterNot(channelIds - parentId)).exists(_ == parentId)
+    }
+
     val topologicalParents = for{
       child <- channels
       parent <- channels
       if child != parent
-      if graphWithoutChannelNode.ancestors(child.id) contains parent.id // child --> ... --> parent
+      if reachable(child.id, parent.id)
     } yield Edge.Parent(child.id, parent.id)
 
     val topologicalMinor = Graph(channels, topologicalParents)
