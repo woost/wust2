@@ -54,8 +54,10 @@ object ShowOpts {
 sealed trait ChatKind {
   def nodeIds: Seq[NodeId]
 }
-case class ChatSingle(nodeId: NodeId) extends ChatKind {def nodeIds = nodeId :: Nil }
-case class ChatGroup(nodeIds: Seq[NodeId]) extends ChatKind
+object ChatKind {
+  case class Single(nodeId: NodeId) extends ChatKind {def nodeIds = nodeId :: Nil }
+  case class Group(nodeIds: Seq[NodeId]) extends ChatKind
+}
 
 object ChatView {
   // -- display options --
@@ -142,7 +144,7 @@ object ChatView {
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatGroup */
+  /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatKind.Group */
   private def groupNodes(
     graph: Graph,
     nodes: Seq[NodeId],
@@ -165,19 +167,19 @@ object ChatView {
 
     nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
       kinds.lastOption match {
-        case Some(ChatSingle(lastNode)) =>
+        case Some(ChatKind.Single(lastNode)) =>
           if(shouldGroup(lastNode, node))
-            kinds.dropRight(1) :+ ChatGroup(Seq(lastNode, node))
+            kinds.dropRight(1) :+ ChatKind.Group(Seq(lastNode, node))
           else
-            kinds :+ ChatSingle(node)
+            kinds :+ ChatKind.Single(node)
 
-        case Some(ChatGroup(lastNodes)) =>
+        case Some(ChatKind.Group(lastNodes)) =>
           if(shouldGroup(lastNodes.last, node))
-            kinds.dropRight(1) :+ ChatGroup(nodeIds = lastNodes :+ node)
+            kinds.dropRight(1) :+ ChatKind.Group(nodeIds = lastNodes :+ node)
           else
-            kinds :+ ChatSingle(node)
+            kinds :+ ChatKind.Single(node)
 
-        case None => kinds :+ ChatSingle(node)
+        case None => kinds :+ ChatKind.Single(node)
       }
     }
   }
