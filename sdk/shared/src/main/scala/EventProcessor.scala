@@ -151,23 +151,21 @@ class EventProcessor private (
           } yield (authorEdge, graphAuthorEdge)
 
           changesCandidate.copy(addEdges = changesCandidate.addEdges -- authorEdgesToRemove.map(_._1) ++ authorEdgesToRemove.map(_._2))
-      }
+      }.share
 
     val changesHistory = Observable
       .merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
       .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
       .scan(ChangesHistory.empty) {
-        case (history, (action, graph)) =>
-          history(graph)(action)
-      }
+        case (history, (action, graph)) => history(graph)(action)
+      }.share
     val localChanges = changesHistory.collect {
       case history if history.current.nonEmpty =>
        history.current
-    }
+    }.share
 
-    val localChangesWithNonSending = Observable.merge(localChanges, nonSendingChanges)
-    val localEvents = localChangesWithNonSending.map(c => Seq(NewGraphChanges(c)))
-    val graphEvents: Observable[Seq[ApiEvent.GraphContent]] = Observable.merge(eventStream, localEvents)
+    val localEvents = Observable.merge(localChanges, nonSendingChanges).map(c => Seq(NewGraphChanges(c)))
+    val graphEvents = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
       val newGraph = events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
