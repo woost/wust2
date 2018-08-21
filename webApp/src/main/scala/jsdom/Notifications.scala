@@ -27,16 +27,19 @@ object Notifications {
   def refreshSubscription()(implicit ec: ExecutionContext): Unit = {
     WebPush.getSubscriptionAndPersist()
   }
-  def subscribe()(implicit ec: ExecutionContext): Unit = {
-    WebPush.subscribeAndPersist()
+  def subscribe()(implicit ec: ExecutionContext): Unit = Notification match {
+    case Some(n) if n.permission.asInstanceOf[PermissionState] == PermissionState.granted =>
+      WebPush.subscribeAndPersist()
+    case _ =>
+      scribe.info("Will not subscribe web push, no permission")
   }
   def requestPermissionsAndSubscribe()(implicit ec: ExecutionContext): Unit = {
-    // if it worked, the notification permission are already granted, and will not really request.
-    Notification.foreach(_.requestPermission { (state: String) =>
-      scribe.info(s"Requested notification permission: $state")
-    })
-
-    subscribe()
+    Notification.foreach { n =>
+      n.requestPermission { (state: String) =>
+        scribe.info(s"Requested notification permission: $state")
+        subscribe()
+      }
+    }
   }
 
   def notify(title: String, body: Option[String] = None, tag: Option[String] = None)(
@@ -140,7 +143,7 @@ object Notifications {
                 scribe.info(s"WebPush subscription: $webpush")
                 sendSubscription(webpush)
               case err =>
-                scribe.warn(s"Failed to subscribe to push: $err")
+                scribe.warn(s"Failed get subscription for web push: $err")
             }
           case None =>
             scribe.warn(s"Got empty service worker registration")
