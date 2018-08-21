@@ -44,8 +44,10 @@ object GlobalStateFactory {
     // store auth in localstore and indexed db
     val authWithPrev = auth.fold((auth.now, auth.now)) { (prev, auth) => (prev._2, auth) }
     authWithPrev.foreach { case (prev, auth) =>
-      Client.storage.auth() = Some(auth)
-      IndexedDbOps.storeAuth(auth)
+      if (prev != auth) {
+        Client.storage.auth() = Some(auth)
+        IndexedDbOps.storeAuth(auth)
+      }
 
       // first subscription is send by the serviceworker. we do the one when the user changes
       // TODO:
