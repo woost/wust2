@@ -91,13 +91,14 @@ object Sidebar {
       ),
     }
 
-    def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle): VNode = {
+    def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
       div(
         channelLine(channels.node, pageParentIds, pageStyle),
         channels match {
           case Tree.Parent(_, children) => div(
             paddingLeft := "10px",
-            children.map { child => channelList(child, pageParentIds, pageStyle) }(breakOut): Seq[VDomModifier]
+            fontSize := s"${math.max(8, 14 - depth)}px",
+            children.map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
           case Tree.Leaf(_)             => VDomModifier.empty
         }
