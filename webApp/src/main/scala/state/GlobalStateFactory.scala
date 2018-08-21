@@ -62,45 +62,44 @@ object GlobalStateFactory {
       }
     }
 
-  def newChannelTitle(state: GlobalState) = {
-//    var today = new Date()
-//    // January is 0!
-//    val title =
-//      s"Channel ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
-//    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
-//    if (sameNamePosts.isEmpty) title
-//    else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
-    "New Channel"
-  }
-
-    val pageObservable = page.toObservable
-    val userObservable = user.toObservable
+    def newChannelTitle(state: GlobalState) = {
+  //    var today = new Date()
+  //    // January is 0!
+  //    val title =
+  //      s"Channel ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
+  //    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
+  //    if (sameNamePosts.isEmpty) title
+  //    else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
+      "New Channel"
+    }
 
     //TODO: better build up state from server events?
     // only adding a new channel would normally get a new graph. but we can
     // avoid this here and do nothing. Optimistic UI. We just integrate this
     // change into our local state without asking the backend. when the page
     // changes, we get a new graph. except when it is just a Page.NewChannel.
-    // There we want to issue the new-channel change.
-    pageObservable
-      .withLatestFrom(userObservable)((_,_))
-      .switchMap { case (page, user) =>
-        page match {
+    // There we want tnuro issue the new-channel change.
+    val pageWithPrev = page.fold((Page.empty, Page.empty)) { case ((_, prev), curr) => (prev, curr) }
+    val userAndPage = Rx {
+      (pageWithPrev(), user())
+    }
+
+    userAndPage.toObservable
+      .switchMap { case ((prevPage, page), user) =>
+        val observable = if (prevPage != page) page match {
           case Page.Selection(parentIds, childrenIds, mode) =>
-            val newGraph = Client.api.getGraph(page)
-            Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
+            Observable.fromFuture(Client.api.getGraph(page))
           case Page.NewChannel(nodeId) =>
             val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.channelNodeId)
             eventProcessor.enriched.changes.onNext(changes)
             Observable.empty
-        }
+        } else Observable.fromFuture(Client.api.getGraph(page))
+
+        observable.map(ReplaceGraph.apply)
       }.subscribe(additionalManualEvents)
 
-      // when the user change, we definitly need a new graph, regardless of the page
-      userObservable.withLatestFrom(pageObservable)((_,_)).switchMap { case (user, page) =>
-        val newGraph = Client.api.getGraph(page)
-        Observable.fromFuture(newGraph).map(ReplaceGraph.apply)
-      }.subscribe(additionalManualEvents)
+
+    val pageObservable = page.toObservable
 
     // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
     // update of page was changed manually AFTER initial page
