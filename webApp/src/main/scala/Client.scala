@@ -61,24 +61,29 @@ object Client {
   val storage = new ClientStorage
   def currentAuth = storage.auth.now getOrElse initialAssumedAuth
   private var initialAssumedAuth = Authentication.Assumed.fresh
+  private var lastSuccessAuth: Option[Authentication] = None
   private def loginStorageAuth(auth: Authentication): Future[Boolean] = auth match {
     case auth: Authentication.Assumed  => factory.highPriority.auth.assumeLogin(auth.user)
     case auth: Authentication.Verified => factory.highPriority.auth.loginToken(auth.token)
   }
 
   //TODO backoff?
-  private def doLoginWithRetry(auth: Option[Authentication]): Unit = loginStorageAuth(auth getOrElse initialAssumedAuth).onComplete {
-    case Success(true) => ()
-    case Success(false) =>
-      scribe.warn("Login failed, token is not valid. Will switch to new assumed auth.")
-      storage.auth() = None // forget invalid token
-      // get a new initialAssumedAuth, as the old one might have already be used to become a real user.
-      // TODO: is that enough?
-      initialAssumedAuth = Authentication.Assumed.fresh
-      doLoginWithRetry(Some(initialAssumedAuth))
-    case Failure(t) =>
-      scribe.warn("Login request failed, will retry", t)
-      doLoginWithRetry(auth)
+  private def doLoginWithRetry(auth: Option[Authentication]): Unit = {
+    val nextAuth = auth getOrElse initialAssumedAuth
+    loginStorageAuth(auth getOrElse initialAssumedAuth).onComplete {
+      case Success(true) =>
+        lastSuccessAuth = Some(nextAuth)
+      case Success(false) =>
+        scribe.warn("Login failed, token is not valid. Will switch to new assumed auth.")
+        storage.auth() = None // forget invalid token
+        // get a new initialAssumedAuth, as the old one might have already be used to become a real user.
+        // TODO: is that enough?
+        initialAssumedAuth = Authentication.Assumed.fresh
+        doLoginWithRetry(Some(initialAssumedAuth))
+      case Failure(t) =>
+        scribe.warn("Login request failed, will retry", t)
+        doLoginWithRetry(auth)
+    }
   }
 
   private def timeSync(): Unit = {
@@ -100,9 +105,10 @@ object Client {
   }
 
   // new login if auth changed in other tab. ignore the initial events which comes directly.
-  //TODO
-  // storage.authFromOtherTab.triggerLater { auth =>
-  //   scribe.info("Authentication changed in other tab")
-  //   doLoginWithRetry(auth)
-  // }
+  storage.auth.triggerLater { auth =>
+    if (auth != lastSuccessAuth) {
+      scribe.info(s"Authentication changed in other tab: $auth")
+      doLoginWithRetry(auth)
+    }
+  }
 }
