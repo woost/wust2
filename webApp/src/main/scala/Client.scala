@@ -105,10 +105,10 @@ object Client {
   }
 
   // new login if auth changed in other tab. ignore the initial events which comes directly.
-  storage.auth.triggerLater { auth =>
-    if (auth != lastSuccessAuth) {
-      scribe.info(s"Authentication changed in other tab: $auth")
-      doLoginWithRetry(auth)
-    }
-  }
+  // storage.auth.triggerLater { auth =>
+  //   if (auth != lastSuccessAuth) {
+  //     scribe.info(s"Authentication changed in other tab: $auth")
+  //     doLoginWithRetry(auth)
+  //   }
+  // }
 }
