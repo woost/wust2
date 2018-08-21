@@ -33,8 +33,12 @@ class GlobalState (
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val graph: Rx[Graph] = eventProcessor.graph.unsafeToRx(seed = Graph.empty).map { graph =>
-    val u = user.now
+  val graph: Rx[Graph] = {
+    val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
+
+    Rx {
+      val graph = internalGraph()
+      val u = user()
     val newGraph =
       if (graph.nodeIds(u.channelNodeId)) graph
       else graph.addNodes(
@@ -46,12 +50,12 @@ class GlobalState (
 
     newGraph.consistent
   }
+  }
 
   val channelTree: Rx[Tree] = Rx {
     val channelNode = graph().nodesById(user().channelNodeId)
     graph().channelTree(channelNode)
   }
-  channelTree.debug("channeltree")
 
   val channels: Rx[Seq[Node]] = Rx {
     channelTree().flatten.distinct
