@@ -19,4 +19,7 @@ create unique index on team_mapping using btree(slack_team_id, wust_id);
 
 
 ALTER TABLE channel_mapping add column team_wust_id uuid references team_mapping(wust_id);
+ALTER TABLE message_mapping add column slack_thread_ts text;
 ALTER TABLE message_mapping add column channel_wust_id uuid references channel_mapping(wust_id);
+
+drop table conversation_mapping;
