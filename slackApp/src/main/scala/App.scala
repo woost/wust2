@@ -38,7 +38,7 @@ import wust.slack.Data._
 object Constants {
   //TODO
   val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"), NodeId.fromBase58String("5R1xejdFpxQiauAZtMVqpT"))
-  val globalSlackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.Restricted))
+//  val globalSlackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.Restricted))
 }
 
 
@@ -109,7 +109,6 @@ object AppServer {
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-    scribe.info(s"slackNode: ${ Constants.globalSlackNode.id.toString }")
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
 
@@ -117,11 +116,11 @@ object AppServer {
       allowedOrigins = HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
-    // TODO: author
-    val changes = GraphChanges(
-      addNodes = Set(Constants.globalSlackNode),
-    )
-    wustReceiver.push(List(changes), None)
+//    // TODO: author
+//    val changes = GraphChanges(
+//      addNodes = Set(Constants.globalSlackNode),
+//    )
+//    wustReceiver.push(List(changes), None)
 
     val slackEventMapper = SlackEventMapper(persistenceAdapter, wustReceiver, slackClient.apiClient)
 
@@ -143,10 +142,10 @@ object AppServer {
         workspaceNodeId <- persistenceAdapter.getTeamNodeBySlackId(slackAuthId.team_id).flatMap {
           case Some(nodeId) => Future.successful(nodeId)
           case None =>
-            val createdWorkspaceNode = EventMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), authData.wustAuthData.user.id, EpochMilli.now, Constants.globalSlackNode.id)
+            val createdWorkspaceNode = EventToGraphChangeMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), authData.wustAuthData.user.id, EpochMilli.now)
             wustReceiver.push(List(createdWorkspaceNode.graphChanges), None).map(_ => createdWorkspaceNode.nodeId)
         }
-        true <- persistenceAdapter.storeTeamMapping(Team_Mapping(Some(slackAuthId.team_id), slackAuthId.team, workspaceNodeId))
+        true <- persistenceAdapter.storeOrUpdateTeamMapping(Team_Mapping(Some(slackAuthId.team_id), slackAuthId.team, workspaceNodeId))
 
         // Add membership for user to workspace node
         true <- wustReceiver.client.api.addMember(workspaceNodeId, authData.wustAuthData.user.id, AccessLevel.ReadWrite)
@@ -245,7 +244,6 @@ object AppServer {
         val separator = "\n############################################################"
         val readyMsg = s"\n##### Slack App Server online at ${ binding.localAddress } #####"
         scribe.info(s"$separator$readyMsg$separator")
-        scribe.info(s"SlackApp node uuid:${ Constants.slackNode.id.toUuid }, base58: ${ Constants.slackNode.id.toBase58 }")
 
       case Failure(err) => scribe.error(s"Cannot start Slack App Server: $err")
     }

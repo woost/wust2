@@ -1,44 +1,38 @@
 package wust.slack
 
+import akka.actor.ActorSystem
 import cats.data.{EitherT, OptionT}
 import slack.api.SlackApiClient
 import slack.models.MessageSubtypes._
 import slack.models._
 import wust.graph.GraphChanges
 import wust.ids.{EpochMilli, NodeData, NodeId}
-import wust.sdk.EventMapper
-import wust.sdk.EventMapper.CreationResult
-import wust.slack.Data.{Channel_Mapping, Message_Mapping, WustUserData}
+import wust.sdk.EventToGraphChangeMapper
+import wust.sdk.EventToGraphChangeMapper.CreationResult
+import wust.slack.Data._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit ec: ExecutionContext) {
+case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit ec: ExecutionContext, system: ActorSystem) {
   import cats.implicits._
+  implicit val persistor = persistenceAdapter
+  implicit val receiver = wustReceiver
+  implicit val slack = slackClient
 
-  def toEpochMilli(str: String) = EpochMilli((str.toDouble * 1000).toLong)
 
-  def createMessage(createdMessage: Message): Future[Either[String, List[GraphChanges]]] = {
+  // Message endpoint
+  def createMessage(createdMessage: Message, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
 
     // Use persistenceAdapter.getMessageNodeByContent(mesage.text) ?
     if(createdMessage.bot_id.isEmpty && (createdMessage.user != "USLACKBOT" || createdMessage.channel_type != "channel")) {
-      val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
-        wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(createdMessage.user, wustReceiver.client))
-        wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(createdMessage.channel, wustReceiver, slackClient)) // teamId node unknown , Constants.slackNode.id
-      } yield {
-        val changes: CreationResult = EventMapper.createMessageInWust(
-          NodeData.Markdown(createdMessage.text),
-          wustUserData.wustUserId,
-          toEpochMilli(createdMessage.ts),
-          wustChannelNodeId
-        )
-        (changes.nodeId, changes.graphChanges, wustUserData)
-      }
 
-      val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create message").flatMapF { changes =>
-        val res = wustReceiver.push(List(changes._2), Some(changes._3))
+      val composed = EventComposer.createMessage(createdMessage, teamId)
+
+      val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not create message").flatMapF { changes =>
+        val res = wustReceiver.push(List(changes.gc), Some(changes.user))
         res.foreach {
-          case Right(_) => persistenceAdapter.storeMessageMapping(Message_Mapping(Some(createdMessage.channel), Some(createdMessage.ts), slack_deleted_flag = false, createdMessage.text, changes._1))
+          case Right(_) => persistenceAdapter.storeOrUpdateMessageMapping(Message_Mapping(Some(createdMessage.channel), Some(createdMessage.ts), createdMessage.thread_ts, slack_deleted_flag = false, createdMessage.text, changes.nodeId, changes.parentId))
           case _        => scribe.error(s"Could not apply changes to wust: $changes")
         }
         res
@@ -57,45 +51,33 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
   }
 
-  def changeMessage(changedMessage: MessageChanged): Future[Either[String, List[GraphChanges]]] = {
+  def changeMessage(changedMessage: MessageChanged, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
 
-    persistenceAdapter.isSlackMessageUpToDate(changedMessage.channel, changedMessage.previous_message.ts, changedMessage.message.text).flatMap(upToDate =>
+    persistenceAdapter.isMessageUpToDateBySlackData(changedMessage.channel, changedMessage.previous_message.ts, changedMessage.message.text).flatMap(upToDate =>
       if(!upToDate) {
-        val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
-          wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(changedMessage.message.user, wustReceiver.client))
-          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getOrCreateChannelNode(changedMessage.channel, wustReceiver, slackClient))
-          changes <- OptionT[Future, CreationResult](persistenceAdapter.getMessageNodeByChannelAndTimestamp(changedMessage.channel, changedMessage.previous_message.ts).map {
-            case Some(existingNodeId: NodeId) =>
-              Some(CreationResult(existingNodeId, EventMapper.editMessageContentInWust(
-                existingNodeId,
-                NodeData.Markdown(changedMessage.message.text),
-              )))
-            case None                             =>
-              Some(EventMapper.createMessageInWust(
-                NodeData.Markdown(changedMessage.message.text),
-                wustUserData.wustUserId,
-                toEpochMilli(changedMessage.previous_message.ts),
-                wustChannelNodeId
-              ))
-            case n                                =>
-              scribe.error(s"The node id does not corresponds to a content node: $n")
-              None
-          })
-        } yield {
-          (changes.nodeId, changes.graphChanges, wustUserData)
-        }
 
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not change message").flatMapF { changes =>
-          val res = wustReceiver.push(List(changes._2), Some(changes._3))
+        val composed = EventComposer.changeMessage(changedMessage, teamId)
+
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not change message").flatMapF { changes =>
+          val res = wustReceiver.push(List(changes.gc), Some(changes.user))
           res.foreach {
-            case Right(_) => persistenceAdapter.updateMessageMapping(Message_Mapping(Some(changedMessage.channel), Some(changedMessage.previous_message.ts), slack_deleted_flag = false, changedMessage.message.text, changes._1))
+            case Right(_) => persistenceAdapter.updateMessageMapping(
+              Message_Mapping(
+                Some(changedMessage.channel),
+                Some(changedMessage.previous_message.ts),
+                None, //TODO: Model timestamps
+                slack_deleted_flag = false,
+                changedMessage.message.text,
+                changes.nodeId,
+                changes.parentId
+              ))
             case _        => scribe.error(s"Could not apply changes to wust: $changes")
           }
           res
         }
 
         applyChanges.value.onComplete {
-          case Success(request) => scribe.info("Successfully changed message")
+          case Success(_) => scribe.info("Successfully changed message")
           case Failure(ex)      => scribe.error("Error changing message: ", ex)
         }
 
@@ -108,20 +90,12 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
   }
 
   def deleteMessage(deletedMessage: MessageDeleted): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.isSlackMessageDeleted(deletedMessage.channel, deletedMessage.previous_message.ts).flatMap { deleted =>
+    persistenceAdapter.isMessageDeletedBySlackIdData(deletedMessage.channel, deletedMessage.previous_message.ts).flatMap { deleted =>
       if(!deleted) {
-        val graphChanges: OptionT[Future, GraphChanges] = for {
-          _ <- OptionT[Future, Boolean](persistenceAdapter.deleteMessage(deletedMessage.channel, deletedMessage.previous_message.ts).map(Some(_)))
-          nodeId <- OptionT[Future, NodeId](persistenceAdapter.getMessageNodeByChannelAndTimestamp(deletedMessage.channel, deletedMessage.previous_message.ts))
-          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeById(deletedMessage.channel))
-        } yield {
-          EventMapper.deleteMessageInWust(
-            nodeId,
-            wustChannelNodeId
-          )
-        }
 
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not delete message").flatMapF { changes =>
+        val composed = EventComposer.deleteMessage(deletedMessage)
+
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not delete message").flatMapF { changes =>
           wustReceiver.push(List(changes), None)
         }
 
@@ -138,31 +112,62 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
   }
 
-  def renameChannel(messageWithSubtype: MessageWithSubtype, channelNameMessage: ChannelNameMessage): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.isSlackChannelUpToDateElseGetNode(messageWithSubtype.channel, channelNameMessage.name).flatMap {
-      case Some(nodeId) =>
 
-        val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
-          wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(messageWithSubtype.user, wustReceiver.client))
-        } yield {
-          val changes: GraphChanges = EventMapper.editChannelInWust(
-            nodeId,
-            NodeData.Markdown(channelNameMessage.name),
-          )
-          (nodeId, changes, wustUserData)
+  // Channel endpoint
+  def createChannel(createdChannel: ChannelCreated, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
+    persistenceAdapter.getChannelNodeBySlackId(createdChannel.channel.id).flatMap {
+      case None =>
+
+        val composed = EventComposer.createChannel(createdChannel, teamId)
+
+        composed.value.flatMap {
+          case Some(gc) => persistenceAdapter.storeOrUpdateChannelMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc.nodeId, gc.parentId))
+          case None     => Future.successful(false)
+        }.onComplete {
+          case Success(_)  => scribe.info("Created new channel mapping for channel")
+          case Failure(ex) => scribe.error("Could not create channel in channel mapping", ex)
         }
 
-        graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.updateChannelMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, nodeId))
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not create channel").flatMapF { changes =>
+          val res = wustReceiver.push(List(changes.gc), Some(changes.user))
+          res.foreach {
+            case Right(_) => scribe.info(s"Created new slack channel in wust: ${ createdChannel.channel.name }")
+            case _        => scribe.error(s"Could not apply changes to wust: $changes")
+          }
+          res
+        }
+
+        applyChanges.value.onComplete {
+          case Success(_) => scribe.info("Created new channel")
+          case Failure(ex)      => scribe.error("Error creating channel: ", ex)
+        }
+
+        applyChanges.value
+
+      case Some(_) =>
+        Future.successful(Right(List.empty[GraphChanges]))
+
+    }
+
+  }
+
+  def renameChannel(messageWithSubtype: MessageWithSubtype, channelNameMessage: ChannelNameMessage): Future[Either[String, List[GraphChanges]]] = {
+    persistenceAdapter.isChannelUpToDateBySlackDataElseGetNodes(messageWithSubtype.channel, channelNameMessage.name).flatMap {
+      case Some(nodes) =>
+
+        val composed = EventComposer.renameChannel(messageWithSubtype, channelNameMessage, nodes._1, nodes._2)
+
+        composed.value.flatMap {
+          case Some(changes) => persistenceAdapter.updateChannelMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, changes.nodeId, changes.parentId))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Could not store channel mapping")
           case Failure(ex) => scribe.error("Could not create channel in channel mapping", ex)
         }
 
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not rename channel").flatMapF {
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not rename channel").flatMapF {
           changes =>
-            val res = wustReceiver.push(List(changes._2), Some(changes._3))
+            val res = wustReceiver.push(List(changes.gc), Some(changes.user))
             res.foreach {
               case Right(_) => scribe.info(s"Created renaming slack channel in wust: ${ channelNameMessage.name }")
               case _        => scribe.error(s"Could not apply changes to wust: $changes")
@@ -184,74 +189,18 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
   }
 
-  def createChannel(createdChannel: ChannelCreated): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.getChannelNodeByName(createdChannel.channel.name).flatMap {
-      case None =>
-
-        val graphChanges: OptionT[Future, (NodeId, GraphChanges, WustUserData)] = for {
-          wustUserData <- OptionT[Future, WustUserData](persistenceAdapter.getOrCreateWustUser(createdChannel.channel.creator.get, wustReceiver.client))
-          teamId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(createdChannel.channel))
-        } yield {
-          val changes: (NodeId, GraphChanges) = EventMapper.createChannelInWust(
-            NodeData.Markdown(createdChannel.channel.name),
-            wustUserData.wustUserId,
-            EpochMilli(createdChannel.channel.created),
-            Constants.slackNode.id
-          )
-          (changes._1, changes._2, wustUserData)
-        }
-
-        graphChanges.value.flatMap {
-          case Some(gc) => persistenceAdapter.storeChannelMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc._1))
-          case None     => Future.successful(false)
-        }.onComplete {
-          case Success(_)  => scribe.info("Created new channel mapping for channel")
-          case Failure(ex) => scribe.error("Could not create channel in channel mapping", ex)
-        }
-
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not create channel").flatMapF { changes =>
-          val res = wustReceiver.push(List(changes._2), Some(changes._3))
-          res.foreach {
-            case Right(_) => scribe.info(s"Created new slack channel in wust: ${ createdChannel.channel.name }")
-            case _        => scribe.error(s"Could not apply changes to wust: $changes")
-          }
-          res
-        }
-
-        applyChanges.value.onComplete {
-          case Success(request) => scribe.info("Created new channel")
-          case Failure(ex)      => scribe.error("Error creating channel: ", ex)
-        }
-
-        applyChanges.value
-
-      case Some(channelId) =>
-        Future.successful(Right(List.empty[GraphChanges]))
-
-    }
-
-  }
-
-
-  def archiveChannel(archivedChannel: ChannelArchive): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.isSlackChannelDeleted(archivedChannel.channel).flatMap { deleted =>
+  def archiveChannel(archivedChannel: ChannelArchive, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
+    persistenceAdapter.isChannelDeletedBySlackId(archivedChannel.channel).flatMap { deleted =>
       if(!deleted) {
-        val graphChanges: OptionT[Future, GraphChanges] = for {
-          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeById(archivedChannel.channel))
-          true <- OptionT[Future, Boolean](persistenceAdapter.deleteChannel(archivedChannel.channel).map(Some(_)))
-        } yield {
-          EventMapper.deleteChannelInWust(
-            wustChannelNodeId,
-            Constants.slackNode.id
-          )
-        }
 
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not archive channel").flatMapF { changes =>
-          wustReceiver.push(List(changes), None)
+        val composed = EventComposer.archiveChannel(archivedChannel, teamId)
+
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not archive channel").flatMapF { changes =>
+          wustReceiver.push(List(changes.gc), Some(changes.user))
         }
 
         applyChanges.value.onComplete {
-          case Success(request) => scribe.info("Archieved channel")
+          case Success(_) => scribe.info("Archieved channel")
           case Failure(ex)      => scribe.error("Error archiving channel: ", ex)
         }
 
@@ -264,25 +213,37 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
   }
 
   // Currently same as delete, c&p
-  def deleteChannel(deletedChannel: ChannelDeleted): Future[Either[String, List[GraphChanges]]] = {
-    archiveChannel(ChannelArchive(deletedChannel.channel, "unknown")) //TODO: get user somehow if possible
-  }
+  def deleteChannel(deletedChannel: ChannelDeleted, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
+    //TODO: get user somehow if possible
+    persistenceAdapter.isChannelDeletedBySlackId(deletedChannel.channel).flatMap { deleted =>
+      if(!deleted) {
 
-  def unarchiveChannel(unarchivedChannel: ChannelUnarchive): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.isSlackChannelDeleted(unarchivedChannel.channel).flatMap { deleted =>
-      if(deleted) {
-        val graphChanges: OptionT[Future, GraphChanges] = for {
-          wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeById(unarchivedChannel.channel))
-          true <- OptionT[Future, Boolean](persistenceAdapter.unDeleteChannel(unarchivedChannel.channel).map(Some(_)))
-        } yield {
-          EventMapper.unDeleteChannelInWust(
-            wustChannelNodeId,
-            Constants.slackNode.id
-          )
+        val composed = EventComposer.deleteChannel(deletedChannel, teamId)
+
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not archive channel").flatMapF { changes =>
+          wustReceiver.push(List(changes), None)
         }
 
-        val applyChanges: EitherT[Future, String, List[GraphChanges]] = graphChanges.toRight[String]("Could not undelete channel").flatMapF { changes =>
-          wustReceiver.push(List(changes), None)
+        applyChanges.value.onComplete {
+          case Success(_) => scribe.info("Deleted channel")
+          case Failure(ex)      => scribe.error("Error deleting channel: ", ex)
+        }
+
+        applyChanges.value
+      } else {
+        Future.successful(Right(List.empty[GraphChanges]))
+      }
+    }
+  }
+
+  def unarchiveChannel(unarchivedChannel: ChannelUnarchive, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
+    persistenceAdapter.isChannelDeletedBySlackId(unarchivedChannel.channel).flatMap { deleted =>
+      if(deleted) {
+
+        val composed = EventComposer.unarchiveChannel(unarchivedChannel, teamId)
+
+        val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not undelete channel").flatMapF { changes =>
+          wustReceiver.push(List(changes.gc), Some(changes.user))
         }
 
         applyChanges.value.onComplete {
@@ -306,11 +267,11 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
     case e: Message =>
       scribe.info(s"Event => message: ${ e.toString }")
-      createMessage(e)
+      createMessage(e, slackEventStructure.team_id)
 
     case e: MessageChanged =>
       scribe.info(s"Event => message changed: ${ e.toString }")
-      changeMessage(e)
+      changeMessage(e, slackEventStructure.team_id)
 
     case e: MessageDeleted =>
       scribe.info(s"Event => message deleted: ${ e.toString }")
@@ -360,7 +321,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
     case e: ChannelCreated =>
       scribe.info(s"Event => channel created: ${ e.toString }")
-      createChannel(e)
+      createChannel(e, slackEventStructure.team_id)
 
     case e: ChannelJoined =>
       scribe.info(s"Event => channel joined: ${ e.toString }")
@@ -372,7 +333,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
     case e: ChannelDeleted =>
       scribe.info(s"Event => channel deleted: ${ e.toString }")
-      deleteChannel(e)
+      deleteChannel(e, slackEventStructure.team_id)
 
     case e: ChannelRename =>
       scribe.info(s"Event => channel renamed: ${ e.toString }")
@@ -382,11 +343,11 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
     case e: ChannelArchive =>
       scribe.info(s"Event => channel archived: ${ e.toString }")
-      archiveChannel(e)
+      archiveChannel(e, slackEventStructure.team_id)
 
     case e: ChannelUnarchive =>
       scribe.info(s"Event => channel unarchived: ${ e.toString }")
-      unarchiveChannel(e)
+      unarchiveChannel(e, slackEventStructure.team_id)
 
     case e: ChannelHistoryChanged =>
       scribe.info(s"Event => channel history changed: ${ e.toString }")
