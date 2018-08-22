@@ -15,49 +15,55 @@ case object MockAdapter extends PersistenceAdapter {
   implicit val system: ActorSystem = ActorSystem("slack-mock-adapter")
   import monix.execution.Scheduler.Implicits.global
 
+  // Store
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = ???
-  def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
-  def storeChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = ???
+  def storeOrUpdateMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
+  def storeOrUpdateChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = ???
+  def storeOrUpdateTeamMapping(teamMapping: Team_Mapping): Future[Boolean] = ???
 
+
+  // Update
   def updateMessageMapping(messageMapping: Message_Mapping): Future[Boolean] = ???
   def updateChannelMapping(channelMapping: Channel_Mapping): Future[Boolean] = ???
 
-  def getChannelMappingBySlackName(channelName: String): Future[Option[Channel_Mapping]] = ???
+
+  // Delete
+  def deleteChannelBySlackId(channelId: SlackChannelId): Future[Boolean] = ???
+  def unDeleteChannelBySlackId(channelId: SlackChannelId): Future[Boolean] = ???
+  def deleteMessageBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
+
+
+  // Queries
+  // Query Wust NodeId by Slack Id
+  def getTeamNodeBySlackId(teamId: SlackTeamId): Future[Option[NodeId]] = ???
+  def getChannelNodeBySlackId(channelId: SlackChannelId): Future[Option[NodeId]] = ???
+  def getMessageNodeBySlackIdData(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]] = ???
+
+
+  // Query Slack Id by Wust NodeId
+  def getSlackChannelByWustId(nodeId: NodeId): Future[Option[SlackChannelId]] = ???
+
+
+  // Query Data by Slack Id
+
+
+  // Query Data by Wust Id
+  def getWustUserBySlackUserId(slackUser: SlackUserId): Future[Option[WustUserData]] = ???
+  def getSlackUserByWustId(userId: UserId): Future[Option[SlackUserData]] = ???
   def getChannelMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = ???
-
-  def getOrCreateWustUser(slackUser: SlackUserId, wustClient: WustClient): Future[Option[WustUserData]] = ???
-  def getOrCreateSlackUser(wustUser: SlackUserId): Future[Option[SlackUserData]] = ???
-
-  def getChannelNodeById(channelId: SlackChannelId): Future[Option[NodeId]] = ???
-  def getChannelNodeByName(channelName: String): Future[Option[NodeId]] = ???
-  def getOrCreateKnowChannelNode(channel: SlackChannelId, slackNode: NodeId, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = ???
-
-  def getSlackChannelId(nodeId: NodeId): Future[Option[SlackChannelId]] = ???
-  def getSlackMessage(nodeId: NodeId): Future[Option[Message_Mapping]] = ???
-  def getSlackUser(userId: UserId): Future[Option[SlackUserData]] = ???
-
-  def getMessageNodeByChannelAndTimestamp(channel: SlackChannelId, timestamp: SlackTimestamp): Future[Option[NodeId]] = ???
-  def getMessageNodeByContent(text: String): Future[Option[NodeId]] = ???
-
-  def getSlackChannelOfMessageNodeId(nodeId: NodeId): Future[Option[NodeId]] = ???
-
-
-  def deleteMessage(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
-  def deleteChannel(channelId: SlackChannelId): Future[Boolean] = ???
-  def unDeleteChannel(channelId: SlackChannelId): Future[Boolean] = ???
-
+  def getSlackMessageByWustId(nodeId: NodeId): Future[Option[Message_Mapping]] = ???
 
 
   // Guards
-  def isSlackMessageDeleted(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
-  def isSlackMessageUpToDate(channel: String, timestamp: String, text: String): Future[Boolean] = ???
-  def isSlackChannelDeleted(channelId: String): Future[Boolean] = ???
-  def isSlackChannelUpToDate(channelId: String, name: String): Future[Boolean] = ???
-  def isSlackChannelUpToDateElseGetNode(channelId: String, name: String): Future[Option[NodeId]] = ???
+  def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.workspaceId)
+  def isChannelDeletedBySlackId(channelId: String): Future[Boolean] = ???
+  def isChannelUpToDateBySlackDataElseGetNodes(channelId: String, name: String): Future[Option[(NodeId, NodeId)]] = ???
+  def isMessageDeletedBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
+  def isMessageUpToDateBySlackData(channel: String, timestamp: String, text: String): Future[Boolean] = ???
 }
 
 object TestConstants {
-  val workspaceId: NodeId = Constants.slackNode.id
+  val workspaceId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkw")
   val messageNodeId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkJ")
   val channelNodeId: NodeId = NodeId.fromBase58String("5R73E84pCdVisswaNFr47x")
   val userId: UserId = UserId.fromBase58String("5R5TZsZJeL3enTMmq8Jwmg")
@@ -76,6 +82,12 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
 //  "load config" in {
 //    val config = Config.load("wust.slack.test")
 //    config should be ('right)
+//  }
+
+//  "use correct user for events" in {
+//    val mapper: WustEventMapper = getMapper()
+//
+//    // TODO
 //  }
 
   "detect: create message event" in {
@@ -110,8 +122,8 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterDelete = mapper.filterDeleteEvents(createMessage)
     val filterUpdate = mapper.filterUpdateEvents(createMessage)
 
-    filterCreateMessage.nonEmpty shouldBe true
-    filterCreateChannel.nonEmpty shouldBe false
+    filterCreateMessage.map(_.nonEmpty shouldBe true)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
 
@@ -149,8 +161,8 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterDelete = mapper.filterDeleteEvents(createChannel)
     val filterUpdate = mapper.filterUpdateEvents(createChannel)
 
-    filterCreateMessage.nonEmpty shouldBe false
-    filterCreateChannel.nonEmpty shouldBe true
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateChannel.map(_.nonEmpty shouldBe true)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
 
@@ -177,8 +189,8 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterDelete = mapper.filterDeleteEvents(deleteMessage)
     val filterUpdate = mapper.filterUpdateEvents(deleteMessage)
 
-    filterCreateMessage.nonEmpty shouldBe false
-    filterCreateChannel.nonEmpty shouldBe false
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe true
     filterUpdate.nonEmpty shouldBe false
 
@@ -205,8 +217,8 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterDelete = mapper.filterDeleteEvents(deleteChannel)
     val filterUpdate = mapper.filterUpdateEvents(deleteChannel)
 
-    filterCreateMessage.nonEmpty shouldBe false
-    filterCreateChannel.nonEmpty shouldBe false
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe true
     filterUpdate.nonEmpty shouldBe false
 
@@ -239,8 +251,8 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterDelete = mapper.filterDeleteEvents(updateMessage)
     val filterUpdate = mapper.filterUpdateEvents(updateMessage)
 
-    filterCreateMessage.nonEmpty shouldBe false
-    filterCreateChannel.nonEmpty shouldBe false
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe true
 
@@ -273,8 +285,8 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterDelete = mapper.filterDeleteEvents(renameChannel)
     val filterUpdate = mapper.filterUpdateEvents(renameChannel)
 
-    filterCreateMessage.nonEmpty shouldBe false
-    filterCreateChannel.nonEmpty shouldBe false
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe true
 
