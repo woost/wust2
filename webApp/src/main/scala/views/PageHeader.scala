@@ -33,7 +33,6 @@ object PageHeader {
     div(
       Rx {
         pageParentNodes().map { channel => channelRow(state, channel, state.user().channelNodeId) }
-        ,
       }
     )
   }
@@ -125,7 +124,7 @@ object PageHeader {
             text = shareDesc
             url = shareUrl
           }).toFuture.onComplete {
-            case Success(()) => scribe.info("Successfully shared post")
+            case Success(()) => ()
             case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
           }
         } else {
