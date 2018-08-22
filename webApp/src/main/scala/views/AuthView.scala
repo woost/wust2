@@ -28,7 +28,7 @@ object AuthView {
       actionSink = sideEffect[(String, String)] {
         case (userName, password) =>
           submitAction(userName, password).onComplete {
-            case Success(None)        => state.viewConfig() = state.viewConfig.now.noOverlayView
+            case Success(None)        => state.viewConfig() = state.viewConfig.now.redirect
             case Success(Some(vnode)) => errorMessageHandler.onNext(vnode)
             case Failure(t)           => errorMessageHandler.onNext(s"Unexpected error: $t")
           }

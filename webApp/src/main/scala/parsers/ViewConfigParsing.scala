@@ -11,7 +11,7 @@ private object ViewConfigConstants {
   val urlSeparator = "&"
   val viewKey = "view="
   val pageKey = "page="
-  val prevViewKey = "prevView="
+  val redirectToKey = "redirectTo="
   val shareKey = "share?"
 }
 import wust.webApp.parsers.ViewConfigConstants._
@@ -72,10 +72,10 @@ object ViewConfigParser {
 
   // TODO: marke order of values flexible
   val viewConfig: P[ViewConfig] =
-    P(viewKey ~/ view ~/ pageKey ~/ page ~/ (prevViewKey ~/ view).? ~/ (shareKey ~/ shareOptions).?)
+    P(viewKey ~/ view ~/ pageKey ~/ page ~/ (redirectToKey ~/ view).? ~/ (shareKey ~/ shareOptions).?)
       .map {
-        case (view, page, prevView, shareOptions) =>
-          ViewConfig(view, page, prevView, shareOptions)
+        case (view, page, redirectTo, shareOptions) =>
+          ViewConfig(view, page, redirectTo, shareOptions)
       }
 }
 
@@ -92,8 +92,8 @@ object ViewConfigWriter {
           .map(_.toBase58)
           .mkString(idSeparator)}${pageSeparator}${childrenIds.map(_.toBase58).mkString(idSeparator)}"
     })
-    val prevViewStringWithSep =
-      cfg.prevView.fold("")(v => urlSeparator + prevViewKey + v.viewKey)
-    s"$viewString$urlSeparator$pageString$prevViewStringWithSep"
+    val redirectToStringWithSep =
+      cfg.redirectTo.fold("")(v => urlSeparator + redirectToKey + v.viewKey)
+    s"$viewString$urlSeparator$pageString$redirectToStringWithSep"
   }
 }
