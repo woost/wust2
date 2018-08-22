@@ -137,7 +137,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     } yield SlackClient(token, isUser)
   }
 
-  def computeMapping(gc: GraphChanges) = {
+  def computeMapping(userId: UserId, gc: GraphChanges) = {
     /**************/
     /* Meta stuff */
     /**************/

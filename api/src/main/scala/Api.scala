@@ -122,17 +122,18 @@ object ApiEvent {
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
+    val user: UserId
   }
   object NewGraphChanges {
-    def unapply(event: ApiEvent): Option[GraphChanges] = event match {
-      case gc: NewGraphChanges => Some(gc.changes)
+    def unapply(event: ApiEvent): Option[(UserId, GraphChanges)] = event match {
+      case gc: NewGraphChanges => Some(gc.user -> gc.changes)
       case _                   => None
     }
 
-    def apply(changes: GraphChanges) = ForPublic(changes)
-    case class ForPublic(changes: GraphChanges) extends NewGraphChanges with Public
-    case class ForPrivate(changes: GraphChanges) extends NewGraphChanges with Private
-    case class ForAll(changes: GraphChanges) extends NewGraphChanges with Public with Private
+    def apply(user: UserId, changes: GraphChanges) = ForPublic(user, changes)
+    case class ForPublic(user: UserId, changes: GraphChanges) extends NewGraphChanges with Public
+    case class ForPrivate(user: UserId, changes: GraphChanges) extends NewGraphChanges with Private
+    case class ForAll(user: UserId, changes: GraphChanges) extends NewGraphChanges with Public with Private
   }
 
   case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {

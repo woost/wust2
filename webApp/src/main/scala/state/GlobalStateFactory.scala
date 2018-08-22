@@ -151,7 +151,7 @@ object GlobalStateFactory {
     // client is currently running.
     Client.observable.event.foreach { events =>
       val changes = events
-        .collect { case ApiEvent.NewGraphChanges(changes) => changes }
+        .collect { case ApiEvent.NewGraphChanges(_, gc) => gc }
         .foldLeft(GraphChanges.empty)(_ merge _)
       val nodes = changes.addNodes.collect { case n: Node.Content => n } // only notify for content changes
       if (!state.documentIsVisible.now && nodes.nonEmpty) {

@@ -326,30 +326,30 @@ object WustReceiver {
     scribe.info(s"$separator$readyMsg$separator")
     scribe.info("Running WustReceiver")
 
-    val graphChanges: Observable[Seq[GraphChanges]] = wustClient.observable.event.map({ e =>
+    val graphChanges: Observable[Seq[NewGraphChanges]] = wustClient.observable.event.map({ e =>
       scribe.info(s"triggering collect on $e")
       e.collect {
         case ev: ApiEvent.GraphContent =>
           scribe.info("received api event")
           ev
       }
-      }).collect({
-        case list if list.nonEmpty =>
-          scribe.info("api event non-empty")
-          list
-          }).map(_.map {
-            case NewGraphChanges(gc) => gc
-          })
+    }).collect({
+      case list if list.nonEmpty =>
+        scribe.info("api event non-empty")
+        list
+    }).map(_.collect {
+      case gc: NewGraphChanges => gc
+    })
 
-          graphChanges.foreach { graphChangeSeq =>
-            graphChangeSeq.foreach { gc =>
+    graphChanges.foreach { graphChangeSeq =>
+      graphChangeSeq.foreach { gc =>
 
-              scribe.info(s"Received GraphChanges: $gc")
-              wustEventMapper.computeMapping(gc)
-            }
-          }
+        scribe.info(s"Received GraphChanges: ${gc.changes}")
+        wustEventMapper.computeMapping(gc.user, gc.changes)
+      }
+    }
 
-          new WustReceiver(client)
+    new WustReceiver(client)
   }
 
 

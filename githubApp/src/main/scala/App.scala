@@ -340,7 +340,7 @@ object WustReceiver {
     val graphObs: Observable[GraphTransition] = graphEvents.scan(GraphTransition.empty) {
       (prevTrans, events) =>
         println(s"Got events: $events")
-        val changes = events collect { case ApiEvent.NewGraphChanges(_changes) => _changes }
+        val changes = events collect { case ApiEvent.NewGraphChanges(_, _changes) => _changes }
         val nextGraph = events.foldLeft(prevTrans.resGraph)(EventUpdate.applyEventOnGraph)
         GraphTransition(prevTrans.resGraph, changes, nextGraph)
     }

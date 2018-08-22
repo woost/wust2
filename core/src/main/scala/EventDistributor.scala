@@ -39,7 +39,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
     val (checkedNodeIdsList, uncheckedNodeIdsList) = events.map {
-      case ApiEvent.NewGraphChanges(changes) =>
+      case ApiEvent.NewGraphChanges(_, changes) =>
         val userIds: Set[UserId] = changes.addNodes.collect { case c: Node.User => c.id }(breakOut) //FIXME we cannot not check permission on users nodes as they currentl have no permissions, we just allow them for now.
         (changes.involvedNodeIds.toSet -- userIds, userIds)
       case _ => (Set.empty[NodeId], Set.empty[UserId])
@@ -79,7 +79,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
         case Success(permittedNodeIds) =>
           val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet))
           val payload = filteredEvents.collect {
-            case ApiEvent.NewGraphChanges(changes) if changes.addNodes.nonEmpty =>
+            case ApiEvent.NewGraphChanges(_, changes) if changes.addNodes.nonEmpty =>
               changes.addNodes.map(_.data.str.trim)
           }.flatten
 
@@ -122,7 +122,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   }
 
   private def eventFilter(allowedNodeIds: Set[NodeId]): ApiEvent => ApiEvent = {
-    case ApiEvent.NewGraphChanges(changes) => ApiEvent.NewGraphChanges(changes.filter(allowedNodeIds))
+    case ApiEvent.NewGraphChanges(user, changes) => ApiEvent.NewGraphChanges(user, changes.filter(allowedNodeIds))
     case other => other
   }
 }

@@ -117,7 +117,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           // TODO: always add the user to graphchange events, in case other users have never seen this user.
           val additionalChanges = GraphChanges(addNodes = Set(user.toNode))
           val compactChanges = changes.foldLeft(additionalChanges)(_ merge _)
-          Returns(true, Seq(NewGraphChanges(compactChanges)))
+          Returns(true, Seq(NewGraphChanges(user.id, compactChanges)))
         } else Returns(false)
       }
     } else Future.successful(Returns.error(ApiError.Forbidden))
@@ -140,6 +140,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
             if (added)
               Seq(
                 NewGraphChanges(
+                  user.id,
                   GraphChanges(
                     addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)),
                     addNodes = Set(user)

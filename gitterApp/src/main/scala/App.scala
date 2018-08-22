@@ -96,7 +96,7 @@ object WustReceiver {
 
     graphEvents.foreach { events: Seq[ApiEvent.GraphContent] =>
       println(s"Got events in Gitter: $events")
-      val changes = events collect { case ApiEvent.NewGraphChanges(changes) => changes }
+      val changes = events collect { case ApiEvent.NewGraphChanges(_, changes) => changes }
       val posts = changes.flatMap(_.addNodes)
       posts.map(p => ExchangeMessage(p.data.str)).foreach { msg =>
         gitter.send(msg)
