@@ -20,28 +20,38 @@ object Client {
   import window.location
   // in firefox or chrome: location.port is always set
   // in edge: location.port might be empty if not specified.
+  private val hostname = location.hostname
+  private val port = if (location.port.isEmpty) "" else ":" + location.port
+  private val protocol = location.protocol
+
   private val wustUrl = {
-    val protocol = if (location.protocol == "https:") "wss:" else "ws:"
-    val port = if (location.port.isEmpty) "" else ":" + location.port
-    val hostname = location.hostname
+    val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
 
     if (LinkingInfo.developmentMode)
-      s"$protocol//${hostname}$port/ws" // allows to access the devserver without subdomain
+      s"$socketProtocol//${hostname}$port/ws" // allows to access the devserver without subdomain
     else
-      s"$protocol//core.${hostname}$port/ws"
+      s"$socketProtocol//core.${hostname}$port/ws"
   }
+
   private val githubUrl = {
-    import window.location
-    s"${location.protocol}//github.${location.hostname}:8902/api"
+    if (LinkingInfo.developmentMode)
+      s"$protocol//${hostname}:9101/api" // allows to access the devserver without subdomain
+    else
+      s"$protocol//github.${hostname}/api"
   }
-  private val slackUrl = {
-    import window.location
-    // s"${location.protocol}//slack.${location.hostname}:9103/api"
-    s"${location.protocol}//slack.${location.hostname}/api"
-  }
+
   private val gitterUrl = {
-    import window.location
-    s"${location.protocol}//gitter.${location.hostname}:8904/api"
+    if (LinkingInfo.developmentMode)
+      s"$protocol//${hostname}:9102/api" // allows to access the devserver without subdomain
+    else
+      s"$protocol//gitter.${hostname}/api"
+  }
+
+  private val slackUrl = {
+    if (LinkingInfo.developmentMode)
+      s"$protocol//${hostname}:9103/api" // allows to access the devserver without subdomain
+    else
+      s"$protocol//slack.${hostname}/api"
   }
 
   private val githubClient = HttpClient[ByteBuffer](githubUrl)
