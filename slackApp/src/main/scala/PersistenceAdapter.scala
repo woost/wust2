@@ -15,10 +15,6 @@ import scala.util.{Failure, Success}
 import wust.slack.Data._
 
 trait PersistenceAdapter {
-  type SlackTeamId = String
-  type SlackChannelId = String
-  type SlackTimestamp = String
-  type SlackUserId = String
 
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean]
   def storeMessageMapping(messageMapping: Message_Mapping): Future[Boolean]

@@ -20,6 +20,10 @@ object Db {
 }
 
 object Data {
+  type SlackTeamId = String
+  type SlackChannelId = String
+  type SlackTimestamp = String
+  type SlackUserId = String
   //  case class WustUserData(wustUserId: UserId, wustUserToken: Authentication.Token)
   //  case class SlackUserData(slackUserId: String, slackUserToken: AccessToken)
   case class WustUserData(wustUserId: UserId, wustUserToken: String)
