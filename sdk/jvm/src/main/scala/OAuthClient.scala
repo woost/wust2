@@ -104,8 +104,9 @@ class OAuthClient(val oAuthConfig: OAuthConfig, appServerConfig: ServerConfig, w
         }
 
         //TODO env varibles
-         val wustProtocol = if(wustServerConfig.port == 443) "https" else "http"
-        redirect(s"$wustProtocol://${wustServerConfig.host}/#view=usersettings&page=default", StatusCodes.SeeOther)
+        val wustProtocol = if(wustServerConfig.port == 443) "https" else "http"
+        val wustPort = if(wustServerConfig.port != 443) ":12345" else ""
+        redirect(s"$wustProtocol://${wustServerConfig.host}$wustPort/#view=usersettings&page=default", StatusCodes.SeeOther)
       }
       // TODO: handle user aborts
     }
