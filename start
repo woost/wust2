@@ -72,7 +72,9 @@ function sbt() {
 dockerhost_ip=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
 
 FALLBACKVERSION="dirty" # When git is not available
-[ -n "$TRAVIS_BRANCH" ] && VERSION=$TRAVIS_BRANCH || [ -n "$CI_COMMIT_REF_NAME" ] && VERSION=$CI_COMMIT_REF_NAME || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
+#  || [ -n "$CI_COMMIT_REF_NAME" ] && VERSION=$CI_COMMIT_REF_NAME
+#  || [ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH
+[ -n "$TRAVIS_BRANCH" ] && VERSION=$TRAVIS_BRANCH || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
 [ $VERSION == "master" ] && VERSION="latest"
 
 
