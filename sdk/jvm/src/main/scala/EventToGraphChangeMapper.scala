@@ -9,13 +9,13 @@ object EventToGraphChangeMapper {
 
   def createNodeInWust(nodeContent: Node.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, parents: Set[NodeId], additionalMembers: Set[(UserId, AccessLevel)]): GraphChanges = {
 
-    val nodeAuthorEdge = Edge.Author(wustAuthorUserId, EdgeData.Author(timestamp), nodeContent.id)
-    val nodeAuthorMemberEdge = Edge.Member(wustAuthorUserId, EdgeData.Member(AccessLevel.ReadWrite), nodeContent.id)
+//    val nodeAuthorEdge = Edge.Author(wustAuthorUserId, EdgeData.Author(timestamp), nodeContent.id)
+//    val nodeAuthorMemberEdge = Edge.Member(wustAuthorUserId, EdgeData.Member(AccessLevel.ReadWrite), nodeContent.id)
 
     val parentEdges: Set[Edge] = parents.map(parent => Edge.Parent(nodeContent.id, parent))
-    val memberEdges: Set[Edge] = additionalMembers.collect {
-      case (member: UserId, access: AccessLevel) => Edge.Member(member, EdgeData.Member(access), nodeContent.id)
-    }
+//    val memberEdges: Set[Edge] = additionalMembers.collect {
+//      case (member: UserId, access: AccessLevel) => Edge.Member(member, EdgeData.Member(access), nodeContent.id)
+//    }
 
 
     GraphChanges(
@@ -23,9 +23,9 @@ object EventToGraphChangeMapper {
         nodeContent
       ),
       addEdges = parentEdges
-        ++ memberEdges
+//        ++ memberEdges
         ++ Set(
-        nodeAuthorEdge, nodeAuthorMemberEdge
+//        nodeAuthorEdge, nodeAuthorMemberEdge
       )
     )
   }
