@@ -92,30 +92,9 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
   }
 
-  def getAuthorClient(gc: GraphChanges) = {
+  def getAuthorClient(userId: UserId) = {
 
-    def getUserNode(nodes: Set[Node]) = {
-      nodes.flatMap {
-        case Node.User(id, _, _) => Some(id)
-        case _ => None
-      }.headOption
-    }
-
-    // TODO: Not possible to tell who created / deleted edges
-    val authorUser = gc.addEdges.flatMap {
-      case Edge.Author(userId, _, _) => Some(userId)
-      case _                         => None
-    }.headOption
-
-    val wustEventUser = authorUser match {
-      case Some(u) => Some(u)
-      case _       => getUserNode(gc.addNodes)
-    }
-
-    val slackEventUser = wustEventUser match {
-      case Some(u) => persistenceAdapter.getSlackUserByWustId(u)
-      case _       => Future.successful(None)
-    }
+    val slackEventUser = persistenceAdapter.getSlackUserByWustId(userId)
 
     slackEventUser.onComplete {
       case Success(_) => scribe.info(s"Successfully got event user")
@@ -142,7 +121,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     /* Meta stuff */
     /**************/
 
-  val eventSlackClient = getAuthorClient(gc)
+  val eventSlackClient = getAuthorClient(userId)
 
     /*****************************/
     /* Delete channel or message */
