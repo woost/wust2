@@ -41,7 +41,10 @@ case object MockAdapter extends PersistenceAdapter {
 
 
   // Query Slack Id by Wust NodeId
-  def getSlackChannelByWustId(nodeId: NodeId): Future[Option[SlackChannelId]] = ???
+  def getSlackChannelByWustId(nodeId: NodeId): Future[Option[SlackChannelId]] = {
+    val m = Map( TestConstants.channelNodeId -> "SlackChannelId")
+    Future.successful(m.get(nodeId))
+  }
 
 
   // Query Data by Slack Id
@@ -56,6 +59,7 @@ case object MockAdapter extends PersistenceAdapter {
 
   // Guards
   def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.workspaceId)
+  def isChannelCreatedByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean] = ???
   def isChannelDeletedBySlackId(channelId: String): Future[Boolean] = ???
   def isChannelUpToDateBySlackDataElseGetNodes(channelId: String, name: String): Future[Option[(NodeId, NodeId)]] = ???
   def isMessageDeletedBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
@@ -145,7 +149,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         Edge.Parent(
           TestConstants.channelNodeId,
           EdgeData.Parent(None),
-          NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"),
+          TestConstants.workspaceId,
         ),
         Edge.Author(
           TestConstants.userId,
@@ -206,7 +210,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         Edge.Parent(
           TestConstants.channelNodeId,
           EdgeData.Parent(Some(EpochMilli.now)),
-          NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"),
+          TestConstants.workspaceId,
         ),
       ),
       delEdges = Set.empty[Edge]

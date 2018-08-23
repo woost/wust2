@@ -37,8 +37,8 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
         case _                                                     => false
       }
     } yield {
-      persistenceAdapter.teamExistsByWustId(edge.targetId).map(b =>
-        if(b) {
+      persistenceAdapter.getSlackChannelByWustId(edge.targetId).map(b =>
+        if(b.nonEmpty) {
           scribe.info(s"detected create message event: ($node, $edge)")
           Some((node, edge))
         } else {
@@ -211,10 +211,15 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       }
     }
 
-    // TODO: normalization
-    def applyCreateChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, channel: SlackCreateChannel, wustId: NodeId) = {
-      for{
-        t <- client.apiClient.createChannel(channel.channelName).map(c => Channel_Mapping(Some(c.id), c.name, slack_deleted_flag = false, wustId, channel.teamNode))
+    // TODO: name normalization
+    def applyCreateChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, channel: SlackCreateChannel, wustNode: Node) = {
+      for {
+        t <- (wustNode.meta.accessLevel match {
+          case NodeAccess.Restricted => // Create Group (private)
+            client.apiClient.createGroup(channel.channelName).map(g => g.id -> g.name)
+          case _ => // Create Channel (public)
+            client.apiClient.createChannel(channel.channelName).map(c => c.id -> c.name)
+        }).map(c => Channel_Mapping(Some(c._1), c._2, slack_deleted_flag = false, wustNode.id, channel.teamNode))
         true <- persistenceAdapter.updateChannelMapping(t)
       } yield {
         true
@@ -225,7 +230,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       val node = t._1
       val edge = t._2
       generateSlackCreateChannel(persistenceAdapter, node, edge).flatMap(c =>
-        applyCreateChannel(persistenceAdapter, client, c, node.id)
+        applyCreateChannel(persistenceAdapter, client, c, node)
       )
     }))
 
