@@ -20,11 +20,24 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
   ) {
 
+  /**
+    * TODO: Filter for edges
+    * if an child or a parent is known known to app => infere event
+    *
+    */
+
   def filterDeleteEvents(gc: GraphChanges) = {
     (gc.addEdges ++ gc.delEdges).filter {
       case Edge.Parent(_, EdgeData.Parent(Some(_)), _) => true
       case _ => false
     }
+  }
+
+  def filterUndeleteEvents(gc: GraphChanges) = {
+    if(gc.addNodes.collect{case n @ Node.Content(_,_,_) => n}.isEmpty){
+      gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None), _) => e}
+    } else
+        Set.empty[Edge]
   }
 
   def filterCreateThreadEvent(gc: GraphChanges) = ???
@@ -198,7 +211,49 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       }
 
 
+    /********************/
+    /* Undelete channel */
+    /********************/
 
+    case class SlackUnarchiveChannel(channelId: SlackChannelId) extends GraphChangeEvent
+
+    def generateSlackUnarchiveChannel(persistenceAdapter: PersistenceAdapter, nodeId: NodeId) = {
+      for {
+        c <- OptionT[Future, SlackChannelId](persistenceAdapter.getSlackChannelByWustId(nodeId))
+      } yield {
+        SlackUnarchiveChannel(c)
+      }
+    }
+
+    def applyUnarchiveChannel(persistenceAdapter: PersistenceAdapter, client: SlackClient, channel: SlackUnarchiveChannel) = {
+      //TODO: delete channel - not possible during time of writing
+      persistenceAdapter.unDeleteChannelBySlackId(channel.channelId).flatMap(_ =>
+        client.apiClient.unarchiveChannel(channel.channelId)
+      )
+    }
+
+    def unArchiveEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = Future.sequence(filterUndeleteEvents(gc).map( e =>
+      persistenceAdapter.teamExistsByWustId(e.targetId).flatMap(b =>
+        if(b) {
+          generateSlackUnarchiveChannel(persistenceAdapter, e.sourceId).value.flatMap {
+            case Some(c) => applyUnarchiveChannel(persistenceAdapter, client, c)
+            case _       => Future.successful(false)
+          }
+        } else {
+          Future.successful(false)
+        }
+      )
+    ))
+
+    eventSlackClient.flatMap(client => unArchiveEvents(persistenceAdapter, client))
+      .onComplete {
+        case Success(unArchiveChanges) =>
+          if(unArchiveChanges.forall(_ == true))
+            scribe.info(s"Successfully applied unarchive events: $unArchiveChanges")
+          else
+            scribe.info(s"Some events were not successfully executed: $unArchiveChanges")
+        case Failure(ex)            => scribe.error("Could not apply unarchive events: ", ex)
+      }
 
     /***************/
     /* Add channel */

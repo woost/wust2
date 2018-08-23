@@ -89,6 +89,12 @@ object EventToGraphChangeMapper {
     )
   }
 
+  def archiveChannelInWust(channelId: NodeId, workspaceNodeId: NodeId, timestamp: EpochMilli): GraphChanges = {
+    GraphChanges(
+      addEdges = Set(Edge.Parent(channelId, data = EdgeData.Parent(timestamp), workspaceNodeId))
+    )
+  }
+
   def unDeleteChannelInWust(channelId: NodeId, workspaceNodeId: NodeId): GraphChanges = {
     GraphChanges.connect(Edge.Parent)(
       channelId,
@@ -96,6 +102,11 @@ object EventToGraphChangeMapper {
     )
   }
 
+  def unArchiveChannelInWust(channelId: NodeId, workspaceNodeId: NodeId): GraphChanges = {
+    GraphChanges(
+      addEdges = Set(Edge.Parent(channelId, data = EdgeData.Parent(None), workspaceNodeId))
+    )
+  }
 
 
 

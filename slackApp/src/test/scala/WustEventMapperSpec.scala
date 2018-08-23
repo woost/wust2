@@ -59,7 +59,7 @@ case object MockAdapter extends PersistenceAdapter {
 
   // Guards
   def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.workspaceId)
-  def isChannelCreatedByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean] = ???
+  def channelExistsByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean] = ???
   def isChannelDeletedBySlackId(channelId: String): Future[Boolean] = ???
   def isChannelUpToDateBySlackDataElseGetNodes(channelId: String, name: String): Future[Option[(NodeId, NodeId)]] = ???
   def isMessageDeletedBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
@@ -125,11 +125,13 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterCreateChannel = mapper.filterCreateChannelEvents(createMessage)
     val filterDelete = mapper.filterDeleteEvents(createMessage)
     val filterUpdate = mapper.filterUpdateEvents(createMessage)
+    val filterUnDelete = mapper.filterUndeleteEvents(createMessage)
 
     filterCreateMessage.map(_.nonEmpty shouldBe true)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
+    filterUnDelete.nonEmpty shouldBe false
 
   }
 
@@ -164,11 +166,13 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterCreateChannel = mapper.filterCreateChannelEvents(createChannel)
     val filterDelete = mapper.filterDeleteEvents(createChannel)
     val filterUpdate = mapper.filterUpdateEvents(createChannel)
+    val filterUnDelete = mapper.filterUndeleteEvents(createChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe true)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
+    filterUnDelete.nonEmpty shouldBe false
 
   }
 
@@ -192,11 +196,13 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterCreateChannel = mapper.filterCreateChannelEvents(deleteMessage)
     val filterDelete = mapper.filterDeleteEvents(deleteMessage)
     val filterUpdate = mapper.filterUpdateEvents(deleteMessage)
+    val filterUnDelete = mapper.filterUndeleteEvents(deleteMessage)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe true
     filterUpdate.nonEmpty shouldBe false
+    filterUnDelete.nonEmpty shouldBe false
 
   }
 
@@ -220,11 +226,13 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterCreateChannel = mapper.filterCreateChannelEvents(deleteChannel)
     val filterDelete = mapper.filterDeleteEvents(deleteChannel)
     val filterUpdate = mapper.filterUpdateEvents(deleteChannel)
+    val filterUnDelete = mapper.filterUndeleteEvents(deleteChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe true
     filterUpdate.nonEmpty shouldBe false
+    filterUnDelete.nonEmpty shouldBe false
 
   }
 
@@ -254,11 +262,13 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterCreateChannel = mapper.filterCreateChannelEvents(updateMessage)
     val filterDelete = mapper.filterDeleteEvents(updateMessage)
     val filterUpdate = mapper.filterUpdateEvents(updateMessage)
+    val filterUnDelete = mapper.filterUndeleteEvents(updateMessage)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe true
+    filterUnDelete.nonEmpty shouldBe false
 
   }
 
@@ -288,11 +298,49 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val filterCreateChannel = mapper.filterCreateChannelEvents(renameChannel)
     val filterDelete = mapper.filterDeleteEvents(renameChannel)
     val filterUpdate = mapper.filterUpdateEvents(renameChannel)
+    val filterUnDelete = mapper.filterUndeleteEvents(renameChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe true
+    filterUnDelete.nonEmpty shouldBe false
+
+  }
+
+  "detect: undelete channel event" in {
+    val mapper: WustEventMapper = getMapper()
+
+//    List(ForPublic(5RBLjXEbmu16SNUjyee7Bf,GraphChanges(Set(User(5RBLjXEbmu16SNUjyee7Bf,User(j,false,0,5RBLjXF3CLH6vX1GJ1AS8g),NodeMeta(Level(Restricted)))),Set(Parent(5RGHCTvXSd1cKniWc3xc25,Parent(deletedAt = 2018-08-23 15:08:54),5RGHCHpdWsK4X6NpzbCVMK)),Set())))
+
+    val undeleteChannel = GraphChanges(
+      addNodes = Set(
+        Node.User(
+          UserId.fromBase58String("5RBLjXEbmu16SNUjyee7Bf"),
+          NodeData.User("j",false,0,NodeId.fromBase58String("5RBLjXF3CLH6vX1GJ1AS8g")),
+          NodeMeta(NodeAccess.Restricted)
+        )
+      ),
+      addEdges = Set(
+        Edge.Parent(
+          NodeId.fromBase58String("5RGHCTvXSd1cKniWc3xc25"),
+          EdgeData.Parent(None),
+          NodeId.fromBase58String("5RGHCHpdWsK4X6NpzbCVMK")
+        ),
+      )
+    )
+
+    val filterCreateMessage = mapper.filterCreateMessageEvents(undeleteChannel)
+    val filterCreateChannel = mapper.filterCreateChannelEvents(undeleteChannel)
+    val filterDelete = mapper.filterDeleteEvents(undeleteChannel)
+    val filterUpdate = mapper.filterUpdateEvents(undeleteChannel)
+    val filterUnDelete = mapper.filterUndeleteEvents(undeleteChannel)
+
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
+    filterDelete.nonEmpty shouldBe false
+    filterUpdate.nonEmpty shouldBe false
+    filterUnDelete.nonEmpty shouldBe true
 
   }
 

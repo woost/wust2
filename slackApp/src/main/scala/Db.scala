@@ -230,7 +230,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
       .run(query[Team_Mapping].filter(_.wust_id == lift(nodeId)).take(1).nonEmpty)
   }
 
-  def isChannelCreatedByNameAndTeam(teamId: SlackTeamId, channelName: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def channelExistsByNameAndTeam(teamId: SlackTeamId, channelName: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     val q = quote {
       for {
         c <- query[Channel_Mapping].filter(_.slack_channel_name == lift(channelName))
@@ -240,6 +240,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodec
 
     ctx
       .run(q.nonEmpty)
+  }
+
+  def channelExistsByWustId(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = {
+    ctx
+      .run(query[Channel_Mapping].filter(_.wust_id == lift(nodeId)).take(1).nonEmpty)
   }
 
   def isChannelDeletedBySlackId(channelId: SlackChannelId)(implicit ec: ExecutionContext): Future[Boolean] = {

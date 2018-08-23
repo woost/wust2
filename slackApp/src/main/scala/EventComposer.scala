@@ -183,9 +183,10 @@ object EventComposer {
       wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeBySlackId(archivedChannel.channel))
       true <- OptionT[Future, Boolean](persistenceAdapter.deleteChannelBySlackId(archivedChannel.channel).map(Some(_)))
     } yield {
-      val changes: GraphChanges = EventToGraphChangeMapper.deleteChannelInWust(
+      val changes: GraphChanges = EventToGraphChangeMapper.archiveChannelInWust(
         wustChannelNodeId,
         teamNodeId,
+        EpochMilli.now
       )
       GCResult(changes, wustUserData)
     }
@@ -204,14 +205,14 @@ object EventComposer {
     }
   }
 
-  def unarchiveChannel(unarchivedChannel: ChannelUnarchive, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, GCResult] = {
+  def unArchiveChannel(unarchivedChannel: ChannelUnarchive, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, GCResult] = {
     for {
       wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(unarchivedChannel.user))
       teamNodeId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
       wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeBySlackId(unarchivedChannel.channel))
       true <- OptionT[Future, Boolean](persistenceAdapter.unDeleteChannelBySlackId(unarchivedChannel.channel).map(Some(_)))
     } yield {
-      val changes = EventToGraphChangeMapper.unDeleteChannelInWust(
+      val changes = EventToGraphChangeMapper.unArchiveChannelInWust(
         wustChannelNodeId,
         teamNodeId,
       )

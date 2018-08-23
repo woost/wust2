@@ -115,7 +115,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
   // Channel endpoint
   def createChannel(createdChannel: ChannelCreated, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.isChannelCreatedByNameAndTeam(teamId, createdChannel.channel.id).flatMap(b =>
+    persistenceAdapter.channelExistsByNameAndTeam(teamId, createdChannel.channel.id).flatMap(b =>
       if(b) {
 
         val composed = EventComposer.createChannel(createdChannel, teamId)
@@ -138,14 +138,14 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         applyChanges.value.onComplete {
-          case Success(_) => scribe.info("Created new channel")
-          case Failure(ex)      => scribe.error("Error creating channel: ", ex)
+          case Success(_)  => scribe.info("Created new channel")
+          case Failure(ex) => scribe.error("Error creating channel: ", ex)
         }
 
         applyChanges.value
 
       } else
-        Future.successful(Right(List.empty[GraphChanges]))
+          Future.successful(Right(List.empty[GraphChanges]))
     )
   }
 
@@ -238,7 +238,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
     persistenceAdapter.isChannelDeletedBySlackId(unarchivedChannel.channel).flatMap { deleted =>
       if(deleted) {
 
-        val composed = EventComposer.unarchiveChannel(unarchivedChannel, teamId)
+        val composed = EventComposer.unArchiveChannel(unarchivedChannel, teamId)
 
         val applyChanges: EitherT[Future, String, List[GraphChanges]] = composed.toRight[String]("Could not undelete channel").flatMapF { changes =>
           wustReceiver.push(List(changes.gc), Some(changes.user))
