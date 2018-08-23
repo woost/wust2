@@ -57,6 +57,7 @@ object PageHeader {
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
+      val isOwnUser = channel.id == state.user().id
       val isBookmarked = state
         .graph()
         .children(state.user().channelNodeId)
@@ -64,9 +65,9 @@ object PageHeader {
 
       (channel.id != state.user().channelNodeId).ifTrue(
         VDomModifier(
-          isBookmarked.ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
+          (isOwnUser || isBookmarked).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
           notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto"),
-          settingsMenu(state, channel, isBookmarked).apply(Styles.flexStatic, marginLeft := "10px"),
+          settingsMenu(state, channel, isBookmarked, isOwnUser).apply(Styles.flexStatic, marginLeft := "10px"),
           shareButton(channel).map(_ (Styles.flexStatic, marginLeft := "10px"))
         )
       )
@@ -188,57 +189,62 @@ object PageHeader {
       onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
     )
 
-  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean)(implicit ctx: Ctx.Owner): VNode = {
-    // https://semantic-ui.com/modules/dropdown.html#pointing
-    div(
-      cls := "ui icon top left pointing dropdown",
-      (freeSolid.faCog: VNode) (fontSize := "20px"),
-      div(
-        cls := "menu",
-        div(cls := "header", "Settings", cursor.default),
-        div(
-          cls := "item",
-          i(cls := "dropdown icon"),
-          span(cls := "text", "Permissions", cursor.default),
-          div(
-            cls := "menu",
-            PermissionSelection.all.map { selection =>
-              div(
-                cls := "item",
-                (channel.meta.accessLevel == selection.access).ifTrueOption(i(cls := "check icon")),
-                // value := selection.value,
-                Rx {
-                  selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
-                },
-                onClick {
-                  val nextNode = channel match {
-                    case n: Node.Content => n.copy(meta = n.meta.copy(accessLevel = selection.access))
-                    case _               => ??? //FIXME
+  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+    val permissionItem:Option[VNode] = channel match {
+        case channel: Node.Content =>
+          Some(div(
+            cls := "item",
+            i(cls := "dropdown icon"),
+            span(cls := "text", "Permissions", cursor.default),
+            div(
+              cls := "menu",
+              PermissionSelection.all.map { selection =>
+                div(
+                  cls := "item",
+                  (channel.meta.accessLevel == selection.access).ifTrueOption(i(cls := "check icon")),
+                  // value := selection.value,
+                  Rx {
+                    selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
+                  },
+                  onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = selection.access)))) --> state.eventProcessor.changes,
+                  onClick --> sideEffect {
+                    Analytics.sendEvent("pageheader", "changepermission", selection.access.str)
                   }
-                  GraphChanges.addNode(nextNode)
-                } --> state.eventProcessor.changes,
-                onClick --> sideEffect {
-                  Analytics.sendEvent("pageheader", "changepermission", selection.access.str)
-                }
-              )
-            }
-          )
+                )
+              }
+            )
+          ))
+        case _ => None
+      }
+
+    val leaveItem:Option[VNode] =
+      (bookmarked && !isOwnUser).ifTrueOption(div(
+        cls := "item",
+        span(cls := "text", "Leave Channel", cursor.pointer),
+        onClick(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+      ))
+
+    val items:List[VNode] = List(permissionItem, leaveItem).flatten
+
+    if(items.nonEmpty)
+      div(
+        // https://semantic-ui.com/modules/dropdown.html#pointing
+        cls := "ui icon top left pointing dropdown",
+        (freeSolid.faCog: VNode) (fontSize := "20px"),
+        div(
+          cls := "menu",
+          div(cls := "header", "Settings", cursor.default),
+          items
         ),
-
-        bookmarked.ifTrueOption(div(
-          cls := "item",
-          span(cls := "text", "Leave Channel", cursor.pointer),
-
-          onClick(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
-        ))
-      ),
-      // https://semantic-ui.com/modules/dropdown.html#/usage
-      onInsert.asHtml --> sideEffect { elem =>
-        import semanticUi.JQuery._
-        $(elem).dropdown()
-      },
-      keyed(channel.id)
-    )
+        // https://semantic-ui.com/modules/dropdown.html#/usage
+        onInsert.asHtml --> sideEffect { elem =>
+          import semanticUi.JQuery._
+          $(elem).dropdown()
+        },
+        keyed(channel.id)
+      )
+    else
+      div()
   }
 }
 
