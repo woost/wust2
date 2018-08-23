@@ -1,0 +1,80 @@
+# todo: performance: https://blog.sparksuite.com/7-ways-to-speed-up-gitlab-ci-cd-times-29f60aab69f9?gi=20849b0b6b8
+
+# job:
+#     only:
+#         - master
+#         - /release-.*/
+
+stages:
+    - unit-tests
+    - integration-tests
+
+
+services:
+    - docker:dind
+variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+    SBT_OPTS: "-Dsbt.global.base=sbt-cache/.sbtboot -Dsbt.boot.directory=sbt-cache/.sbt/boot -Dsbt.ivy.home=sbt-cache/.ivy2"
+    COURSIER_CACHE: sbt-cache/.cache/coursier
+
+unit-tests:
+    stage: unit-tests
+    image: fdietze/docker-alpine-scala-webdev:latest #todo: use build hash instead of latest
+    script:
+        - free
+        - top -b -n 1
+        - ci/build # compiles, runs unit-tests, builds docker image
+        - ls -la /root
+    # artifacts:
+    #     paths:
+    #         - target/
+
+integration-tests:
+    stage: integration-tests
+    image: fdietze/docker-alpine-scala-webdev:latest #todo: use build hash instead of latest
+    script:
+        # - sbt docker
+        - ci/integration-tests
+
+after_script:
+    # Cleanup the cached directories to avoid unnecessary cache updates
+    - find $HOME/.ivy2       -name "ivydata-*.properties" -print -delete
+    - find $HOME/.sbt        -name "*.lock"               -print -delete
+
+cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+        # https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
+        - .yarn-offline-cache
+        - sbt-cache/.ivy2/cache
+        - sbt-cache/.ivy2/local
+        - sbt-cache/.sbt/boot
+        - sbt-cache/.sbt/launchers
+        - sbt-cache/.cache/coursier
+
+  # before_script:
+  #     # configure apt chaching (https://gitlab.com/gitlab-org/gitlab-runner/issues/991)
+  #     - export APT_DIR=$HOME/.apt && export APT_STATE_LISTS=$APT_DIR/lists && export APT_CACHE_ARCHIVES=$APT_DIR/archives
+  #     - printf "dir::state::lists    ${APT_STATE_LISTS};\ndir::cache::archives    ${APT_CACHE_ARCHIVES};\n" > /etc/apt/apt.conf
+  #     - mkdir -p "${APT_STATE_LISTS}/partial" && mkdir -p "${APT_CACHE_ARCHIVES}/partial"
+  #       # configure secure apt transport
+  #     - apt-get update -y
+  #     - apt-get install apt-transport-https -y
+  #       # add sbt sources
+  #     - echo "deb http://dl.bintray.com/sbt/debian /" | tee /etc/apt/sources.list.d/sbt.list
+  #     - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
+  #       # add yarn sources
+  #     - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+  #     - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+  #       # install dependencies
+  #     - apt-get update -y
+  #     - apt-get install sbt yarn -y
+
+# after_success:
+#     - set -e
+#     - ci/publish-docker
+#     # - sbt coverageAggregate coveralls
+#     # - sbt coverageAggregate # Must be called separately for multi project projects (https://github.com/scoverage/sbt-scoverage#multi-project-reports)
+#     # - sbt coveralls #See https://github.com/scoverage/sbt-coveralls/issues/104
+#     - set +e

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+set -o pipefail
+
+export _JAVA_OPTIONS="-Xms2G -Xmx3G -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
+
+./start test.postgres
+./start test.integration

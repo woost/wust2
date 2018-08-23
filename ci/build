@@ -2,9 +2,11 @@
 set -e
 set -o pipefail
 
-export CI=true # also set by travis, but helps when running locally
+export CI=true # also set by travis/gitlab-ci, but helps when running locally
 
 export SOURCEMAPS=false # for building production js assets with sourcemap
+
+export _JAVA_OPTIONS="-Xms2G -Xmx3G -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
 
 # We compile integration tests here, since the compiler is already hot and gives us a faster feedback
 

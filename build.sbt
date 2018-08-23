@@ -63,7 +63,8 @@ lazy val commonSettings = Seq(
     case _ => Nil
   }),
   Defs.dockerVersionTags := {
-    val branch = sys.env.get("TRAVIS_BRANCH") orElse scala.util
+    // CI_COMMIT_REF_NAME comes from gitlab-ci
+    val branch = sys.env.get("TRAVIS_BRANCH") orElse sys.env.get("CI_COMMIT_REF_NAME") orElse scala.util
       .Try(git.gitCurrentBranch.value)
       .filter(_.nonEmpty)
       .toOption getOrElse "dirty"
