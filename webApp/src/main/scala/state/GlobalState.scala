@@ -41,12 +41,15 @@ class GlobalState (
       val u = user()
     val newGraph =
       if (graph.nodeIds(u.channelNodeId)) graph
-      else graph.addNodes(
+        else {
+          graph.addNodes(
         // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
         // if we start with an assumed user and just create new channels we will never get a graph from the backend.
         Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-          Node.User(u.id, NodeData.User(u.name, isImplicit = true, revision = 0, channelNodeId = u.channelNodeId), NodeMeta.User)  ::
-          Nil)
+            user().toNode ::
+            Nil
+          )
+        }
 
     newGraph.consistent
   }
