@@ -1,7 +1,7 @@
 -- Rename team_mapping to channel_mapping including indexes
 ALTER TABLE team_mapping RENAME TO channel_mapping;
 
-ALTER TABLE channel_mapping RENAME column slack_team_id TO slack_channel_id,
+ALTER TABLE channel_mapping RENAME column slack_team_id TO slack_channel_id;
 ALTER TABLE channel_mapping RENAME column slack_team_name TO slack_channel_name;
 
 ALTER INDEX team_mapping_pkey RENAME TO channel_mapping_pkey;
