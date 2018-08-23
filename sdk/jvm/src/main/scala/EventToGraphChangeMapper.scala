@@ -67,7 +67,7 @@ object EventToGraphChangeMapper {
   }
 
   def createChannelInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, teamNodeId: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[(UserId, AccessLevel)] = Set.empty): CreationResult = {
-    val node = Node.Content(nodeData, NodeMeta(NodeAccess.Restricted))
+    val node = Node.Content(nodeData, NodeMeta(NodeAccess.Inherited))
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + teamNodeId, additionalMembers)
     CreationResult(node.id, message)
   }
