@@ -114,7 +114,7 @@ object Deps {
     val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.1"
 
     val webpackDependencies =
-      "webpack-closure-compiler" -> "2.1.6" :: // TODO: use https://github.com/google/closure-compiler-js#webpack instead (after https://github.com/google/closure-compiler-js/issues/24 is fixed)
+      "webpack-closure-compiler" -> "2.1.6" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47
         "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
         "html-webpack-plugin" -> "3.2.0" ::
         "html-webpack-include-assets-plugin" -> "1.0.4" ::

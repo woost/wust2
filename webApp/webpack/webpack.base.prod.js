@@ -48,6 +48,8 @@ module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 module.exports.optimization = {
     minimize: false // disable default uglifyJs
 };
+
+process.env._JAVA_OPTIONS = "-Xms128M -Xmx400M";
 module.exports.plugins.push(new ClosureCompilerPlugin({
   compiler: {
     language_in: 'ECMASCRIPT6',
@@ -58,7 +60,6 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
     warning_level: 'DEFAULT',
 	create_source_map: (process.env.SOURCEMAPS == 'true')
   },
-  concurrency: 3,
 }));
 
 ////////////////////////////////////////
