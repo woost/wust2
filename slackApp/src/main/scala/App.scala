@@ -422,7 +422,6 @@ object App extends scala.App {
       val slackClient = SlackClient(config.slack.token, isUser = false)
       val slackEventReceiver = WustReceiver.run(config.wustServer, slackClient, slackPersistenceAdapter, config.slack.token)
       val slackRequestVerifier = new SlackRequestVerifier(config.slack.signingSecret)
-      //      val client = SlackClient(config.oAuthConfig.accessToken.get)
       AppServer.run(config, slackEventReceiver, slackClient, oAuthClient, slackPersistenceAdapter, slackRequestVerifier)
   }
 }

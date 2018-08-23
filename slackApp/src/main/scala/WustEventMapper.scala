@@ -30,11 +30,10 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
   def filterCreateThreadEvent(gc: GraphChanges) = ???
 
   def filterCreateMessageEvents(gc: GraphChanges) = {
-    // Nodes with matching edge whose parent is not the workspace node
     Future.sequence(for {
       node <- gc.addNodes
       edge <- gc.addEdges.filter {
-        case Edge.Parent(childId, EdgeData.Parent(None), parentId) => if(childId == node.id) true else false
+        case Edge.Parent(childId, EdgeData.Parent(None), _) => if(childId == node.id) true else false
         case _                                                     => false
       }
     } yield {
