@@ -203,8 +203,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".channels" - (
+    paddingLeft(3 px),
     minWidth(200 px),
-    maxWidth(200 px),
     overflowY.auto,
     color(c"#C4C4CA"),
   )
@@ -214,6 +214,11 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.center,
     cursor.pointer,
     marginBottom(2 px),
+  )
+
+
+  ".channel-name > div > p" - (
+    margin(0 px) // avoid default p margin. p usually comes from markdown rendering
   )
 
   ".channel-line .channel-name *" - (
