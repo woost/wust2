@@ -101,12 +101,15 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     }
 
     val slackUserToken: Future[String] = slackEventUser.map({
-      case Some(u) => u.slackUserToken
-      case _       => None
+      case Some(u) =>
+        scribe.info(s"using SlackUser token")
+        u.slackUserToken
+      case _       =>
+        scribe.info(s"using SlackApp token")
+         None
     }).map(_.getOrElse(slackAppToken))
 
     slackUserToken.foreach { _ =>
-      scribe.info(s"using token of SlackApp")
     }
 
     for {
