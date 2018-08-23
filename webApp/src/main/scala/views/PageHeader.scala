@@ -141,28 +141,31 @@ object PageHeader {
       )
     )
 
-    def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String): VDomModifier = div(
-      permissionState match {
-        case PermissionState.granted => VDomModifier(
-          sharedMods,
-          (icon: VNode) (cls := "fa-fw"),
-          title := description,
-          action
-        )
-        case PermissionState.prompt  => VDomModifier(
-          sharedMods,
-          iconWithIndicator(icon, freeRegular.faQuestionCircle, "steelblue")(cls := "fa-fw"),
-          title := "Notifications are currently disabled. Click to enable.",
-          onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
-        )
-        case PermissionState.denied  => VDomModifier(
-          sharedMods,
-          iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
-          title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-          action
-        )
-      }
-    )
+    def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String): VDomModifier = {
+      val default = "default".asInstanceOf[PermissionState]
+      div(
+        permissionState match {
+          case PermissionState.granted => VDomModifier(
+            sharedMods,
+            (icon: VNode) (cls := "fa-fw"),
+            title := description,
+            action
+          )
+          case PermissionState.prompt | `default`  => VDomModifier(
+            sharedMods,
+            iconWithIndicator(icon, freeRegular.faQuestionCircle, "steelblue")(cls := "fa-fw"),
+            title := "Notifications are currently disabled. Click to enable.",
+            onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
+          )
+          case PermissionState.denied  => VDomModifier(
+            sharedMods,
+            iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
+            title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
+            action
+          )
+        }
+      )
+    }
 
     div(
       Rx {
