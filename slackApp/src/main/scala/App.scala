@@ -142,7 +142,7 @@ object AppServer {
         workspaceNodeId <- persistenceAdapter.getTeamNodeBySlackId(slackAuthId.team_id).flatMap {
           case Some(nodeId) => Future.successful(nodeId)
           case None =>
-            val createdWorkspaceNode = EventToGraphChangeMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), authData.wustAuthData.user.id, EpochMilli.now)
+            val createdWorkspaceNode = EventToGraphChangeMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), Constants.wustUser.id, EpochMilli.now)
             wustReceiver.push(List(createdWorkspaceNode.graphChanges), None).map(_ => createdWorkspaceNode.nodeId)
         }
         true <- persistenceAdapter.storeOrUpdateTeamMapping(Team_Mapping(Some(slackAuthId.team_id), slackAuthId.team, workspaceNodeId))
