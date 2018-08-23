@@ -56,6 +56,7 @@ trait PersistenceAdapter {
 
   // Guards
   def teamExistsByWustId(nodeId: NodeId): Future[Boolean]
+  def isChannelCreatedByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean]
   def isChannelDeletedBySlackId(channelId: SlackChannelId): Future[Boolean]
   def isChannelUpToDateBySlackDataElseGetNodes(channelId: SlackChannelId, name: String): Future[Option[(NodeId, NodeId)]]
   def isMessageDeletedBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean]
@@ -165,6 +166,10 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
   // Guards
   def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = {
     db.teamExistsByWustId(nodeId)
+  }
+
+  def isChannelCreatedByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean] = {
+    db.isChannelCreatedByNameAndTeam(teamId, channelName)
   }
 
   def isChannelDeletedBySlackId(channelId: SlackChannelId): Future[Boolean] = {

@@ -115,8 +115,8 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
   // Channel endpoint
   def createChannel(createdChannel: ChannelCreated, teamId: SlackTeamId): Future[Either[String, List[GraphChanges]]] = {
-    persistenceAdapter.getChannelNodeBySlackId(createdChannel.channel.id).flatMap {
-      case None =>
+    persistenceAdapter.isChannelCreatedByNameAndTeam(teamId, createdChannel.channel.id).flatMap(b =>
+      if(b) {
 
         val composed = EventComposer.createChannel(createdChannel, teamId)
 
