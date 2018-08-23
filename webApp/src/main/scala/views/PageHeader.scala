@@ -84,7 +84,7 @@ object PageHeader {
         val authors = graph.authorsIn(channel.id)
         //TODO: possibility to show more
         //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = (members ++ authors).distinct.take(10)
+        val users = (members ++ authors).distinct.take(5)
 
         users.map(user => Avatar.user(user.id)(
           title := user.name,
