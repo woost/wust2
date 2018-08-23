@@ -144,11 +144,9 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
 
         applyChanges.value
 
-      case Some(_) =>
+      } else
         Future.successful(Right(List.empty[GraphChanges]))
-
-    }
-
+    )
   }
 
   def renameChannel(messageWithSubtype: MessageWithSubtype, channelNameMessage: ChannelNameMessage): Future[Either[String, List[GraphChanges]]] = {

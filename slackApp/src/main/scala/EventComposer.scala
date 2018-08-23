@@ -70,7 +70,7 @@ object EventComposer {
 
         val channelName = slackClient.getChannelInfo(channel).map(ci => ci.name)
         val newChannelNode = channelName.map(name =>
-          Node.Content(NodeId.fresh, NodeData.Markdown(name), NodeMeta(NodeAccess.ReadWrite))
+          Node.Content(NodeId.fresh, NodeData.PlainText(name), NodeMeta(NodeAccess.ReadWrite))
         )
 
         newChannelNode.onComplete {
@@ -154,7 +154,7 @@ object EventComposer {
       teamNodeId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
     } yield {
       val changes: CreationResult = EventToGraphChangeMapper.createChannelInWust(
-        NodeData.Markdown(createdChannel.channel.name),
+        NodeData.PlainText(createdChannel.channel.name),
         wustUserData.wustUserId,
         EpochMilli(createdChannel.channel.created),
         teamNodeId
@@ -169,7 +169,7 @@ object EventComposer {
     } yield {
       val changes: GraphChanges = EventToGraphChangeMapper.editChannelInWust(
         childId,
-        NodeData.Markdown(channelNameMessage.name),
+        NodeData.PlainText(channelNameMessage.name),
       )
       ComposingResult(childId, changes, wustUserData, parentId)
     }
