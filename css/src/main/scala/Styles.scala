@@ -212,7 +212,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".channel-line" - (
     Styles.flex,
     alignItems.center,
-    cursor.pointer,
+    cursor.pointer.important, // overwrites cursor from .draggable
     marginBottom(2 px),
   )
 
@@ -235,7 +235,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(2 px),
     Styles.flexStatic,
     margin(0 px),
-    cursor.pointer,
+    cursor.pointer.important, // overwrites cursor from .draggable
   )
 
   /* must be more specific than .ui.button */
