@@ -29,31 +29,29 @@ object Sidebar {
           channels(state)(ctx),
           newChannelButton(state)(ctx)(
             cls := "newChannelButton-large " + buttonStyles,
-            onClick --> sideEffect{Analytics.sendEvent("sidebar_open", "newchannel")}
+            onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "newchannel") }
           ),
           Rx {
-            (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
-              div(Topbar.authentication(state))(alignSelf.center, marginTop := "30px")
-            )
-          },
-          state.screenSize.map {
-            case ScreenSize.Small => VDomModifier(
+            if(state.screenSize() == ScreenSize.Small) VDomModifier(
+              div(Topbar.authentication(state))(
+                alignSelf.center,
+                marginTop := "30px",
+                marginBottom := "10px",
+              ),
               width := "100%",
               height := "100%",
-              position.absolute,
               zIndex := ZIndex.overlay,
               onClick(false) --> state.sidebarOpen
+            ) else VDomModifier(
+              maxWidth := "200px",
             )
-            case _                => VDomModifier(
-             maxWidth := "200px",
-            )
-          }
+          },
         )
         case false => VDomModifier( // sidebar closed
           channelIcons(state, 40)(ctx),
           newChannelButton(state, "+")(ctx)(
             cls := "newChannelButton-small " + buttonStyles,
-            onClick --> sideEffect{Analytics.sendEvent("sidebar_closed", "newchannel")}
+            onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "newchannel") }
           )
         )
       },
@@ -90,7 +88,8 @@ object Sidebar {
         cls := "node drag-feedback",
         draggableAs(state, DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
-      ),
+      )
+      ,
     }
 
     def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
@@ -99,7 +98,7 @@ object Sidebar {
         channels match {
           case Tree.Parent(_, children) => div(
             paddingLeft := "10px",
-            fontSize := s"${math.max(8, 14 - depth)}px",
+            fontSize := s"${ math.max(8, 14 - depth) }px",
             children.map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
           case Tree.Leaf(_)             => VDomModifier.empty
@@ -143,7 +142,7 @@ object Sidebar {
           allChannels.map { node =>
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Post(node.id))(state),
-              onClick --> sideEffect{Analytics.sendEvent("sidebar_closed", "clickchannel")},
+              onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               draggableAs(state, DragItem.Channel(node.id)),
               dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
