@@ -234,7 +234,7 @@ object PageHeader {
   }
 
 
-  private def channelAvatar(nodeId: Node, size: Int) = {
+  private def channelAvatar(node: Node, size: Int) = {
     Avatar(node)(
       width := s"${ size }px",
       height := s"${ size }px"
