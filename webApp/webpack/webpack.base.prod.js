@@ -58,8 +58,9 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
     // process_common_js_modules: true,
     // jscomp_off: 'checkVars',
     warning_level: 'DEFAULT',
-	create_source_map: (process.env.SOURCEMAPS == 'true')
+    create_source_map: (process.env.SOURCEMAPS == 'true')
   },
+  concurrency: 1
 }));
 
 ////////////////////////////////////////

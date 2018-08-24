@@ -12,13 +12,13 @@ sql_checksum_dir="$script_dir/dbMigration/core/sql"
 
 function assure_db_migration() {
     if [ -z "$CI" ]; then
-    new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | md5sum)"
-    old_checksum="$(cat $sql_checksum_file 2> /dev/null || true)"
-    if [ "$old_checksum" != "$new_checksum" ]; then
-        echo "$new_checksum" > $sql_checksum_file
-        echo "New db migration available, building db-migration image"
-        sbt dbMigration/docker
-    fi
+        new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | md5sum)"
+        old_checksum="$(cat $sql_checksum_file 2> /dev/null || true)"
+        if [ "$old_checksum" != "$new_checksum" ]; then
+            echo "$new_checksum" > $sql_checksum_file
+            echo "New db migration available, building db-migration image"
+            sbt dbMigration/docker
+        fi
     fi
 }
 
@@ -77,7 +77,9 @@ FALLBACKVERSION="dirty" # When git is not available
 #  || [ -n "$CI_COMMIT_REF_NAME" ] && VERSION=$CI_COMMIT_REF_NAME
 #  || [ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH
 [ -n "$TRAVIS_BRANCH" ] && VERSION=$TRAVIS_BRANCH || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
-[ $VERSION == "master" ] && VERSION="latest"
+echo "TRAVIS_BRANCH: $TRAVIS_BRANCH"
+echo "VERSION: $VERSION"
+[ "$VERSION" == "master" ] && VERSION="latest"
 
 
 # TODO: if database docker image is not found, automatically do a migration
