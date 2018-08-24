@@ -50,10 +50,13 @@ object BreadCrumbs {
               Some(span(
                      // "D:" + distance + " ",
                      sortedByGroupId.map { case (gId, nodes) =>
+                       // sort nodes within a group by their length towards the root node
+                       // this ensures that e.g. „Channels“ comes first
+                       val sortedNodes = nodes.sortBy(graph.parentDepth(_))
                        span(
                          cls := "breadcrumb",
                          if (gId != -1) cycleIndicator(false) else "",
-                         nodes.map{ (n : NodeId) =>
+                         sortedNodes.map{ (n : NodeId) =>
                            graph.nodesById.get(n) match {
                              case Some(node) if (showOwn || n != parentId) => nodeTag(state, node)(cursor.pointer)
                              case _ => span()
