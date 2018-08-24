@@ -325,14 +325,10 @@ object ChatView {
               padding := "3px",
               width := "100%"
             ),
-            div(
+            closeButton(
               keyed,
-              freeSolid.faTimes,
-              padding := "10px",
-              Styles.flexStatic,
-              cursor.pointer,
               onClick --> sideEffect { activeReplyFields.update(_ - fullPath) },
-            )
+            ),
           )
         else
           div(
