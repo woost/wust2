@@ -330,6 +330,11 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- chatview --
+
+  ".chat-history" - (
+    height(100 %%)
+  )
+
   ".chatmsg-group-outer-frame" - (
     paddingTop(10 px),
       minWidth(0 px),
