@@ -52,11 +52,12 @@ object FeedbackForm {
         "Feedback ",
         freeSolid.faCaretDown,
         cls := "ui positive tiny compact button",
-        onClick --> sideEffect{
+        onClick.stopPropagation --> sideEffect{
           Analytics.sendEvent("feedback", if(show.now) "close" else "open")
           show.update(!_)
         },
-        onGlobalEscape(false) --> show
+        onGlobalEscape(false) --> show,
+        onGlobalClick(false) --> show,
       ),
       div(
         activeDisplay,
@@ -85,7 +86,8 @@ object FeedbackForm {
               Analytics.sendEvent("feedback", "show")
             }
           )
-        )
+        ),
+        onClick.stopPropagation --> sideEffect{}, // prevents closing feedback form by global click
       )
     )
   }

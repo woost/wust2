@@ -40,6 +40,13 @@ object Elements {
       )
     }
 
+  val onGlobalClick =
+    CustomEmitterBuilder { sink: Observer[dom.MouseEvent] =>
+      VDomModifier(
+        managed(sink <-- events.document.onClick)
+      )
+    }
+
   def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName:String):Option[T] = {
     import io.circe.parser.decode
     for {
