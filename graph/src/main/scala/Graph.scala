@@ -38,22 +38,23 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   lazy val (
     nodeIds:              collection.Set[NodeId],
-    nodesById: collection.Map[NodeId, Node],
-    labeledEdges: collection.Set[Edge.Label],
-    containments: collection.Set[Edge.Parent],
-    children: collection.Map[NodeId, collection.Set[NodeId]],
-    parents: collection.Map[NodeId, collection.Set[NodeId]],
-    deletedParents: collection.Map[NodeId, collection.Set[NodeId]],
-    deletedChildren: collection.Map[NodeId, collection.Set[NodeId]],
-    staticParentIn: collection.Map[NodeId, collection.Set[NodeId]],
-    authorshipsByNodeId: collection.Map[NodeId, List[Edge.Author]],
-    membershipsByNodeId: collection.Map[NodeId, List[Edge.Member]],
-    allAuthorIds: collection.Set[UserId], //TODO: List?
+    nodesById:            collection.Map[NodeId, Node],
+    labeledEdges:         collection.Set[Edge.Label],
+    containments:         collection.Set[Edge.Parent],
+    children:             collection.Map[NodeId, collection.Set[NodeId]],
+    parents:              collection.Map[NodeId, collection.Set[NodeId]],
+    deletedParents:       collection.Map[NodeId, collection.Set[NodeId]],
+    deletedChildren:      collection.Map[NodeId, collection.Set[NodeId]],
+    staticParentIn:       collection.Map[NodeId, collection.Set[NodeId]],
+    authorshipsByNodeId:  collection.Map[NodeId, List[Edge.Author]],
+    membershipsByNodeId:  collection.Map[NodeId, List[Edge.Member]],
+    allAuthorIds:         collection.Set[UserId], //TODO: List?
     allUserIds:           collection.Set[UserId], //TODO: List?
-    channelNodeIds: collection.Set[NodeId], //TODO: List?
-    allChannelIds: collection.Set[NodeId], //TODO: List?
-    nodeCreated: collection.Map[NodeId, EpochMilli],
-    nodeModified: collection.Map[NodeId, EpochMilli]
+    userIdByName:         collection.Map[String, UserId],
+    channelNodeIds:       collection.Set[NodeId], //TODO: List?
+    allChannelIds:        collection.Set[NodeId], //TODO: List?
+    nodeCreated:          collection.Map[NodeId, EpochMilli],
+    nodeModified:         collection.Map[NodeId, EpochMilli]
   ) = {
     // mutable sets/maps are ~5x faster than immutable ones
     // http://www.lihaoyi.com/post/BenchmarkingScalaCollections.html
@@ -85,6 +86,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val authorshipsByNodeId = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
     val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
     val allAuthorIds = mutable.HashSet[UserId]()
+    val userIdByName = mutable.HashMap[String, UserId]()
     val allUserIds = mutable.HashSet[UserId]()
 
     val channelNodeIds = mutable.HashSet[NodeId]()
@@ -127,6 +129,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       node match {
         case Node.User(id, data, _) =>
           allUserIds += id
+          userIdByName += data.name -> id
           channelNodeIds += data.channelNodeId
           channelIds ++= children(data.channelNodeId)
         case _ =>
@@ -159,6 +162,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       membershipsByNodeId,
       allAuthorIds,
       allUserIds,
+      userIdByName,
       channelNodeIds,
       channelIds,
       nodeCreated,
