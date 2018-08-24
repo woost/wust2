@@ -68,7 +68,7 @@ object PageHeader {
           (isOwnUser || isBookmarked).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
           notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto"),
           settingsMenu(state, channel, isBookmarked, isOwnUser).apply(Styles.flexStatic, marginLeft := "10px"),
-          shareButton(channel).map(_ (Styles.flexStatic, marginLeft := "10px"))
+          shareButton(channel).apply(Styles.flexStatic, marginLeft := "10px")
         )
       )
     }
@@ -98,19 +98,39 @@ object PageHeader {
     )
   }
 
-  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): Option[VNode] = Navigator.share.isDefined.ifTrueOption {
+  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+
+    // Workaround: Autsch!
+    val urlHolderId = "shareurlholder"
+    val urlHolder = textArea(id := urlHolderId, height := "0px", width := "0px", opacity := 0)
+
     div(
       freeSolid.faShareAlt,
       cursor.pointer,
+      urlHolder,
       onClick --> sideEffect {
         scribe.info(s"sharing post: $channel")
-        Navigator.share(new ShareData {
-          title = channel.data.str
-          text = channel.data.str
-          url = dom.window.location.href
-        }).toFuture.onComplete {
-          case Success(()) => scribe.info("Successfully shared post")
-          case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
+
+        val shareTitle = channel.data.str
+        val shareUrl = dom.window.location.href
+        val shareDesc = s"Share channel: $shareTitle, $shareUrl"
+
+        if(Navigator.share.isDefined) {
+          Navigator.share(new ShareData {
+            title = shareTitle
+            text = shareDesc
+            url = shareUrl
+          }).toFuture.onComplete {
+            case Success(()) => scribe.info("Successfully shared post")
+            case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
+          }
+        } else {
+          //TODO
+          val elem = dom.document.querySelector(s"#$urlHolderId").asInstanceOf[dom.html.TextArea]
+          elem.textContent = shareUrl
+          elem.select()
+          dom.document.execCommand("copy")
+          Notifications.notify("Sharing link copied to clipboard", tag = Some("sharelink"), body = Some(shareDesc))
         }
       },
       onClick --> sideEffect { Analytics.sendEvent("pageheader", "share") }
