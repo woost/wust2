@@ -48,7 +48,7 @@ object Rendered {
     case NodeData.Markdown(content)  => mdHtml(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case c: NodeData.Link            => MediaViewer.embed(c)
-    case user: NodeData.User         => div(s"User: ${ user.name }")
+    case user: NodeData.User         => div(user.name)
   }
 
   def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers

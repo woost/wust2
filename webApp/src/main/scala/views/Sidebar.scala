@@ -111,8 +111,10 @@ object Sidebar {
       Rx {
         val channelTree: Tree = state.channelTree()
         val pageParentIds = state.page().parentIdSet
+        val pageStyle = state.pageStyle()
         VDomModifier(
-          channelList(channelTree, pageParentIds, state.pageStyle())
+          channelLine(state.user().toNode, pageParentIds, pageStyle),
+          channelList(channelTree, pageParentIds, pageStyle)
           //          channelDiv(page.mode == PageMode.Orphans, state.pageStyle())(
           //            //TODO: inner state.page obs again
           //            noChannelIcon(page.mode == PageMode.Orphans)(ctx)(marginRight := "5px"),
@@ -136,7 +138,7 @@ object Sidebar {
     div(
       cls := "channelIcons",
       Rx {
-        val allChannels = state.channels()
+        val allChannels = state.channels().drop(1)
         val page = state.page()
         VDomModifier(
           allChannels.map { node =>
@@ -156,18 +158,18 @@ object Sidebar {
     )
   }
 
-  def channelIcon(state: GlobalState, post: Node, selected: Boolean, size: Int, selectedBorderColor: String = "transparent")(
+  def channelIcon(state: GlobalState, node: Node, selected: Boolean, size: Int, selectedBorderColor: String = "transparent")(
     implicit ctx: Ctx.Owner
   ): VNode = {
     div(
       cls := "channelicon",
       width := s"${ size }px",
       height := s"${ size }px",
-      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(post.id)).toHex,
+      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
       opacity := (if(selected) 1.0 else 0.75),
       selected.ifTrueOption(borderColor := selectedBorderColor),
-      Avatar.node(post.id),
-      title := post.data.str,
+      Avatar(node),
+      title := node.data.str,
     )
   }
 

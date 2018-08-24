@@ -4,6 +4,7 @@ import java.lang.Math._
 
 import colorado.HCL
 import outwatch.dom.{VNode, _}
+import wust.graph.Node
 import wust.ids._
 import wust.sdk.NodeColor.genericHue
 import wust.util.Memo
@@ -13,6 +14,12 @@ import scala.collection.mutable
 object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
 
+  def apply(n:Node): VNode = {
+    n match {
+      case n:Node.Content => node(n.id)
+      case n:Node.User => user(n.id)
+    }
+  }
   val node = Memo.mutableHashMapMemo { nodeId: NodeId =>
     twoMirror(nodeId, 8)
   }

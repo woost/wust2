@@ -48,7 +48,7 @@ object PageHeader {
       Styles.flex,
       alignItems.center,
 
-      channelAvatar(channel.id, size = 30)(Styles.flexStatic, marginRight := "10px"),
+      channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "10px"),
       channelTitle(marginRight := "10px"),
       channelMembers(state, channel),
       menu(state, channel)
@@ -137,8 +137,8 @@ object PageHeader {
     )
   }
 
-  private def channelAvatar(nodeId: NodeId, size: Int) = {
-    Avatar.node(nodeId)(
+  private def channelAvatar(node: Node, size: Int) = {
+    Avatar(node)(
       width := s"${ size }px",
       height := s"${ size }px"
     )
