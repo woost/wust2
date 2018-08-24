@@ -16,6 +16,11 @@ object JQuery extends js.Object {
 @js.native
 trait JQuerySelection extends js.Object with JQuerySelectionWithDropdown with JQuerySelectionWithModal {
 }
+
+trait DimmerOptions extends js.Object {
+  var opacity: js.UndefOr[String] = js.undefined
+}
+
 trait ModalOptions extends js.Object {
   var blurring: js.UndefOr[Boolean] = js.undefined
   var dimmerSettings: js.UndefOr[DimmerOptions] = js.undefined
