@@ -37,7 +37,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   }
 
   lazy val (
-    nodeIds: scala.collection.Set[NodeId],
+    nodeIds:              collection.Set[NodeId],
     nodesById: collection.Map[NodeId, Node],
     labeledEdges: collection.Set[Edge.Label],
     containments: collection.Set[Edge.Parent],
@@ -48,8 +48,8 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     staticParentIn: collection.Map[NodeId, collection.Set[NodeId]],
     authorshipsByNodeId: collection.Map[NodeId, List[Edge.Author]],
     membershipsByNodeId: collection.Map[NodeId, List[Edge.Member]],
-    allUserIds: collection.Set[UserId], //TODO: List?
     allAuthorIds: collection.Set[UserId], //TODO: List?
+    allUserIds:           collection.Set[UserId], //TODO: List?
     channelNodeIds: collection.Set[NodeId], //TODO: List?
     allChannelIds: collection.Set[NodeId], //TODO: List?
     nodeCreated: collection.Map[NodeId, EpochMilli],
