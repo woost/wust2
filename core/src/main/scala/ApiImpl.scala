@@ -179,6 +179,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   private def getNodeInternal(user: AuthUser, nodeId: NodeId): Future[Option[Node]] = db.node.get(user.id, nodeId).map(_.map(forClient(_)))
 
 
+  override def getUserId(name: String): ApiFunction[Option[UserId]] = Action {
+    db.user.byName(name).map(_.map(_.id))
+  }
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
     getPage(user.id, page)
