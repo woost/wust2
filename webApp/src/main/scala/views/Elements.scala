@@ -1,12 +1,14 @@
 package wust.webApp.views
 
 import cats.implicits._
+import fontAwesome.freeSolid
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder}
+import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
@@ -89,4 +91,12 @@ object Elements {
         )
       } yield modifiers
   }
+
+  def closeButton: VNode = div(
+      freeSolid.faTimes,
+      padding := "10px",
+      Styles.flexStatic,
+      cursor.pointer,
+    )
+
 }
