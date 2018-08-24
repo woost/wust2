@@ -186,6 +186,22 @@ object Components {
     )
   }
 
+  def renderWorkflowEntry(state: GlobalState, node: Node, injected: VDomModifier)(implicit ctx: Ctx.Owner) = {
+    div(
+      injected
+    )
+  }
+
+  def workflowEntryEditable(
+    state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges],
+    newTagParentIds: Iterable[NodeId], injected: VDomModifier = VDomModifier.empty,
+    maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner) = {
+    renderWorkflowEntry(
+      state, node,
+      injected = VDomModifier(editableNode(state, node, editable, submit, newTagParentIds, maxLength), injected)
+    )
+  }
+
   def readDragTarget(elem: dom.html.Element):Option[DragTarget] = {
     readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
   }

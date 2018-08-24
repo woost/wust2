@@ -336,27 +336,26 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- chatview --
-
   ".chat-history" - (
     height(100 %%)
   )
 
   ".chatmsg-group-outer-frame" - (
     paddingTop(10 px),
-      minWidth(0 px),
-      minHeight(0 px),
-      Styles.flex,
+    minWidth(0 px),
+    minHeight(0 px),
+    Styles.flex,
   )
 
-  ".chat-thread .chatmsg-group-outer-frame" - (
+  ".chat-history .chat-thread .chatmsg-group-outer-frame" - (
     paddingTop(5 px)
   )
 
-  ".chatmsg-group-inner-frame" - (
+  ".chat-history .chatmsg-group-inner-frame" - (
     width(100 %%), // expands selection highlight to the whole line
   )
 
-  ".chatmsg-header" - (
+  ".chat-history .chatmsg-header" - (
     fontSize(0.8 em),
     lineHeight(100 %%),
     Styles.flex,
@@ -369,12 +368,12 @@ object CommonStyles extends StyleSheet.Standalone {
     ),
   )
 
-  ".chatmsg-author" - (
+  ".chat-history .chatmsg-author" - (
     fontWeight.bold,
     color(c"#50575f")
   )
 
-  ".chatmsg-date" - (
+  ".chat-history .chatmsg-date" - (
     marginLeft(8 px),
     fontSize.smaller,
     color.grey
@@ -385,43 +384,43 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(2 px, 20 px, 2 px, 0 px)
   )
 
-  ".chatmsg-line .checkbox" - (
+  ".chat-history .chatmsg-line .checkbox" - (
     visibility.hidden
   )
 
   val chatmsgIndent = marginLeft(3 px)
-  ".chatmsg-line > .tag" - (
+  ".chat-history .chatmsg-line > .tag" - (
     chatmsgIndent, // when a tag is displayed at message position
     whiteSpace.normal, // displaying tags as content should behave like normal nodes
   )
 
-  ".chatmsg-line > .nodecard" - (
+  ".chat-history .chatmsg-line > .nodecard" - (
     chatmsgIndent,
   )
 
-  ".chatmsg-line > .tag *" - (
+  ".chat-history .chatmsg-line > .tag *" - (
     wordWrap.breakWord,
     wordBreak :=! "break-word",
   )
 
-  ".chatmsg-controls" - (
+  ".workflow .chatmsg-controls, .chat-history .chatmsg-controls" - (
     visibility.hidden,
     Styles.flex,
     alignItems.center,
     paddingLeft(3 px),
   )
 
-  ".chatmsg-controls > *" - (
+  ".workflow .chatmsg-controls > *, .chat-history .chatmsg-controls > *" - (
     padding(3 px, 5 px)
   )
 
 
-  ".chat-replybutton" - (
+  ".chat-history .chat-replybutton" - (
     color(c"rgba(0,0,0,0.5)"),
     cursor.pointer,
   )
 
-  ".chat-replybutton:hover" - (
+  ".chat-history .chat-replybutton:hover" - (
     color(black)
   )
 
@@ -432,22 +431,31 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   //TODO: how to generate this combinatorial explosion with scalacss?
-  ".chatmsg-line:hover .chatmsg-controls,"+
-  ".chatmsg-line:hover .checkbox,"+
-  ".chatmsg-line:hover .transitivetag,"+
-  ".chatmsg-line:focus .chatmsg-controls,"+
-  ".chatmsg-line:focus .checkbox,"+
-  ".chatmsg-line:focus .transitivetag" - (
+  ".chat-history .chatmsg-line:hover .chatmsg-controls,"+
+  ".chat-history .chatmsg-line:hover .checkbox,"+
+  ".chat-history .chatmsg-line:hover .transitivetag,"+
+  ".chat-history .chatmsg-line:focus .chatmsg-controls,"+
+  ".chat-history .chatmsg-line:focus .checkbox,"+
+  ".chat-history .chatmsg-line:focus .transitivetag" - (
     visibility.visible
   )
 
-  ".chat-thread" - (
+  ".chat-history .chat-thread" - (
     marginLeft(5 px),
     paddingLeft(5 px),
     paddingBottom(5 px),
     marginBottom(5 px),
   )
 
+  ".workflow-wrapper" - (
+    height(100 %%),
+    width(100 %%),
+    overflow.auto
+  )
+
+  ".workflow .chatmsg-line" - (
+    display.inlineFlex
+  )
 
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   val nodeCardBackgroundColor = c"#FEFEFE"
