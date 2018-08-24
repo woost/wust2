@@ -102,12 +102,11 @@ object PageHeader {
 
     // Workaround: Autsch!
     val urlHolderId = "shareurlholder"
-    val urlHolder = textArea(id := urlHolderId, height := "0px", width := "0px", opacity := 0)
+    val urlHolder = textArea(id := urlHolderId, height := "0px", width := "0px", opacity := 0, border := "0px", padding := "0px", fontSize := "0px", zIndex := 100, position.absolute)
 
     div(
-      freeSolid.faShareAlt,
-      cursor.pointer,
       urlHolder,
+      freeSolid.faShareAlt,
       onClick --> sideEffect {
         scribe.info(s"sharing post: $channel")
 
@@ -145,10 +144,6 @@ object PageHeader {
   }
 
   private def notifyControl(state: GlobalState, graph: Graph, user: AuthUser, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val sharedMods = VDomModifier(
-      fontSize := "20px",
-      cursor.pointer
-    )
 
     def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
       fontawesome.icon(icon),
@@ -166,19 +161,16 @@ object PageHeader {
       div(
         permissionState match {
           case PermissionState.granted => VDomModifier(
-            sharedMods,
             (icon: VNode) (cls := "fa-fw"),
             title := description,
             action
           )
           case PermissionState.prompt | `default`  => VDomModifier(
-            sharedMods,
             iconWithIndicator(icon, freeRegular.faQuestionCircle, "steelblue")(cls := "fa-fw"),
             title := "Notifications are currently disabled. Click to enable.",
             onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
           )
           case PermissionState.denied  => VDomModifier(
-            sharedMods,
             iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
             title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
             action
@@ -253,7 +245,7 @@ object PageHeader {
       div(
         // https://semantic-ui.com/modules/dropdown.html#pointing
         cls := "ui icon top left pointing dropdown",
-        (freeSolid.faCog: VNode) (fontSize := "20px"),
+        freeSolid.faCog,
         div(
           cls := "menu",
           div(cls := "header", "Settings", cursor.default),
