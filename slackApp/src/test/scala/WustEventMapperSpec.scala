@@ -60,6 +60,7 @@ case object MockAdapter extends PersistenceAdapter {
   // Guards
   def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.workspaceId)
   def channelExistsByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean] = ???
+  def channelExistsByWustId(nodeId: NodeId): Future[Boolean] = ???
   def isChannelDeletedBySlackId(channelId: String): Future[Boolean] = ???
   def isChannelUpToDateBySlackDataElseGetNodes(channelId: String, name: String): Future[Option[(NodeId, NodeId)]] = ???
   def isMessageDeletedBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
