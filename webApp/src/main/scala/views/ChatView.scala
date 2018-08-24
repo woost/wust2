@@ -98,7 +98,7 @@ object ChatView {
   def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val scrolledToBottom = PublishSubject[Boolean]
     val activeReplyFields = Var(Set.empty[List[NodeId]])
-    val avatarSizeToplevel:Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
+    val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
 
     div(
@@ -248,7 +248,7 @@ object ChatView {
     div(
       cls := "chatmsg-group-outer-frame",
       keyed(headNode), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
-      Rx{(avatarSize() != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize())(marginRight := "5px"))},
+      Rx { (avatarSize() != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize())(marginRight := "5px")) },
       div(
         keyed,
         cls := "chatmsg-group-inner-frame",
@@ -259,45 +259,51 @@ object ChatView {
     )
   }
 
-  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], path: List[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], path: List[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
-    if(isThread) {
-      val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
-      div(
-        background := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
-        keyed(nodeId),
-        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
-          boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
-        )),
-        div(
-          cls := "chat-thread",
-          borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
-
-          groupNodes(graph, children, state, currentUserId)
-            .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, nodeId :: path, Set(nodeId), currentUserId, Rx(avatarSizeThread), activeReplyFields)),
-
-          replyField(state, nodeId, directParentIds, path, activeReplyFields),
-
-          draggableAs(state, DragItem.DisableDrag),
-          dragTarget(DragItem.Chat.Thread(nodeId)),
-          cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
-          keyed(nodeId)
-        )
-      )
+    val showThread = Rx {
+      val replyFieldActive = activeReplyFields() contains (nodeId :: path)
+      isThread || replyFieldActive
     }
-    else if(inCycle)
-           chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
-             Styles.flex,
-             alignItems.center,
-             freeSolid.faSyncAlt,
-             paddingRight := "3px",
-             backgroundColor := "#CCC",
-             color := "#666",
-             boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-           ))
-    else
-      chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId)
+    Rx {
+      if(showThread()) {
+        val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
+        div(
+          background := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
+          keyed(nodeId),
+          chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, path, activeReplyFields, nodeId, messageCardInjected = VDomModifier(
+            boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
+          )),
+          div(
+            cls := "chat-thread",
+            borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
+
+            groupNodes(graph, children, state, currentUserId)
+              .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId, nodeId :: path, Set(nodeId), currentUserId, Rx(avatarSizeThread), activeReplyFields)),
+
+            replyField(state, nodeId, directParentIds, path, activeReplyFields),
+
+            draggableAs(state, DragItem.DisableDrag),
+            dragTarget(DragItem.Chat.Thread(nodeId)),
+            cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
+            keyed(nodeId)
+          )
+        )
+      }
+      else if(inCycle)
+             chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, path, activeReplyFields, nodeId, messageCardInjected = VDomModifier(
+               Styles.flex,
+               alignItems.center,
+               freeSolid.faSyncAlt,
+               paddingRight := "3px",
+               backgroundColor := "#CCC",
+               color := "#666",
+               boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+             ))
+      else
+        chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, path, activeReplyFields, nodeId)
+    }
   }
 
   def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner) = {
@@ -363,7 +369,7 @@ object ChatView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def chatMessageLine(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, messageCardInjected: VDomModifier = VDomModifier.empty)(
+  private def chatMessageLine(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], directParentIds: Set[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], nodeId: NodeId, messageCardInjected: VDomModifier = VDomModifier.empty)(
     implicit ctx: Ctx.Owner
   ) = {
     val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
@@ -390,6 +396,7 @@ object ChatView {
       cls := "chatmsg-controls",
       if(isDeleted) undeleteButton(state, nodeId, directParentIds)
       else VDomModifier(
+        replyButton(state, nodeId, path, activeReplyFields),
         editButton(state, editable),
         deleteButton(state, nodeId, directParentIds)
       ),
@@ -438,6 +445,13 @@ object ChatView {
       )
     )
   }
+
+  private def replyButton(state: GlobalState, nodeId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner) =
+    div(
+      div(cls := "fa-fw", freeSolid.faReply),
+      onMouseDown.stopPropagation --> sideEffect { activeReplyFields.update(_ + (nodeId :: path)) },
+      cursor.pointer,
+    )
 
   private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
     div(
@@ -546,7 +560,7 @@ object ChatView {
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         style("resize") := "none", //TODO: add resize style to scala-dom-types
-        Placeholders.newNode
+        placeholder := "Write a message and press Enter to submit.",
       )
     )
   }
