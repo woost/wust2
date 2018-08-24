@@ -52,8 +52,8 @@ object PageHeader {
       Styles.flex,
       alignItems.center,
 
-      channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "10px"),
-      channelTitle(marginRight := "10px"),
+      channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
+      channelTitle(paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
       channelMembers(state, channel),
       menu(state, channel)
     )
