@@ -8,6 +8,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.{BaseColors, NodeColor}
 import wust.sdk.NodeColor._
 import wust.util._
 import wust.util.collection._
@@ -260,9 +261,11 @@ object ChatView {
 
   private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId], path: List[NodeId], directParentIds: Set[NodeId], nodeId: NodeId, currentUserId: UserId, activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
-    if(!graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle) {
+    val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
+    if(isThread) {
       val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
       div(
+        background := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
         keyed(nodeId),
         chatMessageLine(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId, messageCardInjected = VDomModifier(
           boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
