@@ -83,7 +83,7 @@ object Sidebar {
           paddingLeft := "3px",
           paddingRight := "3px",
         ),
-        onChannelClick(ChannelAction.Post(node.id))(state),
+        onChannelClick(ChannelAction.Node(node.id))(state),
         onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
         draggableAs(state, DragItem.Channel(node.id)),
@@ -143,7 +143,7 @@ object Sidebar {
         VDomModifier(
           allChannels.map { node =>
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
-              onChannelClick(ChannelAction.Post(node.id))(state),
+              onChannelClick(ChannelAction.Node(node.id))(state),
               onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               draggableAs(state, DragItem.Channel(node.id)),
               dragTarget(DragItem.Channel(node.id)),
@@ -175,7 +175,7 @@ object Sidebar {
 
   sealed trait ChannelAction extends Any
   object ChannelAction {
-    case class Post(id: NodeId) extends AnyVal with ChannelAction
+    case class Node(id: NodeId) extends AnyVal with ChannelAction
     case class Page(mode: PageMode) extends AnyVal with ChannelAction
   }
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
@@ -183,7 +183,7 @@ object Sidebar {
       val page = state.page.now
       //TODO if (e.shiftKey) {
       action match {
-        case ChannelAction.Post(id)   =>
+        case ChannelAction.Node(id)   =>
           if(e.ctrlKey) {
             val filtered = page.parentIds.filterNot(_ == id)
             val parentIds =
