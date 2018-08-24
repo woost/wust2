@@ -2,12 +2,14 @@ package wust.webApp.views
 
 import fontAwesome._
 import googleAnalytics.Analytics
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.console
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import semanticUi.{DimmerOptions, ModalOptions}
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
@@ -15,11 +17,13 @@ import wust.ids._
 import wust.sdk.NodeColor.hue
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
+import wust.webApp.Client
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
@@ -66,9 +70,10 @@ object PageHeader {
       (channel.id != state.user().channelNodeId).ifTrue(
         VDomModifier(
           (isOwnUser || isBookmarked).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
-          notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto"),
-          settingsMenu(state, channel, isBookmarked, isOwnUser).apply(Styles.flexStatic, marginLeft := "10px"),
-          shareButton(channel).apply(Styles.flexStatic, marginLeft := "10px")
+          notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto", fontSize := "20px", cursor.pointer),
+          settingsMenu(state, channel, isBookmarked, isOwnUser).apply(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer),
+          addMember(state.graph(), channel).apply(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer),
+          shareButton(channel).apply(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer)
         )
       )
     }
@@ -136,7 +141,100 @@ object PageHeader {
     )
   }
 
-  private def channelAvatar(node: Node, size: Int) = {
+
+  private def addMember(graph: Graph, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+    val showDialog = Var(false)
+    val activeDisplay = Rx { display := (if(showDialog()) "block" else "none") }
+//    val addUserDialog = dialog(state, "Add Member", "Enter the username of a member you want to add", NodeColor.tagColor(channel.id).toHex)
+//(onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = selection.access)))) --> state.eventProcessor.changes)
+    //      addUserDialog(activeDisplay)(backgroundColor := NodeColor.tagColor(channel.id).toHex),
+
+
+    val addMemberModal = PublishSubject[dom.html.Element]
+    val userNameInput = PublishSubject[String]
+    val userNameInputProcess = PublishSubject[String]
+
+    userNameInput.foreach { name =>
+
+      val graphUser = graph.userIdByName.get(name) match {
+        case u @ Some(userId) => Future.successful(u)
+        case _ => Client.api.getUserId(name)
+      }
+
+      graphUser.flatMap {
+        case Some(u) => Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
+        case _       => Future.successful(false)
+      }.onComplete {
+        case Success(b) =>
+          if(!b) {
+            Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Could not add member: Member does not exist"))
+            scribe.error("Could not add member: Member does not exist")
+          } else {
+            Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Successfully added member to the channel"))
+            scribe.info("Added member to channel")
+          }
+        case Failure(ex) =>
+          Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Could not add member to channel"))
+          scribe.error("Could not add member to channel", ex)
+      }
+    }
+
+    div(
+      cls := "item",
+      freeSolid.faUserPlus,
+      div(
+        cls := "ui modal mini form",
+        i(cls := "close icon"),
+        div(
+          cls := "header",
+          s"Invite other user to channel ${node.str}",
+        ),
+        div(
+          cls := "content",
+          div(
+            width := "100%",
+            textArea(
+              cls := "field",
+              width := "100%",
+              placeholder := "Enter the username",
+              Elements.valueWithEnter --> userNameInput,
+              onChange.value --> userNameInputProcess
+            ),
+            "You can invite others by typing their username into the input field. Pressing Enter or clicking Invite triggers the action. It is only possible to add one user at a time."
+          ),
+        ),
+        div(
+          cls := "actions",
+          div(
+            cls := "ui button cancel",
+            "Cancel",
+          ),
+          div(
+            cls := "ui primary button approve",
+            "Invite",
+            onClick(userNameInputProcess) --> userNameInput
+          )
+        ),
+        onInsert.asHtml --> sideEffect { elem =>
+          import semanticUi.JQuery._
+          $(elem).modal(new ModalOptions {
+            //          blurring = true
+            dimmerSettings = new DimmerOptions {
+              opacity = "0.5"
+            }
+          }).modal("hide")
+          addMemberModal.onNext(elem)
+        },
+      ),
+      onClick.transform(_.withLatestFrom(addMemberModal)((_, o) => o)) --> sideEffect { elem =>
+        import semanticUi.JQuery._
+        $(elem).modal("toggle")
+      },
+    )
+  }
+
+
+  private def channelAvatar(nodeId: Node, size: Int) = {
     Avatar(node)(
       width := s"${ size }px",
       height := s"${ size }px"
