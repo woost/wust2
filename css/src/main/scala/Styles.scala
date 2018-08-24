@@ -464,10 +464,13 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer
   )
 
+  ".nodecard-content > *" - (
+    padding(2 px, 4 px), // when editing, clicking on the padding does not unfocus
+  )
+
   ".nodecard-content" - (
     wordWrap.breakWord,
     wordBreak :=! "break-word",
-    padding(2 px, 4 px),
     /* display.inlineBlock, */
     border(1 px, solid, transparent), /* placeholder for the dashed border when dragging */
     minHeight(2 em), // height when card is empty

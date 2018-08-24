@@ -281,7 +281,8 @@ object Components {
           onBlur --> sideEffect { discardChanges() },
           onFocus --> sideEffect { e => document.execCommand("selectAll", false, null) }
         ) else initialRender()
-      }
+      },
+      onClick.stopPropagation --> sideEffect {} // prevent e.g. selecting node
     )
   }
 
