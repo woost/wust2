@@ -279,10 +279,10 @@ object Components {
 
           onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
           onBlur --> sideEffect { discardChanges() },
-          onFocus --> sideEffect { e => document.execCommand("selectAll", false, null) }
+          onFocus --> sideEffect { e => document.execCommand("selectAll", false, null) },
+          onClick.stopPropagation --> sideEffect {} // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
-      onClick.stopPropagation --> sideEffect {} // prevent e.g. selecting node
     )
   }
 
