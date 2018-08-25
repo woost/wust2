@@ -53,8 +53,8 @@ object PageHeader {
       alignItems.center,
 
       channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
-      channelTitle(paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
-      channelMembers(state, channel),
+      channelTitle(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
+      channelMembers(state, channel)(ctx)(minWidth := s"${3*24}px", maxWidth := s"${6*24}px", flexShrink := 3),
       menu(state, channel)
     )
   }
@@ -89,7 +89,7 @@ object PageHeader {
         val authors = graph.authorsIn(channel.id)
         //TODO: possibility to show more
         //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = (members ++ authors).distinct.take(5)
+        val users = (members ++ authors).distinct.take(18)
 
         users.map(user => Avatar.user(user.id)(
           title := user.name,
