@@ -496,6 +496,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding( 0 px, 3 px, 0 px, 5 px ),
     Styles.flex,
     flexWrap.wrap,
+    minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
     alignItems.center
   )
 
