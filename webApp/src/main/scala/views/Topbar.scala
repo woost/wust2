@@ -168,7 +168,7 @@ object Topbar {
     div(
       Rx {
         prompt().map { e =>
-          button(cls := "tiny ui primary button", "install", onClick --> sideEffect {
+          button(cls := "tiny ui primary button", "Install as App", onClick --> sideEffect {
             e.asInstanceOf[js.Dynamic].prompt();
             ()
           })
