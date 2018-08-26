@@ -215,7 +215,7 @@ object PageHeader {
             onClick(userNameInputProcess) --> userNameInput
           )
         ),
-        onInsert.asHtml --> sideEffect { elem =>
+        onDomElementChange.asHtml --> sideEffect { elem =>
           import semanticUi.JQuery._
           $(elem).modal(new ModalOptions {
             //          blurring = true
