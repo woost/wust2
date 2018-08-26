@@ -20,7 +20,7 @@ import wust.util._
 import wust.webApp.Client
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 
 import scala.concurrent.Future
@@ -54,7 +54,7 @@ object PageHeader {
 
       channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
       channelTitle(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
-      channelMembers(state, channel)(ctx)(minWidth := s"${3*24}px", maxWidth := s"${6*24}px", flexShrink := 3),
+      Rx {(state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](channelMembers(state, channel)(ctx)(Styles.flexStatic, marginRight := "10px"))},
       menu(state, channel)
     )
   }
@@ -89,7 +89,7 @@ object PageHeader {
         val authors = graph.authorsIn(channel.id)
         //TODO: possibility to show more
         //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = (members ++ authors).distinct.take(18)
+        val users = (members ++ authors).distinct.take(7)
 
         users.map(user => Avatar.user(user.id)(
           title := user.name,
