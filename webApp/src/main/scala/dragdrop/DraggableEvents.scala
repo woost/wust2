@@ -5,7 +5,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.ext.KeyCode
 import draggable._
-import wust.graph.{Edge, GraphChanges}
+import wust.graph.{Edge, GraphChanges, Tree}
 import wust.ids.NodeId
 import wust.util._
 import wust.webApp.outwatchHelpers._
@@ -69,6 +69,22 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   private def moveInto(nodeIds:Iterable[NodeId], parentIds:Iterable[NodeId]):Unit = {
     submit(GraphChanges.moveInto(state.graph.now, nodeIds, parentIds))
   }
+  private def moveChannel(channelId:NodeId, targetChannelId:NodeId):Unit = {
+
+    def filterParents(nodeId:NodeId, tree:Tree):Set[NodeId] = {
+      tree match {
+        case _:Tree.Leaf => Set.empty
+        case Tree.Parent(parentNode, children) =>
+          val parent = if( children.exists(_.node.id == nodeId) ) Set(parentNode.id) else Set.empty
+          parent ++ children.flatMap(child => filterParents(nodeId, child))
+      }
+    }
+
+    val topologicalChannelParents = filterParents(channelId, state.channelTree.now) - state.user.now.channelNodeId
+    val disconnect:GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, topologicalChannelParents)
+    val connect:GraphChanges = GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
+    submit(disconnect merge connect)
+  }
 
 
   val dragActions:PartialFunction[(DragPayload, DragTarget, Boolean, Boolean),Unit] = {
@@ -85,6 +101,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: SelectedNodes, SelectedNodesBar, false, false) => // do nothing, since already selected
       case (dragging: AnyNodes, SelectedNodesBar, false, false) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
 
+      case (dragging: Channel, target: Channel, false, false) => moveChannel(dragging.nodeId, target.nodeId)
       case (dragging: AnyNodes, target: Channel, false, false) => moveInto(dragging.nodeIds, target.nodeId :: Nil)
       case (dragging: Channel, target: SingleNode, false, false) => addTag(dragging.nodeId, target.nodeId)
 
