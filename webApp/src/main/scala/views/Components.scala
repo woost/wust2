@@ -236,12 +236,12 @@ object Components {
     implicit ctx: Ctx.Owner
   ): VNode = {
     node match {
-      case contentNode: Node.Content => editableNode(state, contentNode, editable, submit, newTagParentIds, maxLength)
+      case contentNode: Node.Content => editableNodeContent(state, contentNode, editable, submit, newTagParentIds, maxLength)
       case _                         => renderNodeData(node.data, maxLength)
     }
   }
 
-  def editableNode(state: GlobalState, node: Node.Content, editable: Var[Boolean], submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId], maxLength: Option[Int])(
+  def editableNodeContent(state: GlobalState, node: Node.Content, editable: Var[Boolean], submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId], maxLength: Option[Int])(
     implicit ctx: Ctx.Owner
   ): VNode = {
 
