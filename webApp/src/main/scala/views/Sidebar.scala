@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -13,6 +14,7 @@ import wust.util.RichBoolean
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
+
 import collection.breakOut
 
 object Sidebar {
@@ -88,8 +90,7 @@ object Sidebar {
         cls := "node drag-feedback",
         draggableAs(state, DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
-      )
-      ,
+      ),
     }
 
     def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
@@ -106,6 +107,23 @@ object Sidebar {
       )
     }
 
+    def invitations(selected:Boolean, pageStyle: PageStyle) = div(
+      cls := "channel-line",
+
+      invitationsIcon(selected)(ctx)(
+        marginRight := "5px",
+        borderRadius := "2px",
+      ),
+      "Invitations",
+      selected.ifTrueSeq(
+        Seq(
+          color := pageStyle.sidebarBgColor,
+          backgroundColor := pageStyle.sidebarBgHighlightColor
+        )
+      ),
+      onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
+    )
+
     div(
       cls := "channels",
       Rx {
@@ -114,24 +132,18 @@ object Sidebar {
         val pageStyle = state.pageStyle()
         VDomModifier(
           channelLine(state.user().toNode, pageParentIds, pageStyle),
-          channelList(channelTree, pageParentIds, pageStyle)
-          //          channelDiv(page.mode == PageMode.Orphans, state.pageStyle())(
-          //            //TODO: inner state.page obs again
-          //            noChannelIcon(page.mode == PageMode.Orphans)(ctx)(marginRight := "5px"),
-          //            PageMode.Orphans.toString,
-          //            onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
-          //          )
+          channelList(channelTree, pageParentIds, pageStyle),
+          invitations(state.page().mode == PageMode.Orphans, pageStyle),
         )
       }
     )
   }
 
-  def noChannelIcon(selected: Boolean)(implicit ctx: Ctx.Owner) = div(
-    cls := "noChannelIcon",
-    backgroundColor := (selected match {
-      case true  => "grey" //TODO: better
-      case false => "white"
-    })
+  def invitationsIcon(selected: Boolean)(implicit ctx: Ctx.Owner) = div(
+    cls := "customChannelIcon",
+    margin := "0px",
+    freeSolid.faUsers,
+    selected.ifTrue[VDomModifier](backgroundColor := "white")
   )
 
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
@@ -150,9 +162,6 @@ object Sidebar {
               cls := "node drag-feedback"
             )
           },
-          //          noChannelIcon(page.mode == PageMode.Orphans)(ctx)(
-          //            onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
-          //          )
         )
       }
     )

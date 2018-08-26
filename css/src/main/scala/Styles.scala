@@ -188,16 +188,20 @@ object CommonStyles extends StyleSheet.Standalone {
     alignContent.stretch,
   )
 
-  ".noChannelIcon" - (
-    margin(0 px),
+  ".customChannelIcon" - (
+    Styles.flex,
+    alignItems.center,
+    justifyContent.center,
+    color(c"#333"),
+    backgroundColor(c"#e2e2e2"),
   )
 
-  ".channels .noChannelIcon" - (
+  ".channels .customChannelIcon" - (
     width(30 px),
     height(30 px),
   )
 
-  ".channelIcons .noChannelIcon" - (
+  ".channelIcons .customChannelIcon" - (
     width(40 px),
     height(40 px),
   )
