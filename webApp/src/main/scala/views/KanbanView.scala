@@ -85,8 +85,6 @@ object KanbanView {
               rows := 2,
               placeholder := "Press Enter to add.",
               valueWithEnter --> sideEffect { str =>
-                val graph = state.graphContent.now
-                val selectedNodeIds = state.selectedNodeIds.now
                 val change = {
                   val newColumnNode = Node.Content(NodeData.Markdown(str))
                   val add = GraphChanges.addNode(newColumnNode)
