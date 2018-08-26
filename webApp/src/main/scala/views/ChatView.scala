@@ -445,7 +445,7 @@ object ChatView {
   private def replyButton(state: GlobalState, nodeId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner) =
     div(
       div(cls := "fa-fw", freeSolid.faReply),
-      onMouseDown.stopPropagation --> sideEffect { activeReplyFields.update(_ + (nodeId :: path)) },
+      onClick.stopPropagation --> sideEffect { activeReplyFields.update(_ + (nodeId :: path)) },
       cursor.pointer,
     )
 
