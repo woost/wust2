@@ -215,29 +215,22 @@ object Topbar {
   }
 
   def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import scala.reflect.{ClassTag, classTag}
-    def MkLabel[T: ClassTag](theId: String, view: View, targetView: View,
-      pS: PageStyle, icon: IconDefinition) = {
-      label(`for` := theId, icon, onClick(targetView) --> state.view, cursor.pointer,
-        view match {
-          case v if classTag[T].runtimeClass.isInstance(v) =>
-            Seq(
-              color := "#111111",
-              //borderTop(2 px, solid, pS.bgLightColor)
-              backgroundColor := pS.bgColor)
-          case _                                           => Seq[VNode]()
-        }
+    def viewId(view:View) = s"viewswitcher_${view.viewKey}"
+    def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition) = {
+      label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
+        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
+          color := "#111111",
+          //borderTop(2 px, solid, pageStyle.bgLightColor)
+          backgroundColor := pageStyle.bgColor
+        ))
       )
     }
 
-    def MkInput[T: ClassTag](theId: String, view: View, pS: PageStyle) = {
-      input(display.none, id := theId, `type` := "radio", name := "viewbar",
-        view match {
-          case v if classTag[T].runtimeClass.isInstance(v) => Seq(checked := true)
-          case _                                           => Seq[VNode]()
-        },
-        onInput --> sideEffect {
-          Analytics.sendEvent("viewswitcher", "switch", view.viewKey)
+    def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
+      input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
+        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](checked := true),
+          onInput --> sideEffect {
+          Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
         }
       )
     }
@@ -250,12 +243,16 @@ object Topbar {
       alignItems.center,
 
       Rx {
-        Seq(MkInput[View.Chat.type]("v1", state.view(), state.pageStyle()),
-          MkLabel[View.Chat.type]("v1", state.view(), View.Chat, state.pageStyle(), freeRegular.faComments),
-          MkInput[View.Kanban.type]("v2", state.view(), state.pageStyle()),
-          MkLabel[View.Kanban.type]("v2", state.view(), View.Kanban, state.pageStyle(), freeSolid.faColumns),
-          MkInput[View.Graph.type]("v3", state.view(), state.pageStyle()),
-          MkLabel[View.Graph.type]("v3", state.view(), View.Graph, state.pageStyle(), freeBrands.faCloudsmith))
+        val currentView = state.view()
+        val pageStyle = state.pageStyle()
+        Seq(
+          MkInput(currentView, pageStyle, View.Chat),
+          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
+          MkInput(currentView, pageStyle, View.Kanban),
+          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
+          MkInput(currentView, pageStyle, View.Graph),
+          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+        )
       }
     )
 
