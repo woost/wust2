@@ -36,9 +36,17 @@ object Topbar {
     appUpdatePrompt(state).apply(marginRight := "10px"),
     beforeInstallPrompt().apply(marginRight := "10px"),
     //    undoRedo(state)(ctx)(marginRight.auto),
-    Rx { (state.page().parentIds.nonEmpty).ifTrue[VDomModifier](viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)) },
+    Rx {
+      state.view().isContent.ifTrue[VDomModifier](
+        viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
+      )
+    },
     FeedbackForm(state)(ctx)(marginLeft.auto),
-    Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](authentication(state)) }
+    Rx {
+      (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
+        authentication(state)
+      )
+    }
   )
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
