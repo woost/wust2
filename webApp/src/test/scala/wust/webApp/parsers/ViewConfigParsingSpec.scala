@@ -35,7 +35,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph|chat&page=${cuid1.toCuidString},${cuid2.toCuidString}"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = createViewConfig(
-      View.Tiled(ViewOperator.Row, NonEmptyList[View](View.Graph, View.Chat :: Nil)),
+      View.Tiled(ViewOperator.Row, NonEmptyList[View](View.Graph, View.Thread :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
     cfg.view.viewKey mustEqual expected.view.viewKey
@@ -48,7 +48,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph/chat&page=${cuid1.toCuidString},${cuid2.toCuidString}"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = createViewConfig(
-      View.Tiled(ViewOperator.Column, NonEmptyList[View](View.Graph, View.Chat :: Nil)),
+      View.Tiled(ViewOperator.Column, NonEmptyList[View](View.Graph, View.Thread :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
     cfg.view.viewKey mustEqual expected.view.viewKey
@@ -61,7 +61,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph,chat&page=${cuid1.toCuidString},${cuid2.toCuidString}"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = createViewConfig(
-      View.Tiled(ViewOperator.Auto, NonEmptyList[View](View.Graph, View.Chat :: Nil)),
+      View.Tiled(ViewOperator.Auto, NonEmptyList[View](View.Graph, View.Thread :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
     cfg.view.viewKey mustEqual expected.view.viewKey
@@ -74,35 +74,35 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
     val str = s"view=graph?chat&page=${cuid1.toCuidString},${cuid2.toCuidString}"
     val cfg = ViewConfig.fromUrlHash(str)
     val expected = createViewConfig(
-      View.Tiled(ViewOperator.Optional, NonEmptyList[View](View.Graph, View.Chat :: Nil)),
+      View.Tiled(ViewOperator.Optional, NonEmptyList[View](View.Graph, View.Thread :: Nil)),
       Page(Seq(NodeId(cuid1), NodeId(cuid2))), None)
     cfg.page mustEqual expected.page
     cfg.view.viewKey mustEqual expected.view.viewKey
   }
 
   "single view - row" in {
-    val orig = createViewConfig(View.Tiled(ViewOperator.Row, NonEmptyList[View](View.Graph, View.Chat :: Nil)), Page.empty, None)
+    val orig = createViewConfig(View.Tiled(ViewOperator.Row, NonEmptyList[View](View.Graph, View.Thread :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single view - column" in {
-    val orig = createViewConfig(View.Tiled(ViewOperator.Column, NonEmptyList[View](View.Graph, View.Chat :: Nil)), Page.empty, None)
+    val orig = createViewConfig(View.Tiled(ViewOperator.Column, NonEmptyList[View](View.Graph, View.Thread :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single view - auto" in {
-    val orig = createViewConfig(View.Tiled(ViewOperator.Auto, NonEmptyList[View](View.Graph, View.Chat :: Nil)), Page.empty, None)
+    val orig = createViewConfig(View.Tiled(ViewOperator.Auto, NonEmptyList[View](View.Graph, View.Thread :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "single view - optional" in {
-    val orig = createViewConfig(View.Tiled(ViewOperator.Optional, NonEmptyList[View](View.Graph, View.Chat :: Nil)), Page.empty, None)
+    val orig = createViewConfig(View.Tiled(ViewOperator.Optional, NonEmptyList[View](View.Graph, View.Thread :: Nil)), Page.empty, None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
@@ -116,14 +116,14 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "view and page" in {
-    val orig = createViewConfig(View.Chat, Page(freshNodeId(5)), None)
+    val orig = createViewConfig(View.Thread, Page(freshNodeId(5)), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
   }
 
   "view and page and prev" in {
-    val orig = createViewConfig(View.Signup, Page(freshNodeId(6)), Some(View.Chat))
+    val orig = createViewConfig(View.Signup, Page(freshNodeId(6)), Some(View.Thread))
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
     cfg.view.viewKey mustEqual orig.view.viewKey
