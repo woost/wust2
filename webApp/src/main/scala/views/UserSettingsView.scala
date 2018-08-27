@@ -1,9 +1,11 @@
 package wust.webApp.views
 
-import fontAwesome.{freeBrands, freeSolid}
+import fontAwesome.{IconDefinition, freeBrands, freeSolid}
+import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api.{Authentication, PluginUserAuthentication}
 import wust.css.Styles
 import wust.ids._
 import wust.webApp._
@@ -11,7 +13,10 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 
+import scala.concurrent.Future
+
 object UserSettingsView {
+
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div(
       height := "100%",
@@ -20,7 +25,7 @@ object UserSettingsView {
         val user = state.user()
         VDomModifier(
           header(user)(marginBottom := "50px"),
-          slackButton(user)
+          Observable.fromFuture(slackButton(user)),
         )
       }
     )
@@ -41,20 +46,42 @@ object UserSettingsView {
     )
   }
 
-  private def slackButton(user: UserInfo): VNode = {
-    button(
-      cls := "ui button",
-      div(
-        Styles.flex,
-        fontSize := "25px",
-        woostIcon( marginRight := "10px" ),
-        (freeSolid.faExchangeAlt:VNode)(marginRight := "10px"),
-        (freeBrands.faSlack:VNode),
-        marginBottom := "5px",
+  private def genConnectButton(icon: IconDefinition, platformName: String)(isActive: Boolean) = {
+
+    val modifiers = if(isActive){
+      List(
+        cls := "ui button green",
+        div(s"Synchronized with $platformName"),
+        onClick --> sideEffect(linkWithSlack()),
+//        onClick --> sideEffect(showPluginAuth()),
+      )
+    } else {
+      List(
+        cls := "ui button",
+        div(s"Sync with $platformName now"),
+        onClick --> sideEffect(linkWithSlack()),
+      )
+    }
+
+    div(
+      button(
+        div(
+          Styles.flex,
+          justifyContent.center,
+          fontSize := "25px",
+          woostIcon(marginRight := "10px"),
+          (freeSolid.faExchangeAlt: VNode) (marginRight := "10px"),
+          (icon: VNode),
+          marginBottom := "5px",
+        ),
+        modifiers,
       ),
-      div("Sync with Slack"),
-      onClick --> sideEffect(linkWithSlack())
     )
+  }
+
+  private def slackButton(user: UserInfo): Future[VNode] = {
+    val syncButton = genConnectButton(freeBrands.faSlack, "Slack") _
+    Client.slackApi.isAuthenticated(user.id).map(activated => syncButton(activated))
   }
 
   def linkWithGithub() = {

@@ -45,7 +45,8 @@ object Constants {
 class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
   implicit ec: ExecutionContext
 ) extends PluginApi {
-  def connectUser(auth: Authentication.Token): Future[Option[String]] = {
+
+  override def connectUser(auth: Authentication.Token): Future[Option[String]] = {
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${ verifiedAuth.user.name }")
@@ -85,10 +86,19 @@ class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdap
     }
   }
 
+  override def isAuthenticated(userId: UserId): Future[Boolean] = {
+    persistenceAdapter.getSlackUserByWustId(userId).map {
+      case Some(slackUser) => slackUser.slackUserToken.isDefined
+      case _ => false
+    }
+  }
+
   override def importContent(identifier: String): Future[Boolean] = {
     // TODO: Seeding
     Future.successful(true)
   }
+
+
 }
 
 object AppServer {

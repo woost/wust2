@@ -74,6 +74,8 @@ class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
     }
   }
 
+  override def isAuthenticated(userId: UserId): Future[Boolean] = ???
+
   override def importContent(identifier: String): Future[Boolean] = {
     // TODO: Seeding
     Future.successful(true)
