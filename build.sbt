@@ -172,8 +172,16 @@ lazy val root = project
     publish := {},
     publishLocal := {},
     addCommandAlias(
+      "devslack",
+      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; slackApp/compile; webApp/fastOptJS::startWebpackDevServer; devslackwatch_; webApp/fastOptJS::stopWebpackDevServer; slack/reStop; core/reStop"
+    ),
+    addCommandAlias(
       "dev",
       "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; webApp/fastOptJS::stopWebpackDevServer; core/reStop"
+    ),
+    addCommandAlias(
+      "devslackwatch_",
+      "~; slackApp/reStop; core/reStop; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart; slackApp/reStart"
     ),
     addCommandAlias(
       "devwebwatch_",
