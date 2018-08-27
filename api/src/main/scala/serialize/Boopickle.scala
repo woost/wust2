@@ -23,4 +23,6 @@ object Boopickle extends wust.ids.serialize.Boopickle {
   implicit val apiErrorPickler: Pickler[ApiError] = generatePickler[ApiError]
 
   implicit val nlpHeuristicPickler: Pickler[NlpHeuristic] = generatePickler[NlpHeuristic]
+
+  implicit val pluginUserAuthenticationPickler: Pickler[PluginUserAuthentication] = generatePickler[PluginUserAuthentication]
 }

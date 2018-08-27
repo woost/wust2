@@ -93,6 +93,17 @@ class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdap
     }
   }
 
+  override def getAuthentication(userId: UserId, auth: Authentication.Token): Future[Option[PluginUserAuthentication]] = {
+    client.auth.verifyToken(auth).flatMap {
+      case Some(_) =>
+        persistenceAdapter.getSlackUserByWustId(userId).map {
+          case Some(slackUser) => Some(PluginUserAuthentication(userId, slackUser.slackUserId, slackUser.slackUserToken))
+          case _ => None
+        }
+      case _ => Future.successful(None)
+    }
+  }
+
   override def importContent(identifier: String): Future[Boolean] = {
     // TODO: Seeding
     Future.successful(true)
@@ -118,6 +129,7 @@ object AppServer {
     implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
+    import wust.api.serialize.Boopickle._
 
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))

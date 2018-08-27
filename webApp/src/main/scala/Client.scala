@@ -8,6 +8,7 @@ import covenant.http._
 import org.scalajs.dom.window
 import rx._
 import wust.api._
+import wust.api.serialize.Boopickle._
 import wust.ids._
 import wust.sdk._
 import wust.webApp.outwatchHelpers._

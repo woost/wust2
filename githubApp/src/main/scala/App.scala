@@ -36,6 +36,7 @@ import monix.reactive.subjects.ConcurrentSubject
 
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
+import wust.api.Authentication.Token
 
 object Constants {
   //TODO
@@ -74,6 +75,7 @@ class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
     }
   }
 
+  override def getAuthentication(userId: UserId, auth: Token): Future[Option[PluginUserAuthentication]] = ???
   override def isAuthenticated(userId: UserId): Future[Boolean] = ???
 
   override def importContent(identifier: String): Future[Boolean] = {
@@ -135,6 +137,7 @@ object AppServer {
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
+    import wust.api.serialize.Boopickle._
     import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
     import cats.implicits._
 

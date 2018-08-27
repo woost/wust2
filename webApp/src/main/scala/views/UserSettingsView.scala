@@ -46,6 +46,13 @@ object UserSettingsView {
     )
   }
 
+  private def showPluginAuth(userId: UserId, token: Authentication.Token) = {
+    Client.slackApi.getAuthentication(userId, token).map{
+      case Some(pluginAuth) =>
+      case _                  =>
+    }
+  }
+
   private def genConnectButton(icon: IconDefinition, platformName: String)(isActive: Boolean) = {
 
     val modifiers = if(isActive){
