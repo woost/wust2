@@ -29,6 +29,7 @@ after_success:
 cache:
   yarn: true
   directories:
+  - .yarn-offline-cache
   - $HOME/.ivy2/cache
   - $HOME/.ivy2/local
   - $HOME/.sbt/boot
