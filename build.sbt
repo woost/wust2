@@ -72,6 +72,8 @@ lazy val commonSettings = Seq(
 
 lazy val commonWebSettings = Seq(
   useYarn := true, // makes scalajs-bundler use yarn instead of npm
+  yarnExtraArgs in Compile := Seq("--frozen-lockfile"), // reproducible dependencies (https://yarnpkg.com/en/docs/cli/install#toc-yarn-install-frozen-lockfile)
+
   scalacOptions += "-P:scalajs:sjsDefinedByDefault",
   scalacOptions ++= {
     if (isDevRun.?.value.getOrElse(false)) {
