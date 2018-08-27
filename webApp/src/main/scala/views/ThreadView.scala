@@ -76,9 +76,9 @@ object ThreadView {
       val page = state.page()
       val fullGraph = state.graph()
       val graph = state.graphContent()
-      graph.chronologicalNodesAscending.collect {
+      graph.nodes.collect {
         case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
-      }
+      }.toSeq.sortBy(nid => graph.nodeCreated(nid):Long)
     }
 
     div(
