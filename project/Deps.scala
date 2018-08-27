@@ -101,7 +101,7 @@ object Deps {
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
   //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
 
-  val webpackVersion = "4.16.1"
+  val webpackVersion = "4.17.1"
   val webpackDevServerVersion = "3.1.4"
 
   object npm {
