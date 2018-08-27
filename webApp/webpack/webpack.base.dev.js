@@ -1,4 +1,6 @@
 const Webpack = require('webpack');
+
+const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("html-webpack-plugin");
 const HtmlAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
@@ -24,7 +26,11 @@ const loaderJsFile = appName + '-loader.js';
 //this would bundle all js files into one
 // module.exports.entry[appName].push('./' + baseJsFile);
 // module.exports.entry[appName].push('./' + loaderJsFile);
-const extraAssets = [ loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f) { return Path.basename(f); }));
+module.exports.plugins.push(new CopyPlugin([
+    { from: 'node_modules/jquery/dist/jquery.js', to: 'jquery.js'},
+    { from: 'node_modules/fomantic-ui-css/', to: 'semantic/' },
+]));
+const extraAssets = [ 'jquery.js', 'semantic/semantic.js', 'semantic/semantic.css', loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f) { return Path.basename(f); }));
 
 ////////////////////////////////////////
 // html template generate index.html

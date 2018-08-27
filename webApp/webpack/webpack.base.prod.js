@@ -6,6 +6,7 @@ const BrotliPlugin = require('brotli-webpack-plugin');
 const ClosureCompilerPlugin = require("webpack-closure-compiler");
 // const SriPlugin = require("webpack-subresource-integrity");
 const HtmlPlugin = require("html-webpack-plugin");
+const HtmlIncludeAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
 
@@ -28,6 +29,10 @@ function copyAssets(context) {
     ], { context: context });
 }
 module.exports.plugins.push(copyAssets(dirs.assets));
+module.exports.plugins.push(new CopyPlugin([
+    { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
+    { from: 'node_modules/fomantic-ui-css/', to: 'semantic/' },
+]));
 
 // file name pattern for outputs with hash
 const filenamePattern = '[name].[chunkhash]';
@@ -78,6 +83,16 @@ module.exports.plugins.push(new HtmlPlugin({
         removeAttributeQuotes: true
     },
 }));
+
+module.exports.plugins.push(new HtmlIncludeAssetsPlugin({
+    assets: [
+        'jquery.min.js',
+        'semantic/semantic.min.js',
+        'semantic/semantic.min.css'
+    ],
+    append: false
+}));
+
 
 ////////////////////////////////////////
 // styles generated from scss

@@ -384,6 +384,7 @@ lazy val webApp = project
         Deps.npm.dateFns ::
         Deps.npm.draggable ::
         Deps.npm.snabbdom ::
+        Deps.npm.fomanticUi ::
         Nil
   )
 

@@ -109,6 +109,7 @@ object Deps {
     val marked = "marked" -> "0.3.12"
     val dateFns = "date-fns" -> "v2.0.0-alpha.16"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.7"
+    val fomanticUi = "fomantic-ui-css" -> "2.4.4"
 
     //TODO open PR at snabbdom for checking-parent-exists branch
     val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.1"
