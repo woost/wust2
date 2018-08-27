@@ -248,7 +248,7 @@ object PageHeader {
       fontawesome.icon(
         indicator,
         new Params {
-          transform = new Transform {size = 13.0; x = 7; y = -7; }
+          transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
           styles = scalajs.js.Dictionary[String]("color" -> color)
         }
       )
