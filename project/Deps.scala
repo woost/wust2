@@ -115,15 +115,15 @@ object Deps {
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "2.1.6" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47
-        "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
+        // "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
         "html-webpack-plugin" -> "3.2.0" ::
         "html-webpack-include-assets-plugin" -> "1.0.4" ::
         "clean-webpack-plugin" -> "0.1.19" ::
         "zopfli-webpack-plugin" -> "0.1.0" ::
         "brotli-webpack-plugin" -> "0.5.0" ::
         "source-map-loader" -> "0.2.3" ::
-        "node-sass" -> "4.7.2" ::
-        "sass-loader" -> "6.0.7" ::
+        // "node-sass" -> "4.7.2" ::
+        // "sass-loader" -> "6.0.7" ::
         "css-loader" -> "1.0.0" ::
         "style-loader" -> "0.21.0" ::
         "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
