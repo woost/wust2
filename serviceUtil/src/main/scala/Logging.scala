@@ -1,5 +1,7 @@
 package wust.serviceUtil
 
+import java.nio.file.Paths
+
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import monix.execution.{Cancelable, Scheduler}
@@ -23,7 +25,7 @@ object Logging {
       .withHandler(
         formatter = detailFormatter,
         minimumLevel = Some(Level.Info),
-        writer = FileWriter.date(prefix = cfg.id)
+        writer = FileWriter.date(prefix = cfg.id, directory = Paths.get("logs"))
       )
 
     val configuredSetup = cfg.logstash.fold(rootSetup) { logstashCfg =>

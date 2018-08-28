@@ -16,9 +16,7 @@ def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
       entryPoint("/flyway/flyway-await-postgres.sh", postgresHost)
     }
   },
-  imageNames in docker := (Defs.dockerVersionTags in projectRef).value.map { v =>
-    ImageName(namespace = Some("woost"), repository = "db-migration", tag = Some(v + "-" + name))
-  }
+  imageNames in docker := Docker.imageNames("db-migration", versionPostfix = name).value
 )
 
 lazy val dbMigration = project

@@ -46,6 +46,9 @@ services:
       - postgres
     ports:
       - "127.0.0.1:${WUST_SLACK_PORT-9103}:8080"
+    volumes:
+      - slack_logs/:/app/logs
 
 volumes:
   slack_postgres_data:
+  slack_logs:

@@ -62,16 +62,6 @@ lazy val commonSettings = Seq(
         Nil
     case _ => Nil
   }),
-  Defs.dockerVersionTags := {
-    val branch = sys.env.get("TRAVIS_BRANCH") orElse scala.util
-      .Try(git.gitCurrentBranch.value)
-      .filter(_.nonEmpty)
-      .toOption getOrElse "dirty"
-    if (branch == "master") "latest" else branch
-  } ::
-    version.value ::
-    Nil,
-
 
   // Acyclic: https://github.com/lihaoyi/acyclic
   libraryDependencies += Deps.acyclic.value,
