@@ -21,7 +21,7 @@ lazy val commonSettings = Seq(
       Nil,
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7"),
   libraryDependencies ++=
-    Deps.scribe.value ::
+    Deps.scribe.core.value ::
       Deps.sourcecode.value ::
       Deps.scalatest.value % Test ::
       Deps.mockito.value % Test ::
@@ -214,7 +214,7 @@ lazy val root = project
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := Seq(apiJS, apiJVM, database, core, sdkJS, sdkJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in cssJS).value ++ (watchSources in cssJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in serviceUtil).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in cssJS).value ++ (watchSources in cssJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
   )
 
 lazy val util = crossProject(JSPlatform, JVMPlatform)
@@ -224,6 +224,20 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
+      Nil
+  )
+
+lazy val serviceUtil = project
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++=
+      Deps.monix.value ::
+      Deps.akka.http.value ::
+      Deps.akka.actor.value ::
+      Deps.akka.stream.value ::
+      Deps.circe.core.value ::
+      Deps.circe.parser.value ::
+      Deps.circe.genericExtras.value ::
       Nil
   )
 
@@ -340,7 +354,7 @@ lazy val dbUtil = project
   )
 
 lazy val core = project
-  .dependsOn(apiJVM, database)
+  .dependsOn(apiJVM, database, serviceUtil)
   .settings(commonSettings)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
@@ -436,7 +450,7 @@ lazy val webApp = project
 //   )
 
 lazy val slackApp = project
-  .dependsOn(sdkJVM, dbUtil)
+  .dependsOn(sdkJVM, dbUtil, serviceUtil)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
@@ -449,7 +463,7 @@ lazy val slackApp = project
   )
 
 lazy val gitterApp = project
-  .dependsOn(sdkJVM)
+  .dependsOn(sdkJVM, serviceUtil)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=
@@ -459,7 +473,7 @@ lazy val gitterApp = project
   )
 
 lazy val githubApp = project
-  .dependsOn(sdkJVM)
+  .dependsOn(sdkJVM, serviceUtil)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++=

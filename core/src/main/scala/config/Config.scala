@@ -2,6 +2,7 @@ package wust.backend.config
 
 import com.typesafe.config.{Config => TConfig}
 import scala.concurrent.duration.Duration
+import wust.serviceUtil.Logging
 
 case class AuthConfig(tokenLifetime: Duration, secret: String) {
   override def toString: String = s"AuthConfig($tokenLifetime, ***)"
@@ -26,11 +27,12 @@ case class Config(
     pushNotification: Option[PushNotificationConfig],
     auth: AuthConfig,
     email: Option[EmailConfig],
+    logstash: Option[Logging.LogstashConfig],
     db: TConfig
 ) {
   override def toString: String = {
     val cleanDb = db.withoutPath("password")
-    s"Config($server, $pushNotification, $auth, $email, $cleanDb)"
+    s"Config($server, $pushNotification, $auth, $email, $logstash, $cleanDb)"
   }
 }
 

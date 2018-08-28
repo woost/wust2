@@ -33,6 +33,7 @@ services:
       WUST_PUSH_SUBJECT: ${WUST_PUSH_SUBJECT}
       WUST_PUSH_PUBLIC_KEY: ${WUST_PUSH_PUBLIC_KEY}
       WUST_PUSH_PRIVATE_KEY: ${WUST_PUSH_PRIVATE_KEY}
+      WUST_LOGSTASH_URL: ${WUST_LOGSTASH_URL}
     depends_on:
       - postgres
     ports:
