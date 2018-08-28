@@ -112,9 +112,6 @@ function self() {
         export $env_postgres_secret $env_postgres_local
 
         case "$2" in
-        all)
-            export $env_slack
-            ;;
         core)
             PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT_CORE } ${@:3}
             ;;
@@ -146,7 +143,29 @@ function self() {
         ssh -C woost.space docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgclean)
-        postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        export $env_postgres_secret $env_postgres_local
+
+        case "$2" in
+        all)
+            export $env_slack_postgres
+            postgres_core_command psql -h localhost -U $POSTGRES_USER -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            ;;
+        core)
+            postgres_core_command psql -h localhost -U $POSTGRES_USER -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            ;;
+        githubApp)
+            ;;
+        gitterApp)
+            ;;
+        slackApp)
+            export $env_slack_postgres
+            postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            ;;
+        *)
+            postgres_core_command psql -h localhost -U $POSTGRES_USER -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            ;;
+        esac
         ;;
     sbtWithPoll)
         # Only exports polling parameter and then falls through!
