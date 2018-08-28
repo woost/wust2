@@ -11,12 +11,10 @@ package object util {
     def recoverValueWithoutLog(a: T)(implicit ec: ExecutionContext) = fut.recover {
       case NonFatal(_) => a
     }
-    def recoverValue(
-        a: T
-    )(implicit ec: ExecutionContext, name: sourcecode.FullName, line: sourcecode.Line) =
+    def recoverValue(a: T)(implicit ec: ExecutionContext, name: sourcecode.FullName, line: sourcecode.Line) =
       fut.recover {
         case NonFatal(e) =>
-          scribe.error(s"${name.value}:${line}", e)
+          scribe.error(s"${name.value}:${line.value}", e)
           a
       }
     def log(customMessage: String = null)(
