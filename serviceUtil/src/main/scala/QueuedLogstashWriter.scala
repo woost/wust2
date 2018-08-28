@@ -125,15 +125,12 @@ class QueuedLogstashWriter(
     .bufferTimedAndCounted(timespan = 10.seconds, maxCount = 100)
     .subscribe(
       { logs =>
-        retryWithBackoff(sendLogs(logs), maxRetries = 3, initialDelay = 5.seconds)
-          .runAsync
-          .transform {
-            case Success(_) =>
-              Success(Ack.Continue)
-            case Failure(t) =>
-              println(s"Failed to send logs to logstash, dropping ${logs.size} log records: $t")
-              Success(Ack.Continue)
-          }
+        retryWithBackoff(sendLogs(logs), maxRetries = 3, initialDelay = 5.seconds).runOnComplete {
+          case Success(_) => ()
+          case Failure(t) => println(s"Failed to send logs to logstash, dropping ${logs.size} log records: $t")
+        }
+
+        Ack.Continue
       },
       err => println(s"Error while logging to logstash, cannot continue: $err")
     )
