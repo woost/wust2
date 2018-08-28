@@ -1,6 +1,7 @@
 package wust.serviceUtil
 
 import java.nio.file.Paths
+import java.net.InetAddress
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
@@ -36,7 +37,9 @@ object Logging {
       val writer = new QueuedLogstashWriter(
         url = logstashCfg.url,
         service = cfg.id,
-        additionalFields = Map("type" -> "applog"))
+        additionalFields = Map(
+          "type" -> "applog",
+          "beat.hostname" -> InetAddress.getLocalHost.getHostName))
 
       writer.start()
 
