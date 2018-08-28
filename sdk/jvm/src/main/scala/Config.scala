@@ -17,7 +17,9 @@ case class OAuthConfig(clientId: String,
   redirectUri: Option[String],
   authorizeUrl: Option[String],
   tokenUrl: Option[String],
-)
+) {
+  override def toString = s"OAuthConfig(***, ***, $siteUri, $authPath, $redirectUri, $authorizeUrl, $tokenUrl)"
+}
 
 case class DefaultConfig(appServer: ServerConfig, wustServer: WustConfig, oAuth: OAuthConfig)
 

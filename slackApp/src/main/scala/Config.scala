@@ -4,7 +4,9 @@ import wust.sdk.{OAuthConfig, ServerConfig, WustConfig}
 import wust.serviceUtil.Logging
 import com.typesafe.config.{Config => TConfig}
 
-case class SlackClientConfig(token: String, botId: String, signingSecret: String)
+case class SlackClientConfig(token: String, botId: String, signingSecret: String) {
+  override def toString = "SlackClientConfig(***, ***, ***)"
+}
 
 case class Config(wustServer: WustConfig, appServer: ServerConfig, oAuth: OAuthConfig, postgres: TConfig, slack: SlackClientConfig, logstash: Option[Logging.LogstashConfig])
 
