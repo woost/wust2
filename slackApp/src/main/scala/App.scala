@@ -11,6 +11,7 @@ import wust.sdk._
 import wust.api._
 import wust.ids._
 import wust.graph._
+import wust.serviceUtil.Logging
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
@@ -439,6 +440,7 @@ object App extends scala.App {
   Config.load() match {
     case Left(err)     => scribe.info(s"Cannot load config: $err")
     case Right(config) =>
+      Logging.setup(Logging.Config(id = "slack", config.logstash))
       val oAuthClient = OAuthClient(config.oAuth, config.appServer, config.wustServer)
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
       val slackClient = SlackClient(config.slack.token, isUser = false)

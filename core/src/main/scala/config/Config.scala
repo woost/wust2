@@ -38,7 +38,7 @@ case class Config(
 
 object Config {
   import pureconfig._
-  import wust.util.Config._, optionImplicits._
+  import wust.util.Config._
 
   def load = loadConfig[Config]("wust.core")
 }

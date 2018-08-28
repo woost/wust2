@@ -1,11 +1,12 @@
 package wust.slack
 
 import wust.sdk.{OAuthConfig, ServerConfig, WustConfig}
+import wust.serviceUtil.Logging
 import com.typesafe.config.{Config => TConfig}
 
 case class SlackClientConfig(token: String, botId: String, signingSecret: String)
 
-case class Config(wustServer: WustConfig, appServer: ServerConfig, oAuth: OAuthConfig, postgres: TConfig, slack: SlackClientConfig)
+case class Config(wustServer: WustConfig, appServer: ServerConfig, oAuth: OAuthConfig, postgres: TConfig, slack: SlackClientConfig, logstash: Option[Logging.LogstashConfig])
 
 object Config {
   import pureconfig._
