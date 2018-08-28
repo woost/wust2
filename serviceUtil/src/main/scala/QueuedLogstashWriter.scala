@@ -115,7 +115,7 @@ class QueuedLogstashWriter(
     }
   }
 
-  def retryWithBackoff[A](source: Task[A], maxRetries: Int, initialDelay: FiniteDuration): Task[A] = source
+  private def retryWithBackoff[A](source: Task[A], maxRetries: Int, initialDelay: FiniteDuration): Task[A] = source
     .onErrorHandleWith { case ex: Exception =>
       if (maxRetries > 0) retryWithBackoff(source, maxRetries - 1, initialDelay * 2).delayExecution(initialDelay)
       else Task.raiseError(ex)
