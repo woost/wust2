@@ -6,3 +6,9 @@ jobs:
         # - master
         # - /rc-.*/
         - circleci
+
+    working_directory: ~/repo
+
+    steps:
+        - run: echo "wip"
+
