@@ -1,0 +1,1 @@
+ALTER TABLE team_mapping drop constraint team_mapping_slack_team_name_key;
