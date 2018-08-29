@@ -96,7 +96,7 @@ object Deps {
   val redis = dep("net.debasishg" %% "redisclient" % "3.7")
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
-  val slackClient = dep("com.github.GRBurst" % "slack-scala-client" % "bcd98136af") //6106400
+  val slackClient = dep("com.github.GRBurst" % "slack-scala-client" % "65cd560") //b88f22e
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.1")
   val webPush = dep("nl.martijndwars" % "web-push" % "3.1.0")
 
