@@ -153,9 +153,7 @@ object AppServer {
       scribe.info(s"received oauth token")
       val userOAuthToken = authData.platformAuthToken
 
-      //        persistenceAdapter.storeUserAuthData(User_Mapping(slackAuthId.user_id, authData.wustAuthData.user.id, userOAuthToken, authData.wustAuthData))
-
-      val slackUpdate = for {
+      def slackUpdate = for {
 
         // get user information
         slackAuthId <- SlackApiClient(userOAuthToken.accessToken.toString).testAuth()
@@ -164,7 +162,7 @@ object AppServer {
         // Create workspace node and store team mapping
         workspaceNodeId <- persistenceAdapter.getTeamNodeBySlackId(slackAuthId.team_id).flatMap {
           case Some(nodeId) => Future.successful(nodeId)
-          case None =>
+          case None         =>
             val createdWorkspaceNode = EventToGraphChangeMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), Constants.wustUser.id, EpochMilli.now)
             wustReceiver.push(List(createdWorkspaceNode.graphChanges), None).map(_ => createdWorkspaceNode.nodeId)
         }
@@ -185,25 +183,20 @@ object AppServer {
         case Failure(ex) => scribe.error("failed to persist user data: ", ex)
       }
 
-//      slackUpdate.onComplete {
-//        case Success(p)  => if(p) scribe.info("persisted oauth token") else scribe.error("could not persist oauth token")
-//        case Failure(ex) => scribe.error("failed to persist oauth token: ", ex)
-//      }
-//      wustReceiver.client.api.addMember(workspaceNode._1, authData.wustAuthData.user.id, AccessLevel.ReadWrite).onComplete {
-//        case Success(_)  => scribe.info("successfully added slack membership")
-//        case Failure(ex) => scribe.error("failed to add slack membership", ex)
-//      }
-
-//      wustReceiver.push(
-//        List(
-//          GraphChanges.connect(Edge.Parent)(Constants.slackNode.id, authData.wustAuthData.user.channelNodeId)
-//        ),
-//        Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
+//      } yield (slackAuthId.team_id, true)
+//
+//      slackUpdate.flatMap(isPersist =>
+//        if(isPersist._2) SlackSeeder.channelDataToWust(SlackApiClient(userOAuthToken.accessToken), slackEventMapper, persistenceAdapter, isPersist._1)
+//        else Future.successful(Seq.empty[GraphChanges])
 //      ).onComplete {
-//        case Success(_)  => scribe.info("successfully connected slack channel to user profile")
-//        case Failure(ex) => scribe.error("failed to connect slack channel to user profile", ex)
+//        case Success(p)  => scribe.info("Successfully synced slack data")
+//        case Failure(ex) => scribe.error("failed to sync slack data: ", ex)
 //      }
 
+//      slackUpdate.onComplete {
+//        case Success(p)  => if(p._2) scribe.info("persisted user data") else scribe.error("could not persist user data")
+//        case Failure(ex) => scribe.error("failed to persist user data: ", ex)
+//      }
     }
 
     import slack.models._
