@@ -22,6 +22,7 @@ object Db {
 object Data {
   type SlackTeamId = String
   type SlackChannelId = String
+  type SlackGroupId = String
   type SlackTimestamp = String
   type SlackUserId = String
 
