@@ -289,24 +289,21 @@ object Topbar {
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(
-      span(
+      button(
+        cls := "tiny compact ui inverted button",
+        "Signup",
         onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
         onClick --> sideEffect {
           Analytics.sendEvent("topbar", "signup")
         },
-        "Signup",
-        color := "white",
-        cursor.pointer
       ),
-      " or ",
-      span(
+      button(
+        cls := "tiny compact ui inverted button",
+        "Login",
         onClick(state.viewConfig.now.showViewWithRedirect(View.Login)) --> state.viewConfig,
         onClick --> sideEffect {
           Analytics.sendEvent("topbar", "login")
         },
-        "Login",
-        color := "white",
-        cursor.pointer
       )
     )
 
