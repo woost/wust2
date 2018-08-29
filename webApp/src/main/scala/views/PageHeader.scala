@@ -13,6 +13,8 @@ import semanticUi.{DimmerOptions, ModalOptions}
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
+import Rendered.renderNodeData
+import wust.graph.Node.User
 import wust.ids._
 import wust.sdk.NodeColor.hue
 import wust.sdk.{BaseColors, NodeColor}
@@ -61,23 +63,20 @@ object PageHeader {
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
     val buttonStyle = VDomModifier(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer)
 
-    Rx {
-      val isOwnUser = channel.id == state.user().id
-      val isBookmarked = state
+    val isSpecialNode = Rx{ channel.id == state.user().id || channel.id == state.user().channelNodeId }
+    val isBookmarked = Rx {
+      state
         .graph()
         .children(state.user().channelNodeId)
         .contains(channel.id)
-
-      (channel.id != state.user().channelNodeId).ifTrue(
-        VDomModifier(
-          (isOwnUser || isBookmarked).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
-          notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto", fontSize := "20px", cursor.pointer),
-          addMember(state.graph(), channel).apply(buttonStyle),
-          shareButton(channel).apply(buttonStyle),
-          settingsMenu(state, channel, isBookmarked, isOwnUser).apply(buttonStyle),
-        )
-      )
     }
+    VDomModifier(
+      Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px"))},
+      notifyControl(state, channel).apply(Styles.flexStatic, marginLeft := "auto", fontSize := "20px", cursor.pointer),
+      addMember(state, channel).apply(buttonStyle),
+      shareButton(channel).apply(buttonStyle),
+      Rx {settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)},
+    )
   }
 
   private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
@@ -143,7 +142,7 @@ object PageHeader {
   }
 
 
-  private def addMember(graph: Graph, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def addMember(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
     val showDialog = Var(false)
     val activeDisplay = Rx { display := (if(showDialog()) "block" else "none") }
 //    val addUserDialog = dialog(state, "Add Member", "Enter the username of a member you want to add", NodeColor.tagColor(channel.id).toHex)
@@ -152,12 +151,12 @@ object PageHeader {
 
 
     val addMemberModal = PublishSubject[dom.html.Element]
-    val userNameInput = PublishSubject[String]
+    val addMember = PublishSubject[String]
+    val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
 
-    userNameInput.foreach { name =>
-
-      val graphUser = graph.userIdByName.get(name) match {
+    addMember.foreach { name =>
+      val graphUser = state.graph.now.userIdByName.get(name) match {
         case u @ Some(userId) => Future.successful(u)
         case _ => Client.api.getUserId(name)
       }
@@ -168,6 +167,7 @@ object PageHeader {
       }.onComplete {
         case Success(b) =>
           if(!b) {
+            //TODO: display error in modal
             Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Could not add member: Member does not exist"))
             scribe.error("Could not add member: Member does not exist")
           } else {
@@ -180,6 +180,11 @@ object PageHeader {
       }
     }
 
+    removeMember.foreach { membership =>
+      val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
+      state.eventProcessor.changes.onNext(change)
+    }
+
     div(
       cls := "item",
       freeSolid.faUserPlus,
@@ -188,32 +193,64 @@ object PageHeader {
         i(cls := "close icon"),
         div(
           cls := "header",
-          s"Invite other user to channel ${node.str}",
+          backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+          div(
+            Styles.flex,
+            alignItems.center,
+            channelAvatar(node, size = 20)(marginRight := "5px"),
+            renderNodeData(node.data)(fontFamily := "Roboto Slab", fontWeight.normal),
+            paddingBottom := "5px",
+          ),
+          div(s"Manage Members"),
         ),
         div(
           cls := "content",
+          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
           div(
-            width := "100%",
-            textArea(
-              cls := "field",
-              width := "100%",
-              placeholder := "Enter the username",
-              Elements.valueWithEnter --> userNameInput,
-              onChange.value --> userNameInputProcess
+            div(
+              cls := "ui fluid action input",
+              input(
+                placeholder := "Enter username",
+                Elements.valueWithEnter --> addMember,
+                onChange.value --> userNameInputProcess
+              ),
+              div(
+                cls := "ui primary button approve",
+                "Add",
+                onClick(userNameInputProcess) --> addMember
+              ),
             ),
-            "You can invite others by typing their username into the input field. Pressing Enter or clicking Invite triggers the action. It is only possible to add one user at a time."
-          ),
-        ),
-        div(
-          cls := "actions",
-          div(
-            cls := "ui button cancel",
-            "Cancel",
           ),
           div(
-            cls := "ui primary button approve",
-            "Invite",
-            onClick(userNameInputProcess) --> userNameInput
+            marginLeft := "10px",
+            Rx {
+              val graph = state.graph()
+              graph.membershipsByNodeId(node.id).map { membership =>
+                val user = graph.nodesById(membership.userId).asInstanceOf[User]
+                div(
+                  marginTop := "10px",
+                  Styles.flex,
+                  alignItems.center,
+                  Avatar.user(user.id)(
+                    cls := "avatar",
+                    width := "22px",
+                    height := "22px",
+                    Styles.flexStatic,
+                    marginRight := "5px",
+                  ),
+                  div(
+                    fontSize := "15px",
+                    user.name
+                  ),
+                  button(
+                    cls := "ui tiny compact negative basic button",
+                    marginLeft := "10px",
+                    "Remove",
+                    onClick(membership) --> removeMember
+                  )
+                )
+              }
+            }
           )
         ),
         onDomElementChange.asHtml --> sideEffect { elem =>
@@ -242,7 +279,7 @@ object PageHeader {
     )
   }
 
-  private def notifyControl(state: GlobalState, graph: Graph, user: AuthUser, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def notifyControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
 
     def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
       fontawesome.icon(icon),
@@ -280,6 +317,8 @@ object PageHeader {
 
     div(
       Rx {
+        val graph = state.graph()
+        val user = state.user()
         val permissionState = state.permissionState()
         val hasNotifyEdge = graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)
         if(hasNotifyEdge) decorateIcon(permissionState)(
