@@ -59,6 +59,8 @@ object PageHeader {
   }
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val buttonStyle = VDomModifier(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer)
+
     Rx {
       val isOwnUser = channel.id == state.user().id
       val isBookmarked = state
@@ -70,9 +72,9 @@ object PageHeader {
         VDomModifier(
           (isOwnUser || isBookmarked).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px")),
           notifyControl(state, state.graph(), state.user(), channel).apply(Styles.flexStatic, marginLeft := "auto", fontSize := "20px", cursor.pointer),
-          settingsMenu(state, channel, isBookmarked, isOwnUser).apply(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer),
-          addMember(state.graph(), channel).apply(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer),
-          shareButton(channel).apply(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer)
+          addMember(state.graph(), channel).apply(buttonStyle),
+          shareButton(channel).apply(buttonStyle),
+          settingsMenu(state, channel, isBookmarked, isOwnUser).apply(buttonStyle),
         )
       )
     }
