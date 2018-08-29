@@ -180,7 +180,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
     def applyDeleteMessage(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackDeleteMessage) = {
       persistenceAdapter.deleteMessageBySlackIdData(message.channelId, message.ts).flatMap(_ =>
-        client.apiClient.deleteChat(message.channelId, message.ts, client.isUser)
+        client.apiClient.deleteChat(message.channelId, message.ts, Some(client.isUser))
       )
     }
 
@@ -321,7 +321,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     def applyCreateMessage(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackCreateMessage, wustId: NodeId, retryNumber: Int = 0): Future[Boolean] = {
 
         val f = for {
-          m <- client.apiClient.postChatMessage(channelId = message.channelId, text = message.text, asUser = client.isUser).map(ts =>
+          m <- client.apiClient.postChatMessage(channelId = message.channelId, text = message.text, asUser = Some(client.isUser)).map(ts =>
             Message_Mapping(Some(message.channelId), Some(ts), message.threadTs, slack_deleted_flag = false, message.text, wustId, message.channelNode))
           true <- persistenceAdapter.updateMessageMapping(m)
         } yield {
@@ -394,7 +394,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     }
 
     def applyUpdateMessage(persistenceAdapter: PersistenceAdapter, client: SlackClient, message: SlackUpdateMessage) = {
-      client.apiClient.updateChatMessage(message.channelId, message.ts, message.text, client.isUser).map(_ => true)
+      client.apiClient.updateChatMessage(message.channelId, message.ts, message.text, Some(client.isUser)).map(_ => true)
     }
 
     def updateEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = {

@@ -387,11 +387,11 @@ object WustReceiver {
 
 object SlackClient {
   def apply(accessToken: String, isUser: Boolean)(implicit ec: ExecutionContext): SlackClient = {
-    new SlackClient(SlackApiClient(accessToken), if(isUser) Some(true) else None)
+    new SlackClient(SlackApiClient(accessToken), isUser)
   }
 }
 
-class SlackClient(val apiClient: SlackApiClient, val isUser: Option[Boolean])(implicit ec: ExecutionContext) {
+class SlackClient(val apiClient: SlackApiClient, val isUser: Boolean)(implicit ec: ExecutionContext) {
 
   case class Error(desc: String)
 
@@ -445,7 +445,7 @@ object App extends scala.App {
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
       val slackClient = SlackClient(config.slack.token, isUser = false)
       val slackEventReceiver = WustReceiver.run(config.wustServer, slackClient, slackPersistenceAdapter, config.slack.token)
-      val slackRequestVerifier = new SlackRequestVerifier(config.slack.signingSecret)
+      val slackRequestVerifier = SlackRequestVerifier(config.slack.signingSecret)
       AppServer.run(config, slackEventReceiver, slackClient, oAuthClient, slackPersistenceAdapter, slackRequestVerifier)
   }
 }
