@@ -175,7 +175,6 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flexStatic,
   )
 
-  // -- sidebar --
   ".sidebar" - (
     color.white,
     transition := "background-color 0.5s",

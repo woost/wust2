@@ -49,8 +49,11 @@ object Sidebar {
             )
           },
         )
-        case false => VDomModifier( // sidebar closed
-          channelIcons(state, 40)(ctx),
+        case false =>
+          val iconSize = 40
+          VDomModifier( // sidebar closed
+          minWidth := s"${iconSize}px",
+          channelIcons(state, iconSize)(ctx),
           newChannelButton(state, "+")(ctx)(
             cls := "newChannelButton-small " + buttonStyles,
             onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "newchannel") }
