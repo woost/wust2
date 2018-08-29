@@ -231,7 +231,7 @@ lazy val serviceUtil = project
       Nil
   )
 
-lazy val utilJS = util.js
+lazy val utilJS = util.js.enablePlugins(ScalaJSBundlerPlugin)
 lazy val utilJVM = util.jvm
 
 lazy val sdk = crossProject(JSPlatform, JVMPlatform)
@@ -249,7 +249,7 @@ lazy val sdk = crossProject(JSPlatform, JVMPlatform)
         Nil
   )
 
-lazy val sdkJS = sdk.js
+lazy val sdkJS = sdk.js.enablePlugins(ScalaJSBundlerPlugin)
 lazy val sdkJVM = sdk.jvm
 
 
@@ -269,7 +269,7 @@ lazy val ids = crossProject(JSPlatform, JVMPlatform)
         Deps.boopickle.value % Optional ::
         Nil
   )
-lazy val idsJS = ids.js
+lazy val idsJS = ids.js.enablePlugins(ScalaJSBundlerPlugin)
 lazy val idsJVM = ids.jvm
 
 lazy val graph = crossProject(JSPlatform, JVMPlatform)
@@ -282,7 +282,7 @@ lazy val graph = crossProject(JSPlatform, JVMPlatform)
       Deps.monocleCore.value ::
       Nil
   )
-lazy val graphJS = graph.js
+lazy val graphJS = graph.js.enablePlugins(ScalaJSBundlerPlugin)
 lazy val graphJVM = graph.jvm
 
 lazy val css = crossProject(JSPlatform, JVMPlatform)
@@ -295,7 +295,7 @@ lazy val css = crossProject(JSPlatform, JVMPlatform)
         Nil
   )
 
-lazy val cssJS = css.js
+lazy val cssJS = css.js.enablePlugins(ScalaJSBundlerPlugin)
 lazy val cssJVM = css.jvm
 
 lazy val api = crossProject(JSPlatform, JVMPlatform)
@@ -312,7 +312,7 @@ lazy val api = crossProject(JSPlatform, JVMPlatform)
         Deps.circe.genericExtras.value ::
         Nil
   )
-lazy val apiJS = api.js
+lazy val apiJS = api.js.enablePlugins(ScalaJSBundlerPlugin)
 lazy val apiJVM = api.jvm
 
 lazy val database = project

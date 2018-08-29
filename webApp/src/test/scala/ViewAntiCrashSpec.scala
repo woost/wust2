@@ -29,8 +29,6 @@
 
 // class ViewAntiCrashSpec extends FreeSpec with TableDrivenPropertyChecks with MustMatchers with LocalStorageMock with RequestAnimationFrameMock {
 
-//   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
-
 //   def freshState: (PublishSubject[Seq[ApiEvent]], GlobalState) = {
 //     val eventStream = PublishSubject[Seq[ApiEvent]]
 
@@ -39,7 +37,7 @@
 //       enrichChanges = (c, _) => c,
 //       sendChange = _ => Future.successful(true),
 //       initialAuth = Authentication.Assumed(
-//         AuthUser.Assumed(UserId(freshNodeId(1)), freshNodeId(2))))
+//         AuthUser.Assumed(UserId(NodeId.fresh), NodeId.fresh)))
 
 //     val state = new GlobalState(
 //       appUpdateIsAvailable = Observable.empty,
