@@ -236,7 +236,7 @@ object Topbar {
 
     def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
       input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
-        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](checked := true),
+        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(checked := true, cls := "checked")),
           onInput --> sideEffect {
           Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
         }
