@@ -54,7 +54,7 @@ object ChatView {
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
       ),
-      Rx { inputField(state, state.page().parentIdSet).apply(keyed, Styles.flexStatic, padding := "3px") },
+      Rx { inputField(state, state.page().parentIdSet, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(keyed, Styles.flexStatic, padding := "3px") },
       registerDraggableContainer(state),
     )
   }

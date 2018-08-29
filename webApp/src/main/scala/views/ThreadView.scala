@@ -100,7 +100,7 @@ object ThreadView {
         ),
         //        TagsList(state).apply(Styles.flexStatic)
       ),
-      Rx { inputField(state, state.page().parentIdSet).apply(keyed, Styles.flexStatic, padding := "3px") },
+      Rx { inputField(state, state.page().parentIdSet, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(keyed, Styles.flexStatic, padding := "3px") },
       registerDraggableContainer(state),
     )
   }
@@ -327,7 +327,7 @@ object ThreadView {
             Styles.flex,
             alignItems.center,
             inputField(state, directParentIds = Set(nodeId),
-              blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - fullPath) }
+              focusOnInsert = true, blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - fullPath) }
             )(ctx)(
               keyed(nodeId),
               padding := "3px",
@@ -512,7 +512,7 @@ object ThreadView {
 
   }
 
-  def inputField(state: GlobalState, directParentIds: Set[NodeId], blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, directParentIds: Set[NodeId], focusOnInsert:Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
       val pageModeOrphans = state.page().mode == PageMode.Orphans
@@ -544,7 +544,7 @@ object ThreadView {
 
           state.eventProcessor.changes.onNext(changes)
         },
-        onInsert.asHtml --> sideEffect { e => e.focus() },
+        focusOnInsert.ifTrue[VDomModifier](onInsert.asHtml --> sideEffect { e => e.focus() }),
         onBlur.value --> sideEffect { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
