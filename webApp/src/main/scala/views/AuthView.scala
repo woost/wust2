@@ -46,20 +46,21 @@ object AuthView {
           div(
             cls := "ui fluid input",
             input(
+              placeholder := "Username",
               tpe := "text",
               attr("autocomplete") := "username",
-              placeholder := "Username",
               display.block,
               margin := "auto",
-              onInput.value --> userName
+              onInput.value --> userName,
+              onInsert.asHtml --> sideEffect { e => e.focus() }
             )
           ),
           div(
             cls := "ui fluid input",
             input(
+              placeholder := "Password",
               tpe := "password",
               attr("autocomplete") := "current-password",
-              placeholder := "Password",
               display.block,
               margin := "auto",
               onInput.value --> password,
