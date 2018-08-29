@@ -81,7 +81,7 @@ object EventComposer {
                   case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
                   case _ =>
                 }
-                persistor.storeOrUpdateChannelMapping(Channel_Mapping(Some(channel), node.str, slack_deleted_flag = false, node.id, teamNodeId)).onComplete {
+                persistor.storeOrUpdateChannelMapping(Channel_Mapping(Some(channel), node.str, is_archived = false, node.id, teamNodeId)).onComplete {
                   case Failure(ex) => scribe.error("Could not create channel mapping in slack app: ", ex)
                   case _ =>
                 }

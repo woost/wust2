@@ -88,7 +88,7 @@ class SlackApiImpl(client: WustClient[Future], oAuthClient: OAuthClient, persist
   }
 
   override def isAuthenticated(userId: UserId): Future[Boolean] = {
-    persistenceAdapter.getSlackUserByWustId(userId).map {
+    persistenceAdapter.getSlackUserDataByWustId(userId).map {
       case Some(slackUser) => slackUser.slackUserToken.isDefined
       case _ => false
     }
@@ -97,7 +97,7 @@ class SlackApiImpl(client: WustClient[Future], oAuthClient: OAuthClient, persist
   override def getAuthentication(userId: UserId, auth: Authentication.Token): Future[Option[PluginUserAuthentication]] = {
     client.auth.verifyToken(auth).flatMap {
       case Some(_) =>
-        persistenceAdapter.getSlackUserByWustId(userId).map {
+        persistenceAdapter.getSlackUserDataByWustId(userId).map {
           case Some(slackUser) => Some(PluginUserAuthentication(userId, slackUser.slackUserId, slackUser.slackUserToken))
           case _ => None
         }

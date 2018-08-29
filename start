@@ -68,7 +68,7 @@ function sbt_with_args() {
     sbt $args
 }
 function sbt() {
-    command sbt -Dquill.macro.log=false $EXTRASBTARGS $@
+    command sbt -Dquill.macro.log=true $EXTRASBTARGS $@
 }
 
 FALLBACKVERSION="dirty" # When git is not available

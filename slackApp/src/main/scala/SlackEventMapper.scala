@@ -121,7 +121,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         val composed = EventComposer.createChannel(createdChannel, teamId)
 
         composed.value.flatMap {
-          case Some(gc) => persistenceAdapter.storeOrUpdateChannelMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, slack_deleted_flag = false, gc.nodeId, gc.parentId))
+          case Some(gc) => persistenceAdapter.storeOrUpdateChannelMapping(Channel_Mapping(Some(createdChannel.channel.id), createdChannel.channel.name, is_archived = false, gc.nodeId, gc.parentId))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Created new channel mapping for channel")
@@ -156,7 +156,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         val composed = EventComposer.renameChannel(messageWithSubtype, channelNameMessage, nodes._1, nodes._2)
 
         composed.value.flatMap {
-          case Some(changes) => persistenceAdapter.updateChannelMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, slack_deleted_flag = false, changes.nodeId, changes.parentId))
+          case Some(changes) => persistenceAdapter.updateChannelMapping(Channel_Mapping(Some(messageWithSubtype.channel), channelNameMessage.name, is_archived = false, changes.nodeId, changes.parentId))
           case None     => Future.successful(false)
         }.onComplete {
           case Success(_)  => scribe.info("Could not store channel mapping")

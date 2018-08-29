@@ -52,26 +52,90 @@ case object MockAdapter extends PersistenceAdapter {
 
   // Query Data by Wust Id
   def getWustUserBySlackUserId(slackUser: SlackUserId): Future[Option[WustUserData]] = ???
-  def getSlackUserByWustId(userId: UserId): Future[Option[SlackUserData]] = ???
+  def getSlackUserDataByWustId(userId: UserId): Future[Option[SlackUserData]] = ???
   def getChannelMappingByWustId(nodeId: NodeId): Future[Option[Channel_Mapping]] = ???
-  def getSlackMessageByWustId(nodeId: NodeId): Future[Option[Message_Mapping]] = ???
+  def getMessageMappingByWustId(nodeId: NodeId): Future[Option[Message_Mapping]] = {
+    val m = Map(
+      TestConstants.messageNodeId -> Message_Mapping(None, None, None, false, "message", TestConstants.messageNodeId, TestConstants.channelNodeId),
+      TestConstants.threadNodeId -> Message_Mapping(None, None, None, false, "thread", TestConstants.messageNodeId, TestConstants.channelNodeId)
+    )
+    Future.successful(m.get(nodeId))
+  }
 
 
   // Guards
-  def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.workspaceId)
   def channelExistsByNameAndTeam(teamId: SlackTeamId, channelName: String): Future[Boolean] = ???
-  def channelExistsByWustId(nodeId: NodeId): Future[Boolean] = ???
   def isChannelDeletedBySlackId(channelId: String): Future[Boolean] = ???
   def isChannelUpToDateBySlackDataElseGetNodes(channelId: String, name: String): Future[Option[(NodeId, NodeId)]] = ???
   def isMessageDeletedBySlackIdData(channelId: SlackChannelId, timestamp: SlackTimestamp): Future[Boolean] = ???
   def isMessageUpToDateBySlackData(channel: String, timestamp: String, text: String): Future[Boolean] = ???
+
+
+  // Boolean Guards / Filter by wust id
+  def teamExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.workspaceId)
+  def channelExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.channelNodeId)
+  def threadExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.threadNodeId)
+  def messageExistsByWustId(nodeId: NodeId): Future[Boolean] = Future.successful(nodeId == TestConstants.messageNodeI
+  )
 }
 
 object TestConstants {
   val workspaceId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkw")
-  val messageNodeId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkJ")
   val channelNodeId: NodeId = NodeId.fromBase58String("5R73E84pCdVisswaNFr47x")
+  val threadNodeId: NodeId = NodeId.fromBase58String("5RMARqY8EPnGmKG9LbPmQv")
+  val messageNodeId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkJ")
+
   val userId: UserId = UserId.fromBase58String("5R5TZsZJeL3enTMmq8Jwmg")
+  val userChannelNodeId: NodeId = NodeId.fromBase58String("5RLXr4V6DNSF1hzwFqiBYn")
+
+  val userNode = Node.User(
+    TestConstants.userId,
+    NodeData.User("testuser", false, 0, userChannelNodeId),
+    NodeMeta(NodeAccess.Restricted)
+  )
+  def authorEdge(nodeId: NodeId) = Edge.Author(
+    userId,
+    EdgeData.Author(EpochMilli.now),
+    nodeId
+  )
+
+  def messageNode(message: String): Node =  Node.Content(
+      TestConstants.messageNodeId,
+      NodeData.Markdown(message),
+      NodeMeta(NodeAccess.Inherited),
+    )
+  def threadNode(message: String): Node =  Node.Content(
+    TestConstants.threadNodeId,
+    NodeData.Markdown(message),
+    NodeMeta(NodeAccess.Inherited),
+  )
+  def channelNode(channel: String): Node =  Node.Content(
+    TestConstants.channelNodeId,
+    NodeData.Markdown(channel),
+    NodeMeta(NodeAccess.Inherited),
+  )
+  val workspaceNode: Node = Node.Content(
+    TestConstants.channelNodeId,
+    NodeData.Markdown("workspace"),
+    NodeMeta(NodeAccess.Restricted),
+  )
+
+  def messageChannelEdge(delete: Boolean = false): Edge.Parent = Edge.Parent(
+      TestConstants.messageNodeId,
+      EdgeData.Parent(if(delete) Some(EpochMilli.now) else None),
+      TestConstants.channelNodeId
+    )
+  def messageThreadEdge(delete: Boolean = false): Edge.Parent = Edge.Parent(
+    TestConstants.messageNodeId,
+    EdgeData.Parent(if(delete) Some(EpochMilli.now) else None),
+    TestConstants.threadNodeId
+  )
+  def channelWorkspaceEdge(delete: Boolean = false): Edge.Parent = Edge.Parent(
+    TestConstants.channelNodeId,
+    EdgeData.Parent(if(delete) Some(EpochMilli.now) else None),
+    TestConstants.workspaceId
+  )
+
 }
 
 class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
@@ -123,12 +187,14 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(createMessage)
+    val filterCreateThread = mapper.filterCreateThreadEvents(createMessage)
     val filterCreateChannel = mapper.filterCreateChannelEvents(createMessage)
     val filterDelete = mapper.filterDeleteEvents(createMessage)
     val filterUpdate = mapper.filterUpdateEvents(createMessage)
     val filterUnDelete = mapper.filterUndeleteEvents(createMessage)
 
     filterCreateMessage.map(_.nonEmpty shouldBe true)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
@@ -164,12 +230,14 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(createChannel)
+    val filterCreateThread = mapper.filterCreateThreadEvents(createChannel)
     val filterCreateChannel = mapper.filterCreateChannelEvents(createChannel)
     val filterDelete = mapper.filterDeleteEvents(createChannel)
     val filterUpdate = mapper.filterUpdateEvents(createChannel)
     val filterUnDelete = mapper.filterUndeleteEvents(createChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe true)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
@@ -194,12 +262,14 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(deleteMessage)
+    val filterCreateThread = mapper.filterCreateThreadEvents(deleteMessage)
     val filterCreateChannel = mapper.filterCreateChannelEvents(deleteMessage)
     val filterDelete = mapper.filterDeleteEvents(deleteMessage)
     val filterUpdate = mapper.filterUpdateEvents(deleteMessage)
     val filterUnDelete = mapper.filterUndeleteEvents(deleteMessage)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe true
     filterUpdate.nonEmpty shouldBe false
@@ -224,12 +294,14 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(deleteChannel)
+    val filterCreateThread = mapper.filterCreateThreadEvents(deleteChannel)
     val filterCreateChannel = mapper.filterCreateChannelEvents(deleteChannel)
     val filterDelete = mapper.filterDeleteEvents(deleteChannel)
     val filterUpdate = mapper.filterUpdateEvents(deleteChannel)
     val filterUnDelete = mapper.filterUndeleteEvents(deleteChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe true
     filterUpdate.nonEmpty shouldBe false
@@ -260,12 +332,14 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(updateMessage)
+    val filterCreateThread = mapper.filterCreateThreadEvents(updateMessage)
     val filterCreateChannel = mapper.filterCreateChannelEvents(updateMessage)
     val filterDelete = mapper.filterDeleteEvents(updateMessage)
     val filterUpdate = mapper.filterUpdateEvents(updateMessage)
     val filterUnDelete = mapper.filterUndeleteEvents(updateMessage)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe true
@@ -296,12 +370,14 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(renameChannel)
+    val filterCreateThread = mapper.filterCreateThreadEvents(renameChannel)
     val filterCreateChannel = mapper.filterCreateChannelEvents(renameChannel)
     val filterDelete = mapper.filterDeleteEvents(renameChannel)
     val filterUpdate = mapper.filterUpdateEvents(renameChannel)
     val filterUnDelete = mapper.filterUndeleteEvents(renameChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe true
@@ -317,7 +393,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val undeleteChannel = GraphChanges(
       addNodes = Set(
         Node.User(
-          UserId.fromBase58String("5RBLjXEbmu16SNUjyee7Bf"),
+          TestConstants.userId,
           NodeData.User("j",false,0,NodeId.fromBase58String("5RBLjXF3CLH6vX1GJ1AS8g")),
           NodeMeta(NodeAccess.Restricted)
         )
@@ -332,16 +408,50 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     )
 
     val filterCreateMessage = mapper.filterCreateMessageEvents(undeleteChannel)
+    val filterCreateThread = mapper.filterCreateThreadEvents(undeleteChannel)
     val filterCreateChannel = mapper.filterCreateChannelEvents(undeleteChannel)
     val filterDelete = mapper.filterDeleteEvents(undeleteChannel)
     val filterUpdate = mapper.filterUpdateEvents(undeleteChannel)
     val filterUnDelete = mapper.filterUndeleteEvents(undeleteChannel)
 
     filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe false)
     filterCreateChannel.map(_.nonEmpty shouldBe false)
     filterDelete.nonEmpty shouldBe false
     filterUpdate.nonEmpty shouldBe false
     filterUnDelete.nonEmpty shouldBe true
+
+  }
+
+  "detect: create thread event" in {
+    val mapper: WustEventMapper = getMapper()
+
+    // List(ForPublic(5RLXr4Uyrm7Bn2iLM4dzLV,GraphChanges(Set(User(5RLXr4Uyrm7Bn2iLM4dzLV,User(j,false,0,5RLXr4V6DNSF1hzwFqiBYn),NodeMeta(Level(Restricted))), Content(5RMARqY8EPnGmKG9LbPmQv,Markdown(createThreadMessageEvent),NodeMeta(Inherited))),Set(Parent(5RMARqY8EPnGmKG9LbPmQv,Parent,5RMARVYwEuiRsT7SYXbL2t), Author(5RLXr4Uyrm7Bn2iLM4dzLV,Author(2018-08-29 11:14:15),5RMARqY8EPnGmKG9LbPmQv)),Set())))
+
+    val createThread = GraphChanges(
+      Set(
+        TestConstants.userNode,
+        TestConstants.messageNode("createThreadMessageEvent"),
+      ),
+      Set(
+        TestConstants.messageThreadEdge(),
+        TestConstants.authorEdge(TestConstants.userNode.id),
+      )
+    )
+
+    val filterCreateMessage = mapper.filterCreateMessageEvents(createThread)
+    val filterCreateThread = mapper.filterCreateThreadEvents(createThread)
+    val filterCreateChannel = mapper.filterCreateChannelEvents(createThread)
+    val filterDelete = mapper.filterDeleteEvents(createThread)
+    val filterUpdate = mapper.filterUpdateEvents(createThread)
+    val filterUnDelete = mapper.filterUndeleteEvents(createThread)
+
+    filterCreateMessage.map(_.nonEmpty shouldBe false)
+    filterCreateThread.map(_.nonEmpty shouldBe true)
+    filterCreateChannel.map(_.nonEmpty shouldBe false)
+    filterDelete.nonEmpty shouldBe false
+    filterUpdate.nonEmpty shouldBe false
+    filterUnDelete.nonEmpty shouldBe false
 
   }
 

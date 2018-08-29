@@ -4,43 +4,386 @@ import wust.graph.Node._
 import wust.graph._
 import wust.ids._
 import wust.slack.Data._
+import wust.util.collection._
 import cats.data.OptionT
 import cats.implicits._
 import slack.api.{ApiError, SlackApiClient}
 import slack.models._
 import akka.actor.ActorSystem
+import monix.eval.Task
 import monix.execution.Scheduler
 
+import scala.collection.breakOut
 import scala.collection.Set
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 sealed trait GraphChangeEvent
-case class WustEventMapper(slackAppToken: String, persistenceAdapter: PersistenceAdapter)(
-    implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
-  ) {
 
-  /**
-    * TODO: Filter for edges
-    * if an child or a parent is known known to app => infere event
-    *
-    */
+object FilterEvents {
 
-  def filterDeleteEvents(gc: GraphChanges) = {
-    (gc.addEdges ++ gc.delEdges).filter {
-      case Edge.Parent(_, EdgeData.Parent(Some(_)), _) => true
-      case _ => false
+  // AST for GraphChanges to Slack Events
+  sealed abstract class SlackEvent
+  case class Delete(l: Level) extends SlackEvent
+  case class Archive(l: Level) extends SlackEvent
+  case class UnArchive(l: Level) extends SlackEvent
+  case class Create(l: Level) extends SlackEvent
+  case class Update(l: Level) extends SlackEvent
+
+
+  sealed trait WustEvent
+  case class AddNode(node: Node) extends WustEvent
+  case class AddEdge(edge: Edge, node: Option[Node]) extends WustEvent
+  case class DelEdge(edge: Edge) extends WustEvent
+
+  sealed trait Level
+  case class Channel(channel: Channel_Mapping) extends Level
+  case class Group(group: Channel_Mapping) extends Level
+  case class Thread(thread: Message_Mapping) extends Level
+  case class Message(message: Message_Mapping) extends Level
+  case class Team(team: Team_Mapping) extends Level
+
+  def separateGraphChanges(graphChanges: GraphChanges) = {
+    val nodeMap = graphChanges.addNodes.by(_.id)
+
+    graphChanges.addNodes.map(n => AddNode(n)) ++
+    graphChanges.addEdges.map(e => AddEdge(e, nodeMap.get(e.sourceId))) ++
+    graphChanges.delEdges.map(e => DelEdge(e))
+  }
+
+  def levelSeparator(persistenceAdapter: PersistenceAdapter, nodeId: NodeId): Task[Option[Level]] = {
+    persistenceAdapter.getMessageMappingByWustId(nodeId).flatMap {
+      case Some(m) =>
+        Task.pure(m.slack_thread_ts match {
+          case Some(_) => Some(Thread(m))
+          case _        => Some(Message(m))
+        })
+      case _       =>
+        persistenceAdapter.getChannelMappingByWustId(nodeId).flatMap {
+          case Some(c) =>
+            Task.pure(
+              if(c.is_private) Some(Group(c))
+              else Some(Channel(c))
+            )
+          case _ =>
+            persistenceAdapter.getTeamMappingByWustId(nodeId).map {
+              case Some(t) => Some(Team(t))
+              case _ => None
+            }
+        }
     }
   }
 
-  def filterUndeleteEvents(gc: GraphChanges) = {
-    if(gc.addNodes.collect{case n @ Node.Content(_,_,_) => n}.isEmpty){
-      gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None), _) => e}
-    } else
-        Set.empty[Edge]
+  def transformGraphChanges(persistenceAdapter: PersistenceAdapter, w: WustEvent): Task[Option[SlackEvent]] = {
+    w match {
+      case DelEdge(e) =>
+        e match {
+          case e @ Edge.Parent(_, _, _) =>
+            levelSeparator(persistenceAdapter, e.sourceId).map(_.map(Delete))
+          case _ => Task.pure(None)
+        }
+      case AddEdge(e, n) =>
+        e match {
+          case Edge.Parent(sourceId, _, targetId) =>
+            levelSeparator(persistenceAdapter, targetId).flatMap {
+              case Some(Team(_)) =>       // Parent is a team => channel or group
+                persistenceAdapter.getChannelMappingByWustId(sourceId).map {
+                  case Some(c) =>
+                    if(c.team_wust_id == targetId) {
+                      None
+                    } else {
+                      val isGroup = n match {
+                        case Some(node) =>
+                          node.meta.accessLevel == NodeAccess.Restricted
+                        case None =>
+                          c.is_private
+                      }
+                      if(isGroup) Some(Create(Group(c)))
+                      else Some(Create(Channel(c)))
+                    }
+                }
+
+              case Some(_: Channel) | Some(_: Group) =>    // Parent is a channel => message or thread
+                levelSeparator(persistenceAdapter, sourceId).map {
+                  case Some(Thread(m)) =>      // update group
+                    Some(UpdateThread(m))
+
+                  case Some(Message(m)) =>    // update channel
+                    Some(UpdateMessage(m))
+
+                  case _ => // insert
+                    None
+                }
+
+              case Some(Thread(_)) =>     // Parent is a thread => message
+                levelSeparator(persistenceAdapter, sourceId).map {
+                  case Some(Message(m)) =>      // update message
+                    Some(UpdateMessage(m))
+
+                  case _ => // insert message
+                    None
+                }
+
+              case _ =>
+                Task.pure(None)
+            }
+          case _                      => Task.pure(None)
+        }
+
+      case AddNode(n) =>
+    }
   }
 
-  def filterCreateThreadEvent(gc: GraphChanges) = ???
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  private def combineLevels[A](messageLevel: Task[Option[A]], channelLevel: Task[Option[A]]) = {
+    messageLevel.flatMap {
+      case Some(m) => Task.pure(Some(m))
+      case _ => channelLevel
+    }
+  }
+
+  private def filterWrapper[A, B](graphChanges: GraphChanges)(f: GraphChanges => Set[A])(m: A => Task[Option[B]])(c: A => Task[Option[B]]) = {
+    Task.sequence(
+      f(graphChanges).map(e =>
+          combineLevels[B](m(e), c(e))
+          )
+        ).map(_.flatten)
+  }
+
+  /**
+   * Filter events that triggers an archive on slack
+   *
+   * Conditions (Cond):
+   * 1.) Parent edge of add set includes a timestamp in EdgeData
+   * 2.) Source node of edge must exist in on the corresponding mapping level
+   *
+   * Procedure:
+   * 1.) Filter all parent edges that include a timestamp in EdgeData (Cond 1)
+   * 2.) Filter messages and threads using message mapping (Cond 2)
+   * 3.) If it is neir a thread nor a message, filter group or channel using the channel mapping (Cond 2)
+   */
+  private def filterArchiveEvents(graphChanges: GraphChanges)(implicit persistenceAdapter: PersistenceAdapter): Task[Set[Archive]] = {
+
+    def messageLevel(edge: Edge) = persistenceAdapter.getMessageMappingByWustId(edge.sourceId).map {
+      case Some(m) if !m.is_deleted => m.slack_thread_ts match {
+        case Some(_) => Some(ArchiveThread(m))
+        case _        => Some(ArchiveMessage(m))
+      }
+        case _                     => None
+    }
+
+    def channelLevel(edge: Edge) = persistenceAdapter.getChannelMappingByWustId(edge.sourceId).map {
+      case Some(c) if !c.is_archived =>
+        if(c.is_private)  Some(ArchiveGroup(c))
+        else              Some(ArchiveChannel(c))
+      case _       => None
+    }
+
+    def edges(graphChanges: GraphChanges) = {
+      graphChanges.addEdges.collect {
+        case e @ Edge.Parent(_, EdgeData.Parent(Some(_)), _) => e
+      }
+    }
+
+    filterWrapper[Edge.Parent, Archive](graphChanges)(edges)(messageLevel)(channelLevel)
+
+  }
+
+  def archiveMessage(archives: Set[Archive])(implicit persistenceAdapter: PersistenceAdapter): Set[ArchiveMessage] = archives.collect { case d @ ArchiveMessage(_) => d }
+  def archiveThread(archives: Set[Archive])(implicit persistenceAdapter: PersistenceAdapter):  Set[ArchiveThread]  = archives.collect { case d @ ArchiveThread(_) => d }
+  def archiveGroup(archives: Set[Archive])(implicit persistenceAdapter: PersistenceAdapter):   Set[ArchiveGroup]   = archives.collect { case d @ ArchiveGroup(_) => d }
+  def archiveChannel(archives: Set[Archive])(implicit persistenceAdapter: PersistenceAdapter): Set[ArchiveChannel] = archives.collect { case d @ ArchiveChannel(_) => d }
+
+  /**
+   * Filter events that triggers a delete on slack
+   *
+   * Conditions (Cond):
+   * 1.) Parent edge of the delete set
+   * 2.) Source node of edge must exist in on the corresponding mapping level
+   *
+   * Procedure:
+   * 1.) Filter all parent edges of the delete set (Cond 1)
+   * 2.) Filter messages and threads using message mapping (Cond 2)
+   * 3.) If it is neither a thread nor a message, filter group or channel using the channel mapping (Cond 2)
+   */
+  private def filterDeleteEvents(graphChanges: GraphChanges)(implicit persistenceAdapter: PersistenceAdapter): Task[Set[Delete]] = {
+
+    def edges(graphChanges: GraphChanges) = {
+      graphChanges.delEdges.collect {
+        case e @ Edge.Parent(_, _, _) => e
+      }
+    }
+
+    def messageLevel(edge: Edge) = persistenceAdapter.getMessageMappingByWustId(edge.sourceId).map {
+      case Some(m) if !m.is_deleted => m.slack_thread_ts match {
+        case Some(_) => Some(DeleteThread(m))
+        case _        => Some(DeleteMessage(m))
+      }
+        case _       => None
+    }
+
+    def channelLevel(edge: Edge) = persistenceAdapter.getChannelMappingByWustId(edge.sourceId).map {
+      case Some(c) if !c.is_archived =>
+        if(c.is_private)  Some(DeleteGroup(c))
+        else              Some(DeleteChannel(c))
+      case _       => None
+    }
+
+    filterWrapper[Edge.Parent, Delete](graphChanges)(edges)(messageLevel)(channelLevel)
+
+  }
+
+  def archiveMessage(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter): Set[DeleteMessage] = archives.collect { case d @ DeleteMessage(_) => d }
+  def archiveThread(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter):  Set[DeleteThread]  = archives.collect { case d @ DeleteThread(_) => d }
+  def archiveGroup(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter):   Set[DeleteGroup]   = archives.collect { case d @ DeleteGroup(_) => d }
+  def archiveChannel(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter): Set[DeleteChannel] = archives.collect { case d @ DeleteChannel(_) => d }
+
+  /**
+   * Filter events that triggers a unarchive on slack
+   *
+   * Conditions (Cond):
+   * 1.) Parent edge in add set without a timestamp in EdgeData
+   * 2.) Source node of edge must exist in on the corresponding mapping level
+   * 3.) Mapping must include a archived flag (set to true)
+   *
+   * Procedure:
+   * 1.) Filter all parent edges that do not include a timestamp in EdgeData (Cond 1)
+   * 2.) Filter messages and threads using message mapping (Cond 2, 3)
+   * 3.) If it is neither a thread nor a message, filter group or channel using the channel mapping (Cond 2, 3)
+   */
+  private def filterUnArchiveEvents(gc: GraphChanges)(implicit persistenceAdapter: PersistenceAdapter) = {
+
+    def edges(graphChanges: GraphChanges) = {
+      graphChanges.addEdges.collect {
+        case e @ Edge.Parent(_, EdgeData.Parent(None), _) => e
+      }
+    }
+
+    def messageLevel(edge: Edge) = persistenceAdapter.getMessageMappingByWustId(edge.sourceId).map {
+      case Some(m) if m.is_deleted => m.slack_thread_ts match {
+        case Some(_) => Some(UnArchiveThread(m))
+        case _        => Some(UnArchiveMessage(m))
+      }
+        case _       => None
+    }
+
+    def channelLevel(edge: Edge) = persistenceAdapter.getChannelMappingByWustId(edge.sourceId).map {
+      case Some(c) if c.is_archived =>
+        if(c.is_private) Some(UnArchiveGroup(c))
+        else Some(UnArchiveChannel(c))
+      case _       => None
+    }
+
+    filterWrapper[Edge.Parent, UnArchive](gc)(edges)(messageLevel)(channelLevel)
+  }
+
+  def unDeleteMessage(unArchives: Set[UnArchive]): Set[UnArchiveMessage] = unArchives.collect { case d @ UnArchiveMessage(_) => d }
+  def unDeleteThread(unArchives: Set[UnArchive]):  Set[UnArchiveThread]  = unArchives.collect { case d @ UnArchiveThread(_) => d }
+  def unDeleteGroup(unArchives: Set[UnArchive]):   Set[UnArchiveGroup]   = unArchives.collect { case d @ UnArchiveGroup(_) => d }
+  def unDeleteChannel(unArchives: Set[UnArchive]): Set[UnArchiveChannel] = unArchives.collect { case d @ UnArchiveChannel(_) => d }
+
+
+  /**
+    * Filter events that triggers a create on slack
+    *
+    * Conditions (Cond):
+    * 1) Parent edge in add set without a timestamp in EdgeData
+    * 2) Target node id of edge must exist in on the corresponding parent mapping level as id
+    * 2.1) Message => target id in channel mapping
+    * 2.2) Thread => target id in message mapping
+    * 2.3) Channel => target id in team mapping
+    * 3) Source node id of edge must NOT exist in on the corresponding mapping level as id
+    * 3.1) Message => source id in message mapping
+    * 3.2) Thread => source id in message mapping
+    * 3.3) Channel => source id in channel mapping
+    * 4) Source node id of edge must be contained in graph change or known in wust core (API call)
+    *
+    * Procedure:
+    * 1.) Filter all parent edges that do not include a timestamp in EdgeData (Cond 1)
+    * 2.) Filter messages and threads in the channel mapping using the target node id (Cond 2)
+    * 3.) If it is neither a thread nor a message, filter group or channel in the workspace mapping using the target node id (Cond 2)
+    * 4.)
+    * 3.1) For this all channel mappings should be outer joined on workspace_mappings
+    * 4.)
+    */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  //  def filterUndeleteEvents(gc: GraphChanges) = {
+  //    if(gc.addNodes.collect{case n @ Node.Content(_,_,_) => n}.isEmpty){
+  //      gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None), _) => e}
+  //    } else
+  //        Set.empty[Edge]
+  //  }
+
+  def filterCreateThreadEvents(gc: GraphChanges) = {
+    Future.sequence(for {
+      node <- gc.addNodes
+      edge <- gc.addEdges.filter {
+        case Edge.Parent(childId, EdgeData.Parent(None), _) => if(childId == node.id) true else false
+        case _                                                     => false
+      }
+  } yield {
+    persistenceAdapter.getMessageMappingByWustId(edge.targetId).map(b =>
+        if(b.isDefined) {
+          scribe.info(s"detected create thread event: ($node, $edge)")
+          Some((node, edge))
+        } else {
+          None
+        }
+        )
+  }).map(_.flatten)
+  }
 
   def filterCreateMessageEvents(gc: GraphChanges) = {
     Future.sequence(for {
@@ -49,16 +392,16 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
         case Edge.Parent(childId, EdgeData.Parent(None), _) => if(childId == node.id) true else false
         case _                                                     => false
       }
-    } yield {
-      persistenceAdapter.getSlackChannelByWustId(edge.targetId).map(b =>
+  } yield {
+    persistenceAdapter.getSlackChannelByWustId(edge.targetId).map(b =>
         if(b.nonEmpty) {
           scribe.info(s"detected create message event: ($node, $edge)")
           Some((node, edge))
         } else {
           None
         }
-      )
-    }).map(_.flatten)
+        )
+  }).map(_.flatten)
   }
 
   def filterCreateChannelEvents(gc: GraphChanges) = {
@@ -67,19 +410,19 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       node <- gc.addNodes
       edge <- gc.addEdges.filter {
         case Edge.Parent(childId, EdgeData.Parent(None), _) =>
-            if(childId == node.id) true else false
+          if(childId == node.id) true else false
         case _ => false
       }
-    } yield {
-      persistenceAdapter.teamExistsByWustId(edge.targetId).map(b =>
-        if(b) {
-          scribe.info(s"detected create channel event: ($node, $edge)")
-          Some((node, edge))
-        } else {
-          None
-        }
-      )
-    }).map(_.flatten)
+      } yield {
+        persistenceAdapter.teamExistsByWustId(edge.targetId).map(b =>
+            if(b) {
+              scribe.info(s"detected create channel event: ($node, $edge)")
+              Some((node, edge))
+            } else {
+              None
+            }
+            )
+      }).map(_.flatten)
   }
 
   // Assume not aggregated GraphChanges
@@ -104,9 +447,15 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
   }
 
+}
+
+case class WustEventMapper(slackAppToken: String, persistenceAdapter: PersistenceAdapter)(
+    implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
+  ) {
+
   def getAuthorClient(userId: UserId) = {
 
-    val slackEventUser = persistenceAdapter.getSlackUserByWustId(userId)
+    val slackEventUser = persistenceAdapter.getSlackUserDataByWustId(userId)
 
     slackEventUser.onComplete {
       case Success(_) => scribe.info(s"Successfully got event user")
@@ -156,7 +505,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     def generateSlackDeleteMessage(persistenceAdapter: PersistenceAdapter, nodeId: NodeId, parentId: NodeId) = {
 
       val deletes: OptionT[Future, Option[SlackDeleteMessage]] = for {
-        slackMessage <- OptionT[Future, Message_Mapping](persistenceAdapter.getSlackMessageByWustId(nodeId))
+        slackMessage <- OptionT[Future, Message_Mapping](persistenceAdapter.getMessageMappingByWustId(nodeId))
 //        slackChannel <- OptionT[Future, String](persistenceAdapter.getSlackChannelId(parentId))
       } yield {
         if(slackMessage.slack_channel_id.isDefined && slackMessage.slack_message_ts.isDefined) {
@@ -261,7 +610,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     case class SlackCreateChannel(channelName: String, teamNode: NodeId) extends GraphChangeEvent
 
     def generateSlackCreateChannel(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
-      val channelMapping = Channel_Mapping(None, node.str, slack_deleted_flag = false, node.id, edge.targetId)
+      val channelMapping = Channel_Mapping(None, node.str, is_archived = false, node.id, edge.targetId)
       for{
         true <- persistenceAdapter.storeOrUpdateChannelMapping(channelMapping)
       } yield {
@@ -277,7 +626,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
             client.apiClient.createGroup(channel.channelName).map(g => g.id -> g.name)
           case _ => // Create Channel (public)
             client.apiClient.createChannel(channel.channelName).map(c => c.id -> c.name)
-        }).map(c => Channel_Mapping(Some(c._1), c._2, slack_deleted_flag = false, wustNode.id, channel.teamNode))
+        }).map(c => Channel_Mapping(Some(c._1), c._2, is_archived = false, wustNode.id, channel.teamNode))
         true <- persistenceAdapter.updateChannelMapping(t)
       } yield {
         true
@@ -370,7 +719,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
       for {
         channelMapping <- OptionT[Future, Channel_Mapping](persistenceAdapter.getChannelMappingByWustId(channelNode.id))
         slackChannelId = channelMapping.slack_channel_id
-        true <- OptionT[Future, Boolean](persistenceAdapter.updateChannelMapping(Channel_Mapping(slackChannelId, channelNode.str, slack_deleted_flag = false, channelNode.id, channelMapping.team_wust_id)).map(Some(_)))
+        true <- OptionT[Future, Boolean](persistenceAdapter.updateChannelMapping(Channel_Mapping(slackChannelId, channelNode.str, is_archived = false, channelNode.id, channelMapping.team_wust_id)).map(Some(_)))
       } yield SlackRenameChannel(slackChannelId.getOrElse(""), channelNode.str)
 
     }
@@ -381,7 +730,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
     def generateSlackUpdateMessage(persistenceAdapter: PersistenceAdapter, messageNode: Node) = {
       val updates: OptionT[Future, Option[SlackUpdateMessage]] = for {
-        m <- OptionT[Future, Message_Mapping](persistenceAdapter.getSlackMessageByWustId(messageNode.id))
+        m <- OptionT[Future, Message_Mapping](persistenceAdapter.getMessageMappingByWustId(messageNode.id))
         true <- OptionT[Future, Boolean](persistenceAdapter.updateMessageMapping(m.copy(slack_message_text = messageNode.str)).map(Some(_)))
       } yield {
         if(m.slack_message_ts.isDefined && m.slack_channel_id.isDefined)
