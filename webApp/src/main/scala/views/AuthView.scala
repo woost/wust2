@@ -20,8 +20,9 @@ object AuthView {
       submitText: String,
       submitAction: (String, String) => Future[Option[String]],
       alternativeHeader: String,
-      alternativeView: View,
-      alternativeText: String
+      alternativeView: String => View,
+      alternativeText: String,
+      defaultUsername: String = ""
   )(implicit ctx: Ctx.Owner): VNode =
     for {
       errorMessageHandler <- Handler.create[String]
@@ -33,7 +34,7 @@ object AuthView {
             case Failure(t)           => errorMessageHandler.onNext(s"Unexpected error: $t")
           }
       }
-      userName <- Handler.create[String]
+      userName <- Handler.create[String](defaultUsername)
       password <- Handler.create[String]
       nameAndPassword = userName.combineLatest(password)
       elem <- div(
@@ -47,12 +48,13 @@ object AuthView {
             cls := "ui fluid input",
             input(
               placeholder := "Username",
+              value := defaultUsername,
               tpe := "text",
               attr("autocomplete") := "username",
               display.block,
               margin := "auto",
               onInput.value --> userName,
-              onInsert.asHtml --> sideEffect { e => e.focus() }
+              onInsert.asHtml --> sideEffect { e => if(defaultUsername.isEmpty) e.focus() }
             )
           ),
           div(
@@ -64,7 +66,8 @@ object AuthView {
               display.block,
               margin := "auto",
               onInput.value --> password,
-              onEnter(nameAndPassword) --> actionSink
+              onEnter(nameAndPassword) --> actionSink,
+              onInsert.asHtml --> sideEffect { e => if(defaultUsername.nonEmpty) e.focus() }
             )
           ),
           button(
@@ -86,7 +89,7 @@ object AuthView {
           h3(alternativeHeader, textAlign := "center"),
           state.viewConfig.map { cfg =>
             div(
-              onClick(cfg.copy(view = alternativeView)) --> state.viewConfig,
+              onClick(userName).map(u => cfg.copy(view = alternativeView(u))) --> state.viewConfig,
               cls := "ui fluid button",
               alternativeText,
               display.block,
@@ -99,7 +102,7 @@ object AuthView {
       )
     } yield elem
 
-  def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
+  def login(state: GlobalState, defaultUsername:String = "")(implicit ctx: Ctx.Owner) =
     apply(state)(
       header = "Login with existing account",
       submitText = "Login",
@@ -110,11 +113,12 @@ object AuthView {
           case AuthResult.Success     => None
         },
       alternativeHeader = "New to Woost?",
-      alternativeView = View.Signup,
-      alternativeText = "Create an account"
+      alternativeView = username => View.Signup(username),
+      alternativeText = "Create an account",
+      defaultUsername = defaultUsername,
     )
 
-  def signup(state: GlobalState)(implicit ctx: Ctx.Owner) =
+  def signup(state: GlobalState, defaultUsername:String = "")(implicit ctx: Ctx.Owner) =
     apply(state)(
       header = "Create an account",
       submitText = "Signup",
@@ -125,7 +129,8 @@ object AuthView {
           case AuthResult.Success     => None
         },
       alternativeHeader = "Already have an account?",
-      alternativeView = View.Login,
-      alternativeText = "Login with existing account"
+      alternativeView = username => View.Login(username),
+      alternativeText = "Login with existing account",
+      defaultUsername = defaultUsername,
     )
 }

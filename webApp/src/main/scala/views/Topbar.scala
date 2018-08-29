@@ -292,7 +292,7 @@ object Topbar {
       button(
         cls := "tiny compact ui inverted button",
         "Signup",
-        onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
+        onClick(state.viewConfig.now.showViewWithRedirect(View.Signup())) --> state.viewConfig,
         onClick --> sideEffect {
           Analytics.sendEvent("topbar", "signup")
         },
@@ -300,7 +300,7 @@ object Topbar {
       button(
         cls := "tiny compact ui inverted button",
         "Login",
-        onClick(state.viewConfig.now.showViewWithRedirect(View.Login)) --> state.viewConfig,
+        onClick(state.viewConfig.now.showViewWithRedirect(View.Login())) --> state.viewConfig,
         onClick --> sideEffect {
           Analytics.sendEvent("topbar", "login")
         },
@@ -313,7 +313,7 @@ object Topbar {
       "Logout",
       onClick --> sideEffect {
         Client.auth.logout().foreach { _ =>
-          state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).showViewWithRedirect(View.Login)
+          state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).showViewWithRedirect(View.Login())
         }
         Analytics.sendEvent("topbar", "logout")
       }

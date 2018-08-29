@@ -8,7 +8,7 @@ case class ShareOptions(title: String, text: String, url: String)
 
 case class ViewConfig(view: View, page: Page, redirectTo: Option[View], shareOptions: Option[ShareOptions]) {
   private val canRedirectTo: View => Boolean = {
-    case View.Login | View.Signup => false
+    case _:View.Login | _:View.Signup => false
     case _ => true
   }
 
