@@ -36,6 +36,8 @@ object ChatView {
       }
     }
 
+    def renderMessage(nodeId: NodeId, meta: MessageMeta):VNode = chatMessageLine(meta, nodeId)
+
     div(
       Styles.flex,
       flexDirection.column,
@@ -47,7 +49,7 @@ object ChatView {
         flexDirection.row,
         height := "100%",
         position.relative,
-        chatHistory(state, nodeIds, activeThreadNesting = false).apply(
+        chatHistory(state, nodeIds, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",
           overflow.auto,
