@@ -310,9 +310,9 @@ object ThreadView {
       if(showThread()) {
         val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
         div(
-          background := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
+          backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
           keyed(nodeId),
-          chatMessageLine(meta, nodeId, msgControls, messageCardInjected = VDomModifier(
+          chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _(
             boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
           )),
           div(
@@ -340,7 +340,7 @@ object ThreadView {
         )
       }
       else if(inCycle)
-             chatMessageLine(meta, nodeId, msgControls, messageCardInjected = VDomModifier(
+             chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _(
                Styles.flex,
                alignItems.center,
                freeSolid.faSyncAlt,
@@ -413,7 +413,7 @@ object ThreadView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls:MsgControls, messageCardInjected: VDomModifier = VDomModifier.empty)(
+  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls:MsgControls, showTags:Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
@@ -429,7 +429,6 @@ object ThreadView {
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
-      messageCardInjected,
       onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
     )
 
@@ -464,15 +463,14 @@ object ThreadView {
 
         dragTarget(DragItem.Chat.Message(nodeId)),
 
-        messageCard,
-        messageTags(state, graph, nodeId, alreadyVisualizedParentIds),
+        transformMessageCard(messageCard),
+        showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeId, alreadyVisualizedParentIds)),
         Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic)) }
       )
     )
   }
 
   def replyButton(nodeId: NodeId, meta: MessageMeta, action: (NodeId, MessageMeta) => Unit)(implicit ctx: Ctx.Owner): VNode = {
-    import meta._
     div(
       div(cls := "fa-fw", freeSolid.faReply),
       onClick.stopPropagation --> sideEffect { action(nodeId, meta) },
