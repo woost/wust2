@@ -26,36 +26,15 @@ object View {
     def viewKey = "graph"
     def isContent = true
   }
-
-  class Login(val username: String) extends View {
+  case object Login extends View {
     def viewKey = "login"
     def isContent = false
 
   }
-  object Login extends Login("") with View {
-    def apply(username: String = "") = new Login(username)
-    def unapply(login: Any):Option[String] = {
-      login match {
-        case login:Login => Some(login.username)
-        case _           => None
-      }
-    }
-  }
-
-  class Signup(val username: String) extends View {
+  case object Signup extends View {
     def viewKey = "signup"
     def isContent = false
   }
-  object Signup extends Signup("") with View {
-    def apply(username: String = "") = new Signup(username)
-    def unapply(signup: Any):Option[String] = {
-      signup match {
-        case signup:Signup => Some(signup.username)
-        case _             => None
-      }
-    }
-  }
-
   case object NewChannel extends View {
     def viewKey = "newchannel"
     def isContent = false

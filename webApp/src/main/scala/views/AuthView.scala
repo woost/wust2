@@ -13,30 +13,32 @@ import wust.webApp.views.Elements._
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
+
 // an html view for the authentication. That is login and signup.
 object AuthView {
+  var defaultUsername = ""
+
   def apply(state: GlobalState)(
       header: String,
       submitText: String,
       submitAction: (String, String) => Future[Option[String]],
       alternativeHeader: String,
-      alternativeView: String => View,
+      alternativeView: View,
       alternativeText: String,
-      defaultUsername: String = ""
   )(implicit ctx: Ctx.Owner): VNode =
     for {
       errorMessageHandler <- Handler.create[String]
       actionSink = sideEffect[(String, String)] {
-        case (userName, password) =>
-          submitAction(userName, password).onComplete {
+        case (username, password) =>
+          submitAction(username, password).onComplete {
             case Success(None)        => state.viewConfig() = state.viewConfig.now.redirect
             case Success(Some(vnode)) => errorMessageHandler.onNext(vnode)
             case Failure(t)           => errorMessageHandler.onNext(s"Unexpected error: $t")
           }
       }
-      userName <- Handler.create[String](defaultUsername)
+      username <- Handler.create[String](defaultUsername)
       password <- Handler.create[String]
-      nameAndPassword = userName.combineLatest(password)
+      nameAndPassword = username.combineLatest(password)
       elem <- div(
         padding := "10px",
         maxWidth := "400px",
@@ -53,7 +55,7 @@ object AuthView {
               attr("autocomplete") := "username",
               display.block,
               margin := "auto",
-              onInput.value --> userName,
+              onInput.value --> username,
               onInsert.asHtml --> sideEffect { e => if(defaultUsername.isEmpty) e.focus() }
             )
           ),
@@ -89,7 +91,7 @@ object AuthView {
           h3(alternativeHeader, textAlign := "center"),
           state.viewConfig.map { cfg =>
             div(
-              onClick(userName).map(u => cfg.copy(view = alternativeView(u))) --> state.viewConfig,
+              onClick(cfg.copy(view = alternativeView)) --> state.viewConfig,
               cls := "ui fluid button",
               alternativeText,
               display.block,
@@ -100,9 +102,12 @@ object AuthView {
           onSubmit.preventDefault --> Observer.empty // prevent reloading the page on form submit
         )
       )
-    } yield elem
+    } yield {
+      username.foreach{ defaultUsername = _ }
+      elem
+    }
 
-  def login(state: GlobalState, defaultUsername:String = "")(implicit ctx: Ctx.Owner) =
+  def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     apply(state)(
       header = "Login with existing account",
       submitText = "Login",
@@ -113,12 +118,11 @@ object AuthView {
           case AuthResult.Success     => None
         },
       alternativeHeader = "New to Woost?",
-      alternativeView = username => View.Signup(username),
+      alternativeView = View.Signup,
       alternativeText = "Create an account",
-      defaultUsername = defaultUsername,
     )
 
-  def signup(state: GlobalState, defaultUsername:String = "")(implicit ctx: Ctx.Owner) =
+  def signup(state: GlobalState)(implicit ctx: Ctx.Owner) =
     apply(state)(
       header = "Create an account",
       submitText = "Signup",
@@ -129,8 +133,7 @@ object AuthView {
           case AuthResult.Success     => None
         },
       alternativeHeader = "Already have an account?",
-      alternativeView = username => View.Login(username),
+      alternativeView = View.Login,
       alternativeText = "Login with existing account",
-      defaultUsername = defaultUsername,
     )
 }
