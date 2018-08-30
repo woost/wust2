@@ -30,6 +30,8 @@ object FilterEvents {
   case class Create(l: Level) extends SlackEvent
   case class Update(l: Level) extends SlackEvent
 
+  case class PartialCreateByNode(node: Node) extends SlackEvent
+  case class PartialCreateByEdge(edge: Edge) extends SlackEvent
 
   sealed trait WustEvent
   case class AddNode(node: Node) extends WustEvent
@@ -88,28 +90,46 @@ object FilterEvents {
             levelSeparator(persistenceAdapter, targetId).flatMap {
               case Some(Team(_)) =>       // Parent is a team => channel or group
                 persistenceAdapter.getChannelMappingByWustId(sourceId).map {
-                  case Some(c) =>
-                    if(c.team_wust_id == targetId) {
+
+                  case Some(c) => // node is known in some way
+                    if(c.team_wust_id == targetId) { // mapping already known, do nothing (idempotence)
                       None
-                    } else {
+                    } else { // a new mapping has to be created, so a node is linked to different slack channels
                       val isGroup = n match {
                         case Some(node) =>
-                          node.meta.accessLevel == NodeAccess.Restricted
+                          node.meta.accessLevel == NodeAccess.Restricted // decide whether this is a group or channel by node access
                         case None =>
-                          c.is_private
+                          c.is_private // fallback when no node is present
                       }
                       if(isGroup) Some(Create(Group(c)))
                       else Some(Create(Channel(c)))
                     }
+
+                  case None => // node is unknown
+                    n match {
+                      case Some(node) =>
+                        if(node.meta.accessLevel == NodeAccess.Restricted)
+                          Some(Create(Group(Channel_Mapping(None, node.str, true, false, node.id, targetId))))
+                        else
+                          Some(Create(Channel(Channel_Mapping(None, node.str, false, false, node.id, targetId))))
+
+                      case None =>
+                        Some(PartialCreateByEdge(e)) // |NodeCase| -> Request node from backend
+                    }
+
                 }
 
               case Some(_: Channel) | Some(_: Group) =>    // Parent is a channel => message or thread
                 levelSeparator(persistenceAdapter, sourceId).map {
                   case Some(Thread(m)) =>      // update group
-                    Some(UpdateThread(m))
+                    if(m.channel_wust_id == targetId){
+                      None
+                    } else {
+                      //TODO: ???
+                      Some(Create(Message(m.copy(slack_channel_id = None, slack_message_ts = None, slack_thread_ts = None)))
+                    }
 
                   case Some(Message(m)) =>    // update channel
-                    Some(UpdateMessage(m))
 
                   case _ => // insert
                     None
@@ -131,6 +151,18 @@ object FilterEvents {
         }
 
       case AddNode(n) =>
+        n match {
+          case Node.Content(id, _, _) =>
+            levelSeparator(persistenceAdapter, id).map {
+              case Some(l) => // Node is known, therefore this is an update
+                Some(Update(l))
+
+              case _ =>
+//                Some(PartialCreateByNode(n)) // Node is unknown, so we have to create something somewhere
+                None // Forget this case, it will be handled with a request in the AddEdge pipeline (see |NodeCase|)
+
+            }
+        }
     }
   }
 
