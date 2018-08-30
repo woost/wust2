@@ -32,7 +32,7 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
     val baseHue: Double = path match {
       case List("Api", "getGraph") =>
         NodeColor
-          .pageHue(arguments.productIterator.toList.head.asInstanceOf[Page])
+          .pageHue(arguments.productIterator.toList.head.asInstanceOf[Page].parentIds)
           .getOrElse(randomHue)
       case _ => randomHue
     }

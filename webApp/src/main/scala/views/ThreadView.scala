@@ -68,9 +68,10 @@ object ThreadView {
     path: List[NodeId],
     directParentIds: Set[NodeId],
     currentUserId: UserId,
-    activeReplyFields: Var[Set[List[NodeId]]],
     renderMessage: (NodeId, MessageMeta) => VDomModifier,
   )
+
+  type MsgControls = (NodeId, MessageMeta, Boolean, Var[Boolean]) => Seq[VNode]
 
 
   // -- display options --
@@ -93,7 +94,23 @@ object ThreadView {
       }.toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta):VDomModifier = renderThread(nodeId, meta)
+    val activeReplyFields = Var(Set.empty[List[NodeId]])
+
+    def msgControls(nodeId:NodeId, meta:MessageMeta, isDeleted:Boolean, editable:Var[Boolean]):Seq[VNode] = {
+      import meta._
+      val state = meta.state
+      List(
+        if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
+        else List(
+          replyButton(nodeId, meta, action = { (nodeId, meta) => activeReplyFields.update(_ + (nodeId :: meta.path))}),
+          editButton(state, editable),
+          deleteButton(state, nodeId, directParentIds)
+        ),
+        List(zoomButton(state, nodeId))
+      ).flatten
+    }
+
+    def renderMessage(nodeId: NodeId, meta: MessageMeta):VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields)
 
     div(
       Styles.flex,
@@ -114,7 +131,7 @@ object ThreadView {
         ),
         //        TagsList(state).apply(Styles.flexStatic)
       ),
-      Rx { inputField(state, state.page().parentIdSet, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(keyed, Styles.flexStatic, padding := "3px") },
+      Rx { inputField(state, state.page().parentIdSet, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
       registerDraggableContainer(state),
     )
   }
@@ -125,7 +142,6 @@ object ThreadView {
     renderMessage: (NodeId, MessageMeta) => VDomModifier,
   )(implicit ctx: Ctx.Owner): VNode = {
     val scrolledToBottom = PublishSubject[Boolean]
-    val activeReplyFields = Var(Set.empty[List[NodeId]])
     val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
 
@@ -146,7 +162,7 @@ object ThreadView {
               groupNodes(graph, nodeIds(), state, user.id)
                 .map(kind => renderGroupedMessages(
                   kind.nodeIds,
-                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, activeReplyFields, renderMessage), avatarSizeToplevel)
+                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage), avatarSizeToplevel)
                 ),
 
 
@@ -281,7 +297,7 @@ object ThreadView {
     )
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls:MsgControls, activeReplyFields:Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
@@ -296,7 +312,7 @@ object ThreadView {
         div(
           background := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
           keyed(nodeId),
-          chatMessageLine(meta, nodeId, messageCardInjected = VDomModifier(
+          chatMessageLine(meta, nodeId, msgControls, messageCardInjected = VDomModifier(
             boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
           )),
           div(
@@ -310,7 +326,6 @@ object ThreadView {
                   alreadyVisualizedParentIds = alreadyVisualizedParentIds + nodeId,
                   path = nodeId :: path,
                   directParentIds = Set(nodeId),
-                  activeReplyFields = activeReplyFields
                 ),
                 Rx(avatarSizeThread),
               )),
@@ -325,7 +340,7 @@ object ThreadView {
         )
       }
       else if(inCycle)
-             chatMessageLine(meta, nodeId, messageCardInjected = VDomModifier(
+             chatMessageLine(meta, nodeId, msgControls, messageCardInjected = VDomModifier(
                Styles.flex,
                alignItems.center,
                freeSolid.faSyncAlt,
@@ -335,7 +350,7 @@ object ThreadView {
                boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
              ))
       else
-        chatMessageLine(meta, nodeId)
+        chatMessageLine(meta, nodeId, msgControls)
     }
   }
 
@@ -398,7 +413,7 @@ object ThreadView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, messageCardInjected: VDomModifier = VDomModifier.empty)(
+  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls:MsgControls, messageCardInjected: VDomModifier = VDomModifier.empty)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
@@ -409,16 +424,6 @@ object ThreadView {
 
     val editable = Var(false)
 
-    val msgControls = div(
-      cls := "chatmsg-controls",
-      if(isDeleted) undeleteButton(state, nodeId, directParentIds)
-      else VDomModifier(
-        replyButton(state, nodeId, path, activeReplyFields),
-        editButton(state, editable),
-        deleteButton(state, nodeId, directParentIds)
-      ),
-      zoomButton(state, nodeId)
-    )
 
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
@@ -428,6 +433,10 @@ object ThreadView {
       onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
     )
 
+    val controls = div(
+        cls := "chatmsg-controls",
+        msgControls(nodeId, meta, isDeleted, editable)
+    )
 
     div(
       keyed(nodeId),
@@ -457,26 +466,28 @@ object ThreadView {
 
         messageCard,
         messageTags(state, graph, nodeId, alreadyVisualizedParentIds),
-        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](msgControls(Styles.flexStatic)) }
+        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic)) }
       )
     )
   }
 
-  private def replyButton(state: GlobalState, nodeId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner) =
+  def replyButton(nodeId: NodeId, meta: MessageMeta, action: (NodeId, MessageMeta) => Unit)(implicit ctx: Ctx.Owner): VNode = {
+    import meta._
     div(
       div(cls := "fa-fw", freeSolid.faReply),
-      onClick.stopPropagation --> sideEffect { activeReplyFields.update(_ + (nodeId :: path)) },
+      onClick.stopPropagation --> sideEffect { action(nodeId, meta) },
       cursor.pointer,
     )
+  }
 
-  private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
+  def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faEdit),
       onClick.stopPropagation(!editable.now) --> editable,
       cursor.pointer,
     )
 
-  private def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+  def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faTrashAlt),
       onClick.stopPropagation --> sideEffect {
@@ -486,7 +497,7 @@ object ThreadView {
       cursor.pointer,
     )
 
-  private def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) =
+  def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", fontawesome.layered(
         fontawesome.icon(freeRegular.faTrashAlt),
@@ -501,7 +512,7 @@ object ThreadView {
       cursor.pointer,
     )
 
-  private def zoomButton(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
+  def zoomButton(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
       onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,

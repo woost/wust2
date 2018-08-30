@@ -29,9 +29,9 @@ object NodeColor {
   def eulerBgColor(id: NodeId): HCL = BaseColors.eulerBg.copy(h = hue(id))
   def tagColor(nodeId: NodeId): HCL =  BaseColors.tag.copy(h = hue(nodeId))
 
-  def pageHue(page: Page): Option[Double] =
+  def pageHue(parentIds: Iterable[NodeId]): Option[Double] =
     NonEmptyList
-      .fromList(page.parentIds.map(id => BaseColors.pageBg.copy(h = hue(id)))(breakOut): List[Color])
+      .fromList(parentIds.map(id => BaseColors.pageBg.copy(h = hue(id)))(breakOut): List[Color])
       .map(parentColors => mixColors(parentColors).hcl.h)
 
   def mixColors(a: Color, b: Color): LAB = {
