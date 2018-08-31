@@ -19,10 +19,11 @@ import wust.ids._
 import wust.sdk.NodeColor.hue
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
-import wust.webApp.Client
+import wust.webApp.{Client, views}
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.search.Search
+import wust.webApp.state.{GlobalState, ScreenSize, ViewConfig}
 import wust.webApp.views.Components._
 
 import scala.concurrent.Future
@@ -72,6 +73,7 @@ object PageHeader {
     }
     VDomModifier(
       Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px"))},
+      searchButton(state, channel).apply(buttonStyle),
       notifyControl(state, channel).apply(Styles.flexStatic, marginLeft := "auto", fontSize := "20px", cursor.pointer),
       addMember(state, channel).apply(buttonStyle),
       shareButton(channel).apply(buttonStyle),
@@ -141,6 +143,130 @@ object PageHeader {
     )
   }
 
+  private def searchButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+
+    val searchModal = Var(None:Option[dom.html.Element])
+    // val searchModal = PublishSubject[dom.html.Element]
+    val search = PublishSubject[VNode]
+    val searchLocal = PublishSubject[String]
+    val searchGlobal = PublishSubject[String]
+    val searchInputProcess = PublishSubject[String]
+
+    searchLocal.foreach { s =>
+      Rx {
+        val graph = state.graph()
+        val nodes = graph.contentNodes.toList
+        val descendants = graph.descendants(node.id)
+
+        val channelDescendants = nodes.filter(n => descendants.toSeq.contains(n.id))
+        search.onNext(searchResult(s, channelDescendants, false))
+      }
+    }
+
+    searchGlobal.foreach { s =>
+      Rx {
+        val graph = Client.api.getGraph(Page(state.user().channelNodeId))
+        graph.map(_.contentNodes.toList).foreach(nodes =>
+          search.onNext(searchResult(s, nodes, true)))
+      }
+    }
+
+    searchModal.foreach(_ => scribe.info("new search modal"))
+
+    def searchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
+      val viewConf = state.viewConfig.now
+      val searchRes = Search.byString(needle, haystack, Some(100), 0.2).map( nodeRes =>
+        div(
+          cls := "ui approve item",
+          fontWeight.normal,
+          cursor.pointer,
+          fontFamily := "Roboto Slab",
+          paddingTop := "3px",
+          Components.nodeCard(state, nodeRes._1, maxLength = Some(60)),
+          onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
+          onClick.map(_ => searchModal.now) --> sideEffect { _.foreach { elem =>
+             import semanticUi.JQuery._
+             $(elem).modal("hide")
+          }},
+        ),
+      )
+
+      div(
+        s"Found ${searchRes.length} results in ${if(globalSearchScope) "all channels" else "the current channel"} ",
+        padding := "5px 0",
+        fontWeight.bold,
+        div(
+          searchRes,
+        ),
+        button(
+          cls := "ui button",
+          marginTop := "10px",
+          display := (if(globalSearchScope) "none" else "block"),
+          "Search in all channels",
+          onClick(needle) --> searchGlobal
+        )
+      )
+    }
+
+    div(
+      cls := "item",
+      freeSolid.faSearch,
+      div(
+        cls := "ui modal form",
+        i(cls := "close icon"),
+        div(
+          cls := "header",
+          backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+          div(
+            Styles.flex,
+            alignItems.center,
+            channelAvatar(node, size = 20)(marginRight := "5px"),
+            renderNodeData(node.data)(fontFamily := "Roboto Slab", fontWeight.normal),
+            paddingBottom := "5px",
+          ),
+          div(
+            div(
+              cls := "ui fluid action input",
+              input(
+                placeholder := "Enter search",
+                Elements.valueWithEnter --> searchLocal,
+                onChange.value --> searchInputProcess
+              ),
+              div(
+                cls := "ui primary button approve",
+                "Search",
+                onClick(searchInputProcess) --> searchLocal
+              ),
+            ),
+          )
+        ),
+        div(
+          cls := "scrolling content",
+          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+          div(
+            cls := "ui fluid search-result",
+            search,
+          ),
+        ),
+        onDomElementChange.asHtml --> sideEffect { elem =>
+          import semanticUi.JQuery._
+          $(elem).modal(new ModalOptions {
+            //          blurring = true
+            dimmerSettings = new DimmerOptions {
+              opacity = "0.5"
+            }
+          }).modal("hide")
+          searchModal() = Some(elem)
+        },
+      ),
+    onClick.map(_ => searchModal.now) --> sideEffect { m => 
+      println(m)
+      m.foreach{ elem =>
+        import semanticUi.JQuery._
+        $(elem).modal("toggle")
+      }},
+    )
+  }
 
   private def addMember(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
     val showDialog = Var(false)
