@@ -35,7 +35,8 @@ object BreadCrumbs {
       cls := "breadcrumbs",
       Rx {
         val page = state.page()
-        val graph = state.graph()
+        val user = state.user()
+        val graph =  state.graph().removeNodes(user.channelNodeId :: Nil)
         val parentIds = page.parentIds
         parentIds.map { (parentId : NodeId) =>
           val parentDepths = graph.parentDepths(parentId)
