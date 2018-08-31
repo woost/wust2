@@ -60,13 +60,9 @@ object ChatView {
                 alignItems.flexStart,
                 parents.map { parentId =>
                   val parent = graph.nodesById(parentId)
-                  nodeCard(meta.state, parent).apply(
+                  parentMessage(meta.state, parent).apply(
                     margin := "3px",
                     opacity := 0.7,
-                    backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parentId)).toHex,
-                    boxShadow := s"0px 1px 0px 1px ${ tagColor(parentId).toHex }",
-                    cursor.pointer,
-                    onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parentId))) --> state.viewConfig
                   )
                 }(breakOut): Seq[VNode],
               ),
@@ -76,6 +72,14 @@ object ChatView {
         }),
       )
     }
+
+    def parentMessage(state: GlobalState, parent: Node) = nodeCard(state, parent).apply(
+      fontSize.smaller,
+      backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
+      boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
+      cursor.pointer,
+      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parent.id))) --> state.viewConfig
+    )
 
     val replyPreview = Rx {
       val graph = state.graph()
@@ -87,8 +91,9 @@ object ChatView {
           div(
             Styles.flex,
             alignItems.flexStart,
-            nodeCard(state, node).apply(width := "100%", alignSelf.center),
+            parentMessage(state, node).apply(alignSelf.center),
             closeButton(
+              marginLeft.auto,
               onClick(None: Option[NodeId]) --> currentReply,
             ),
           )
