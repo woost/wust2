@@ -177,8 +177,14 @@ object Sidebar {
       cls := "channelicon",
       width := s"${ size }px",
       height := s"${ size }px",
-      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
-      opacity := (if(selected) 1.0 else 0.75),
+      backgroundColor := (node match {
+        case node:Node.Content => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
+        case _:Node.User => "rgb(255, 255, 255)"
+      }),
+      opacity := (node match {
+        case node:Node.Content => if(selected) 1.0 else 0.75
+        case _:Node.User => if(selected) 1.0 else 0.9
+      }),
       selected.ifTrueOption(borderColor := selectedBorderColor),
       Avatar(node),
       title := node.data.str,
