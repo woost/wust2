@@ -146,7 +146,6 @@ object PageHeader {
   private def searchButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
 
     val searchModal = Var(None:Option[dom.html.Element])
-    // val searchModal = PublishSubject[dom.html.Element]
     val search = PublishSubject[VNode]
     val searchLocal = PublishSubject[String]
     val searchGlobal = PublishSubject[String]
@@ -271,10 +270,6 @@ object PageHeader {
   private def addMember(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
     val showDialog = Var(false)
     val activeDisplay = Rx { display := (if(showDialog()) "block" else "none") }
-//    val addUserDialog = dialog(state, "Add Member", "Enter the username of a member you want to add", NodeColor.tagColor(channel.id).toHex)
-//(onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = selection.access)))) --> state.eventProcessor.changes)
-    //      addUserDialog(activeDisplay)(backgroundColor := NodeColor.tagColor(channel.id).toHex),
-
 
     val addMemberModal = PublishSubject[dom.html.Element]
     val addMember = PublishSubject[String]
