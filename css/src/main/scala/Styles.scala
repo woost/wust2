@@ -127,6 +127,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".breadcrumbs" - (
     padding(1 px, 3 px),
     Styles.flex,
+    alignItems.center,
     overflowX.auto,
     fontSize(12 px),
     Styles.flexStatic,
@@ -153,9 +154,10 @@ object CommonStyles extends StyleSheet.Standalone {
     )
 
   ".breadcrumbs .divider" - (
-    marginLeft(1 px),
+    marginLeft(3 px),
     marginRight(3 px),
     color(c"#666"),
+    fontSize.larger,
     fontWeight.bold
   )
 
