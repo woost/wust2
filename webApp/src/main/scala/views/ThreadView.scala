@@ -113,6 +113,8 @@ object ThreadView {
 
     def renderMessage(nodeId: NodeId, meta: MessageMeta):VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields)
 
+    val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
+
     div(
       Styles.flex,
       flexDirection.column,
@@ -124,14 +126,14 @@ object ThreadView {
         flexDirection.row,
         height := "100%",
         position.relative,
-        chatHistory(state, nodeIds, renderMessage = renderMessage).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
         //        TagsList(state).apply(Styles.flexStatic)
       ),
-      Rx { inputField(state, state.page().parentIdSet, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
+      Rx { inputField(state, state.page().parentIdSet, submittedNewMessage, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
       registerDraggableContainer(state),
     )
   }
@@ -139,12 +141,18 @@ object ThreadView {
   def chatHistory(
     state: GlobalState,
     nodeIds: Rx[Seq[NodeId]],
+    submittedNewMessage: Handler[Unit],
     renderMessage: (NodeId, MessageMeta) => VDomModifier,
   )(implicit ctx: Ctx.Owner): VNode = {
     val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None:Option[HTMLElement])
+    submittedNewMessage.foreach { _ =>
+      scrollableHistoryElem.now.foreach { elem =>
+        scrollToBottom(elem)
+      }
+    }
 
     div(
       // this wrapping of chat history is currently needed,
@@ -558,7 +566,7 @@ object ThreadView {
 
   }
 
-  def inputField(state: GlobalState, directParentIds: Set[NodeId], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage:Handler[Unit] = Handler.create[Unit].unsafeRunSync(), focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
       val pageModeOrphans = state.page().mode == PageMode.Orphans
@@ -589,6 +597,7 @@ object ThreadView {
           }
 
           state.eventProcessor.changes.onNext(changes)
+          submittedNewMessage.onNext(Unit)
         },
         focusOnInsert.ifTrue[VDomModifier](onInsert.asHtml --> sideEffect { e => e.focus() }),
         onBlur.value --> sideEffect { value => blurAction(value) },

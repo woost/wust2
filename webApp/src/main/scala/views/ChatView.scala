@@ -29,6 +29,8 @@ object ChatView {
       }
     }
 
+    val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
+
     val currentReply = Var(None: Option[NodeId])
 
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
@@ -73,6 +75,7 @@ object ChatView {
       )
     }
 
+
     def parentMessage(state: GlobalState, parent: Node) = nodeCard(state, parent).apply(
       fontSize.smaller,
       backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
@@ -112,7 +115,7 @@ object ChatView {
         flexDirection.row,
         height := "100%",
         position.relative,
-        chatHistory(state, nodeIds, renderMessage = renderMessage).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
@@ -122,7 +125,7 @@ object ChatView {
       Rx {
         val replyNodes: Set[NodeId] = currentReply().fold(state.page().parentIdSet)(Set(_))
         val focusOnInsert = state.screenSize.now != ScreenSize.Small
-        inputField(state, replyNodes, focusOnInsert = focusOnInsert).apply(
+        inputField(state, replyNodes, submittedNewMessage, focusOnInsert = focusOnInsert).apply(
           Styles.flexStatic,
           padding := "3px",
           backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodes).get).toHex,
