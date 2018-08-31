@@ -240,7 +240,9 @@ object PageHeader {
                   ),
                   div(
                     fontSize := "15px",
-                    user.name
+                    user.name,
+                    wordWrap := "break-word",
+                    style("word-break") := "break-word",
                   ),
                   button(
                     cls := "ui tiny compact negative basic button",
