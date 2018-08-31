@@ -224,7 +224,8 @@ object CommonStyles extends StyleSheet.Standalone {
     margin(0 px) // avoid default p margin. p usually comes from markdown rendering
   )
 
-  ".channel-line .channel-name *" - (
+  ".channel-name," +
+  ".channel-name *" - (
     wordWrap.breakWord,
     wordBreak :=! "break-word",
   )

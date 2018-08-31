@@ -197,8 +197,8 @@ object PageHeader {
           div(
             Styles.flex,
             alignItems.center,
-            channelAvatar(node, size = 20)(marginRight := "5px"),
-            renderNodeData(node.data)(fontFamily := "Roboto Slab", fontWeight.normal),
+            channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+            renderNodeData(node.data)(cls := "channel-name", fontFamily := "Roboto Slab", fontWeight.normal, marginRight := "15px"),
             paddingBottom := "5px",
           ),
           div(s"Manage Members"),

@@ -41,7 +41,7 @@ object Topbar {
         viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
       )
     },
-    FeedbackForm(state)(ctx)(marginLeft.auto),
+    FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
     Rx {
       (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
         authentication(state)
@@ -270,8 +270,8 @@ object Topbar {
 
   def authentication(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =
     state.user.map {
-      case user: AuthUser.Assumed  => login(state)
-      case user: AuthUser.Implicit => login(state)
+      case user: AuthUser.Assumed  => login(state).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => login(state).apply(Styles.flexStatic)
       case user: AuthUser.Real     => div(
         Styles.flex,
         alignItems.center,
@@ -279,7 +279,12 @@ object Topbar {
           Styles.flex,
           alignItems.center,
           Avatar.user(user.id)(height := "20px", cls := "avatar"),
-          span(user.name, Styles.flexStatic, padding := "0 5px"),
+          span(
+            user.name,
+            padding := "0 5px",
+            wordWrap := "break-word",
+            style("word-break") := "break-word",
+          ),
           cursor.pointer,
           onClick[View](View.UserSettings) --> state.view,
           onClick --> sideEffect { Analytics.sendEvent("topbar", "avatar") },
