@@ -62,9 +62,9 @@ object ChatView {
                 alignItems.flexStart,
                 parents.map { parentId =>
                   val parent = graph.nodesById(parentId)
-                  parentMessage(meta.state, parent).apply(
+                  parentMessage(meta.state, graph, parent).apply(
                     margin := "3px",
-                    opacity := 0.7,
+//                    opacity := 0.7,
                   )
                 }(breakOut): Seq[VNode],
               ),
@@ -76,12 +76,21 @@ object ChatView {
     }
 
 
-    def parentMessage(state: GlobalState, parent: Node) = nodeCard(state, parent).apply(
-      fontSize.smaller,
-      backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
-      boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
-      cursor.pointer,
-      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parent.id))) --> state.viewConfig
+    def parentMessage(state: GlobalState, graph:Graph, parent: Node) = div(
+      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(parent.id)).toHex,
+      padding := "1px",
+      borderTopLeftRadius := "2px",
+      borderTopRightRadius := "2px",
+      chatMessageHeader(false, parent.id, graph, Rx(AvatarSize.Small), showDate = false).apply(
+        padding := "2px"
+      ),
+      nodeCard(state, parent).apply(
+        fontSize.smaller,
+        backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
+        boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
+        cursor.pointer,
+        onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parent.id))) --> state.viewConfig
+      )
     )
 
     val replyPreview = Rx {
@@ -94,7 +103,7 @@ object ChatView {
           div(
             Styles.flex,
             alignItems.flexStart,
-            parentMessage(state, node).apply(alignSelf.center),
+            parentMessage(state, graph, node).apply(alignSelf.center),
             closeButton(
               marginLeft.auto,
               onClick(None: Option[NodeId]) --> currentReply,

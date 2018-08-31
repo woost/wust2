@@ -97,13 +97,13 @@ object ThreadView {
 
     val activeReplyFields = Var(Set.empty[List[NodeId]])
 
-    def msgControls(nodeId:NodeId, meta:MessageMeta, isDeleted:Boolean, editable:Var[Boolean]):Seq[VNode] = {
+    def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state
       List(
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
-          replyButton(nodeId, meta, action = { (nodeId, meta) => activeReplyFields.update(_ + (nodeId :: meta.path))}),
+          replyButton(nodeId, meta, action = { (nodeId, meta) => activeReplyFields.update(_ + (nodeId :: meta.path)) }),
           editButton(state, editable),
           deleteButton(state, nodeId, directParentIds)
         ),
@@ -111,7 +111,7 @@ object ThreadView {
       ).flatten
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta):VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields)
+    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields)
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
@@ -147,7 +147,7 @@ object ThreadView {
     val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
     val isScrolledToBottom = Var(true)
-    val scrollableHistoryElem = Var(None:Option[HTMLElement])
+    val scrollableHistoryElem = Var(None: Option[HTMLElement])
     submittedNewMessage.foreach { _ =>
       scrollableHistoryElem.now.foreach { elem =>
         scrollToBottom(elem)
@@ -181,23 +181,23 @@ object ThreadView {
               keyed
             )
         },
-        onPrePatch --> sideEffect{ 
+        onPrePatch --> sideEffect {
           scrollableHistoryElem.now.foreach { prev =>
             val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
             isScrolledToBottom() = wasScrolledToBottom
           }
         },
-        onPostPatch --> sideEffect { 
+        onPostPatch --> sideEffect {
           scrollableHistoryElem.now.foreach { elem =>
             if(isScrolledToBottom.now)
-              defer{ scrollToBottom(elem) }
+              defer { scrollToBottom(elem) }
           }
         }
       ),
       overflow.auto,
-      onDomElementChange.asHtml --> sideEffect{ elem =>
+      onDomElementChange.asHtml --> sideEffect { elem =>
         if(isScrolledToBottom.now)
-          defer{ scrollToBottom(elem) }
+          defer { scrollToBottom(elem) }
         scrollableHistoryElem() = Some(elem)
       },
     )
@@ -315,7 +315,7 @@ object ThreadView {
     )
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls:MsgControls, activeReplyFields:Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
@@ -330,7 +330,7 @@ object ThreadView {
         div(
           backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
           keyed(nodeId),
-          chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _(
+          chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _ (
             boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
           )),
           div(
@@ -358,7 +358,7 @@ object ThreadView {
         )
       }
       else if(inCycle)
-             chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _(
+             chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _ (
                Styles.flex,
                alignItems.center,
                freeSolid.faSyncAlt,
@@ -417,7 +417,8 @@ object ThreadView {
     isMine: Boolean,
     nodeId: NodeId,
     graph: Graph,
-    avatarSize: Rx[AvatarSize]
+    avatarSize: Rx[AvatarSize],
+    showDate: Boolean = true,
   )(implicit ctx: Ctx.Owner): VNode = {
     val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
@@ -425,13 +426,13 @@ object ThreadView {
       keyed(nodeId),
       Rx { (avatarSize() == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize())(marginRight := "3px")) },
       optAuthorDiv(isMine, nodeId, graph),
-      optDateDiv(isMine, nodeId, graph),
+      showDate.ifTrue[VDomModifier](optDateDiv(isMine, nodeId, graph)),
     )
   }
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls:MsgControls, showTags:Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
+  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
@@ -443,7 +444,6 @@ object ThreadView {
     val editable = Var(false)
 
 
-
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
@@ -451,8 +451,8 @@ object ThreadView {
     )
 
     val controls = div(
-        cls := "chatmsg-controls",
-        msgControls(nodeId, meta, isDeleted, editable)
+      cls := "chatmsg-controls",
+      msgControls(nodeId, meta, isDeleted, editable)
     )
 
     div(
@@ -566,7 +566,7 @@ object ThreadView {
 
   }
 
-  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage:Handler[Unit] = Handler.create[Unit].unsafeRunSync(), focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.create[Unit].unsafeRunSync(), focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
       val pageModeOrphans = state.page().mode == PageMode.Orphans
