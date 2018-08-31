@@ -21,7 +21,7 @@ object Elements {
   def scrollToBottom(elem: dom.Element): Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
     try {
-      elem.scrollTop = elem.scrollHeight
+      elem.scrollTop = elem.scrollHeight - elem.clientHeight
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 

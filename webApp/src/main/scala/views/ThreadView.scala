@@ -19,6 +19,7 @@ import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import org.scalajs.dom.raw.HTMLElement
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -126,7 +127,6 @@ object ThreadView {
         chatHistory(state, nodeIds, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",
-          overflow.auto,
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
         //        TagsList(state).apply(Styles.flexStatic)
@@ -141,9 +141,10 @@ object ThreadView {
     nodeIds: Rx[Seq[NodeId]],
     renderMessage: (NodeId, MessageMeta) => VDomModifier,
   )(implicit ctx: Ctx.Owner): VNode = {
-    val scrolledToBottom = PublishSubject[Boolean]
     val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
+    val isScrolledToBottom = Var(true)
+    val scrollableHistoryElem = Var(None:Option[HTMLElement])
 
     div(
       // this wrapping of chat history is currently needed,
@@ -172,16 +173,25 @@ object ThreadView {
               keyed
             )
         },
-        onUpdate --> sideEffect { (prev, _) =>
-          scrolledToBottom
-            .onNext(prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11) // at bottom + 10 px tolerance
+        onPrePatch --> sideEffect{ 
+          scrollableHistoryElem.now.foreach { prev =>
+            val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
+            isScrolledToBottom() = wasScrolledToBottom
+          }
         },
-        onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
-          case ((_, elem), atBottom) => (elem, atBottom)
-        }) --> sideEffect { (elem, atBottom) =>
-          if(atBottom) scrollToBottom(elem)
+        onPostPatch --> sideEffect { 
+          scrollableHistoryElem.now.foreach { elem =>
+            if(isScrolledToBottom.now)
+              defer{ scrollToBottom(elem) }
+          }
         }
-      )
+      ),
+      overflow.auto,
+      onDomElementChange.asHtml --> sideEffect{ elem =>
+        if(isScrolledToBottom.now)
+          defer{ scrollToBottom(elem) }
+        scrollableHistoryElem() = Some(elem)
+      },
     )
   }
 

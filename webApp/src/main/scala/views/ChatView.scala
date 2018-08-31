@@ -115,7 +115,6 @@ object ChatView {
         chatHistory(state, nodeIds, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",
-          overflow.auto,
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
       ),
