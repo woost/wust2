@@ -31,16 +31,16 @@ object ChatView {
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
-    val currentReply = Var(Option.empty[NodeId])
+    val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[NodeId])
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
       editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
-      //      replyButton(_)
     )
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
+      replyButton(action = { () => currentReply() = nodeIds.toSet; state.selectedNodeIds() = Set.empty[NodeId] }),
+      zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds() = Set.empty[NodeId]}),
       SelectedNodes.deleteAllButton(state, nodeIds),
-      zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)})
     )
 
 
@@ -51,7 +51,7 @@ object ChatView {
       List(
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
-          replyButton(nodeId, meta, action = { (nodeId, meta) => currentReply() = Some(nodeId) }),
+          replyButton(action = { () => currentReply() = Set(nodeId) }),
           editButton(state, editable),
           deleteButton(state, nodeId, directParentIds)
         ),
@@ -106,22 +106,27 @@ object ChatView {
 
     val replyPreview = Rx {
       val graph = state.graph()
-      currentReply() map { replyNodeId =>
-        val node = graph.nodesById(replyNodeId)
-        div(
-          padding := "5px",
-          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
+      div(
+        Styles.flex,
+        alignItems.flexStart,
+        currentReply().map { replyNodeId =>
+          val node = graph.nodesById(replyNodeId)
           div(
-            Styles.flex,
-            alignItems.flexStart,
-            parentMessage(state, graph, node).apply(alignSelf.center),
-            closeButton(
-              marginLeft.auto,
-              onClick(None: Option[NodeId]) --> currentReply,
-            ),
+            padding := "5px",
+            paddingBottom := "10px",
+            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
+            div(
+              Styles.flex,
+              alignItems.flexStart,
+              parentMessage(state, graph, node).apply(alignSelf.center),
+              closeButton(
+                marginLeft.auto,
+                onClick --> sideEffect { currentReply.update(_ - replyNodeId) }
+              ),
+            )
           )
-        )
-      }
+        }(breakOut):Seq[VDomModifier]
+      )
     }
 
     div(
@@ -142,10 +147,13 @@ object ChatView {
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
       ),
-      onGlobalEscape(Option.empty[NodeId]) --> currentReply,
+      onGlobalEscape(Set.empty[NodeId]) --> currentReply,
       replyPreview,
       Rx {
-        val replyNodes: Set[NodeId] = currentReply().fold(state.page().parentIdSet)(Set(_))
+        val replyNodes: Set[NodeId] = {
+          if(currentReply().nonEmpty) currentReply()
+          else state.page().parentIdSet
+        }
         val focusOnInsert = state.screenSize.now != ScreenSize.Small
         inputField(state, replyNodes, submittedNewMessage, focusOnInsert = focusOnInsert).apply(
           Styles.flexStatic,

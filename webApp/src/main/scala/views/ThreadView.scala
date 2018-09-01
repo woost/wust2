@@ -113,7 +113,7 @@ object ThreadView {
       List(
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
-          replyButton(nodeId, meta, action = { (nodeId, meta) => activeReplyFields.update(_ + (nodeId :: meta.path)) }),
+          replyButton(action = { () => activeReplyFields.update(_ + (nodeId :: meta.path)) }),
           editButton(state, editable),
           deleteButton(state, nodeId, directParentIds)
         ),
@@ -127,12 +127,12 @@ object ThreadView {
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
       editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
-//      replyButton(_)
+      // replyButton(nodeId, )
     )
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-        SelectedNodes.deleteAllButton(state, nodeIds),
-        zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)})
-      )
+      zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)}),
+      SelectedNodes.deleteAllButton(state, nodeIds),
+    )
 
     div(
       Styles.flex,
@@ -508,10 +508,10 @@ object ThreadView {
     )
   }
 
-  def replyButton(nodeId: NodeId, meta: MessageMeta, action: (NodeId, MessageMeta) => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def replyButton(action: () => Unit)(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(cls := "fa-fw", freeSolid.faReply),
-      onClick.stopPropagation --> sideEffect { action(nodeId, meta) },
+      onClick.stopPropagation --> sideEffect { action() },
       cursor.pointer,
     )
   }
