@@ -774,6 +774,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".selectednodes" - (
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
+    zIndex(ZIndex.overlay),
   )
 
   ".selectednodes > .nodelist" - (
