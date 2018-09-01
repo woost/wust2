@@ -142,6 +142,7 @@ object ChatView {
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         ),
       ),
+      onGlobalEscape(Option.empty[NodeId]) --> currentReply,
       replyPreview,
       Rx {
         val replyNodes: Set[NodeId] = currentReply().fold(state.page().parentIdSet)(Set(_))
