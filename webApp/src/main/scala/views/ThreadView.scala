@@ -20,6 +20,7 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import org.scalajs.dom.raw.HTMLElement
+import rx.opmacros.Utils.Id
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -84,6 +85,14 @@ object ThreadView {
   val avatarBorder = true
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
+  def localEditableVar(currentlyEditable:Var[Option[NodeId]], nodeId: NodeId)(implicit ctx:Ctx.Owner): Var[Boolean] = {
+    currentlyEditable.zoom(_.fold(false)(_ == nodeId)){
+      case (_, true) => Some(nodeId)
+      case (Some(`nodeId`), false) => None
+      case (current, false) => current // should never happen
+    }
+  }
+
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     val nodeIds: Rx[Seq[NodeId]] = Rx {
@@ -96,6 +105,7 @@ object ThreadView {
     }
 
     val activeReplyFields = Var(Set.empty[List[NodeId]])
+    val currentlyEditable = Var(Option.empty[NodeId])
 
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
@@ -107,13 +117,22 @@ object ThreadView {
           editButton(state, editable),
           deleteButton(state, nodeId, directParentIds)
         ),
-        List(zoomButton(state, nodeId))
+        List(zoomButton(state, nodeId :: Nil))
       ).flatten
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields)
+    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields, currentlyEditable)
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
+
+    val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
+      editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
+//      replyButton(_)
+    )
+    val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
+        SelectedNodes.deleteAllButton(state, nodeIds),
+        zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)})
+      )
 
     div(
       Styles.flex,
@@ -123,9 +142,10 @@ object ThreadView {
       height := "100%",
       div(
         Styles.flex,
-        flexDirection.row,
+        flexDirection.column,
         height := "100%",
         position.relative,
+        SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
         chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",
@@ -315,7 +335,7 @@ object ThreadView {
     )
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
@@ -330,7 +350,7 @@ object ThreadView {
         div(
           backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
           keyed(nodeId),
-          chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _ (
+          chatMessageLine(meta, nodeId, msgControls, currentlyEditing, transformMessageCard = _ (
             boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
           )),
           div(
@@ -358,7 +378,7 @@ object ThreadView {
         )
       }
       else if(inCycle)
-             chatMessageLine(meta, nodeId, msgControls, transformMessageCard = _ (
+             chatMessageLine(meta, nodeId, msgControls, currentlyEditing, transformMessageCard = _ (
                Styles.flex,
                alignItems.center,
                freeSolid.faSyncAlt,
@@ -368,7 +388,7 @@ object ThreadView {
                boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
              ))
       else
-        chatMessageLine(meta, nodeId, msgControls)
+        chatMessageLine(meta, nodeId, msgControls, currentlyEditing)
     }
   }
 
@@ -432,7 +452,7 @@ object ThreadView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
+  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[NodeId]], showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
@@ -441,7 +461,7 @@ object ThreadView {
     val isSelected = state.selectedNodeIds.map(_ contains nodeId)
     val node = graph.nodesById(nodeId)
 
-    val editable = Var(false)
+    val editable:Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
 
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
@@ -528,10 +548,10 @@ object ThreadView {
       cursor.pointer,
     )
 
-  def zoomButton(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VNode =
+  def zoomButton(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
-      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeIds))) --> state.viewConfig,
       cursor.pointer,
     )
 

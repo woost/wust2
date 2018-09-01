@@ -93,7 +93,7 @@ object Elements {
   }
 
   def closeButton: VNode = div(
-      freeSolid.faTimes,
+      div(cls := "fa-fw", freeSolid.faTimes),
       padding := "10px",
       Styles.flexStatic,
       cursor.pointer,

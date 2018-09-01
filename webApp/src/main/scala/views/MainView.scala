@@ -52,7 +52,6 @@ object MainView {
                 ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1)
               )
             },
-            SelectedNodes(state).apply(Styles.flexStatic)
           )
         )
       ),

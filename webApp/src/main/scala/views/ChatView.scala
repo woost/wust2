@@ -31,7 +31,19 @@ object ChatView {
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
-    val currentReply = Var(None: Option[NodeId])
+    val currentReply = Var(Option.empty[NodeId])
+    val currentlyEditable = Var(Option.empty[NodeId])
+
+    val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
+      editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
+      //      replyButton(_)
+    )
+    val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
+      SelectedNodes.deleteAllButton(state, nodeIds),
+      zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)})
+    )
+
+
 
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
@@ -43,7 +55,7 @@ object ChatView {
           editButton(state, editable),
           deleteButton(state, nodeId, directParentIds)
         ),
-        List(zoomButton(state, nodeId))
+        List(zoomButton(state, nodeId :: Nil))
       ).flatten
     }
 
@@ -53,7 +65,7 @@ object ChatView {
       val parents = graph.parents(nodeId) -- meta.state.page.now.parentIds
       div(
         tag("mytag")(attr("myattr") := "y", style("mystyle") := "x"),
-        chatMessageLine(meta, nodeId, msgControls, showTags = false, transformMessageCard = { messageCard =>
+        chatMessageLine(meta, nodeId, msgControls, currentlyEditable, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
             div(
               cls := "nodecard",
@@ -74,7 +86,6 @@ object ChatView {
         }),
       )
     }
-
 
     def parentMessage(state: GlobalState, graph:Graph, parent: Node) = div(
       backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(parent.id)).toHex,
@@ -124,6 +135,7 @@ object ChatView {
         flexDirection.row,
         height := "100%",
         position.relative,
+        SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
         chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(
           height := "100%",
           width := "100%",

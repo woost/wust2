@@ -789,6 +789,11 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(3 px)
   )
 
+  ".selectednodes .actionbutton" - (
+    padding(5 px),
+    margin(5 px)
+  )
+
   // -- draggable selectednodes
   ".selectednodes .nodelist.draggable--over," +
   ".selectednodes.draggable--over" - (

@@ -7,6 +7,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.util._
 import wust.webApp.dragdrop.{DragItem, DragStatus}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -14,7 +15,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
 object SelectedNodes {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, nodeActions:List[NodeId] => List[VNode] = _ => Nil, singleNodeActions:NodeId => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Rx {
         val graph = state.graph()
@@ -41,8 +42,10 @@ object SelectedNodes {
               cls := "selectednodes",
               Styles.flex,
               alignItems.center,
-              nodeList(state, nonEmptyNodeIds, state.graph()), // grow, so it can be grabbed
-              deleteAllButton(state, nonEmptyNodeIds)(ctx)(marginLeft.auto),
+//              (nonEmptyNodeIds.size >= 2).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds, state.graph())), // grow, so it can be grabbed
+              div(marginLeft.auto),
+              (nonEmptyNodeIds.size == 1).ifTrueSeq(singleNodeActions(nonEmptyNodeIds.head).map(_(cls := "actionbutton"))),
+              nodeActions(nonEmptyNodeIds).map(_(cls := "actionbutton")),
               clearSelectionButton(state)
             )
           }
@@ -70,11 +73,10 @@ object SelectedNodes {
     )
   }
 
-  private def deleteAllButton(state:GlobalState, selectedNodeIds:List[NodeId])(implicit ctx: Ctx.Owner) = {
+  def deleteAllButton(state:GlobalState, selectedNodeIds:List[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     div(
-      freeRegular.faTrashAlt,
+      div(cls := "fa-fw", freeRegular.faTrashAlt),
       cls := "actionbutton",
-      margin := "5px",
 
       onClick --> sideEffect{_ =>
         val changes = GraphChanges.delete(selectedNodeIds, state.graph.now)
@@ -85,11 +87,8 @@ object SelectedNodes {
   }
 
   private def clearSelectionButton(state:GlobalState) = {
-    div(
-      "×",
+    closeButton(
       cls := "actionbutton",
-      margin := "5px",
-      fontWeight.bold,
       onClick --> sideEffect {
         state.selectedNodeIds() = Set.empty[NodeId]
       }
