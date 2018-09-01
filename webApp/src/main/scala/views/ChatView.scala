@@ -64,11 +64,12 @@ object ChatView {
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) -- meta.state.page.now.parentIds
       div(
-        tag("mytag")(attr("myattr") := "y", style("mystyle") := "x"),
         chatMessageLine(meta, nodeId, msgControls, currentlyEditable, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
+            val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
             div(
               cls := "nodecard",
+              backgroundColor := bgColor,
               div(
                 Styles.flex,
                 alignItems.flexStart,
@@ -80,7 +81,7 @@ object ChatView {
                   )
                 }(breakOut): Seq[VNode],
               ),
-              messageCard(boxShadow := "none")
+              messageCard(boxShadow := "none", backgroundColor := bgColor)
             )
           } else messageCard
         }),
@@ -88,7 +89,6 @@ object ChatView {
     }
 
     def parentMessage(state: GlobalState, graph:Graph, parent: Node) = div(
-      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(parent.id)).toHex,
       padding := "1px",
       borderTopLeftRadius := "2px",
       borderTopRightRadius := "2px",
@@ -96,11 +96,11 @@ object ChatView {
         padding := "2px"
       ),
       nodeCard(state, parent).apply(
-        fontSize.smaller,
+        fontSize.xSmall,
         backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
         boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
-        cursor.pointer,
-        onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parent.id))) --> state.viewConfig
+        // cursor.pointer,
+        // onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parent.id))) --> state.viewConfig
       )
     )
 
