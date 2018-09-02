@@ -12,6 +12,7 @@ object ZIndex {
   val controls = 10
   val draggable = 100
   val overlay = 1000
+  val dragging = 10000
 }
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
@@ -849,7 +850,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".draggable-mirror" - (
     opacity(1).important,
-    zIndex(ZIndex.draggable), // needs to overlap checkboxes, selectednodesbar
+    zIndex(ZIndex.dragging).important, // needs to overlap everything else
   )
 
 

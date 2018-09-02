@@ -13,6 +13,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.webApp.state.ScreenSize
 
 object SelectedNodes {
   def apply(state: GlobalState, nodeActions:List[NodeId] => List[VNode] = _ => Nil, singleNodeActions:NodeId => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): VNode = {
@@ -26,13 +27,14 @@ object SelectedNodes {
               case DragStatus.None =>
                 VDomModifier.empty
               case DragStatus.Dragging => VDomModifier(
-                "drag here to select",
                 cls := "selectednodes",
-                position := "absolute",
-                bottom := "0px",
-                height := "37px",
+                Styles.flex,
+                alignItems.center,
+                justifyContent.spaceAround,
+                div("drag here to select", margin.auto),
+                clearSelectionButton(state).apply(visibility.hidden), // to provide the correct height for the bar
+                // height := "37px",
                 width := "100%",
-                paddingTop := "5px",
                 textAlign.center,
                 draggableAs(state, DragItem.DisableDrag),
                 dragTarget(DragItem.SelectedNodesBar),
@@ -42,7 +44,10 @@ object SelectedNodes {
               cls := "selectednodes",
               Styles.flex,
               alignItems.center,
-//              (nonEmptyNodeIds.size >= 2).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds, state.graph())), // grow, so it can be grabbed
+              div(cls := "ui large blue label",nonEmptyNodeIds.size, marginLeft := "10px"),
+
+              Rx {(state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds, state.graph()))}, // grow, so it can be grabbed
+
               div(marginLeft.auto),
               (nonEmptyNodeIds.size == 1).ifTrueSeq(singleNodeActions(nonEmptyNodeIds.head).map(_(cls := "actionbutton"))),
               nodeActions(nonEmptyNodeIds).map(_(cls := "actionbutton")),
@@ -102,6 +107,7 @@ object SelectedNodes {
       span(
         "×",
         cls := "actionbutton",
+        margin := "0",
         onClick.stopPropagation --> sideEffect {
           state.selectedNodeIds.update(_ - node.id)
         }

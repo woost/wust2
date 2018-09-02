@@ -152,10 +152,10 @@ object ThreadView {
 
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
-    val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
+    val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) List(
       editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick --> sideEffect{clearSelectedNodeIds()}),
       replyButton(action = { () => activeReplyFields.update(_ + reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)); clearSelectedNodeIds() }) //TODO: scroll to focused field?
-    )
+    ) else Nil
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
       zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)}),
       SelectedNodes.deleteAllButton(state, nodeIds),
