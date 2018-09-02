@@ -37,12 +37,15 @@ object ChatView {
     // clear on page change
     state.page.foreach {_ => currentReply() = Set.empty[NodeId]}
 
+    def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
+
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
       editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
     )
+
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      replyButton(action = { () => currentReply() = nodeIds.toSet; state.selectedNodeIds() = Set.empty[NodeId] }),
-      zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds() = Set.empty[NodeId]}),
+      replyButton(action = { () => currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
+      zoomButton(state, nodeIds).apply(onClick --> sideEffect{clearSelectedNodeIds()}),
       SelectedNodes.deleteAllButton(state, nodeIds),
     )
 

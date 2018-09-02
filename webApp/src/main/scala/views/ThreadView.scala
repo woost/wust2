@@ -125,9 +125,36 @@ object ThreadView {
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
+    var lastSelectedPath:List[NodeId] = Nil // TODO: set by clicking on a message
+    def reversePath(nodeId:NodeId, pageParents:Set[NodeId], graph:Graph):List[NodeId] = {
+      // this only works, because all nodes in the graph are descendants
+      // of the pageParents.
+      val isTopLevelNode = pageParents.exists(pageParentId => graph.children(pageParentId) contains nodeId)
+      if(isTopLevelNode) nodeId :: Nil
+      else {
+        val nextParent = {
+          val parents = graph.parents(nodeId)
+          assert(parents.nonEmpty)
+          val lastSelectedParents = parents intersect lastSelectedPath.toSet
+          if(lastSelectedParents.nonEmpty)
+            lastSelectedParents.head
+          else {
+            // // when only taking youngest parents first, the pageParents would always be last.
+            // // So we check if the node is a toplevel node
+            // val topLevelParentpageParents.find(pageParentId => graph.children(pageParentId).contains(nodeId)))
+            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(nid):Long)
+          }
+
+        }
+        nodeId :: reversePath(nextParent, pageParents, graph)
+      }
+    }
+
+    def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
+
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
-      editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
-      // replyButton(nodeId, )
+      editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick --> sideEffect{clearSelectedNodeIds()}),
+      replyButton(action = { () => activeReplyFields.update(_ + reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)); clearSelectedNodeIds() }) //TODO: scroll to focused field?
     )
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
       zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)}),
