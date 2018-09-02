@@ -429,7 +429,7 @@ object PageHeader {
             action
           )
           case PermissionState.prompt | `default`  => VDomModifier(
-            iconWithIndicator(icon, freeRegular.faQuestionCircle, "steelblue")(cls := "fa-fw"),
+            iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
             title := "Notifications are currently disabled. Click to enable.",
             onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
           )
@@ -449,11 +449,11 @@ object PageHeader {
         val permissionState = state.permissionState()
         val hasNotifyEdge = graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)
         if(hasNotifyEdge) decorateIcon(permissionState)(
-          freeRegular.faBell,
+          freeSolid.faBell,
           action = onClick(GraphChanges.disconnect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
           description = "You are watching this node and will be notified about changes. Click to stop watching."
         ) else decorateIcon(permissionState)(
-          freeRegular.faBellSlash,
+          freeSolid.faBellSlash,
           action = onClick(GraphChanges.connect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
           description = "You are not watching this node. Click to start watching."
         )
