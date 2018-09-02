@@ -43,14 +43,16 @@ object MainView {
             position.relative,
             Rx {
               val view = state.view()
-              VDomModifier(
-                view.isContent
-                  .ifTrueSeq(Seq(
-                    (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(ctx)(Styles.flexStatic)),
-                    PageHeader(state).apply(Styles.flexStatic)
-                  )),
-                ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1)
-              )
+              view.isContent
+                .ifTrueSeq(Seq(
+                  (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(ctx)(Styles.flexStatic)),
+                  PageHeader(state).apply(Styles.flexStatic)
+                ))
+            },
+            // It is important that the view rendering is in a separate Rx.
+            // This avoids rerendering the whole view when only the screen-size changed
+            Rx {
+              ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1)
             },
           )
         )
