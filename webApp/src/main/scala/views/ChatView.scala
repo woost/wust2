@@ -110,13 +110,15 @@ object ChatView {
     val replyPreview = Rx {
       val graph = state.graph()
       div(
+        Styles.flexStatic,
+
+        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         Styles.flex,
         alignItems.flexStart,
         currentReply().map { replyNodeId =>
           val node = graph.nodesById(replyNodeId)
           div(
             padding := "5px",
-            paddingBottom := "10px",
             backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
             div(
               Styles.flex,
