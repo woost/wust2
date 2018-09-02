@@ -156,7 +156,7 @@ object Topbar {
 
   def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(state.appUpdateIsAvailable.map { _ =>
-      button(cls := "tiny ui primary button", "update", onClick --> sideEffect {
+      button(cls := "tiny ui primary button", "Update App", onClick --> sideEffect {
         window.location.reload(flag = false)
       })
     })
