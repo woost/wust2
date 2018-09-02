@@ -425,8 +425,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   // -- controls on hover --
-  // TODO: Focus is only used as a quick hack in order to use controls on mobile browser
-  ".chatmsg-line:hover, .chatmsg-line:focus" - (
+  ".chatmsg-line:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
