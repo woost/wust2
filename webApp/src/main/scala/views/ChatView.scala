@@ -34,6 +34,9 @@ object ChatView {
     val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[NodeId])
 
+    // clear on page change
+    state.page.foreach {_ => currentReply() = Set.empty[NodeId]}
+
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
       editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
     )
