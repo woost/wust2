@@ -57,12 +57,12 @@ object PageHeader {
       channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
       channelTitle(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
       Rx {(state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](channelMembers(state, channel)(ctx)(Styles.flexStatic, marginRight := "10px"))},
-      menu(state, channel)
+      menu(state, channel).apply(marginLeft.auto),
     )
   }
 
-  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val buttonStyle = VDomModifier(Styles.flexStatic, marginLeft := "10px", fontSize := "20px", cursor.pointer)
+  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
 
     val isSpecialNode = Rx{ channel.id == state.user().id || channel.id == state.user().channelNodeId }
     val isBookmarked = Rx {
@@ -71,10 +71,14 @@ object PageHeader {
         .children(state.user().channelNodeId)
         .contains(channel.id)
     }
-    VDomModifier(
-      Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel)(ctx)(Styles.flexStatic, marginLeft := "10px"))},
+    div(
+      Styles.flex,
+      alignItems.center,
+      flexWrap.wrap,
+      minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
+      Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))},
       searchButton(state, channel).apply(buttonStyle),
-      notifyControl(state, channel).apply(Styles.flexStatic, marginLeft := "auto", fontSize := "20px", cursor.pointer),
+      notifyControl(state, channel).apply(buttonStyle),
       addMember(state, channel).apply(buttonStyle),
       shareButton(channel).apply(buttonStyle),
       Rx {settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)},
