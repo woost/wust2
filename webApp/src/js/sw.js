@@ -82,7 +82,7 @@ const logToBackend = s => fetch(baseUrl + '/Api/log', {
 });
 
 function sendSubscriptionToBackend(subscription, currentAuth) {
-    log("sendSubscriptionToBackend: " + subscription);
+    log("sendSubscriptionToBackend: ", subscription);
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
         log("sendSubscriptionToBackend failed.");
@@ -120,7 +120,7 @@ function subscribeWebPushAndPersist() {
         if (currentAuth) {
             getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
                 if (publicKey) {
-                    log("publicKey: " + publicKey);
+                    log("publicKey: ", publicKey);
                     return self.registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
