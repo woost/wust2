@@ -58,7 +58,7 @@ object ChatView {
         else List(
           replyButton(action = { () => currentReply() = Set(nodeId) }),
           editButton(state, editable),
-        deleteButton(state, nodeId, directParentIds),
+        deleteButton(state, nodeId, meta.graph.parents(nodeId).toSet),
         zoomButton(state, nodeId :: Nil)
       )
     }
@@ -66,14 +66,15 @@ object ChatView {
     def renderMessage(nodeId: NodeId, meta: MessageMeta): VNode = {
       import meta._
       val state = meta.state // else import conflict
-      val parents = graph.parents(nodeId) -- meta.state.page.now.parentIds
+      val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
       div(
         chatMessageLine(meta, nodeId, msgControls, currentlyEditable, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
+            val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
             val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
             div(
               cls := "nodecard",
-              backgroundColor := bgColor,
+              backgroundColor := (if(isDeleted) bgColor + "88" else bgColor), //TODO: rgba hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
               div(
                 Styles.flex,
                 alignItems.flexStart,
@@ -81,7 +82,7 @@ object ChatView {
                   val parent = graph.nodesById(parentId)
                   parentMessage(meta.state, graph, parent).apply(
                     margin := "3px",
-//                    opacity := 0.7,
+                    isDeleted.ifTrue[VDomModifier](opacity := 0.5),
                   )
                 }(breakOut): Seq[VNode],
               ),

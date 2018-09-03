@@ -200,7 +200,11 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   def isDeletedNow(node: Node, parentIds: Set[NodeId]): Boolean = isDeletedNow(node.id, parentIds)
   def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]): Boolean = {
-    parentIds subsetOf deletedParents(nodeId)
+    val deletedParentIds = deletedParents(nodeId)
+    deletedParentIds.nonEmpty && (
+      if(parentIds subsetOf deletedParentIds) true
+      else parents(nodeId).isEmpty
+    )
   }
 
   lazy val withoutChannels: Graph = this.filterNot(allChannelIds ++ channelNodeIds)
