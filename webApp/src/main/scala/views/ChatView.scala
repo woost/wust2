@@ -73,6 +73,7 @@ object ChatView {
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
       div(
+        keyed(nodeId),
         chatMessageLine(meta, nodeId, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
             val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
@@ -81,6 +82,7 @@ object ChatView {
               cls := "nodecard",
               backgroundColor := (if(isDeleted) bgColor + "88" else bgColor), //TODO: rgba hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
               div(
+                keyed(nodeId),
                 Styles.flex,
                 alignItems.flexStart,
                 parents.map { parentId =>
@@ -148,7 +150,6 @@ object ChatView {
       alignContent.stretch,
       height := "100%",
 
-      //TODO JK: is this really needed? we are anyhow rerendered if the page changes?
       // clear on page change
       managed(IO { state.page.foreach {_ => currentReply() = Set.empty[NodeId]} }),
 

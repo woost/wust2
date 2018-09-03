@@ -578,6 +578,7 @@ object ThreadView {
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
+        keyed(nodeId),
         Styles.flex,
 
         onPress --> sideEffect {
@@ -609,7 +610,7 @@ object ThreadView {
         dragTarget(DragItem.Chat.Message(nodeId)),
 
         Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)) },
-        transformMessageCard(messageCard),
+        transformMessageCard(messageCard.apply(keyed(nodeId))),
         expandCollapseButton(meta, nodeId, threadVisibility),
         showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeId, alreadyVisualizedParentIds)),
         Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic)) }
@@ -627,7 +628,7 @@ object ThreadView {
   def editButton(editable: Var[Boolean])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", Icons.edit),
-      onTap(!editable.now) --> editable,
+      onTap(true) --> editable,
       cursor.pointer,
     )
 
