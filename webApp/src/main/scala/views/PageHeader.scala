@@ -431,7 +431,8 @@ object PageHeader {
           case PermissionState.prompt | `default`  => VDomModifier(
             iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
             title := "Notifications are currently disabled. Click to enable.",
-            onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() }
+            onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() },
+            action
           )
           case PermissionState.denied  => VDomModifier(
             iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
