@@ -16,7 +16,7 @@ object Navigator {
   // def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.toOption
   object share {
     private val n = dom.window.navigator.asInstanceOf[js.Dynamic]
-    private val share = n.share.asInstanceOf[js.UndefOr[js.Dynamic]]
+    private def share = n.share.asInstanceOf[js.UndefOr[js.Dynamic]]
     def isDefined = share.isDefined
     def apply(data: ShareData): js.Promise[Unit] = share.get(data).asInstanceOf[js.Promise[Unit]]
   }
