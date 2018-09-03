@@ -54,15 +54,13 @@ object ChatView {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state // else import conflict
-      List(
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
           replyButton(action = { () => currentReply() = Set(nodeId) }),
           editButton(state, editable),
-          deleteButton(state, nodeId, directParentIds)
-        ),
-        List(zoomButton(state, nodeId :: Nil))
-      ).flatten
+        deleteButton(state, nodeId, directParentIds),
+        zoomButton(state, nodeId :: Nil)
+      )
     }
 
     def renderMessage(nodeId: NodeId, meta: MessageMeta): VNode = {
