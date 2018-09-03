@@ -245,6 +245,7 @@ object ThreadView {
           defer { scrollToBottom(elem) }
         scrollableHistoryElem() = Some(elem)
       },
+      onClick --> sideEffect{state.selectedNodeIds() = Set.empty[NodeId]}
     )
   }
 
@@ -506,7 +507,7 @@ object ThreadView {
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
         Styles.flex,
-        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
+        onClick.stopPropagation --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
         editable.map { editable =>
           if(editable)
