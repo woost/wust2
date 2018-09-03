@@ -54,10 +54,10 @@ object ChatView {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state // else import conflict
-        if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
-        else List(
-          replyButton(action = { () => currentReply() = Set(nodeId) }),
-          editButton(state, editable),
+      if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
+      else List(
+        replyButton(action = { () => currentReply() = Set(nodeId) }),
+        editButton(state, editable),
         deleteButton(state, nodeId, meta.graph.parents(nodeId).toSet),
         zoomButton(state, nodeId :: Nil)
       )
@@ -68,6 +68,7 @@ object ChatView {
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
       div(
+        keyed(nodeId),
         chatMessageLine(meta, nodeId, msgControls, currentlyEditable, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
             val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
@@ -76,6 +77,7 @@ object ChatView {
               cls := "nodecard",
               backgroundColor := (if(isDeleted) bgColor + "88" else bgColor), //TODO: rgba hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
               div(
+                keyed(nodeId),
                 Styles.flex,
                 alignItems.flexStart,
                 parents.map { parentId =>
