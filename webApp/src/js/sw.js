@@ -86,14 +86,14 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
         log("sendSubscriptionToBackend failed.");
-        return null;
+        return Promise.empty;
     }
 
     let key = subscription.getKey('p256dh');
     let auth = subscription.getKey('auth');
     if (!key || !auth) {
         warn("Subscription without key/auth, ignoring.", key, auth);
-        return null;
+        return Promise.empty;
     }
 
     let subscriptionObj = {
