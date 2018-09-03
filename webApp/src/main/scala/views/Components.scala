@@ -277,6 +277,7 @@ object Components {
           whiteSpace.preWrap, // preserve white space in Markdown code
           backgroundColor := "#FFF",
           color := "#000",
+          boxShadow := "inset 0px 0px 0px 2px  rgba(65,184,255, 1)",
           cursor.auto,
 
           onPostPatch.asHtml --> sideEffect { (_, node) => if(editable.now) node.focus() },

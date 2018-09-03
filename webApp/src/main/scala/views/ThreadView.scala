@@ -110,10 +110,10 @@ object ThreadView {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state
-        if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
-        else List(
-          replyButton(action = { () => activeReplyFields.update(_ + (nodeId :: meta.path)) }),
-          editButton(state, editable),
+      if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
+      else List(
+        replyButton(action = { () => activeReplyFields.update(_ + (nodeId :: meta.path)) }),
+        editButton(state, editable),
         deleteButton(state, nodeId, directParentIds),
         zoomButton(state, nodeId :: Nil)
       )
@@ -494,6 +494,9 @@ object ThreadView {
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
       onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
+      // TODO: indicator, while keeping editing state on update.
+      // Is this fixed with the latest outwatch default value improvement?
+      //     Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) }
     )
 
     val controls = div(
