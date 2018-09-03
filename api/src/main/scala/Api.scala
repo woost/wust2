@@ -80,7 +80,7 @@ object AuthUser {
       Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
   }
   case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
-    def name = s"anon-${id.toCuidString.takeRight(4)}"
+    def name = s"unregistered-user-${id.toCuidString.takeRight(4)}"
     def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0, channelNodeId = channelNodeId), NodeMeta.User)
   }
 
