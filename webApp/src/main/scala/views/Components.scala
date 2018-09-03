@@ -127,10 +127,8 @@ object Components {
 
   def renderNodeCard(state: GlobalState, node: Node, injected: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      keyed(node.id),
       cls := "node nodecard",
       div(
-        keyed(node.id),
         cls := "nodecard-content",
         injected
       ),
@@ -268,9 +266,7 @@ object Components {
 
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
-      keyed, // when updates come in, don't disturb current editing session
       Rx {
-        println(s"editing node: ${node.data}")
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
