@@ -16,37 +16,26 @@ object ServiceWorker {
     val subject = PublishSubject[Unit]()
 
     Navigator.serviceWorker.foreach { sw =>
-      window.addEventListener(
-        "load",
-        (_: Any) => {
-          sw.register("sw.js").toFuture.onComplete {
-            case Success(registration) =>
-              console.log("SW registered: ", registration)
-              registration.onupdatefound = {
-                event =>
-                  val installingWorker = registration.installing
-
-                  installingWorker.onstatechange = { event =>
-                    console.log(
-                      "Update of SW found",
-                      installingWorker,
-                      Navigator.serviceWorker.get.controller
-                    )
-                    if (installingWorker.state == "installed"
-                        && Navigator.serviceWorker.get.controller
-                          .asInstanceOf[js.UndefOr[OriginalServiceWorker]]
-                          .isDefined) {
-                      console.log("New SW installed, can update.")
-                      subject.onNext(())
-                    }
+      window.addEventListener("load", (_: Any) => {
+        sw.register("sw.js").toFuture.onComplete {
+          case Success(registration) =>
+            console.log("SW registered: ", registration)
+            registration.onupdatefound = {
+              event =>
+                val installingWorker = registration.installing
+                installingWorker.onstatechange = { event =>
+                  console.log("Update of SW found", installingWorker, Navigator.serviceWorker.get.controller)
+                  if (installingWorker.state == "installed" && Navigator.serviceWorker.get.controller.asInstanceOf[js.UndefOr[OriginalServiceWorker]].isDefined) {
+                    console.log("New SW installed, can update.")
+                    subject.onNext(())
                   }
-              }
-            case Failure(registrationError) =>
-              scribe.warn("SW registration failed: ", registrationError)
-              subject.onError(registrationError)
-          }
+                }
+            }
+          case Failure(registrationError) =>
+            scribe.warn("SW registration failed: ", registrationError)
+            subject.onError(registrationError)
         }
-      )
+      })
     }
 
     subject
