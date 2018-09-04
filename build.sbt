@@ -37,6 +37,11 @@ lazy val commonSettings = Seq(
   ),
   // do not run tests in assembly command
   test in assembly := {},
+  // https://github.com/sbt/sbt-assembly#caching
+  //  assemblyOption in assembly := (assemblyOption in assembly).value.copy(cacheUnzip = false),
+  assemblyOption in assembly := (assemblyOption in assembly).value.copy(cacheOutput = false), // disable cache output for hopefully faster build
+
+
   // watch managed library dependencies https://github.com/sbt/sbt/issues/2834
   watchSources ++= (managedClasspath in Compile).map(_.files).value,
   scalacOptions ++=
