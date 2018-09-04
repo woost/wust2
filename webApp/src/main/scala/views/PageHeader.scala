@@ -544,7 +544,6 @@ object PermissionSelection {
         val canAccess = graph
           .parents(nodeId)
           .exists(nid => graph.nodesById(nid).meta.accessLevel == NodeAccess.ReadWrite)
-        console.log(graph.parents(nodeId).map(nid => graph.nodesById(nid)).mkString(", "))
         val inheritedLevel = if(canAccess) "Public" else "Private"
         s"Inherited ($inheritedLevel)"
       },

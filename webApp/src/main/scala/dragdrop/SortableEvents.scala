@@ -35,7 +35,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     {
       case (e, dragging: DragItem.Kanban.ToplevelColumn, from: Kanban.ColumnArea, into: Kanban.ColumnArea, false, false) =>
-        console.log("reordering columns")
+        // console.log("reordering columns")
         // TODO: persist ordering
 
       case (e, dragging: DragItem.Kanban.SubColumn, from: Kanban.Column, into: Kanban.ColumnArea, false, false) =>
