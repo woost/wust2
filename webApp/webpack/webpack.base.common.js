@@ -1,4 +1,3 @@
-const CopyPlugin = require("copy-webpack-plugin");
 const glob = require("glob");
 const Path = require("path");
 const fs = require("fs");
@@ -29,6 +28,15 @@ const htmlFolder = Path.join(dirs.project, 'src/html');
 const cssFiles = glob.sync(Path.join(cssFolder, '*.css'));
 const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
 
+// copy static assets that we depend on
+const staticCopyAssets = [
+    { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
+    { from: 'node_modules/fomantic-ui-css/semantic.min.css', to: 'semantic/' },
+    { from: 'node_modules/fomantic-ui-css/semantic.min.js', to: 'semantic/' },
+    { from: 'node_modules/fomantic-ui-css/themes/default/assets/fonts/icons.woff2', to: 'semantic/themes/default/assets/fonts/' }
+];
+const staticIncludeAssets = [ 'jquery.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css' ];
+
 // export
 module.exports.webpack = webpack;
 module.exports.woost = {
@@ -36,5 +44,7 @@ module.exports.woost = {
     dirs: dirs,
     cssFolder: cssFolder,
     cssFiles: cssFiles,
-    htmlTemplateFile: htmlTemplateFile
+    htmlTemplateFile: htmlTemplateFile,
+    staticCopyAssets: staticCopyAssets,
+    staticIncludeAssets: staticIncludeAssets
 };

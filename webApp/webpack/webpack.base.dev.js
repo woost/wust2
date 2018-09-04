@@ -12,6 +12,8 @@ const appName = commons.woost.appName;
 const cssFolder = commons.woost.cssFolder;
 const cssFiles = commons.woost.cssFiles;
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
+const staticIncludeAssets = commons.woost.staticIncludeAssets;
+const staticCopyAssets = commons.woost.staticCopyAssets;
 module.exports = commons.webpack;
 
 module.exports.mode = 'development';
@@ -26,11 +28,8 @@ const loaderJsFile = appName + '-loader.js';
 //this would bundle all js files into one
 // module.exports.entry[appName].push('./' + baseJsFile);
 // module.exports.entry[appName].push('./' + loaderJsFile);
-module.exports.plugins.push(new CopyPlugin([
-    { from: 'node_modules/jquery/dist/jquery.js', to: 'jquery.js'},
-    { from: 'node_modules/fomantic-ui-css/', to: 'semantic/' },
-]));
-const extraAssets = [ 'jquery.js', 'semantic/semantic.js', 'semantic/semantic.css', loaderJsFile, baseJsFile ].concat(cssFiles.map(function(f) { return Path.basename(f); }));
+module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
+const extraAssets = [ loaderJsFile, baseJsFile ].concat(staticIncludeAssets).concat(cssFiles.map(function(f) { return Path.basename(f); }));
 
 ////////////////////////////////////////
 // html template generate index.html

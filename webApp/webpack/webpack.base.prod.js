@@ -15,6 +15,8 @@ const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
 const cssFiles = commons.woost.cssFiles;
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
+const staticIncludeAssets = commons.woost.staticIncludeAssets;
+const staticCopyAssets = commons.woost.staticCopyAssets;
 module.exports = commons.webpack;
 
 // set up output path
@@ -29,10 +31,7 @@ function copyAssets(context) {
     ], { context: context });
 }
 module.exports.plugins.push(copyAssets(dirs.assets));
-module.exports.plugins.push(new CopyPlugin([
-    { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
-    { from: 'node_modules/fomantic-ui-css/', to: 'semantic/' },
-]));
+module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
 
 // file name pattern for outputs with hash
 const filenamePattern = '[name].[chunkhash]';
@@ -85,11 +84,7 @@ module.exports.plugins.push(new HtmlPlugin({
 }));
 
 module.exports.plugins.push(new HtmlIncludeAssetsPlugin({
-    assets: [
-        'jquery.min.js',
-        'semantic/semantic.min.js',
-        'semantic/semantic.min.css'
-    ],
+    assets: staticIncludeAssets,
     append: false
 }));
 
