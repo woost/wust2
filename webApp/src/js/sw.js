@@ -45,7 +45,6 @@ Promise.prototype.map = function(fun) {
         self.then(result => resolve(fun(result)), reject);
     });
 };
-Promise.empty = new Promise((resolve, reject) => resolve()); //should this be an error? :)
 function requestPromise(request) {
     return new Promise((resolve, reject) => {
         request.onsuccess = e => resolve(request.result);
@@ -85,15 +84,13 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
     log("sendSubscriptionToBackend: ", subscription);
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
-        log("sendSubscriptionToBackend failed.");
-        return Promise.empty;
+        return Promise.reject("Cannot send subscription to backend, subscription is empty.");
     }
 
     let key = subscription.getKey('p256dh');
     let auth = subscription.getKey('auth');
     if (!key || !auth) {
-        warn("Subscription without key/auth, ignoring.", key, auth);
-        return Promise.empty;
+        return Promise.reject("Cannot send subscription to backend, key or auth is missing, ignoring: key: " + key + ", auth: " + auth);
     }
 
     let subscriptionObj = {
@@ -126,13 +123,11 @@ function subscribeWebPushAndPersist() {
                         applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
                     }).map(sub => sendSubscriptionToBackend(sub, currentAuth));
                 } else {
-                    log("Cannot subscribe, no public key...");
-                    return Promise.empty;
+                    return Promise.reject("Cannot subscribe, no public key.");
                 }
             }));
         } else {
-            log("Cannot subscribe, no authentication...");
-            return Promise.empty;
+            return Promise.reject("Cannot subscribe, no authentication.");
         }
     });
 }
@@ -161,8 +156,7 @@ self.addEventListener('push', e => {
     e.waitUntil(
         self.clients.matchAll({type: 'window'}).flatMap(clients => {
             if (clients.length > 0) {
-                log("ServiceWorker has active clients, ignoring push notification");
-                return Promise.empty;
+                return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
             } else {
                 let body = e.data ? e.data.text() : 'Push message no payload';
                 let options = {
