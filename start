@@ -15,9 +15,9 @@ function assure_db_migration() {
         new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | md5sum)"
         old_checksum="$(cat $sql_checksum_file 2> /dev/null || true)"
         if [ "$old_checksum" != "$new_checksum" ]; then
-            echo "$new_checksum" > $sql_checksum_file
             echo "New db migration available, building db-migration image"
             sbt dbMigration/docker
+            echo "$new_checksum" > $sql_checksum_file
         fi
     fi
 }
