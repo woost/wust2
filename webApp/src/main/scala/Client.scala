@@ -63,7 +63,7 @@ object Client {
   val gitterApi = gitterClient.wire[PluginApi]
   val slackApi = slackClient.wire[PluginApi]
 
-  val factory: WustClientFactory = WustClient(wustUrl)
+  val factory: WustClientFactory[Future] = WustClient(wustUrl)
   val api = factory.defaultPriority.api
   val auth = factory.defaultPriority.auth
   val push = factory.defaultPriority.push

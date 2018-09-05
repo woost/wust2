@@ -113,7 +113,7 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
 }
 
 private[sdk] trait NativeWustClient {
-  def apply(location: String)(implicit ec: ExecutionContext) = {
+  def apply(location: String)(implicit ec: ExecutionContext): WustClientFactory[Future] = {
     val logger = if (LinkingInfo.developmentMode) new BrowserLogHandler
     else new LogHandler[Future] //new DefaultLogHandler[Future](identity)
     new WustClientFactory(

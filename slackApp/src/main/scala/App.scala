@@ -43,7 +43,7 @@ object Constants {
 }
 
 
-class SlackApiImpl(client: WustClient, oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
+class SlackApiImpl(client: WustClient[Future], oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
   implicit ec: ExecutionContext
 ) extends PluginApi {
 
@@ -272,7 +272,7 @@ trait MessageReceiver {
   def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]]
 }
 
-class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
+class WustReceiver(val client: WustClient[Future])(implicit ec: ExecutionContext) extends MessageReceiver {
 
   def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]] = {
     scribe.info(s"pushing new graph change: $graphChanges")

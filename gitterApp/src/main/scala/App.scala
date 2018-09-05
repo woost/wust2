@@ -60,7 +60,7 @@ trait MessageReceiver {
   def push(msg: ExchangeMessage, author: UserId): Result[Node]
 }
 
-class WustReceiver(client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
+class WustReceiver(client: WustClient[Future])(implicit ec: ExecutionContext) extends MessageReceiver {
 
   def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Node]] = {
     println(s"new message: ${msg.content}")

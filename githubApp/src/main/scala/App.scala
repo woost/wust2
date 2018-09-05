@@ -58,7 +58,7 @@ object Constants {
 
 }
 
-class GithubApiImpl(client: WustClient, oAuthClient: OAuthClient)(
+class GithubApiImpl(client: WustClient[Future], oAuthClient: OAuthClient)(
     implicit ec: ExecutionContext
 ) extends PluginApi {
   def connectUser(auth: Authentication.Token): Future[Option[String]] = {
@@ -287,7 +287,7 @@ trait MessageReceiver {
   def push(graphChanges: List[GraphChanges]): Result[List[GraphChanges]]
 }
 
-class WustReceiver(val client: WustClient)(implicit ec: ExecutionContext) extends MessageReceiver {
+class WustReceiver(val client: WustClient[Future])(implicit ec: ExecutionContext) extends MessageReceiver {
 
   def push(graphChanges: List[GraphChanges]): Future[Either[String, List[GraphChanges]]] = {
     scribe.info(s"pushing new graph change: $graphChanges")
