@@ -141,5 +141,6 @@ object Deps {
     val nginx = "nginx:1.13.12-alpine"
     val openjdk8 = "openjdk:8-jre-alpine"
     val flyway = "boxfuse/flyway:5.1.1-alpine"
+    val pgtap = "cornerman/docker-pgtap"
   }
 }

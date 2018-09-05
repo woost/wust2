@@ -9,7 +9,7 @@ services:
 
   github:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
-    image: woost/github:${WUST_VERSION-latest}
+    image: docker.woost.space/woost/github:${WUST_VERSION-latest}
     environment:
       REDIS_HOSTNAME: "redis"
       WUST_GITHUB_TOKEN: ${WUST_GITHUB_TOKEN} # TODO: do not use static token in production

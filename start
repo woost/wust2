@@ -71,19 +71,15 @@ function sbt() {
     command sbt -Dquill.macro.log=false $EXTRASBTARGS $@
 }
 
-dockerhost_ip=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
-
 FALLBACKVERSION="dirty" # When git is not available
-#  || [ -n "$CI_COMMIT_REF_NAME" ] && VERSION=$CI_COMMIT_REF_NAME
-#  || [ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH
-[ -n "$TRAVIS_BRANCH" ] && VERSION=$TRAVIS_BRANCH || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
+[ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
 [ "$VERSION" == "master" ] && VERSION="latest"
 
 
 # TODO: if database docker image is not found, automatically do a migration
 env_wust_version="WUST_VERSION=$VERSION"
 env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust WUST_PUSH_SUBJECT=push.dev@woost.space WUST_PUSH_PUBLIC_KEY=BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0 WUST_PUSH_PRIVATE_KEY=or76yI5iDE+S9gWkVU2g0JuHyq4OD/AtwHTHefkoo3k"
-env_wust_local="WUST_HOSTNAME=localhost DEV_DOCKERHOST_IP=$dockerhost_ip DOCKER_RESTART_POLICY=no"
+env_wust_local="WUST_HOSTNAME=localhost DOCKER_RESTART_POLICY=no"
 env_postgres_secret="POSTGRES_PASSWORD=test"
 env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5433"
 

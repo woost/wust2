@@ -2,9 +2,7 @@ version: '3'
 
 services:
   test-postgres:
-    image: cornerman/docker-pgtap
+    image: docker.woost.space/woost/db-migration-tests:${WUST_VERSION-latest}-core
     command: -h postgres -u 'wust' -d 'wust'
-    volumes:
-      - "../dbMigration/core/tests/:/t"
     depends_on:
       - postgres

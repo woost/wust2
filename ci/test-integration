@@ -4,5 +4,4 @@ set -o pipefail
 
 export _JAVA_OPTIONS="-Xms128M -Xmx2500M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
 
-./start test.postgres
 ./start test.integration

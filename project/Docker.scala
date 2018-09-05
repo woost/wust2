@@ -40,7 +40,7 @@ object Docker {
   }
 
   def imageNames(name: String, versionPostfix: String = ""): Def.Initialize[List[ImageName]] = Def.setting {
-    val rawBranch = sys.env.get("TRAVIS_BRANCH") orElse scala.util
+    val rawBranch = sys.env.get("CIRCLE_BRANCH") orElse scala.util
       .Try(git.gitCurrentBranch.value)
       .filter(_.nonEmpty)
       .toOption getOrElse "dirty"
@@ -50,7 +50,7 @@ object Docker {
 
     tags.map { v =>
       val version = if (versionPostfix.isEmpty) v else s"$v-$versionPostfix"
-      ImageName(namespace = Some("woost"), repository = name: String, tag = Some(version))
+      ImageName(namespace = Some("docker.woost.space/woost"), repository = name: String, tag = Some(version))
     }
   }
 }

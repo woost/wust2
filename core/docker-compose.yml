@@ -4,6 +4,18 @@ services:
   postgres:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
     image: postgres:10.1-alpine
+
+    # https://pgtune.leopard.in.ua
+    # DB Version: 10
+    # OS Type: linux
+    # DB Type: web
+    # Total Memory (RAM): 16 GB
+    # CPUs num: 8
+    # Data Storage: ssd
+    command: postgres -c "max_connections=200" -c "shared_buffers=4GB" -c "effective_cache_size=12GB" -c "maintenance_work_mem=1GB" -c "checkpoint_completion_target=0.7" -c "wal_buffers=16MB" -c "default_statistics_target=100" -c "random_page_cost=1.1" -c "effective_io_concurrency=200" -c "work_mem=5242kB" -c "min_wal_size=1GB" -c "max_wal_size=2GB" -c "max_worker_processes=8" -c "max_parallel_workers_per_gather=4" -c "max_parallel_workers=8" 
+
+
+
     environment: &pg_env
       POSTGRES_USER: 'wust'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -13,7 +25,7 @@ services:
 
   db-migration:
     restart: on-failure
-    image: woost/db-migration:${WUST_VERSION-latest}-core
+    image: docker.woost.space/woost/db-migration:${WUST_VERSION-latest}-core
     environment:
       <<: *pg_env
     depends_on:
@@ -21,7 +33,7 @@ services:
 
   core:
     restart: on-failure
-    image: woost/core:${WUST_VERSION-latest}
+    image: docker.woost.space/woost/core:${WUST_VERSION-latest}
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"

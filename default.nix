@@ -19,7 +19,6 @@ in
       pgcli
       # redis-dump
       visualvm
-      travis
       # androidsdk
     ];
 

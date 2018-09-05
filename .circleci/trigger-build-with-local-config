@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+echo "not implemented yet..."
+exit 1
+
+if [ -z "$CIRCLE_TOKEN" ]; then
+    echo "Missing environment variable \$CIRCLE_TOKEN"
+    echo "Create a token here: https://circleci.com/account/api"
+    echo "export CIRCLE_TOKEN=XYZ"
+    exit 0
+fi
+
+# https://circleci.com/docs/api/v1-reference/#new-project-build
+
+# gitcommithash=$(git rev-parse HEAD)
+# gitbranch=$(git symbolic-ref --short HEAD)
+
+# echo "revision: $gitcommithash"
+# echo "branch: $gitbranch"
+
+# curl --user $CIRCLE_TOKEN: \
+#     --request POST \
+#     --form revision=$gitcommithash\
+#     --form config=@.circleci/config.yml \
+#     --form notify=false \
+#     https://circleci.com/api/v1.1/project/github/woost/wust2/tree/$gitbranch
+
+# curl -X POST https://circleci.com/api/v1.1/project/github/woost/wust2/build?circle-token=$CIRCLE_TOKEN

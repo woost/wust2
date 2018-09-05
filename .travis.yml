@@ -9,13 +9,15 @@ branches:
   only:
   - master
   - travis
-  - /release-.*/
+  - /rc-.*/
 
 # TODO: use https://github.com/dwijnand/sbt-travisci
 script:
     - set -e
-    - ci/build
-    - ci/integration-tests
+    - ci/build-unit-test
+    - ci/build-docker
+    - ci/test-postgres
+    - ci/test-integration
     - set +e
 
 after_success:

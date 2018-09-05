@@ -1,14 +1,155 @@
+# Install circleci command line tool
+# https://circleci.com/docs/2.0/local-cli
+# curl -o ~/bin/circleci https://circle-downloads.s3.amazonaws.com/releases/build_agent_wrapper/circleci && chmod +x ~/bin/circleci
+#
+# validating a config locally
+# circleci config validate -c .circleci/config.yml
+#
+# run job locally
+# circleci build --job build-test-unit
+
+defaults: &defaults
+  working_directory: ~/repo
+  environment:
+    TERM: xterm-256color
+  docker:
+    - image: fdietze/docker-alpine-scala-webdev:48081a9425adaeead020b3ba4635c00afd878eec
+
+restore_cache: &restore_cache
+  restore_cache:
+    keys:
+    - v1-dependencies-{{ checksum "build.sbt" }}-{{ checksum "project/Deps.scala" }}
+    # fallback to using the latest cache if no exact match is found
+    - v1-dependencies-
+
+cleanup_cache: &cleanup_cache        
+  # Cleanup the cached directories to avoid unnecessary cache updates
+  run:
+    name: Clean up Cache
+    command: |
+      find $HOME/.ivy2       -name "ivydata-*.properties" -delete
+      find $HOME/.sbt        -name "*.lock"               -delete
+
+save_cache: &save_cache
+  save_cache:
+    paths:
+      - ~/.cache/yarn
+      - ~/.repo/.yarn-offline-cache
+      - ~/.ivy2/cache
+      - ~/.ivy2/local
+      - ~/.sbt/boot
+      - ~/.sbt/launchers
+      - ~/.cache/coursier
+    key: v1-dependencies-{{ checksum "build.sbt" }}-{{ checksum "project/Deps.scala" }}
+
 version: 2
 jobs:
-  build:
-    branches:
-      only:
-        # - master
-        # - /rc-.*/
-        - circleci
-
-    working_directory: ~/repo
-
+  build-test-unit:
+    <<: *defaults
     steps:
-        - run: echo "wip"
+      - checkout
+      - *restore_cache
+      - run: 
+          name: Compile all Code and Run Unit-Tests
+          command: ci/build-unit-test
+      - *cleanup_cache
+      - *save_cache
+      - persist_to_workspace:
+          root: .
+          paths: "*/target"
 
+  test-integration:
+    <<: *defaults
+    steps:
+      - checkout
+      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
+      - *restore_cache
+      - attach_workspace:
+          at: .
+      - run: 
+          name: Build Docker Images
+          command: ci/build-docker
+      - run:
+          name: Run Database Tests
+          command: ci/test-postgres
+      - run:
+          name: Run Integration Tests
+          command: |
+            # forward docker ports from remote docker machine to be accessible for integration tests
+            ssh -i ~/.ssh/id_rsa_circleci_remote_docker_engine -o StrictHostKeyChecking=no -L localhost:8900:localhost:8900 -L localhost:8901:localhost:8901 -N circleci@$(echo $DOCKER_HOST | grep -Eo "(\d{1,3}\.){3}\d+") &
+            ci/test-integration
+            jobs -p | xargs kill -9 # kills all background processes. -> ssh port forwarding
+      - run:
+          name: Save Docker images
+          command: |
+            mkdir -p /docker-images
+            docker save -o /docker-images/db-migration.tar "$DOCKER_REGISTRY/woost/db-migration"
+            docker save -o /docker-images/core.tar "$DOCKER_REGISTRY/woost/core"
+            docker save -o /docker-images/web.tar "$DOCKER_REGISTRY/woost/web"
+            docker save -o /docker-images/slack.tar "$DOCKER_REGISTRY/woost/slack"
+      - persist_to_workspace:
+          root: /docker-images
+          paths: "*.tar"
+
+  deploy:
+    <<: *defaults
+    steps:
+      - checkout
+      - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
+      - attach_workspace:
+          at: /docker-images
+      - run:
+          name: Load Docker images
+          command: |
+            docker load -i /docker-images/db-migration.tar
+            docker load -i /docker-images/core.tar
+            docker load -i /docker-images/web.tar
+            docker load -i /docker-images/slack.tar
+      - run: ci/publish-docker
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build-test-unit:
+          filters:
+            branches:
+              only:
+                - master
+                - /rc-.*/
+                - circleci
+
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 6 * * *" # UTC
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - build-test-unit
+      - test-integration:
+          requires:
+            - build-test-unit
+      - deploy:
+          requires:
+            - test-integration
+
+  production:
+    jobs:
+      - build-test-unit:
+          filters:
+            branches:
+              only:
+                - production
+      - test-integration:
+          requires:
+            - build-test-unit
+      - hold:
+          type: approval
+          requires:
+            - test-integration
+      - deploy:
+          requires:
+            - hold

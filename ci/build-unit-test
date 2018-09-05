@@ -28,8 +28,3 @@ sbt \
  compile \
  testJVM \
  testJSNonPure \
- it:compile
-
-sbt core/docker dbMigration/docker slackApp/docker webApp/docker
-
-# compileAndroid \

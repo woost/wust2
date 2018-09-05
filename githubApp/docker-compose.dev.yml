@@ -4,7 +4,3 @@ services:
   redis:
     ports:
       - "127.0.0.1:${REDIS_PORT_GITHUB-6379}:6379"
-
-  github:
-    extra_hosts:
-      - "github.${WUST_HOSTNAME}:${DEV_DOCKERHOST_IP}"

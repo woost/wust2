@@ -13,7 +13,7 @@ services:
 
   db-migration:
     restart: on-failure
-    image: woost/db-migration:${WUST_VERSION-latest}-slack
+    image: docker.woost.space/woost/db-migration:${WUST_VERSION-latest}-slack
     environment:
       <<: *pg_env
     depends_on:
@@ -21,7 +21,7 @@ services:
 
   slack:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
-    image: woost/slack:${WUST_VERSION-latest}
+    image: docker.woost.space/woost/slack:${WUST_VERSION-latest}
     environment:
       SLACK_POSTGRES_USER: 'wust-slack'
       SLACK_POSTGRES_PASSWORD: ${SLACK_POSTGRES_PASSWORD}

@@ -1,5 +1,4 @@
 # Woost
-[![Build Status](https://travis-ci.org/woost/wust2.svg?branch=master)](https://travis-ci.org/woost/wust2)
 [![Coverage Status](https://coveralls.io/repos/github/woost/wust2/badge.svg)](https://coveralls.io/github/woost/wust2)
 [![Join the chat at https://gitter.im/wust2/Lobby](https://badges.gitter.im/wust2/Lobby.svg)](https://gitter.im/wust2/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -100,7 +99,7 @@ Build all docker images in project:
 $ sbt docker
 ```
 
-The images are automatically published to [dockerhub](https://hub.docker.com/r/woost/) in each travis build on `master`.
+The images are automatically published to docker.woost.space once a day from `master`.
 
 # Deployment
 Requirements:
