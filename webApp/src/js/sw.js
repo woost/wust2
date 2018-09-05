@@ -29,9 +29,15 @@ workbox.routing.registerRoute(
 
 /////////////////////////////////////////
 
-warn = s => console.warn("[SW] " + s);
-log = s => console.log("[SW] " + s);
-error = s => console.error("[SW] " + s);
+function wrapConsoleCall(funName) {
+    return function() {
+        arguments[0] = "[SW] " + arguments[0];
+        return console[funName].apply(console, arguments);
+    };
+}
+const log = wrapConsoleCall("log");
+const warn = wrapConsoleCall("warn");
+const error = wrapConsoleCall("error");
 
 Promise.prototype.flatMap = function(fun) {
     let self = this;
