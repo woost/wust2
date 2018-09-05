@@ -267,13 +267,13 @@ object Components {
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
       Rx {
+//        println("editing: " + node.data.str) // TODO: this is a leak. Reproduction: Edit a node multiple times.
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
           whiteSpace.preWrap, // preserve white space in Markdown code
           backgroundColor := "#FFF",
           color := "#000",
-          boxShadow := "inset 0px 0px 0px 2px  rgba(65,184,255, 1)",
           cursor.auto,
 
           onPostPatch.asHtml --> sideEffect { (_, node) => if(editable.now) node.focus() },
