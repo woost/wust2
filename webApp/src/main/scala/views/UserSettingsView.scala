@@ -27,8 +27,7 @@ object UserSettingsView {
         val user = state.user()
         VDomModifier(
           header(user)(marginBottom := "50px"),
-          accountSettings(user),
-          Observable.fromFuture(slackButton(user)),
+          Observable.fromTask(slackButton(user)),
         )
       }
     )
@@ -91,7 +90,7 @@ object UserSettingsView {
   }
 
   private def showPluginAuth(userId: UserId, token: Authentication.Token) = {
-    Client.slackApi.getAuthentication(userId, token).map{
+    Client.slackApi.getAuthentication(userId, token).map {
       case Some(pluginAuth) =>
       case _                  =>
     }
@@ -130,7 +129,7 @@ object UserSettingsView {
     )
   }
 
-  private def slackButton(user: UserInfo): Future[VNode] = {
+  private def slackButton(user: UserInfo) = {
     val syncButton = genConnectButton(freeBrands.faSlack, "Slack") _
     Client.slackApi.isAuthenticated(user.id).map(activated => syncButton(activated))
   }
@@ -164,8 +163,7 @@ object UserSettingsView {
   def linkWithSlack() = {
     Client.auth.issuePluginToken().foreach { auth =>
       scribe.info(s"Generated plugin token: $auth")
-      val connUser = Client.slackApi.connectUser(auth.token)
-      connUser foreach {
+      val connUser = Client.slackApi.connectUser(auth.token).runAsync.foreach {
         case Some(url) =>
           scribe.info(s"Received url: $url")
           org.scalajs.dom.window.location.href = url

@@ -1,14 +1,17 @@
 package wust.sdk
 
-import wust.api._, wust.api.serialize.Boopickle._
+import wust.api._
+import wust.api.serialize.Boopickle._
 import boopickle.Default._
 import covenant.ws._
 import sloth._
 import mycelium.client._
 import chameleon.ext.boopickle._
 import cats.implicits._
-
 import java.nio.ByteBuffer
+
+import monix.eval.Task
+
 import scala.concurrent.Future
 import scala.concurrent.duration._
 

@@ -29,6 +29,7 @@ import scala.util.control.NonFatal
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import cats.implicits._
+import monix.eval.Task
 import monix.reactive.subjects.ConcurrentSubject
 
 import scala.util.{Failure, Success, Try}
@@ -43,11 +44,11 @@ object Constants {
 }
 
 
-class SlackApiImpl(client: WustClient[Future], oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
+class SlackApiImpl[F[_]](client: WustClient[Future], oAuthClient: OAuthClient, persistenceAdapter: PersistenceAdapter)(
   implicit ec: ExecutionContext
-) extends PluginApi {
+) extends PluginApi[F] {
 
-  override def connectUser(auth: Authentication.Token): Future[Option[String]] = {
+  override def connectUser(auth: Authentication.Token): Task[Option[String]] = {
     client.auth.verifyToken(auth).map {
       case Some(verifiedAuth) =>
         scribe.info(s"User has valid auth: ${ verifiedAuth.user.name }")
@@ -87,29 +88,28 @@ class SlackApiImpl(client: WustClient[Future], oAuthClient: OAuthClient, persist
     }
   }
 
-  override def isAuthenticated(userId: UserId): Future[Boolean] = {
+  override def isAuthenticated(userId: UserId): Task[Boolean] = {
     persistenceAdapter.getSlackUserDataByWustId(userId).map {
       case Some(slackUser) => slackUser.slackUserToken.isDefined
       case _ => false
     }
   }
 
-  override def getAuthentication(userId: UserId, auth: Authentication.Token): Future[Option[PluginUserAuthentication]] = {
+  override def getAuthentication(userId: UserId, auth: Authentication.Token): Task[Option[PluginUserAuthentication]] = {
     client.auth.verifyToken(auth).flatMap {
       case Some(_) =>
         persistenceAdapter.getSlackUserDataByWustId(userId).map {
           case Some(slackUser) => Some(PluginUserAuthentication(userId, slackUser.slackUserId, slackUser.slackUserToken))
           case _ => None
         }
-      case _ => Future.successful(None)
+      case _ => Task.pure(None)
     }
   }
 
-  override def importContent(identifier: String): Future[Boolean] = {
+  override def importContent(identifier: String): Task[Boolean] = {
     // TODO: Seeding
-    Future.successful(true)
+    Task.pure(true)
   }
-
 
 }
 
@@ -132,8 +132,8 @@ object AppServer {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     import wust.api.serialize.Boopickle._
 
-    val apiRouter = Router[ByteBuffer, Future]
-      .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
+    val apiRouter = Router[ByteBuffer, Task]
+      .route[PluginApi[Task]](new SlackApiImpl[Task](wustReceiver.client, oAuthClient, persistenceAdapter))
 
     val corsSettings = CorsSettings.defaultSettings.copy(
       allowedOrigins = HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
@@ -161,7 +161,7 @@ object AppServer {
 
         // Create workspace node and store team mapping
         workspaceNodeId <- persistenceAdapter.getTeamNodeBySlackId(slackAuthId.team_id).flatMap {
-          case Some(nodeId) => Future.successful(nodeId)
+          case Some(nodeId) => Task.pure(nodeId)
           case None         =>
             val createdWorkspaceNode = EventToGraphChangeMapper.createWorkspaceInWust(NodeData.PlainText(slackAuthId.team), Constants.wustUser.id, EpochMilli.now)
             wustReceiver.push(List(createdWorkspaceNode.graphChanges), None).map(_ => createdWorkspaceNode.nodeId)
@@ -187,7 +187,7 @@ object AppServer {
 //
 //      slackUpdate.flatMap(isPersist =>
 //        if(isPersist._2) SlackSeeder.channelDataToWust(SlackApiClient(userOAuthToken.accessToken), slackEventMapper, persistenceAdapter, isPersist._1)
-//        else Future.successful(Seq.empty[GraphChanges])
+//        else Task.pure(Seq.empty[GraphChanges])
 //      ).onComplete {
 //        case Success(p)  => scribe.info("Successfully synced slack data")
 //        case Failure(ex) => scribe.error("failed to sync slack data: ", ex)
@@ -203,7 +203,7 @@ object AppServer {
     val route = {
       pathPrefix("api") {
         cors(corsSettings) {
-          AkkaHttpRoute.fromFutureRouter(apiRouter)
+          AkkaHttpRouteForTask.fromTaskRouter(apiRouter)
         }
       } ~ path(config.appServer.webhookPath) {
         post {
@@ -232,8 +232,19 @@ object AppServer {
                     if(slackRequestVerifier.verify(slackRequestTimestamp, stringBody, slackSignature)) {
                       entity(as[SlackEventStructure]) { eventStructure =>
 
-
-                        slackEventMapper.matchSlackEventStructureEvent(eventStructure)
+                      {
+                        slackEventMapper.matchSlackEventStructureEvent(eventStructure).runAsync.onComplete {
+                          case Success(e)  =>
+                            e match {
+                              case Right(r) =>
+                                scribe.info(s"Successfully mapped $r")
+                              case Left(l) =>
+                                scribe.error(s"An error occured: $l")
+                            }
+                          case Failure(ex) =>
+                            scribe.error("Could not match event: ", ex)
+                        }
+                      }
 
                         complete(StatusCodes.OK)
                       }
@@ -267,12 +278,12 @@ object AppServer {
 }
 
 trait MessageReceiver {
-  type Result[T] = Future[Either[String, T]]
+  type Result[T] = Task[Either[String, T]]
 
   def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]]
 }
 
-class WustReceiver(val client: WustClient[Future])(implicit ec: ExecutionContext) extends MessageReceiver {
+class WustReceiver(val client: WustClient[Task])(implicit ec: ExecutionContext) extends MessageReceiver {
 
   def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]] = {
     scribe.info(s"pushing new graph change: $graphChanges")
@@ -286,7 +297,7 @@ class WustReceiver(val client: WustClient[Future])(implicit ec: ExecutionContext
         val withAppUser = graphChanges.map(_.withAuthor(Constants.wustUser.id))
         for {
           true <- client.api.changeGraph(withAppUser)
-          true <- Future.sequence {
+          true <- Task.sequence {
             graphChanges.flatMap { gc =>
               gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
             }
@@ -296,7 +307,7 @@ class WustReceiver(val client: WustClient[Future])(implicit ec: ExecutionContext
         val withSlackUser = graphChanges.map(_.withAuthor(u.wustUserId))
         for {
           true <- client.api.changeGraph(withSlackUser, u.wustUserToken)
-          true <- Future.sequence {
+          true <- Task.sequence {
             graphChanges.flatMap { gc =>
               gc.addNodes.toList.map(n => client.api.addMember(n.id, Constants.wustUser.id, AccessLevel.ReadWrite))
             }
@@ -325,7 +336,7 @@ object WustReceiver {
     //TODO: service discovery or some better configuration for the wust host
     val protocol = if(config.port == 443) "wss" else "ws"
     val location = s"$protocol://core.${ config.host }:${ config.port }/ws"
-    val wustClient = WustClient(location)
+    val wustClient = WustClient.withTask(location)
     val client = wustClient.sendWith(SendType.WhenConnected, 30 seconds)
     val highPriorityClient = wustClient.sendWith(SendType.WhenConnected.highPriority, 30 seconds)
     val wustEventMapper = WustEventMapper(slackAppToken, persistenceAdapter)
@@ -372,15 +383,20 @@ object WustReceiver {
   private def validRecover[T]: PartialFunction[Throwable, Either[String, T]] = {
     case NonFatal(t) => Left(s"Exception was thrown: $t")
   }
-  private def valid(fut: Future[Boolean], errorMsg: String)(implicit ec: ExecutionContext) =
+  private def valid(fut: Task[Boolean], errorMsg: String)(implicit ec: ExecutionContext) =
     EitherT(fut.map(Either.cond(_, (), errorMsg)).recover(validRecover))
-  private def valid[T](fut: Future[T])(implicit ec: ExecutionContext) =
+  private def valid[T](fut: Task[T])(implicit ec: ExecutionContext) =
     EitherT(fut.map(Right(_): Either[String, T]).recover(validRecover))
 }
 
 object SlackClient {
   def apply(accessToken: String, isUser: Boolean)(implicit ec: ExecutionContext): SlackClient = {
     new SlackClient(SlackApiClient(accessToken), isUser)
+  }
+
+  //  def wrapFCall[F, T](f: F => Future[T]): Task[T] = Task.fromFuture(f)
+  object TaskImplicits {
+    implicit def wrapFCall[T](f: Future[T]): Task[T] = Task.fromFuture(f)
   }
 }
 
@@ -394,6 +410,7 @@ class SlackClient(val apiClient: SlackApiClient, val isUser: Boolean)(implicit e
     //    private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
   }
+
 }
 
 case class SlackRequestVerifier(key: String) {

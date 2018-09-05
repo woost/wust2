@@ -200,19 +200,19 @@ case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContex
 
   // Boolean Guards / Filter by wust id
   def teamExistsByWustId(nodeId: NodeId): Task[Boolean] = {
-    db.teamExistsByWustId(nodeId)
+    Task.deferFutureAction(implicit Scheduler => db.teamExistsByWustId(nodeId))
   }
 
   def channelExistsByWustId(nodeId: NodeId): Task[Boolean] = {
-    db.channelExistsByWustId(nodeId)
+    Task.deferFutureAction(implicit Scheduler => db.channelExistsByWustId(nodeId))
   }
 
   def threadExistsByWustId(nodeId: NodeId): Task[Boolean] = {
-    db.threadExistsByWustId(nodeId)
+    Task.deferFutureAction(implicit Scheduler => db.threadExistsByWustId(nodeId))
   }
 
   def messageExistsByWustId(nodeId: NodeId): Task[Boolean] = {
-    db.messageExistsByWustId(nodeId)
+    Task.deferFutureAction(implicit Scheduler => db.messageExistsByWustId(nodeId))
   }
 
 

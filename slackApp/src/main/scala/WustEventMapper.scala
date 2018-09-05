@@ -34,7 +34,7 @@ object FilterEvents {
   case class PartialCreateByEdge(edge: Edge) extends SlackEvent
 
   sealed trait WustEvent
-  case class AddNode(node: Node) extends WustEvent
+  case class AddSingleNode(node: Node) extends WustEvent
   case class AddEdge(edge: Edge, node: Option[Node]) extends WustEvent
   case class DelEdge(edge: Edge) extends WustEvent
 
@@ -48,9 +48,14 @@ object FilterEvents {
   def separateGraphChanges(graphChanges: GraphChanges) = {
     val nodeMap = graphChanges.addNodes.by(_.id)
 
-    graphChanges.addNodes.map(n => AddNode(n)) ++
-    graphChanges.addEdges.map(e => AddEdge(e, nodeMap.get(e.sourceId))) ++
-    graphChanges.delEdges.map(e => DelEdge(e))
+
+    val (edgeWithSourceNode, remainingEdgeNodes) = graphChanges.addEdges.partition(e => nodeMap.isDefinedAt(e.sourceId))
+    val (edgeWithTargetNode, singleNodes) = remainingEdgeNodes.partition(e => nodeMap.isDefinedAt(e.targetId))
+
+
+    val singeNodes = graphChanges.addNodes.map(n => AddSingleNode(n))
+
+    val delEdges = graphChanges.delEdges.map(e => DelEdge(e))
   }
 
   def levelSeparator(persistenceAdapter: PersistenceAdapter, nodeId: NodeId): Task[Option[Level]] = {
@@ -76,7 +81,8 @@ object FilterEvents {
     }
   }
 
-  def transformGraphChanges(persistenceAdapter: PersistenceAdapter, w: WustEvent): Task[Option[SlackEvent]] = {
+  def interpreteGraphChanges(persistenceAdapter: PersistenceAdapter, w: WustEvent): Task[Option[SlackEvent]] = {
+
     w match {
       case DelEdge(e) =>
         e match {
@@ -84,71 +90,7 @@ object FilterEvents {
             levelSeparator(persistenceAdapter, e.sourceId).map(_.map(Delete))
           case _ => Task.pure(None)
         }
-      case AddEdge(e, n) =>
-        e match {
-          case Edge.Parent(sourceId, _, targetId) =>
-            levelSeparator(persistenceAdapter, targetId).flatMap {
-              case Some(Team(_)) =>       // Parent is a team => channel or group
-                persistenceAdapter.getChannelMappingByWustId(sourceId).map {
 
-                  case Some(c) => // node is known in some way
-                    if(c.team_wust_id == targetId) { // mapping already known, do nothing (idempotence)
-                      None
-                    } else { // a new mapping has to be created, so a node is linked to different slack channels
-                      val isGroup = n match {
-                        case Some(node) =>
-                          node.meta.accessLevel == NodeAccess.Restricted // decide whether this is a group or channel by node access
-                        case None =>
-                          c.is_private // fallback when no node is present
-                      }
-                      if(isGroup) Some(Create(Group(c)))
-                      else Some(Create(Channel(c)))
-                    }
-
-                  case None => // node is unknown
-                    n match {
-                      case Some(node) =>
-                        if(node.meta.accessLevel == NodeAccess.Restricted)
-                          Some(Create(Group(Channel_Mapping(None, node.str, true, false, node.id, targetId))))
-                        else
-                          Some(Create(Channel(Channel_Mapping(None, node.str, false, false, node.id, targetId))))
-
-                      case None =>
-                        Some(PartialCreateByEdge(e)) // |NodeCase| -> Request node from backend
-                    }
-
-                }
-
-              case Some(_: Channel) | Some(_: Group) =>    // Parent is a channel => message or thread
-                levelSeparator(persistenceAdapter, sourceId).map {
-                  case Some(Thread(m)) =>      // update group
-                    if(m.channel_wust_id == targetId){
-                      None
-                    } else {
-                      //TODO: ???
-                      Some(Create(Message(m.copy(slack_channel_id = None, slack_message_ts = None, slack_thread_ts = None)))
-                    }
-
-                  case Some(Message(m)) =>    // update channel
-
-                  case _ => // insert
-                    None
-                }
-
-              case Some(Thread(_)) =>     // Parent is a thread => message
-                levelSeparator(persistenceAdapter, sourceId).map {
-                  case Some(Message(m)) =>      // update message
-                    Some(UpdateMessage(m))
-
-                  case _ => // insert message
-                    None
-                }
-
-              case _ =>
-                Task.pure(None)
-            }
-          case _                      => Task.pure(None)
-        }
 
       case AddNode(n) =>
         n match {
@@ -158,14 +100,106 @@ object FilterEvents {
                 Some(Update(l))
 
               case _ =>
-//                Some(PartialCreateByNode(n)) // Node is unknown, so we have to create something somewhere
+                //                Some(PartialCreateByNode(n)) // Node is unknown, so we have to create something somewhere
                 None // Forget this case, it will be handled with a request in the AddEdge pipeline (see |NodeCase|)
 
             }
         }
     }
-    ???
+
   }
+
+
+//  def transformGraphChanges(persistenceAdapter: PersistenceAdapter, w: WustEvent): Task[Option[SlackEvent]] = {
+//    w match {
+//      case DelEdge(e) =>
+//        e match {
+//          case e @ Edge.Parent(_, _, _) =>
+//            levelSeparator(persistenceAdapter, e.sourceId).map(_.map(Delete))
+//          case _ => Task.pure(None)
+//        }
+//      case AddEdge(e, n) =>
+//        e match {
+//          case Edge.Parent(sourceId, _, targetId) =>
+//            levelSeparator(persistenceAdapter, targetId).flatMap {
+//              case Some(Team(_)) =>       // Parent is a team => channel or group
+//                persistenceAdapter.getChannelMappingByWustId(sourceId).map {
+//
+//                  case Some(c) => // node is known in some way
+//                    if(c.team_wust_id == targetId) { // mapping already known, do nothing (idempotence)
+//                      None
+//                    } else { // a new mapping has to be created, so a node is linked to different slack channels
+//                      val isGroup = n match {
+//                        case Some(node) =>
+//                          node.meta.accessLevel == NodeAccess.Restricted // decide whether this is a group or channel by node access
+//                        case None =>
+//                          c.is_private // fallback when no node is present
+//                      }
+//                      if(isGroup) Some(Create(Group(c)))
+//                      else Some(Create(Channel(c)))
+//                    }
+//
+//                  case None => // node is unknown
+//                    n match {
+//                      case Some(node) =>
+//                        if(node.meta.accessLevel == NodeAccess.Restricted)
+//                          Some(Create(Group(Channel_Mapping(None, node.str, true, false, node.id, targetId))))
+//                        else
+//                          Some(Create(Channel(Channel_Mapping(None, node.str, false, false, node.id, targetId))))
+//
+//                      case None =>
+//                        Some(PartialCreateByEdge(e)) // |NodeCase| -> Request node from backend
+//                    }
+//
+//                }
+//
+//              case Some(_: Channel) | Some(_: Group) =>    // Parent is a channel => message or thread
+//                levelSeparator(persistenceAdapter, sourceId).map {
+//                  case Some(Thread(m)) =>      // update group
+//                    if(m.channel_wust_id == targetId){
+//                      None
+//                    } else {
+//                      //TODO: ???
+//                      Some(Create(Message(m.copy(slack_channel_id = None, slack_message_ts = None, slack_thread_ts = None)))
+//                    }
+//
+//                  case Some(Message(m)) =>    // update channel
+//
+//                  case _ => // insert
+//                    None
+//                }
+//
+//              case Some(Thread(_)) =>     // Parent is a thread => message
+//                levelSeparator(persistenceAdapter, sourceId).map {
+//                  case Some(Message(m)) =>      // update message
+//                    Some(UpdateMessage(m))
+//
+//                  case _ => // insert message
+//                    None
+//                }
+//
+//              case _ =>
+//                Task.pure(None)
+//            }
+//          case _                      => Task.pure(None)
+//        }
+//
+//      case AddNode(n) =>
+//        n match {
+//          case Node.Content(id, _, _) =>
+//            levelSeparator(persistenceAdapter, id).map {
+//              case Some(l) => // Node is known, therefore this is an update
+//                Some(Update(l))
+//
+//              case _ =>
+////                Some(PartialCreateByNode(n)) // Node is unknown, so we have to create something somewhere
+//                None // Forget this case, it will be handled with a request in the AddEdge pipeline (see |NodeCase|)
+//
+//            }
+//        }
+//    }
+//    ???
+//  }
 
 
 

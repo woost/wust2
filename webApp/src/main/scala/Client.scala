@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 import boopickle.Default._
 import chameleon.ext.boopickle._
 import covenant.http._
+import monix.eval.Task
 import org.scalajs.dom.window
 import rx._
 import wust.api._
@@ -59,9 +60,9 @@ object Client {
   private val slackClient = HttpClient[ByteBuffer](slackUrl)
   private val gitterClient = HttpClient[ByteBuffer](gitterUrl)
 
-  val githubApi = githubClient.wire[PluginApi]
-  val gitterApi = gitterClient.wire[PluginApi]
-  val slackApi = slackClient.wire[PluginApi]
+  val githubApi = githubClient.wire[PluginApi[Future]]
+  val gitterApi = gitterClient.wire[PluginApi[Future]]
+  val slackApi = slackClient.wire[PluginApi[Task]]
 
   val factory: WustClientFactory[Future] = WustClient(wustUrl)
   val api = factory.defaultPriority.api

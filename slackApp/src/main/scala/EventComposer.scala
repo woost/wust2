@@ -2,7 +2,6 @@ package wust.slack
 
 import akka.actor.ActorSystem
 import cats.data.OptionT
-import slack.api.SlackApiClient
 import slack.models.MessageSubtypes.ChannelNameMessage
 import wust.api.Authentication
 import wust.graph.{GraphChanges, Node, NodeMeta}
@@ -11,6 +10,7 @@ import wust.sdk.EventToGraphChangeMapper
 import wust.sdk.EventToGraphChangeMapper.CreationResult
 import wust.slack.Data._
 import slack.models._
+import monix.eval.Task
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -24,51 +24,64 @@ object EventComposer {
 
   private def toEpochMilli(str: String) = EpochMilli((str.toDouble * 1000).toLong)
 
-  private def getOrCreateWustUser(slackUser: SlackUserId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistor: PersistenceAdapter, wustReceiver: WustReceiver): Future[Option[WustUserData]] = {
+  private def getOrCreateWustUser(slackUser: SlackUserId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistor: PersistenceAdapter, wustReceiver: WustReceiver): Task[Option[WustUserData]] = {
 
-    val existingUser = persistor.getWustUserBySlackUserId(slackUser)
-    val user: Future[Option[WustUserData]] = existingUser.flatMap {
-      case Some(u) => Future.successful(Some(u))
-      case None =>
-        // 1. Create new implicit user
-        // 2. Store user mapping
+    Task.eval {
+      val existingUser = persistor.getWustUserBySlackUserId(slackUser)
+      //    val user: Task[Option[WustUserData]] =
+      existingUser.flatMap {
+        case Some(u) => Task.pure(Some(u))
+        case None    =>
+          // 1. Create new implicit user
+          // 2. Store user mapping
 
-        val wustClient = wustReceiver.client
+          val wustUser = OptionT(wustReceiver.client.auth.createImplicitUserForApp()).map(implicitUser =>
+            WustUserData(implicitUser.user.id, implicitUser.token)
+          ).value
 
-        val wustUser = OptionT[Future, Authentication.Verified](wustClient.auth.createImplicitUserForApp()).map( implicitUser =>
-          WustUserData(implicitUser.user.id, implicitUser.token)
-        ).value
+          val storeUser = wustUser.flatMap {
+            case Some(newUser) =>
+              persistor.storeOrUpdateUserAuthData(User_Mapping(slackUser, newUser.wustUserId, None, newUser.wustUserToken))
+            case None          => Task.pure(false)
+          }
 
-        wustUser.onComplete {
-          case Failure(ex) =>
-            scribe.error("Error creating user mapping during creation of a wust user: ", ex)
-          case Success(userOpt) => userOpt.foreach( newUser =>
-            persistor.storeOrUpdateUserAuthData(User_Mapping(slackUser, newUser.wustUserId, None, newUser.wustUserToken))
-          )
-        }
+          for {
+            u <- wustUser
+            true <- storeUser
+          } yield u
 
-        wustUser
+        //        wustUser.onComplete {
+        //          case Failure(ex) =>
+        //            scribe.error("Error creating user mapping during creation of a wust user: ", ex)
+        //          case Success(userOpt) => userOpt.foreach( newUser =>
+        //            persistor.storeOrUpdateUserAuthData(User_Mapping(slackUser, newUser.wustUserId, None, newUser.wustUserToken))
+        //          )
+        //        }
+
+        //        wustUser
+      }
     }
 
-    user.onComplete {
-      case Success(userOpt) => if(userOpt.isEmpty) scribe.error("Could not get or create user")
-      case Failure(userOpt) => scribe.error(s"Could not communicate with backend to get or create user $userOpt")
-    }
+//    user.onComplete {
+//      case Success(userOpt) => if(userOpt.isEmpty) scribe.error("Could not get or create user")
+//      case Failure(userOpt) => scribe.error(s"Could not communicate with backend to get or create user $userOpt")
+//    }
 
-    user
+//    user
   }
 
-  private def getOrCreateChannelNode(channel: SlackChannelId, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistor: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient): Future[Option[NodeId]] = {
+  private def getOrCreateChannelNode(channel: SlackChannelId, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistor: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackClient): Task[Option[NodeId]] = {
     val existingChannelNode = persistor.getChannelNodeBySlackId(channel)
     existingChannelNode.flatMap {
-      case Some(c) => Future.successful(Some(c))
+      case Some(c) => Task.pure(Some(c))
       case None =>
         // TODO:
         // 1. Get channel name by id (Slack API call)
         // 2. Create with NodeData = name (Wust API call)
         // 3. Create channel mapping (DB)
 
-        val channelName = slackClient.getChannelInfo(channel).map(ci => ci.name)
+        import SlackClient.TaskImplicits._
+        val channelName = slackClient.apiClient.getChannelInfo(channel).map(ci => ci.name)
         val newChannelNode = channelName.map(name =>
           Node.Content(NodeId.fresh, NodeData.PlainText(name), NodeMeta(NodeAccess.ReadWrite))
         )
@@ -81,11 +94,11 @@ object EventComposer {
                   case Failure(ex) => scribe.error("Could not create channel node in wust: ", ex)
                   case _ =>
                 }
-                persistor.storeOrUpdateChannelMapping(Channel_Mapping(Some(channel), node.str, is_archived = false, node.id, teamNodeId)).onComplete {
+                persistor.storeOrUpdateChannelMapping(Channel_Mapping(Some(channel), node.str, false, false, node.id, teamNodeId)).onComplete {
                   case Failure(ex) => scribe.error("Could not create channel mapping in slack app: ", ex)
                   case _ =>
                 }
-              case _            => Future.successful(None)
+              case _            => Task.pure(None)
             }
           case Failure(ex) =>
             scribe.error("Could not request channel info: ", ex)
@@ -95,9 +108,9 @@ object EventComposer {
     }
   }
 
-  def createMessage(createdMessage: Message, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient): OptionT[Future, ComposingResult] = for {
-    wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(createdMessage.user))
-    wustChannelNodeId <- OptionT[Future, NodeId](getOrCreateChannelNode(createdMessage.channel, teamId))
+  def createMessage(createdMessage: Message, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackClient): OptionT[Task, ComposingResult] = for {
+    wustUserData <- OptionT[Task, WustUserData](getOrCreateWustUser(createdMessage.user))
+    wustChannelNodeId <- OptionT[Task, NodeId](getOrCreateChannelNode(createdMessage.channel, teamId))
   } yield {
     val changes: CreationResult = EventToGraphChangeMapper.createMessageInWust(
       NodeData.Markdown(createdMessage.text),
@@ -109,11 +122,11 @@ object EventComposer {
   }
 
 
-  def changeMessage(changedMessage: MessageChanged, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient): OptionT[Future, ComposingResult] = {
+  def changeMessage(changedMessage: MessageChanged, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackClient): OptionT[Task, ComposingResult] = {
     for {
-      wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(changedMessage.message.user))
-      wustChannelNodeId <- OptionT[Future, NodeId](getOrCreateChannelNode(changedMessage.channel, teamId))
-      changes <- OptionT[Future, CreationResult](persistenceAdapter.getMessageNodeBySlackIdData(changedMessage.channel, changedMessage.previous_message.ts).map {
+      wustUserData <- OptionT[Task, WustUserData](getOrCreateWustUser(changedMessage.message.user))
+      wustChannelNodeId <- OptionT[Task, NodeId](getOrCreateChannelNode(changedMessage.channel, teamId))
+      changes <- OptionT[Task, CreationResult](persistenceAdapter.getMessageNodeBySlackIdData(changedMessage.channel, changedMessage.previous_message.ts).map {
         case Some(existingNodeId) =>
           Some(CreationResult(existingNodeId, EventToGraphChangeMapper.editMessageContentInWust(
             existingNodeId,
@@ -135,11 +148,11 @@ object EventComposer {
     }
   }
 
-  def deleteMessage(deletedMessage: MessageDeleted)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter): OptionT[Future, GraphChanges] = {
+  def deleteMessage(deletedMessage: MessageDeleted)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter): OptionT[Task, GraphChanges] = {
     for {
-      _ <- OptionT[Future, Boolean](persistenceAdapter.deleteMessageBySlackIdData(deletedMessage.channel, deletedMessage.previous_message.ts).map(Some(_)))
-      nodeId <- OptionT[Future, NodeId](persistenceAdapter.getMessageNodeBySlackIdData(deletedMessage.channel, deletedMessage.previous_message.ts))
-      wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeBySlackId(deletedMessage.channel))
+      _ <- OptionT[Task, Boolean](persistenceAdapter.deleteMessageBySlackIdData(deletedMessage.channel, deletedMessage.previous_message.ts).map(Some(_)))
+      nodeId <- OptionT[Task, NodeId](persistenceAdapter.getMessageNodeBySlackIdData(deletedMessage.channel, deletedMessage.previous_message.ts))
+      wustChannelNodeId <- OptionT[Task, NodeId](persistenceAdapter.getChannelNodeBySlackId(deletedMessage.channel))
     } yield {
       EventToGraphChangeMapper.deleteMessageInWust(
         nodeId,
@@ -148,10 +161,10 @@ object EventComposer {
     }
   }
 
-  def createChannel(createdChannel: ChannelCreated, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, ComposingResult] = {
+  def createChannel(createdChannel: ChannelCreated, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Task, ComposingResult] = {
     for {
-      wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(createdChannel.channel.creator.get))
-      teamNodeId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
+      wustUserData <- OptionT[Task, WustUserData](getOrCreateWustUser(createdChannel.channel.creator.get))
+      teamNodeId <- OptionT[Task, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
     } yield {
       val changes: CreationResult = EventToGraphChangeMapper.createChannelInWust(
         NodeData.PlainText(createdChannel.channel.name),
@@ -163,9 +176,9 @@ object EventComposer {
     }
   }
 
-  def renameChannel(messageWithSubtype: MessageWithSubtype, channelNameMessage: ChannelNameMessage, childId: NodeId, parentId: NodeId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, ComposingResult] = {
+  def renameChannel(messageWithSubtype: MessageWithSubtype, channelNameMessage: ChannelNameMessage, childId: NodeId, parentId: NodeId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Task, ComposingResult] = {
     for {
-      wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(messageWithSubtype.user))
+      wustUserData <- OptionT[Task, WustUserData](getOrCreateWustUser(messageWithSubtype.user))
     } yield {
       val changes: GraphChanges = EventToGraphChangeMapper.editChannelInWust(
         childId,
@@ -176,12 +189,12 @@ object EventComposer {
 
   }
 
-  def archiveChannel(archivedChannel: ChannelArchive, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, GCResult] = {
+  def archiveChannel(archivedChannel: ChannelArchive, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Task, GCResult] = {
     for {
-      wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(archivedChannel.user))
-      teamNodeId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
-      wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeBySlackId(archivedChannel.channel))
-      true <- OptionT[Future, Boolean](persistenceAdapter.deleteChannelBySlackId(archivedChannel.channel).map(Some(_)))
+      wustUserData <- OptionT[Task, WustUserData](getOrCreateWustUser(archivedChannel.user))
+      teamNodeId <- OptionT[Task, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
+      wustChannelNodeId <- OptionT[Task, NodeId](persistenceAdapter.getChannelNodeBySlackId(archivedChannel.channel))
+      true <- OptionT[Task, Boolean](persistenceAdapter.deleteChannelBySlackId(archivedChannel.channel).map(Some(_)))
     } yield {
       val changes: GraphChanges = EventToGraphChangeMapper.archiveChannelInWust(
         wustChannelNodeId,
@@ -192,11 +205,11 @@ object EventComposer {
     }
   }
 
-  def deleteChannel(deletedChannel: ChannelDeleted, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, GraphChanges] = {
+  def deleteChannel(deletedChannel: ChannelDeleted, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Task, GraphChanges] = {
     for {
-      teamNodeId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
-      wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeBySlackId(deletedChannel.channel))
-      true <- OptionT[Future, Boolean](persistenceAdapter.deleteChannelBySlackId(deletedChannel.channel).map(Some(_)))
+      teamNodeId <- OptionT[Task, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
+      wustChannelNodeId <- OptionT[Task, NodeId](persistenceAdapter.getChannelNodeBySlackId(deletedChannel.channel))
+      true <- OptionT[Task, Boolean](persistenceAdapter.deleteChannelBySlackId(deletedChannel.channel).map(Some(_)))
     } yield {
       EventToGraphChangeMapper.deleteChannelInWust(
         wustChannelNodeId,
@@ -205,12 +218,12 @@ object EventComposer {
     }
   }
 
-  def unArchiveChannel(unarchivedChannel: ChannelUnarchive, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Future, GCResult] = {
+  def unArchiveChannel(unarchivedChannel: ChannelUnarchive, teamId: SlackTeamId)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem, persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver): OptionT[Task, GCResult] = {
     for {
-      wustUserData <- OptionT[Future, WustUserData](getOrCreateWustUser(unarchivedChannel.user))
-      teamNodeId <- OptionT[Future, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
-      wustChannelNodeId <- OptionT[Future, NodeId](persistenceAdapter.getChannelNodeBySlackId(unarchivedChannel.channel))
-      true <- OptionT[Future, Boolean](persistenceAdapter.unDeleteChannelBySlackId(unarchivedChannel.channel).map(Some(_)))
+      wustUserData <- OptionT[Task, WustUserData](getOrCreateWustUser(unarchivedChannel.user))
+      teamNodeId <- OptionT[Task, NodeId](persistenceAdapter.getTeamNodeBySlackId(teamId))
+      wustChannelNodeId <- OptionT[Task, NodeId](persistenceAdapter.getChannelNodeBySlackId(unarchivedChannel.channel))
+      true <- OptionT[Task, Boolean](persistenceAdapter.unDeleteChannelBySlackId(unarchivedChannel.channel).map(Some(_)))
     } yield {
       val changes = EventToGraphChangeMapper.unArchiveChannelInWust(
         wustChannelNodeId,
