@@ -118,6 +118,13 @@ workflows:
                 - master
                 - /rc-.*/
                 - circleci
+      - hold:
+          type: approval
+          requires:
+            - test-integration
+      - deploy:
+          requires:
+            - hold
 
   nightly:
     triggers:
