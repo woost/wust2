@@ -39,18 +39,6 @@ const log = wrapConsoleCall("log");
 const warn = wrapConsoleCall("warn");
 const error = wrapConsoleCall("error");
 
-Promise.prototype.flatMap = function(fun) {
-    let self = this;
-    return new Promise((resolve, reject) => {
-        self.then(result => fun(result).then(resolve, reject), reject);
-    });
-};
-Promise.prototype.map = function(fun) {
-    let self = this;
-    return new Promise((resolve, reject) => {
-        self.then(result => resolve(fun(result)), reject);
-    });
-};
 function requestPromise(request) {
     return new Promise((resolve, reject) => {
         request.onsuccess = e => resolve(request.result);
@@ -71,7 +59,7 @@ function db() {
 }
 
 function currentAuth() {
-    return db().flatMap(db => {
+    return db().then(db => {
         let transaction = db.transaction(["auth"], "readwrite");
         let store = transaction.objectStore("auth");
         return requestPromise(store.get(0));
@@ -119,15 +107,15 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
 // case the app will do this when request notification permissions.
 function subscribeWebPushAndPersist() {
     log("Subscribing to web push");
-    currentAuth().flatMap(currentAuth => {
+    currentAuth().then(currentAuth => {
         if (currentAuth) {
-            getPublicKey().flatMap(publicKey => publicKey.json().flatMap ( publicKeyJson => {
+            getPublicKey().then(publicKey => publicKey.json().then ( publicKeyJson => {
                 if (publicKey) {
                     log("publicKey: ", publicKey);
                     return self.registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
-                    }).map(sub => sendSubscriptionToBackend(sub, currentAuth));
+                    }).then(sub => sendSubscriptionToBackend(sub, currentAuth));
                 } else {
                     return Promise.reject("Cannot subscribe, no public key.");
                 }
@@ -160,7 +148,7 @@ self.addEventListener('push', e => {
     }
 
     e.waitUntil(
-        self.clients.matchAll({type: 'window'}).flatMap(clients => {
+        self.clients.matchAll({type: 'window'}).then(clients => {
             if (clients.length > 0) {
                 return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
             } else {
@@ -189,7 +177,7 @@ self.addEventListener('push', e => {
 self.addEventListener('notificationclick', e => {
     e.waitUntil(
         //which ones are the pwa ones, which ones live in the browser?
-        self.clients.matchAll({type: 'window'}).map(clients => {
+        self.clients.matchAll({type: 'window'}).then(clients => {
             if (clients.length > 0) {
                 //TODO: have preference?
                 clients[0].focus();
