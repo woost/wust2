@@ -505,7 +505,14 @@ object PageHeader {
         onClick(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
       ))
 
-    val items:List[VNode] = List(permissionItem, leaveItem).flatten
+    val deleteItem:Option[VNode] =
+      (bookmarked && !isOwnUser).ifTrueOption(div(
+        cls := "item",
+        span(cls := "text", "Delete Channel", cursor.pointer),
+        onClick(GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet).merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId))) --> state.eventProcessor.changes
+      ))
+
+    val items:List[VNode] = List(permissionItem, addMemberButton(state, channel).apply(buttonStyle), leaveItem, deleteItem).flatten
 
     if(items.nonEmpty)
       div(
