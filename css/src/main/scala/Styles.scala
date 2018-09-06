@@ -457,6 +457,23 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineFlex
   )
 
+  ".workflow .chatmsg-line .node-deleted" - (
+    opacity(0.5),
+    textDecoration := "line-through",
+  )
+
+  val selectedNodesBgColor = c"#85D5FF"
+  ".workflow .activeEditableControls" - (
+    margin(2 px),
+    backgroundColor(selectedNodesBgColor),
+    )
+
+  ".workflow .activeEditableControls li" - (
+    listStyle := "none",
+    display.inline,
+    margin(3 px),
+  )
+
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
@@ -781,7 +798,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
 
-  val selectedNodesBgColor = c"#85D5FF"
   ".selectednodes" - (
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
