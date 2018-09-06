@@ -62,7 +62,6 @@ object PageHeader {
   }
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
 
     val isSpecialNode = Rx{ channel.id == state.user().id || channel.id == state.user().channelNodeId }
     val isBookmarked = Rx {
@@ -71,15 +70,16 @@ object PageHeader {
         .children(state.user().channelNodeId)
         .contains(channel.id)
     }
+
+    val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
+
     div(
       Styles.flex,
       alignItems.center,
       flexWrap.wrap,
       minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
       Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))},
-      searchButton(state, channel).apply(buttonStyle),
       notifyControl(state, channel).apply(buttonStyle),
-      addMember(state, channel).apply(buttonStyle),
       shareButton(channel).apply(buttonStyle),
       Rx {settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)},
     )
@@ -213,7 +213,12 @@ object PageHeader {
 
     div(
       cls := "item",
-      freeSolid.faSearch,
+      i(
+        cls := "icon fa-fw",
+        freeSolid.faSearch,
+        marginRight := "5px",
+      ),
+      span(cls := "text", "Search", cursor.default),
       div(
         cls := "ui modal form",
         i(cls := "close icon"),
@@ -262,18 +267,16 @@ object PageHeader {
           searchModal() = Some(elem)
         },
       ),
-    onClick.map(_ => searchModal.now) --> sideEffect { m => 
-      println(m)
-      m.foreach{ elem =>
-        import semanticUi.JQuery._
-        $(elem).modal("toggle")
-      }},
+      onClick.map(_ => searchModal.now) --> sideEffect { m =>
+        println(m)
+        m.foreach{ elem =>
+          import semanticUi.JQuery._
+          $(elem).modal("toggle")
+        }},
     )
   }
 
   private def addMemberButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val showDialog = Var(false)
-    val activeDisplay = Rx { display := (if(showDialog()) "block" else "none") }
 
     val addMemberModal = PublishSubject[dom.html.Element]
     val addMember = PublishSubject[String]
@@ -312,7 +315,12 @@ object PageHeader {
 
     div(
       cls := "item",
-      freeSolid.faUserPlus,
+      i(
+        freeSolid.faUserPlus,
+        cls := "icon fa-fw",
+        marginRight := "5px",
+      ),
+      span(cls := "text", "Add Member", cursor.default),
       div(
         cls := "ui modal mini form",
         i(cls := "close icon"),
@@ -475,7 +483,11 @@ object PageHeader {
         case channel: Node.Content =>
           Some(div(
             cls := "item",
-            i(cls := "dropdown icon"),
+            i(
+              cls := "icon fa-fw",
+              freeSolid.faUserLock,
+              marginRight := "5px",
+            ),
             span(cls := "text", "Permissions", cursor.default),
             div(
               cls := "menu",
@@ -501,6 +513,11 @@ object PageHeader {
     val leaveItem:Option[VNode] =
       (bookmarked && !isOwnUser).ifTrueOption(div(
         cls := "item",
+        i(
+          cls := "icon fa-fw",
+          freeSolid.faSignOutAlt,
+          marginRight := "5px",
+        ),
         span(cls := "text", "Leave Channel", cursor.pointer),
         onClick(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
       ))
@@ -508,16 +525,22 @@ object PageHeader {
     val deleteItem:Option[VNode] =
       (bookmarked && !isOwnUser).ifTrueOption(div(
         cls := "item",
+        i(
+          cls := "icon fa-fw",
+          freeRegular.faTrashAlt,
+          marginRight := "5px",
+        ),
         span(cls := "text", "Delete Channel", cursor.pointer),
         onClick(GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet).merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId))) --> state.eventProcessor.changes
       ))
 
-    val items:List[VNode] = List(permissionItem, addMemberButton(state, channel).apply(buttonStyle), leaveItem, deleteItem).flatten
+    val items:List[VNode] = List(Some(searchButton(state, channel)), Some(addMemberButton(state, channel)), permissionItem, leaveItem, deleteItem).flatten
+
 
     if(items.nonEmpty)
       div(
         // https://semantic-ui.com/modules/dropdown.html#pointing
-        cls := "ui icon top left pointing dropdown",
+        cls := "ui icon top left labeled pointing dropdown",
         freeSolid.faCog,
         div(
           cls := "menu",
