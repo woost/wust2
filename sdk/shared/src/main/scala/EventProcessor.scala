@@ -5,6 +5,7 @@ import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
 import wust.api.ApiEvent._
 import wust.api._
+import wust.ids.NodeId
 import wust.graph._
 
 import scala.concurrent.Future
@@ -14,11 +15,12 @@ import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.PublishSubject
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
-import monix.execution.Ack.Continue
+import monix.execution.Ack
 import wust.ids.EdgeData
 
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
+import scala.collection.breakOut
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -211,9 +213,13 @@ class EventProcessor private (
     }
     .share
 
-  sendingChanges.foreach { c =>
-    println("[Events] Sending out changes done: " + c)
-  }
+  sendingChanges.subscribe(
+    { c =>
+      println("[Events] Sending out changes done: " + c)
+      Ack.Continue
+    },
+    err => scribe.error("[Events] Error sending out changes, cannot continue", err)
+  )
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
     .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
