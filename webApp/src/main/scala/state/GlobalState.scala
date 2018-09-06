@@ -64,6 +64,10 @@ class GlobalState (
     channelTree().flatten.distinct
   }
 
+  val addNodesInTransit = eventProcessor.changesInTransit
+    .map(changes => changes.flatMap(_.involvedNodeIds)(breakOut): Set[NodeId])
+    .unsafeToRx(Set.empty)
+
   val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>

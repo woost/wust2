@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -489,12 +490,26 @@ object ThreadView {
 
     val editable:Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
 
+    //TODO: how to kill rx after it became true? we do not need to be subscribed anymore thanVar
+    val isSynced: Rx[Boolean] = state.addNodesInTransit
+      .map(nodeIds => !nodeIds(nodeId))
 
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
+      Styles.flex,
+      flexDirection.row,
+      alignItems := "flex-end", //TODO SDT update
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
+
       // onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
-      Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) }
+      Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
+
+      isSynced.map { isSynced =>
+        val node: VNode = if (isSynced) freeSolid.faCheck
+        else freeRegular.faClock
+
+        node(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
+      }
     )
 
     val controls = div(
