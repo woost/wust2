@@ -271,7 +271,7 @@ object PageHeader {
     )
   }
 
-  private def addMember(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def addMemberButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
     val showDialog = Var(false)
     val activeDisplay = Rx { display := (if(showDialog()) "block" else "none") }
 
