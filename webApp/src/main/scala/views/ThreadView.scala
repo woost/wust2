@@ -222,7 +222,7 @@ object ThreadView {
 
 
               draggableAs(state, DragItem.DisableDrag),
-              cursor.default, // draggable sets cursor.move, but drag is disabled on page background
+              cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
               dragTarget(DragItem.Chat.Page(page.parentIds)),
               keyed
             )
@@ -399,7 +399,7 @@ object ThreadView {
 
             draggableAs(state, DragItem.DisableDrag),
             dragTarget(DragItem.Chat.Thread(nodeId)),
-            cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
+            cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
             keyed(nodeId)
           )
         )
@@ -509,7 +509,17 @@ object ThreadView {
         else freeRegular.faClock
 
         node(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
-      }
+      },
+
+
+      div(
+        cls := "draghandle",
+        paddingLeft := "8px",
+        paddingRight := "8px",
+        freeSolid.faEllipsisV,
+        color := "#666",
+        alignSelf.center,
+      )
     )
 
     val controls = div(
@@ -525,6 +535,9 @@ object ThreadView {
         Styles.flex,
         onClick.stopPropagation --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
+        // The whole line is draggable, so that it can also be a drag-target.
+        // This is currently a limit in the draggable library
+        cursor.auto, // else draggableAs sets class .draggable, which sets cursor.move
         editable.map { editable =>
           if(editable)
             draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
@@ -540,7 +553,6 @@ object ThreadView {
             draggableAs(state, payload())
           }
         },
-
         dragTarget(DragItem.Chat.Message(nodeId)),
 
         transformMessageCard(messageCard),

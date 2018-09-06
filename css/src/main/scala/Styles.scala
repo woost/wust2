@@ -382,7 +382,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-line" - (
-    cursor.move,
     alignItems.center,
     padding(2 px, 20 px, 2 px, 0 px)
   )
@@ -448,7 +447,6 @@ object CommonStyles extends StyleSheet.Standalone {
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
-    cursor.move, /* TODO: What about cursor when selecting text? */
     borderRadius(3 px),
     backgroundColor(nodeCardBackgroundColor),
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
