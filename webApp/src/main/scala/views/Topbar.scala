@@ -161,21 +161,22 @@ object Topbar {
       })
     })
 
-  def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
-    val prompt: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {
-      observer: Var[Option[dom.Event]] =>
-        dom.window.addEventListener(
-          "beforeinstallprompt", { e: dom.Event =>
-            e.preventDefault(); // Prevents immediate prompt display
-            dom.console.log("BEFOREINSTALLPROMPT: ", e)
-            observer() = Some(e)
-          }
-        );
-    }
+  // TODO: https://github.com/OutWatch/outwatch/issues/227
+  val beforeInstallPromptEvents: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {
+    observer: Var[Option[dom.Event]] =>
+      dom.window.addEventListener(
+        "beforeinstallprompt", { e: dom.Event =>
+          e.preventDefault(); // Prevents immediate prompt display
+          dom.console.log("BEFOREINSTALLPROMPT: ", e)
+          observer() = Some(e)
+        }
+      )
+  }
 
+  def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
     div(
       Rx {
-        prompt().map { e =>
+        beforeInstallPromptEvents().map { e =>
           button(cls := "tiny ui primary button", "Install as App", onClick --> sideEffect {
             e.asInstanceOf[js.Dynamic].prompt();
             ()
