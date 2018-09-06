@@ -1,5 +1,7 @@
 package marked
 
+import highlight._
+
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 
@@ -18,19 +20,19 @@ object Marked extends js.Object {
   def setOptions(options: MarkedOptions): Unit = js.native
 }
 
-@js.native
 trait MarkedOptions extends js.Object {
-  var renderer: Object = js.native
-  var gfm: Boolean = js.native
-  var tables: Boolean = js.native
-  var breaks: Boolean = js.native
-  var pedantic: Boolean = js.native
-  var sanitize: Boolean = js.native
-  var smartLists: Boolean = js.native
-  var silent: Boolean = js.native
-  def highlight(code: String, lang: String, callback: js.Function = ???): String = js.native
-  var langPrefix: String = js.native
-  var smartypants: Boolean = js.native
+  var renderer: js.UndefOr[js.Object] = js.undefined
+  var gfm: js.UndefOr[Boolean] = js.undefined
+  var tables: js.UndefOr[Boolean] = js.undefined
+  var breaks: js.UndefOr[Boolean] = js.undefined
+  var pedantic: js.UndefOr[Boolean] = js.undefined
+  var sanitize: js.UndefOr[Boolean] = js.undefined
+  var smartLists: js.UndefOr[Boolean] = js.undefined
+  var silent: js.UndefOr[Boolean] = js.undefined
+  var langPrefix: js.UndefOr[Boolean] = js.undefined
+  var smartypants: js.UndefOr[Boolean] = js.undefined
+  var highlight: js.UndefOr[js.Function2[String, js.UndefOr[String], String]] = js.undefined
+//  var highlight: js.UndefOr[js.Function1[HTMLElement, HTMLElement]] = js.undefined ???
 }
 
 object MarkedOptions {

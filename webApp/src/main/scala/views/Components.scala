@@ -1,21 +1,25 @@
 package wust.webApp.views
 
+import highlight._
 import monix.reactive.Observer
 import org.scalajs.dom
-import org.scalajs.dom.{document, window}
+import org.scalajs.dom.{console, document, window}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
-import marked.Marked
+import marked.{Marked, MarkedOptions}
+import org.scalajs.dom.raw.HTMLElement
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
+
+import scala.scalajs.js
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -33,6 +37,22 @@ object Rendered {
       wrap.innerHTML
     case NodeData.Link(url)          => s"<a href=$url>" //TODO
     case user: NodeData.User         => s"User: ${ user.name }"
+  }
+
+  def init(): Unit = {
+    Marked.setOptions(new MarkedOptions {
+      gfm = true
+      highlight = ((code: String, lang: js.UndefOr[String]) => { // Only gets called for code blocks
+        lang.toOption match {
+          case Some(l) => "<div class = \"hljs\">" + Highlight.highlight(l, code).value + "</div>"
+          case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
+        }
+      }): js.Function2[String, js.UndefOr[String], String]
+    })
+
+//    Highlight.configure(new HighlightOptions {
+//      tabReplace = "  "
+//    })
   }
 
   def trimToMaxLength(str: String, maxLength: Option[Int]): String = {

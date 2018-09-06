@@ -9,7 +9,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalStateFactory
 import wust.webApp.views.Elements._
-import wust.webApp.views.MainView
+import wust.webApp.views.{MainView, Rendered}
 
 import scala.scalajs.LinkingInfo
 
@@ -42,6 +42,7 @@ object Main {
     styleTag.innerHTML = wust.css.StyleRendering.renderAll
     // }
 
+    Rendered.init()
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
 
 
