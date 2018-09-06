@@ -155,7 +155,7 @@ self.addEventListener('push', e => {
                 let body = e.data ? e.data.text() : 'Push message no payload';
                 let options = {
                     body: body,
-                    icon: 'icon-192.png',
+                    icon: 'favicon.ico',
                     vibrate: [100, 50, 100],
                     data: {
                         dateOfArrival: Date.now(),
