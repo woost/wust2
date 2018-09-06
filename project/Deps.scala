@@ -104,8 +104,8 @@ object Deps {
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
   //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
 
-  val webpackVersion = "4.17.1"
-  val webpackDevServerVersion = "3.1.4"
+  val webpackVersion = "4.17.2"
+  val webpackDevServerVersion = "3.1.7"
 
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
@@ -124,16 +124,16 @@ object Deps {
         "html-webpack-plugin" -> "3.2.0" ::
         "html-webpack-include-assets-plugin" -> "1.0.4" ::
         "clean-webpack-plugin" -> "0.1.19" ::
-        "zopfli-webpack-plugin" -> "0.1.0" ::
-        "brotli-webpack-plugin" -> "0.5.0" ::
-        "source-map-loader" -> "0.2.3" ::
+        "compression-webpack-plugin" -> "2.0.0" ::
+        "@gfx/zopfli" -> "1.0.8" :: // zopfli compiled to webassembly
+        "brotli-webpack-plugin" -> "1.0.0" ::
         // "node-sass" -> "4.7.2" ::
         // "sass-loader" -> "6.0.7" ::
         "css-loader" -> "1.0.0" ::
-        "style-loader" -> "0.21.0" ::
+        "style-loader" -> "0.23.0" ::
         "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
-        "webpack-merge" -> "4.1.2" ::
-        "copy-webpack-plugin" -> "4.5.1" ::
+        "webpack-merge" -> "4.1.4" ::
+        "copy-webpack-plugin" -> "4.5.2" ::
         "workbox-webpack-plugin" -> "3.4.1" ::
         Nil
   }

@@ -1,7 +1,8 @@
 const Webpack = require('webpack');
 const CopyPlugin = require("copy-webpack-plugin");
 const CleanPlugin = require("clean-webpack-plugin");
-const ZopfliPlugin = require("zopfli-webpack-plugin");
+const CompressionPlugin = require("compression-webpack-plugin");
+const zopfli = require("@gfx/zopfli");
 const BrotliPlugin = require('brotli-webpack-plugin');
 const ClosureCompilerPlugin = require("webpack-closure-compiler");
 // const SriPlugin = require("webpack-subresource-integrity");
@@ -136,14 +137,18 @@ if(process.env.SOURCEMAPS == 'true') {
 // compression
 ////////////////////////////////////////
 var compressFiles = /\.(js|map|css|html|svg)$/;
-module.exports.plugins.push(new ZopfliPlugin({
-  asset: "[path].gz[query]",
-  algorithm: "zopfli",
+module.exports.plugins.push(new CompressionPlugin({
   test: compressFiles,
-  minRatio: 0.0
+  filename: "[path].gz[query]",
+  compressionOptions: {
+  },
+  algorithm(input, compressionOptions, callback) {
+      return zopfli.gzip(input, compressionOptions, callback);
+  },
+  minRatio: 1.0, // always compress
 }));
 module.exports.plugins.push(new BrotliPlugin({
-  asset: '[path].br[query]',
   test: compressFiles,
-  minRatio: 0.0
+  asset: '[path].br[query]',
+  minRatio: 1.0, // always compress
 }));

@@ -12,7 +12,6 @@ in
       ngrok # github app -> webhooks to localhost
       nodejs-9_x yarn
       phantomjs
-      gnumake gcc # required for some weird npm things
       # Dev tools
       #jetbrains.idea-community
       pgadmin

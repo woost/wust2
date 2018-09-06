@@ -78,6 +78,7 @@ lazy val commonSettings = Seq(
 
 lazy val commonWebSettings = Seq(
   useYarn := true, // makes scalajs-bundler use yarn instead of npm
+  yarnExtraArgs in Compile := Seq("--ignore-engines"), // ignoring, since javascript people seem to be too stupid to compare node versions. When version 9 is available and >= 8 is required, it fails. Affected: @gfx/node-zopfli
   scalacOptions += "-P:scalajs:sjsDefinedByDefault",
   scalacOptions ++= {
     if (isDevRun.?.value.getOrElse(false)) {
