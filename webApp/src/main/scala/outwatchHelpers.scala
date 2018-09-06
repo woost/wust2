@@ -9,7 +9,7 @@ import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
-import outwatch.dom.{AsValueObservable, Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.{Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, dsl}
 import outwatch.{AsVDomModifier, Sink}
 import rx._
 import wust.util.Empty
@@ -57,16 +57,22 @@ package object outwatchHelpers {
     Cancelable(() => obs.kill())
   }
 
-  implicit def asValueObservableRx(implicit ctx:Ctx.Owner): AsValueObservable[Rx] = new AsValueObservable[Rx] {
-    override def as[T](stream: Rx[T]): ValueObservable[T] = new ValueObservable[T] {
-      override def observable: Observable[T] = stream.toLaterObservable
-      override def value: Option[T] = Some(stream.now)
-    }
-  }
+  implicit def rxAsVDomModifier[T: AsVDomModifier](implicit ctx: Ctx.Owner): AsVDomModifier[Rx[T]] =
+    (value: Rx[T]) => VDomModifier.stream(value.toLaterObservable.map(VDomModifier(_)), VDomModifier(value.now))
 
   implicit class RichEmitterBuilder[E, O, R](val eb: EmitterBuilder[E, O, R]) extends AnyVal {
     //TODO: scala.rx have a contravariant trait for writing-only
     def -->(rxVar: Var[_ >: O])(implicit ctx: Ctx.Owner): IO[R] = eb --> rxVar.toSink
+  }
+  implicit class RichAttributeEmitterBuilder[-T, +A <: Attribute](val ab: AttributeBuilder[T, A])
+      extends AnyVal {
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner): IO[ModifierStreamReceiver] = ab <-- (valueStream.toLaterObservable, valueStream.now)
+  }
+  implicit class RichStyle[T](val ab: Style[T]) extends AnyVal {
+    import outwatch.dom.StyleIsBuilder
+    //TODO: make outwatch AttributeStreamReceiver public to allow these kinds of builder conversions?
+    def <--(valueStream: Rx[T])(implicit ctx: Ctx.Owner): IO[ModifierStreamReceiver] =
+      StyleIsBuilder[T](ab) <-- (valueStream.toLaterObservable, valueStream.now)
   }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
