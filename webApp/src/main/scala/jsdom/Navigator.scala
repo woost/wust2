@@ -16,17 +16,18 @@ object Navigator {
   // def share: Option[ShareFunction] = window.navigator.asInstanceOf[NavigatorWithShare].share.toOption
   object share {
     private val n = dom.window.navigator.asInstanceOf[js.Dynamic]
-    private def share = n.share.asInstanceOf[js.UndefOr[js.Dynamic]]
-    def isDefined = share.isDefined
-    def apply(data: ShareData): js.Promise[Unit] = share.get(data).asInstanceOf[js.Promise[Unit]]
+    def isDefined = n.share.asInstanceOf[js.UndefOr[js.Dynamic]].isDefined
+    // It is important to call n.share on the n-object. so that the share
+    // function in js has its this pointer correctly set to Navigator.
+    def apply(data: ShareData): js.Promise[Unit] = n.share(data).asInstanceOf[js.Promise[Unit]]
   }
 
   // test share button: as navigator share is not defined on desktop browsers
   // DevOnly {
-  //   dom.window.navigator.asInstanceOf[js.Dynamic].share = { (data: ShareData) =>
-  //     console.log("Share function called", data)
-  //     js.Promise.resolve[Unit](())
-  //   }: ShareData => js.Promise[Unit]
+    // dom.window.navigator.asInstanceOf[js.Dynamic].share = { (thisObj: js.Any, data: ShareData) =>
+    //   org.scalajs.dom.console.log("Share function called", data, thisObj)
+    //   js.Promise.resolve[Unit](())
+    // }: js.ThisFunction1[js.Any, ShareData, js.Promise[Unit]]
   // }
 }
 
