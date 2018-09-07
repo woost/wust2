@@ -200,7 +200,7 @@ object PageHeader {
       )
 
       div(
-        s"Found ${searchRes.length} results in ${if(globalSearchScope) "all channels" else "the current channel"} ",
+        s"Found ${searchRes.length} result(s) in ${if(globalSearchScope) "all channels" else "the current channel"} ",
         padding := "5px 0",
         fontWeight.bold,
         div(
@@ -238,16 +238,22 @@ object PageHeader {
             paddingBottom := "5px",
           ),
           div(
+            cls := "ui search",
             div(
-              cls := "ui fluid action input",
+              cls := "ui input action",
               input(
-                placeholder := "Enter search",
+                cls := "prompt",
+                placeholder := "Enter search text",
                 Elements.valueWithEnter --> searchLocal,
                 onChange.value --> searchInputProcess
               ),
               div(
-                cls := "ui primary button approve",
-                "Search",
+                cls := "ui primary icon button approve",
+                i(
+                  cls := "icon",
+                  freeSolid.faSearch,
+                ),
+                span(cls := "text", "Search", marginLeft := "5px", cursor.pointer),
                 onClick(searchInputProcess) --> searchLocal
               ),
             ),
