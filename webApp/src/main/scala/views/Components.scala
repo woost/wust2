@@ -18,6 +18,7 @@ import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
+import emojijs.EmojiConvertor
 
 import scala.scalajs.js
 
@@ -27,6 +28,8 @@ object Placeholders {
 }
 
 object Rendered {
+  val emoji = new EmojiConvertor()
+
   val htmlPostData: NodeData => String = {
     case NodeData.Markdown(content)  => mdString(content)
     case NodeData.PlainText(content) =>
@@ -50,6 +53,12 @@ object Rendered {
       }): js.Function2[String, js.UndefOr[String], String]
     })
 
+    emoji.img_sets.apple.sheet = "/emoji-datasource/sheet_apple_32.png"
+    emoji.img_sets.apple.sheet_size = 32
+    emoji.img_set = "apple"
+    emoji.use_sheet = true
+    emoji.init_env()
+
 //    Highlight.configure(new HighlightOptions {
 //      tabReplace = "  "
 //    })
@@ -71,8 +80,9 @@ object Rendered {
     case user: NodeData.User         => div(user.name)
   }
 
-  def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def mdString(str: String): String = Marked(str)
+
+  def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(emoji.replace_colons(str)))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def mdString(str: String): String = Marked(emoji.replace_colons(str))
 }
 
 object Components {

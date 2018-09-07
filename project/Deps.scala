@@ -114,6 +114,8 @@ object Deps {
     val dateFns = "date-fns" -> "v2.0.0-alpha.16"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.7"
     val fomanticUi = "fomantic-ui-css" -> "2.4.4"
+    val emoji = "emoji-js" -> "3.4.1"
+    val emojiData = "emoji-datasource" -> "4.1.0"
 
     //TODO open PR at snabbdom for checking-parent-exists branch
     val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.1"

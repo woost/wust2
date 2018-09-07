@@ -397,6 +397,8 @@ lazy val webApp = project
         Deps.npm.snabbdom ::
         Deps.npm.fomanticUi ::
         Deps.npm.highlight ::
+        Deps.npm.emoji ::
+        Deps.npm.emojiData ::
         Nil
   )
 

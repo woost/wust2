@@ -970,6 +970,21 @@ object CommonStyles extends StyleSheet.Standalone {
     borderTop(2 px, solid, white),
     borderBottom(1 px, solid, transparent)
   )
+
+  ".emoji-outer" - (
+    width(1 em),
+    height(1 em),
+    display.inlineBlock,
+  )
+  ".emoji-inner" - (
+    display.inlineBlock,
+    width(100 %%),
+    height(100 %%),
+    verticalAlign.bottom,
+  )
+  ".emoji-sizer" - (
+    fontSize.medium,
+  )
 }
 
 object StyleRendering {

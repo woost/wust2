@@ -11,6 +11,7 @@ import wust.ids._
 import wust.sdk._
 import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Rendered
 import wust.webApp.{Client, DevOnly}
 
 import scala.collection.breakOut
@@ -157,7 +158,7 @@ object GlobalStateFactory {
       if (!state.documentIsVisible.now && nodes.nonEmpty) {
         val title =
           if (nodes.size == 1) "New Node" else s"New Nodes (${nodes.size})"
-        val body = nodes.map(_.data.str).mkString(", ")
+        val body = nodes.map(n => Rendered.emoji.replace_colons(n.data.str)).mkString(", ")
         Notifications.notify(title, body = Some(body), tag = Some("new-node"))
       }
     }
