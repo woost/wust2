@@ -1,6 +1,8 @@
 target/
 /phantomjsdriver.log
 /*-backup.sql*
+/.sql_checksum
+/.yarn-offline-cache
 
 /.idea
 /.git
