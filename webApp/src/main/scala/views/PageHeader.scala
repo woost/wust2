@@ -80,7 +80,6 @@ object PageHeader {
       minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
       Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))},
       notifyControl(state, channel).apply(buttonStyle),
-      shareButton(channel).apply(buttonStyle),
       Rx {settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)},
     )
   }
@@ -116,8 +115,14 @@ object PageHeader {
     val urlHolder = textArea(id := urlHolderId, height := "0px", width := "0px", opacity := 0, border := "0px", padding := "0px", fontSize := "0px", zIndex := 100, position.absolute)
 
     div(
+      cls := "item",
+      i(
+        cls := "icon fa-fw",
+        freeSolid.faShareAlt,
+        marginRight := "5px",
+      ),
+      span(cls := "text", "Share Link", cursor.pointer),
       urlHolder,
-      freeSolid.faShareAlt,
       onClick --> sideEffect {
         scribe.info(s"sharing post: $channel")
 
@@ -218,7 +223,7 @@ object PageHeader {
         freeSolid.faSearch,
         marginRight := "5px",
       ),
-      span(cls := "text", "Search", cursor.default),
+      span(cls := "text", "Search", cursor.pointer),
       div(
         cls := "ui modal form",
         i(cls := "close icon"),
@@ -320,7 +325,7 @@ object PageHeader {
         cls := "icon fa-fw",
         marginRight := "5px",
       ),
-      span(cls := "text", "Add Member", cursor.default),
+      span(cls := "text", "Add Member", cursor.pointer),
       div(
         cls := "ui modal mini form",
         i(cls := "close icon"),
@@ -488,7 +493,7 @@ object PageHeader {
               freeSolid.faUserLock,
               marginRight := "5px",
             ),
-            span(cls := "text", "Permissions", cursor.default),
+            span(cls := "text", "Set Permissions", cursor.pointer),
             div(
               cls := "menu",
               PermissionSelection.all.map { selection =>
@@ -534,7 +539,7 @@ object PageHeader {
         onClick(GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet).merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId))) --> state.eventProcessor.changes
       ))
 
-    val items:List[VNode] = List(Some(searchButton(state, channel)), Some(addMemberButton(state, channel)), permissionItem, leaveItem, deleteItem).flatten
+    val items:List[VNode] = List(Some(searchButton(state, channel)), Some(addMemberButton(state, channel)), Some(shareButton(channel)), permissionItem, leaveItem, deleteItem).flatten
 
 
     if(items.nonEmpty)
