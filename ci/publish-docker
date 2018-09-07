@@ -17,5 +17,5 @@ docker push "$DOCKER_REGISTRY/woost/web"
 docker push "$DOCKER_REGISTRY/woost/slack"
 
 [[ "$CIRCLE_BRANCH" == "master" ]] && [[ -n "$STAGING_URL" ]] || exit 0
-
+echo "Triggering deploy..."
 curl "$STAGING_URL" 2> /dev/null
