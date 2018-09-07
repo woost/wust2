@@ -68,7 +68,7 @@ object ChatView {
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
       div(
-        chatMessageLine(meta, nodeId, msgControls, currentlyEditable, showTags = false, transformMessageCard = { messageCard =>
+        chatMessageLine(meta, nodeId, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
             val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
             val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex

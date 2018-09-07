@@ -64,6 +64,13 @@ object ThreadView {
     case class Group(nodeIds: Seq[NodeId]) extends ChatKind
   }
 
+  sealed trait ThreadVisibility
+  object ThreadVisibility {
+    case object Expanded extends ThreadVisibility
+    case object Collapsed extends ThreadVisibility
+    case object Plain extends ThreadVisibility
+  }
+
   case class MessageMeta(
     state: GlobalState,
     graph: Graph,
@@ -113,7 +120,10 @@ object ThreadView {
       val state = meta.state
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
-        replyButton(action = { () => activeReplyFields.update(_ + (nodeId :: meta.path)) }),
+        replyButton(action = { () => 
+          activeReplyFields.update(_ + (nodeId :: meta.path))
+          state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
+        }),
         editButton(state, editable),
         deleteButton(state, nodeId, directParentIds),
         zoomButton(state, nodeId :: Nil)
@@ -366,56 +376,67 @@ object ThreadView {
     import meta._
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
-    val showThread = Rx {
+
+    val threadVisibility = Rx {
       // this is a separate Rx, to prevent rerendering of the whole thread, when only replyFieldActive changes.
       val replyFieldActive = activeReplyFields() contains (nodeId :: path)
-      isThread || replyFieldActive
+      val userExpandedNodes = graph.expandedNodes(state.user().id)
+      val r = if(replyFieldActive) ThreadVisibility.Expanded
+      else if (isThread && !userExpandedNodes(nodeId)) ThreadVisibility.Collapsed
+      else if (isThread) ThreadVisibility.Expanded
+      else ThreadVisibility.Plain
+      println(s"${graph.nodesById(nodeId).str} $r")
+      r
     }
+
     Rx {
-      if(showThread()) {
-        val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
-        div(
-          backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
-          keyed(nodeId),
-          chatMessageLine(meta, nodeId, msgControls, currentlyEditing, transformMessageCard = _ (
-            boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
-          )),
+      threadVisibility() match {
+        case ThreadVisibility.Collapsed =>
+          chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Collapsed)
+        case ThreadVisibility.Expanded =>
+          val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
           div(
-            cls := "chat-thread",
-            borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
+            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
+            keyed(nodeId),
+            chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Expanded, transformMessageCard = _ (
+              boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
+            )),
+            div(
+              cls := "chat-thread",
+              borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
 
-            groupNodes(graph, children, state, currentUserId)
-              .map(kind => renderGroupedMessages(
-                kind.nodeIds,
-                meta.copy(
-                  alreadyVisualizedParentIds = alreadyVisualizedParentIds + nodeId,
-                  path = nodeId :: path,
-                  directParentIds = Set(nodeId),
-                ),
-                Rx(avatarSizeThread),
-              )),
+              groupNodes(graph, children, state, currentUserId)
+                .map(kind => renderGroupedMessages(
+                  kind.nodeIds,
+                  meta.copy(
+                    alreadyVisualizedParentIds = alreadyVisualizedParentIds + nodeId,
+                    path = nodeId :: path,
+                    directParentIds = Set(nodeId),
+                  ),
+                  Rx(avatarSizeThread),
+                )),
 
-            replyField(state, nodeId, directParentIds, path, activeReplyFields),
+              replyField(state, nodeId, directParentIds, path, activeReplyFields),
 
-            draggableAs(state, DragItem.DisableDrag),
-            dragTarget(DragItem.Chat.Thread(nodeId)),
-            cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
-            keyed(nodeId)
+              draggableAs(state, DragItem.DisableDrag),
+              dragTarget(DragItem.Chat.Thread(nodeId)),
+              cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
+              keyed(nodeId)
+            )
           )
-        )
+        case ThreadVisibility.Plain =>
+          if(inCycle)
+                chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = _ (
+                  Styles.flex,
+                  alignItems.center,
+                  freeSolid.faSyncAlt,
+                  paddingRight := "3px",
+                  backgroundColor := "#CCC",
+                  color := "#666",
+                  boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+                ))
+          else chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain)
       }
-      else if(inCycle)
-             chatMessageLine(meta, nodeId, msgControls, currentlyEditing, transformMessageCard = _ (
-               Styles.flex,
-               alignItems.center,
-               freeSolid.faSyncAlt,
-               paddingRight := "3px",
-               backgroundColor := "#CCC",
-               color := "#666",
-               boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-             ))
-      else
-        chatMessageLine(meta, nodeId, msgControls, currentlyEditing)
     }
   }
 
@@ -479,7 +500,7 @@ object ThreadView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[NodeId]], showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
+  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[NodeId]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
@@ -556,6 +577,7 @@ object ThreadView {
         dragTarget(DragItem.Chat.Message(nodeId)),
 
         transformMessageCard(messageCard),
+        expandCollapseButton(meta, nodeId, threadVisibility),
         showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeId, alreadyVisualizedParentIds)),
         Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic)) }
       )
@@ -601,6 +623,20 @@ object ThreadView {
       onClick.stopPropagation(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
       cursor.pointer,
     )
+
+  def expandCollapseButton(meta: MessageMeta, nodeId: NodeId, threadVisibility: ThreadVisibility)(implicit ctx: Ctx.Owner): VNode = threadVisibility match {
+    case ThreadVisibility.Expanded =>
+      div(
+        cls := "ui mini blue label", "-", marginLeft := "10px",
+        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
+        cursor.pointer)
+    case ThreadVisibility.Collapsed =>
+      div(
+        cls := "ui mini blue label", "+" + meta.graph.children(nodeId).size, marginLeft := "10px",
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
+        cursor.pointer)
+    case ThreadVisibility.Plain => div()
+  }
 
   def zoomButton(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(

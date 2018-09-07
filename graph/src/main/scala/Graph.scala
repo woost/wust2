@@ -46,6 +46,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     deletedParents:       collection.Map[NodeId, collection.Set[NodeId]],
     deletedChildren:      collection.Map[NodeId, collection.Set[NodeId]],
     staticParentIn:       collection.Map[NodeId, collection.Set[NodeId]],
+    expandedNodes:       collection.Map[UserId, collection.Set[NodeId]],
     authorshipsByNodeId:  collection.Map[NodeId, List[Edge.Author]],
     membershipsByNodeId:  collection.Map[NodeId, List[Edge.Member]],
     allAuthorIds:         collection.Set[UserId], //TODO: List?
@@ -82,6 +83,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val staticParentIn = mutable
       .HashMap[NodeId, collection.Set[NodeId]]()
       .withDefaultValue(mutable.HashSet.empty[NodeId])
+    val expandedNodes = mutable
+      .HashMap[UserId, collection.Set[NodeId]]()
+      .withDefaultValue(mutable.HashSet.empty[NodeId])
 
     val authorshipsByNodeId = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
     val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
@@ -117,6 +121,8 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
         staticParentIn(childId) += parentId
       case e: Edge.Label =>
         labeledEdges += e
+      case Edge.Expanded(userId, nodeId) =>
+        expandedNodes(userId) += nodeId
       case _ =>
     }
 
@@ -158,6 +164,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       deletedParents,
       deletedChildren,
       staticParentIn,
+      expandedNodes,
       authorshipsByNodeId,
       membershipsByNodeId,
       allAuthorIds,

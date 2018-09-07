@@ -41,6 +41,12 @@ object Edge {
     def data = EdgeData.StaticParentIn
   }
 
+  case class Expanded(userId: UserId, nodeId: NodeId) extends Content {
+    def sourceId = userId
+    def targetId = nodeId
+    def data = EdgeData.Expanded
+  }
+
   case class Notify(nodeId: NodeId, userId: UserId)
       extends Content {
     def sourceId = nodeId
@@ -53,9 +59,10 @@ object Edge {
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
     case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
     case data: EdgeData.Member        => new Edge.Member(UserId(sourceId), data, targetId)
-    case data: EdgeData.Parent              => new Edge.Parent(sourceId, data, targetId)
+    case data: EdgeData.Parent        => new Edge.Parent(sourceId, data, targetId)
     case EdgeData.StaticParentIn      => new Edge.StaticParentIn(sourceId, targetId)
     case data: EdgeData.Label         => new Edge.Label(sourceId, data, targetId)
     case EdgeData.Notify              => new Edge.Notify(sourceId, UserId(targetId))
+    case EdgeData.Expanded             => new Edge.Expanded(UserId(sourceId), targetId)
   }
 }
