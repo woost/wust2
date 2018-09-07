@@ -54,18 +54,18 @@ module.exports.optimization = {
 };
 
 process.env._JAVA_OPTIONS = "-Xms128M -Xmx400M";
-module.exports.plugins.push(new ClosureCompilerPlugin({
-  compiler: {
-    language_in: 'ECMASCRIPT6',
-    language_out: 'ECMASCRIPT5',
-    compilation_level: 'SIMPLE', //TODO: ADVANCED
-    // process_common_js_modules: true,
-    // jscomp_off: 'checkVars',
-    warning_level: 'DEFAULT',
-    create_source_map: (process.env.SOURCEMAPS == 'true')
-  },
-  concurrency: 1
-}));
+// module.exports.plugins.push(new ClosureCompilerPlugin({
+//   compiler: {
+//     language_in: 'ECMASCRIPT6',
+//     language_out: 'ECMASCRIPT5',
+//     compilation_level: 'SIMPLE', //TODO: ADVANCED
+//     // process_common_js_modules: true,
+//     // jscomp_off: 'checkVars',
+//     warning_level: 'DEFAULT',
+//     create_source_map: (process.env.SOURCEMAPS == 'true')
+//   },
+//   concurrency: 1
+// }));
 
 ////////////////////////////////////////
 // html template generate index.html
@@ -135,15 +135,15 @@ if(process.env.SOURCEMAPS == 'true') {
 ////////////////////////////////////////
 // compression
 ////////////////////////////////////////
-var compressFiles = /\.(js|map|css|html|svg)$/;
-module.exports.plugins.push(new ZopfliPlugin({
-  asset: "[path].gz[query]",
-  algorithm: "zopfli",
-  test: compressFiles,
-  minRatio: 0.0
-}));
-module.exports.plugins.push(new BrotliPlugin({
-  asset: '[path].br[query]',
-  test: compressFiles,
-  minRatio: 0.0
-}));
+// var compressFiles = /\.(js|map|css|html|svg)$/;
+// module.exports.plugins.push(new ZopfliPlugin({
+//   asset: "[path].gz[query]",
+//   algorithm: "zopfli",
+//   test: compressFiles,
+//   minRatio: 0.0
+// }));
+// module.exports.plugins.push(new BrotliPlugin({
+//   asset: '[path].br[query]',
+//   test: compressFiles,
+//   minRatio: 0.0
+// }));

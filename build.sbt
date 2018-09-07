@@ -121,6 +121,7 @@ lazy val webSettings = Seq(
   webpackBundlingMode in fastOptJS := BundlingMode
     .LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
   webpackDevServerExtraArgs := Seq("--progress", "--color"),
+  webpackExtraArgs in fullOptJS := Seq("--verbose", "--info-verbosity", "verbose"),
   // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
   // a folder which is served and watched by the webpack devserver.
   // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
