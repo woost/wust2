@@ -155,10 +155,10 @@ object GlobalStateFactory {
         .foldLeft(GraphChanges.empty)(_ merge _)
       val nodes = changes.addNodes.collect { case n: Node.Content => n } // only notify for content changes
       if (!state.documentIsVisible.now && nodes.nonEmpty) {
-        val msg =
-          if (nodes.size == 1) "New Node" else s"New Node (${nodes.size})"
-        val body = nodes.map(_.data).mkString(", ")
-        Notifications.notify(msg, body = Some(body), tag = Some("new-node"))
+        val title =
+          if (nodes.size == 1) "New Node" else s"New Nodes (${nodes.size})"
+        val body = nodes.map(_.data.str).mkString(", ")
+        Notifications.notify(title, body = Some(body), tag = Some("new-node"))
       }
     }
 
