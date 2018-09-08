@@ -78,15 +78,7 @@ package object outwatchHelpers {
       h
     }
 
-    def toSink(implicit ctx: Ctx.Owner): Observer[T] = {
-
-      Sink
-        .create[T] { event =>
-          rxVar.update(event)
-          Ack.Continue
-        }
-        .unsafeRunSync()
-    }
+    def toSink(implicit ctx: Ctx.Owner): Observer[T] = new VarObserver(rxVar)
   }
 
   implicit class RichVNode(val vNode: VNode) {
