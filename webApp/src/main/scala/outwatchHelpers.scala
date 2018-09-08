@@ -51,6 +51,9 @@ package object outwatchHelpers {
     def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
       rx.foreach(x => println(print(x)))
     }
+
+    //TODO: add to scala-rx in an efficient macro
+    def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.filter(f.isDefinedAt _).map(f)
   }
 
   implicit def obsToCancelable(obs: Obs): Cancelable = {

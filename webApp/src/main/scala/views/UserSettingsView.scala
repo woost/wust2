@@ -33,20 +33,18 @@ object UserSettingsView {
     )
   }
 
-  private def accountSettings(user: UserInfo): VNode = div(
+  private def accountSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
     width := "200px",
     b("Account settings"),
     br(),
     changePassword(user)
   )
 
-  private def changePassword(user: UserInfo) = for {
+  private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = for {
     password <- Handler.create[String]
-    valueHandler <- Handler.create[String]
+    successHandler = Var(true)
     actionSink = sideEffect[String] { password =>
-      Client.auth.changePassword(password).foreach { success =>
-        if (success) valueHandler.onNext("")
-      }
+      Client.auth.changePassword(password).foreach(successHandler() = _)
     }
     modifiers <- VDomModifier(
       div(
@@ -54,10 +52,17 @@ object UserSettingsView {
         input(
           placeholder := "New password",
           tpe := "password",
-          value <-- valueHandler,
+          value <-- successHandler.collect { case true => "" },
           onChange.value --> password,
           onEnter.value --> actionSink)
       ),
+      successHandler.map {
+        case true => VDomModifier.empty
+        case false => div(
+          cls := "ui negative message",
+          div(cls := "header", s"Changing password failed.")
+        )
+      },
       button(
         "Change Password",
         cls := "ui fluid primary button",
