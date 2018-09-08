@@ -44,6 +44,7 @@ trait PushApi[Result[_]] {
 
 @PathName("Auth")
 trait AuthApi[Result[_]] {
+  def changePassword(password: String): Result[Boolean]
   def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
   def register(name: String, password: String): Result[AuthResult]
   def login(name: String, password: String): Result[AuthResult]

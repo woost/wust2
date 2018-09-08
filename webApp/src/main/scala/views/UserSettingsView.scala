@@ -10,6 +10,7 @@ import wust.css.Styles
 import wust.ids._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
+import Elements._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 
@@ -25,11 +26,46 @@ object UserSettingsView {
         val user = state.user()
         VDomModifier(
           header(user)(marginBottom := "50px"),
+          accountSettings(user),
           Observable.fromFuture(slackButton(user)),
         )
       }
     )
   }
+
+  private def accountSettings(user: UserInfo): VNode = div(
+    width := "200px",
+    b("Account settings"),
+    br(),
+    changePassword(user)
+  )
+
+  private def changePassword(user: UserInfo) = for {
+    password <- Handler.create[String]
+    valueHandler <- Handler.create[String]
+    actionSink = sideEffect[String] { password =>
+      Client.auth.changePassword(password).foreach { success =>
+        if (success) valueHandler.onNext("")
+      }
+    }
+    modifiers <- VDomModifier(
+      div(
+        cls := "ui fluid input",
+        input(
+          placeholder := "New password",
+          tpe := "password",
+          value <-- valueHandler,
+          onChange.value --> password,
+          onEnter.value --> actionSink)
+      ),
+      button(
+        "Change Password",
+        cls := "ui fluid primary button",
+        display.block,
+        onClick(password) --> actionSink
+      )
+    )
+  } yield modifiers
 
   private def header(user: UserInfo): VNode = {
     div(

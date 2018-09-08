@@ -15,6 +15,11 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     extends AuthApi[ApiFunction] {
   import dsl._
 
+  def changePassword(password: String): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
+    val digest = passwordDigest(password)
+    db.user.changePassword(user.id, digest).map(Returns(_))
+  }
+
   //TODO: some password checks
   def register(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
