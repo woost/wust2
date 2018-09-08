@@ -13,6 +13,7 @@ import wust.webApp.outwatchHelpers._
 import Elements._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
+import cats.effect.IO
 
 import scala.concurrent.Future
 
@@ -42,17 +43,19 @@ object UserSettingsView {
 
   private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = for {
     password <- Handler.create[String]
-    successHandler = Var(true)
+    successHandler <- Handler.create(true)
+    clearHandler = successHandler.collect { case true => "" }
     actionSink = sideEffect[String] { password =>
-      Client.auth.changePassword(password).foreach(successHandler() = _)
+      if (password.nonEmpty) Client.auth.changePassword(password).foreach(successHandler.onNext)
     }
     modifiers <- VDomModifier(
       div(
+        managed(IO(clearHandler.subscribe(password))),
         cls := "ui fluid input",
         input(
           placeholder := "New password",
           tpe := "password",
-          value <-- successHandler.collect { case true => "" },
+          value <-- clearHandler,
           onChange.value --> password,
           onEnter.value --> actionSink)
       ),
