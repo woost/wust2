@@ -267,7 +267,7 @@ object PageHeader {
             search,
           ),
         ),
-        onDomElementChange.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml --> sideEffect { elem =>
           import semanticUi.JQuery._
           $(elem).modal(new ModalOptions {
             //          blurring = true
@@ -399,7 +399,7 @@ object PageHeader {
             }
           )
         ),
-        onDomElementChange.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml --> sideEffect { elem =>
           import semanticUi.JQuery._
           $(elem).modal(new ModalOptions {
             //          blurring = true
@@ -559,7 +559,7 @@ object PageHeader {
           items
         ),
         // https://semantic-ui.com/modules/dropdown.html#/usage
-        onInsert.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml --> sideEffect { elem =>
           import semanticUi.JQuery._
           $(elem).dropdown()
         },

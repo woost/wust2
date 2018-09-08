@@ -243,7 +243,7 @@ object ThreadView {
             isScrolledToBottom() = wasScrolledToBottom
           }
         },
-        onPostPatch --> sideEffect {
+        onDomUpdate --> sideEffect {
           scrollableHistoryElem.now.foreach { elem =>
             if(isScrolledToBottom.now)
               defer { scrollToBottom(elem) }
@@ -251,7 +251,7 @@ object ThreadView {
         }
       ),
       overflow.auto,
-      onDomElementChange.asHtml --> sideEffect { elem =>
+      onDomMount.asHtml --> sideEffect { elem =>
         if(isScrolledToBottom.now)
           defer { scrollToBottom(elem) }
         scrollableHistoryElem() = Some(elem)
@@ -709,7 +709,7 @@ object ThreadView {
           state.eventProcessor.changes.onNext(changes)
           submittedNewMessage.onNext(Unit)
         },
-        focusOnInsert.ifTrue[VDomModifier](onInsert.asHtml --> sideEffect { e => e.focus() }),
+        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> sideEffect { e => e.focus() }),
         onBlur.value --> sideEffect { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD

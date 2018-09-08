@@ -204,14 +204,14 @@ object Components {
   def draggableAs(state: GlobalState, payload: => DragPayload): VDomModifier = {
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      onDomElementChange.asHtml --> sideEffect{ elem =>
+      onDomMount.asHtml --> sideEffect{ elem =>
         writeDragPayload(elem, payload)
       }
     )
   }
 
   def dragTarget(dragTarget: DragTarget) = {
-    onDomElementChange.asHtml --> sideEffect{ elem =>
+    onDomMount.asHtml --> sideEffect{ elem =>
       writeDragTarget(elem, dragTarget)
     }
   }
@@ -220,11 +220,11 @@ object Components {
     //    border := "2px solid blue",
     outline := "none", // hides focus outline
     cls := "draggable-container",
-    onInsert.asHtml --> sideEffect { elem =>
+    onDomMount.asHtml --> sideEffect { elem =>
       //      console.log("Adding Draggable Container:", elem)
       state.draggable.addContainer(elem)
     },
-    onDestroy.asHtml --> sideEffect { elem =>
+    onDomUnmount.asHtml --> sideEffect { elem =>
       state.draggable.removeContainer(elem)
     }
   )
@@ -234,14 +234,11 @@ object Components {
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
-      onDomElementChange.asHtml --> sideEffect { elem =>
+      onDomMount.asHtml --> sideEffect { elem =>
         writeDragContainer(elem, container)
-      },
-      onInsert.asHtml --> sideEffect { elem =>
-        //        console.log("Adding Sortable Container:", elem)
         state.sortable.addContainer(elem)
       },
-      onDestroy.asHtml --> sideEffect { elem =>
+      onDomUnmount.asHtml --> sideEffect { elem =>
         state.sortable.removeContainer(elem)
       }
     )
@@ -306,7 +303,7 @@ object Components {
           color := "#000",
           cursor.auto,
 
-          onPostPatch.asHtml --> sideEffect { (_, node) => if(editable.now) node.focus() },
+          onDomUpdate.asHtml --> sideEffect { node => if(editable.now) node.focus() },
 
           onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
           onBlur --> sideEffect { discardChanges() },

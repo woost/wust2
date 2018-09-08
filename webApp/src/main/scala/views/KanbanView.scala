@@ -93,7 +93,7 @@ object KanbanView {
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onInsert.asHtml --> sideEffect { elem => elem.focus() },
+              onDomMount.asHtml --> sideEffect { elem => elem.focus() },
               onBlur.value --> sideEffect { v => if(v.isEmpty) fieldActive() = false }
             )
           )
@@ -251,7 +251,7 @@ object KanbanView {
                 val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onInsert.asHtml --> sideEffect { elem => elem.focus() },
+              onDomMount.asHtml --> sideEffect { elem => elem.focus() },
               onBlur.value --> sideEffect { v => if(v.isEmpty) activeReplyFields.update(_ - parentId) }
             )
           )

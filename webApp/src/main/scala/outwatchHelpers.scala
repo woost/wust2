@@ -163,12 +163,6 @@ package object outwatchHelpers {
   }
 
 
-  //TODO: put in outwatch?
-  val onDomElementChange: CustomEmitterBuilder[Element, Modifier] = CustomEmitterBuilder[dom.Element, Modifier](sink => VDomModifier(
-    outwatch.dom.dsl.onInsert --> sink,
-    outwatch.dom.dsl.onPostPatch.map(_._2) --> sink
-  ))
-
   //TODO: put in outwatch
   implicit class TypedElements[E <: Element, H](builder: EmitterBuilder[E, E, H]) {
     def asHtml: EmitterBuilder[E, dom.html.Element, H] = builder.map(_.asInstanceOf[dom.html.Element])

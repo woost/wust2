@@ -56,7 +56,7 @@ object AuthView {
               display.block,
               margin := "auto",
               onInput.value --> username,
-              onInsert.asHtml --> sideEffect { e => if(defaultUsername.isEmpty) e.focus() }
+              onDomMount.asHtml --> sideEffect { e => if(defaultUsername.isEmpty) e.focus() }
             )
           ),
           div(
@@ -69,7 +69,7 @@ object AuthView {
               margin := "auto",
               onInput.value --> password,
               onEnter(nameAndPassword) --> actionSink,
-              onInsert.asHtml --> sideEffect { e => if(defaultUsername.nonEmpty) e.focus() }
+              onDomMount.asHtml --> sideEffect { e => if(defaultUsername.nonEmpty) e.focus() }
             )
           ),
           button(

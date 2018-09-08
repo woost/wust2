@@ -104,7 +104,7 @@ object SelectedPostMenu {
           textArea(
             valueWithEnter --> updatePostHandler,
             rxPost.now.data.str,
-            onInsert.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select())
+            onDomMount.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select())
           )
         } else {
           div(
