@@ -381,12 +381,10 @@ object ThreadView {
       // this is a separate Rx, to prevent rerendering of the whole thread, when only replyFieldActive changes.
       val replyFieldActive = activeReplyFields() contains (nodeId :: path)
       val userExpandedNodes = graph.expandedNodes(state.user().id)
-      val r = if(replyFieldActive) ThreadVisibility.Expanded
+      if(replyFieldActive) ThreadVisibility.Expanded
       else if (isThread && !userExpandedNodes(nodeId)) ThreadVisibility.Collapsed
       else if (isThread) ThreadVisibility.Expanded
       else ThreadVisibility.Plain
-      println(s"${graph.nodesById(nodeId).str} $r")
-      r
     }
 
     Rx {

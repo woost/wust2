@@ -279,7 +279,6 @@ object PageHeader {
         },
       ),
       onClick.map(_ => searchModal.now) --> sideEffect { m =>
-        println(m)
         m.foreach{ elem =>
           import semanticUi.JQuery._
           $(elem).modal("toggle")
