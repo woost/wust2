@@ -80,7 +80,7 @@ object FeedbackForm {
             cls := "ui tiny compact button",
             "Show all Feedback",
             (freeRegular.faArrowAltCircleRight:VNode)(marginLeft := "5px"),
-            onClick(Page(feedbackNodeId)) --> state.page.toSink,
+            onClick(Page(feedbackNodeId)) --> state.page,
             onClick(false) --> show,
             onClick --> sideEffect {
               Analytics.sendEvent("feedback", "show")

@@ -9,7 +9,7 @@ import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
-import outwatch.dom.{AsValueObservable, Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.{AsObserver, AsValueObservable, Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
 import outwatch.{AsVDomModifier, Sink}
 import rx._
 import wust.util.Empty
@@ -44,6 +44,9 @@ package object outwatchHelpers {
         Cancelable(() => obs.kill())
     }
 
+    def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
+    def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
+
     def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
       rx.foreach(x => println(s"$name: $x"))
@@ -60,20 +63,19 @@ package object outwatchHelpers {
     Cancelable(() => obs.kill())
   }
 
-  implicit def asValueObservableRx(implicit ctx:Ctx.Owner): AsValueObservable[Rx] = new AsValueObservable[Rx] {
+  implicit def RxAsValueObservable(implicit ctx:Ctx.Owner): AsValueObservable[Rx] = new AsValueObservable[Rx] {
     override def as[T](stream: Rx[T]): ValueObservable[T] = new ValueObservable[T] {
       override def observable: Observable[T] = stream.toLaterObservable
       override def value: Option[T] = Some(stream.now)
     }
   }
 
-  implicit class RichEmitterBuilder[E, O, R](val eb: EmitterBuilder[E, O, R]) extends AnyVal {
-    //TODO: scala.rx have a contravariant trait for writing-only
-    def -->(rxVar: Var[_ >: O])(implicit ctx: Ctx.Owner): IO[R] = eb --> rxVar.toSink
+  implicit object VarAsObserver extends AsObserver[Var] {
+    override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
   }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
-    def toSink(implicit ctx: Ctx.Owner): Observer[T] = new VarObserver(rxVar)
+    def toObserver: Observer[T] = new VarObserver(rxVar)
   }
 
   implicit class RichVNode(val vNode: VNode) {
@@ -87,7 +89,7 @@ package object outwatchHelpers {
   implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
-      o.subscribe(new VarObserver(rx))
+      o.subscribe(rx)
       rx.foreach(o.onNext)
       rx
     }
@@ -96,11 +98,13 @@ package object outwatchHelpers {
   implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
-    def unsafeToRx(seed: T)(implicit ctx: Ctx.Owner): rx.Rx[T] = {
+    def unsafeToRx(seed: T): rx.Rx[T] = {
       val rx = Var[T](seed)
-      o.subscribe(new VarObserver(rx))
+      o.subscribe(rx)
       rx
     }
+
+    def subscribe(that: Var[T]): Cancelable = o.subscribe(new VarObserver[T](that))
 
     def onErrorThrow: Cancelable = o.subscribe(_ => Ack.Continue, throw _)
     def foreachTry(callback: T => Unit): CancelableFuture[Unit] = o.foreach { value =>
