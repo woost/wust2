@@ -5535,9 +5535,9 @@ slide@^1.1.5:
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
 
-"snabbdom@git://github.com/cornerman/snabbdom.git#0.7.1 0.7.1":
+"snabbdom@git://github.com/cornerman/snabbdom.git#0.7.2 0.7.2":
   version "0.7.1"
-  resolved "git://github.com/cornerman/snabbdom.git#7da235327d084af9d85752c954c308c65bdc354f"
+  resolved "git://github.com/cornerman/snabbdom.git#1e6249d8d5c63a148f6d4d312d293539db560120"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"

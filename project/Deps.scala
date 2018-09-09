@@ -51,7 +51,7 @@ object Deps {
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
   val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.cornerman" % "outwatch" % "6ed6df6")
+  val outwatch = dep("com.github.cornerman" % "outwatch" % "711b401")
 
   // utility
   val scribe = new {
@@ -117,8 +117,8 @@ object Deps {
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
 
-    //TODO open PR at snabbdom for checking-parent-exists branch
-    val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.1"
+    //TODO wait for PRs
+    val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.2"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47
