@@ -9,6 +9,7 @@ import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.Elements._
+import cats.effect.IO
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success}
 
 // an html view for the authentication. That is login and signup.
 object AuthView {
-  var defaultUsername = ""
+  private val defaultUsername = Var("")
 
   def apply(state: GlobalState)(
       header: String,
@@ -32,12 +33,14 @@ object AuthView {
       actionSink = sideEffect[(String, String)] {
         case (username, password) =>
           submitAction(username, password).onComplete {
-            case Success(None)        => state.viewConfig() = state.viewConfig.now.redirect
+            case Success(None)        =>
+              defaultUsername() = ""
+              state.viewConfig() = state.viewConfig.now.redirect
             case Success(Some(vnode)) => errorMessageHandler.onNext(vnode)
             case Failure(t)           => errorMessageHandler.onNext(s"Unexpected error: $t")
           }
       }
-      username <- Handler.create[String](defaultUsername)
+      username <- Handler.create[String](defaultUsername.now)
       password <- Handler.create[String]
       nameAndPassword = username.combineLatest(password)
       elem <- div(
@@ -51,13 +54,13 @@ object AuthView {
             cls := "ui fluid input",
             input(
               placeholder := "Username",
-              value := defaultUsername,
+              value <-- defaultUsername,
               tpe := "text",
               attr("autocomplete") := "username",
               display.block,
               margin := "auto",
               onInput.value --> username,
-              onDomMount.asHtml --> sideEffect { e => if(defaultUsername.isEmpty) e.focus() }
+              onDomMount.asHtml --> sideEffect { e => if(defaultUsername.now.isEmpty) e.focus() }
             )
           ),
           div(
@@ -70,7 +73,7 @@ object AuthView {
               margin := "auto",
               onInput.value --> password,
               onEnter(nameAndPassword) --> actionSink,
-              onDomMount.asHtml --> sideEffect { e => if(defaultUsername.nonEmpty) e.focus() }
+              onDomMount.asHtml --> sideEffect { e => if(defaultUsername.now.nonEmpty) e.focus() }
             )
           ),
           button(
@@ -100,13 +103,11 @@ object AuthView {
               cursor.pointer
             )
           },
-          onSubmit.preventDefault --> Observer.empty // prevent reloading the page on form submit
+          onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
+          managed(IO { username.subscribe(defaultUsername) })
         )
       )
-    } yield {
-      username.foreach{ defaultUsername = _ }
-      elem
-    }
+    } yield elem
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     apply(state)(
