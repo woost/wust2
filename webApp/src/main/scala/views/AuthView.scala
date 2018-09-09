@@ -25,6 +25,7 @@ object AuthView {
       alternativeHeader: String,
       alternativeView: View,
       alternativeText: String,
+      autoCompletePassword: String
   )(implicit ctx: Ctx.Owner): VNode =
     for {
       errorMessageHandler <- Handler.create[String]
@@ -64,7 +65,7 @@ object AuthView {
             input(
               placeholder := "Password",
               tpe := "password",
-              attr("autocomplete") := "current-password",
+              attr("autocomplete") := autoCompletePassword,
               display.block,
               margin := "auto",
               onInput.value --> password,
@@ -120,6 +121,7 @@ object AuthView {
       alternativeHeader = "New to Woost?",
       alternativeView = View.Signup,
       alternativeText = "Create an account",
+      autoCompletePassword = "current-password"
     )
 
   def signup(state: GlobalState)(implicit ctx: Ctx.Owner) =
@@ -135,5 +137,6 @@ object AuthView {
       alternativeHeader = "Already have an account?",
       alternativeView = View.Login,
       alternativeText = "Login with existing account",
+      autoCompletePassword = "new-password"
     )
 }
