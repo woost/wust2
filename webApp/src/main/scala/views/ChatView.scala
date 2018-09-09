@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import cats.effect.IO
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.sdk.NodeColor._
@@ -33,9 +34,6 @@ object ChatView {
 
     val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[NodeId])
-
-    // clear on page change
-    state.page.foreach {_ => currentReply() = Set.empty[NodeId]}
 
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
@@ -142,6 +140,10 @@ object ChatView {
       alignItems.stretch,
       alignContent.stretch,
       height := "100%",
+
+      // clear on page change
+      managed(IO { state.page.foreach {_ => currentReply() = Set.empty[NodeId]} }),
+
       div(
         Styles.flex,
         flexDirection.row,
