@@ -136,7 +136,7 @@ object Sidebar {
         VDomModifier(
           channelLine(state.user().toNode, pageParentIds, pageStyle),
           channelList(channelTree, pageParentIds, pageStyle),
-          invitations(state.page().mode == PageMode.Orphans, pageStyle),
+          // invitations(state.page().mode == PageMode.Orphans, pageStyle),
         )
       }
     )

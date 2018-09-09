@@ -261,8 +261,8 @@ object Topbar {
           MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
           MkInput(currentView, pageStyle, View.Kanban),
           MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
-          MkInput(currentView, pageStyle, View.Graph),
-          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+          // MkInput(currentView, pageStyle, View.Graph),
+          // MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
       }
     )
