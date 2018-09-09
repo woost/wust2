@@ -237,7 +237,7 @@ object ThreadView {
               keyed
             )
         },
-        onPrePatch --> sideEffect {
+        onSnabbdomPrePatch --> sideEffect {
           scrollableHistoryElem.now.foreach { prev =>
             val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
             isScrolledToBottom() = wasScrolledToBottom
