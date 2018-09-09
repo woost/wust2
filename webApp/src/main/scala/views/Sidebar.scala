@@ -135,7 +135,11 @@ object Sidebar {
         val pageStyle = state.pageStyle()
         VDomModifier(
           channelLine(state.user().toNode, pageParentIds, pageStyle),
-          channelList(channelTree, pageParentIds, pageStyle),
+          channelTree match {
+            case Tree.Parent(_,children) =>
+            children.map { child => channelList(child, pageParentIds, pageStyle, depth = 0) }(breakOut): Seq[VDomModifier]
+            case Tree.Leaf(_) => VDomModifier.empty
+          }
           // invitations(state.page().mode == PageMode.Orphans, pageStyle),
         )
       }
