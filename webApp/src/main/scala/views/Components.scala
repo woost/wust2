@@ -303,7 +303,7 @@ object Components {
           color := "#000",
           cursor.auto,
 
-          onDomUpdate.asHtml --> sideEffect { node => if(editable.now) node.focus() },
+          onDomMount.asHtml --> sideEffect { node => if(editable.now) node.focus() },
 
           onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
           onBlur --> sideEffect { discardChanges() },
