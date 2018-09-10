@@ -121,7 +121,7 @@ object ThreadView {
       )
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields, currentlyEditable)
+    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = ???
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
@@ -196,11 +196,15 @@ object ThreadView {
           if(nodeIds().isEmpty) VDomModifier(emptyChatNotice)
           else
             VDomModifier(
-              groupNodes(graph, nodeIds(), state, user.id)
-                .map(kind => renderGroupedMessages(
-                  kind.nodeIds,
-                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage), avatarSizeToplevel)
-                ),
+              nodeIds().map(kind => 
+                    div(
+                        state.user.map(_.toString),
+                        div( // this nesting is needed to get a :hover effect on the selected background
+                          cls := "chatmsg-line",
+                          Styles.flex,
+                          )
+                        )
+                      ),
 
 
               draggableAs(state, DragItem.DisableDrag),
@@ -294,11 +298,6 @@ object ThreadView {
       ),
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
-    import meta._
-
-    chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = identity ) }
-
 
   /// @return a vnode containing a chat header with optional name, date and avatar
   def chatMessageHeader(
@@ -317,24 +316,6 @@ object ThreadView {
       showDate.ifTrue[VDomModifier](optDateDiv(isMine, nodeId, graph)),
     )
   }
-
-  /// @return the actual body of a chat message
-  /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[NodeId]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-    import meta._
-
-
-    div(
-      state.user.map(_.toString),
-      div( // this nesting is needed to get a :hover effect on the selected background
-        cls := "chatmsg-line",
-        Styles.flex,
-      )
-    )
-  }
-
 
   def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.create[Unit].unsafeRunSync(), focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
@@ -357,17 +338,19 @@ object ThreadView {
         keyed,
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
-          val graph = state.graphContent.now
-          val selectedNodeIds = state.selectedNodeIds.now
-          val changes = {
-            val newNode = Node.Content.empty
-            val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes, directParentIds ++ selectedNodeIds, baseNode = newNode)
-            val newNodeParentships = GraphChanges.connect(Edge.Parent)(newNode.id, directParentIds)
-            nodeChanges merge newNodeParentships
-          }
+          for( _ <- 0 to 200) {
+            val graph = state.graphContent.now
+            val selectedNodeIds = state.selectedNodeIds.now
+            val changes = {
+              val newNode = Node.Content.empty
+              val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes, directParentIds ++ selectedNodeIds, baseNode = newNode)
+              val newNodeParentships = GraphChanges.connect(Edge.Parent)(newNode.id, directParentIds)
+              nodeChanges merge newNodeParentships
+            }
 
-          state.eventProcessor.changes.onNext(changes)
-          submittedNewMessage.onNext(Unit)
+            state.eventProcessor.changes.onNext(changes)
+            submittedNewMessage.onNext(Unit)
+          }
         },
         focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> sideEffect { e => e.focus() }),
         onBlur.value --> sideEffect { value => blurAction(value) },
