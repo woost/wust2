@@ -325,44 +325,12 @@ object ThreadView {
   ): VNode = {
     import meta._
 
-    val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
-    val isSelected = state.selectedNodeIds.map(_ contains nodeId)
-    val node = graph.nodesById(nodeId)
-
-    val editable:Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
-
-    //TODO: how to kill rx after it became true? we do not need to be subscribed anymore thanVar
-    val isSynced: Rx[Boolean] = state.addNodesInTransit
-      .map(nodeIds => !nodeIds(nodeId))
-
-    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
-      Styles.flex,
-      flexDirection.row,
-      alignItems := "flex-end", //TODO SDT update
-      isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
-      cls := "drag-feedback",
-
-      // onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
-
-
-      div(
-        cls := "draghandle",
-        paddingLeft := "8px",
-        paddingRight := "8px",
-        freeSolid.faEllipsisV,
-        color := "#666",
-        alignSelf.center,
-      )
-    )
-
 
     div(
-      keyed(nodeId),
-      isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
+      state.user.map(_.toString),
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
         Styles.flex,
-        messageCard,
       )
     )
   }

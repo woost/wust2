@@ -28,7 +28,9 @@ object ChatView {
       },
       Rx {
         val graph = state.graph()
-        graph.nodes.toSeq.map(_.str).map(div(_))
+        graph.nodes.toSeq.map(_.str).map(node => div(
+          state.user.map(_.toString) 
+        ))
       }
     )
   }
