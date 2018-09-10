@@ -168,55 +168,25 @@ object ThreadView {
         height := "100%",
         position.relative,
         // SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(),
+        div(
+          div(
+            cls := "chat-history",
+            padding := "20px 0 20px 20px",
+            Rx {
+              counter += 1
+              nodeIds().map(kind => 
+                  div( state.user.map{u => u.toString})
+                  ),
+            }
+            ),
+          overflow.auto,
+          )
       ),
       Rx { inputField(state, state.page().parentIdSet, submittedNewMessage, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
     )
   }
 
-  def chatHistory(
-    state: GlobalState,
-    nodeIds: Rx[Seq[NodeId]],
-    submittedNewMessage: Handler[Unit],
-    renderMessage: (NodeId, MessageMeta) => VDomModifier,
-  )(implicit ctx: Ctx.Owner): VNode = {
-    val avatarSizeToplevel: Rx[AvatarSize] = Rx { AvatarSize.Small }
-
-    div(
-      // this wrapping of chat history is currently needed,
-      // to allow dragging the scrollbar without triggering a drag event.
-      // see https://github.com/Shopify/draggable/issues/262
-      div(
-        cls := "chat-history",
-        padding := "20px 0 20px 20px",
-        Rx {
-          val page = state.page()
-          val graph = state.graphContent()
-          val user = state.user()
-          if(nodeIds().isEmpty) VDomModifier(emptyChatNotice)
-          else
-            VDomModifier(
-              nodeIds().map(kind => 
-                    div(
-                        state.user.map(_.toString),
-                        div( // this nesting is needed to get a :hover effect on the selected background
-                          cls := "chatmsg-line",
-                          Styles.flex,
-                          )
-                        )
-                      ),
-
-
-              draggableAs(state, DragItem.DisableDrag),
-              cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
-              dragTarget(DragItem.Chat.Page(page.parentIds)),
-              keyed
-            )
-        },
-      ),
-      overflow.auto,
-    )
-  }
+  var counter = 0
 
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
@@ -338,7 +308,7 @@ object ThreadView {
         keyed,
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
-          for( _ <- 0 to 200) {
+          for( _ <- 0 until 200) {
             val graph = state.graphContent.now
             val selectedNodeIds = state.selectedNodeIds.now
             val changes = {

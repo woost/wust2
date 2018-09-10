@@ -32,6 +32,7 @@ class GlobalState (
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
+  val userO = user.toObservable
 
   val graph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
