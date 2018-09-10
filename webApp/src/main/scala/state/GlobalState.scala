@@ -94,7 +94,7 @@ class GlobalState (
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
   permissionState.triggerLater { state =>
     if(state == PermissionState.granted || state == PermissionState.denied)
-    Analytics.sendEvent("notification", state.asInstanceOf[String])
+      Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
 
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
@@ -128,15 +128,8 @@ class GlobalState (
     PageStyle(view(), page())
   }
 
-  // be aware that this is a potential memory leak.
-  // it contains all ids that have ever been collapsed in this session.
-  // this is a wanted feature, because manually collapsing nodes is preserved with navigation
-  val collapsedNodeIds: Var[Set[NodeId]] = Var(Set.empty)
-
   // specifies which nodes are collapsed
-  val perspective: Var[Perspective] = Var(Perspective()).mapRead { perspective =>
-    perspective().union(Perspective(collapsed = Selector.Predicate(collapsedNodeIds())))
-  }
+  val perspective: Var[Perspective] = Var(Perspective())
 
   val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead{ selectedNodeIds =>
     selectedNodeIds().filter(graph().nodesById.isDefinedAt)

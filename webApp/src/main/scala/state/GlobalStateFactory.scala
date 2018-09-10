@@ -171,7 +171,6 @@ object GlobalStateFactory {
     DevOnly {
 
 //      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toString}")
-      //      collapsedNodeIds.debug("collapsedNodeIds")
 //      perspective.debug("perspective")
 //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
       //      focusedNodeId.debug("focusedNodeId")
