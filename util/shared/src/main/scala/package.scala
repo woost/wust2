@@ -50,6 +50,7 @@ package object util {
     final def ifTrueSeq[A](a: => Seq[A]): Seq[A] = ifTrue(a)
     final def ifFalseSeq[A](a: => Seq[A]): Seq[A] = ifFalse(a)
     final def ifTrueSet[A](a: => Set[A]): Set[A] = ifTrue(a)
+    final def ifFalseSet[A](a: => Set[A]): Set[A] = ifFalse(a)
     final def ifTrueOption[A](a: => A): Option[A] = ifTrue(Option(a))
     final def ifFalseOption[A](a: => A): Option[A] = ifFalse(Option(a))
 
