@@ -14,6 +14,7 @@ import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
 import Rendered.renderNodeData
+import cats.effect.IO
 import monix.reactive.{Observable, subjects}
 import wust.graph.Node.User
 import wust.ids._
@@ -296,7 +297,7 @@ object PageHeader {
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
 
-    addMember.foreach { name =>
+    def handleAddMember(name: String) = {
       val graphUser = state.graph.now.userIdByName.get(name) match {
         case u @ Some(userId) => Future.successful(u)
         case _ => Client.api.getUserId(name)
@@ -321,12 +322,15 @@ object PageHeader {
       }
     }
 
-    removeMember.foreach { membership =>
+    def handleRemoveMember(membership: Edge.Member) = {
       val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
       state.eventProcessor.changes.onNext(change)
     }
 
     div(
+      managed(IO{ addMember.foreach(handleAddMember) }),
+      managed(IO{ removeMember.foreach(handleRemoveMember) }),
+
       cls := "item",
       i(
         freeSolid.faUserPlus,

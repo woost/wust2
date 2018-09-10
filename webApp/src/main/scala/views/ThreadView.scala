@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import cats.effect.IO
 import fontAwesome._
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -204,13 +205,14 @@ object ThreadView {
 
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None: Option[HTMLElement])
-    submittedNewMessage.foreach { _ =>
-      scrollableHistoryElem.now.foreach { elem =>
-        scrollToBottom(elem)
-      }
-    }
 
     div(
+      managed( IO { submittedNewMessage.foreach { _ =>
+        scrollableHistoryElem.now.foreach { elem =>
+          scrollToBottom(elem)
+        }
+      }}),
+
       // this wrapping of chat history is currently needed,
       // to allow dragging the scrollbar without triggering a drag event.
       // see https://github.com/Shopify/draggable/issues/262
