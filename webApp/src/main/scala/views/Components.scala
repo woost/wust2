@@ -204,29 +204,30 @@ object Components {
   def draggableAs(state: GlobalState, payload: => DragPayload): VDomModifier = {
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      onDomMount.asHtml --> sideEffect{ elem =>
-        writeDragPayload(elem, payload)
-      }
+      // onDomMount.asHtml --> sideEffect{ elem =>
+      //   writeDragPayload(elem, payload)
+      // }
     )
   }
 
   def dragTarget(dragTarget: DragTarget) = {
-    onDomMount.asHtml --> sideEffect{ elem =>
-      writeDragTarget(elem, dragTarget)
-    }
+    VDomModifier.empty
+    // onDomMount.asHtml --> sideEffect{ elem =>
+    //   writeDragTarget(elem, dragTarget)
+    // }
   }
 
   def registerDraggableContainer(state: GlobalState): VDomModifier = Seq(
     //    border := "2px solid blue",
     outline := "none", // hides focus outline
     cls := "draggable-container",
-    onDomMount.asHtml --> sideEffect { elem =>
-      //      console.log("Adding Draggable Container:", elem)
-      state.draggable.addContainer(elem)
-    },
-    onDomUnmount.asHtml --> sideEffect { elem =>
-      state.draggable.removeContainer(elem)
-    }
+    // onDomMount.asHtml --> sideEffect { elem =>
+    //   //      console.log("Adding Draggable Container:", elem)
+    //   state.draggable.addContainer(elem)
+    // },
+    // onDomUnmount.asHtml --> sideEffect { elem =>
+    //   state.draggable.removeContainer(elem)
+    // }
   )
 
   def registerSortableContainer(state: GlobalState, container: DragContainer): VDomModifier = {
@@ -234,13 +235,13 @@ object Components {
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
-      onDomMount.asHtml --> sideEffect { elem =>
-        writeDragContainer(elem, container)
-        state.sortable.addContainer(elem)
-      },
-      onDomUnmount.asHtml --> sideEffect { elem =>
-        state.sortable.removeContainer(elem)
-      }
+      // onDomMount.asHtml --> sideEffect { elem =>
+      //   writeDragContainer(elem, container)
+      //   state.sortable.addContainer(elem)
+      // },
+      // onDomUnmount.asHtml --> sideEffect { elem =>
+      //   state.sortable.removeContainer(elem)
+      // }
     )
   }
 
@@ -272,45 +273,8 @@ object Components {
     implicit ctx: Ctx.Owner
   ): VNode = {
 
-    val initialRender: Var[VDomModifier] = Var(renderNodeData(node.data, maxLength))
-
-    def save(text: String): Unit = {
-      if(editable.now) {
-        val graph = state.graphContent.now
-        val changes = NodeDataParser.addNode(text, contextNodes = graph.nodes, newTagParentIds, baseNode = node)
-        submit.onNext(changes)
-
-        initialRender() = renderNodeData(changes.addNodes.head.data)
-        editable() = false
-      }
-    }
-
-    def discardChanges(): Unit = {
-      if(editable.now) {
-        editable() = false
-      }
-    }
-
     p( // has different line-height than div and is used for text by markdown
-      outline := "none", // hides contenteditable outline
-      Rx {
-//        println("editing: " + node.data.str) // TODO: this is a leak. Reproduction: Edit a node multiple times.
-        if(editable()) VDomModifier(
-          node.data.str, // Markdown source code
-          contentEditable := true,
-          whiteSpace.preWrap, // preserve white space in Markdown code
-          backgroundColor := "#FFF",
-          color := "#000",
-          cursor.auto,
-
-          onDomMount.asHtml --> sideEffect { node => if(editable.now) node.focus() },
-
-          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
-          onBlur --> sideEffect { discardChanges() },
-          onFocus --> sideEffect { e => document.execCommand("selectAll", false, null) },
-          onClick.stopPropagation --> sideEffect {} // prevent e.g. selecting node, but only when editing
-        ) else initialRender()
-      },
+      node.str
     )
   }
 

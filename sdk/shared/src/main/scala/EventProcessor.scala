@@ -140,8 +140,8 @@ class EventProcessor private (
     val rawLocalChanges: Observable[GraphChanges] =
       allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
         case (changes, user, graph) if changes.nonEmpty =>
-          scribe.info("[Events] Got raw local changes:")
-          GraphChanges.log(changes, Some(graph))
+          // scribe.info("[Events] Got raw local changes:")
+          // GraphChanges.log(changes, Some(graph))
 
           val changesCandidate = changes.consistent.withAuthor(user.id)
 
@@ -171,7 +171,7 @@ class EventProcessor private (
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
       val newGraph = events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
-      scribe.info("[Events] Got new graph: " + newGraph)
+      // scribe.info("[Events] Got new graph: " + newGraph)
       newGraph
     }
 
@@ -196,39 +196,40 @@ class EventProcessor private (
       .zipWithIndex
       .asyncBoundary(OverflowStrategy.Unbounded)
 
-  private val sendingChanges: Observable[Long] = Observable
-    .tailRecM(localChangesIndexed) { changes =>
-      changes.flatMap {
-        case (c, idx) =>
-          Observable.fromFuture(sendChanges(c :: Nil)).map {
-            case true =>
-              scribe.info(s"Successfully sent out changes from EventProcessor")
-              Right(idx)
-            case false =>
-              // TODO delay with exponential backoff
-              // TODO: take more from buffer if fails?
-              Left(Observable((c, idx)).sample(1 seconds))
-          }
-      }
-    }
-    .share
+  // private val sendingChanges: Observable[Long] = Observable
+  //   .tailRecM(localChangesIndexed) { changes =>
+  //     changes.flatMap {
+  //       case (c, idx) =>
+  //         Observable.fromFuture(sendChanges(c :: Nil)).map {
+  //           case true =>
+  //             // scribe.info(s"Successfully sent out changes from EventProcessor")
+  //             Right(idx)
+  //           case false =>
+  //             // TODO delay with exponential backoff
+  //             // TODO: take more from buffer if fails?
+  //             Left(Observable((c, idx)).sample(1 seconds))
+  //         }
+  //     }
+  //   }
+  //   .share
 
-  sendingChanges.subscribe(
-    { c =>
-      println("[Events] Sending out changes done: " + c)
-      Ack.Continue
-    },
-    err => scribe.error("[Events] Error sending out changes, cannot continue", err)
-  )
+  // sendingChanges.subscribe(
+  //   { c =>
+  //     println("[Events] Sending out changes done: " + c)
+  //     Ack.Continue
+  //   },
+  //   err => scribe.error("[Events] Error sending out changes, cannot continue", err)
+  // )
 
-  val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
-    .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
-    .scan(List.empty[(GraphChanges, Long)]) {
-      case (prevList, (nextLocal, sentIdx)) =>
-        (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
-    }
-    .map(_.map(_._1))
-    .share
+  val changesInTransit: Observable[List[GraphChanges]] = Observable(Nil)
+  // val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
+  //   .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
+  //   .scan(List.empty[(GraphChanges, Long)]) {
+  //     case (prevList, (nextLocal, sentIdx)) =>
+  //       (prevList :+ nextLocal) collect { case t @ (_, idx) if idx > sentIdx => t }
+  //   }
+  //   .map(_.map(_._1))
+  //   .share
 
   private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
     //TODO: why is import wust.util._ not enough to resolve RichFuture?
