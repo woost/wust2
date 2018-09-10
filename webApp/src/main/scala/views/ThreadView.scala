@@ -103,59 +103,6 @@ object ThreadView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val nodeIds: Rx[Seq[NodeId]] = Rx {
-      val page = state.page()
-      val fullGraph = state.graph()
-      val graph = state.graphContent()
-      graph.nodes.collect {
-        case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
-      }.toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
-    }
-
-    val activeReplyFields = Var(Set.empty[List[NodeId]])
-    val currentlyEditable = Var(Option.empty[NodeId])
-
-    def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
-      import meta._
-      List(
-      )
-    }
-
-    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = ???
-
-    val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
-
-    var lastSelectedPath:List[NodeId] = Nil // TODO: set by clicking on a message
-    def reversePath(nodeId:NodeId, pageParents:Set[NodeId], graph:Graph):List[NodeId] = {
-      // this only works, because all nodes in the graph are descendants
-      // of the pageParents.
-      val isTopLevelNode = pageParents.exists(pageParentId => graph.children(pageParentId) contains nodeId)
-      if(isTopLevelNode) nodeId :: Nil
-      else {
-        val nextParent = {
-          val parents = graph.parents(nodeId)
-          assert(parents.nonEmpty)
-          val lastSelectedParents = parents intersect lastSelectedPath.toSet
-          if(lastSelectedParents.nonEmpty)
-            lastSelectedParents.head
-          else {
-            // // when only taking youngest parents first, the pageParents would always be last.
-            // // So we check if the node is a toplevel node
-            // val topLevelParentpageParents.find(pageParentId => graph.children(pageParentId).contains(nodeId)))
-            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(nid):Long)
-          }
-
-        }
-        nodeId :: reversePath(nextParent, pageParents, graph)
-      }
-    }
-
-    def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
-
-    val selectedSingleNodeActions:NodeId => List[VNode] = _ => Nil
-    val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-    )
-
     div(
       Styles.flex,
       flexDirection.column,
@@ -173,16 +120,17 @@ object ThreadView {
             cls := "chat-history",
             padding := "20px 0 20px 20px",
             Rx {
+              val graph = state.graph()
               counter += 1
-              nodeIds().map(kind => 
+              graph.nodeIds.map(kind => 
                   div( state.user.map{u => u.toString})
-                  ),
+                ),
             }
             ),
           overflow.auto,
           )
       ),
-      Rx { inputField(state, state.page().parentIdSet, submittedNewMessage, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
+      Rx { inputField(state, state.page().parentIdSet, Handler.create[Unit].unsafeRunSync, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
     )
   }
 
