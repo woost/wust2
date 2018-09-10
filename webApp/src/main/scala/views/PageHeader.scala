@@ -14,6 +14,7 @@ import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
 import Rendered.renderNodeData
+import monix.reactive.{Observable, subjects}
 import wust.graph.Node.User
 import wust.ids._
 import wust.sdk.NodeColor.hue
@@ -153,35 +154,19 @@ object PageHeader {
   }
 
   private def searchButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+    sealed trait SearchInput
+    object SearchInput {
+      case class Global(query: String) extends SearchInput
+      case class Local(query: String) extends SearchInput
 
-    val searchModal = Var(None:Option[dom.html.Element])
-    val search = PublishSubject[VNode]
+    }
+
+    val searchModal = PublishSubject[dom.html.Element]
     val searchLocal = PublishSubject[String]
     val searchGlobal = PublishSubject[String]
     val searchInputProcess = PublishSubject[String]
 
-    searchLocal.foreach { s =>
-      Rx {
-        val graph = state.graph()
-        val nodes = graph.contentNodes.toList
-        val descendants = graph.descendants(node.id)
-
-        val channelDescendants = nodes.filter(n => descendants.toSeq.contains(n.id))
-        search.onNext(searchResult(s, channelDescendants, false))
-      }
-    }
-
-    searchGlobal.foreach { s =>
-      Rx {
-        val graph = Client.api.getGraph(Page(state.user().channelNodeId))
-        graph.map(_.contentNodes.toList).foreach(nodes =>
-          search.onNext(searchResult(s, nodes, true)))
-      }
-    }
-
-    searchModal.foreach(_ => scribe.info("new search modal"))
-
-    def searchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
+    def renderSearchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
       val viewConf = state.viewConfig.now
       val searchRes = Search.byString(needle, haystack, Some(100), 0.2).map( nodeRes =>
         div(
@@ -192,10 +177,10 @@ object PageHeader {
           paddingTop := "3px",
           Components.nodeCard(state, nodeRes._1, maxLength = Some(60)),
           onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
-          onClick.map(_ => searchModal.now) --> sideEffect { _.foreach { elem =>
-             import semanticUi.JQuery._
-             $(elem).modal("hide")
-          }},
+          onClick(searchModal) --> sideEffect { elem =>
+            import semanticUi.JQuery._
+            $(elem).modal("hide")
+          },
         ),
       )
 
@@ -214,6 +199,25 @@ object PageHeader {
           onClick(needle) --> searchGlobal
         )
       )
+    }
+
+    val searches = Observable
+      .merge(searchLocal.map(SearchInput.Local), searchGlobal.map(SearchInput.Global))
+      .distinctUntilChanged(cats.Eq.fromUniversalEquals)
+
+    val searchResult: Observable[VDomModifier] = searches.map {
+      case SearchInput.Local(query) if query.nonEmpty =>
+        val graph = state.graph.now
+        val nodes = graph.contentNodes.toList
+        val descendants = graph.descendants(node.id)
+
+        val channelDescendants = nodes.filter(n => descendants.toSeq.contains(n.id))
+        renderSearchResult(query, channelDescendants, false)
+      case SearchInput.Global(query) if query.nonEmpty =>
+        Observable.fromFuture(Client.api.getGraph(Page(state.user.now.channelNodeId))).map { graph =>
+          renderSearchResult(query, graph.contentNodes.toList, true)
+        }
+      case _ => VDomModifier.empty
     }
 
     div(
@@ -264,7 +268,7 @@ object PageHeader {
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
           div(
             cls := "ui fluid search-result",
-            search,
+            searchResult,
           ),
         ),
         onDomMount.asHtml --> sideEffect { elem =>
@@ -275,14 +279,13 @@ object PageHeader {
               opacity = "0.5"
             }
           }).modal("hide")
-          searchModal() = Some(elem)
+          searchModal.onNext(elem)
         },
       ),
-      onClick.map(_ => searchModal.now) --> sideEffect { m =>
-        m.foreach{ elem =>
-          import semanticUi.JQuery._
-          $(elem).modal("toggle")
-        }},
+      onClick(searchModal) --> sideEffect { elem =>
+        import semanticUi.JQuery._
+        $(elem).modal("toggle")
+      },
     )
   }
 
