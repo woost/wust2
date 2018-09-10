@@ -5,6 +5,8 @@ trait Empty[+T] {
 }
 
 object Empty {
+  def apply[T](implicit e: Empty[T]): T = e.empty
+
   implicit object StringEmpty extends Empty[String] {
     def empty = ""
   }

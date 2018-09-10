@@ -30,6 +30,17 @@ package object outwatchHelpers {
      Scheduler.global
 //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
 
+  implicit class RichVarFactory(val v: Var.type) extends AnyVal {
+    def empty[T: Empty]: Var[T] = Var(Empty[T])
+  }
+
+  implicit class RichRxFactory(val v: Rx.type) extends AnyVal {
+
+    def merge[T](seed: T)(rxs: Rx[T]*)(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(seed) { v =>
+      rxs.foreach(_.triggerLater(v() = _))
+    }
+  }
+
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
     def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
@@ -42,6 +53,10 @@ package object outwatchHelpers {
       observer =>
         val obs = rx.foreach(observer.onNext)
         Cancelable(() => obs.kill())
+    }
+
+    def tail(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(rx.now) { v =>
+      rx.triggerLater(v() = _)
     }
 
     def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
