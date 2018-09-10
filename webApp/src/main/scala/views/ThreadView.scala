@@ -113,8 +113,6 @@ object ThreadView {
         Styles.flex,
         flexDirection.column,
         height := "100%",
-        position.relative,
-        // SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
         div(
           div(
             cls := "chat-history",
