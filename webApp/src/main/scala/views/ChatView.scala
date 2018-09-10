@@ -141,6 +141,7 @@ object ChatView {
       alignContent.stretch,
       height := "100%",
 
+      //TODO JK: is this really needed? we are anyhow rerendered if the page changes?
       // clear on page change
       managed(IO { state.page.foreach {_ => currentReply() = Set.empty[NodeId]} }),
 
