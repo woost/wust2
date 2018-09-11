@@ -19,6 +19,7 @@ import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import emojijs.EmojiConvertor
+import sanitizer.SanitizeState
 
 import scala.scalajs.js
 
@@ -51,6 +52,8 @@ object Rendered {
           case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
         }
       }): js.Function2[String, js.UndefOr[String], String]
+      // sanitize = true
+      // sanitizer = new SanitizeState().getSanitizer(): js.Function1[String, String]
     })
 
     emoji.img_sets.apple.sheet = "/emoji-datasource/sheet_apple_32.png"
@@ -59,16 +62,13 @@ object Rendered {
     emoji.use_sheet = true
     emoji.init_env()
     emoji.include_title = true
-    emoji.text_mode = false;
-    emoji.colons_mode = false;
+    emoji.text_mode = false
+    emoji.colons_mode = false
     emoji.allow_native = false
     emoji.wrap_native = true
     emoji.avoid_ms_emoji = true
     emoji.replace_mode = "img"
 
-//    Highlight.configure(new HighlightOptions {
-//      tabReplace = "  "
-//    })
   }
 
   def trimToMaxLength(str: String, maxLength: Option[Int]): String = {
@@ -87,11 +87,10 @@ object Rendered {
     case user: NodeData.User         => div(user.name)
   }
 
+  def replace_full_emoji(str: String): String = emoji.replace_unified(emoji.replace_colons(Marked(emoji.replace_emoticons_with_colons(str))))
 
-  def replace_full_emoji(str: String): String = emoji.replace_emoticons(emoji.replace_unified(str))
-
-  def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(replace_full_emoji(str)))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def mdString(str: String): String = Marked(replace_full_emoji(str))
+  def mdHtml(str: String) = div(div(prop("innerHTML") := replace_full_emoji(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def mdString(str: String): String = replace_full_emoji(str)
 }
 
 object Components {

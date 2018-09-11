@@ -32,7 +32,7 @@ trait MarkedOptions extends js.Object {
   var langPrefix: js.UndefOr[Boolean] = js.undefined
   var smartypants: js.UndefOr[Boolean] = js.undefined
   var highlight: js.UndefOr[js.Function2[String, js.UndefOr[String], String]] = js.undefined
-//  var highlight: js.UndefOr[js.Function1[HTMLElement, HTMLElement]] = js.undefined ???
+  var sanitizer: js.UndefOr[js.Function1[String, String]] = js.undefined
 }
 
 object MarkedOptions {
