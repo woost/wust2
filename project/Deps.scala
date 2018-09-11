@@ -55,8 +55,8 @@ object Deps {
 
   // utility
   val scribe = new {
-    private val version = "2.5.0"
-    val core = dep("com.outr" %%% "scribe" % version)
+    val perfolation = dep("com.github.fdietze.perfolation" %%% "perfolation" % "6854947")
+    val core = dep("com.outr" %%% "scribe" % "2.5.0")
   }
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.1")
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.5.1-cats")

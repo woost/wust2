@@ -23,6 +23,7 @@ lazy val commonSettings = Seq(
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.2.4"),
   libraryDependencies ++=
     Deps.scribe.core.value ::
+      Deps.scribe.perfolation.value ::
       Deps.sourcecode.value ::
       Deps.scalatest.value % Test ::
       Deps.mockito.value % Test ::
@@ -33,7 +34,8 @@ lazy val commonSettings = Seq(
     Deps.circe.generic.value,
     Deps.circe.genericExtras.value,
     Deps.cats.core.value,
-    Deps.akka.httpCore.value
+    Deps.akka.httpCore.value,
+    Deps.scribe.perfolation.value,
   ),
   // do not run tests in assembly command
   test in assembly := {},
