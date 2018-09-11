@@ -54,7 +54,7 @@ module.exports.optimization = {
     minimize: false // disable default uglifyJs
 };
 
-process.env._JAVA_OPTIONS = "-Xms128M -Xmx400M";
+process.env._JAVA_OPTIONS = "-Xms128M -Xmx500M";
 module.exports.plugins.push(new ClosureCompilerPlugin({
   compiler: {
     language_in: 'ECMASCRIPT6',
