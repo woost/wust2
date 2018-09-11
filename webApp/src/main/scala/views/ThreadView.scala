@@ -132,7 +132,22 @@ object ThreadView {
       )
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, msgControls, activeReplyFields, currentlyEditable)
+    def shouldGroup(graph:Graph, nodes: Seq[NodeId]):Boolean = {
+      grouping && // grouping enabled
+        // && (nodes
+        //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
+        //   .distinct
+        //   .size == 1) // tags must match
+        // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
+        // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
+        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.authorIds(node).head == authorId)
+        }
+      // TODO: within a specific timespan && nodes.last.
+    }
+
+
+    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
@@ -184,7 +199,7 @@ object ThreadView {
         height := "100%",
         position.relative,
         SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage, shouldGroup = shouldGroup _).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
@@ -201,6 +216,7 @@ object ThreadView {
     nodeIds: Rx[Seq[NodeId]],
     submittedNewMessage: Handler[Unit],
     renderMessage: (NodeId, MessageMeta) => VDomModifier,
+    shouldGroup: (Graph, Seq[NodeId]) => Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
@@ -227,7 +243,7 @@ object ThreadView {
           if(nodeIds().isEmpty) VDomModifier(emptyChatNotice)
           else
             VDomModifier(
-              groupNodes(graph, nodeIds(), state, user.id)
+              groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
                 .map(kind => renderGroupedMessages(
                   kind.nodeIds,
                   MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage), avatarSizeToplevel)
@@ -273,32 +289,19 @@ object ThreadView {
     graph: Graph,
     nodes: Seq[NodeId],
     state: GlobalState,
-    currentUserId: UserId
+    currentUserId: UserId,
+    shouldGroup: (Graph, Seq[NodeId]) => Boolean
   ): Seq[ChatKind] = {
-    def shouldGroup(nodes: NodeId*) = {
-      grouping && // grouping enabled
-        // && (nodes
-        //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
-        //   .distinct
-        //   .size == 1) // tags must match
-        // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
-        // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
-        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.authorIds(node).head == authorId)
-        }
-      // TODO: within a specific timespan && nodes.last.
-    }
-
     nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
       kinds.lastOption match {
         case Some(ChatKind.Single(lastNode)) =>
-          if(shouldGroup(lastNode, node))
+          if(shouldGroup(graph, lastNode :: node :: Nil))
             kinds.dropRight(1) :+ ChatKind.Group(Seq(lastNode, node))
           else
             kinds :+ ChatKind.Single(node)
 
         case Some(ChatKind.Group(lastNodes)) =>
-          if(shouldGroup(lastNodes.last, node))
+          if(shouldGroup(graph, lastNodes.last :: node :: Nil))
             kinds.dropRight(1) :+ ChatKind.Group(nodeIds = lastNodes :+ node)
           else
             kinds :+ ChatKind.Single(node)
@@ -307,6 +310,7 @@ object ThreadView {
       }
     }
   }
+
 
   /// @return an avatar vnode or empty depending on the showAvatar setting
   def avatarDiv(isOwn: Boolean, user: Option[UserId], avatarSize: AvatarSize): VNode = {
@@ -377,7 +381,7 @@ object ThreadView {
     )
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderThread(nodeId: NodeId, meta: MessageMeta, shouldGroup: (Graph, Seq[NodeId]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
@@ -408,7 +412,7 @@ object ThreadView {
               cls := "chat-thread",
               borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
 
-              groupNodes(graph, children, state, currentUserId)
+              groupNodes(graph, children, state, currentUserId, shouldGroup)
                 .map(kind => renderGroupedMessages(
                   kind.nodeIds,
                   meta.copy(

@@ -35,6 +35,13 @@ object ChatView {
     val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[NodeId])
 
+    def shouldGroup(graph:Graph, nodes: Seq[NodeId]):Boolean = {
+      grouping && // grouping enabled
+        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.authorIds(node).head == authorId)
+        }
+    }
+
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
@@ -151,7 +158,7 @@ object ChatView {
         height := "100%",
         position.relative,
         SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage, shouldGroup = shouldGroup).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
