@@ -1,13 +1,16 @@
 package wust.webApp
 
+import cats.effect.IO
+import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
-import outwatch.dom._
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
+import outwatch.dom.{AsObserver, AsValueObservable, Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.{AsVDomModifier, Sink}
 import rx._
 import wust.util.Empty
 
@@ -27,36 +30,26 @@ package object outwatchHelpers {
      Scheduler.global
 //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
 
-
-  // We do use the unsafe owner here in this file, because we give ownership of
-  // observer to the observable. otherwise the embedding owner gets a
-  // reference to this subscription, which might leak when used in Rx.
-  // Subscribers of this observable need to cleanup their subscriptions. As
-  // long as they do, this construction is safe.
-  private implicit val ctx: Ctx.Owner = Ctx.Owner.Unsafe
-
-
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {
     def empty[T: Empty]: Var[T] = Var(Empty[T])
   }
 
   implicit class RichRxFactory(val v: Rx.type) extends AnyVal {
 
-    def merge[T](seed: T)(rxs: Rx[T]*): Rx[T] = Rx.create(seed) { v =>
+    def merge[T](seed: T)(rxs: Rx[T]*)(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(seed) { v =>
       rxs.foreach(_.triggerLater(v() = _))
     }
   }
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
-
-    def toLaterObservable: Observable[T] = Observable.create[T](Unbounded) {
+    def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
         val obs = rx.triggerLater(observer.onNext(_))
         Cancelable(() => obs.kill())
     }
 
-    def toObservable: Observable[T] = Observable.create[T](Unbounded) {
+    def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
         val obs = rx.foreach(observer.onNext)
         Cancelable(() => obs.kill())
@@ -69,23 +62,23 @@ package object outwatchHelpers {
     def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
     def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
 
-    def debug: Obs = { debug() }
-    def debug(name: String = ""): Obs = {
+    def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
+    def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
       rx.foreach(x => println(s"$name: $x"))
     }
-    def debug(print: T => String): Obs = {
+    def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
       rx.foreach(x => println(print(x)))
     }
 
     //TODO: add to scala-rx in an efficient macro
-    def collect[S](f: PartialFunction[T, S]): Rx[S] = rx.filter(f.isDefinedAt _).map(f)
+    def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.filter(f.isDefinedAt _).map(f)
   }
 
   implicit def obsToCancelable(obs: Obs): Cancelable = {
     Cancelable(() => obs.kill())
   }
 
-  implicit object RxAsValueObservable extends AsValueObservable[Rx] {
+  implicit def RxAsValueObservable(implicit ctx:Ctx.Owner): AsValueObservable[Rx] = new AsValueObservable[Rx] {
     override def as[T](stream: Rx[T]): ValueObservable[T] = new ValueObservable[T] {
       override def observable: Observable[T] = stream.toLaterObservable
       override def value: Option[T] = Some(stream.now)
@@ -109,7 +102,7 @@ package object outwatchHelpers {
   }
 
   implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
-    def unsafeToVar(seed: T): rx.Var[T] = {
+    def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
       o.subscribe(rx)
       rx.foreach(o.onNext)
