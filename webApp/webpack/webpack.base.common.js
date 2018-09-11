@@ -31,7 +31,7 @@ const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
 // copy static assets that we depend on
 const staticCopyAssets = [
 
-    // { from: 'node_modules/emoji-datasource/sheet_apple_32.png', to: 'emoji-datasource/sheet_apple_32.png'},
+    // { from: 'node_modules/emoji-datasource/sheet_apple_64.png', to: 'emoji-datasource/sheet_apple_64.png'},
     { from: 'node_modules/emoji-datasource/img/apple/sheets/32.png', to: 'emoji-datasource/sheet_apple_32.png'},
     { from: 'node_modules/highlight.js/styles/atom-one-dark.css', to: 'highlight/atom-one-light.css'},
     { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},

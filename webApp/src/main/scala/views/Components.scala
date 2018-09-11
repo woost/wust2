@@ -58,6 +58,13 @@ object Rendered {
     emoji.img_set = "apple"
     emoji.use_sheet = true
     emoji.init_env()
+    emoji.include_title = true
+    emoji.text_mode = false;
+    emoji.colons_mode = false;
+    emoji.allow_native = false
+    emoji.wrap_native = true
+    emoji.avoid_ms_emoji = true
+    emoji.replace_mode = "img"
 
 //    Highlight.configure(new HighlightOptions {
 //      tabReplace = "  "
@@ -81,8 +88,10 @@ object Rendered {
   }
 
 
-  def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(emoji.replace_colons(str)))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def mdString(str: String): String = Marked(emoji.replace_colons(str))
+  def replace_full_emoji(str: String): String = emoji.replace_emoticons(emoji.replace_unified(str))
+
+  def mdHtml(str: String) = div(div(prop("innerHTML") := Marked(replace_full_emoji(str)))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def mdString(str: String): String = Marked(replace_full_emoji(str))
 }
 
 object Components {
