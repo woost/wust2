@@ -1,0 +1,47 @@
+package hammerjs
+
+import org.scalajs.dom
+import org.scalajs.dom.html
+import org.scalajs.dom.raw.NodeList
+
+import scala.scalajs.js
+import scala.scalajs.js.`|`
+import scala.scalajs.js.annotation._
+
+// https://hammerjs.github.io/getting-started/
+@js.native
+@JSImport("hammerjs", JSImport.Namespace)
+class Hammer[EVENT <: Event](element: html.Element, options: js.UndefOr[Options] = js.undefined) extends js.Object {
+  def on(events: String, handler: js.Function1[EVENT,Unit]):Unit = js.native
+  def destroy():Unit = js.native
+  def stop():Unit = js.native
+  var domEvents:Boolean = js.native
+}
+
+trait Options extends js.Object {
+  var cssProps:js.UndefOr[CssProps] = js.undefined
+}
+
+trait CssProps extends js.Object {
+  var userSelect:js.UndefOr[String] = js.undefined
+}
+
+trait Event extends js.Object {
+  def srcEvent:dom.Event
+}
+
+
+
+// Hammer.js does not natively support event propagation. This wrapper fixes it.
+// https://github.com/hammerjs/hammer.js/issues/807
+// https://github.com/josdejong/propagating-hammerjs
+@js.native
+@JSImport("propagating-hammerjs", JSImport.Namespace)
+object propagating extends js.Function1[Hammer[Event], Hammer[PropagatingEvent]] {
+  override def apply(arg1: Hammer[Event]): Hammer[PropagatingEvent] = js.native
+}
+
+trait PropagatingEvent extends Event {
+  def stopPropagation():Unit
+  def firstTarget:html.Element
+}

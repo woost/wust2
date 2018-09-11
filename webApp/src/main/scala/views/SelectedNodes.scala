@@ -44,14 +44,14 @@ object SelectedNodes {
               cls := "selectednodes",
               Styles.flex,
               alignItems.center,
-              div(cls := "ui large blue label",nonEmptyNodeIds.size, marginLeft := "10px"),
+              clearSelectionButton(state),
+              div(nonEmptyNodeIds.size,cls := "ui large blue label", marginLeft := "10px"),
 
               Rx {(state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds, state.graph()))}, // grow, so it can be grabbed
 
               div(marginLeft.auto),
               (nonEmptyNodeIds.size == 1).ifTrueSeq(singleNodeActions(nonEmptyNodeIds.head).map(_(cls := "actionbutton"))),
               nodeActions(nonEmptyNodeIds).map(_(cls := "actionbutton")),
-              clearSelectionButton(state)
             )
           }
         )

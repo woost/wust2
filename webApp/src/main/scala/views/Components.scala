@@ -244,7 +244,6 @@ object Components {
     )
   }
 
-
   def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId])(
     implicit ctx: Ctx.Owner
   ): VNode = {

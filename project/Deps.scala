@@ -116,6 +116,8 @@ object Deps {
     val fomanticUi = "fomantic-ui-css" -> "2.4.4"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
+    val hammerjs = "hammerjs" -> "2.0.8"
+    val propagatingHammerjs = "propagating-hammerjs" -> "1.4.6"
 
     //TODO wait for PRs
     val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.2"

@@ -121,11 +121,12 @@ object ThreadView {
       val state = meta.state
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
-        replyButton(action = { () => 
+        replyButton.apply(onTap --> sideEffect{
           activeReplyFields.update(_ + (nodeId :: meta.path))
           state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
+          ()
         }),
-        editButton(state, editable),
+        editButton(editable),
         deleteButton(state, nodeId, directParentIds),
         zoomButton(state, nodeId :: Nil)
       )
@@ -163,11 +164,11 @@ object ThreadView {
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) List(
-      editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick --> sideEffect{clearSelectedNodeIds()}),
-      replyButton(action = { () => activeReplyFields.update(_ + reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)); clearSelectedNodeIds() }) //TODO: scroll to focused field?
+      editButton(localEditableVar(currentlyEditable, nodeId)).apply(onTap --> sideEffect{clearSelectedNodeIds()}),
+      replyButton.apply(onTap --> sideEffect { activeReplyFields.update(_ + reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)); clearSelectedNodeIds() }) //TODO: scroll to focused field?
     ) else Nil
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      zoomButton(state, nodeIds).apply(onClick --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)}),
+      zoomButton(state, nodeIds).apply(onTap --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)}),
       SelectedNodes.deleteAllButton(state, nodeIds),
     )
 
@@ -258,7 +259,9 @@ object ThreadView {
           defer { scrollToBottom(elem) }
         scrollableHistoryElem() = Some(elem)
       },
-      onClick --> sideEffect{state.selectedNodeIds() = Set.empty[NodeId]}
+
+      // tapping on background deselects
+      onTap --> sideEffect{state.selectedNodeIds() = Set.empty[NodeId]}
     )
   }
 
@@ -461,7 +464,7 @@ object ThreadView {
             ),
             closeButton(
               keyed,
-              onClick --> sideEffect { activeReplyFields.update(_ - fullPath) },
+              onTap --> sideEffect { activeReplyFields.update(_ - fullPath) },
             ),
           )
         else
@@ -515,6 +518,22 @@ object ThreadView {
     val isSynced: Rx[Boolean] = state.addNodesInTransit
       .map(nodeIds => !nodeIds(nodeId))
 
+    val checkbox = div(
+      cls := "ui checkbox fitted",
+      marginLeft := "5px",
+      marginRight := "3px",
+      isSelected.map(_.ifTrueOption(visibility.visible)),
+      input(
+        tpe := "checkbox",
+        checked <-- isSelected,
+        onChange.checked --> sideEffect { checked =>
+          if(checked) state.selectedNodeIds.update(_ + nodeId)
+          else state.selectedNodeIds.update(_ - nodeId)
+        }
+      ),
+      label()
+    )
+
     val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
       Styles.flex,
       flexDirection.row,
@@ -522,24 +541,23 @@ object ThreadView {
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
 
-      // onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
 
-      isSynced.map { isSynced =>
-        val node: VNode = if (isSynced) freeSolid.faCheck
-        else freeRegular.faClock
+      Rx {
+        val icon: VNode = if (isSynced()) freeSolid.faCheck
+                          else freeRegular.faClock
 
-        node(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
+        icon(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
       },
-
 
       div(
         cls := "draghandle",
         paddingLeft := "8px",
         paddingRight := "8px",
-        freeSolid.faEllipsisV,
-        color := "#666",
+        freeSolid.faGripVertical,
+        color := "#b3bfca",
         alignSelf.center,
+        marginLeft.auto,
       )
     )
 
@@ -554,7 +572,14 @@ object ThreadView {
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
         Styles.flex,
-        onClick.stopPropagation --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
+
+        onPress --> sideEffect {
+          state.selectedNodeIds.update(_ + nodeId)
+        },
+        onTap --> sideEffect {
+          val selectionModeActive = state.selectedNodeIds.now.nonEmpty
+          if(selectionModeActive) state.selectedNodeIds.update(_.toggle(nodeId))
+        },
 
         // The whole line is draggable, so that it can also be a drag-target.
         // This is currently a limit in the draggable library
@@ -576,6 +601,7 @@ object ThreadView {
         },
         dragTarget(DragItem.Chat.Message(nodeId)),
 
+        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)) },
         transformMessageCard(messageCard),
         expandCollapseButton(meta, nodeId, threadVisibility),
         showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeId, alreadyVisualizedParentIds)),
@@ -584,25 +610,24 @@ object ThreadView {
     )
   }
 
-  def replyButton(action: () => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def replyButton(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(cls := "fa-fw", freeSolid.faReply),
-      onClick.stopPropagation --> sideEffect { action() },
       cursor.pointer,
     )
   }
 
-  def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner): VNode =
+  def editButton(editable: Var[Boolean])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faEdit),
-      onClick.stopPropagation(!editable.now) --> editable,
+      onTap(!editable.now) --> editable,
       cursor.pointer,
     )
 
   def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faTrashAlt),
-      onClick.stopPropagation --> sideEffect {
+      onTap --> sideEffect {
         state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
         state.selectedNodeIds.update(_ - nodeId)
       },
@@ -620,20 +645,22 @@ object ThreadView {
 
         })
       )),
-      onClick.stopPropagation(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+      onTap(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
       cursor.pointer,
     )
 
   def expandCollapseButton(meta: MessageMeta, nodeId: NodeId, threadVisibility: ThreadVisibility)(implicit ctx: Ctx.Owner): VNode = threadVisibility match {
     case ThreadVisibility.Expanded =>
       div(
+        cls := "collapsebutton",
         cls := "ui mini blue label", "-", marginLeft := "10px",
-        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
+        onTap(GraphChanges.disconnect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
         cursor.pointer)
     case ThreadVisibility.Collapsed =>
       div(
+        cls := "collapsebutton",
         cls := "ui mini blue label", "+" + meta.graph.children(nodeId).size, marginLeft := "10px",
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
+        onTap(GraphChanges.connect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
         cursor.pointer)
     case ThreadVisibility.Plain => div()
   }
@@ -641,7 +668,7 @@ object ThreadView {
   def zoomButton(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
-      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeIds))) --> state.viewConfig,
+      onTap(state.viewConfig.now.copy(page = Page(nodeIds))) --> state.viewConfig,
       cursor.pointer,
     )
 

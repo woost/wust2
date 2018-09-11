@@ -386,6 +386,10 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(2 px, 20 px, 2 px, 0 px)
   )
 
+  ".chatmsg-line .checkbox" - (
+    visibility.hidden
+  )
+
   val chatmsgIndent = marginLeft(3 px)
   ".chatmsg-line > .tag" - (
     chatmsgIndent, // when a tag is displayed at message position
@@ -430,8 +434,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   //TODO: how to generate this combinatorial explosion with scalacss?
   ".chatmsg-line:hover .chatmsg-controls,"+
+  ".chatmsg-line:hover .checkbox,"+
   ".chatmsg-line:hover .transitivetag,"+
   ".chatmsg-line:focus .chatmsg-controls,"+
+  ".chatmsg-line:focus .checkbox,"+
   ".chatmsg-line:focus .transitivetag" - (
     visibility.visible
   )
@@ -865,7 +871,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-line.draggable-mirror .tag," +
-  ".chatmsg-line.draggable-mirror .tagdot" - (
+    ".chatmsg-line.draggable-mirror .tagdot," +
+  ".chatmsg-line.draggable-mirror .collapsebutton" - (
     visibility.hidden
   )
 

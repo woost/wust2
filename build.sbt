@@ -399,6 +399,8 @@ lazy val webApp = project
         Deps.npm.highlight ::
         Deps.npm.emoji ::
         Deps.npm.emojiData ::
+        Deps.npm.hammerjs ::
+        Deps.npm.propagatingHammerjs ::
         Nil
   )
 

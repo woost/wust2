@@ -27,15 +27,15 @@ object Elements {
 
   val onEnter: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
     onKeyDown
-      .filter( e => e.keyCode == KeyCode.Enter && !e.shiftKey)
+      .filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey)
       .preventDefault
 
   val onEscape: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
     onKeyDown
-      .filter( _.keyCode == KeyCode.Escape )
+      .filter(_.keyCode == KeyCode.Escape)
       .preventDefault
 
-  val onGlobalEscape = 
+  val onGlobalEscape =
     CustomEmitterBuilder { sink: Observer[dom.KeyboardEvent] =>
       VDomModifier(
         managed(sink <-- events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
@@ -49,7 +49,31 @@ object Elements {
       )
     }
 
-  def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName:String):Option[T] = {
+  def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, Modifier] = {
+    import hammerjs._
+    CustomEmitterBuilder { sink: Observer[hammerjs.Event] =>
+      var hammertime: Hammer[PropagatingEvent] = null
+      VDomModifier(
+        onDomMount.asHtml --> sideEffect { elem =>
+          hammertime = propagating(new Hammer(elem, new Options { cssProps = new CssProps { userSelect = "auto"}} ))
+          hammertime.domEvents = true
+          hammertime.on(events, { e =>
+            e.stopPropagation()
+            sink.onNext(e)
+          })
+        },
+        onDomUnmount.asHtml --> sideEffect { elem =>
+          hammertime.stop()
+          hammertime.destroy()
+        }
+      )
+    }
+  }
+
+  val onTap: CustomEmitterBuilder[hammerjs.Event, Modifier] = onHammer("tap")
+  val onPress: CustomEmitterBuilder[hammerjs.Event, Modifier] = onHammer("press")
+
+  def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName: String): Option[T] = {
     import io.circe.parser.decode
     for {
       elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
@@ -58,22 +82,22 @@ object Elements {
     } yield decoded
   }
 
-  def readPropertyFromElement[T](elem: dom.html.Element, propName:String):Option[T] = {
+  def readPropertyFromElement[T](elem: dom.html.Element, propName: String): Option[T] = {
     for {
       elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
       valueProvider <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[() => T]].toOption
     } yield valueProvider()
   }
 
-  def writePropertyIntoElement(elem: dom.html.Element, propName:String, value: => Any): Unit = {
+  def writePropertyIntoElement(elem: dom.html.Element, propName: String, value: => Any): Unit = {
     elem.asInstanceOf[js.Dynamic].updateDynamic(propName)((() => value).asInstanceOf[js.Any])
   }
 
-  def removeDomElement(elem:dom.Element):Unit = {
+  def removeDomElement(elem: dom.Element): Unit = {
     elem.parentNode.removeChild(elem)
   }
 
-  def defer(code: => Unit):Unit = {
+  def defer(code: => Unit): Unit = {
     dom.window.setTimeout(() => code, timeout = 0)
   }
 
@@ -93,10 +117,10 @@ object Elements {
   }
 
   def closeButton: VNode = div(
-      div(cls := "fa-fw", freeSolid.faTimes),
-      padding := "10px",
-      Styles.flexStatic,
-      cursor.pointer,
-    )
+    div(cls := "fa-fw", freeSolid.faTimes),
+    padding := "10px",
+    Styles.flexStatic,
+    cursor.pointer,
+  )
 
 }

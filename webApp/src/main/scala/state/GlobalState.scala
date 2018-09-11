@@ -145,7 +145,7 @@ class GlobalState (
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
     handle = ".draghandle"
-    delay = 200.0
+//    delay = 200.0
     mirror = new MirrorOptions {
       constrainDimensions = true
     }
@@ -153,7 +153,7 @@ class GlobalState (
   val sortable = new Sortable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
     handle = ".draghandle"
-    delay = 200.0
+    delay = 200.0 // prevents drag when touch scrolling is intended
     mirror = new MirrorOptions {
       constrainDimensions = true
     }

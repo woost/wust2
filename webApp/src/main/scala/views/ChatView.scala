@@ -38,12 +38,12 @@ object ChatView {
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
-      editButton(state, localEditableVar(currentlyEditable, nodeId)).apply(onClick(Set.empty[NodeId]) --> state.selectedNodeIds),
+      editButton(localEditableVar(currentlyEditable, nodeId)).apply(onTap(Set.empty[NodeId]) --> state.selectedNodeIds),
     )
 
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      replyButton(action = { () => currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
-      zoomButton(state, nodeIds).apply(onClick --> sideEffect{clearSelectedNodeIds()}),
+      replyButton.apply(onTap --> sideEffect { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
+      zoomButton(state, nodeIds).apply(onTap --> sideEffect{clearSelectedNodeIds()}),
       SelectedNodes.deleteAllButton(state, nodeIds),
     )
 
@@ -54,8 +54,8 @@ object ChatView {
       val state = meta.state // else import conflict
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
-          replyButton(action = { () => currentReply() = Set(nodeId) }),
-          editButton(state, editable),
+          replyButton.apply(onTap --> sideEffect { currentReply() = Set(nodeId) }),
+          editButton(editable),
         deleteButton(state, nodeId, meta.graph.parents(nodeId).toSet),
         zoomButton(state, nodeId :: Nil)
       )
@@ -102,8 +102,8 @@ object ChatView {
         fontSize.xSmall,
         backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
         boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
-        // cursor.pointer,
-        // onClick.stopPropagation(state.viewConfig.now.copy(page = Page(parent.id))) --> state.viewConfig
+         cursor.pointer,
+         onTap --> sideEffect {currentReply.update(_ + parent.id)},
       )
     )
 
@@ -126,7 +126,7 @@ object ChatView {
               parentMessage(state, graph, node).apply(alignSelf.center),
               closeButton(
                 marginLeft.auto,
-                onClick --> sideEffect { currentReply.update(_ - replyNodeId) }
+                onTap --> sideEffect { currentReply.update(_ - replyNodeId) }
               ),
             )
           )
