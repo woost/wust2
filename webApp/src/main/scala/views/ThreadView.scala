@@ -23,6 +23,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import org.scalajs.dom.raw.HTMLElement
 import rx.opmacros.Utils.Id
+import wust.webApp.Icons
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -623,14 +624,14 @@ object ThreadView {
 
   def editButton(editable: Var[Boolean])(implicit ctx: Ctx.Owner): VNode =
     div(
-      div(cls := "fa-fw", freeRegular.faEdit),
+      div(cls := "fa-fw", Icons.edit),
       onTap(!editable.now) --> editable,
       cursor.pointer,
     )
 
   def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
-      div(cls := "fa-fw", freeRegular.faTrashAlt),
+      div(cls := "fa-fw", Icons.delete),
       onTap --> sideEffect {
         state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
         state.selectedNodeIds.update(_ - nodeId)
@@ -640,15 +641,7 @@ object ThreadView {
 
   def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
-      div(cls := "fa-fw", fontawesome.layered(
-        fontawesome.icon(freeRegular.faTrashAlt),
-        fontawesome.icon(freeSolid.faMinus, new Params {
-          transform = new Transform {
-            rotate = 45.0
-          }
-
-        })
-      )),
+      div(cls := "fa-fw", Icons.undelete),
       onTap(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
       cursor.pointer,
     )
@@ -671,7 +664,7 @@ object ThreadView {
 
   def zoomButton(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
-      div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
+      div(cls := "fa-fw", Icons.zoom),
       onTap(state.viewConfig.now.copy(page = Page(nodeIds))) --> state.viewConfig,
       cursor.pointer,
     )

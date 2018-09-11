@@ -10,6 +10,7 @@ import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids
 import wust.ids._
+import wust.webApp.Icons
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
@@ -79,7 +80,7 @@ object FeedbackForm {
             tpe := "button",
             cls := "ui tiny compact button",
             "Show all Feedback",
-            (freeRegular.faArrowAltCircleRight:VNode)(marginLeft := "5px"),
+            (Icons.zoom:VNode)(marginLeft := "5px"),
             onClick(Page(feedbackNodeId)) --> state.page,
             onClick(false) --> show,
             onClick --> sideEffect {

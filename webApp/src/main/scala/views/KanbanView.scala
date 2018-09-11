@@ -10,6 +10,7 @@ import wust.ids.{NodeData, NodeId}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
+import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -139,14 +140,14 @@ object KanbanView {
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
           isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
-          div(div(cls := "fa-fw", freeRegular.faTrashAlt),
+          div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation --> sideEffect {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, state.graph.now))
               state.selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"
           ),
-          div(div(cls := "fa-fw", freeRegular.faArrowAltCircleRight), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
+          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
         )
       }
     )
@@ -205,14 +206,14 @@ object KanbanView {
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
           div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column"),
-          div(div(cls := "fa-fw", freeRegular.faTrashAlt),
+          div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation --> sideEffect {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, state.graph.now))
               state.selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"
           ),
-          div(div(cls := "fa-fw", freeRegular.faArrowAltCircleRight), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
+          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
         )
       }
     )

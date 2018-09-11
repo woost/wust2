@@ -21,7 +21,7 @@ import wust.ids._
 import wust.sdk.NodeColor.hue
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
-import wust.webApp.{Client, views}
+import wust.webApp.{Client, Icons, views}
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
@@ -544,7 +544,7 @@ object PageHeader {
         cls := "item",
         i(
           cls := "icon fa-fw",
-          freeRegular.faTrashAlt,
+          Icons.delete,
           marginRight := "5px",
         ),
         span(cls := "text", "Delete Channel", cursor.pointer),

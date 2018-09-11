@@ -8,6 +8,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
+import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragItem, DragStatus}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -80,7 +81,7 @@ object SelectedNodes {
 
   def deleteAllButton(state:GlobalState, selectedNodeIds:List[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     div(
-      div(cls := "fa-fw", freeRegular.faTrashAlt),
+      div(cls := "fa-fw", Icons.delete),
       cls := "actionbutton",
 
       onClick --> sideEffect{_ =>
