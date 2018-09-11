@@ -148,7 +148,8 @@ object ThreadView {
     }
 
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta): VDomModifier = renderThread(nodeId, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
+    //TODO
+    def renderMessage(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeId, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
@@ -200,7 +201,7 @@ object ThreadView {
         height := "100%",
         position.relative,
         SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage, shouldGroup = shouldGroup _).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = c => (a,b) => renderMessage(a,b)(c), shouldGroup = shouldGroup _).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
@@ -216,7 +217,7 @@ object ThreadView {
     state: GlobalState,
     nodeIds: Rx[Seq[NodeId]],
     submittedNewMessage: Handler[Unit],
-    renderMessage: (NodeId, MessageMeta) => VDomModifier,
+    renderMessage: Ctx.Owner => (NodeId, MessageMeta) => VDomModifier,
     shouldGroup: (Graph, Seq[NodeId]) => Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
@@ -247,7 +248,7 @@ object ThreadView {
               groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
                 .map(kind => renderGroupedMessages(
                   kind.nodeIds,
-                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage), avatarSizeToplevel)
+                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage(implicitly)), avatarSizeToplevel)
                 ),
 
 

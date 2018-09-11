@@ -68,7 +68,7 @@ object ChatView {
       )
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta): VNode = {
+    def renderMessage(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VNode = {
       import meta._
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
@@ -158,7 +158,7 @@ object ChatView {
         height := "100%",
         position.relative,
         SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = renderMessage, shouldGroup = shouldGroup).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = c => (a,b) => renderMessage(a,b)(c), shouldGroup = shouldGroup).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
