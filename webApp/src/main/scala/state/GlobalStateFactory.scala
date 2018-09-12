@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import emojijs.EmojiConvertor
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
@@ -150,6 +151,14 @@ object GlobalStateFactory {
     // notification, opposed to push notifications coming from the
     // servieworker. the serviceworker will not show push notifications if a
     // client is currently running.
+    val notificationEmojis = new EmojiConvertor()
+    notificationEmojis.init_env()
+    notificationEmojis.include_title = false
+    notificationEmojis.allow_native = true
+    notificationEmojis.wrap_native = false
+    notificationEmojis.avoid_ms_emoji = true
+    notificationEmojis.replace_mode = "unified"
+
     Client.observable.event.foreach { events =>
       val changes = events
         .collect { case ApiEvent.NewGraphChanges(_, gc) => gc }
@@ -158,7 +167,7 @@ object GlobalStateFactory {
       if (!state.documentIsVisible.now && nodes.nonEmpty) {
         val title =
           if (nodes.size == 1) "New Node" else s"New Nodes (${nodes.size})"
-        val body = nodes.map(n => Rendered.emoji.replace_colons(n.data.str)).mkString(", ")
+        val body = nodes.map(n => notificationEmojis.replace_emoticons(n.data.str)).mkString(", ")
         Notifications.notify(title, body = Some(body), tag = Some("new-node"))
       }
     }
