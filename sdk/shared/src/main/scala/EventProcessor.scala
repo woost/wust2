@@ -180,15 +180,12 @@ class EventProcessor private (
     (changesHistory.share, localChanges.share, sharedRawGraph)
   }
 
-  def applyChanges(changes: GraphChanges): Future[Graph] = {
+  def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
     //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
     //TODO should by sync
+    val obs = graph.headL
     this.changes.onNext(changes)
-    val appliedToGraph = Promise[Graph]
-    val obs = graph.take(1)
-    obs.foreach(appliedToGraph.success)
-    obs.doOnError(appliedToGraph.failure) // das compiled
-    appliedToGraph.future
+    obs.runAsync
   }
 
   private val localChangesIndexed: Observable[(GraphChanges, Long)] =
