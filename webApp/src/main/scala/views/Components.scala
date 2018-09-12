@@ -301,7 +301,6 @@ object Components {
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
       Rx {
-//        println("editing: " + node.data.str) // TODO: this is a leak. Reproduction: Edit a node multiple times.
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,

@@ -22,7 +22,8 @@ object KanbanView {
   private val maxLength = 100
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val activeReplyFields = Var(Set.empty[NodeId])
+
+    val activeReplyFields = Var(Set.empty[List[NodeId]])
     val newColumnFieldActive = Var(false)
 
     div(
@@ -56,7 +57,7 @@ object KanbanView {
             alignItems.flexStart,
             overflowX.auto,
             overflowY.hidden,
-            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, activeReplyFields, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
             newColumnArea(state, page, newColumnFieldActive)
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes)(ctx)(Styles.flexStatic)
@@ -113,20 +114,20 @@ object KanbanView {
     )
   }
 
-  private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) => renderColumn(state, node, children.toSeq, parentIds, activeReplyFields, isTopLevel = isTopLevel)(ctx)(inject)
+      case Tree.Parent(node, children) => renderColumn(state, node, children.toSeq, parentIds, path, activeReplyFields, isTopLevel = isTopLevel)(ctx)(inject)
       case Tree.Leaf(node)             =>
         Rx {
           if(state.graph().isStaticParentIn(node.id, parentIds))
-            renderColumn(state, node, Nil, parentIds, activeReplyFields, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
+            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
           else
             renderCard(state, node, parentIds)(ctx)(inject)
         }
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], activeReplyFields: Var[Set[NodeId]], isTopLevel: Boolean = false, isStaticParent: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], isTopLevel: Boolean = false, isStaticParent: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editable = editable, submit = state.eventProcessor.enriched.changes, newTagParentIds = parentIds, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -179,9 +180,9 @@ object KanbanView {
         cls := "kanbancolumnchildren",
         registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
         keyed(node.id, parentIds),
-        children.map(t => renderTree(state, t, parentIds = node.id :: Nil, activeReplyFields)),
+        children.map(t => renderTree(state, t, parentIds = node.id :: Nil, path = node.id :: path, activeReplyFields)),
       ),
-      addNodeField(state, node.id, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
+      addNodeField(state, node.id, path, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
     )
   }
 
@@ -231,13 +232,14 @@ object KanbanView {
     )
   }
 
-  private def addNodeField(state: GlobalState, parentId: NodeId, activeReplyFields: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def addNodeField(state: GlobalState, parentId: NodeId, path:List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
+    val fullPath = parentId :: path
+    val active = Rx{activeReplyFields() contains fullPath}
     div(
       cls := "kanbanaddnodefield",
       keyed(parentId),
       Rx {
-        val active = activeReplyFields() contains parentId
-        if(active)
+        if(active())
           div(
             cls := "ui form",
             keyed(parentId),
@@ -253,14 +255,17 @@ object KanbanView {
                 state.eventProcessor.enriched.changes.onNext(change)
               },
               onDomMount.asHtml --> sideEffect { elem => elem.focus() },
-              onBlur.value --> sideEffect { v => if(v.isEmpty) activeReplyFields.update(_ - parentId) }
+              onBlur.value --> sideEffect { v => if(v.isEmpty) activeReplyFields.update(_ - fullPath) }
             )
           )
         else
           div(
             keyed(parentId),
             "+ Add Card",
-            onClick --> sideEffect { activeReplyFields.update(_ + parentId) }
+            // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
+            // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
+            // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
+            onMouseDown --> sideEffect { defer{ activeReplyFields.update(_ + fullPath) } }
           )
       }
     )
