@@ -5,7 +5,7 @@ name := "wust"
 
 // docker versions do not allow '+'
 version in ThisBuild ~= (_.replace('+', '-'))
-dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnand/sbt-dynver/issues/52
+dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnand/sbt-dynver/issues/5
 
 import Def.{setting => dep}
 
