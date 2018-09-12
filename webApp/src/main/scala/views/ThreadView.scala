@@ -124,6 +124,7 @@ object ThreadView {
       else List(
         replyButton.apply(onTap --> sideEffect{
           activeReplyFields.update(_ + (nodeId :: meta.path))
+          // we also set an Expand-edge, so that after an reply and its update the thread does not close again
           state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
           ()
         }),
@@ -388,11 +389,11 @@ object ThreadView {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
 
+    val replyFieldActive = Rx{ activeReplyFields() contains (nodeId :: path) }
     val threadVisibility = Rx {
       // this is a separate Rx, to prevent rerendering of the whole thread, when only replyFieldActive changes.
-      val replyFieldActive = activeReplyFields() contains (nodeId :: path)
       val userExpandedNodes = graph.expandedNodes(state.user().id)
-      if(replyFieldActive) ThreadVisibility.Expanded
+      if(replyFieldActive()) ThreadVisibility.Expanded
       else if (isThread && !userExpandedNodes(nodeId)) ThreadVisibility.Collapsed
       else if (isThread) ThreadVisibility.Expanded
       else ThreadVisibility.Plain
@@ -451,12 +452,12 @@ object ThreadView {
 
   def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
     val fullPath = nodeId :: path
+    val active = Rx { activeReplyFields() contains fullPath }
 
     div(
       keyed(nodeId),
       Rx {
-        val active = activeReplyFields() contains fullPath
-        if(active)
+        if(active())
           div(
             keyed(nodeId),
             Styles.flex,
