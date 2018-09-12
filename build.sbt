@@ -176,7 +176,7 @@ lazy val root = project
     ),
     addCommandAlias(
       "dev",
-      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; webApp/fastOptJS::stopWebpackDevServer; core/reStop"
+      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; all core/compile webApp/fastOptJS::webpack; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; all webApp/fastOptJS::stopWebpackDevServer core/reStop"
     ),
     addCommandAlias(
       "devslackwatch_",
@@ -188,7 +188,7 @@ lazy val root = project
     ),
     addCommandAlias(
       "devf",
-      "; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; fastOptJS::stopWebpackDevServer; core/reStop; project root"
+      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; all core/compile webApp/fastOptJS::webpack; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
     ),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
     // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.6"),
