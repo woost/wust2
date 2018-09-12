@@ -482,8 +482,8 @@ object ThreadView {
             marginLeft := "8px",
             // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
             // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
-            // before the click was finished. This does not happen with onMouseDown.
-            onMouseDown.stopPropagation --> sideEffect { activeReplyFields.update(_ + fullPath) }
+            // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
+            onMouseDown.stopPropagation --> sideEffect { defer { activeReplyFields.update(_ + fullPath) } }
           )
       }
     )
