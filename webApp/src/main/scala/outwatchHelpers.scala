@@ -181,7 +181,7 @@ package object outwatchHelpers {
   def keyed(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = keyed(Nil)
   def keyed(keys: Any*)(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = {
     val parts = s"${file.value}:${line.value}:${column.value}" +: keys
-    val keyNumber = parts.mkString.hashCode
+    val keyNumber = parts.hashCode
     val keyModifier = dsl.key := keyNumber
     if (DevOnly.isTrue) VDomModifier(keyModifier, dsl.data.key := keyNumber)
     else keyModifier
