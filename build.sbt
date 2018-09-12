@@ -37,6 +37,17 @@ lazy val commonSettings = Seq(
     Deps.akka.httpCore.value,
     Deps.scribe.perfolation.value,
   ),
+
+  // we need this merge strategy, since we want to override the original perfolation dependency of scribe with a jitpack version. But since the have different artifact and group ids, assembly gets confused, because they contain the same classes. For the JVM code it stayed exactly the same, so we can just use MergeStrategy.first.
+  // https://github.com/sbt/sbt-assembly#merge-strategy
+  assemblyMergeStrategy in assembly := {
+    case PathList("perfolation", xs @ _*) => MergeStrategy.first
+    case x =>
+      val oldStrategy = (assemblyMergeStrategy in assembly).value
+      oldStrategy(x)
+  },
+
+
   // do not run tests in assembly command
   test in assembly := {},
   // https://github.com/sbt/sbt-assembly#caching
