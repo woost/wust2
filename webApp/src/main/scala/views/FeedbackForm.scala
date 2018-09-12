@@ -23,29 +23,35 @@ object FeedbackForm {
     val show = Var(false)
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
 
+    val feedbackText = Var("")
+
     val initialStatus = "(Press Enter to submit)"
     val statusText = Var(initialStatus)
 
     var timeout:Option[Int] = None
+    def submit():Unit = {
+      val newNode = Node.Content(new ids.NodeData.Markdown(feedbackText.now))
+      state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, feedbackNodeId))
+      statusText() = "Thank you!"
+      timeout.foreach(clearTimeout)
+      timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+            Analytics.sendEvent("feedback", "submit")
+    }
+
     val feedbackForm = div(
       div(
         cls := "ui form",
         textArea(
           cls := "field",
-          valueWithEnter --> sideEffect { str =>
-            val newNode = Node.Content(new ids.NodeData.Markdown(str))
-            state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, feedbackNodeId))
-            statusText() = "Thank you!"
-            timeout.foreach(clearTimeout)
-            timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
-          },
-          width := "200px",
+          valueWithEnter --> sideEffect { submit() },
+          onInput.value --> feedbackText,
+          width := "220px",
           rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           style("resize") := "none", //TODO: add resize style to scala-dom-types
           placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
         )
       ),
-      div(textAlign.right, fontSize.smaller, color := "#666", statusText)
+      div(textAlign.right, fontSize.smaller, color := "#666", statusText),
     )
 
     div(
@@ -75,8 +81,10 @@ object FeedbackForm {
         feedbackForm,
         div(
           marginTop := "20px",
-          textAlign.center,
+          Styles.flex,
+          justifyContent.spaceBetween,
           button(
+            Styles.flexStatic,
             tpe := "button",
             cls := "ui tiny compact button",
             "Show all Feedback",
@@ -86,7 +94,15 @@ object FeedbackForm {
             onClick --> sideEffect {
               Analytics.sendEvent("feedback", "show")
             }
-          )
+          ),
+          button(
+            Styles.flexStatic,
+            tpe := "button",
+            cls := "ui tiny compact primary button",
+            "Submit",
+            onClick --> sideEffect { submit() },
+            onClick(false) --> show,
+          ),
         ),
         onClick.stopPropagation --> sideEffect{}, // prevents closing feedback form by global click
       )
