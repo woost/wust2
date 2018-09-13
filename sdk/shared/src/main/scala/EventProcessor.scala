@@ -177,7 +177,7 @@ class EventProcessor private (
 
     graphWithChanges subscribe rawGraph
 
-    (changesHistory.share, localChanges.share, sharedRawGraph)
+    (changesHistory, localChanges, sharedRawGraph)
   }
 
   def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
