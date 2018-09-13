@@ -871,9 +871,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chatmsg-line.draggable-mirror .tag," +
-    ".chatmsg-line.draggable-mirror .tagdot," +
+  ".chatmsg-line.draggable-mirror .tagdot," +
+  ".chatmsg-line.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
   ".chatmsg-line.draggable-mirror .collapsebutton" - (
-    visibility.hidden
+    visibility.hidden.important
   )
 
   val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
