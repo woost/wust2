@@ -304,7 +304,6 @@ object Components {
       outline := "none", // hides contenteditable outline
       keyed, // when updates come in, don't disturb current editing session
       Rx {
-        println(s"editing node: ${node.data}")
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
