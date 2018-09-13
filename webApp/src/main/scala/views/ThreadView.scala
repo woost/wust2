@@ -4,6 +4,7 @@ import cats.effect.IO
 import fontAwesome._
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
+import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -95,11 +96,11 @@ object ThreadView {
   val avatarBorder = true
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
-  def localEditableVar(currentlyEditable:Var[Option[NodeId]], nodeId: NodeId)(implicit ctx:Ctx.Owner): Var[Boolean] = {
-    currentlyEditable.zoom(_.fold(false)(_ == nodeId)){
-      case (_, true) => Some(nodeId)
+  def localEditableVar(currentlyEditable: Var[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): Var[Boolean] = {
+    currentlyEditable.zoom(_.fold(false)(_ == nodeId)) {
+      case (_, true)               => Some(nodeId)
       case (Some(`nodeId`), false) => None
-      case (current, false) => current // should never happen
+      case (current, false)        => current // should never happen
     }
   }
 
@@ -122,7 +123,7 @@ object ThreadView {
       val state = meta.state
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
-        replyButton.apply(onTap --> sideEffect{
+        replyButton.apply(onTap --> sideEffect {
           activeReplyFields.update(_ + (nodeId :: meta.path))
           // we also set an Expand-edge, so that after an reply and its update the thread does not close again
           state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
@@ -134,7 +135,7 @@ object ThreadView {
       )
     }
 
-    def shouldGroup(graph:Graph, nodes: Seq[NodeId]):Boolean = {
+    def shouldGroup(graph: Graph, nodes: Seq[NodeId]): Boolean = {
       grouping && // grouping enabled
         // && (nodes
         //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
@@ -154,8 +155,8 @@ object ThreadView {
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
-    var lastSelectedPath:List[NodeId] = Nil // TODO: set by clicking on a message
-    def reversePath(nodeId:NodeId, pageParents:Set[NodeId], graph:Graph):List[NodeId] = {
+    var lastSelectedPath: List[NodeId] = Nil // TODO: set by clicking on a message
+    def reversePath(nodeId: NodeId, pageParents: Set[NodeId], graph: Graph): List[NodeId] = {
       // this only works, because all nodes in the graph are descendants
       // of the pageParents.
       val isTopLevelNode = pageParents.exists(pageParentId => graph.children(pageParentId) contains nodeId)
@@ -171,7 +172,7 @@ object ThreadView {
             // // when only taking youngest parents first, the pageParents would always be last.
             // // So we check if the node is a toplevel node
             // val topLevelParentpageParents.find(pageParentId => graph.children(pageParentId).contains(nodeId)))
-            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(nid):Long)
+            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(nid): Long)
           }
 
         }
@@ -181,12 +182,12 @@ object ThreadView {
 
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
-    val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) List(
-      editButton(localEditableVar(currentlyEditable, nodeId)).apply(onTap --> sideEffect{clearSelectedNodeIds()}),
+    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) List(
+      editButton(localEditableVar(currentlyEditable, nodeId)).apply(onTap --> sideEffect { clearSelectedNodeIds() }),
       replyButton.apply(onTap --> sideEffect { activeReplyFields.update(_ + reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)); clearSelectedNodeIds() }) //TODO: scroll to focused field?
     ) else Nil
-    val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      zoomButton(state, nodeIds).apply(onTap --> sideEffect{state.selectedNodeIds.update(_ -- nodeIds)}),
+    val selectedNodeActions: List[NodeId] => List[VNode] = nodeIds => List(
+      zoomButton(state, nodeIds).apply(onTap --> sideEffect { state.selectedNodeIds.update(_ -- nodeIds) }),
       SelectedNodes.deleteAllButton(state, nodeIds),
     )
 
@@ -202,7 +203,7 @@ object ThreadView {
         height := "100%",
         position.relative,
         SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = c => (a,b) => renderMessage(a,b)(c), shouldGroup = shouldGroup _).apply(
+        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = c => (a, b) => renderMessage(a, b)(c), shouldGroup = shouldGroup _).apply(
           height := "100%",
           width := "100%",
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
@@ -226,13 +227,15 @@ object ThreadView {
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None: Option[HTMLElement])
 
-    div(
-      managed( IO { submittedNewMessage.foreach { _ =>
-        scrollableHistoryElem.now.foreach { elem =>
-          scrollToBottom(elem)
-        }
-      }}),
 
+    div(
+      managed(IO {
+        submittedNewMessage.foreach { _ =>
+          scrollableHistoryElem.now.foreach { elem =>
+            scrollToBottom(elem)
+          }
+        }
+      }),
       // this wrapping of chat history is currently needed,
       // to allow dragging the scrollbar without triggering a drag event.
       // see https://github.com/Shopify/draggable/issues/262
@@ -270,7 +273,15 @@ object ThreadView {
             if(isScrolledToBottom.now)
               defer { scrollToBottom(elem) }
           }
-        }
+        },
+        managed(IO {
+          // on page change, always scroll down
+          state.page.foreach { _ =>
+              isScrolledToBottom() = true
+              scrollableHistoryElem.now.foreach { elem => defer{ scrollToBottom(elem) } }
+          }
+        }),
+
       ),
       overflow.auto,
       onDomMount.asHtml --> sideEffect { elem =>
@@ -280,7 +291,7 @@ object ThreadView {
       },
 
       // tapping on background deselects
-      onTap --> sideEffect{state.selectedNodeIds() = Set.empty[NodeId]}
+      onTap --> sideEffect { state.selectedNodeIds() = Set.empty[NodeId] }
     )
   }
 
@@ -389,13 +400,13 @@ object ThreadView {
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
 
-    val replyFieldActive = Rx{ activeReplyFields() contains (nodeId :: path) }
+    val replyFieldActive = Rx { activeReplyFields() contains (nodeId :: path) }
     val threadVisibility = Rx {
       // this is a separate Rx, to prevent rerendering of the whole thread, when only replyFieldActive changes.
       val userExpandedNodes = graph.expandedNodes(state.user().id)
       if(replyFieldActive()) ThreadVisibility.Expanded
-      else if (isThread && !userExpandedNodes(nodeId)) ThreadVisibility.Collapsed
-      else if (isThread) ThreadVisibility.Expanded
+      else if(isThread && !userExpandedNodes(nodeId)) ThreadVisibility.Collapsed
+      else if(isThread) ThreadVisibility.Expanded
       else ThreadVisibility.Plain
     }
 
@@ -403,7 +414,7 @@ object ThreadView {
       threadVisibility() match {
         case ThreadVisibility.Collapsed =>
           chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Collapsed)
-        case ThreadVisibility.Expanded =>
+        case ThreadVisibility.Expanded  =>
           val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
           div(
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
@@ -434,17 +445,17 @@ object ThreadView {
               keyed(nodeId)
             )
           )
-        case ThreadVisibility.Plain =>
+        case ThreadVisibility.Plain     =>
           if(inCycle)
-                chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = _ (
-                  Styles.flex,
-                  alignItems.center,
-                  freeSolid.faSyncAlt,
-                  paddingRight := "3px",
-                  backgroundColor := "#CCC",
-                  color := "#666",
-                  boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-                ))
+            chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = _ (
+              Styles.flex,
+              alignItems.center,
+              freeSolid.faSyncAlt,
+              paddingRight := "3px",
+              backgroundColor := "#CCC",
+              color := "#666",
+              boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+            ))
           else chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain)
       }
     }
@@ -519,7 +530,7 @@ object ThreadView {
     val isSelected = state.selectedNodeIds.map(_ contains nodeId)
     val node = graph.nodesById(nodeId)
 
-    val editable:Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
+    val editable: Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
 
     //TODO: how to kill rx after it became true? we do not need to be subscribed anymore thanVar
     val isSynced: Rx[Boolean] = state.addNodesInTransit
@@ -551,7 +562,7 @@ object ThreadView {
       Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
 
       Rx {
-        val icon: VNode = if (isSynced()) freeSolid.faCheck
+        val icon: VNode = if(isSynced()) freeSolid.faCheck
                           else freeRegular.faClock
 
         icon(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
@@ -650,7 +661,7 @@ object ThreadView {
     )
 
   def expandCollapseButton(meta: MessageMeta, nodeId: NodeId, threadVisibility: ThreadVisibility)(implicit ctx: Ctx.Owner): VNode = threadVisibility match {
-    case ThreadVisibility.Expanded =>
+    case ThreadVisibility.Expanded  =>
       div(
         cls := "collapsebutton",
         cls := "ui mini blue label", "-", marginLeft := "10px",
@@ -662,7 +673,7 @@ object ThreadView {
         cls := "ui mini blue label", "+" + meta.graph.children(nodeId).size, marginLeft := "10px",
         onTap(GraphChanges.connect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
         cursor.pointer)
-    case ThreadVisibility.Plain => div()
+    case ThreadVisibility.Plain     => div()
   }
 
   def zoomButton(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode =
