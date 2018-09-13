@@ -52,20 +52,20 @@ object Elements {
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, Modifier] = {
     import hammerjs._
     CustomEmitterBuilder { sink: Observer[hammerjs.Event] =>
-      var hammertime: Hammer[PropagatingEvent] = null
+      var hammertime: Hammer[Event] = null
       VDomModifier(
         onDomMount.asHtml --> sideEffect { elem =>
-          hammertime = propagating(new Hammer(elem, new Options { cssProps = new CssProps { userSelect = "auto"}} ))
-          hammertime.domEvents = true
-          hammertime.on(events, { e =>
+          hammertime = new Hammer(elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
+          propagating(hammertime).on(events, { e =>
             e.stopPropagation()
-            sink.onNext(e)
+            // if(e.target == elem)
+              sink.onNext(e)
           })
         },
         onDomUnmount.asHtml --> sideEffect { elem =>
           hammertime.stop()
           hammertime.destroy()
-        }
+        },
       )
     }
   }

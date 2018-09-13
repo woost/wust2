@@ -27,7 +27,12 @@ trait CssProps extends js.Object {
 }
 
 trait Event extends js.Object {
+  def target:html.Element
   def srcEvent:dom.Event
+}
+
+trait PropagatedHammer extends Hammer[PropagatingEvent] {
+  def hammer:Hammer[Event]
 }
 
 
@@ -37,8 +42,8 @@ trait Event extends js.Object {
 // https://github.com/josdejong/propagating-hammerjs
 @js.native
 @JSImport("propagating-hammerjs", JSImport.Namespace)
-object propagating extends js.Function1[Hammer[Event], Hammer[PropagatingEvent]] {
-  override def apply(arg1: Hammer[Event]): Hammer[PropagatingEvent] = js.native
+object propagating extends js.Function1[Hammer[Event], PropagatedHammer] {
+  override def apply(arg1: Hammer[Event]): PropagatedHammer = js.native
 }
 
 trait PropagatingEvent extends Event {
