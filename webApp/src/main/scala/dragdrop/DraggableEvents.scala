@@ -59,15 +59,18 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
     submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagId))
+    state.selectedNodeIds() = Set.empty[NodeId]
   }
   private def addTag(nodeIds:Seq[NodeId], tagIds:Iterable[NodeId]):Unit = {
     submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagIds))
+    state.selectedNodeIds() = Set.empty[NodeId]
   }
 
   private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId :: Nil)
   private def moveInto(nodeId:NodeId, parentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, parentIds)
   private def moveInto(nodeIds:Iterable[NodeId], parentIds:Iterable[NodeId]):Unit = {
     submit(GraphChanges.moveInto(state.graph.now, nodeIds, parentIds))
+    state.selectedNodeIds() = Set.empty[NodeId]
   }
   private def moveChannel(channelId:NodeId, targetChannelId:NodeId):Unit = {
 
@@ -84,6 +87,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     val disconnect:GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, topologicalChannelParents)
     val connect:GraphChanges = GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
     submit(disconnect merge connect)
+    state.selectedNodeIds() = Set.empty[NodeId]
   }
 
 
