@@ -100,7 +100,7 @@ object PageHeader {
         val users = (members ++ authors).distinct.take(7)
 
         users.map(user => Avatar.user(user.id)(
-          title := user.name,
+          tag("title")(user.name), //TODO: add svg title tag to scala-dom-types
           marginLeft := "2px",
           width := "22px",
           height := "22px",
