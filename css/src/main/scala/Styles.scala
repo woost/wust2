@@ -819,7 +819,9 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(selectedNodesBgColor),
   )
 
-
+  ".draghandle" - (
+    userSelect := none
+  )
 
   ".draggable, .draghandle" - (
     cursor.move,

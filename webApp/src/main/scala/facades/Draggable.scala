@@ -1,7 +1,7 @@
 package draggable
 
 import org.scalajs.dom
-import org.scalajs.dom.html
+import org.scalajs.dom.{MouseEvent, html}
 import org.scalajs.dom.raw.NodeList
 
 import scala.scalajs.js
@@ -87,6 +87,7 @@ class DragEvent(data: js.Object) extends AbstractEvent(data) {
   def mirror: html.Element = js.native
   def sourceContainer: html.Element = js.native
   // def sensorEvent: SensorEvent = js.native
+  def originalEvent: MouseEvent = js.native
 }
 
 @js.native
