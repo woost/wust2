@@ -18,7 +18,8 @@ import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import wust.webApp.views.{ChatKind, Placeholders}
+import wust.webApp.views.{Placeholders}
+import wust.webApp.views.ThreadView.{ChatKind}
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -62,51 +63,53 @@ object WorkflowView {
     val listWrapper = ul()
     val entryWrapper = li()
 
-    def checkButton(nodeId : NodeId, wrapper: VNode = entryWrapper) =
+    def checkButton(nodeId : Set[NodeId], wrapper: VNode = entryWrapper) =
       wrapper("\u2713",
               cursor.pointer,
               onClick.stopPropagation --> sideEffect {println(s"checking node: ${nodeId}")})
 
-    def indentButton(nodeId : NodeId, wrapper: VNode = entryWrapper) =
+    def indentButton(nodeId : Set[NodeId], wrapper: VNode = entryWrapper) =
       wrapper("\u2192",
               cursor.pointer,
               onClick.stopPropagation --> sideEffect {println(s"Indenting node: ${nodeId}")})
 
-    def outdentButton(nodeId : NodeId, wrapper: VNode = entryWrapper) =
+    def outdentButton(nodeId : Set[NodeId], wrapper: VNode = entryWrapper) =
       wrapper("\u2190",
               cursor.pointer,
               onClick.stopPropagation --> sideEffect {println(s"Outdenting node: ${nodeId}")})
 
-    def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId],
+    def deleteButton(state: GlobalState, nodeId: Set[NodeId], directParentIds: Set[NodeId],
                      wrapper: VNode = entryWrapper)
                     (implicit ctx: Ctx.Owner) =
       wrapper(
         span(cls := "fa-fw", freeRegular.faTrashAlt),
         onClick.stopPropagation --> sideEffect {
           println(s"deleting ${nodeId} with parents: ${directParentIds}")
-          state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-          state.selectedNodeIds.update(_ - nodeId)
+          nodeId.foreach { nodeId =>
+            state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+          }
+          state.selectedNodeIds.update(_ -- nodeId)
         },
         cursor.pointer,
         )
 
   }
 
-  val showDebugInfo = false
+  val showDebugInfo = true
 
   /// Controls to e.g indent or outdent the last edited entry
   /** TODO: indent/outdent requires an order between entries. */
   def activeEditableControls(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
-    lastActiveEditable.map { lastActiveEditableNodeId =>
-      (lastActiveEditableNodeId.o != None).ifTrueSeq[VDomModifier](
-        Seq(components.listWrapper(
-              cls := "activeEditableControls",
-              showDebugInfo.ifTrue[VDomModifier](s"selected: ${lastActiveEditableNodeId.get}"),
-              components.outdentButton(lastActiveEditableNodeId.get),
-              components.indentButton(lastActiveEditableNodeId.get),
-              components.deleteButton(state, lastActiveEditableNodeId.get, state.page().parentIdSet)),
-              ))
-    }
+    val nodes : Set[NodeId] = state.selectedNodeIds()
+    (!nodes.isEmpty).ifTrueSeq[VDomModifier](
+      Seq(components.listWrapper(
+            cls := "activeEditableControls",
+            showDebugInfo.ifTrue[VDomModifier](s"selected ${nodes.size}"),
+            components.outdentButton(nodes),
+            components.indentButton(nodes),
+            components.deleteButton(state, nodes, state.page().parentIdSet)),
+          )
+    )
   }
 
 
@@ -352,7 +355,7 @@ object WorkflowView {
       if(isDeleted) undeleteButton(state, nodeId, directParentIds)
       else VDomModifier(
         editButton(state, editable),
-        components.deleteButton(state, nodeId, directParentIds, wrapper=div())
+        components.deleteButton(state, Set(nodeId), directParentIds, wrapper=div())
       ),
       zoomButton(state, nodeId)
     )
@@ -375,7 +378,7 @@ object WorkflowView {
         Styles.flex,
         onClick.stopPropagation(!editable.now) --> editable,
         // onClick --> sideEffect { lastActiveEditable.update(Some(nodeId)) },
-        // onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
+        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
         editable.map { editable =>
           if(editable) {

@@ -318,10 +318,32 @@ object Components {
       }
     }
 
+    def deleteNode(graph : Graph): Unit = {
+      state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, graph))
+    }
+
+    object KeyCode {
+      val Backspace = 8
+    }
+
+    def isAtBeginningOfEditable = {
+      val range = window.getSelection.getRangeAt(0)
+      range.endOffset == 0
+    }
+
+    ///val enterPressedAtEnd = ????
+
+    val backspacePressedAtBeginning = onKeyDown
+      .filter(_.keyCode == KeyCode.Backspace)
+      .filter { _ => isAtBeginningOfEditable }
+
+    val deletionEvents = backspacePressedAtBeginning
+
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
       keyed, // when updates come in, don't disturb current editing session
       Rx {
+        val graph = state.graph()
         if(editable()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
@@ -330,6 +352,7 @@ object Components {
           color := "#000",
           cursor.auto,
 
+          deletionEvents --> sideEffect { deleteNode(graph) },
           onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) handleWith { text => save(text) },
           onBlur handleWith { discardChanges() },
           onFocus handleWith { e => document.execCommand("selectAll", false, null) },
