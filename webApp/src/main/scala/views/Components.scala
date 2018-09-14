@@ -30,6 +30,7 @@ object Placeholders {
 
 object Rendered {
   val emoji = new EmojiConvertor()
+  val implicitUserName = "Unregistered User"
 
   val htmlPostData: NodeData => String = {
     case NodeData.Markdown(content)  => mdString(content)
@@ -84,7 +85,7 @@ object Rendered {
     case NodeData.Markdown(content)  => mdHtml(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case c: NodeData.Link            => MediaViewer.embed(c)
-    case user: NodeData.User         => div(user.name)
+    case user: NodeData.User         => div(if(user.isImplicit) implicitUserName else user.name)
   }
 
   def replace_full_emoji(str: String): String = emoji.replace_unified(emoji.replace_colons(Marked(emoji.replace_emoticons_with_colons(str))))

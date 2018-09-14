@@ -377,7 +377,7 @@ object ThreadView {
       graph
         .authors(nodeId)
         .headOption
-        .fold(div())(author => div(author.name, cls := "chatmsg-author"))
+        .fold(div())(author => div(if(author.data.isImplicit) Rendered.implicitUserName else author.name, cls := "chatmsg-author"))
     else div()
   }
 
