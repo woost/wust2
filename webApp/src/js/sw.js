@@ -148,44 +148,76 @@ self.addEventListener('push', e => {
     }
 
     e.waitUntil(
-        self.clients.matchAll({type: 'window'}).then(clients => {
+        self.clients.matchAll({ type: 'window' }).then(clients => {
+
             if (clients.length > 0) {
                 return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
             } else {
-                let body = e.data ? e.data.text() : 'Push message no payload';
-                let options = {
-                    body: body,
-                    icon: 'favicon.ico',
-                    vibrate: [100, 50, 100],
-                    data: {
-                        dateOfArrival: Date.now(),
-                        primaryKey: 1
-                    },
-                    tag: "push",
-                    renotify: true,
-                    actions: [
-                      {action: 'explore', title: 'Explore this new world'}
-                    ]
-                };
 
-                return self.registration.showNotification('Push Notification', options)
+                if (e.data) {
+                    let data = e.data.json();
+                    let channel = data.parentContent ? `${data.parentContent}: ` : '';
+                    let content = data.content ? data.content : 'Push message no payload';
+                    let options = {
+                        body: `${channel}${content}`,
+                        icon: 'favicon.ico',
+                        vibrate: [100, 50, 100],
+                        tag: data.nodeId,
+                        renotify: true,
+                        // actions: [
+                        //     { action: 'explore', title: 'Explore this new world' },
+                        //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
+                        // ],
+                        data: {
+                            dateOfArrival: Date.now(),
+                            nodeId: data.nodeId,
+                            parentId: data.parentId
+                        },
+                    };
+
+                    return self.registration.showNotification('Notification from Woost', options);
+                }
             }
         })
     );
 });
 
 self.addEventListener('notificationclick', e => {
+    e.notification.close();
+
     e.waitUntil(
+
         //which ones are the pwa ones, which ones live in the browser?
-        self.clients.matchAll({type: 'window'}).then(clients => {
-            if (clients.length > 0) {
-                //TODO: have preference?
-                clients[0].focus();
-                //TODO: go to payload parent
-            } else {
-                self.clients.openWindow('/');
-                //TODO: go to payload parent
+        self.clients.matchAll({
+            type: 'window'
+        }).then(clients => {
+
+            let notifi = e.notification;
+            let nodeId = notifi.data.nodeId;
+            let parentId = notifi.data.parentId;
+            let targetId = (parentId) ? parentId : nodeId;
+
+            for (const index in clients) {
+                let client = clients[index];
+
+                let url = client.url;
+
+                if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
+                    return client.focus() && client.navigate(url);
+                } else if (url.indexOf("localhost:12345") !== -1) { // (url.indexOf("staging.woost.space") !== -1)
+                    let exp = /(?!(page=(default:)?))(([a-zA-z0-9]{22}),?)+/;
+                    let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
+
+                    return client.focus() && client.navigate(newLocation);
+                }
             }
+
+            // 'https://staging.woost.space/#view=chat&page=default:'
+            if (clients.openWindow)
+                return clients.openWindow('https://localhost:12345/#view=chat&page=default:' + targetId);
+            else
+                console.log("push with NOOP!");
+
         })
     );
 });

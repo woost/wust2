@@ -13,6 +13,8 @@ import wust.db.Data
 import scala.concurrent.{Future, Promise}
 import scala.util.Try
 
+case class PushData(content: String, nodeId: String, parentContent: Option[String], parentId: Option[String])
+
 class PushService private(service: webpush.PushService) {
   // we write our own version, because service.send is synchronous and service.sendAsync returns a stupid java-future.
   // so we do the same as sendAsync, but inject our own callback that completes a promise.
@@ -49,6 +51,22 @@ class PushService private(service: webpush.PushService) {
       PushService.base64UrlSafe(sub.auth),
       payload
     )
+
+    doSend(notification).toEither.fold(Future.failed, identity)
+  }
+
+  def send(sub: Data.WebPushSubscription, payload: PushData): Future[HttpResponse] = {
+    import io.circe.parser._
+    import io.circe.syntax._
+    import io.circe.generic.auto._
+
+    val notification = new webpush.Notification(
+      sub.endpointUrl,
+      PushService.base64UrlSafe(sub.p256dh),
+      PushService.base64UrlSafe(sub.auth),
+      payload.asJson.noSpaces
+    )
+
 
     doSend(notification).toEither.fold(Future.failed, identity)
   }

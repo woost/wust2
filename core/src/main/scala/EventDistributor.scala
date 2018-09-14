@@ -78,33 +78,45 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
       db.notifications.notifiedNodesForUser(s.userId, nodeIds).transformWith {
         case Success(permittedNodeIds) =>
           val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet))
-          val payload = filteredEvents.collect {
+          val payload: Future[Seq[PushData]] = Future.sequence(filteredEvents.collect {
             case ApiEvent.NewGraphChanges(_, changes) if changes.addNodes.nonEmpty =>
-              changes.addNodes.map(_.data.str.trim)
-          }.flatten
-
-          if (payload.isEmpty) {
-            Future.successful(None)
-          } else {
-            pushService.send(s, payload.mkString(" | ")).transform {
-              case Success(response) =>
-                response.getStatusLine.getStatusCode match {
-                  case `successStatusCode` =>
-                    Success(None)
-                  case statusCode if expiryStatusCodes.contains(statusCode) =>
-                    Success(Some(s))
-                  case _ =>
-                    Success(None)
+              changes.addNodes.map{ n =>
+                changes.addEdges.find(e => e.sourceId == n.id) match {
+                  case Some(p) =>
+                    db.node.get(s.userId, p.targetId).map {
+                      case Some(parentNode) => PushData(n.data.str.trim, n.id.toBase58, Some(parentNode.data.str), Some(parentNode.id.toBase58))
+                      case _ => PushData(n.data.str.trim, n.id.toBase58, None, Some(p.targetId.toBase58))
+                    }
+                  case _ => Future.successful(PushData(n.data.str.trim, n.id.toBase58, None, None))
                 }
-              case Failure(t) =>
-                scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
-                Success(None)
-            }
-          }
+              }
+          }.flatten)
+
+          payload.flatMap( p =>
+          if (p.isEmpty) {
+            Future.successful(Seq.empty[Data.WebPushSubscription])
+          } else {
+            Future.sequence(p.map(data =>
+              pushService.send(s, data).transform {
+                case Success(response) =>
+                  response.getStatusLine.getStatusCode match {
+                    case `successStatusCode` =>
+                      Success(None)
+                    case statusCode if expiryStatusCodes.contains(statusCode) =>
+                      Success(Some(s))
+                    case _ =>
+                      Success(None)
+                  }
+                case Failure(t) =>
+                  scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+                  Success(None)
+              }
+            )).map(_.flatten)
+          })
 
         case Failure(t) =>
           scribe.warn("Failed to query permitted node ids for events", t)
-          Future.successful(None)
+          Future.successful(Seq.empty[Data.WebPushSubscription])
       }
     }
 
