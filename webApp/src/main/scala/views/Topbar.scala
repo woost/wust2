@@ -33,8 +33,8 @@ object Topbar {
     alignItems.center,
 
     header(state).apply(marginRight := "10px"),
-    appUpdatePrompt(state).apply(marginRight := "10px"),
-    beforeInstallPrompt().apply(marginRight := "10px"),
+    appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
+    beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
     //    undoRedo(state)(ctx)(marginRight.auto),
     Rx {
       state.view().isContent.ifTrue[VDomModifier](
