@@ -33,7 +33,7 @@ object ChatView {
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
 
     val currentReply = Var(Set.empty[NodeId])
-    val currentlyEditable = Var(Option.empty[NodeId])
+    val currentlyEditable = Var(Option.empty[List[NodeId]])
 
     def shouldGroup(graph:Graph, nodes: Seq[NodeId]):Boolean = {
       grouping && // grouping enabled
@@ -42,10 +42,10 @@ object ChatView {
         }
     }
 
-    def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
+    def clearSelectedNodeIds(): Unit = state.selectedNodeIds() = Set.empty[NodeId]
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
-      editButton(localEditableVar(currentlyEditable, nodeId)).apply(onTap(Set.empty[NodeId]) --> state.selectedNodeIds),
+      editButton(localEditableVar(currentlyEditable, nodeId :: Nil)).apply(onTap(Set.empty[NodeId]) --> state.selectedNodeIds),
     )
 
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(

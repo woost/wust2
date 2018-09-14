@@ -96,10 +96,10 @@ object ThreadView {
   val avatarBorder = true
   val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
 
-  def localEditableVar(currentlyEditable: Var[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): Var[Boolean] = {
-    currentlyEditable.zoom(_.fold(false)(_ == nodeId)) {
-      case (_, true)               => Some(nodeId)
-      case (Some(`nodeId`), false) => None
+  def localEditableVar(currentlyEditable: Var[Option[List[NodeId]]], path: List[NodeId])(implicit ctx: Ctx.Owner): Var[Boolean] = {
+    currentlyEditable.zoom(_.fold(false)(_ == path)) {
+      case (_, true)               => Some(path)
+      case (Some(`path`), false) => None
       case (current, false)        => current // should never happen
     }
   }
@@ -116,7 +116,7 @@ object ThreadView {
     }
 
     val activeReplyFields = Var(Set.empty[List[NodeId]])
-    val currentlyEditable = Var(Option.empty[NodeId])
+    val currentlyEditable = Var(Option.empty[List[NodeId]])
 
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
@@ -150,7 +150,6 @@ object ThreadView {
     }
 
 
-    //TODO
     def renderMessage(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeId, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
 
     val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
@@ -182,10 +181,13 @@ object ThreadView {
 
     def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
 
-    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) List(
-      editButton(localEditableVar(currentlyEditable, nodeId)).apply(onTap --> sideEffect { clearSelectedNodeIds() }),
-      replyButton.apply(onTap --> sideEffect { activeReplyFields.update(_ + reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)); clearSelectedNodeIds() }) //TODO: scroll to focused field?
-    ) else Nil
+    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) {
+      val path = reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)
+      List(
+        editButton(localEditableVar(currentlyEditable, path)).apply(onTap --> sideEffect { clearSelectedNodeIds() }),
+        replyButton.apply(onTap --> sideEffect { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
+      )
+    } else Nil
     val selectedNodeActions: List[NodeId] => List[VNode] = nodeIds => List(
       zoomButton(state, nodeIds).apply(onTap --> sideEffect { state.selectedNodeIds.update(_ -- nodeIds) }),
       SelectedNodes.deleteAllButton(state, nodeIds),
@@ -395,7 +397,7 @@ object ThreadView {
     )
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta, shouldGroup: (Graph, Seq[NodeId]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderThread(nodeId: NodeId, meta: MessageMeta, shouldGroup: (Graph, Seq[NodeId]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
     val inCycle = alreadyVisualizedParentIds.contains(nodeId)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
@@ -521,7 +523,7 @@ object ThreadView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[NodeId]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
+  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[List[NodeId]]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
@@ -530,9 +532,11 @@ object ThreadView {
     val isSelected = state.selectedNodeIds.map(_ contains nodeId)
     val node = graph.nodesById(nodeId)
 
-    val editable: Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
+    // needs to be a var, so that it can be set from the selectedNodes bar
+    val editable: Var[Boolean] = localEditableVar(currentlyEditable, nodeId :: path)
 
     val isSynced: Rx[Boolean] = {
+      // when a node is not in transit, avoid rx subscription
       val nodeInTransit = state.addNodesInTransit.now contains nodeId
       if(nodeInTransit) state.addNodesInTransit.map(nodeIds => !nodeIds(nodeId))
       else Rx(true)
