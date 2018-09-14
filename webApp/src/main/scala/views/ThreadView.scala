@@ -129,7 +129,10 @@ object ThreadView {
           state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
           ()
         }),
-        editButton(editable),
+        editButton.apply(onTap --> sideEffect {
+          editable() = true
+          state.selectedNodeIds() = Set.empty[NodeId]
+        }),
         deleteButton(state, nodeId, directParentIds),
         zoomButton(state, nodeId :: Nil)
       )
@@ -179,12 +182,19 @@ object ThreadView {
       }
     }
 
-    def clearSelectedNodeIds() = state.selectedNodeIds() = Set.empty[NodeId]
+    def clearSelectedNodeIds(): Unit = {
+      state.selectedNodeIds() = Set.empty[NodeId]
+    }
 
     val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) {
       val path = reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)
       List(
-        editButton(localEditableVar(currentlyEditable, path)).apply(onTap --> sideEffect { clearSelectedNodeIds() }),
+        editButton.apply(
+          onTap --> sideEffect {
+            currentlyEditable() = Some(path)
+            state.selectedNodeIds() = Set.empty[NodeId]
+          }
+        ),
         replyButton.apply(onTap --> sideEffect { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
       )
     } else Nil
@@ -642,10 +652,9 @@ object ThreadView {
     )
   }
 
-  def editButton(editable: Var[Boolean])(implicit ctx: Ctx.Owner): VNode =
+  def editButton(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", Icons.edit),
-      onTap(true) --> editable,
       cursor.pointer,
     )
 

@@ -45,7 +45,12 @@ object ChatView {
     def clearSelectedNodeIds(): Unit = state.selectedNodeIds() = Set.empty[NodeId]
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
-      editButton(localEditableVar(currentlyEditable, nodeId :: Nil)).apply(onTap(Set.empty[NodeId]) --> state.selectedNodeIds),
+      editButton.apply(
+        onTap --> sideEffect {
+          currentlyEditable() = Some(nodeId :: Nil)
+          state.selectedNodeIds() = Set.empty[NodeId]
+        }
+      ),
     )
 
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
@@ -62,7 +67,10 @@ object ChatView {
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
           replyButton.apply(onTap --> sideEffect { currentReply() = Set(nodeId) }),
-          editButton(editable),
+          editButton.apply(onTap --> sideEffect {
+            editable() = true
+            state.selectedNodeIds() = Set.empty[NodeId]
+          }),
         deleteButton(state, nodeId, meta.graph.parents(nodeId).toSet),
         zoomButton(state, nodeId :: Nil)
       )
