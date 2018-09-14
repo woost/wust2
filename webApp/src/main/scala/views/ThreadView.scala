@@ -532,9 +532,11 @@ object ThreadView {
 
     val editable: Var[Boolean] = localEditableVar(currentlyEditable, nodeId)
 
-    //TODO: how to kill rx after it became true? we do not need to be subscribed anymore thanVar
-    val isSynced: Rx[Boolean] = state.addNodesInTransit
-      .map(nodeIds => !nodeIds(nodeId))
+    val isSynced: Rx[Boolean] = {
+      val nodeInTransit = state.addNodesInTransit.now contains nodeId
+      if(nodeInTransit) state.addNodesInTransit.map(nodeIds => !nodeIds(nodeId))
+      else Rx(true)
+    }
 
     val checkbox = div(
       cls := "ui checkbox fitted",
