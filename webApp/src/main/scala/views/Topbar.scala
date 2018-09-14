@@ -21,6 +21,7 @@ import scala.scalajs.js
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
+    style("user-select") := "none",
     paddingRight := "5px",
     height := "35px",
     backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),

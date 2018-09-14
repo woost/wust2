@@ -19,6 +19,7 @@ import wust.webApp.state.ScreenSize
 object SelectedNodes {
   def apply(state: GlobalState, nodeActions:List[NodeId] => List[VNode] = _ => Nil, singleNodeActions:NodeId => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): VNode = {
     div(
+      style("user-select") := "none",
       Rx {
         val graph = state.graph()
         val sortedNodeIds = state.selectedNodeIds().toList.sortBy(nodeId => graph.nodeModified(nodeId): Long)

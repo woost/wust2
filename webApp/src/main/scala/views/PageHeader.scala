@@ -80,7 +80,7 @@ object PageHeader {
       alignItems.center,
       flexWrap.wrap,
       minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
-      style("userSelect") := "none",
+      style("user-select") := "none",
       Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))},
       notifyControl(state, channel).apply(buttonStyle),
       Rx {settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)},

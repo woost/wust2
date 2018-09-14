@@ -24,6 +24,7 @@ object Sidebar {
 
     div(
       cls := "sidebar",
+      style("user-select") := "none",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
       //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
       state.sidebarOpen.map {
@@ -181,7 +182,6 @@ object Sidebar {
       cls := "channelicon",
       width := s"${ size }px",
       height := s"${ size }px",
-      style("userSelect") := "none",
       backgroundColor := (node match {
         case node:Node.Content => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
         case _:Node.User => "rgb(255, 255, 255)"
