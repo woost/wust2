@@ -15,7 +15,7 @@ object Deps {
 
   // core libraries
   val cats = new {
-    val core = dep("org.typelevel" %%% "cats-core" % "1.1.0")
+    val core = dep("org.typelevel" %%% "cats-core" % "1.4.0")
     val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0")
   }
   val akka = new {
@@ -52,7 +52,7 @@ object Deps {
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "e64d5d7")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.cornerman" % "outwatch" % "d028961")
+  val outwatch = dep("com.github.cornerman" % "outwatch" % "b63ca4c")
 
   // utility
   val scribe = new {
