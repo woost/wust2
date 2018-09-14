@@ -253,7 +253,7 @@ object ThreadView {
       // see https://github.com/Shopify/draggable/issues/262
       div(
         cls := "chat-history",
-        padding := "20px 0 20px 20px",
+        padding := "50px 0 20px 20px", // large padding-top to have space for selectedNodes bar
         Rx {
           val page = state.page()
           val graph = state.graphContent()
