@@ -76,13 +76,16 @@ object EventProcessor {
       sendChange: List[GraphChanges] => Future[Boolean],
       initialAuth: Authentication
   )(implicit scheduler: Scheduler): EventProcessor = {
-    val graphEvents = eventStream
+    val s = eventStream.share
+    val graphEvents = s
       .map(_.collect { case e: ApiEvent.GraphContent => e })
       .collect { case l if l.nonEmpty => l }
+      .share
 
-    val authEvents = eventStream
+    val authEvents = s
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
+      .share
 
     new EventProcessor(
       graphEvents,
