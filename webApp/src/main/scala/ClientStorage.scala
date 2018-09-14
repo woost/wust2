@@ -26,7 +26,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
 
   val auth: Var[Option[Authentication]] = {
     LocalStorage
-      .handler(keys.auth)
+      .handlerWithoutEvents(keys.auth)
       .unsafeRunSync()
       .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
       .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
