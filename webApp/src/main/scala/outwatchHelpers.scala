@@ -15,6 +15,9 @@ import rx._
 import wust.util.Empty
 
 import scala.collection.breakOut
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+
 // Outwatch TODOs:
 // when writing: sink <-- obs; obs(action)
 // action is always triggered first, even though it is registered after subscribe(<--)
@@ -144,9 +147,9 @@ package object outwatchHelpers {
   private def abstractTreeToVNode(tree: AbstractElement): VNode = {
     import outwatch.dom.dsl.{attr, tag}
     tag(tree.tag)(
-      tree.attributes
-        .map { case (name, value) => attr(name) := value }(breakOut): Seq[VDomModifier],
-      tree.children.fold(Seq.empty[VNode]) { _.map(abstractTreeToVNode) }
+      //TODO return js array in facade?
+      tree.attributes.map { case (name, value) => attr(name) := value }.toJSArray,
+      tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
     )
   }
 
