@@ -126,11 +126,33 @@ function subscribeWebPushAndPersist() {
     });
 }
 
+function focusedClient(clients) {
+    for (let i = 0; i < clients.length; i++) {
+        const windowClient = clients[i];
+        if (windowClient.focused) {
+            clientIsFocused = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 // startup
 log("ServiceWorker starting!");
 port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
 log("BaseUrl: " + baseUrl);
+
+// Weird workaround
+let global = {};
+importScripts('emoji.min.js');
+let pushEmojis = new global.EmojiConvertor();
+pushEmojis.init_env();
+pushEmojis.include_title = false;
+pushEmojis.allow_native = true;
+pushEmojis.wrap_native = false;
+pushEmojis.avoid_ms_emoji = true;
+pushEmojis.replace_mode = "unified";
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
@@ -148,36 +170,62 @@ self.addEventListener('push', e => {
     }
 
     e.waitUntil(
-        self.clients.matchAll({ type: 'window' }).then(clients => {
+        self.clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true
+        }).then(clients => {
 
-            if (clients.length > 0) {
-                return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
-            } else {
 
-                if (e.data) {
-                    let data = e.data.json();
-                    let channel = data.parentContent ? `${data.parentContent}: ` : '';
-                    let content = data.content ? data.content : 'Push message no payload';
-                    let options = {
-                        body: `${channel}${content}`,
-                        icon: 'favicon.ico',
-                        vibrate: [100, 50, 100],
-                        tag: data.nodeId,
-                        renotify: true,
-                        // actions: [
-                        //     { action: 'explore', title: 'Explore this new world' },
-                        //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
-                        // ],
-                        data: {
-                            dateOfArrival: Date.now(),
-                            nodeId: data.nodeId,
-                            parentId: data.parentId
-                        },
-                    };
+            // if (focusedClient(clients)) {
+            //     return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
+            // } else {
 
-                    return self.registration.showNotification('Notification from Woost', options);
-                }
+            if (e.data) {
+                let data = e.data.json();
+                let nodeId = data.nodeId;
+                let targetId = data.parentId ? data.parentId : nodeId;
+                let channel = data.parentContent ? `${data.parentContent}` : 'Woost';
+                let user = data.username;
+                let content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
+
+                let options = {
+                    body: content,
+                    icon: 'favicon.ico',
+                    vibrate: [100, 50, 100],
+                    renotify: true,
+                    tag: targetId,
+                    // actions: [
+                    //     { action: 'explore', title: 'Explore this new world' },
+                    //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
+                    // ],
+                    data: {
+                        dateOfArrival: Date.now(),
+                        nodeId: nodeId,
+                        targetId: targetId,
+                        msgCount: 1
+                    },
+                };
+
+                registration.getNotifications().then(notifications => {
+                    let count = 0;
+
+                    for(let i = 0; i < notifications.length; i++) {
+                        if (notifications[i].data &&
+                            notifications[i].data.targetId === targetId) {
+                            count = notifications[i].data.msgCount + 1;
+                            options.data.msgCount = count;
+                            notifications[i].close();
+                        }
+                    }
+
+                    console.log(`number of notifications = ${count}`);
+
+                    let title = (count > 0) ? `${channel} (${count} new messages)` : channel;
+
+                    return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
+                });
             }
+            // }
         })
     );
 });
@@ -192,10 +240,10 @@ self.addEventListener('notificationclick', e => {
             type: 'window'
         }).then(clients => {
 
-            let notifi = e.notification;
-            let nodeId = notifi.data.nodeId;
-            let parentId = notifi.data.parentId;
-            let targetId = (parentId) ? parentId : nodeId;
+            let notifi = e.notification.data;
+            let nodeId = notifi.nodeId;
+            let targetId = notifi.targetId;
+            let baseLocation = 'https://staging.woost.space/'
 
             for (const index in clients) {
                 let client = clients[index];
@@ -204,7 +252,7 @@ self.addEventListener('notificationclick', e => {
 
                 if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
                     return client.focus() && client.navigate(url);
-                } else if (url.indexOf("localhost:12345") !== -1) { // (url.indexOf("staging.woost.space") !== -1)
+                } else if (url.indexOf(baseLocation) !== -1) {
                     let exp = /(?!(page=(default:)?))(([a-zA-z0-9]{22}),?)+/;
                     let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
 
@@ -212,9 +260,8 @@ self.addEventListener('notificationclick', e => {
                 }
             }
 
-            // 'https://staging.woost.space/#view=chat&page=default:'
             if (clients.openWindow)
-                return clients.openWindow('https://localhost:12345/#view=chat&page=default:' + targetId);
+                return clients.openWindow(baseLocation + '#view=chat&page=default:' + targetId);
             else
                 console.log("push with NOOP!");
 

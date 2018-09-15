@@ -13,7 +13,7 @@ import wust.db.Data
 import scala.concurrent.{Future, Promise}
 import scala.util.Try
 
-case class PushData(content: String, nodeId: String, parentContent: Option[String], parentId: Option[String])
+case class PushData(username: String, content: String, nodeId: String, parentContent: Option[String], parentId: Option[String])
 
 class PushService private(service: webpush.PushService) {
   // we write our own version, because service.send is synchronous and service.sendAsync returns a stupid java-future.

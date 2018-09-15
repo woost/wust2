@@ -35,11 +35,12 @@ const staticCopyAssets = [
     { from: 'node_modules/emoji-datasource/img/apple/sheets/32.png', to: 'emoji-datasource/sheet_apple_32.png'},
     { from: 'node_modules/highlight.js/styles/atom-one-dark.css', to: 'highlight/atom-one-light.css'},
     { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
+    { from: 'node_modules/emoji-js/lib/emoji.min.js', to: 'emoji.min.js'},
     { from: 'node_modules/fomantic-ui-css/semantic.min.css', to: 'semantic/' },
     { from: 'node_modules/fomantic-ui-css/semantic.min.js', to: 'semantic/' },
     { from: 'node_modules/fomantic-ui-css/themes/default/assets/fonts/icons.woff2', to: 'semantic/themes/default/assets/fonts/' }
 ];
-const staticIncludeAssets = [ 'jquery.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css', 'highlight/atom-one-light.css' ];
+const staticIncludeAssets = [ 'jquery.min.js', 'emoji.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css', 'highlight/atom-one-light.css' ];
 
 // export
 module.exports.webpack = webpack;

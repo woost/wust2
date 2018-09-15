@@ -40,12 +40,12 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 
     val (checkedNodeIdsList, uncheckedNodeIdsList) = events.map {
       case ApiEvent.NewGraphChanges(_, changes) =>
-        val userIds: Set[UserId] = changes.addNodes.collect { case c: Node.User => c.id }(breakOut) //FIXME we cannot not check permission on users nodes as they currentl have no permissions, we just allow them for now.
-        (changes.involvedNodeIds.toSet -- userIds, userIds)
-      case _ => (Set.empty[NodeId], Set.empty[UserId])
+        val userData: Set[(UserId, String)] = changes.addNodes.collect { case c: Node.User => c.id -> c.name }(breakOut) //FIXME we cannot not check permission on users nodes as they currentl have no permissions, we just allow them for now.
+        (changes.involvedNodeIds.toSet -- userData.map(_._1), userData)
+      case _ => (Set.empty[NodeId], Set.empty[(UserId, String)])
     }.unzip
     val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
-    val uncheckedNodeIds: Set[UserId] = uncheckedNodeIdsList.toSet.flatten
+    val uncheckedNodeIds: Set[(UserId, String)] = uncheckedNodeIdsList.toSet.flatten
 
     subscribers.foreach { client =>
       if (origin.fold(true)(_ != client))
@@ -53,19 +53,19 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
           stateFut.flatMap { state =>
             state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
               db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds)
-                .map(permittedNodeIds => events.map(eventFilter(uncheckedNodeIds ++ permittedNodeIds)))
+                .map(permittedNodeIds => events.map(eventFilter(uncheckedNodeIds.map(_._1).toSet ++ permittedNodeIds)))
             }
           }
         )
     }
 
     db.notifications.getAllSubscriptions().onComplete {
-      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds)
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds, uncheckedNodeIds.map(_._2).headOption.getOrElse(""))
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
 
-  private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], nodeIds: Set[NodeId]): Unit = pushService.foreach { pushService =>
+  private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], nodeIds: Set[NodeId], username: String): Unit = pushService.foreach { pushService =>
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
     val expiryStatusCodes = Set(404, 410)
     val successStatusCode = 201
@@ -84,10 +84,10 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                 changes.addEdges.find(e => e.sourceId == n.id) match {
                   case Some(p) =>
                     db.node.get(s.userId, p.targetId).map {
-                      case Some(parentNode) => PushData(n.data.str.trim, n.id.toBase58, Some(parentNode.data.str), Some(parentNode.id.toBase58))
-                      case _ => PushData(n.data.str.trim, n.id.toBase58, None, Some(p.targetId.toBase58))
+                      case Some(parentNode) => PushData(username, n.data.str.trim, n.id.toBase58, Some(parentNode.data.str), Some(parentNode.id.toBase58))
+                      case _ => PushData(username, n.data.str.trim, n.id.toBase58, None, Some(p.targetId.toBase58))
                     }
-                  case _ => Future.successful(PushData(n.data.str.trim, n.id.toBase58, None, None))
+                  case _ => Future.successful(PushData(username, n.data.str.trim, n.id.toBase58, None, None))
                 }
               }
           }.flatten)
