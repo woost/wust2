@@ -177,7 +177,7 @@ self.addEventListener('push', e => {
 
 
             if (focusedClient(clients)) {
-                return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
+                return;
             } else {
 
                 if (e.data) {
