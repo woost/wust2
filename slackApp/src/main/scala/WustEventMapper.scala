@@ -385,6 +385,21 @@ object FilterEvents {
   def unDeleteGroup(unArchives: Set[UnArchive]):   Set[UnArchiveGroup]   = unArchives.collect { case d @ UnArchiveGroup(_) => d }
   def unDeleteChannel(unArchives: Set[UnArchive]): Set[UnArchiveChannel] = unArchives.collect { case d @ UnArchiveChannel(_) => d }
 
+  /**
+   * Copy events => Trigger a create on slack in another hierarchie
+   *
+   * Conditions (Cond):
+   * 1) Parent edge in add set without a timestamp in EdgeData
+   * 2) Target id is known to slack as workspace / channel / group / thread (message)
+   * 3) Source id is known to slack as channel / group / thread / message
+   *
+   * Procdure:
+   *
+   */
+
+  /**
+   * HINT: Move events should be handled automatically by copy & delete (combined)
+   */
 
   /**
     * Filter events that triggers a create on slack
