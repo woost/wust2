@@ -176,56 +176,56 @@ self.addEventListener('push', e => {
         }).then(clients => {
 
 
-            // if (focusedClient(clients)) {
-            //     return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
-            // } else {
+            if (focusedClient(clients)) {
+                return Promise.reject("ServiceWorker has active clients, ignoring push notification.");
+            } else {
 
-            if (e.data) {
-                let data = e.data.json();
-                let nodeId = data.nodeId;
-                let targetId = data.parentId ? data.parentId : nodeId;
-                let channel = data.parentContent ? `${data.parentContent}` : 'Woost';
-                let user = data.username;
-                let content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
+                if (e.data) {
+                    let data = e.data.json();
+                    let nodeId = data.nodeId;
+                    let targetId = data.parentId ? data.parentId : nodeId;
+                    let channel = data.parentContent ? `${data.parentContent}` : 'Woost';
+                    let user = data.username;
+                    let content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
 
-                let options = {
-                    body: content,
-                    icon: 'favicon.ico',
-                    vibrate: [100, 50, 100],
-                    renotify: true,
-                    tag: targetId,
-                    // actions: [
-                    //     { action: 'explore', title: 'Explore this new world' },
-                    //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
-                    // ],
-                    data: {
-                        dateOfArrival: Date.now(),
-                        nodeId: nodeId,
-                        targetId: targetId,
-                        msgCount: 1
-                    },
-                };
+                    let options = {
+                        body: content,
+                        icon: 'favicon.ico',
+                        vibrate: [100, 50, 100],
+                        renotify: true,
+                        tag: targetId,
+                        // actions: [
+                        //     { action: 'explore', title: 'Explore this new world' },
+                        //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
+                        // ],
+                        data: {
+                            dateOfArrival: Date.now(),
+                            nodeId: nodeId,
+                            targetId: targetId,
+                            msgCount: 1
+                        },
+                    };
 
-                registration.getNotifications().then(notifications => {
-                    let count = 0;
+                    return registration.getNotifications().then(notifications => {
+                        let count = 0;
 
-                    for(let i = 0; i < notifications.length; i++) {
-                        if (notifications[i].data &&
-                            notifications[i].data.targetId === targetId) {
-                            count = notifications[i].data.msgCount + 1;
-                            options.data.msgCount = count;
-                            notifications[i].close();
+                        for(let i = 0; i < notifications.length; i++) {
+                            if (notifications[i].data &&
+                                notifications[i].data.targetId === targetId) {
+                                count = notifications[i].data.msgCount + 1;
+                                options.data.msgCount = count;
+                                notifications[i].close();
+                            }
                         }
-                    }
 
-                    console.log(`number of notifications = ${count}`);
+                        console.log(`number of notifications = ${count}`);
 
-                    let title = (count > 0) ? `${channel} (${count} new messages)` : channel;
+                        let title = (count > 0) ? `${channel} (${count} new messages)` : channel;
 
-                    return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
-                });
+                        return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
+                    });
+                }
             }
-            // }
         })
     );
 });
