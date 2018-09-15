@@ -336,10 +336,10 @@ object FilterEvents {
 
   }
 
-  def archiveMessage(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter): Set[DeleteMessage] = archives.collect { case d @ DeleteMessage(_) => d }
-  def archiveThread(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter):  Set[DeleteThread]  = archives.collect { case d @ DeleteThread(_) => d }
-  def archiveGroup(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter):   Set[DeleteGroup]   = archives.collect { case d @ DeleteGroup(_) => d }
-  def archiveChannel(archives: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter): Set[DeleteChannel] = archives.collect { case d @ DeleteChannel(_) => d }
+  def deleteMessage(deletes: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter): Set[DeleteMessage] = deletes.collect { case d @ DeleteMessage(_) => d }
+  def deleteThread(deletes: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter):  Set[DeleteThread]  = deletes.collect { case d @ DeleteThread(_) => d }
+  def deleteGroup(deletes: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter):   Set[DeleteGroup]   = deletes.collect { case d @ DeleteGroup(_) => d }
+  def deleteChannel(deletes: Set[Delete])(implicit persistenceAdapter: PersistenceAdapter): Set[DeleteChannel] = deletes.collect { case d @ DeleteChannel(_) => d }
 
   /**
    * Filter events that triggers a unarchive on slack
