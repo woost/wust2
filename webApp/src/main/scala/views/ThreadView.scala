@@ -762,6 +762,10 @@ object ThreadView {
           state.eventProcessor.changes.onNext(changes)
           submittedNewMessage.onNext(Unit)
         },
+        // else, these events would bubble up to global event handlers and produce a lag
+        // TODO: sideEffect still has the overhead of triggering the monix scheduler, since it is implemented as an observer
+        onKeyPress.stopPropagation --> sideEffect {},
+        onKeyUp.stopPropagation --> sideEffect {},
         focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> sideEffect { e => e.focus() }),
         onBlur.value --> sideEffect { value => blurAction(value) },
         disabled <-- disableUserInput,

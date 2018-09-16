@@ -112,7 +112,7 @@ object Elements {
           value <-- writeValue,
           //TODO WTF WHY DOES THAT NOT WORK?
 //          onEnter.value.filter(_.nonEmpty) --> userInput,
-          onEnter.map(_.currentTarget.asInstanceOf[dom.html.Input].value).filter(_.nonEmpty) --> userInput,
+          onEnter.stopPropagation.map(_.currentTarget.asInstanceOf[dom.html.Input].value).filter(_.nonEmpty) --> userInput,
           managed(sink <-- userInput.distinctUntilChanged) // distinct, because Enter can be pressed multiple times before writeValue clears the field
         )
       } yield modifiers
