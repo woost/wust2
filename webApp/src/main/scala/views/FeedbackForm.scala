@@ -24,6 +24,7 @@ object FeedbackForm {
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
 
     val feedbackText = Var("")
+    val clear = Handler.create[Unit].unsafeRunSync().mapObservable(_ => "")
 
     val initialStatus = "(Press Enter to submit)"
     val statusText = Var(initialStatus)
@@ -45,6 +46,7 @@ object FeedbackForm {
           cls := "field",
           valueWithEnter --> sideEffect { submit() },
           onInput.value --> feedbackText,
+          value <-- clear,
           width := "220px",
           rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           style("resize") := "none", //TODO: add resize style to scala-dom-types
@@ -100,7 +102,7 @@ object FeedbackForm {
             tpe := "button",
             cls := "ui tiny compact primary button",
             "Submit",
-            onClick --> sideEffect { submit() },
+            onClick --> sideEffect { submit(); clear.onNext(Unit); () },
             onClick(false) --> show,
           ),
         ),
