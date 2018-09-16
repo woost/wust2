@@ -549,7 +549,13 @@ object PageHeader {
           marginRight := "5px",
         ),
         span(cls := "text", "Delete Channel", cursor.pointer),
-        onClick(GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet).merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId))) --> state.eventProcessor.changes
+        onClick --> sideEffect {
+          state.eventProcessor.changes.onNext(
+            GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
+              .merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) 
+          )
+          state.viewConfig() = ViewConfig.default
+        }
       ))
 
     val items:List[VNode] = List(Some(searchButton(state, channel)), Some(addMemberButton(state, channel)), Some(shareButton(channel)), permissionItem, leaveItem, deleteItem).flatten
