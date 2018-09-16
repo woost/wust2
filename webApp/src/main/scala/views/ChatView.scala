@@ -160,6 +160,7 @@ object ChatView {
 
       // clear on page change
       managed(IO { state.page.foreach {_ => currentReply() = Set.empty[NodeId]} }),
+      managed(IO { submittedNewMessage.foreach {_ => currentReply() = Set.empty[NodeId]} }),
 
       div(
         Styles.flex,
