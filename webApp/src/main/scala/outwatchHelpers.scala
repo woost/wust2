@@ -29,8 +29,8 @@ import scala.scalajs.js.JSConverters._
 package object outwatchHelpers {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
-    // Scheduler.trampoline(executionModel = SynchronousExecution)
-     Scheduler.global
+//    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
+      Scheduler.global
 //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {

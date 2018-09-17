@@ -11,7 +11,7 @@ import wust.webApp.state.GlobalStateFactory
 import wust.webApp.views.Elements._
 import wust.webApp.views.{MainView, Rendered}
 
-import scala.scalajs.LinkingInfo
+import scala.scalajs.{LinkingInfo, js}
 
 object Main {
 
@@ -19,6 +19,14 @@ object Main {
   // global.require("default-passive-events")
 
   def main(args: Array[String]): Unit = {
+
+    // Add polyfill for setImmediate
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate
+    // Api explanation: https://jphpsf.github.io/setImmediate-shim-demo
+    // this will be automatically picked up by monix and used instead of
+    // setTimeout( ... , 0)
+    // This reduces latency for the async scheduler
+    js.Dynamic.global.setImmediate = immediate.immediate
 
 //    DevOnly {
 //      helpers.OutwatchTracing.patch.zipWithIndex.foreach { case ((old, cur), index) =>
