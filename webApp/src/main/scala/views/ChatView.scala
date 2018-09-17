@@ -112,7 +112,7 @@ object ChatView {
       padding := "1px",
       borderTopLeftRadius := "2px",
       borderTopRightRadius := "2px",
-      chatMessageHeader(false, parent.id, graph, Rx(AvatarSize.Small), showDate = false).apply(
+      chatMessageHeader(false, parent.id, graph, AvatarSize.Small, showDate = false).apply(
         padding := "2px"
       ),
       nodeCard(state, parent).apply(

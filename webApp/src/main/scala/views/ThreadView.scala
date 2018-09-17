@@ -234,7 +234,6 @@ object ThreadView {
     renderMessage: Ctx.Owner => (NodeId, MessageMeta) => VDomModifier,
     shouldGroup: (Graph, Seq[NodeId]) => Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
-    val avatarSizeToplevel: Rx[AvatarSize] = Rx { if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large }
 
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None: Option[HTMLElement])
@@ -258,6 +257,8 @@ object ThreadView {
           val page = state.page()
           val graph = state.graphContent()
           val user = state.user()
+          val avatarSizeToplevel: AvatarSize = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
+
           if(nodeIds().isEmpty) VDomModifier(emptyChatNotice)
           else
             VDomModifier(
@@ -384,7 +385,7 @@ object ThreadView {
   private def renderGroupedMessages(
     nodeIds: Seq[NodeId],
     meta: MessageMeta,
-    avatarSize: Rx[AvatarSize],
+    avatarSize: AvatarSize,
   )(
     implicit ctx: Ctx.Owner
   ): VNode = {
@@ -397,7 +398,7 @@ object ThreadView {
     div(
       cls := "chatmsg-group-outer-frame",
       keyed(headNode), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
-      Rx { (avatarSize() != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize())(marginRight := "5px")) },
+      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize)(marginRight := "5px")),
       div(
         keyed,
         cls := "chatmsg-group-inner-frame",
@@ -446,7 +447,7 @@ object ThreadView {
                     path = nodeId :: path,
                     directParentIds = Set(nodeId),
                   ),
-                  Rx(avatarSizeThread),
+                  avatarSizeThread,
                 )),
 
               replyField(state, nodeId, directParentIds, path, activeReplyFields),
@@ -518,14 +519,14 @@ object ThreadView {
     isMine: Boolean,
     nodeId: NodeId,
     graph: Graph,
-    avatarSize: Rx[AvatarSize],
+    avatarSize: AvatarSize,
     showDate: Boolean = true,
   )(implicit ctx: Ctx.Owner): VNode = {
     val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
       cls := "chatmsg-header",
       keyed(nodeId),
-      Rx { (avatarSize() == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize())(marginRight := "3px")) },
+      (avatarSize == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize)(marginRight := "3px")),
       optAuthorDiv(isMine, nodeId, graph),
       showDate.ifTrue[VDomModifier](optDateDiv(isMine, nodeId, graph)),
     )
@@ -636,11 +637,11 @@ object ThreadView {
         },
         dragTarget(DragItem.Chat.Message(nodeId)),
 
-        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)) },
+        (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)),
         transformMessageCard(messageCard.apply(keyed(nodeId))),
         expandCollapseButton(meta, nodeId, threadVisibility),
         showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeId, alreadyVisualizedParentIds)),
-        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic)) }
+        (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic))
       )
     )
   }
@@ -702,31 +703,28 @@ object ThreadView {
     val directNodeTags = graph.directNodeTags((nodeId, alreadyVisualizedParentIds))
     val transitiveNodeTags = graph.transitiveNodeTags((nodeId, alreadyVisualizedParentIds))
 
-    Rx {
-      state.screenSize() match {
-        case ScreenSize.Small =>
-          div(
-            cls := "tags",
-            directNodeTags.map { tag =>
-              nodeTagDot(state, tag)(Styles.flexStatic)
-            }(breakOut): Seq[VDomModifier],
-            transitiveNodeTags.map { tag =>
-              nodeTagDot(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
-            }(breakOut): Seq[VDomModifier]
-          )
-        case _                =>
-          div(
-            cls := "tags",
-            directNodeTags.map { tag =>
-              removableNodeTag(state, tag, nodeId, graph)(Styles.flexStatic)
-            }(breakOut): Seq[VDomModifier],
-            transitiveNodeTags.map { tag =>
-              nodeTag(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
-            }(breakOut): Seq[VDomModifier]
-          )
-      }
+    state.screenSize.now match {
+      case ScreenSize.Small =>
+        div(
+          cls := "tags",
+          directNodeTags.map { tag =>
+            nodeTagDot(state, tag)(Styles.flexStatic)
+          }(breakOut): Seq[VDomModifier],
+          transitiveNodeTags.map { tag =>
+            nodeTagDot(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
+          }(breakOut): Seq[VDomModifier]
+        )
+      case _                =>
+        div(
+          cls := "tags",
+          directNodeTags.map { tag =>
+            removableNodeTag(state, tag, nodeId, graph)(Styles.flexStatic)
+          }(breakOut): Seq[VDomModifier],
+          transitiveNodeTags.map { tag =>
+            nodeTag(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
+          }(breakOut): Seq[VDomModifier]
+        )
     }
-
   }
 
   def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.create[Unit].unsafeRunSync(), focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
