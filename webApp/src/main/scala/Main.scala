@@ -15,11 +15,8 @@ import wust.webApp.views.{MainView, Rendered}
 import scala.scalajs.{LinkingInfo, js}
 
 object Main {
-
-  // require default passive events for scroll/mouse/touch events
-  // global.require("default-passive-events")
-
   def main(args: Array[String]): Unit = {
+    defaultPassiveEvents.DefaultPassiveEvents // initialize default-passive-events for smoother scrolling
 
     // Add polyfill for setImmediate
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate

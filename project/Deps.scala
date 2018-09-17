@@ -109,7 +109,7 @@ object Deps {
   val webpackDevServerVersion = "3.1.7"
 
   object npm {
-    val defaultPassiveEvents = "default-passive-events" -> "1.0.7"
+    val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
     val marked = "marked" -> "0.5.0"
     val markedSanitizer = "marked-sanitizer-github" -> "1.0.0"
     val highlight = "highlight.js" -> "9.12.0"

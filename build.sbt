@@ -403,20 +403,20 @@ lazy val webApp = project
         Deps.fontawesome.value ::
         Nil,
     npmDependencies in Compile ++=
-      // Deps.npm.defaultPassiveEvents ::
+      Deps.npm.defaultPassiveEvents ::
       Deps.npm.immediate ::
       Deps.npm.marked ::
       Deps.npm.markedSanitizer ::
-        Deps.npm.dateFns ::
-        Deps.npm.draggable ::
-        Deps.npm.snabbdom ::
-        Deps.npm.fomanticUi ::
-        Deps.npm.highlight ::
-        Deps.npm.emoji ::
-        Deps.npm.emojiData ::
-        Deps.npm.hammerjs ::
-        Deps.npm.propagatingHammerjs ::
-        Nil
+      Deps.npm.dateFns ::
+      Deps.npm.draggable ::
+      Deps.npm.snabbdom ::
+      Deps.npm.fomanticUi ::
+      Deps.npm.highlight ::
+      Deps.npm.emoji ::
+      Deps.npm.emojiData ::
+      Deps.npm.hammerjs ::
+      Deps.npm.propagatingHammerjs ::
+      Nil
   )
 
 // lazy val androidApp = project
