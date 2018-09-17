@@ -27,9 +27,9 @@ object Main {
     js.Dynamic.global.setImmediate = immediate.immediate
 
 //    DevOnly {
-//      helpers.OutwatchTracing.patch.zipWithIndex.foreach { case ((old, cur), index) =>
-//        console.log(s"Snabbdom patch ($index)!", old, cur)
-//      }
+     helpers.OutwatchTracing.patch.zipWithIndex.foreach { case ((old, cur), index) =>
+       org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", old, cur)
+     }
 //    }
 
     Logging.setup()

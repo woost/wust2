@@ -238,6 +238,11 @@ object ThreadView {
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None: Option[HTMLElement])
 
+    def renderGroup(graph: Graph, page: Page, user: UserInfo, kind: ChatKind, avatarSizeToplevel: AvatarSize) = renderGroupedMessages(
+      kind.nodeIds,
+      MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage(implicitly)),
+      avatarSizeToplevel
+    ).apply(key := kind.nodeIds.head.hashCode)
 
     div(
       managed(IO {
@@ -247,6 +252,7 @@ object ThreadView {
           }
         }
       }),
+
       // this wrapping of chat history is currently needed,
       // to allow dragging the scrollbar without triggering a drag event.
       // see https://github.com/Shopify/draggable/issues/262
@@ -259,22 +265,28 @@ object ThreadView {
           val user = state.user()
           val avatarSizeToplevel: AvatarSize = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
 
-          if(nodeIds().isEmpty) VDomModifier(emptyChatNotice)
-          else
-            VDomModifier(
-              groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
-                .map(kind => renderGroupedMessages(
-                  kind.nodeIds,
-                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage(implicitly)), avatarSizeToplevel)
-                ),
+          if(nodeIds().isEmpty) Seq.empty[ChildCommand]//VDomModifier(emptyChatNotice)
+          else {
+            val allKinds = groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
+            graph.lastChanges match {
+              case Some(changes) => allKinds.collect { case kind if changes.involvedNodeIds.exists(kind.nodeIds.contains) =>
 
+                ChildCommand.ReplaceId(ChildId.Key(kind.nodeIds.head.hashCode), renderGroup(graph, page, user, kind, avatarSizeToplevel))
 
-              draggableAs(state, DragItem.DisableDrag),
-              cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
-              dragTarget(DragItem.Chat.Page(page.parentIds)),
-              keyed
-            )
+              }
+              case None => Seq(ChildCommand.Set(
+                allKinds.map(renderGroup(graph, page, user, _, avatarSizeToplevel)).toList
+              ))
+            }
+          }
         },
+        draggableAs(state, DragItem.DisableDrag),
+        cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
+        Rx {
+          val page = state.page()
+          dragTarget(DragItem.Chat.Page(page.parentIds))
+        },
+        keyed,
         onSnabbdomPrePatch --> sideEffect {
           scrollableHistoryElem.now.foreach { prev =>
             val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance

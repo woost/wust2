@@ -9,14 +9,14 @@ import collection.mutable
 import collection.breakOut
 
 object Graph {
-  val empty = new Graph(Set.empty, Set.empty)
+  val empty = new Graph(Set.empty, Set.empty, None)
 
   def apply(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
-    new Graph(nodes.toSet, edges.toSet)
+    new Graph(nodes.toSet, edges.toSet, None)
   }
 }
 
-final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
+final case class Graph(nodes: Set[Node], edges: Set[Edge], lastChanges: Option[GraphChanges]) {
 
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -463,17 +463,18 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
   def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet)
 
-  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
+  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet, lastChanges = Some(c))
   def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
   def +(edge: Edge): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = Set(edge))
   def +(that: Graph): Graph = changeGraphInternal(addNodes = that.nodes, addEdges = that.edges)
 
-  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty): Graph = {
+  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty, lastChanges: Option[GraphChanges] = None): Graph = {
     val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
     val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))(breakOut)
-    copy(
+    new Graph(
       nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ addNodes,
-      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges
+      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges,
+      lastChanges = lastChanges
     )
   }
 
