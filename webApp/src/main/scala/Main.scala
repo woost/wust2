@@ -1,6 +1,7 @@
 package wust.webApp
 
 import monix.reactive.Observable
+import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.dom._
 import rx._
@@ -55,10 +56,11 @@ object Main {
 
 
     // warming up fastparse parser for faster initial user input
-    defer{
+
+    dom.window.setTimeout({ () =>
       wust.util.time.time("parser warmup") {
         NodeDataParser.addNode("x", Nil, Set.empty)
       }
-    }
+    }, timeout = 10000)
   }
 }
