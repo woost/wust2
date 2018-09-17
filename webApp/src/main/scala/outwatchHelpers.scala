@@ -18,13 +18,6 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-// Outwatch TODOs:
-// when writing: sink <-- obs; obs(action)
-// action is always triggered first, even though it is registered after subscribe(<--)
-//
-// observable.filter does not accept partial functions.filter{case (_,text) => text.nonEmpty}
-//
-
 //TODO nicer name
 package object outwatchHelpers {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
