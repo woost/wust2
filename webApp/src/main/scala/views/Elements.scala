@@ -98,7 +98,8 @@ object Elements {
   }
 
   def defer(code: => Unit): Unit = {
-    dom.window.setTimeout(() => code, timeout = 0)
+//    dom.window.setTimeout(() => code, timeout = 0)
+    immediate.immediate(() => code)
   }
 
 
