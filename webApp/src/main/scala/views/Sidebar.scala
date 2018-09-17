@@ -26,40 +26,41 @@ object Sidebar {
       cls := "sidebar",
       style("user-select") := "none",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
-      //      flexBasis <-- sidebarOpen.map { case true => "175px"; case false => "30px" },
-      state.sidebarOpen.map {
-        case true  => VDomModifier( // sidebar open
-          channels(state)(ctx),
-          newChannelButton(state)(ctx)(
-            cls := "newChannelButton-large " + buttonStyles,
-            onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "newchannel") }
-          ),
-          Rx {
-            if(state.screenSize() == ScreenSize.Small) VDomModifier(
-              div(Topbar.authentication(state))(
-                alignSelf.center,
-                marginTop := "30px",
-                marginBottom := "10px",
-              ),
-              width := "100%",
-              height := "100%",
-              zIndex := ZIndex.overlay,
-              onClick(false) --> state.sidebarOpen
-            ) else VDomModifier(
-              maxWidth := "200px",
-            )
-          },
-        )
-        case false =>
-          val iconSize = 40
-          VDomModifier( // sidebar closed
-          minWidth := s"${iconSize}px",
-          channelIcons(state, iconSize)(ctx),
-          newChannelButton(state, "+")(ctx)(
-            cls := "newChannelButton-small " + buttonStyles,
-            onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "newchannel") }
+      Rx {
+        state.sidebarOpen() match {
+          case true  => VDomModifier( // sidebar open
+            channels(state)(ctx),
+            newChannelButton(state)(ctx)(
+              cls := "newChannelButton-large " + buttonStyles,
+              onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "newchannel") }
+            ),
+            Rx {
+              if(state.screenSize() == ScreenSize.Small) VDomModifier(
+                div(Topbar.authentication(state))(
+                  alignSelf.center,
+                  marginTop := "30px",
+                  marginBottom := "10px",
+                ),
+                width := "100%",
+                height := "100%",
+                zIndex := ZIndex.overlay,
+                onClick(false) --> state.sidebarOpen
+              ) else VDomModifier(
+                maxWidth := "200px",
+              )
+            },
           )
-        )
+          case false =>
+            val iconSize = 40
+            VDomModifier( // sidebar closed
+              minWidth := s"${ iconSize }px",
+              channelIcons(state, iconSize)(ctx),
+              newChannelButton(state, "+")(ctx)(
+                cls := "newChannelButton-small " + buttonStyles,
+                onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "newchannel") }
+              )
+            )
+        }
       },
       registerDraggableContainer(state)
     )
@@ -94,7 +95,8 @@ object Sidebar {
         cls := "node drag-feedback",
         draggableAs(state, DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
-      ),
+      )
+      ,
     }
 
     def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
@@ -111,7 +113,7 @@ object Sidebar {
       )
     }
 
-    def invitations(selected:Boolean, pageStyle: PageStyle) = div(
+    def invitations(selected: Boolean, pageStyle: PageStyle) = div(
       cls := "channel-line",
 
       invitationsIcon(selected)(ctx)(
@@ -137,9 +139,9 @@ object Sidebar {
         VDomModifier(
           channelLine(state.user().toNode, pageParentIds, pageStyle),
           channelTree match {
-            case Tree.Parent(_,children) =>
-            children.map { child => channelList(child, pageParentIds, pageStyle, depth = 0) }(breakOut): Seq[VDomModifier]
-            case Tree.Leaf(_) => VDomModifier.empty
+            case Tree.Parent(_, children) =>
+              children.map { child => channelList(child, pageParentIds, pageStyle, depth = 0) }(breakOut): Seq[VDomModifier]
+            case Tree.Leaf(_)             => VDomModifier.empty
           }
           // invitations(state.page().mode == PageMode.Orphans, pageStyle),
         )
@@ -183,12 +185,12 @@ object Sidebar {
       width := s"${ size }px",
       height := s"${ size }px",
       backgroundColor := (node match {
-        case node:Node.Content => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
-        case _:Node.User => "rgb(255, 255, 255)"
+        case node: Node.Content => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
+        case _: Node.User       => "rgb(255, 255, 255)"
       }),
       opacity := (node match {
-        case node:Node.Content => if(selected) 1.0 else 0.75
-        case _:Node.User => if(selected) 1.0 else 0.9
+        case node: Node.Content => if(selected) 1.0 else 0.75
+        case _: Node.User       => if(selected) 1.0 else 0.9
       }),
       selected.ifTrueOption(borderColor := selectedBorderColor),
       Avatar(node),
