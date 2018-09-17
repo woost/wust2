@@ -163,7 +163,6 @@ object GlobalStateFactory {
       page.debug("page")
       view.debug("view")
       user.debug("auth")
-      channelTree.debug("channeltree")
       // viewConfig.debug("viewConfig")
       //      currentUser.debug("\ncurrentUser")
 
