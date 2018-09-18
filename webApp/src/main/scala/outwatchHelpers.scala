@@ -6,6 +6,7 @@ import fontAwesome._
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
+import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
 import org.scalajs.dom
 import org.scalajs.dom.{Element, document}
 import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
@@ -35,6 +36,13 @@ package object outwatchHelpers {
     def merge[T](seed: T)(rxs: Rx[T]*)(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(seed) { v =>
       rxs.foreach(_.triggerLater(v() = _))
     }
+  }
+
+
+  implicit class RichHandlerFactory(val v: Handler.type) extends AnyVal {
+    def created[T]:Handler[T] = ReplaySubject.createLimited(1)
+
+    def created[T](seed:T):Handler[T] = BehaviorSubject[T](seed)
   }
 
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var

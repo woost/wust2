@@ -61,9 +61,9 @@ object SelectedPostMenu {
       )
     }
 
-    val editMode = Handler.create[Boolean](false).unsafeRunSync()
+    val editMode = Handler.created[Boolean](false)
 
-    val updatePostHandler = Handler.create[String].unsafeRunSync()
+    val updatePostHandler = Handler.created[String]
     updatePostHandler.foreach { newContent =>
       val changes =
         GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
@@ -72,7 +72,7 @@ object SelectedPostMenu {
       editMode.onNext(false)
     }
 
-    val insertPostHandler = Handler.create[String].unsafeRunSync()
+    val insertPostHandler = Handler.created[String]
     insertPostHandler.foreach { content =>
       val newPost = Node.Content(NodeData.Markdown(content))
 
@@ -83,7 +83,7 @@ object SelectedPostMenu {
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
-    val connectPostHandler = Handler.create[String].unsafeRunSync()
+    val connectPostHandler = Handler.created[String]
     connectPostHandler.foreach { content =>
       val newPost = Node.Content(NodeId.fresh, NodeData.Markdown(content))
 

@@ -242,7 +242,7 @@ sealed trait AddTagTask extends RestructuringTask {
   def constructComponent(sourcePosts: Posts, targetPosts: Posts, sink: Observer[String]): VNode = {
 
     def textAreaWithEnterAndLog(actionSink: Observer[String]) = {
-      val userInput = Handler.create[String].unsafeRunSync()
+      val userInput = Handler.created[String]
       val clearHandler = userInput.map(_ => "")
       userInput.foreach(txt => scribe.info(s"$title($sourcePosts -> $targetPosts) $txt"))
 
@@ -795,7 +795,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
 
   def component(state: GlobalState): VNode = {
     val splitPost = posts.take(1)
-    val postPreview = Handler.create[List[Posts]](List(splitPost)).unsafeRunSync()
+    val postPreview = Handler.created[List[Posts]](List(splitPost))
 
     div(
       div(
@@ -941,7 +941,7 @@ object RestructuringTaskGenerator {
   )
 
   val taskDisplayWithLogging: Handler[TaskFeedback] =
-    Handler.create[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty)).unsafeRunSync()
+    Handler.created[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty))
 
   def renderButton(activateTasks: Boolean): VNode = {
     val buttonType = if (activateTasks) {

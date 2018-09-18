@@ -26,7 +26,7 @@ object PostCreationMenu {
       s"translate(${x}px, ${y}px)"
     }
 
-    val inputHandler = Handler.create[String].unsafeRunSync()
+    val inputHandler = Handler.created[String]
     var ySimPostOffset: Double = 50
     inputHandler.foreach { content =>
       val author = state.user.now

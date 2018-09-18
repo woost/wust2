@@ -45,7 +45,7 @@ object MainViewParts {
   }
 
   def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
-    val urlImporter = Handler.create[String].unsafeRunSync()
+    val urlImporter = Handler.created[String]
 
     def importGithubUrl(url: String): Unit = Client.githubApi.importContent(url)
     def importGitterUrl(url: String): Unit = Client.gitterApi.importContent(url)

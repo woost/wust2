@@ -24,7 +24,7 @@ object FeedbackForm {
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
 
     val feedbackText = Var("")
-    val clear = Handler.create[Unit].unsafeRunSync().mapObservable(_ => "")
+    val clear = Handler.created[Unit].mapObservable(_ => "")
 
     val initialStatus = "(Press Enter to submit)"
     val statusText = Var(initialStatus)

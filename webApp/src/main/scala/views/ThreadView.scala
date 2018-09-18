@@ -155,7 +155,7 @@ object ThreadView {
 
     def renderMessage(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeId, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
 
-    val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
+    val submittedNewMessage = Handler.created[Unit]
 
     var lastSelectedPath: List[NodeId] = Nil // TODO: set by clicking on a message
     def reversePath(nodeId: NodeId, pageParents: Set[NodeId], graph: Graph): List[NodeId] = {
@@ -727,7 +727,7 @@ object ThreadView {
     }
   }
 
-  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.create[Unit].unsafeRunSync(), focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.created[Unit], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
       val pageModeOrphans = state.page().mode == PageMode.Orphans

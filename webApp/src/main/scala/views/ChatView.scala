@@ -30,7 +30,7 @@ object ChatView {
       }
     }
 
-    val submittedNewMessage = Handler.create[Unit].unsafeRunSync()
+    val submittedNewMessage = Handler.created[Unit]
 
     val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[List[NodeId]])
