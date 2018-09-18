@@ -30,16 +30,17 @@ object AuthView {
   )(implicit ctx: Ctx.Owner): VNode =
     for {
       errorMessageHandler <- Handler.create[String]
-      actionSink = sideEffect[(String, String)] {
-        case (username, password) =>
-          submitAction(username, password).onComplete {
-            case Success(None)        =>
-              defaultUsername() = ""
-              state.viewConfig() = state.viewConfig.now.redirect
-            case Success(Some(vnode)) => errorMessageHandler.onNext(vnode)
-            case Failure(t)           => errorMessageHandler.onNext(s"Unexpected error: $t")
-          }
-      }
+      actionSink  = { case (username, password) =>
+        submitAction(username, password).onComplete {
+          case Success(None)        =>
+            defaultUsername() = ""
+            state.viewConfig() = state.viewConfig.now.redirect
+          case Success(Some(vnode)) =>
+            errorMessageHandler.onNext(vnode)
+          case Failure(t)           =>
+            errorMessageHandler.onNext(s"Unexpected error: $t")
+        }
+      }: ((String, String)) => Unit
       username <- Handler.create[String](defaultUsername.now)
       password <- Handler.create[String]
       nameAndPassword = username.combineLatest(password)
@@ -72,7 +73,7 @@ object AuthView {
               display.block,
               margin := "auto",
               onInput.value --> password,
-              onEnter(nameAndPassword) --> actionSink,
+              onEnter(nameAndPassword) handleWith actionSink,
               onDomMount.asHtml handleWith { e => if(defaultUsername.now.nonEmpty) e.focus() }
             )
           ),
@@ -82,7 +83,7 @@ object AuthView {
             display.block,
             margin := "auto",
             marginTop := "5px",
-            onClick(nameAndPassword) --> actionSink
+            onClick(nameAndPassword) handleWith actionSink
           ),
           errorMessageHandler.map { errorMessage =>
             div(
