@@ -26,12 +26,12 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  val onEnter: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
+  val onEnter: EmitterBuilder[dom.KeyboardEvent, Emitter] =
     onKeyDown
       .filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey)
       .preventDefault
 
-  val onEscape: EmitterBuilder[dom.KeyboardEvent, dom.KeyboardEvent, Emitter] =
+  val onEscape: EmitterBuilder[dom.KeyboardEvent, Emitter] =
     onKeyDown
       .filter(_.keyCode == KeyCode.Escape)
       .preventDefault

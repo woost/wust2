@@ -170,13 +170,6 @@ package object outwatchHelpers {
   }
 
 
-  //TODO: put in outwatch
-  implicit class TypedElements[E <: Element, H](builder: EmitterBuilder[E, E, H]) {
-    def asHtml: EmitterBuilder[E, dom.html.Element, H] = builder.map(_.asInstanceOf[dom.html.Element])
-
-    def asSvg: EmitterBuilder[E, dom.svg.Element, H] = builder.map(_.asInstanceOf[dom.svg.Element])
-  }
-
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
     def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))
