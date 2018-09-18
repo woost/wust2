@@ -5591,7 +5591,7 @@ slide@^1.1.5:
 
 "snabbdom@git://github.com/cornerman/snabbdom.git#0.7.2 0.7.2":
   version "0.7.2"
-  resolved "git://github.com/cornerman/snabbdom.git#1e6249d8d5c63a148f6d4d312d293539db560120"
+  resolved "git://github.com/cornerman/snabbdom.git#d74b833c0974360a4e187b052d7a5e3c8581611a"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"
