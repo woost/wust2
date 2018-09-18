@@ -9,14 +9,85 @@ import collection.mutable
 import collection.breakOut
 
 object Graph {
-  val empty = new Graph(Set.empty, Set.empty, None)
+  val empty = new Graph(Set.empty, Set.empty)
 
   def apply(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
-    new Graph(nodes.toSet, edges.toSet, None)
+    new Graph(nodes.toSet, edges.toSet)
   }
 }
 
-final case class Graph(nodes: Set[Node], edges: Set[Edge], lastChanges: Option[GraphChanges]) {
+sealed trait GraphTransformation
+object GraphTransformation {
+
+  case object Replace extends GraphTransformation
+  case class Combined(transformations: Seq[Single]) extends GraphTransformation
+
+  sealed trait Single extends GraphTransformation
+  case class AddNode(node: Node, parent: NodeId) extends Single
+  case class UpdateNode(node: Node, parent: NodeId) extends Single
+  case class SoftDeleteNode(nodeId: NodeId, parent: NodeId) extends Single
+  case class DeleteNode(nodeId: NodeId, parent: NodeId) extends Single
+
+  def newNodes(transformation: GraphTransformation, parents: NodeId => Boolean): NodeId => Boolean = transformation match {
+    case single: Single => newNodesSingle(single, parents).contains
+    case combined: Combined => combined.transformations.flatMap(newNodesSingle(_, parents))(breakOut): Set[NodeId]
+    case Replace => _ => true
+
+  }
+  private def newNodesSingle(transformation: Single, parents: NodeId => Boolean): Option[NodeId] = transformation match {
+    case AddNode(node, parent) if parents(parent) => Some(node.id)
+    case _ => None
+  }
+  def updatedNodes(transformation: GraphTransformation, parents: NodeId => Boolean): NodeId => Boolean = transformation match {
+    case single: Single => newNodesSingle(single, parents).contains
+    case combined: Combined => combined.transformations.flatMap(updatedNodesSingle(_, parents))(breakOut): Set[NodeId]
+    case Replace => _ => true
+
+  }
+  private def updatedNodesSingle(transformation: Single, parents: NodeId => Boolean): Option[NodeId] = transformation match {
+    case UpdateNode(node, parent) if parents(parent) => Some(node.id)
+    case _ => None
+  }
+  def deletedNodes(transformation: GraphTransformation, parents: NodeId => Boolean): NodeId => Boolean = transformation match {
+    case single: Single => newNodesSingle(single, parents).contains
+    case combined: Combined => combined.transformations.flatMap(deletedNodesSingle(_, parents))(breakOut): Set[NodeId]
+    case Replace => _ => true
+
+  }
+  private def deletedNodesSingle(transformation: Single, parents: NodeId => Boolean): Option[NodeId] = transformation match {
+    case DeleteNode(nodeId, parent) if parents(parent) => Some(nodeId)
+    case SoftDeleteNode(nodeId, parent) if parents(parent) => Some(nodeId)
+    case _ => None
+  }
+
+  def from(graph: Graph, newGraph: Graph, changes: GraphChanges): GraphTransformation =  {
+    println("ASD")
+    val addNodeTransforms = changes.addNodes.flatMap { node =>
+      newGraph.parents(node.id).map { parentId =>
+        if (graph.nodeIds.contains(node.id)) GraphTransformation.UpdateNode(node, parentId)
+        else GraphTransformation.AddNode(node, parentId)
+      }
+    }
+    println("ASD2")
+
+    val addEdgeTransforms = changes.addEdges.collect { case e : Edge.Parent =>
+      e.data.deletedAt match {
+        case Some(_) => Some(GraphTransformation.SoftDeleteNode(e.childId, e.parentId))
+        case None => newGraph.nodesById.get(e.childId).map(GraphTransformation.AddNode(_, e.parentId))
+      }
+    }.flatten
+    println("ASD3")
+
+    val delEdgeTransforms = changes.delEdges.collect { case e : Edge.Parent =>
+      GraphTransformation.DeleteNode(e.childId, e.parentId)
+    }
+    println("ASD4")
+
+    Combined((addNodeTransforms ++ addEdgeTransforms ++ delEdgeTransforms).toList)
+  }
+}
+
+final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
 
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -463,18 +534,17 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge], lastChanges: Option[G
   def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
   def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet)
 
-  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet, lastChanges = Some(c))
+  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
   def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
   def +(edge: Edge): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = Set(edge))
   def +(that: Graph): Graph = changeGraphInternal(addNodes = that.nodes, addEdges = that.edges)
 
-  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty, lastChanges: Option[GraphChanges] = None): Graph = {
+  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty): Graph = {
     val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
     val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))(breakOut)
     new Graph(
       nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ addNodes,
-      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges,
-      lastChanges = lastChanges
+      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges
     )
   }
 

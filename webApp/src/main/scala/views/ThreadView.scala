@@ -261,22 +261,30 @@ object ThreadView {
         padding := "50px 0 20px 20px", // large padding-top to have space for selectedNodes bar
         Rx {
           val page = state.page()
-          val graph = state.graphContent()
+          val tuple = state.graphContentWithTransformation()
+          val (graph, transformation) = tuple
           val user = state.user()
           val avatarSizeToplevel: AvatarSize = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
 
+          println("HOOOO" + graph +transformation)
           if(nodeIds().isEmpty) Seq.empty[ChildCommand]//VDomModifier(emptyChatNotice)
           else {
             val allKinds = groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
-            graph.lastChanges match {
-              case Some(changes) => allKinds.collect { case kind if changes.involvedNodeIds.exists(kind.nodeIds.contains) =>
-
-                ChildCommand.ReplaceId(ChildId.Key(kind.nodeIds.head.hashCode), renderGroup(graph, page, user, kind, avatarSizeToplevel))
-
-              }
-              case None => Seq(ChildCommand.Set(
+            transformation match {
+              case _ => Seq(ChildCommand.Set(
                 allKinds.map(renderGroup(graph, page, user, _, avatarSizeToplevel)).toList
               ))
+//              case transformation =>
+//                val newNodes = GraphTransformation.newNodes(transformation, _ => true)
+//                val updatedNodes = GraphTransformation.updatedNodes(transformation, _ => true)
+//                val deletedNodes = GraphTransformation.deletedNodes(transformation, _ => true)
+//                val touchedNodes = (id: NodeId) => newNodes(id) || updatedNodes(id) || deletedNodes(id)
+//
+//                allKinds.collect { case kind if kind.nodeIds.exists(touchedNodes) =>
+//                  val rendered = renderGroup(graph, page, user, kind, avatarSizeToplevel)
+//                  if (newNodes(kind.nodeIds.head)) ChildCommand.Append(rendered)
+//                  else ChildCommand.ReplaceId(ChildId.Key(kind.nodeIds.head.hashCode), rendered)
+//                }
             }
           }
         },

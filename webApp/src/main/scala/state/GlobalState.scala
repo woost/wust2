@@ -33,27 +33,31 @@ class GlobalState (
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val graph: Rx[Graph] = {
-    val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
+  val graphWithTransformation: Rx[(Graph, GraphTransformation)] = {
+    val internalGraph = eventProcessor.graphWithTransformation.unsafeToRx(seed = (Graph.empty, GraphTransformation.Replace))
+    eventProcessor.graphWithTransformation.foreach{x => println("INTERNAL GOD" +x)}
+    eventProcessor.graph.foreach{x => println("INTERNAL graph pnlky GOD" +x)}
 
     Rx {
-      val graph = internalGraph()
+      val tuple = internalGraph()
+      println("GOd" + tuple)
+      val (graph, transformation) = tuple
       val u = user()
-    val newGraph =
-      if (graph.nodeIds(u.channelNodeId)) graph
-        else {
-          graph.addNodes(
-        // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
-        // if we start with an assumed user and just create new channels we will never get a graph from the backend.
-        Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-            user().toNode ::
-            Nil
-          )
-        }
+      val newGraph =
+        if (graph.nodeIds(u.channelNodeId)) graph
+        else graph.addNodes(
+          // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
+          // if we start with an assumed user and just create new channels we will never get a graph from the backend.
+          Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
+          user().toNode ::
+          Nil)
 
-    newGraph.consistent
+      println("GOD ONE")
+      (newGraph.consistent, transformation)
+    }
   }
-  }
+
+  val graph: Rx[Graph] = graphWithTransformation.map(_._1)
 
   val channelTree: Rx[Tree] = Rx {
     val channelNode = graph().nodesById(user().channelNodeId)
@@ -97,7 +101,13 @@ class GlobalState (
       Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
 
-  val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
+  //TODO filter transformation
+  val graphContentWithTransformation: Rx[(Graph, GraphTransformation)] = Rx {
+    val tuple = graphWithTransformation()
+    val (graph, transformation) = tuple
+    (graph.pageContentWithAuthors(page()), transformation)
+  }
+  val graphContent: Rx[Graph] = graphContentWithTransformation.map(_._1)
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
     if (!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)

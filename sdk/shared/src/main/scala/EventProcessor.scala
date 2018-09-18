@@ -5,7 +5,7 @@ import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
 import wust.api.ApiEvent._
 import wust.api._
-import wust.ids.NodeId
+import wust.ids.{EdgeData, NodeId, UserId}
 import wust.graph._
 
 import scala.concurrent.Future
@@ -16,7 +16,6 @@ import monix.reactive.subjects.PublishSubject
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack
-import wust.ids.EdgeData
 
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
@@ -125,7 +124,7 @@ class EventProcessor private (
   }
 
   // public reader
-  val (changesHistory, localChanges, graph): (Observable[ChangesHistory], Observable[GraphChanges], Observable[Graph]) = {
+  val (changesHistory, localChanges, graphWithTransformation): (Observable[ChangesHistory], Observable[GraphChanges], Observable[(Graph, GraphTransformation)]) = {
     // events  withLatestFrom
     // --------O----------------> localchanges
     //         ^          |
@@ -133,15 +132,16 @@ class EventProcessor private (
     //         -----------O---->--
     //          graph,viewconfig
 
-    val rawGraph = PublishToOneSubject[Graph]()
-    val sharedRawGraph = rawGraph.share
-    val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
+    val rawGraphWithTransformation = PublishToOneSubject[(Graph, GraphTransformation)]()
+    val sharedRawGraphWithTransformation = rawGraphWithTransformation.share
+    val sharedRawGraph = sharedRawGraphWithTransformation.map(_._1)
+    val sharedRawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
-    val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
+    val enrichedChanges = enriched.changes.withLatestFrom(sharedRawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes)
 
     val rawLocalChanges: Observable[GraphChanges] =
-      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
+      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), sharedRawGraphWithInit)((a, b, g) => (a, b, g)).collect {
         case (changes, user, graph) if changes.nonEmpty =>
           scribe.info("[Events] Got raw local changes:")
           GraphChanges.log(changes, Some(graph))
@@ -160,7 +160,7 @@ class EventProcessor private (
 
     val changesHistory = Observable
       .merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
-      .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
+      .withLatestFrom(sharedRawGraphWithInit)((action, graph) => (action, graph))
       .scan(ChangesHistory.empty) {
         case (history, (action, graph)) => history(graph)(action)
       }.share
@@ -172,16 +172,27 @@ class EventProcessor private (
     val localEvents = Observable.merge(localChanges, nonSendingChanges).withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.id, gc._1)))
     val graphEvents = Observable.merge(eventStream, localEvents)
 
-    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
+    val graphWithChanges: Observable[(Graph, GraphTransformation)] = graphEvents.scan[(Graph, GraphTransformation)]((Graph.empty, GraphTransformation.Replace)) { (tuple, events) =>
+      val (graph, _) = tuple
       val newGraph = events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
+
+      val lastReplace = events.reverse.collectFirst { case ApiEvent.ReplaceGraph(_) => GraphTransformation.Replace }
+      val transformation = lastReplace.getOrElse {
+        val changes = events
+          .collect { case NewGraphChanges(_, changes) => changes }
+          .fold(GraphChanges.empty)(_ merge _)
+        GraphTransformation.from(graph, newGraph, changes)
+      }
+
       scribe.info("[Events] Got new graph: " + newGraph)
-      newGraph
+      (newGraph, transformation)
     }
 
-    graphWithChanges subscribe rawGraph
+    graphWithChanges subscribe rawGraphWithTransformation
 
-    (changesHistory, localChanges, sharedRawGraph)
+    (changesHistory, localChanges, sharedRawGraphWithTransformation)
   }
+  val graph: Observable[Graph] = graphWithTransformation.map(_._1)
 
   def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
     //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
