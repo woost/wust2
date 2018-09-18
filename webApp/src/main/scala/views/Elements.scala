@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.implicits._
+import cats.effect.IO
 import fontAwesome.freeSolid
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
@@ -36,22 +37,22 @@ object Elements {
       .preventDefault
 
   val onGlobalEscape =
-    CustomEmitterBuilder { sink: Observer[dom.KeyboardEvent] =>
+    CustomEmitterBuilder { (sink: dom.KeyboardEvent => Unit) =>
       VDomModifier(
-        managed(sink <-- events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
+        managed(IO(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape).foreach(sink)))
       )
     }
 
   val onGlobalClick =
-    CustomEmitterBuilder { sink: Observer[dom.MouseEvent] =>
+    CustomEmitterBuilder { (sink: dom.MouseEvent => Unit) =>
       VDomModifier(
-        managed(sink <-- events.document.onClick)
+        managed(IO(events.document.onClick.foreach(sink)))
       )
     }
 
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, Modifier] = {
     import hammerjs._
-    CustomEmitterBuilder { sink: Observer[hammerjs.Event] =>
+    CustomEmitterBuilder { (sink: hammerjs.Event => Unit) =>
       var hammertime: Hammer[Event] = null
       VDomModifier(
         onDomMount.asHtml --> sideEffect { elem =>
@@ -59,7 +60,7 @@ object Elements {
           propagating(hammertime).on(events, { e =>
             e.stopPropagation()
             // if(e.target == elem)
-              sink.onNext(e)
+            sink(e)
           })
         },
         onDomUnmount.asHtml --> sideEffect { elem =>
@@ -105,7 +106,7 @@ object Elements {
 
   def valueWithEnter: CustomEmitterBuilder[String, Modifier] = valueWithEnterWithInitial(Observable.empty)
   def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, Modifier] = CustomEmitterBuilder {
-    (sink: Observer[String]) =>
+    (sink: String => Unit) =>
       for {
         userInput <- Handler.create[String]
         writeValue = Observable.merge(userInput.map(_ => ""), overrideValue)
@@ -114,7 +115,7 @@ object Elements {
           //TODO WTF WHY DOES THAT NOT WORK?
 //          onEnter.value.filter(_.nonEmpty) --> userInput,
           onEnter.stopPropagation.map(_.currentTarget.asInstanceOf[dom.html.Input].value).filter(_.nonEmpty) --> userInput,
-          managed(sink <-- userInput.distinctUntilChanged) // distinct, because Enter can be pressed multiple times before writeValue clears the field
+          managed(IO(userInput.distinctUntilChanged.foreach(sink))) // distinct, because Enter can be pressed multiple times before writeValue clears the field
         )
       } yield modifiers
   }
