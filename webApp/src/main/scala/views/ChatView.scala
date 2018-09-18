@@ -46,7 +46,7 @@ object ChatView {
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
       editButton.apply(
-        onTap --> sideEffect {
+        onTap handleWith {
           currentlyEditable() = Some(nodeId :: Nil)
           state.selectedNodeIds() = Set.empty[NodeId]
         }
@@ -54,8 +54,8 @@ object ChatView {
     )
 
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      replyButton.apply(onTap --> sideEffect { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
-      zoomButton(state, nodeIds).apply(onTap --> sideEffect{clearSelectedNodeIds()}),
+      replyButton.apply(onTap handleWith { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
+      zoomButton(state, nodeIds).apply(onTap handleWith{clearSelectedNodeIds()}),
       SelectedNodes.deleteAllButton(state, nodeIds),
     )
 
@@ -66,8 +66,8 @@ object ChatView {
       val state = meta.state // else import conflict
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
-          replyButton.apply(onTap --> sideEffect { currentReply() = Set(nodeId) }),
-          editButton.apply(onTap --> sideEffect {
+          replyButton.apply(onTap handleWith { currentReply() = Set(nodeId) }),
+          editButton.apply(onTap handleWith {
             editable() = true
             state.selectedNodeIds() = Set.empty[NodeId]
           }),
@@ -120,7 +120,7 @@ object ChatView {
         backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
         boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
          cursor.pointer,
-         onTap --> sideEffect {currentReply.update(_ + parent.id)},
+         onTap handleWith {currentReply.update(_ + parent.id)},
       )
     )
 
@@ -143,7 +143,7 @@ object ChatView {
               parentMessage(state, graph, node).apply(alignSelf.center),
               closeButton(
                 marginLeft.auto,
-                onTap --> sideEffect { currentReply.update(_ - replyNodeId) }
+                onTap handleWith { currentReply.update(_ - replyNodeId) }
               ),
             )
           )

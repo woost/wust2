@@ -104,7 +104,7 @@ object SelectedPostMenu {
           textArea(
             valueWithEnter --> updatePostHandler,
             rxPost.now.data.str,
-            onDomMount.map(_.asInstanceOf[TextArea]) --> sideEffect(textArea => textArea.select())
+            onDomMount.map(_.asInstanceOf[TextArea]) handleWith(textArea => textArea.select())
           )
         } else {
           div(
@@ -123,7 +123,7 @@ object SelectedPostMenu {
     //TODO: wrap in one observable
     div(
       position.absolute,
-      onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
+      onClick handleWith(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
       transform <-- transformStyle,
       div(
@@ -192,7 +192,7 @@ object SelectedPostMenu {
           flexGrow := 1,
           alignItems.center,
           span(action.name),
-          onClick --> sideEffect { event =>
+          onClick handleWith { event =>
             event.stopPropagation()
 
             println(s"\nMenu ${action.name}: [${post.id}]${post.data}")

@@ -91,7 +91,7 @@ object DevView {
 //          val users = List("a", "b", "c", "d", "e", "f", "g")
 //          div(
 //            "login: ",
-//            users.map(u => button(u, onClick --> sideEffect {
+//            users.map(u => button(u, onClick handleWith {
 //              Client.auth.register(u, u).call().filter(_ == false).foreach { _ =>
 //                Client.auth.logout().call().foreach { _ =>
 //                  Client.auth.login(u, u).call()
@@ -110,9 +110,9 @@ object DevView {
 
           div(
             "create: ",
-            button("1", onClick --> sideEffect { addRandomPost(1) }),
-            button("10", onClick --> sideEffect { addRandomPost(10) }),
-            button("100", onClick --> sideEffect { addRandomPost(100) })
+            button("1", onClick handleWith { addRandomPost(1) }),
+            button("10", onClick handleWith { addRandomPost(10) }),
+            button("100", onClick handleWith { addRandomPost(100) })
           )
         },
         Rx {
@@ -127,9 +127,9 @@ object DevView {
 
           div(
             "delete: ",
-            button("1", onClick --> sideEffect { deletePost(posts.take(1)) }),
-            button("10", onClick --> sideEffect { deletePost(posts.take(10)) }),
-            button("100", onClick --> sideEffect { deletePost(posts.take(100)) })
+            button("1", onClick handleWith { deletePost(posts.take(1)) }),
+            button("10", onClick handleWith { deletePost(posts.take(10)) }),
+            button("100", onClick handleWith { deletePost(posts.take(100)) })
           )
         },
         Rx {
@@ -151,9 +151,9 @@ object DevView {
 
           div(
             "connect: ",
-            button("1", onClick --> sideEffect { connect(1) }),
-            button("10", onClick --> sideEffect { connect(10) }),
-            button("100", onClick --> sideEffect { connect(100) })
+            button("1", onClick handleWith { connect(1) }),
+            button("10", onClick handleWith { connect(10) }),
+            button("100", onClick handleWith { connect(100) })
           )
         },
         Rx {
@@ -167,9 +167,9 @@ object DevView {
 
           div(
             "contain: ",
-            button("1", onClick --> sideEffect { contain(1) }),
-            button("10", onClick --> sideEffect { contain(10) }),
-            button("100", onClick --> sideEffect { contain(100) })
+            button("1", onClick handleWith { contain(1) }),
+            button("10", onClick handleWith { contain(10) }),
+            button("100", onClick handleWith { contain(100) })
           )
         },
         Rx {
@@ -182,9 +182,9 @@ object DevView {
 
           div(
             "disconnect: ",
-            button("1", onClick --> sideEffect { disconnect(1) }),
-            button("10", onClick --> sideEffect { disconnect(10) }),
-            button("100", onClick --> sideEffect { disconnect(100) })
+            button("1", onClick handleWith { disconnect(1) }),
+            button("10", onClick handleWith { disconnect(10) }),
+            button("100", onClick handleWith { disconnect(100) })
           )
         },
         additions
@@ -258,7 +258,7 @@ object DevView {
 //        pre(maxWidth := "400px", maxHeight := "300px", overflow.scroll, fontSize := "11px", Rx {
 //          apiEvents().mkString("\n")
 //          // pre(apiEvents().mkString("\n")).render
-//        }), button("clear", onClick --> sideEffect {
+//        }), button("clear", onClick handleWith {
 //          apiEvents() = Nil
 //        })
       ),

@@ -108,7 +108,7 @@ object Components {
       cls := "node tag",
       injected,
       backgroundColor := tagColor(tag.id).toHex,
-      onClick --> sideEffect { e =>
+      onClick handleWith { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       draggableAs(state, DragItem.Tag(tag.id)),
@@ -122,7 +122,7 @@ object Components {
       cls := "node tagdot",
       backgroundColor := tagColor(tag.id).toHex,
       title := tag.data.str,
-      onClick --> sideEffect { e =>
+      onClick handleWith { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       draggableAs(state, DragItem.Tag(tag.id)),
@@ -145,7 +145,7 @@ object Components {
       span(
         "×",
         cls := "actionbutton",
-        onClick.stopPropagation --> sideEffect {
+        onClick.stopPropagation handleWith {
           // when removing last parent, fall one level lower into the still existing grandparents
           //TODO: move to GraphChange factory
           // val removingLastParent = graph.parents(taggedNodeId).size == 1
@@ -215,14 +215,14 @@ object Components {
   def draggableAs(state: GlobalState, payload: => DragPayload): VDomModifier = {
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      onDomMount.asHtml --> sideEffect{ elem =>
+      onDomMount.asHtml handleWith{ elem =>
         writeDragPayload(elem, payload)
       }
     )
   }
 
   def dragTarget(dragTarget: DragTarget) = {
-    onDomMount.asHtml --> sideEffect{ elem =>
+    onDomMount.asHtml handleWith{ elem =>
       writeDragTarget(elem, dragTarget)
     }
   }
@@ -231,11 +231,11 @@ object Components {
     //    border := "2px solid blue",
     outline := "none", // hides focus outline
     cls := "draggable-container",
-    onDomMount.asHtml --> sideEffect { elem =>
+    onDomMount.asHtml handleWith { elem =>
       //      console.log("Adding Draggable Container:", elem)
       state.draggable.addContainer(elem)
     },
-    onDomUnmount.asHtml --> sideEffect { elem =>
+    onDomUnmount.asHtml handleWith { elem =>
       state.draggable.removeContainer(elem)
     }
   )
@@ -245,11 +245,11 @@ object Components {
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
-      onDomMount.asHtml --> sideEffect { elem =>
+      onDomMount.asHtml handleWith { elem =>
         writeDragContainer(elem, container)
         state.sortable.addContainer(elem)
       },
-      onDomUnmount.asHtml --> sideEffect { elem =>
+      onDomUnmount.asHtml handleWith { elem =>
         state.sortable.removeContainer(elem)
       }
     )
@@ -260,7 +260,7 @@ object Components {
   ): VNode = {
     val editable = Var(false)
     editableNode(state, node, editable, submit, newTagParentIds)(ctx)(
-      onClick.stopPropagation.stopImmediatePropagation --> sideEffect {
+      onClick.stopPropagation.stopImmediatePropagation handleWith {
         if(!editable.now) {
           editable() = true
         }
@@ -313,13 +313,13 @@ object Components {
           color := "#000",
           cursor.auto,
 
-          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) --> sideEffect { text => save(text) },
-          onBlur --> sideEffect { discardChanges() },
-          onFocus --> sideEffect { e => document.execCommand("selectAll", false, null) },
-          onClick.stopPropagation --> sideEffect {} // prevent e.g. selecting node, but only when editing
+          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) handleWith { text => save(text) },
+          onBlur handleWith { discardChanges() },
+          onFocus handleWith { e => document.execCommand("selectAll", false, null) },
+          onClick.stopPropagation handleWith {} // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
-      onDomUpdate.asHtml --> sideEffect { node => 
+      onDomUpdate.asHtml handleWith { node => 
         if(editable.now) node.focus()
       },
     )

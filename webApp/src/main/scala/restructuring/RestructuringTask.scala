@@ -202,13 +202,13 @@ sealed trait YesNoTask extends RestructuringTask {
           "Yes",
           onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-          onClick --> sideEffect(scribe.info(s"$title($postChoice) = YES")),
+          onClick handleWith(scribe.info(s"$title($postChoice) = YES")),
         ),
         button(
           "No",
           onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging
         ),
-        onClick --> sideEffect(scribe.info(s"$title($postChoice) = NO")),
+        onClick handleWith(scribe.info(s"$title($postChoice) = NO")),
         width := "100%",
       )
     )

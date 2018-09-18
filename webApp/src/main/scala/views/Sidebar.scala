@@ -32,7 +32,7 @@ object Sidebar {
             channels(state)(ctx),
             newChannelButton(state)(ctx)(
               cls := "newChannelButton-large " + buttonStyles,
-              onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "newchannel") }
+              onClick handleWith { Analytics.sendEvent("sidebar_open", "newchannel") }
             ),
             Rx {
               if(state.screenSize() == ScreenSize.Small) VDomModifier(
@@ -57,7 +57,7 @@ object Sidebar {
               channelIcons(state, iconSize)(ctx),
               newChannelButton(state, "+")(ctx)(
                 cls := "newChannelButton-small " + buttonStyles,
-                onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "newchannel") }
+                onClick handleWith { Analytics.sendEvent("sidebar_closed", "newchannel") }
               )
             )
         }
@@ -91,7 +91,7 @@ object Sidebar {
           paddingRight := "3px",
         ),
         onChannelClick(ChannelAction.Node(node.id))(state),
-        onClick --> sideEffect { Analytics.sendEvent("sidebar_open", "clickchannel") },
+        onClick handleWith { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
         draggableAs(state, DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
@@ -166,7 +166,7 @@ object Sidebar {
           allChannels.map { node =>
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
-              onClick --> sideEffect { Analytics.sendEvent("sidebar_closed", "clickchannel") },
+              onClick handleWith { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               draggableAs(state, DragItem.Channel(node.id)),
               dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
@@ -221,7 +221,7 @@ object Sidebar {
           val newMode = if(page.mode != mode) mode else PageMode.Default
           if(e.ctrlKey) page.copy(mode = newMode) else Page(Seq.empty, mode = newMode)
       }
-    } --> sideEffect { page =>
+    } handleWith { page =>
       val contentView = if(state.view.now.isContent) state.view.now else View.default
       state.viewConfig() = state.viewConfig.now.copy(page = page, view = contentView)
     }

@@ -73,7 +73,7 @@ object BreadCrumbs {
         }.flatten
       },
       registerDraggableContainer(state),
-      onClick --> sideEffect{Analytics.sendEvent("breadcrumbs", "click")},
+      onClick handleWith{Analytics.sendEvent("breadcrumbs", "click")},
     )
   }
 }

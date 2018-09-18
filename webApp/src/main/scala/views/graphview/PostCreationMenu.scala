@@ -50,7 +50,7 @@ object PostCreationMenu {
     div(
       position.absolute,
       //TODO: prevent drag events to bubble to background
-      onClick --> sideEffect(_.stopPropagation()), // prevent click from bubbling to background
+      onClick handleWith(_.stopPropagation()), // prevent click from bubbling to background
       transform <-- transformStyle,
       width := "300px",
       div(
@@ -59,7 +59,7 @@ object PostCreationMenu {
           cls := "fluid field",
           valueWithEnter --> inputHandler,
           Placeholders.newNode,
-          onDomMount.asHtml --> sideEffect(_.focus()),
+          onDomMount.asHtml handleWith(_.focus()),
           style("resize") := "none", //TODO: outwatch resize?
           margin := "0px",
           rows := 2,

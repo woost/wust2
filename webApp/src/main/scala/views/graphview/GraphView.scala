@@ -29,17 +29,17 @@ object GraphView {
         div(
           position := "absolute",
           zIndex := ZIndex.controls,
-          button("start", onClick --> sideEffect {
+          button("start", onClick handleWith {
             forceSimulation.startAnimated()
           }),
-          button("start hidden", onClick --> sideEffect {
+          button("start hidden", onClick handleWith {
             forceSimulation.startHidden()
           }),
-          button("step", onClick --> sideEffect {
+          button("step", onClick handleWith {
             forceSimulation.step()
             ()
           }),
-          button("stop", onClick --> sideEffect {
+          button("stop", onClick handleWith {
             forceSimulation.stop()
           })
         )

@@ -18,7 +18,7 @@ object MainViewParts {
     button(
       cls := "ui button",
       label,
-      onClick --> sideEffect { ev =>
+      onClick handleWith { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
 
@@ -66,18 +66,18 @@ object MainViewParts {
       fontSize := "20px",
       marginBottom := "10px",
       "Constant synchronization",
-      button("Connect to GitHub", width := "100%", onClick --> sideEffect(connectToGithub())),
+      button("Connect to GitHub", width := "100%", onClick handleWith(connectToGithub())),
       "One time import",
       input(tpe := "text", width := "100%", onInput.value --> urlImporter),
       button(
         "GitHub",
         width := "100%",
-        onClick(urlImporter) --> sideEffect((url: String) => importGithubUrl(url))
+        onClick(urlImporter) handleWith((url: String) => importGithubUrl(url))
       ),
       button(
         "Gitter",
         width := "100%",
-        onClick(urlImporter) --> sideEffect((url: String) => importGitterUrl(url))
+        onClick(urlImporter) handleWith((url: String) => importGitterUrl(url))
       ),
     )
   }

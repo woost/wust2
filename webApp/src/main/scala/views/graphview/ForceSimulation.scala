@@ -82,7 +82,7 @@ class ForceSimulation(
     import outwatch.dom.dsl.styles.extra._
 
     div(
-      onDomMount.asHtml --> sideEffect { e =>
+      onDomMount.asHtml handleWith { e =>
         backgroundElement.success(e)
       },
       position := "relative",
@@ -92,13 +92,13 @@ class ForceSimulation(
       // Mouse events from all children pass through to backgroundElement (e.g. zoom).
       canvas(
         position := "absolute",
-        onDomMount.map(_.asInstanceOf[dom.html.Canvas]) --> sideEffect { (e) =>
+        onDomMount.map(_.asInstanceOf[dom.html.Canvas]) handleWith { (e) =>
           canvasLayerElement.success(e)
         },
         // pointerEvents := "none" // background handles mouse events
       ),
       div(
-        onDomMount.asHtml --> sideEffect { e =>
+        onDomMount.asHtml handleWith { e =>
           postContainerElement.success(e); ()
         },
         width := "100%",

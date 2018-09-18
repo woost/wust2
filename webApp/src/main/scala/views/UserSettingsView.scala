@@ -103,14 +103,14 @@ object UserSettingsView {
       List(
         cls := "ui button green",
         div(s"Synchronized with $platformName"),
-        onClick --> sideEffect(linkWithSlack()),
-//        onClick --> sideEffect(showPluginAuth()),
+        onClick handleWith(linkWithSlack()),
+//        onClick handleWith(showPluginAuth()),
       )
     } else {
       List(
         cls := "ui button",
         div(s"Sync with $platformName now"),
-        onClick --> sideEffect(linkWithSlack()),
+        onClick handleWith(linkWithSlack()),
       )
     }
 
@@ -186,18 +186,18 @@ object UserSettingsView {
 
         button(
           "Link with GitHub",
-          onClick --> sideEffect(linkWithGithub())),
+          onClick handleWith(linkWithGithub())),
         br(),
 
         button(
           "Link with Gitter",
-          onClick --> sideEffect(linkWithGitter())
+          onClick handleWith(linkWithGitter())
         ),
         br(),
 
         button(
           "Link with Slack",
-          onClick --> sideEffect(linkWithSlack())
+          onClick handleWith(linkWithSlack())
         ),
 
       )

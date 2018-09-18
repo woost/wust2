@@ -85,7 +85,7 @@ object SelectedNodes {
       div(cls := "fa-fw", Icons.delete),
       cls := "actionbutton",
 
-      onClick --> sideEffect{_ =>
+      onClick handleWith{_ =>
         val changes = GraphChanges.delete(selectedNodeIds, state.graph.now)
         state.eventProcessor.changes.onNext(changes)
         state.selectedNodeIds() = Set.empty[NodeId]
@@ -96,7 +96,7 @@ object SelectedNodes {
   private def clearSelectionButton(state:GlobalState) = {
     closeButton(
       cls := "actionbutton",
-      onClick --> sideEffect {
+      onClick handleWith {
         state.selectedNodeIds() = Set.empty[NodeId]
       }
     )
@@ -110,7 +110,7 @@ object SelectedNodes {
         "×",
         cls := "actionbutton",
         margin := "0",
-        onClick.stopPropagation --> sideEffect {
+        onClick.stopPropagation handleWith {
           state.selectedNodeIds.update(_ - node.id)
         }
       ),

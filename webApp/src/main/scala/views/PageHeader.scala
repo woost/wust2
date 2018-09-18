@@ -45,7 +45,7 @@ object PageHeader {
   private def channelRow(state: GlobalState, channel: Node, channelNodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes, newTagParentIds = Set(channelNodeId))(ctx)(
       cls := "pageheader-channeltitle",
-      onClick --> sideEffect { Analytics.sendEvent("pageheader", "editchanneltitle") }
+      onClick handleWith { Analytics.sendEvent("pageheader", "editchanneltitle") }
     )
 
     div(
@@ -126,7 +126,7 @@ object PageHeader {
       ),
       span(cls := "text", "Share Link", cursor.pointer),
       urlHolder,
-      onClick --> sideEffect {
+      onClick handleWith {
         scribe.info(s"sharing post: $channel")
 
         val shareTitle = channel.data.str
@@ -151,7 +151,7 @@ object PageHeader {
           Notifications.notify("Sharing link copied to clipboard", tag = Some("sharelink"), body = Some(shareDesc))
         }
       },
-      onClick --> sideEffect { Analytics.sendEvent("pageheader", "share") }
+      onClick handleWith { Analytics.sendEvent("pageheader", "share") }
     )
   }
 
@@ -179,7 +179,7 @@ object PageHeader {
           paddingTop := "3px",
           Components.nodeCard(state, nodeRes._1, maxLength = Some(60)),
           onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
-          onClick(searchModal) --> sideEffect { elem =>
+          onClick(searchModal) handleWith { elem =>
             import semanticUi.JQuery._
             $(elem).modal("hide")
           },
@@ -273,7 +273,7 @@ object PageHeader {
             searchResult,
           ),
         ),
-        onDomMount.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml handleWith { elem =>
           import semanticUi.JQuery._
           $(elem).modal(new ModalOptions {
             //          blurring = true
@@ -284,7 +284,7 @@ object PageHeader {
           searchModal.onNext(elem)
         },
       ),
-      onClick(searchModal) --> sideEffect { elem =>
+      onClick(searchModal) handleWith { elem =>
         import semanticUi.JQuery._
         $(elem).modal("toggle")
       },
@@ -406,7 +406,7 @@ object PageHeader {
             }
           )
         ),
-        onDomMount.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml handleWith { elem =>
           import semanticUi.JQuery._
           $(elem).modal(new ModalOptions {
             //          blurring = true
@@ -417,7 +417,7 @@ object PageHeader {
           addMemberModal.onNext(elem)
         },
       ),
-      onClick.transform(_.withLatestFrom(addMemberModal)((_, o) => o)) --> sideEffect { elem =>
+      onClick.transform(_.withLatestFrom(addMemberModal)((_, o) => o)) handleWith { elem =>
         import semanticUi.JQuery._
         $(elem).modal("toggle")
       },
@@ -457,7 +457,7 @@ object PageHeader {
           case PermissionState.prompt | `default`  => VDomModifier(
             iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
             title := "Notifications are currently disabled. Click to enable.",
-            onClick --> sideEffect { Notifications.requestPermissionsAndSubscribe() },
+            onClick handleWith { Notifications.requestPermissionsAndSubscribe() },
             action
           )
           case PermissionState.denied  => VDomModifier(
@@ -493,7 +493,7 @@ object PageHeader {
       cls := "ui compact primary button",
       "Add to Channels",
       onClick(GraphChanges.connect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes,
-      onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
+      onClick handleWith { Analytics.sendEvent("pageheader", "join") }
     )
 
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
@@ -518,7 +518,7 @@ object PageHeader {
                     selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
                   },
                   onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = selection.access)))) --> state.eventProcessor.changes,
-                  onClick --> sideEffect {
+                  onClick handleWith {
                     Analytics.sendEvent("pageheader", "changepermission", selection.access.str)
                   }
                 )
@@ -549,7 +549,7 @@ object PageHeader {
           marginRight := "5px",
         ),
         span(cls := "text", "Delete Channel", cursor.pointer),
-        onClick --> sideEffect {
+        onClick handleWith {
           state.eventProcessor.changes.onNext(
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) 
@@ -572,7 +572,7 @@ object PageHeader {
           items
         ),
         // https://semantic-ui.com/modules/dropdown.html#/usage
-        onDomMount.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml handleWith { elem =>
           import semanticUi.JQuery._
           $(elem).dropdown()
         },

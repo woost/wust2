@@ -123,13 +123,13 @@ object ThreadView {
       val state = meta.state
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
-        replyButton.apply(onTap --> sideEffect {
+        replyButton.apply(onTap handleWith {
           activeReplyFields.update(_ + (nodeId :: meta.path))
           // we also set an Expand-edge, so that after an reply and its update the thread does not close again
           state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
           ()
         }),
-        editButton.apply(onTap --> sideEffect {
+        editButton.apply(onTap handleWith {
           editable() = true
           state.selectedNodeIds() = Set.empty[NodeId]
         }),
@@ -190,16 +190,16 @@ object ThreadView {
       val path = reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)
       List(
         editButton.apply(
-          onTap --> sideEffect {
+          onTap handleWith {
             currentlyEditable() = Some(path)
             state.selectedNodeIds() = Set.empty[NodeId]
           }
         ),
-        replyButton.apply(onTap --> sideEffect { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
+        replyButton.apply(onTap handleWith { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
       )
     } else Nil
     val selectedNodeActions: List[NodeId] => List[VNode] = nodeIds => List(
-      zoomButton(state, nodeIds).apply(onTap --> sideEffect { state.selectedNodeIds.update(_ -- nodeIds) }),
+      zoomButton(state, nodeIds).apply(onTap handleWith { state.selectedNodeIds.update(_ -- nodeIds) }),
       SelectedNodes.deleteAllButton(state, nodeIds),
     )
 
@@ -275,13 +275,13 @@ object ThreadView {
               keyed
             )
         },
-        onSnabbdomPrePatch --> sideEffect {
+        onSnabbdomPrePatch handleWith {
           scrollableHistoryElem.now.foreach { prev =>
             val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
             isScrolledToBottom() = wasScrolledToBottom
           }
         },
-        onDomUpdate --> sideEffect {
+        onDomUpdate handleWith {
           scrollableHistoryElem.now.foreach { elem =>
             if(isScrolledToBottom.now)
               defer { scrollToBottom(elem) }
@@ -297,14 +297,14 @@ object ThreadView {
 
       ),
       overflow.auto,
-      onDomMount.asHtml --> sideEffect { elem =>
+      onDomMount.asHtml handleWith { elem =>
         if(isScrolledToBottom.now)
           defer { scrollToBottom(elem) }
         scrollableHistoryElem() = Some(elem)
       },
 
       // tapping on background deselects
-      onTap --> sideEffect { state.selectedNodeIds() = Set.empty[NodeId] }
+      onTap handleWith { state.selectedNodeIds() = Set.empty[NodeId] }
     )
   }
 
@@ -495,7 +495,7 @@ object ThreadView {
             ),
             closeButton(
               keyed,
-              onTap --> sideEffect { activeReplyFields.update(_ - fullPath) },
+              onTap handleWith { activeReplyFields.update(_ - fullPath) },
             ),
           )
         else
@@ -508,7 +508,7 @@ object ThreadView {
             // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
             // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
             // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
-            onMouseDown.stopPropagation --> sideEffect { defer { activeReplyFields.update(_ + fullPath) } }
+            onMouseDown.stopPropagation handleWith { defer { activeReplyFields.update(_ + fullPath) } }
           )
       }
     )
@@ -561,7 +561,7 @@ object ThreadView {
       input(
         tpe := "checkbox",
         checked <-- isSelected,
-        onChange.checked --> sideEffect { checked =>
+        onChange.checked handleWith { checked =>
           if(checked) state.selectedNodeIds.update(_ + nodeId)
           else state.selectedNodeIds.update(_ - nodeId)
         }
@@ -609,10 +609,10 @@ object ThreadView {
         keyed(nodeId),
         Styles.flex,
 
-        onPress --> sideEffect {
+        onPress handleWith {
           state.selectedNodeIds.update(_ + nodeId)
         },
-        onTap --> sideEffect {
+        onTap handleWith {
           val selectionModeActive = state.selectedNodeIds.now.nonEmpty
           if(selectionModeActive) state.selectedNodeIds.update(_.toggle(nodeId))
         },
@@ -662,7 +662,7 @@ object ThreadView {
   def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", Icons.delete),
-      onTap --> sideEffect {
+      onTap handleWith {
         state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
         state.selectedNodeIds.update(_ - nodeId)
       },
@@ -747,7 +747,7 @@ object ThreadView {
       textArea(
         keyed,
         cls := "field",
-        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
+        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) handleWith { str =>
           val graph = state.graphContent.now
           val selectedNodeIds = state.selectedNodeIds.now
           val changes = {
@@ -762,10 +762,10 @@ object ThreadView {
         },
         // else, these events would bubble up to global event handlers and produce a lag
         // TODO: sideEffect still has the overhead of triggering the monix scheduler, since it is implemented as an observer
-        onKeyPress.stopPropagation --> sideEffect {},
-        onKeyUp.stopPropagation --> sideEffect {},
-        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> sideEffect { e => e.focus() }),
-        onBlur.value --> sideEffect { value => blurAction(value) },
+        onKeyPress.stopPropagation handleWith {},
+        onKeyUp.stopPropagation handleWith {},
+        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml handleWith { e => e.focus() }),
+        onBlur.value handleWith { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         style("resize") := "none", //TODO: add resize style to scala-dom-types

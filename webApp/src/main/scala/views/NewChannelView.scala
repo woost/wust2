@@ -16,7 +16,7 @@ object NewChannelView {
       flexDirection.column,
       alignItems.center,
       MainViewParts.newChannelButton(state)(ctx)(padding := "20px", marginBottom := "10%")(
-        onClick --> sideEffect { Analytics.sendEvent("view:newchannel", "newchannel") }
+        onClick handleWith { Analytics.sendEvent("view:newchannel", "newchannel") }
       )
     )
   }

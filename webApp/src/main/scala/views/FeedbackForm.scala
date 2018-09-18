@@ -44,7 +44,7 @@ object FeedbackForm {
         cls := "ui form",
         textArea(
           cls := "field",
-          valueWithEnter --> sideEffect { submit() },
+          valueWithEnter handleWith { submit() },
           onInput.value --> feedbackText,
           value <-- clear,
           width := "220px",
@@ -61,7 +61,7 @@ object FeedbackForm {
         "Feedback ",
         freeSolid.faCaretDown,
         cls := "ui positive tiny compact button",
-        onClick.stopPropagation --> sideEffect{
+        onClick.stopPropagation handleWith{
           Analytics.sendEvent("feedback", if(show.now) "close" else "open")
           show.update(!_)
         },
@@ -93,7 +93,7 @@ object FeedbackForm {
             (Icons.zoom:VNode)(marginLeft := "5px"),
             onClick(Page(feedbackNodeId)) --> state.page,
             onClick(false) --> show,
-            onClick --> sideEffect {
+            onClick handleWith {
               Analytics.sendEvent("feedback", "show")
             }
           ),
@@ -102,11 +102,11 @@ object FeedbackForm {
             tpe := "button",
             cls := "ui tiny compact primary button",
             "Submit",
-            onClick --> sideEffect { submit(); clear.onNext(Unit); () },
+            onClick handleWith { submit(); clear.onNext(Unit); () },
             onClick(false) --> show,
           ),
         ),
-        onClick.stopPropagation --> sideEffect{}, // prevents closing feedback form by global click
+        onClick.stopPropagation handleWith{}, // prevents closing feedback form by global click
       )
     )
   }

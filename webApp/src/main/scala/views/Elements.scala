@@ -55,7 +55,7 @@ object Elements {
     CustomEmitterBuilder { (sink: hammerjs.Event => Unit) =>
       var hammertime: Hammer[Event] = null
       VDomModifier(
-        onDomMount.asHtml --> sideEffect { elem =>
+        onDomMount.asHtml handleWith { elem =>
           hammertime = new Hammer(elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
           propagating(hammertime).on(events, { e =>
             e.stopPropagation()
@@ -63,7 +63,7 @@ object Elements {
             sink(e)
           })
         },
-        onDomUnmount.asHtml --> sideEffect { elem =>
+        onDomUnmount.asHtml handleWith { elem =>
           hammertime.stop()
           hammertime.destroy()
         },
