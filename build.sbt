@@ -71,6 +71,7 @@ lazy val commonSettings = Seq(
       "-Ywarn-infer-any" ::
       "-Ywarn-nullary-override" ::
       "-Ywarn-nullary-unit" ::
+      "-opt-warnings:at-inline-failed" ::
       Nil,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, scalaMajor)) if scalaMajor >= 12 =>
@@ -235,6 +236,16 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
       Nil
+  )
+
+lazy val bench = crossProject(JSPlatform, JVMPlatform)
+  .enablePlugins(ScalaJSBundlerPlugin)
+  .settings(commonSettings)
+  .dependsOn(graph)
+  .jsSettings(
+    useYarn := true, // makes scalajs-bundler use yarn instead of npm
+    scalaJSStage in Global := FullOptStage,
+    scalaJSUseMainModuleInitializer := true,
   )
 
 lazy val serviceUtil = project

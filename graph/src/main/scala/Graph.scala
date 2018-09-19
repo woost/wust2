@@ -461,7 +461,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def removeNodes(nids: Iterable[NodeId]): Graph = filterNot(nids.toSet)
   def removeConnections(es: Iterable[Edge]): Graph = copy(edges = edges -- es)
   def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
-  def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet)
+  def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet) //TODO: rename to addEdges
 
   def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
   def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
