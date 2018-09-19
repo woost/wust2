@@ -13,7 +13,7 @@ import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.util.Selector
+import wust.util.time.time
 import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
@@ -22,12 +22,12 @@ import scala.collection.breakOut
 import scala.concurrent.duration._
 import scala.scalajs.js
 
-class GlobalState (
-    val appUpdateIsAvailable: Observable[Unit],
-    val eventProcessor: EventProcessor,
-    val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
-    val viewConfig: Var[ViewConfig],
-    val isOnline: Rx[Boolean]
+class GlobalState(
+  val appUpdateIsAvailable: Observable[Unit],
+  val eventProcessor: EventProcessor,
+  val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
+  val viewConfig: Var[ViewConfig],
+  val isOnline: Rx[Boolean]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
@@ -39,25 +39,27 @@ class GlobalState (
     Rx {
       val graph = internalGraph()
       val u = user()
-    val newGraph =
-      if (graph.nodeIds(u.channelNodeId)) graph
+      val newGraph =
+        if(graph.nodeIds(u.channelNodeId)) graph
         else {
           graph.addNodes(
-        // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
-        // if we start with an assumed user and just create new channels we will never get a graph from the backend.
-        Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-            user().toNode ::
-            Nil
+            // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
+            // if we start with an assumed user and just create new channels we will never get a graph from the backend.
+            Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
+              user().toNode ::
+              Nil
           )
         }
 
-    newGraph.consistent
-  }
+      newGraph.consistent
+    }
   }
 
   val channelTree: Rx[Tree] = Rx {
     val channelNode = graph().nodesById(user().channelNodeId)
-    graph().channelTree(channelNode)
+    time("channelTree") {
+      graph().channelTree(channelNode)
+    }
   }
 
   val channels: Rx[Seq[Node]] = Rx {
@@ -75,7 +77,7 @@ class GlobalState (
       case p: Page.Selection => p.copy(
         parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
       )
-      case p => p
+      case p                 => p
     }
   }
 
@@ -89,6 +91,7 @@ class GlobalState (
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
   val documentIsVisible: Rx[Boolean] = {
     def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
+
     events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
   }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
@@ -100,7 +103,7 @@ class GlobalState (
   val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if (!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
+    if(!view().isContent || page().parentIds.nonEmpty || page().mode != PageMode.Default)
       view()
     else
       View.NewChannel
@@ -120,8 +123,8 @@ class GlobalState (
       _.map(node => (graph().parentDepth(node), graph().nodesById(node)))
         .groupBy(_._1)
         .mapValues(_.map {
-                     case (depth, node) => node
-                   }.distinct)
+          case (depth, node) => node
+        }.distinct)
     )
 
   val pageStyle = Rx {
@@ -131,7 +134,7 @@ class GlobalState (
   // specifies which nodes are collapsed
   val perspective: Var[Perspective] = Var(Perspective())
 
-  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead{ selectedNodeIds =>
+  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead { selectedNodeIds =>
     selectedNodeIds().filter(graph().nodesById.isDefinedAt)
   }
 
@@ -145,7 +148,7 @@ class GlobalState (
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
     handle = ".draghandle"
-//    delay = 200.0
+    //    delay = 200.0
     mirror = new MirrorOptions {
       constrainDimensions = true
     }
