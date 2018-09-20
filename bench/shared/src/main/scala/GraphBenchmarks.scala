@@ -23,8 +23,10 @@ object GraphBenchmarks {
         { size =>
           grid(size)
         },
-        (successors, _) =>
-          algorithm.depthFirstSearch[Int](0, successors.apply)
+        (successors, iterations) =>
+          loop(iterations) {
+            algorithm.depthFirstSearch[Int](0, successors.apply)
+          }
       ),
     )
   })
