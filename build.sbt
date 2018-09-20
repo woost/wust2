@@ -239,7 +239,6 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
   )
 
 lazy val bench = crossProject(JSPlatform, JVMPlatform)
-  .enablePlugins(ScalaJSBundlerPlugin)
   .settings(commonSettings)
   .dependsOn(graph)
   .jsSettings(
@@ -247,6 +246,8 @@ lazy val bench = crossProject(JSPlatform, JVMPlatform)
     scalaJSStage in Global := FullOptStage,
     scalaJSUseMainModuleInitializer := true,
   )
+
+lazy val benchJS = bench.js.enablePlugins(ScalaJSBundlerPlugin)
 
 lazy val serviceUtil = project
   .settings(commonSettings)

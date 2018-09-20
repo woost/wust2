@@ -23,9 +23,9 @@ object Util {
     }
   }
 
-  def expRange(max: Int) = {
+  def expRange(max: Int, base:Int = 2) = {
     require(max <= (1 << 30))
-    List.tabulate[Int]((Math.log(max)/Math.log(2)).ceil.toInt + 1)(i => 1 << i)
+    List.tabulate[Int]((Math.log(max)/Math.log(base)).ceil.toInt + 1)(i => Math.pow(base,i).toInt)
   }
 
   @inline def now: Long = System.nanoTime()

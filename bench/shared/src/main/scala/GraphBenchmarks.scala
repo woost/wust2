@@ -2,8 +2,32 @@ package bench
 
 import scala.concurrent.duration._
 import Util._
+import wust.util.algorithm
 
 object GraphBenchmarks {
+  val algorithms = Comparison("Algorithms", {
+    import wust.graph._
+    import wust.ids._
+    def grid(size: Int):Array[Array[Int]] = {
+      val n = Math.sqrt(size).floor.toInt
+      Array.tabulate(size){i =>
+        Array(i-1).filter(x => x >= (i/n)*n) ++
+          Array(i+1).filter(x => x <= ((i/n)*n+n-1) && x < size) ++
+          Array(i-n).filter(x => x >= 0) ++
+          Array(i+n).filter(x => x < size)
+      }
+    }
+
+    Seq(
+      Benchmark[Array[Array[Int]]]("dfs grid",
+        { size =>
+          grid(size)
+        },
+        (successors, _) =>
+          algorithm.depthFirstSearch[Int](0, successors.apply)
+      ),
+    )
+  })
   val graphAlgorithms = Comparison("Graph Algorithms", {
     import wust.graph._
     import wust.ids._
