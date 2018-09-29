@@ -10,8 +10,8 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 import Def.{setting => dep}
 
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.6",
-  crossScalaVersions := Seq("2.11.12", "2.12.6"), // 2.11 is needed for android app
+  scalaVersion := "2.12.7",
+  crossScalaVersions := Seq("2.11.12", scalaVersion.value), // 2.11 is needed for android app
 
 //  exportJars := true, // for android app
   resolvers ++=
