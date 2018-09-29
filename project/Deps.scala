@@ -11,7 +11,7 @@ object Deps {
   val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.5")
   val specs2 = dep("org.specs2" %% "specs2-core" % "4.3.4")
   val mockito = dep("org.mockito" % "mockito-core" % "2.22.0")
-  val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.14.0")
+  val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.3.1")
 
   // core libraries
   val cats = new {
