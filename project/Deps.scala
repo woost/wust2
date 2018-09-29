@@ -16,7 +16,7 @@ object Deps {
   // core libraries
   val cats = new {
     val core = dep("org.typelevel" %%% "cats-core" % "1.4.0")
-    val kittens = dep("org.typelevel" %%% "kittens" % "1.0.0")
+    val kittens = dep("org.typelevel" %%% "kittens" % "1.2.0")
   }
   val akka = new {
     private val version = "2.5.17"
