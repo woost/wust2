@@ -135,8 +135,8 @@ object AppServer {
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))
 
-    val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
+    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(
+      HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
 //    // TODO: author

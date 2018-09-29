@@ -81,8 +81,8 @@ object Server {
       overflowStrategy = OverflowStrategy.fail
     )
 
-    val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
+    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(
+      HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
     path("ws") {

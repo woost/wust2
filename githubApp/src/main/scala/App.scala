@@ -144,8 +144,8 @@ object AppServer {
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new GithubApiImpl(wustReceiver.client, oAuthClient))
 
-    val corsSettings = CorsSettings.defaultSettings.copy(
-      allowedOrigins = HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
+    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(
+      HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
     case class IssueEvent(action: String, issue: Issue)
