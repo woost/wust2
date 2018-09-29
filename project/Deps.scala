@@ -4,7 +4,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 object Deps {
   import Def.{setting => dep}
 
-  val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.1.7"
+  val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.1.8"
   val acyclic = dep(acyclicDef % "provided")
 
   // testing
