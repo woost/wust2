@@ -59,7 +59,7 @@ object Deps {
     val perfolation = dep("com.github.fdietze.perfolation" %%% "perfolation" % "6854947")
     val core = dep("com.outr" %%% "scribe" % "2.5.0")
   }
-  val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.1")
+  val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.2")
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.5.1-cats")
   val monocleCore = dep("com.github.julien-truffaut" %% "monocle-core" % "1.5.1-cats")
   val sourcecode = dep("com.github.cornerman.sourcecode" %%% "sourcecode" % "998ee90c15")
