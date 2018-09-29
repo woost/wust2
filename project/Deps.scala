@@ -93,8 +93,8 @@ object Deps {
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
   val github4s = dep("io.github.GRBurst.github4s" %% "github4s" % "1d9681d") // master + comments + single issue
-  val redis = dep("net.debasishg" %% "redisclient" % "3.7")
   val graphQl = dep("org.sangria-graphql" %% "sangria" % "1.4.2")
+  val redis = dep("net.debasishg" %% "redisclient" % "3.8")
   val gitterSync = dep("com.github.amatkivskiy" % "gitter.sdk.sync" % "1.6.1")
   val gitterClient = dep("com.github.amatkivskiy" % "gitter.sdk.async" % "1.6.1")
   val slackClient = dep("com.github.GRBurst" % "slack-scala-client" % "65cd560") //b88f22e
