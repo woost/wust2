@@ -28,6 +28,16 @@ object GraphBenchmarks {
             algorithm.depthFirstSearch[Int](0, successors.apply)
           }
       ),
+      Benchmark[(Array[Int],Array[Array[Int]])]("toposort grid",
+        { size =>
+          ((0 until size).toArray,grid(size))
+        }, {
+        case ((vertices,successors), iterations) =>
+          loop(iterations) {
+            algorithm.topologicalSort[Int, Array](vertices, successors.apply(_))
+          }
+        }
+      ),
     )
   })
   val graphAlgorithms = Comparison("Graph Algorithms", {
