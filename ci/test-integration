@@ -2,6 +2,7 @@
 set -e
 set -o pipefail
 
-export _JAVA_OPTIONS="-Xms128M -Xmx2500M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
+# building with sbt needs around 3G
+export _JAVA_OPTIONS="-Xms128M -Xmx2800M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
 
 ./start test.integration

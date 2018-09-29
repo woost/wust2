@@ -6,7 +6,7 @@ export CI=true # also set by ci server, but helps when running locally
 
 export SOURCEMAPS=false # for building production js assets with sourcemap
 
-# building with sbt needs around 2G
-export _JAVA_OPTIONS="-Xms128M -Xmx2500M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
+# building with sbt needs around 3G
+export _JAVA_OPTIONS="-Xms128M -Xmx2800M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
 
 sbt core/docker dbMigration/docker slackApp/docker webApp/docker
