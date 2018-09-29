@@ -69,7 +69,7 @@ object Deps {
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
   val fastparse = dep("com.lihaoyi" %%% "fastparse" % "1.0.0")
-  val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.3")
+  val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.5")
 
   // rpc
   val covenant = new {
