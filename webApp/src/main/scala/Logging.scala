@@ -23,5 +23,6 @@ object Logging {
     else
       Logger.root
         .clearHandlers()
+        .replace()
   }
 }
