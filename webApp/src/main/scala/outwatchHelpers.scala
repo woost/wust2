@@ -1,21 +1,15 @@
 package wust.webApp
 
-import cats.effect.IO
-import com.raquo.domtypes.generic.keys.Style
 import fontAwesome._
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
-import org.scalajs.dom
-import org.scalajs.dom.{Element, document}
-import outwatch.dom.helpers.{AttributeBuilder, CustomEmitterBuilder, EmitterBuilder}
-import outwatch.dom.{AsObserver, AsValueObservable, Attribute, Handler, Modifier, ModifierStreamReceiver, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
-import outwatch.{AsVDomModifier, Sink}
+import monix.reactive.{Observable, Observer}
+import org.scalajs.dom.document
+import outwatch.dom.{AsObserver, AsValueObservable, Handler, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
 import rx._
 import wust.util.Empty
 
-import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -175,7 +169,6 @@ package object outwatchHelpers {
   implicit object VDomModifierEmpty extends Empty[VDomModifier] {
     def empty: VDomModifier = VDomModifier.empty
   }
-
 
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {

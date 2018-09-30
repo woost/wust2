@@ -19,6 +19,7 @@ import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import emojijs.EmojiConvertor
+import monix.execution.Cancelable
 import sanitizer.SanitizeState
 
 import scala.scalajs.js
@@ -227,30 +228,33 @@ object Components {
     }
   }
 
-  def registerDraggableContainer(state: GlobalState): VDomModifier = Seq(
-    //    border := "2px solid blue",
-    outline := "none", // hides focus outline
-    cls := "draggable-container",
-    onDomMount.asHtml handleWith { elem =>
-      //      console.log("Adding Draggable Container:", elem)
-      state.draggable.addContainer(elem)
-    },
-    onDomUnmount.asHtml handleWith { elem =>
-      state.draggable.removeContainer(elem)
-    }
-  )
+  def registerDraggableContainer(state: GlobalState): VDomModifier = {
+    var mountCount = 0
+    var unmountCount = 0
+    Seq(
+      //    border := "2px solid blue",
+      outline := "none", // hides focus outline
+      cls := "draggable-container",
+      managedElement.asHtml { elem =>
+        state.draggable.addContainer(elem)
+        Cancelable { () =>
+          state.draggable.removeContainer(elem)
+        }
+      }
+    )
+  }
 
   def registerSortableContainer(state: GlobalState, container: DragContainer): VDomModifier = {
     Seq(
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
-      onDomMount.asHtml handleWith { elem =>
+      managedElement.asHtml { elem =>
         writeDragContainer(elem, container)
         state.sortable.addContainer(elem)
-      },
-      onDomUnmount.asHtml handleWith { elem =>
-        state.sortable.removeContainer(elem)
+        Cancelable { () =>
+          state.sortable.removeContainer(elem)
+        }
       }
     )
   }

@@ -41,14 +41,14 @@ object UserSettingsView {
     changePassword(user)
   )
 
-  private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = for {
-    password <- Handler.create[String]
-    successHandler <- Handler.create(true)
-    clearHandler = successHandler.collect { case true => "" }
-    actionSink = sideEffect[String] { password =>
+  private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = {
+    val password = Handler.created[String]
+    val successHandler = Handler.created(true)
+    val clearHandler = successHandler.collect { case true => "" }
+    val actionSink = { password: String =>
       if (password.nonEmpty) Client.auth.changePassword(password).foreach(successHandler.onNext)
     }
-    modifiers <- VDomModifier(
+    VDomModifier(
       div(
         managed(IO(clearHandler.subscribe(password))),
         cls := "ui fluid input",
@@ -57,7 +57,7 @@ object UserSettingsView {
           tpe := "password",
           value <-- clearHandler,
           onChange.value --> password,
-          onEnter.value --> actionSink)
+          onEnter.value handleWith actionSink)
       ),
       successHandler.map {
         case true => VDomModifier.empty
@@ -70,10 +70,10 @@ object UserSettingsView {
         "Change Password",
         cls := "ui fluid primary button",
         display.block,
-        onClick(password) --> actionSink
+        onClick(password) handleWith actionSink
       )
     )
-  } yield modifiers
+  }
 
   private def header(user: UserInfo): VNode = {
     div(

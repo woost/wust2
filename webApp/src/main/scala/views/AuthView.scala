@@ -27,10 +27,10 @@ object AuthView {
       alternativeView: View,
       alternativeText: String,
       autoCompletePassword: String
-  )(implicit ctx: Ctx.Owner): VNode =
-    for {
-      errorMessageHandler <- Handler.create[String]
-      actionSink  = { case (username, password) =>
+  )(implicit ctx: Ctx.Owner): VNode = {
+    val errorMessageHandler = Handler.created[String]
+    val actionSink = {
+      case (username, password) =>
         submitAction(username, password).onComplete {
           case Success(None)        =>
             defaultUsername() = ""
@@ -40,75 +40,75 @@ object AuthView {
           case Failure(t)           =>
             errorMessageHandler.onNext(s"Unexpected error: $t")
         }
-      }: ((String, String)) => Unit
-      username <- Handler.create[String](defaultUsername.now)
-      password <- Handler.create[String]
-      nameAndPassword = username.combineLatest(password)
-      elem <- div(
-        padding := "10px",
-        maxWidth := "400px",
-        maxHeight := "400px",
-        margin := "auto",
-        form(
-          h2(header),
-          div(
-            cls := "ui fluid input",
-            input(
-              placeholder := "Username",
-              value <-- defaultUsername,
-              tpe := "text",
-              attr("autocomplete") := "username",
-              display.block,
-              margin := "auto",
-              onInput.value --> username,
-              onDomMount.asHtml handleWith { e => if(defaultUsername.now.isEmpty) e.focus() }
-            )
-          ),
-          div(
-            cls := "ui fluid input",
-            input(
-              placeholder := "Password",
-              tpe := "password",
-              attr("autocomplete") := autoCompletePassword,
-              display.block,
-              margin := "auto",
-              onInput.value --> password,
-              onEnter(nameAndPassword) handleWith actionSink,
-              onDomMount.asHtml handleWith { e => if(defaultUsername.now.nonEmpty) e.focus() }
-            )
-          ),
-          button(
-            cls := "ui fluid primary button",
-            submitText,
+    }: ((String, String)) => Unit
+    val username = Handler.created[String](defaultUsername.now)
+    val password = Handler.created[String]
+    val nameAndPassword = username.combineLatest(password)
+    div(
+      padding := "10px",
+      maxWidth := "400px",
+      maxHeight := "400px",
+      margin := "auto",
+      form(
+        h2(header),
+        div(
+          cls := "ui fluid input",
+          input(
+            placeholder := "Username",
+            value <-- defaultUsername,
+            tpe := "text",
+            attr("autocomplete") := "username",
             display.block,
             margin := "auto",
-            marginTop := "5px",
-            onClick(nameAndPassword) handleWith actionSink
-          ),
-          errorMessageHandler.map { errorMessage =>
-            div(
-              cls := "ui negative message",
-              div(cls := "header", s"$submitText failed"),
-              p(errorMessage)
-            )
-          },
-          div(cls := "ui divider"),
-          h3(alternativeHeader, textAlign := "center"),
-          state.viewConfig.map { cfg =>
-            div(
-              onClick(cfg.copy(view = alternativeView)) --> state.viewConfig,
-              cls := "ui fluid button",
-              alternativeText,
-              display.block,
-              margin := "auto",
-              cursor.pointer
-            )
-          },
-          onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
-          managed(IO { username.subscribe(defaultUsername) })
-        )
+            onInput.value --> username,
+            onDomMount.asHtml handleWith { e => if(defaultUsername.now.isEmpty) e.focus() }
+          )
+        ),
+        div(
+          cls := "ui fluid input",
+          input(
+            placeholder := "Password",
+            tpe := "password",
+            attr("autocomplete") := autoCompletePassword,
+            display.block,
+            margin := "auto",
+            onInput.value --> password,
+            onEnter(nameAndPassword) handleWith actionSink,
+            onDomMount.asHtml handleWith { e => if(defaultUsername.now.nonEmpty) e.focus() }
+          )
+        ),
+        button(
+          cls := "ui fluid primary button",
+          submitText,
+          display.block,
+          margin := "auto",
+          marginTop := "5px",
+          onClick(nameAndPassword) handleWith actionSink
+        ),
+        errorMessageHandler.map { errorMessage =>
+          div(
+            cls := "ui negative message",
+            div(cls := "header", s"$submitText failed"),
+            p(errorMessage)
+          )
+        },
+        div(cls := "ui divider"),
+        h3(alternativeHeader, textAlign := "center"),
+        state.viewConfig.map { cfg =>
+          div(
+            onClick(cfg.copy(view = alternativeView)) --> state.viewConfig,
+            cls := "ui fluid button",
+            alternativeText,
+            display.block,
+            margin := "auto",
+            cursor.pointer
+          )
+        },
+        onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
+        managed(IO { username.subscribe(defaultUsername) })
       )
-    } yield elem
+    )
+  }
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     apply(state)(

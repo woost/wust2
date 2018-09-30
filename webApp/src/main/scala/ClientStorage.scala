@@ -25,36 +25,43 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
   val auth: Var[Option[Authentication]] = {
-    LocalStorage
+    val connectable = LocalStorage
       .handlerWithoutEvents(keys.auth)
       .unsafeRunSync()
-      .mapHandler(_.flatMap(fromJson[Authentication]))(auth => Option(toJson(auth)))
-      .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
+      .mapHandler[Option[Authentication]](auth => Option(toJson(auth)))(_.flatMap(fromJson[Authentication]))
+
+    connectable.connect()
+    connectable.unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
   //TODO: howto handle with events from other tabs?
   val graphChanges: Handler[List[GraphChanges]] = {
-    LocalStorage
+    val connectable = LocalStorage
       .handlerWithoutEvents(keys.graphChanges)
       .unsafeRunSync()
-      .mapHandler(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))(
-        changes => Option(toJson(changes))
-      )
+      .mapHandler[List[GraphChanges]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))
+
+    connectable.connect()
+    connectable
   }
 
   val sidebarOpen: Var[Boolean] = {
-    LocalStorage
+    val connectable = LocalStorage
       .handlerWithoutEvents(keys.sidebarOpen)
       .unsafeRunSync()
-      .mapHandler(_.flatMap(fromJson[Boolean]).getOrElse(false))(open => Option(toJson(open)))
-      .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
+      .mapHandler[Boolean](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]).getOrElse(false))
+
+    connectable.connect()
+    connectable.unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
   }
 
   val backendTimeDelta: Var[Long] = {
-    LocalStorage
+    val connectable: Handler[Long] with outwatch.ReactiveConnectable = LocalStorage
       .handlerWithoutEvents(keys.backendTimeDelta)
       .unsafeRunSync()
-      .mapHandler(_.flatMap(fromJson[Long]).getOrElse(0L))(delta => Option(toJson(delta)))
-      .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))
+      .mapHandler[Long](delta => Option(toJson(delta)))(_.flatMap(fromJson[Long]).getOrElse(0L))
+
+    connectable.connect()
+    connectable.unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))
   }
 }

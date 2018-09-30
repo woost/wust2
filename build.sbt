@@ -421,7 +421,6 @@ lazy val webApp = project
       Deps.npm.markedSanitizer ::
       Deps.npm.dateFns ::
       Deps.npm.draggable ::
-      Deps.npm.snabbdom ::
       Deps.npm.fomanticUi ::
       Deps.npm.highlight ::
       Deps.npm.emoji ::

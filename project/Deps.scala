@@ -52,7 +52,7 @@ object Deps {
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "e64d5d7")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.cornerman" % "outwatch" % "5fc36f1")
+  val outwatch = dep("com.github.cornerman" % "outwatch" % "bdf5cf9")
 
   // utility
   val scribe = new {
@@ -73,7 +73,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "e618443"
+    private val version = "474a7ba"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
@@ -121,9 +121,6 @@ object Deps {
     val hammerjs = "hammerjs" -> "2.0.8"
     val propagatingHammerjs = "propagating-hammerjs" -> "1.4.6"
     val immediate = "immediate" -> "3.2.3"
-
-    //TODO wait for PRs
-    val snabbdom = "snabbdom" -> "git://github.com/cornerman/snabbdom.git#0.7.2"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47
