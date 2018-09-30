@@ -11,7 +11,6 @@ import rx._
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
-import wust.sdk.ChangesHistory
 import wust.util.RichBoolean
 import wust.webApp.Client
 import wust.webApp.outwatchHelpers._
@@ -36,7 +35,6 @@ object Topbar {
     header(state).apply(marginRight := "10px"),
     appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
     beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
-    //    undoRedo(state)(ctx)(marginRight.auto),
     Rx {
       state.view().isContent.ifTrue[VDomModifier](
         viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
@@ -184,43 +182,6 @@ object Topbar {
           })
         }
       }
-    )
-  }
-
-  def undoRedo(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val historySink = state.eventProcessor.history.action
-    div(
-      state.eventProcessor.changesHistory
-        .startWith(Seq(ChangesHistory.empty))
-        .combineLatestMap(state.view.toObservable) { (history, view) =>
-          div(
-            if(view.isContent)
-              VDomModifier(
-                Styles.flex,
-                style("justify-content") := "space-evenly", //TODO dom-types
-                button(
-                  cls := "ui button",
-                  faUndo,
-                  padding := "5px 10px",
-                  marginRight := "2px",
-                  fontSize.small,
-                  title := "Undo last change",
-                  onClick(ChangesHistory.Undo) --> historySink,
-                  disabled := !history.canUndo
-                ),
-                button(
-                  cls := "ui button",
-                  faRedo,
-                  padding := "5px 10px",
-                  fontSize.small,
-                  title := "Redo last undo change",
-                  onClick(ChangesHistory.Redo) --> historySink,
-                  disabled := !history.canRedo
-                )
-              )
-            else Seq.empty[VDomModifier]
-          )
-        }
     )
   }
 

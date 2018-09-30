@@ -30,43 +30,6 @@ object SyncStatus {
   case object Error extends SyncStatus
 }
 
-case class ChangesHistory(
-    undos: List[GraphChanges],
-    redos: List[GraphChanges],
-    current: GraphChanges
-) {
-  def canUndo = undos.nonEmpty
-  def canRedo = redos.nonEmpty
-  def undo(graph: Graph) = undos match {
-    case changes :: undos =>
-      ChangesHistory(undos = undos, redos = changes :: redos, current = changes.revert) //TODO
-    case Nil => copy(current = GraphChanges.empty)
-  }
-  def redo = redos match {
-    case changes :: redos =>
-      ChangesHistory(undos = changes :: undos, redos = redos, current = changes)
-    case Nil => copy(current = GraphChanges.empty)
-  }
-  def push(changes: GraphChanges) = copy(undos = changes :: undos, redos = Nil, current = changes)
-
-  def apply(graph: Graph): ChangesHistory.Action => ChangesHistory = {
-    case ChangesHistory.NewChanges(changes) => push(changes)
-    case ChangesHistory.Undo                => undo(graph)
-    case ChangesHistory.Redo                => redo
-    case ChangesHistory.Clear               => ChangesHistory.empty
-  }
-}
-object ChangesHistory {
-  def empty = ChangesHistory(Nil, Nil, GraphChanges.empty)
-
-  sealed trait Action extends Any
-  case class NewChanges(changes: GraphChanges) extends AnyVal with Action
-  sealed trait UserAction extends Action
-  case object Undo extends UserAction
-  case object Redo extends UserAction
-  case object Clear extends UserAction
-}
-
 object EventProcessor {
 
   //TODO factory and constructor shared responibility
@@ -120,12 +83,9 @@ class EventProcessor private (
   object enriched {
     val changes = PublishSubject[GraphChanges]
   }
-  object history {
-    val action = PublishSubject[ChangesHistory.UserAction]
-  }
 
   // public reader
-  val (changesHistory, localChanges, graph): (Observable[ChangesHistory], Observable[GraphChanges], Observable[Graph]) = {
+  val (localChanges, graph): (Observable[GraphChanges], Observable[Graph]) = {
     // events  withLatestFrom
     // --------O----------------> localchanges
     //         ^          |
@@ -140,7 +100,7 @@ class EventProcessor private (
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes)
 
-    val rawLocalChanges: Observable[GraphChanges] =
+    val localChanges: Observable[GraphChanges] =
       allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
         case (changes, user, graph) if changes.nonEmpty =>
           scribe.info("[Events] Got raw local changes:")
@@ -158,17 +118,6 @@ class EventProcessor private (
           changesCandidate.copy(addEdges = changesCandidate.addEdges -- authorEdgesToRemove.map(_._1) ++ authorEdgesToRemove.map(_._2))
       }.share
 
-    val changesHistory = Observable
-      .merge(rawLocalChanges.map(ChangesHistory.NewChanges), history.action)
-      .withLatestFrom(rawGraphWithInit)((action, graph) => (action, graph))
-      .scan(ChangesHistory.empty) {
-        case (history, (action, graph)) => history(graph)(action)
-      }.share
-    val localChanges = changesHistory.collect {
-      case history if history.current.nonEmpty =>
-       history.current
-    }.share
-
     val localEvents = Observable.merge(localChanges, nonSendingChanges).withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.id, gc._1)))
     val graphEvents = Observable.merge(eventStream, localEvents)
 
@@ -180,7 +129,7 @@ class EventProcessor private (
 
     graphWithChanges subscribe rawGraph
 
-    (changesHistory, localChanges, sharedRawGraph)
+    (localChanges, sharedRawGraph)
   }
 
   def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
