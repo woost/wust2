@@ -103,9 +103,6 @@ class EventProcessor private (
     val localChanges: Observable[GraphChanges] =
       allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
         case (changes, user, graph) if changes.nonEmpty =>
-          scribe.info("[Events] Got raw local changes:")
-          GraphChanges.log(changes, Some(graph))
-
           val changesCandidate = changes.consistent.withAuthor(user.id)
 
           // Workaround - quick fix: This prevents that changing a nodes content breaks ordering
@@ -122,9 +119,7 @@ class EventProcessor private (
     val graphEvents = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
-      val newGraph = events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
-      scribe.info("[Events] Got new graph: " + newGraph)
-      newGraph
+      events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
     }
 
     graphWithChanges subscribe rawGraph
@@ -151,12 +146,11 @@ class EventProcessor private (
         case (c, idx) =>
           Observable.fromFuture(sendChanges(c :: Nil)).map {
             case true =>
-              scribe.info(s"Successfully sent out changes from EventProcessor")
               Right(idx)
             case false =>
               // TODO delay with exponential backoff
               // TODO: take more from buffer if fails?
-              Left(Observable((c, idx)).sample(1 seconds))
+              Left(Observable((c, idx)).sample(2 seconds))
           }
       }
     }
@@ -164,7 +158,6 @@ class EventProcessor private (
 
   sendingChanges.subscribe(
     { c =>
-      println("[Events] Sending out changes done: " + c)
       Ack.Continue
     },
     err => scribe.error("[Events] Error sending out changes, cannot continue", err)

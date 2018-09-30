@@ -57,9 +57,9 @@ class GlobalState(
 
   val channelTree: Rx[Tree] = Rx {
     val channelNode = graph().nodesById(user().channelNodeId)
-    time("bench: channelTree") {
+    // time("bench: channelTree") {
       graph().channelTree(channelNode)
-    }
+    // }
   }
 
   val channels: Rx[Seq[Node]] = Rx {

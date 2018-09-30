@@ -35,7 +35,7 @@ object BreadCrumbs {
     div(
       cls := "breadcrumbs",
       Rx {
-        time("bench: breadcrumbs") {
+        // time("bench: breadcrumbs") {
           val page = state.page()
           val user = state.user()
           val graph = state.graph().removeNodes(user.channelNodeId :: Nil)
@@ -73,7 +73,7 @@ object BreadCrumbs {
             }
             intersperse(elements.toList.flatten, span("/", cls := "divider"))
           }.flatten
-        }
+        // }
       },
       registerDraggableContainer(state),
       onClick handleWith{Analytics.sendEvent("breadcrumbs", "click")},
