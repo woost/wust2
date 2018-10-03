@@ -5,6 +5,7 @@ import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
 import monix.reactive.{Observable, Observer}
+import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.dom.{AsObserver, AsValueObservable, Handler, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
 import rx._
@@ -183,6 +184,30 @@ package object outwatchHelpers {
     if (DevOnly.isTrue) VDomModifier(keyModifier, dsl.data.key := keyNumber)
     else keyModifier
   }
+
+    def requestSingleAnimationFrame(code: => Unit): () => Unit = {
+      var lastAnimationFrameRequest = -1
+      () => {
+        if(lastAnimationFrameRequest != -1) {
+          dom.window.cancelAnimationFrame(lastAnimationFrameRequest)
+        }
+        lastAnimationFrameRequest = dom.window.requestAnimationFrame { _ =>
+          code
+        }
+      }
+    }
+
+    def requestSingleAnimationFrame[T](): ( => Unit) => Unit = {
+      var lastAnimationFrameRequest = -1
+      f => {
+        if(lastAnimationFrameRequest != -1) {
+          dom.window.cancelAnimationFrame(lastAnimationFrameRequest)
+        }
+        lastAnimationFrameRequest = dom.window.requestAnimationFrame { _ =>
+          f
+        }
+      }
+    }
 }
 
 class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {

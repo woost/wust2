@@ -238,15 +238,15 @@ object ThreadView {
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None: Option[HTMLElement])
 
+    var lastAnimationFrameRequest = -1
+    val scrollToBottomInAnimationFrame = requestSingleAnimationFrame {
+      scrollableHistoryElem.now.foreach { elem =>
+        scrollToBottom(elem)
+      }
+    }
 
     div(
-      managed(IO {
-        submittedNewMessage.foreach { _ =>
-          scrollableHistoryElem.now.foreach { elem =>
-            scrollToBottom(elem)
-          }
-        }
-      }),
+      managed(IO { submittedNewMessage.foreach(_ => scrollToBottomInAnimationFrame()) }),
       // this wrapping of chat history is currently needed,
       // to allow dragging the scrollbar without triggering a drag event.
       // see https://github.com/Shopify/draggable/issues/262
@@ -275,32 +275,28 @@ object ThreadView {
               keyed
             )
         },
-        onSnabbdomPrePatch handleWith {
+        onDomPreUpdate handleWith {
           scrollableHistoryElem.now.foreach { prev =>
             val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
             isScrolledToBottom() = wasScrolledToBottom
           }
         },
         onDomUpdate handleWith {
-          scrollableHistoryElem.now.foreach { elem =>
-            if(isScrolledToBottom.now)
-              defer { scrollToBottom(elem) }
-          }
+          if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
         },
         managed(IO {
           // on page change, always scroll down
           state.page.foreach { _ =>
-              isScrolledToBottom() = true
-              scrollableHistoryElem.now.foreach { elem => defer{ scrollToBottom(elem) } }
+            isScrolledToBottom() = true
+            scrollToBottomInAnimationFrame()
           }
         }),
 
       ),
       overflow.auto,
       onDomMount.asHtml handleWith { elem =>
-        if(isScrolledToBottom.now)
-          defer { scrollToBottom(elem) }
         scrollableHistoryElem() = Some(elem)
+        scrollToBottomInAnimationFrame()
       },
 
       // tapping on background deselects
@@ -741,6 +737,8 @@ object ThreadView {
       }
     }
 
+    val focusInAnimationFrame = requestSingleAnimationFrame[dom.Element]()
+
     div(
       cls := "ui form",
       keyed(directParentIds),
@@ -764,7 +762,7 @@ object ThreadView {
         // TODO: sideEffect still has the overhead of triggering the monix scheduler, since it is implemented as an observer
         onKeyPress.stopPropagation handleWith {},
         onKeyUp.stopPropagation handleWith {},
-        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml handleWith { e => e.focus() }),
+        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml handleWith { e => focusInAnimationFrame(e.focus()) }),
         onBlur.value handleWith { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
