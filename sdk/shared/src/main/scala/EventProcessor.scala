@@ -16,6 +16,7 @@ import monix.reactive.subjects.PublishSubject
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack
+import monix.reactive.observers.BufferedSubscriber
 import wust.ids.EdgeData
 
 import scala.util.control.NonFatal
@@ -43,12 +44,10 @@ object EventProcessor {
     val graphEvents = s
       .map(_.collect { case e: ApiEvent.GraphContent => e })
       .collect { case l if l.nonEmpty => l }
-      .share
 
     val authEvents = s
       .map(_.collect { case e: ApiEvent.AuthContent => e })
       .collect { case l if l.nonEmpty => l }
-      .share
 
     new EventProcessor(
       graphEvents,
@@ -72,7 +71,7 @@ class EventProcessor private (
 
   val currentAuth: Observable[Authentication] = authEventStream.collect {
     case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
-  }
+  }.share
   val currentUser: Observable[AuthUser] = currentAuth.map(_.user)
 
   // changes that are only applied to the graph but are never sent
@@ -135,31 +134,28 @@ class EventProcessor private (
     obs.runAsync
   }
 
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] =
-    localChanges
-      .zipWithIndex
-      .asyncBoundary(OverflowStrategy.Unbounded)
+  private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex.asyncBoundary(Unbounded)
 
-  private val sendingChanges: Observable[Long] = Observable
-    .tailRecM(localChangesIndexed) { changes =>
+  private val sendingChanges: Observable[Long] = {
+    val localChangesIndexedBusy = new BusyBufferObservable(localChangesIndexed, maxCount = 10)
+      .map(list => (list.map(_._1), list.last._2))
+
+    Observable.tailRecM(localChangesIndexedBusy) { changes =>
       changes.flatMap {
         case (c, idx) =>
-          Observable.fromFuture(sendChanges(c :: Nil)).map {
+          Observable.fromFuture(sendChanges(c)).map {
             case true =>
               Right(idx)
             case false =>
               // TODO delay with exponential backoff
-              // TODO: take more from buffer if fails?
-              Left(Observable((c, idx)).sample(2 seconds))
+              Left(Observable((c, idx)).sample(5 seconds))
           }
       }
-    }
-    .share
+    }.share
+  }
 
   sendingChanges.subscribe(
-    { c =>
-      Ack.Continue
-    },
+    _ => Ack.Continue,
     err => scribe.error("[Events] Error sending out changes, cannot continue", err)
   )
 
