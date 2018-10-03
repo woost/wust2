@@ -12,7 +12,7 @@ import wust.ids
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.Elements._
 
 object FeedbackForm {
@@ -91,9 +91,11 @@ object FeedbackForm {
             cls := "ui tiny compact button",
             "Show all Feedback",
             (Icons.zoom:VNode)(marginLeft := "5px"),
-            onClick(Page(feedbackNodeId)) --> state.page,
-            onClick(false) --> show,
             onClick handleWith {
+              val nextPage = Page(feedbackNodeId)
+              if (state.view.now.isContent) state.page() = nextPage
+              else state.viewConfig.update(_.copy(page = nextPage, view = View.default))
+              show() = false
               Analytics.sendEvent("feedback", "show")
             }
           ),

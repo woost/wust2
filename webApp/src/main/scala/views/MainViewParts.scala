@@ -23,11 +23,8 @@ object MainViewParts {
         val user = state.user.now
 
         val nextPage = Page.NewChannel(NodeId.fresh)
-        //TODO why does Var.set not work properly here with scalarx?
-        // if (state.view.now.isContent) state.page() = nextPage
-        // else Var.set(, state.view -> View.default)
-        state.page() = nextPage
-        if (!state.view.now.isContent) state.view() = View.default
+        if (state.view.now.isContent) state.page() = nextPage
+        else state.viewConfig.update(_.copy(page = nextPage, view = View.default))
       }
     )
   }
